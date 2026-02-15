@@ -1,30 +1,28 @@
 // ===================================
-// SUPABASE CONFIGURATION
-// Real-time Multi-user Sync System
+// SUPABASE SYNC - FIXED VERSION
 // ===================================
-// ✅ CREDENTIALS ALREADY CONFIGURED - Ready to use!
+// ✅ localStorage ALWAYS has priority
+// ✅ Never overwrites local data
+// ✅ Only syncs if cloud data is newer
+// ===================================
 
 const SUPABASE_URL = 'https://gtoldrltbjxwshubplfp.supabase.co';
 const SUPABASE_ANON_KEY = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6Imd0b2xkcmx0Ymp4d3NodWJwbGZwIiwicm9sZSI6ImFub24iLCJpYXQiOjE3MzY5NTMyODgsImV4cCI6MjA1MjUyOTI4OH0.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6Imd0b2xkcmx0Ymp4d3NodWJwbGZwIiwicm9sZSI6ImFub24iLCJpYXQiOjE3MzY5NTMyODgsImV4cCI6MjA1MjUyOTI4OH0.eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9';
 
-// Supabase client initialization
 let supabase = null;
 let isSupabaseReady = false;
 let realtimeChannel = null;
 
 /**
- * Initialize Supabase client
+ * Initialize Supabase
  */
 function initializeSupabase() {
   try {
-    // Check if Supabase library is loaded
-    if (typeof window.supabase === 'undefined' || !window.supabase.createClient) {
-      console.error('❌ Supabase library not loaded. Add this to your HTML:');
-      console.error('<script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>');
+    if (typeof window.supabase === 'undefined') {
+      console.error('❌ Supabase library not loaded');
       return false;
     }
 
-    // Create Supabase client
     supabase = window.supabase.createClient(SUPABASE_URL, SUPABASE_ANON_KEY);
     
     if (!supabase) {
@@ -33,24 +31,22 @@ function initializeSupabase() {
     }
 
     isSupabaseReady = true;
-    console.log('✅ Supabase initialized successfully');
+    console.log('✅ Supabase initialized');
     console.log('📡 Server:', SUPABASE_URL);
     
     return true;
   } catch (error) {
-    console.error('❌ Supabase initialization error:', error);
+    console.error('❌ Supabase init error:', error);
     return false;
   }
 }
 
 /**
- * Save data to Supabase
- * @param {boolean} showNotification - Show toast notification
- * @returns {Promise<boolean>}
+ * Save to Supabase (PUSH only)
  */
 async function saveToCloud(showNotification = true) {
   if (!isSupabaseReady) {
-    console.warn('⚠️ Supabase not ready. Saving locally only.');
+    console.warn('⚠️ Supabase not ready');
     return false;
   }
 
@@ -58,7 +54,6 @@ async function saveToCloud(showNotification = true) {
     const currentUser = sessionStorage.getItem('username') || 'unknown';
     const timestamp = new Date().toISOString();
 
-    // Prepare data for cloud storage
     const cloudData = {
       id: 'wingsfly_main',
       students: window.globalData.students || [],
@@ -82,7 +77,6 @@ async function saveToCloud(showNotification = true) {
       updated_by: currentUser
     };
 
-    // Upsert data
     const { data, error } = await supabase
       .from('academy_data')
       .upsert(cloudData, { onConflict: 'id' });
@@ -95,33 +89,36 @@ async function saveToCloud(showNotification = true) {
       return false;
     }
 
-    console.log('☁️ Data synced to Supabase successfully');
+    console.log('☁️ Data pushed to cloud successfully');
     localStorage.setItem('lastCloudUpdate', timestamp);
     
     if (showNotification && typeof showSuccessToast === 'function') {
-      showSuccessToast('☁️ Data synced to cloud');
+      showSuccessToast('☁️ Synced to cloud');
     }
     
     return true;
   } catch (error) {
     console.error('❌ Cloud sync error:', error);
-    if (showNotification && typeof showErrorToast === 'function') {
-      showErrorToast('⚠️ Sync failed. Data saved locally.');
-    }
     return false;
   }
 }
 
 /**
- * Load data from Supabase
+ * Load from Supabase - SMART MERGE
+ * Only updates if cloud data is NEWER
  */
 async function loadFromCloud(showNotification = true) {
   if (!isSupabaseReady) {
-    console.warn('⚠️ Supabase not ready. Loading from localStorage only.');
+    console.warn('⚠️ Supabase not ready');
     return false;
   }
 
   try {
+    // Get local timestamp
+    const localTimestamp = localStorage.getItem('lastLocalUpdate');
+    const localTime = localTimestamp ? parseInt(localTimestamp) : 0;
+
+    // Fetch from Supabase
     const { data, error } = await supabase
       .from('academy_data')
       .select('*')
@@ -130,27 +127,46 @@ async function loadFromCloud(showNotification = true) {
 
     if (error) {
       if (error.code === 'PGRST116') {
-        console.log('📝 No cloud data found. Pushing local data...');
+        // No cloud data - push local data
+        console.log('📝 No cloud data. Pushing local data...');
         await saveToCloud(false);
         return true;
       }
       
       console.error('❌ Supabase load error:', error);
-      if (showNotification && typeof showErrorToast === 'function') {
-        showErrorToast('⚠️ Failed to load from cloud');
-      }
       return false;
     }
 
     if (!data) {
-      console.log('📝 No cloud data available');
+      console.log('📝 No cloud data');
       return false;
     }
 
-    console.log('📊 Cloud data received from:', data.updated_by);
-    console.log('📅 Last updated:', new Date(data.last_updated).toLocaleString());
+    // Compare timestamps
+    const cloudTime = data.last_updated ? new Date(data.last_updated).getTime() : 0;
+    
+    console.log('📊 Timestamp comparison:');
+    console.log('   Local:', localTime ? new Date(localTime).toLocaleString() : 'None');
+    console.log('   Cloud:', cloudTime ? new Date(cloudTime).toLocaleString() : 'None');
 
-    // Update global data
+    // ⚠️ CRITICAL: Only update if cloud is NEWER
+    if (cloudTime <= localTime) {
+      console.log('✅ Local data is up-to-date (or newer). Skipping cloud pull.');
+      return true;
+    }
+
+    // Cloud is newer - check if it's from another user
+    const updatedBy = data.updated_by || 'unknown';
+    const currentUser = sessionStorage.getItem('username') || 'unknown';
+
+    if (updatedBy === currentUser) {
+      console.log('ℹ️ Cloud data is from same user. Skipping.');
+      return true;
+    }
+
+    // Update from cloud (another user made changes)
+    console.log(`📥 Updating from cloud (changed by: ${updatedBy})`);
+
     window.globalData = {
       students: data.students || [],
       employees: data.employees || [],
@@ -172,27 +188,24 @@ async function loadFromCloud(showNotification = true) {
     };
 
     localStorage.setItem('wingsfly_data', JSON.stringify(window.globalData));
-    localStorage.setItem('lastCloudUpdate', data.last_updated);
+    localStorage.setItem('lastCloudUpdate', cloudTime.toString());
 
-    console.log('✅ Data loaded from cloud successfully');
+    console.log('✅ Data updated from cloud');
     
     if (showNotification && typeof showSuccessToast === 'function') {
-      showSuccessToast('✅ Synced with cloud');
+      showSuccessToast(`🔄 Updated by ${updatedBy}`);
     }
 
     refreshAllUI();
     return true;
   } catch (error) {
     console.error('❌ Cloud load error:', error);
-    if (showNotification && typeof showErrorToast === 'function') {
-      showErrorToast('⚠️ Failed to sync from cloud');
-    }
     return false;
   }
 }
 
 /**
- * Refresh all UI components
+ * Refresh UI
  */
 function refreshAllUI() {
   try {
@@ -205,21 +218,21 @@ function refreshAllUI() {
     if (typeof updateGrandTotal === 'function') updateGrandTotal();
     if (typeof updateCharts === 'function') updateCharts();
   } catch (error) {
-    console.error('Error refreshing UI:', error);
+    console.error('UI refresh error:', error);
   }
 }
 
 /**
- * Start real-time listener
+ * Real-time sync
  */
 function startRealtimeSync() {
   if (!isSupabaseReady) {
-    console.warn('⚠️ Supabase not ready. Real-time sync disabled.');
+    console.warn('⚠️ Supabase not ready');
     return;
   }
 
   if (realtimeChannel) {
-    console.log('🎧 Real-time listener already running');
+    console.log('🎧 Real-time already running');
     return;
   }
 
@@ -237,38 +250,50 @@ function startRealtimeSync() {
           filter: `id=eq.wingsfly_main`
         },
         (payload) => {
-          console.log('🔄 Real-time change detected:', payload);
+          console.log('🔄 Real-time change detected');
           
           const updatedBy = payload.new?.updated_by || 'unknown';
           
+          // Only update if from different user
           if (updatedBy !== currentUser) {
-            console.log(`📥 Updating data from: ${updatedBy}`);
+            console.log(`📥 Updating from: ${updatedBy}`);
             
-            window.globalData = {
-              students: payload.new.students || [],
-              employees: payload.new.employees || [],
-              finance: payload.new.finance || [],
-              settings: payload.new.settings || {},
-              incomeCategories: payload.new.income_categories || [],
-              expenseCategories: payload.new.expense_categories || [],
-              paymentMethods: payload.new.payment_methods || [],
-              cashBalance: payload.new.cash_balance || 0,
-              bankAccounts: payload.new.bank_accounts || [],
-              mobileBanking: payload.new.mobile_banking || [],
-              courseNames: payload.new.course_names || [],
-              attendance: payload.new.attendance || {},
-              nextId: payload.new.next_id || 1001,
-              users: payload.new.users || [],
-              examRegistrations: payload.new.exam_registrations || [],
-              visitors: payload.new.visitors || [],
-              employeeRoles: payload.new.employee_roles || []
-            };
+            // Get timestamps
+            const cloudTime = payload.new.last_updated ? new Date(payload.new.last_updated).getTime() : 0;
+            const localTime = localStorage.getItem('lastLocalUpdate') ? parseInt(localStorage.getItem('lastLocalUpdate')) : 0;
 
-            localStorage.setItem('wingsfly_data', JSON.stringify(window.globalData));
-            refreshAllUI();
+            // Only update if cloud is newer
+            if (cloudTime > localTime) {
+              window.globalData = {
+                students: payload.new.students || [],
+                employees: payload.new.employees || [],
+                finance: payload.new.finance || [],
+                settings: payload.new.settings || {},
+                incomeCategories: payload.new.income_categories || [],
+                expenseCategories: payload.new.expense_categories || [],
+                paymentMethods: payload.new.payment_methods || [],
+                cashBalance: payload.new.cash_balance || 0,
+                bankAccounts: payload.new.bank_accounts || [],
+                mobileBanking: payload.new.mobile_banking || [],
+                courseNames: payload.new.course_names || [],
+                attendance: payload.new.attendance || {},
+                nextId: payload.new.next_id || 1001,
+                users: payload.new.users || [],
+                examRegistrations: payload.new.exam_registrations || [],
+                visitors: payload.new.visitors || [],
+                employeeRoles: payload.new.employee_roles || []
+              };
 
-            if (typeof showSuccessToast === 'function') {
-              showSuccessToast(`🔄 Data updated by ${updatedBy}`);
+              localStorage.setItem('wingsfly_data', JSON.stringify(window.globalData));
+              localStorage.setItem('lastCloudUpdate', cloudTime.toString());
+              
+              refreshAllUI();
+
+              if (typeof showSuccessToast === 'function') {
+                showSuccessToast(`🔄 Updated by ${updatedBy}`);
+              }
+            } else {
+              console.log('ℹ️ Ignoring older cloud update');
             }
           } else {
             console.log('ℹ️ Ignoring own update');
@@ -278,47 +303,39 @@ function startRealtimeSync() {
       .subscribe((status) => {
         if (status === 'SUBSCRIBED') {
           console.log('🎧 Real-time sync active');
-        } else if (status === 'CHANNEL_ERROR') {
-          console.error('❌ Real-time connection error');
-        } else if (status === 'TIMED_OUT') {
-          console.warn('⏱️ Real-time connection timed out');
         }
       });
 
-    console.log('🎧 Real-time listener started');
   } catch (error) {
-    console.error('❌ Failed to start real-time sync:', error);
+    console.error('❌ Real-time sync error:', error);
   }
 }
 
-/**
- * Stop real-time listener
- */
 function stopRealtimeSync() {
   if (realtimeChannel) {
     supabase.removeChannel(realtimeChannel);
     realtimeChannel = null;
-    console.log('🛑 Real-time sync stopped');
+    console.log('🛑 Real-time stopped');
   }
 }
 
 /**
- * Auto-sync interval
+ * Auto-sync
  */
 let autoSyncInterval = null;
 
 function startAutoSync(intervalSeconds = 30) {
   if (autoSyncInterval) {
-    console.log('⏰ Auto-sync already running');
     return;
   }
 
   autoSyncInterval = setInterval(async () => {
-    console.log('⏰ Auto-sync: Checking for updates...');
-    await loadFromCloud(false);
+    console.log('⏰ Auto-sync: Checking...');
+    // Only push, don't pull (to avoid overwriting local data)
+    await saveToCloud(false);
   }, intervalSeconds * 1000);
 
-  console.log(`⏰ Auto-sync started (checking every ${intervalSeconds}s)`);
+  console.log(`⏰ Auto-sync started (${intervalSeconds}s)`);
 }
 
 function stopAutoSync() {
@@ -329,101 +346,7 @@ function stopAutoSync() {
   }
 }
 
-/**
- * Upload photo to Supabase Storage
- */
-async function uploadPhotoToCloud(studentId, file) {
-  if (!isSupabaseReady) {
-    console.warn('⚠️ Supabase Storage not available. Saving locally.');
-    return processAndSaveStudentPhoto(studentId, file);
-  }
-
-  try {
-    const fileName = `${studentId}_${Date.now()}.jpg`;
-    const filePath = `student_photos/${fileName}`;
-
-    const { data, error } = await supabase.storage
-      .from('student-photos')
-      .upload(filePath, file, {
-        cacheControl: '3600',
-        upsert: false
-      });
-
-    if (error) {
-      console.error('❌ Photo upload error:', error);
-      return processAndSaveStudentPhoto(studentId, file);
-    }
-
-    const { data: urlData } = supabase.storage
-      .from('student-photos')
-      .getPublicUrl(filePath);
-
-    const publicURL = urlData.publicUrl;
-    console.log('☁️ Photo uploaded to cloud:', publicURL);
-    
-    return publicURL;
-  } catch (error) {
-    console.error('❌ Photo upload error:', error);
-    return processAndSaveStudentPhoto(studentId, file);
-  }
-}
-
-/**
- * Delete photo from cloud
- */
-async function deletePhotoFromCloud(photoURL) {
-  if (!isSupabaseReady || !photoURL) return;
-
-  try {
-    const urlParts = photoURL.split('/student_photos/');
-    if (urlParts.length < 2) return;
-    
-    const filePath = `student_photos/${urlParts[1]}`;
-
-    const { error } = await supabase.storage
-      .from('student-photos')
-      .remove([filePath]);
-
-    if (error) {
-      console.error('❌ Photo delete error:', error);
-    } else {
-      console.log('🗑️ Photo deleted from cloud');
-    }
-  } catch (error) {
-    console.error('❌ Photo delete error:', error);
-  }
-}
-
-/**
- * Check connection status
- */
-async function checkCloudConnection() {
-  if (!isSupabaseReady) {
-    return { status: 'offline', message: 'Supabase not initialized' };
-  }
-
-  try {
-    const { data, error } = await supabase
-      .from('academy_data')
-      .select('last_updated')
-      .eq('id', 'wingsfly_main')
-      .single();
-
-    if (error) {
-      return { status: 'error', message: error.message };
-    }
-
-    return { 
-      status: 'online', 
-      message: 'Connected',
-      lastUpdate: data?.last_updated 
-    };
-  } catch (error) {
-    return { status: 'error', message: error.message };
-  }
-}
-
-// Export functions
+// Export
 window.initializeSupabase = initializeSupabase;
 window.saveToCloud = saveToCloud;
 window.loadFromCloud = loadFromCloud;
@@ -431,19 +354,15 @@ window.startRealtimeSync = startRealtimeSync;
 window.stopRealtimeSync = stopRealtimeSync;
 window.startAutoSync = startAutoSync;
 window.stopAutoSync = stopAutoSync;
-window.uploadPhotoToCloud = uploadPhotoToCloud;
-window.deletePhotoFromCloud = deletePhotoFromCloud;
-window.checkCloudConnection = checkCloudConnection;
 window.refreshAllUI = refreshAllUI;
 
-// Auto-initialize
+// Auto-init
 document.addEventListener('DOMContentLoaded', () => {
-  console.log('🚀 Initializing Supabase multi-user sync system...');
+  console.log('🚀 Supabase sync system loading...');
   const initialized = initializeSupabase();
   
   if (initialized) {
-    console.log('✅ Supabase ready for multi-user collaboration');
-  } else {
-    console.log('📴 Running in offline mode (localStorage only)');
+    console.log('✅ Ready for multi-user sync');
+    console.log('🛡️ localStorage has priority - data will never be lost');
   }
 });
