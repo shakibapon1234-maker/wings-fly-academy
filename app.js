@@ -69,79 +69,80 @@ function removeStudentPhoto() {
   showSuccessToast('✅ Photo removed');
 }
 
-// Upload photo to Firebase Storage
+// 🎯 LOCAL-ONLY Photo Storage (No Cloud Upload)
+// Photos stored in localStorage - only visible on main PC
 async function uploadStudentPhoto(studentId, file) {
   return new Promise((resolve, reject) => {
     try {
-      // Show progress bar
-      document.getElementById('photoUploadProgress').style.display = 'block';
-
-      // Create storage reference
-      const storageRef = firebase.storage().ref();
-      const timestamp = Date.now();
-      const photoRef = storageRef.child(`student_photos/${studentId}/${timestamp}_${file.name}`);
-
-      // Upload file
-      const uploadTask = photoRef.put(file);
-
-      // Monitor upload progress
-      uploadTask.on('state_changed',
-        (snapshot) => {
-          // Progress
-          const progress = (snapshot.bytesTransferred / snapshot.totalBytes) * 100;
-          const progressBar = document.getElementById('photoProgressBar');
-          const progressText = document.getElementById('photoProgressText');
-
-          if (progressBar && progressText) {
-            progressBar.style.width = progress + '%';
-            progressText.textContent = Math.round(progress) + '%';
-          }
-        },
-        (error) => {
-          // Error
-          console.error('Upload error:', error);
-          document.getElementById('photoUploadProgress').style.display = 'none';
-          showErrorToast('❌ Failed to upload photo: ' + error.message);
-          reject(error);
-        },
-        async () => {
-          // Success - get download URL
-          try {
-            const downloadURL = await uploadTask.snapshot.ref.getDownloadURL();
-            document.getElementById('photoUploadProgress').style.display = 'none';
-            showSuccessToast('✅ Photo uploaded successfully!');
-            resolve(downloadURL);
-          } catch (error) {
-            console.error('Error getting download URL:', error);
-            document.getElementById('photoUploadProgress').style.display = 'none';
-            reject(error);
-          }
+      const reader = new FileReader();
+      
+      reader.onload = function(event) {
+        try {
+          const base64Image = event.target.result;
+          const photoKey = `student_photo_${studentId}`;
+          
+          // Store in localStorage
+          localStorage.setItem(photoKey, base64Image);
+          
+          console.log(`✅ Photo saved locally for student: ${studentId}`);
+          showSuccessToast('✅ Photo saved locally (visible only on this PC)');
+          
+          // Return the local storage key as "URL"
+          resolve(photoKey);
+        } catch (storageError) {
+          console.error('Local storage error:', storageError);
+          showErrorToast('⚠️ Failed to save photo. Storage might be full.');
+          reject(storageError);
         }
-      );
+      };
+      
+      reader.onerror = function(error) {
+        console.error('File reading error:', error);
+        reject(error);
+      };
+      
+      reader.readAsDataURL(file);
     } catch (error) {
-      console.error('Upload error:', error);
-      document.getElementById('photoUploadProgress').style.display = 'none';
-      showErrorToast('❌ Upload failed: ' + error.message);
+      console.error('Photo processing error:', error);
       reject(error);
     }
   });
 }
 
-// Delete photo from Firebase Storage
-async function deleteStudentPhoto(photoURL) {
-  if (!photoURL) return;
+// Delete photo from localStorage
+async function deleteStudentPhoto(photoKey) {
+  if (!photoKey) return;
 
   try {
-    const storageRef = firebase.storage().refFromURL(photoURL);
-    await storageRef.delete();
-    console.log('Old photo deleted successfully');
+    localStorage.removeItem(photoKey);
+    console.log('✅ Photo deleted from localStorage');
   } catch (error) {
-    console.error('Error deleting old photo:', error);
-    // Don't throw error - it's okay if old photo deletion fails
+    console.error('Error deleting photo:', error);
   }
 }
 
+// 🎯 Get student photo - from localStorage or placeholder
+function getStudentPhotoSrc(photoKey) {
+  if (!photoKey) {
+    // Return placeholder image
+    return 'data:image/svg+xml,%3Csvg xmlns="http://www.w3.org/2000/svg" width="200" height="200"%3E%3Crect fill="%2300d9ff" width="200" height="200"/%3E%3Ctext x="50%25" y="50%25" dominant-baseline="middle" text-anchor="middle" font-family="sans-serif" font-size="80" fill="%23ffffff"%3E👤%3C/text%3E%3C/svg%3E';
+  }
+  
+  // Try to get from localStorage
+  const localPhoto = localStorage.getItem(photoKey);
+  
+  if (localPhoto) {
+    return localPhoto; // Return base64 image
+  }
+  
+  // If not in localStorage, return placeholder
+  return 'data:image/svg+xml,%3Csvg xmlns="http://www.w3.org/2000/svg" width="200" height="200"%3E%3Crect fill="%23b537f2" width="200" height="200"/%3E%3Ctext x="50%25" y="50%25" dominant-baseline="middle" text-anchor="middle" font-family="sans-serif" font-size="60" fill="%23ffffff"%3E📷%3C/text%3E%3Ctext x="50%25" y="70%25" dominant-baseline="middle" text-anchor="middle" font-family="sans-serif" font-size="12" fill="%23ffffff"%3ENo Photo%3C/text%3E%3C/svg%3E';
+}
+
 // Make functions globally available
+window.uploadStudentPhoto = uploadStudentPhoto;
+window.deleteStudentPhoto = deleteStudentPhoto;
+window.getStudentPhotoSrc = getStudentPhotoSrc;
 window.handleStudentPhotoSelect = handleStudentPhotoSelect;
 window.removeStudentPhoto = removeStudentPhoto;
 window.uploadStudentPhoto = uploadStudentPhoto;
@@ -529,8 +530,8 @@ document.addEventListener('DOMContentLoaded', function () {
               window.startAutoSync(30);
               console.log('🔄 Auto-sync started (30s interval)');
             }
-            if (typeof window.startCloudListener === 'function') {
-              window.startCloudListener();
+            if (typeof window.startRealtimeSync === 'function') {
+              window.startRealtimeSync();
               console.log('🎧 Real-time listener started');
             }
           } else {
@@ -540,7 +541,7 @@ document.addEventListener('DOMContentLoaded', function () {
           console.error('âŒ Initial sync error:', error);
         }
       }
-    }, 1500); // Small delay to let Firebase initialize
+    }, 1500); // Small delay to let Supabase initialize
   }
 
 
@@ -5349,7 +5350,7 @@ function openEditStudentModal(rowIndex) {
   const photoURLInput = document.getElementById('studentPhotoURL');
 
   if (student.photo) {
-    photoPreview.src = student.photo;
+    photoPreview.src = getStudentPhotoSrc(student.photo);
     previewContainer.style.display = 'block';
     uploadInput.style.display = 'none';
     photoURLInput.value = student.photo;
@@ -5434,14 +5435,10 @@ function openIdCardModal(rowIndex) {
     expiryDate.setFullYear(expiryDate.getFullYear() + 1);
     document.getElementById('idCardExpiry').innerText = expiryDate.toLocaleDateString();
 
-    // Handle Photo
+    // Handle Photo - Load from localStorage or show placeholder
     const photoImg = document.getElementById('idCardPhoto');
     if (photoImg) {
-      if (student.photo) {
-        photoImg.src = student.photo;
-      } else {
-        photoImg.src = "https://cdn-icons-png.flaticon.com/512/3135/3135715.png"; // Default Placeholder
-      }
+      photoImg.src = getStudentPhotoSrc(student.photo);
     }
 
     // Set Barcode Text (Simulated)
