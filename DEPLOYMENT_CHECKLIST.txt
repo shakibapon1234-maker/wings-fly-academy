@@ -1,0 +1,74 @@
+📋 DEPLOYMENT CHECKLIST
+=======================
+
+Before Deploying:
+-----------------
+[ ] All files downloaded from Claude
+[ ] Files placed in project folder: D:\Antigravity-20260204T001345Z-3-001\Antigravity\
+[ ] Firebase CLI installed (check: firebase --version)
+[ ] Logged in to Firebase (check: firebase login)
+
+Files to Replace:
+-----------------
+[ ] index.html (UPDATED - Loan Given → Loan Giving)
+[ ] app.js (UPDATED - Error message fixed)
+[ ] firebase_manager.js (Cloud sync system)
+[ ] styles.css (Styling)
+[ ] firebase.json (Config)
+[ ] firestore.rules (Security rules)
+[ ] deploy.bat (Deploy script)
+
+Deploy Steps:
+-------------
+1. [ ] Open project folder in File Explorer
+2. [ ] Double-click deploy.bat OR run: firebase deploy --only hosting
+3. [ ] Wait for "Deploy complete!" message
+4. [ ] Note the deployment URL
+
+Testing After Deploy:
+---------------------
+[ ] Open: https://wings-fly-aviation-academy.web.app
+[ ] Clear browser cache (Ctrl + Shift + Delete)
+[ ] Hard reload page (Ctrl + Shift + R)
+[ ] Go to Finance page
+[ ] Click "Add Transaction"
+[ ] Check Type dropdown shows "Loan Giving (Money Out)"
+[ ] Try to save Salary without Person name → Should show error
+[ ] Add a test transaction → Should save successfully
+[ ] Check if cloud sync is working (F12 → Console → check logs)
+
+Troubleshooting:
+----------------
+If old version shows:
+  → Clear browser cache completely
+  → Try incognito/private window
+  → Wait 2-3 minutes for CDN to update
+
+If errors appear:
+  → Open browser console (F12)
+  → Check for red error messages
+  → Run: checkSyncStatus() in console
+
+Expected Results:
+-----------------
+✅ "Loan Giving (Money Out)" visible in dropdown
+✅ "Loan Receiving (Money In)" visible in dropdown  
+✅ Error message appears for empty Person field in Salary/Loan
+✅ Transactions save correctly
+✅ Firebase sync working (check console logs)
+
+Contact Info:
+-------------
+If issues persist:
+- Take screenshot of console errors
+- Note which step failed
+- Check README.md for detailed instructions
+
+DEPLOYMENT DATE: _______________
+DEPLOYED BY: _______________
+STATUS: [ ] Success  [ ] Failed  [ ] Pending
+
+Notes:
+_____________________________________________________
+_____________________________________________________
+_____________________________________________________
