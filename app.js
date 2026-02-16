@@ -625,26 +625,19 @@ document.addEventListener('DOMContentLoaded', function () {
 async function saveToStorage(skipCloudSync = false) {
   try {
     const currentTime = Date.now().toString();
-    localStorage.setItem('lastModified', new Date().toISOString());
+    localStorage.setItem('wingsfly_data', JSON.stringify(window.globalData));
     localStorage.setItem('lastLocalUpdate', currentTime);
 
-    // Save strictly to the standard key
-    localStorage.setItem('wingsfly_data', JSON.stringify(window.globalData));
-    console.log('💾 Data saved to local memory.');
+    console.log('💾 Data saved locally.');
 
-    // TRIGGER CLOUD SYNC ONLY ON ACTION
+    // Trigger cloud push if available and not skipped
     if (!skipCloudSync && typeof window.saveToCloud === 'function') {
-      const studentCount = window.globalData.students?.length || 0;
-      const financeCount = window.globalData.finance?.length || 0;
-
-      if (studentCount > 0 || financeCount > 0) {
-        console.log('🚀 Local change detected! Syncing to cloud...');
-        await window.saveToCloud();
-      }
+      console.log('☁️ Syncing to Cloud...');
+      await window.saveToCloud();
     }
     return true;
   } catch (error) {
-    console.error('❌ Save error:', error);
+    console.error('❌ Storage Error:', error);
     return false;
   }
 }

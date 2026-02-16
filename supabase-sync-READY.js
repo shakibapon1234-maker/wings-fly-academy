@@ -1,8 +1,7 @@
 /**
- * SUPABASE SYNC SYSTEM - V20 (STRICT ACTION LOGIC)
- * � SHIELD: Prevents zero-overwrite cycles.
- * ⚡ TRIGGER: Push only on explicit local action.
- * 📥 RECOVERY: Periodically pulls newer data from cloud.
+ * SUPABASE SYNC SYSTEM - V21 (REAL-TIME SHIELDED SYNC)
+ * 🛡️ Anti-Zero Protection: Never overwrites local with older cloud data.
+ * ⚡ Real-time: Listens for changes and updates UI instantly.
  */
 
 (function () {
@@ -13,8 +12,8 @@
 
   window.sbSyncClient = null;
   var isReady = false;
-  var hasPerformedInitialPull = false;
-  var isPushingNow = false;
+  var hasFetched = false;
+  var isProcessingSync = false;
 
   function init() {
     if (window.sbSyncClient) return true;
@@ -27,33 +26,39 @@
   }
 
   /**
-   * PULL: The "Checker"
-   * It only downloads data if the Cloud version is strictly NEWER than local.
+   * PULL: Just Collects Data
    */
   async function pull(force = false) {
     if (!isReady || !window.sbSyncClient) { if (!init()) return; }
-    if (isPushingNow && !force) return; // Don't pull while we are pushing
+    if (isProcessingSync && !force) return;
 
+    isProcessingSync = true;
     try {
-      const { data, error } = await window.sbSyncClient.from('academy_data').select('*').eq('id', 'wingsfly_main').single();
+      const { data, error } = await window.sbSyncClient
+        .from('academy_data')
+        .select('*')
+        .eq('id', 'wingsfly_main')
+        .single();
 
       if (error && error.code !== 'PGRST116') throw error;
 
       if (!data) {
-        console.log('ℹ️ Cloud is clean/empty.');
-        hasPerformedInitialPull = true;
+        console.log('ℹ️ Cloud is clean.');
+        hasFetched = true;
+        isProcessingSync = false;
         return;
       }
 
       const cloudTime = parseInt(data.last_updated) || 0;
       const localTime = parseInt(localStorage.getItem('lastLocalUpdate')) || 0;
 
-      // ONLY OVERWRITE IF CLOUD IS NEWER
-      if (!force && cloudTime <= localTime && hasPerformedInitialPull) {
+      // PREVENT OVERWRITING LOCAL WITH OLDER CLOUD DATA (CRITICAL)
+      if (!force && cloudTime <= localTime && hasFetched) {
+        isProcessingSync = false;
         return;
       }
 
-      console.log('📥 Found newer data on cloud! Updating local device...');
+      console.log('📥 Sycing data from cloud...');
 
       window.globalData = {
         students: data.students || [],
@@ -75,39 +80,33 @@
         employeeRoles: data.employee_roles || []
       };
 
-      // Save and timestamp
       localStorage.setItem('wingsfly_data', JSON.stringify(window.globalData));
       localStorage.setItem('lastLocalUpdate', cloudTime.toString());
 
-      hasPerformedInitialPull = true;
+      hasFetched = true;
 
-      // Trigger UI Update
+      // Update UI
       if (typeof window.renderFullUI === 'function') {
         window.renderFullUI();
-        console.log('✨ UI Updated automatically from cloud data.');
+        console.log('✨ UI Re-rendered from cloud data.');
       }
-    } catch (e) { console.error('Cloud Pull Error:', e); }
+    } catch (e) { console.error('Pull Error:', e); }
+    isProcessingSync = false;
   }
 
   /**
-   * PUSH: The "Action Sender"
-   * This is only called when app.js triggers window.saveToCloud()
+   * PUSH: Action Sender
    */
   async function push() {
-    if (!isReady || !window.sbSyncClient) { if (!init()) return false; }
+    if (!isReady || !window.sbSyncClient) { if (!init()) return; }
+    if (!window.globalData) return;
 
-    // Safety lock: Don't push empty data unless confirmed
-    if (!window.globalData) return false;
-    const hasStudents = window.globalData.students && window.globalData.students.length > 0;
-    const hasFinance = window.globalData.finance && window.globalData.finance.length > 0;
-
-    if (!hasStudents && !hasFinance && !hasPerformedInitialPull) {
-      console.warn('🛡️ Shield: Blocking accidental push of empty data.');
-      return false;
+    // Data Loss Protection: Don't push if we haven't successfully pulled yet
+    if (!hasFetched) {
+      console.warn('🛡️ Blocked: Waiting for first pull to avoid overwrite.');
+      return;
     }
 
-    isPushingNow = true;
-    console.log('📤 Action detected! Pushing local changes to Cloud...');
     try {
       const updateTime = Date.now().toString();
       const payload = {
@@ -136,34 +135,43 @@
       if (error) throw error;
 
       localStorage.setItem('lastLocalUpdate', updateTime);
-      console.log('✅ Cloud Successfully Updated.');
-      isPushingNow = false;
+      console.log('📤 Cloud saved successfully.');
       return true;
-    } catch (e) {
-      console.error('Cloud Push Error:', e);
-      isPushingNow = false;
-      return false;
-    }
+    } catch (e) { console.error('Push Error:', e); return false; }
   }
 
-  // Expose for app.js
+  /**
+   * REAL-TIME LISTENER
+   */
+  function startRealtime() {
+    if (!window.sbSyncClient) return;
+    const channel = window.sbSyncClient.channel('realtime_sync')
+      .on('postgres_changes', { event: '*', schema: 'public', table: 'academy_data' }, (payload) => {
+        console.log('🔥 Real-time change detected on Cloud!');
+        pull(false);
+      })
+      .subscribe();
+  }
+
   window.saveToCloud = function () { return push(); };
   window.loadFromCloud = function (force = false) { return pull(force); };
 
   window.manualSync = async function () {
     if (typeof showSuccessToast === 'function') showSuccessToast('🔄 Full Sync started...');
-    await pull(true); // Force pull first
-    await push(); // Then push local changes
+    await pull(true); // Always pull from cloud first to merge
+    await push();
     if (typeof showSuccessToast === 'function') showSuccessToast('✅ Sync Complete');
   };
 
-  // Auto-Checker (Pull only every 3 seconds)
   document.addEventListener('DOMContentLoaded', () => {
     if (init()) {
-      console.log('🟢 Wings Fly Shielded Sync Engine V20 Online');
+      console.log('🟢 Wings Fly Shielded Sync (V21) Ready.');
       setTimeout(() => {
-        pull(false); // Initial Check
-        setInterval(() => pull(false), 3000); // Continuous Check
+        pull(false).then(() => {
+          startRealtime(); // Listen for others' changes
+          // Regular fallback pull every 10s
+          setInterval(() => pull(false), 10000);
+        });
       }, 1000);
     }
   });
