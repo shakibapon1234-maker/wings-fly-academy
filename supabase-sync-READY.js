@@ -1,6 +1,6 @@
 /**
- * SUPABASE SYNC SYSTEM - V16 (DOWNTIME & DATA-LOSS PROTECTION)
- * 🛡️ Anti-Overwrite Protection Enabled
+ * SUPABASE SYNC SYSTEM - V17 (ACTION-DRIVEN SYNC)
+ * 🛡️ Security: Only pushes on local user action. Always pulls periodically.
  */
 
 (function () {
@@ -11,8 +11,7 @@
 
   window.sbSyncClient = null;
   var isReady = false;
-  var hasFetched = false; // Safety flag
-  var syncInProgress = false;
+  var lastSyncedTimestamp = 0;
 
   function init() {
     if (window.sbSyncClient) return true;
@@ -24,43 +23,29 @@
     } catch (e) { return false; }
   }
 
+  /**
+   * PULL Logic: "Just Collect" data from Cloud
+   */
   async function pull(force = false) {
     if (!isReady || !window.sbSyncClient) { if (!init()) return; }
-    if (syncInProgress && !force) return;
 
-    syncInProgress = true;
     try {
       const { data, error } = await window.sbSyncClient.from('academy_data').select('*').eq('id', 'wingsfly_main').single();
-
-      // If No Cloud Record Exists (First time using the app)
-      if (error && error.code === 'PGRST116') {
-        console.log('ℹ️ Cloud empty. Ready for first push.');
-        hasFetched = true; // Allow pushing since we confirmed cloud is empty
-        syncInProgress = false;
-        return;
-      }
-
-      if (error || !data) {
-        syncInProgress = false;
-        return;
-      }
+      if (error || !data) return;
 
       const cloudTime = parseInt(data.last_updated) || 0;
       const localTime = parseInt(localStorage.getItem('lastLocalUpdate')) || 0;
 
-      // Only overwrite local if cloud is strictly newer OR we haven't fetched yet
-      if (!force && cloudTime <= localTime && hasFetched) {
-        syncInProgress = false;
-        return;
-      }
+      // Only update local if cloud has newer data
+      if (!force && cloudTime <= localTime) return;
 
-      console.log('📥 Syncing newer data from cloud...');
+      console.log('📥 Collecting new data from cloud...');
 
-      // Map strictly to window.globalData
+      // Map strictly to window.globalData (Matches app.js keys exactly)
       window.globalData = {
         students: data.students || [],
         employees: data.employees || [],
-        finance: data.finance || [],
+        finance: data.finance || [], // Finance correctly mapped
         settings: data.settings || {},
         incomeCategories: data.income_categories || [],
         expenseCategories: data.expense_categories || [],
@@ -77,41 +62,32 @@
         employeeRoles: data.employee_roles || []
       };
 
-      // Global backup update
+      // Save to local disk as backup
       localStorage.setItem('wingsfly_data', JSON.stringify(window.globalData));
       localStorage.setItem('lastLocalUpdate', cloudTime.toString());
 
-      hasFetched = true; // Now safe to push local changes
-
-      // Update UI
+      // Update Screen without refresh
       if (typeof window.renderFullUI === 'function') {
         window.renderFullUI();
-        console.log('✅ UI Updated from Cloud.');
       }
-    } catch (e) { console.error('Cloud Pull Error:', e); }
-    syncInProgress = false;
+    } catch (e) { console.error('Pull Error:', e); }
   }
 
-  async function push(isManual = false) {
-    if (!isReady || !window.sbSyncClient) { if (!init()) return false; }
+  /**
+   * PUSH Logic: Only triggered when user ADDS/EDITS data locally
+   */
+  async function push() {
+    if (!isReady || !window.sbSyncClient) { if (!init()) return; }
+    if (!window.globalData) return;
 
-    // 🛡️ DATA LOSS PROTECTION:
-    // Never push if we haven't successfully checked the cloud yet.
-    // This prevents an empty PC from overwriting the Main PC's data on startup.
-    if (!hasFetched && !isManual) {
-      console.warn('🛡️ Sync Shield: Push blocked until first cloud pull completes.');
-      return false;
-    }
-
-    if (!window.globalData || !window.globalData.students) return false;
-
+    console.log('� Local action detected! Sending to cloud...');
     try {
       const updateTime = Date.now().toString();
       const payload = {
         id: 'wingsfly_main',
-        students: window.globalData.students,
-        employees: window.globalData.employees || [],
+        students: window.globalData.students || [],
         finance: window.globalData.finance || [],
+        employees: window.globalData.employees || [],
         settings: window.globalData.settings || {},
         income_categories: window.globalData.incomeCategories || [],
         expense_categories: window.globalData.expenseCategories || [],
@@ -130,39 +106,25 @@
       };
 
       const { error } = await window.sbSyncClient.from('academy_data').upsert(payload);
-      if (error) throw error;
-
-      localStorage.setItem('lastLocalUpdate', updateTime);
-      return true;
-    } catch (e) {
-      console.error('Cloud Push Error:', e);
-      return false;
-    }
+      if (!error) {
+        localStorage.setItem('lastLocalUpdate', updateTime);
+        console.log('✅ Changes successfully saved to cloud.');
+      }
+    } catch (e) { console.error('Push Error:', e); }
   }
 
-  // Bind hooks for app.js
-  window.saveToCloud = function () { return push(false); };
+  // Bind to app.js Hooks
+  window.saveToCloud = function () { return push(); }; // Called on Save button click
   window.loadFromCloud = function (force = false) { return pull(force); };
 
-  window.manualSync = async function () {
-    if (typeof showSuccessToast === 'function') showSuccessToast('🔄 Synchronizing...');
-    const pushed = await push(true);
-    const pulled = await pull(true);
-    if (pushed && pulled && typeof showSuccessToast === 'function') {
-      showSuccessToast('✅ Sync Complete');
-    }
-  };
-
-  // Auto-Initialization
+  // Auto-Collection (Every 3 seconds)
   document.addEventListener('DOMContentLoaded', () => {
     if (init()) {
-      console.log('🟢 Wings Fly Shielded Sync Engine Ready');
-      // Small delay to let app.js load its local data first
-      setTimeout(() => {
-        pull(false); // Initial Pull
-        // Faster interval for real-time feel (2 seconds)
-        setInterval(() => pull(false), 2000);
-      }, 1000);
+      console.log('🟢 Wings Fly Action Sync (V17) Ready.');
+      // Initial Pull
+      setTimeout(() => pull(false), 1000);
+      // Periodic Collection
+      setInterval(() => pull(false), 3000);
     }
   });
 
