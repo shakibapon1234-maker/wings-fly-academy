@@ -522,13 +522,13 @@ document.addEventListener('DOMContentLoaded', function () {
       if (typeof window.loadFromCloud === 'function') {
         try {
           console.log('💥 Pulling latest data from cloud on startup...');
-          const success = await window.loadFromCloud(false); // Silent initial sync
+          const success = await window.loadFromCloud(true); // Show notification
           if (success) {
             console.log('✅ Initial cloud sync successful');
             // Start auto-sync and real-time listener
             if (typeof window.startAutoSync === 'function') {
-              window.startAutoSync(30);
-              console.log('🔄 Auto-sync started (30s interval)');
+              window.startAutoSync(10);
+              console.log('🔄 Auto-sync started (10s interval)');
             }
             if (typeof window.startRealtimeSync === 'function') {
               window.startRealtimeSync();
@@ -608,27 +608,50 @@ document.addEventListener('DOMContentLoaded', function () {
 
 async function saveToStorage(skipCloudSync = false) {
   try {
-    // ✅ CRITICAL FIX: Use NUMERIC timestamp instead of ISO string
-    // This matches firebase_manager.js timestamp format
-    const currentTime = Date.now(); // Returns number (milliseconds)
-    localStorage.setItem('lastLocalUpdate', currentTime.toString());
+    // ✅ Save timestamp using ISO string for consistency
+    const currentTime = new Date().toISOString();
+    localStorage.setItem('lastModified', currentTime);
+    localStorage.setItem('lastLocalUpdate', Date.now().toString());
 
-    // ALWAYS use window.globalData for the source of truth
+    // Save individual data arrays for better sync control
+    localStorage.setItem('students', JSON.stringify(window.globalData.students || []));
+    localStorage.setItem('finances', JSON.stringify(window.globalData.finances || []));
+    localStorage.setItem('courses', JSON.stringify(window.globalData.courses || []));
+    localStorage.setItem('employees', JSON.stringify(window.globalData.employees || []));
+    localStorage.setItem('banks', JSON.stringify(window.globalData.banks || []));
+    localStorage.setItem('mobiles', JSON.stringify(window.globalData.mobiles || []));
+
+    // Also save as single object for backward compatibility
     const dataString = JSON.stringify(window.globalData);
     localStorage.setItem('wingsfly_data', dataString);
 
-    console.log('💾 Local save complete. Timestamp:', currentTime, '→', new Date(currentTime).toISOString());
+    console.log('💾 Local save complete. Timestamp:', currentTime);
 
-    // Sync with Cloud
+    // 🚀 AGGRESSIVE CLOUD SYNC - Always sync unless explicitly skipped
     if (!skipCloudSync && typeof window.saveToCloud === 'function') {
       console.log('☁️ Triggering cloud sync...');
+      
+      // Trigger cloud sync immediately
       const cloudSuccess = await window.saveToCloud(false);
+      
       if (cloudSuccess) {
         console.log('✅ Cloud sync successful');
+        // Show subtle success notification
+        if (typeof showSuccessToast === 'function') {
+          showSuccessToast('💾 Saved & synced to cloud');
+        }
       } else {
         console.warn('⚠️ Cloud sync failed, but local save successful');
+        // Retry once more after 2 seconds
+        setTimeout(async () => {
+          console.log('🔄 Retrying cloud sync...');
+          const retrySuccess = await window.saveToCloud(false);
+          if (retrySuccess) {
+            console.log('✅ Cloud sync successful on retry');
+          }
+        }, 2000);
       }
-      return cloudSuccess; // Return the actual cloud sync result
+      return cloudSuccess;
     }
     return true; // Local save was successful
   } catch (error) {
