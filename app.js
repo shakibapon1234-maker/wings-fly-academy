@@ -253,6 +253,21 @@
         ? new Date(localStorage.getItem('lastModified')).getTime()
         : 0;
       
+      // 🛡️ SAFETY CHECK: Don't overwrite local data with empty cloud data
+      const hasLocalData = localStorage.getItem('students') && 
+        JSON.parse(localStorage.getItem('students') || '[]').length > 0;
+      
+      const cloudHasData = cloudData.students && cloudData.students.length > 0;
+      
+      if (hasLocalData && !cloudHasData) {
+        console.log('🛡️ PROTECTED: Local data exists, cloud is empty - keeping local data');
+        console.log('💡 Pushing local data to cloud instead...');
+        isSyncing = false;
+        // Push local data to cloud
+        await saveToCloud(false);
+        return true;
+      }
+      
       // Check if cloud data is newer
       if (cloudTimestamp > localTimestamp) {
         console.log('🔄 Cloud data is newer - updating local...');
