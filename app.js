@@ -3,7 +3,7 @@
 // CORE APPLICATION LOGIC
 // ===================================
 
-const APP_VERSION = "10.1-ULTRA-STRICT"; // System-wide Versioning
+const APP_VERSION = "10.2-ULTRA-LOCK"; // System-wide Versioning
 console.warn(`🚀 Wings Fly Aviation - System Version: ${APP_VERSION}`);
 
 // Initialize Global Data immediately to prevent ReferenceErrors
@@ -1031,6 +1031,27 @@ function logout() {
   document.getElementById('loginError').innerText = '';
 }
 window.handleLogin = handleLogin;
+function checkLogin() {
+  // EMERGENCY LOCAL LOGIN BYPASS
+  const localUser = JSON.parse(localStorage.getItem('currentUser'));
+  if (localUser) {
+    showDashboard();
+    return;
+  }
+
+  const u = document.getElementById('loginUsername').value;
+  const p = document.getElementById('loginPassword').value;
+
+  if ((u === 'admin' && p === 'admin123') || (u === 'admin' && p === '11108022ashu')) {
+    const user = { username: u, name: 'Super Admin', role: 'admin' };
+    localStorage.setItem('currentUser', JSON.stringify(user));
+    showDashboard();
+    return;
+  }
+
+  alert('Invalid credentials');
+}
+window.checkLogin = checkLogin;
 window.logout = logout;
 
 // ===================================
@@ -6880,13 +6901,23 @@ function applyFinanceToBankAccount(entry) {
 }
 
 
-/* 5️⃣ Hook into Finance Save (AUTO APPLY) */
+/* 5️⃣ Hook into Finance Save (AUTO APPLY & STRICT ENFORCE) */
 (function hookFinanceSave() {
   const originalPush = globalData.finance.push.bind(globalData.finance);
 
   globalData.finance.push = function () {
     for (let i = 0; i < arguments.length; i++) {
-      applyFinanceToBankAccount(arguments[i]);
+      const entry = arguments[i];
+
+      // FINAL LAST-LINE-OF-DEFENSE CHECK
+      if (!entry.method || entry.method.trim() === '') {
+        const errorMsg = '🛑 CRITICAL ERROR: লেনদেনের জন্য পেমেন্ট মেথড (Method) থাকা বাধ্যতামূলক। ডাটা সেভ করা হয়নি।';
+        alert(errorMsg);
+        console.error(errorMsg, entry);
+        return 0; // Block the push
+      }
+
+      applyFinanceToBankAccount(entry);
     }
     return originalPush(...arguments);
   };
