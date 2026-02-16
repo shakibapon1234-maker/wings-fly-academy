@@ -1,4 +1,308 @@
 // ===================================
+// SUPABASE SYNC SYSTEM (EMBEDDED)
+// Version: 2.1 - All-in-One
+// ===================================
+
+console.log('🔄 Initializing Supabase Sync System v2.1...');
+
+// Supabase Configuration
+const SUPABASE_CONFIG = {
+  url: 'https://gtoldrlbxjrwshubplfp.supabase.co',
+  anonKey: 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6Imd0b2xkcmxieGpyd3NodWJwbGZwIiwicm9sZSI6ImFub24iLCJpYXQiOjE3Mzc3OTg2NDAsImV4cCI6MjA1MzM3NDY0MH0.T5TrlL5xLUqzMUl7w-LChGxbICxTaRN0DuGnxZ-LLfs'
+};
+
+// Global sync state
+let supabaseClient = null;
+let realtimeChannel = null;
+let autoSyncInterval = null;
+let lastSyncTimestamp = null;
+let isSyncing = false;
+
+// Initialize Supabase Client
+function initializeSupabaseSync() {
+  try {
+    // Check if Supabase library is loaded
+    if (typeof supabase === 'undefined') {
+      console.warn('⚠️ Supabase library not loaded. Sync disabled.');
+      return false;
+    }
+
+    // Create Supabase client
+    supabaseClient = supabase.createClient(SUPABASE_CONFIG.url, SUPABASE_CONFIG.anonKey);
+    console.log('✅ Supabase client initialized');
+    return true;
+  } catch (error) {
+    console.error('❌ Supabase initialization failed:', error);
+    return false;
+  }
+}
+
+// Get unique device ID
+function getDeviceId() {
+  let deviceId = localStorage.getItem('deviceId');
+  if (!deviceId) {
+    deviceId = 'device_' + Math.random().toString(36).substr(2, 9) + '_' + Date.now();
+    localStorage.setItem('deviceId', deviceId);
+  }
+  return deviceId;
+}
+
+// Save to Cloud
+async function saveToCloud(showNotification = false) {
+  if (!supabaseClient || isSyncing) return false;
+
+  isSyncing = true;
+  try {
+    const dataToSync = {
+      students: JSON.parse(localStorage.getItem('students') || '[]'),
+      finances: JSON.parse(localStorage.getItem('finances') || '[]'),
+      courses: JSON.parse(localStorage.getItem('courses') || '[]'),
+      employees: JSON.parse(localStorage.getItem('employees') || '[]'),
+      banks: JSON.parse(localStorage.getItem('banks') || '[]'),
+      mobiles: JSON.parse(localStorage.getItem('mobiles') || '[]'),
+      lastModified: new Date().toISOString(),
+      deviceId: getDeviceId()
+    };
+
+    console.log('☁️ Uploading to cloud...');
+
+    // Check if record exists
+    const { data: existing } = await supabaseClient
+      .from('app_data')
+      .select('id')
+      .eq('user_id', 'admin')
+      .single();
+
+    let result;
+    if (existing) {
+      // Update
+      result = await supabaseClient
+        .from('app_data')
+        .update({ data: dataToSync, updated_at: new Date().toISOString() })
+        .eq('id', existing.id);
+    } else {
+      // Insert
+      result = await supabaseClient
+        .from('app_data')
+        .insert({ user_id: 'admin', data: dataToSync, updated_at: new Date().toISOString() });
+    }
+
+    if (result.error) throw result.error;
+
+    lastSyncTimestamp = new Date().toISOString();
+    console.log('✅ Cloud save successful');
+    if (showNotification && typeof showSuccessToast === 'function') {
+      showSuccessToast('☁️ Synced to cloud');
+    }
+    
+    isSyncing = false;
+    return true;
+  } catch (error) {
+    console.error('❌ Cloud save error:', error);
+    isSyncing = false;
+    return false;
+  }
+}
+
+// Load from Cloud
+async function loadFromCloud(showNotification = false) {
+  if (!supabaseClient || isSyncing) return false;
+
+  isSyncing = true;
+  try {
+    console.log('☁️ Loading from cloud...');
+
+    const { data, error } = await supabaseClient
+      .from('app_data')
+      .select('data, updated_at')
+      .eq('user_id', 'admin')
+      .single();
+
+    if (error) {
+      if (error.code === 'PGRST116') {
+        console.log('📝 No cloud data yet');
+        isSyncing = false;
+        return true;
+      }
+      throw error;
+    }
+
+    if (!data || !data.data) {
+      console.log('📝 No data available');
+      isSyncing = false;
+      return false;
+    }
+
+    const cloudData = data.data;
+    const cloudTime = new Date(data.updated_at);
+    const localTime = localStorage.getItem('lastModified') ? new Date(localStorage.getItem('lastModified')) : new Date(0);
+
+    if (cloudTime > localTime) {
+      console.log('🔄 Cloud data newer, updating...');
+      
+      localStorage.setItem('students', JSON.stringify(cloudData.students || []));
+      localStorage.setItem('finances', JSON.stringify(cloudData.finances || []));
+      localStorage.setItem('courses', JSON.stringify(cloudData.courses || []));
+      localStorage.setItem('employees', JSON.stringify(cloudData.employees || []));
+      localStorage.setItem('banks', JSON.stringify(cloudData.banks || []));
+      localStorage.setItem('mobiles', JSON.stringify(cloudData.mobiles || []));
+      localStorage.setItem('lastModified', cloudData.lastModified);
+
+      // Update globalData
+      if (window.globalData) {
+        window.globalData.students = cloudData.students || [];
+        window.globalData.finances = cloudData.finances || [];
+        window.globalData.courses = cloudData.courses || [];
+        window.globalData.employees = cloudData.employees || [];
+        window.globalData.banks = cloudData.banks || [];
+        window.globalData.mobiles = cloudData.mobiles || [];
+        
+        // Refresh UI
+        if (typeof renderStudents === 'function') renderStudents();
+        if (typeof renderFinances === 'function') renderFinances();
+        if (typeof renderBankList === 'function') renderBankList();
+        if (typeof renderMobileBankingList === 'function') renderMobileBankingList();
+      }
+
+      console.log('✅ Local data updated from cloud');
+      if (showNotification && typeof showSuccessToast === 'function') {
+        showSuccessToast('✅ Data updated');
+      }
+      
+      isSyncing = false;
+      return true;
+    } else {
+      console.log('✅ Local data up to date');
+      isSyncing = false;
+      return true;
+    }
+  } catch (error) {
+    console.error('❌ Cloud load error:', error);
+    isSyncing = false;
+    return false;
+  }
+}
+
+// Start Real-time Sync
+function startRealtimeSync() {
+  if (!supabaseClient) return;
+
+  if (realtimeChannel) {
+    supabaseClient.removeChannel(realtimeChannel);
+  }
+
+  try {
+    realtimeChannel = supabaseClient
+      .channel('app_data_changes')
+      .on('postgres_changes', 
+        { event: '*', schema: 'public', table: 'app_data', filter: 'user_id=eq.admin' },
+        async (payload) => {
+          console.log('🔔 Real-time update received');
+          const currentDevice = getDeviceId();
+          if (payload.new && payload.new.data && payload.new.data.deviceId === currentDevice) {
+            console.log('✋ Ignoring own update');
+            return;
+          }
+          await loadFromCloud(true);
+        }
+      )
+      .subscribe((status) => {
+        if (status === 'SUBSCRIBED') {
+          console.log('✅ Real-time sync active');
+        }
+      });
+  } catch (error) {
+    console.error('❌ Real-time setup error:', error);
+  }
+}
+
+// Stop Real-time Sync
+function stopRealtimeSync() {
+  if (realtimeChannel) {
+    supabaseClient.removeChannel(realtimeChannel);
+    realtimeChannel = null;
+    console.log('🔌 Real-time sync stopped');
+  }
+}
+
+// Start Auto-Sync
+function startAutoSync(intervalSeconds = 10) {
+  if (autoSyncInterval) clearInterval(autoSyncInterval);
+
+  autoSyncInterval = setInterval(async () => {
+    console.log('🔄 Auto-sync running...');
+    await loadFromCloud(false);
+    await saveToCloud(false);
+  }, intervalSeconds * 1000);
+
+  console.log(`✅ Auto-sync started (${intervalSeconds}s)`);
+}
+
+// Stop Auto-Sync
+function stopAutoSync() {
+  if (autoSyncInterval) {
+    clearInterval(autoSyncInterval);
+    autoSyncInterval = null;
+    console.log('⏸️ Auto-sync stopped');
+  }
+}
+
+// Manual Sync
+async function manualSync() {
+  console.log('🔄 Manual sync...');
+  if (typeof showSuccessToast === 'function') showSuccessToast('🔄 Syncing...');
+  const loadSuccess = await loadFromCloud(false);
+  const saveSuccess = await saveToCloud(false);
+  if (loadSuccess && saveSuccess) {
+    if (typeof showSuccessToast === 'function') showSuccessToast('✅ Sync complete');
+    return true;
+  } else {
+    if (typeof showErrorToast === 'function') showErrorToast('⚠️ Sync failed');
+    return false;
+  }
+}
+
+// Check Sync Status
+function checkSyncStatus() {
+  const status = {
+    supabaseConnected: !!supabaseClient,
+    realtimeActive: !!realtimeChannel,
+    autoSyncActive: !!autoSyncInterval,
+    lastSync: lastSyncTimestamp,
+    deviceId: getDeviceId()
+  };
+  console.log('📊 Sync Status:', status);
+  return status;
+}
+
+// Export to window
+window.saveToCloud = saveToCloud;
+window.loadFromCloud = loadFromCloud;
+window.startRealtimeSync = startRealtimeSync;
+window.stopRealtimeSync = stopRealtimeSync;
+window.startAutoSync = startAutoSync;
+window.stopAutoSync = stopAutoSync;
+window.manualSync = manualSync;
+window.checkSyncStatus = checkSyncStatus;
+
+// Auto-initialize on DOM ready
+document.addEventListener('DOMContentLoaded', function() {
+  console.log('🚀 Auto-initializing Supabase sync...');
+  const initialized = initializeSupabaseSync();
+  if (initialized) {
+    console.log('✅ Supabase sync ready!');
+  } else {
+    console.warn('⚠️ Supabase sync not available (library not loaded)');
+  }
+});
+
+console.log('✅ Supabase Sync System Loaded');
+
+// ===================================
+// ORIGINAL APP.JS CODE STARTS HERE
+// ===================================
+
+// ===================================
 // DATA RESET (Fresh Start)
 // ===================================
 
@@ -528,7 +832,7 @@ document.addEventListener('DOMContentLoaded', function () {
             // Start auto-sync and real-time listener
             if (typeof window.startAutoSync === 'function') {
               window.startAutoSync(10);
-              console.log('🔄 Auto-sync started (10s interval)');
+              console.log('🔄 Fast auto-sync started (10s interval)');
             }
             if (typeof window.startRealtimeSync === 'function') {
               window.startRealtimeSync();
@@ -608,12 +912,12 @@ document.addEventListener('DOMContentLoaded', function () {
 
 async function saveToStorage(skipCloudSync = false) {
   try {
-    // ✅ Save timestamp using ISO string for consistency
+    // Save with ISO timestamp for consistency
     const currentTime = new Date().toISOString();
     localStorage.setItem('lastModified', currentTime);
     localStorage.setItem('lastLocalUpdate', Date.now().toString());
 
-    // Save individual data arrays for better sync control
+    // Save individual arrays for better sync
     localStorage.setItem('students', JSON.stringify(window.globalData.students || []));
     localStorage.setItem('finances', JSON.stringify(window.globalData.finances || []));
     localStorage.setItem('courses', JSON.stringify(window.globalData.courses || []));
@@ -625,35 +929,24 @@ async function saveToStorage(skipCloudSync = false) {
     const dataString = JSON.stringify(window.globalData);
     localStorage.setItem('wingsfly_data', dataString);
 
-    console.log('💾 Local save complete. Timestamp:', currentTime);
+    console.log('💾 Local save complete');
 
-    // 🚀 AGGRESSIVE CLOUD SYNC - Always sync unless explicitly skipped
+    // Cloud sync
     if (!skipCloudSync && typeof window.saveToCloud === 'function') {
       console.log('☁️ Triggering cloud sync...');
-      
-      // Trigger cloud sync immediately
       const cloudSuccess = await window.saveToCloud(false);
-      
       if (cloudSuccess) {
         console.log('✅ Cloud sync successful');
-        // Show subtle success notification
-        if (typeof showSuccessToast === 'function') {
-          showSuccessToast('💾 Saved & synced to cloud');
-        }
       } else {
-        console.warn('⚠️ Cloud sync failed, but local save successful');
-        // Retry once more after 2 seconds
+        console.warn('⚠️ Cloud sync failed, retrying...');
+        // Retry once after 2 seconds
         setTimeout(async () => {
-          console.log('🔄 Retrying cloud sync...');
-          const retrySuccess = await window.saveToCloud(false);
-          if (retrySuccess) {
-            console.log('✅ Cloud sync successful on retry');
-          }
+          await window.saveToCloud(false);
         }, 2000);
       }
       return cloudSuccess;
     }
-    return true; // Local save was successful
+    return true;
   } catch (error) {
     console.error('❌ Error saving to storage:', error);
     if (typeof showErrorToast === 'function') {
