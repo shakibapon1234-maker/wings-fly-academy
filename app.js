@@ -244,7 +244,7 @@ window.showErrorToast = showErrorToast;
 function handleResetAllData() {
 
   // Debug Alert - if you don't see this, the button isn't calling the function!
-  console.log("Wings Fly: Reset triggered");
+  console.log("Wings Fly: Factory Reset triggered");
 
   if (!confirm(' ï¸ ⚠ CRITICAL WARNING: This will PERMANENTLY delete ALL students, finance records, and settings.\n\nAre you sure?')) return;
   if (!confirm(' ï¸ ⚠ FINAL WARNING: Everything will be wiped. This action cannot be undone. Proceed?')) return;
@@ -259,26 +259,21 @@ function handleResetAllData() {
         startBalances: {},
         academyName: 'Wings Fly Aviation Academy'
       },
-      incomeCategories: ['Tuition Fees', 'Loan Received', 'Other'],
-      expenseCategories: ['Salary', 'Rent', 'Utilities', 'Loan Given', 'Other'],
+      incomeCategories: [],
+      expenseCategories: [],
       paymentMethods: [],
       cashBalance: 0,
-      bankAccounts: [
-        { sl: 1, name: 'CITY BANK', branch: 'BONOSREE', bankName: 'CITY BANK', accountNo: '1493888742001', balance: 0 },
-        { sl: 2, name: 'Ferdous Ahmed Islami Bank', branch: 'NIKUNJA', bankName: 'ISLAMI BANK BANGLADESH LTD', accountNo: '20504100200546109', balance: 0 },
-        { sl: 3, name: 'BRAC BANK LTD BANASREE', branch: 'BANASREE', bankName: 'BRAC BANK LTD BANASREE', accountNo: '2052189750001', balance: 0 },
-        { sl: 4, name: 'ISLAMI BANK BANGLADESH LTD', branch: 'NIKUNJA', bankName: 'ISLAMI BANK BANGLADESH LTD', accountNo: '20504100100094207', balance: 0 },
-        { sl: 5, name: 'DUTCH-BANGLA BANK LIMITED', branch: 'RAMPURA', bankName: 'DUTCH-BANGLA BANK LIMITED', accountNo: '1781100023959', balance: 0 },
-        { sl: 6, name: 'EASTERN BANK LIMITED', branch: 'BANASREE', bankName: 'EASTERN BANK LIMITED', accountNo: '1091070200510', balance: 0 }
-      ],
+      bankAccounts: [],
       mobileBanking: [],
-      courseNames: ['Caregiver', 'Student Visa', 'Visa (Tourist, Medical Business)', 'Air Ticketing (Basic)', 'Air Ticketing (Advance)', 'Travel Agency Business Managment', 'Language (Japanese, Korean)', 'Other'],
-      credentials: { username: 'admin', password: 'admin123' }
+      courseNames: [],
+      employeeRoles: [],
+      credentials: { username: 'admin', password: 'admin123' },
+      users: []
     };
 
     // 2. Save this clean state to localStorage (prevents demo data fallback)
     saveToStorage();
-    console.log("Wings Fly: Local data reset to empty state");
+    console.log("Wings Fly: Factory reset - all data and settings wiped to empty state");
 
     // 3. Backend Check (If running in Google environment)
     if (typeof google !== 'undefined' && google.script && google.script.run) {
@@ -7024,20 +7019,20 @@ document.addEventListener('DOMContentLoaded', () => {
 function handleDataReset() {
   console.log("Wings Fly: Data Reset triggered");
 
-  if (!confirm('⚠️ WARNING: This will delete all students, transactions, and balances.\n\nYour settings (categories, courses, bank accounts) will be preserved.\n\nContinue?')) return;
-  if (!confirm('⚠️ FINAL WARNING: All student and financial data will be deleted. Proceed?')) return;
+  if (!confirm('⚠️ WARNING: This will delete all students, employees, transactions, and balances.\n\nYour settings (categories, courses, bank accounts, payment methods) will be preserved.\n\nContinue?')) return;
+  if (!confirm('⚠️ FINAL WARNING: All student, employee and financial data will be permanently deleted. Proceed?')) return;
 
   try {
     // Preserve current settings from window.globalData
     const preservedSettings = {
       settings: window.globalData.settings || { startBalances: {}, academyName: 'Wings Fly Aviation Academy' },
-      incomeCategories: window.globalData.incomeCategories || ['Tuition Fees', 'Loan Received', 'Other'],
-      expenseCategories: window.globalData.expenseCategories || ['Salary', 'Rent', 'Utilities', 'Loan Given', 'Other'],
+      incomeCategories: window.globalData.incomeCategories || [],
+      expenseCategories: window.globalData.expenseCategories || [],
       paymentMethods: window.globalData.paymentMethods || [],
       bankAccounts: window.globalData.bankAccounts || [],
       mobileBanking: window.globalData.mobileBanking || [],
       courseNames: window.globalData.courseNames || [],
-      employeeRoles: window.globalData.employeeRoles || ['Instructor', 'Admin', 'Staff', 'Manager'],
+      employeeRoles: window.globalData.employeeRoles || [],
       credentials: window.globalData.credentials || { username: 'admin', password: 'admin123' },
       users: window.globalData.users || []
     };
@@ -7058,13 +7053,20 @@ function handleDataReset() {
     if (window.globalData.mobileBanking && Array.isArray(window.globalData.mobileBanking)) {
       window.globalData.mobileBanking.forEach(acc => acc.balance = 0);
     }
+    
+    // Reset start balances to 0 in settings
+    if (window.globalData.settings && window.globalData.settings.startBalances) {
+      Object.keys(window.globalData.settings.startBalances).forEach(key => {
+        window.globalData.settings.startBalances[key] = 0;
+      });
+    }
 
     // Update globalData reference
     globalData = window.globalData;
 
     saveToStorage();
     console.log("Wings Fly: Data reset complete, settings preserved");
-    alert('✅ SUCCESS: All student and financial data has been cleared.\n\nYour settings have been preserved.');
+    alert('✅ SUCCESS: All student, employee and financial data has been cleared.\n\nYour settings have been preserved.');
     window.location.reload();
   } catch (err) {
     alert('An error occurred during data reset: ' + err.message);
