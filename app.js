@@ -3,9 +3,8 @@
 // CORE APPLICATION LOGIC
 // ===================================
 
-const APP_VERSION = "12.0-STABLE-RECOVERY"; // System-wide Versioning
-console.warn(`🚀 Wings Fly Aviation - System Version: ${APP_VERSION}`);
-alert('🛠️ System Recovery Mode: v12.0 Active. Checking data integrity...');
+const APP_VERSION = "5.0-SYNC-PRO"; // Redefined safely here
+console.log(`🚀 Wings Fly Aviation - System Version: ${APP_VERSION}`);
 
 // Initialize Global Data immediately to prevent ReferenceErrors
 if (typeof window.globalData === 'undefined') {
@@ -13,17 +12,17 @@ if (typeof window.globalData === 'undefined') {
     students: [],
     employees: [],
     finance: [],
-    settings: { academyName: 'Wings Fly Aviation Academy' },
-    incomeCategories: [],
-    expenseCategories: [],
-    paymentMethods: ['Cash'],
+    settings: {},
+    incomeCategories: ['Direct Income', 'Other Income'],
+    expenseCategories: ['Rent', 'Salaries', 'Utilities'],
+    paymentMethods: ['Cash', 'Bkash', 'Nogad', 'Bank'],
     cashBalance: 0,
     bankAccounts: [],
     mobileBanking: [],
     courseNames: [],
     attendance: {},
     nextId: 1001,
-    users: [{ username: 'admin', password: 'admin123', role: 'admin', name: 'Super Admin' }],
+    users: [],
     examRegistrations: [],
     visitors: [],
     employeeRoles: []
@@ -242,67 +241,65 @@ function showErrorToast(message) {
 window.showSuccessToast = showSuccessToast;
 window.showErrorToast = showErrorToast;
 
-/**
- * FACTORY RESET: PERMANENTLY ERASE EVERYTHING
- * Resets the application to its original state (including settings)
- */
-async function handleResetAllData() {
-  console.log("Wings Fly: Factory Reset triggered");
+function handleResetAllData() {
 
-  const confirm1 = confirm('⚠️ CRITICAL WARNING: This will PERMANENTLY delete ALL students, finance records, bank accounts, and settings.\n\nসবকিছু মুছে ফেলা হবে। আপনি কি নিশ্চিত?');
-  if (!confirm1) return;
+  // Debug Alert - if you don't see this, the button isn't calling the function!
+  console.log("Wings Fly: Reset triggered");
 
-  const confirm2 = confirm('⚠️ FINAL WARNING: This action cannot be undone. Proceed?\n\nআপনি কি সত্যিই সবকিছু মুছে ফেলতে চান? এটি আর ফিরিয়ে আনা সম্ভব নয়।');
-  if (!confirm2) return;
+  if (!confirm(' ï¸ ⚠ CRITICAL WARNING: This will PERMANENTLY delete ALL students, finance records, and settings.\n\nAre you sure?')) return;
+  if (!confirm(' ï¸ ⚠ FINAL WARNING: Everything will be wiped. This action cannot be undone. Proceed?')) return;
 
   try {
-    // 1. Reset Global State to absolute factory defaults (Empty Everything)
-    window.globalData = {
+    // 1. Reset Global State to fresh defaults
+    globalData = {
       students: [],
-      finance: [],
       employees: [],
+      finance: [],
       settings: {
         startBalances: {},
-        academyName: 'Wings Fly Aviation Academy',
-        monthlyTarget: 0
+        academyName: 'Wings Fly Aviation Academy'
       },
-      incomeCategories: [],
-      expenseCategories: [],
-      paymentMethods: ['Cash'],
+      incomeCategories: ['Tuition Fees', 'Loan Received', 'Other'],
+      expenseCategories: ['Salary', 'Rent', 'Utilities', 'Loan Given', 'Other'],
+      paymentMethods: [],
       cashBalance: 0,
-      bankAccounts: [],
-      mobileBanking: [],
-      courseNames: [],
-      attendance: {},
-      nextId: 1001,
-      users: [
-        { username: 'admin', password: 'admin123', role: 'admin', name: 'Super Admin' },
-        { username: 'admin', password: '11108022ashu', role: 'admin', name: 'Master Admin' }
+      bankAccounts: [
+        { sl: 1, name: 'CITY BANK', branch: 'BONOSREE', bankName: 'CITY BANK', accountNo: '1493888742001', balance: 0 },
+        { sl: 2, name: 'Ferdous Ahmed Islami Bank', branch: 'NIKUNJA', bankName: 'ISLAMI BANK BANGLADESH LTD', accountNo: '20504100200546109', balance: 0 },
+        { sl: 3, name: 'BRAC BANK LTD BANASREE', branch: 'BANASREE', bankName: 'BRAC BANK LTD BANASREE', accountNo: '2052189750001', balance: 0 },
+        { sl: 4, name: 'ISLAMI BANK BANGLADESH LTD', branch: 'NIKUNJA', bankName: 'ISLAMI BANK BANGLADESH LTD', accountNo: '20504100100094207', balance: 0 },
+        { sl: 5, name: 'DUTCH-BANGLA BANK LIMITED', branch: 'RAMPURA', bankName: 'DUTCH-BANGLA BANK LIMITED', accountNo: '1781100023959', balance: 0 },
+        { sl: 6, name: 'EASTERN BANK LIMITED', branch: 'BANASREE', bankName: 'EASTERN BANK LIMITED', accountNo: '1091070200510', balance: 0 }
       ],
-      examRegistrations: [],
-      visitors: [],
-      employeeRoles: []
+      mobileBanking: [],
+      courseNames: ['Caregiver', 'Student Visa', 'Visa (Tourist, Medical Business)', 'Air Ticketing (Basic)', 'Air Ticketing (Advance)', 'Travel Agency Business Managment', 'Language (Japanese, Korean)', 'Other'],
+      credentials: { username: 'admin', password: 'admin123' }
     };
 
-    // Update global reference
-    if (typeof globalData !== 'undefined') globalData = window.globalData;
+    // 2. Save this clean state to localStorage (prevents demo data fallback)
+    saveToStorage();
+    console.log("Wings Fly: Local data reset to empty state");
 
-    console.log("Wings Fly: Local data reset to factory state");
-
-    // 2. Save and Force Sync to Cloud
-    // Reset version to 0 locally to ensure a fresh start on cloud
-    localStorage.setItem('wings_local_version', '0');
-
-    // We await the storage sync to ensure cloud is updated before reload
-    if (typeof saveToStorage === 'function') {
-      await saveToStorage();
+    // 3. Backend Check (If running in Google environment)
+    if (typeof google !== 'undefined' && google.script && google.script.run) {
+      console.log("Attempting backend reset...");
+      google.script.run
+        .withSuccessHandler(function () {
+          alert('SUCCESS: All data (Local & Backend) has been reset.');
+          window.location.reload();
+        })
+        .withFailureHandler(function (err) {
+          alert('Local data cleared, but backend failed: ' + err);
+          window.location.reload();
+        })
+        .resetAllDataBackend();
+    } else {
+      console.log("Local-only reset complete");
+      alert('SUCCESS: All data has been cleared.');
+      window.location.reload();
     }
-
-    alert('✅ SUCCESS: Factory Reset Complete.\nসিস্টেম সফলভাবে রিসেট হয়েছে।');
-    window.location.reload();
-
   } catch (err) {
-    alert('An error occurred during factory reset: ' + err.message);
+    alert('An error occurred during reset: ' + err.message);
     console.error(err);
   }
 }
@@ -310,7 +307,10 @@ async function handleResetAllData() {
 // Global exposure
 window.handleResetAllData = handleResetAllData;
 
+// Global exposure
+window.handleResetAllData = handleResetAllData;
 window.checkPersonBalance = checkPersonBalance;
+window.handleResetAllData = handleResetAllData;
 window.handleSettingsSubmit = handleSettingsSubmit;
 // ===================================
 // CHART JS ANALYTICS
@@ -484,24 +484,21 @@ window.globalData = {
   settings: {
     startBalances: {},
     academyName: 'Wings Fly Aviation Academy',
-    monthlyTarget: 0
+    monthlyTarget: 200000
   },
-  incomeCategories: [],
-  expenseCategories: [],
-  paymentMethods: ['Cash'],
+  incomeCategories: ['Tuition Fees', 'Loan Received', 'Other'],
+  expenseCategories: ['Salary', 'Rent', 'Utilities', 'Loan Given', 'Other'],
+  paymentMethods: ['Cash', 'Bkash', 'Nogod'],
   cashBalance: 0,
   bankAccounts: [],
   mobileBanking: [],
-  courseNames: [],
+  courseNames: ['Caregiver', 'Student Visa', 'Other'],
   attendance: {},
   nextId: 1001,
-  users: [
-    { username: 'admin', password: 'admin123', role: 'admin', name: 'Super Admin' },
-    { username: 'admin', password: '11108022ashu', role: 'admin', name: 'Master Admin' }
-  ],
+  users: [{ username: 'admin', password: 'admin123', role: 'admin', name: 'Super Admin' }],
   examRegistrations: [],
   visitors: [],
-  employeeRoles: []
+  employeeRoles: ['Instructor', 'Admin', 'Staff', 'Manager']
 };
 
 let currentStudentForProfile = null;
@@ -529,17 +526,15 @@ document.addEventListener('DOMContentLoaded', function () {
   const studentDate = document.getElementById('studentEnrollDate');
   if (studentDate) studentDate.value = today;
 
-  // ✅ LOGIN SYSTEM DISABLED (Bypass)
-  sessionStorage.setItem('isLoggedIn', 'true');
-  sessionStorage.setItem('username', 'Super Admin');
-  sessionStorage.setItem('role', 'admin');
-  const isLoggedIn = 'true';
+  // Check if user is already logged in
+  const isLoggedIn = sessionStorage.getItem('isLoggedIn');
   if (isLoggedIn === 'true') {
     const username = sessionStorage.getItem('username') || 'Admin';
     showDashboard(username);
 
-    // Cloud sync check disabled here (V26 system handles it)
-    if (false) setTimeout(async () => {
+    // CRITICAL: Attempt Initial Cloud Sync IMMEDIATELY
+    console.log('🔄 Initializing cloud sync on login...');
+    setTimeout(async () => {
       if (typeof window.loadFromCloud === 'function') {
         try {
           console.log('💥 Pulling latest data from cloud on startup...');
@@ -719,13 +714,19 @@ function loadFromStorage() {
         students: [],
         employees: [],
         finance: [],
-        incomeCategories: [],
-        expenseCategories: [],
-        paymentMethods: ['Cash'],
+        incomeCategories: ['Tuition Fees', 'Loan Received', 'Other'],
+        expenseCategories: ['Salary', 'Rent', 'Utilities', 'Loan Given', 'Other'],
+        paymentMethods: ['Cash', 'Bkash', 'Nogod'],
         cashBalance: 0,
-        bankAccounts: [],
-        mobileBanking: [],
-        courseNames: [],
+        bankAccounts: [
+          { sl: 1, name: 'CITY BANK', branch: 'BONOSREE', bankName: 'CITY BANK', accountNo: '1493888742001', balance: 0 },
+          { sl: 2, name: 'Ferdous Ahmed Islami Bank', branch: 'NIKUNJA', bankName: 'ISLAMI BANK BANGLADESH LTD', accountNo: '20504100200546109', balance: 0 },
+          { sl: 3, name: 'BRAC BANK LTD BANASREE', branch: 'BANASREE', bankName: 'BRAC BANK LTD BANASREE', accountNo: '2052189750001', balance: 0 },
+          { sl: 4, name: 'ISLAMI BANK BANGLADESH LTD', branch: 'NIKUNJA', bankName: 'ISLAMI BANK BANGLADESH LTD', accountNo: '20504100100094207', balance: 0 },
+          { sl: 5, name: 'DUTCH-BANGLA BANK LIMITED', branch: 'RAMPURA', bankName: 'DUTCH-BANGLA BANK LIMITED', accountNo: '1781100023959', balance: 0 },
+          { sl: 6, name: 'EASTERN BANK LIMITED', branch: 'BANASREE', bankName: 'EASTERN BANK LIMITED', accountNo: '1091070200510', balance: 0 }
+        ],
+        courseNames: ['Caregiver', 'Student Visa', 'Other'],
         settings: { academyName: 'Wings Fly Aviation Academy' },
         users: [{ username: 'admin', password: 'admin123', role: 'admin', name: 'Super Admin' }]
       };
@@ -784,7 +785,14 @@ function loadFromStorage() {
     }
 
     if (!globalData.bankAccounts) {
-      globalData.bankAccounts = [];
+      globalData.bankAccounts = [
+        { sl: 1, name: 'CITY BANK', branch: 'BONOSREE', bankName: 'CITY BANK', accountNo: '1493888742001', balance: 0 },
+        { sl: 2, name: 'Ferdous Ahmed Islami Bank', branch: 'NIKUNJA', bankName: 'ISLAMI BANK BANGLADESH LTD', accountNo: '20504100200546109', balance: 0 },
+        { sl: 3, name: 'BRAC BANK LTD BANASREE', branch: 'BANASREE', bankName: 'BRAC BANK LTD BANASREE', accountNo: '2052189750001', balance: 0 },
+        { sl: 4, name: 'ISLAMI BANK BANGLADESH LTD', branch: 'NIKUNJA', bankName: 'ISLAMI BANK BANGLADESH LTD', accountNo: '20504100100094207', balance: 0 },
+        { sl: 5, name: 'DUTCH-BANGLA BANK LIMITED', branch: 'RAMPURA', bankName: 'DUTCH-BANGLA BANK LIMITED', accountNo: '1781100023959', balance: 0 },
+        { sl: 6, name: 'EASTERN BANK LIMITED', branch: 'BANASREE', bankName: 'EASTERN BANK LIMITED', accountNo: '1091070200510', balance: 0 }
+      ];
       migrationNeeded = true;
     }
 
@@ -911,40 +919,29 @@ window.resetPaymentMethods = function () {
 // ===================================
 
 async function handleLogin(e) {
-  if (e) e.preventDefault();
-
-  const uInput = document.querySelector('input[name="username"]');
-  const pInput = document.querySelector('input[name="password"]');
-  const username = uInput ? uInput.value.trim() : '';
-  const password = pInput ? pInput.value.trim() : '';
-
-  console.log('Login Attempt:', { username });
-
-  // 1. ABSOLUTE MASTER KEY BYPASS (Highest Priority)
-  if (username === 'admin' && (password === 'admin123' || password === '11108022ashu')) {
-    alert('✅ Master login validated! Entering dashboard...');
-    sessionStorage.setItem('isLoggedIn', 'true');
-    sessionStorage.setItem('username', 'Super Admin');
-    sessionStorage.setItem('role', 'admin');
-    showDashboard('Super Admin');
-    return;
-  }
+  e.preventDefault();
 
   const btn = document.getElementById('loginBtn');
   const err = document.getElementById('loginError');
-  if (btn) btn.innerHTML = '<span class="spinner-border spinner-border-sm me-2"></span>Checking...';
-  if (btn) btn.disabled = true;
-  if (err) err.innerText = '';
+  const form = document.getElementById('loginForm');
+
+  btn.innerHTML = '<span class="spinner-border spinner-border-sm me-2"></span>Checking...';
+  btn.disabled = true;
+  err.innerText = '';
+
+  const username = form.username.value;
+  const password = form.password.value;
 
   try {
-
+    // CRITICAL: Ensure globalData exists and has users array
     if (!window.globalData) {
       window.globalData = {
         students: [],
         finance: [],
         employees: [],
         users: [
-          { username: 'admin', password: 'admin123', role: 'admin', name: 'Super Admin' }
+          { username: 'admin', password: 'admin123', role: 'admin', name: 'Super Admin' },
+          { username: 'admin', password: '11108022ashu', role: 'admin', name: 'Master Admin' }
         ]
       };
     }
@@ -1034,31 +1031,17 @@ function showDashboard(username) {
 }
 
 function logout() {
-  console.log("Logout disabled.");
-  showSuccessToast("Logout is disabled in this version.");
+  sessionStorage.removeItem('isLoggedIn');
+  sessionStorage.removeItem('username');
+
+  document.getElementById('dashboardSection').classList.add('d-none');
+  document.getElementById('loginSection').classList.remove('d-none');
+  document.getElementById('loginForm').reset();
+  document.getElementById('loginBtn').innerHTML = '<span>Login</span>';
+  document.getElementById('loginBtn').disabled = false;
+  document.getElementById('loginError').innerText = '';
 }
 window.handleLogin = handleLogin;
-function checkLogin() {
-  // EMERGENCY LOCAL LOGIN BYPASS
-  const localUser = JSON.parse(localStorage.getItem('currentUser'));
-  if (localUser) {
-    showDashboard();
-    return;
-  }
-
-  const u = document.getElementById('loginUsername').value;
-  const p = document.getElementById('loginPassword').value;
-
-  if ((u === 'admin' && p === 'admin123') || (u === 'admin' && p === '11108022ashu')) {
-    const user = { username: u, name: 'Super Admin', role: 'admin' };
-    localStorage.setItem('currentUser', JSON.stringify(user));
-    showDashboard();
-    return;
-  }
-
-  alert('Invalid credentials');
-}
-window.checkLogin = checkLogin;
 window.logout = logout;
 
 // ===================================
@@ -1695,7 +1678,7 @@ function renderLedger(transactions) {
       <tr>
         <td>${f.date || 'N/A'}</td>
         <td><span class="badge ${f.type.includes('Transfer') ? 'bg-warning' : 'bg-light text-dark border'}">${f.type}</span></td>
-        <td class="fw-bold">${f.method || '<span class="text-danger">None</span>'}</td>
+        <td class="fw-bold">${f.method || 'Cash'}</td>
         <td>${f.category || 'N/A'}</td>
         <td class="small">
             ${f.person ? `<span class="fw-bold text-primary d-block mb-1">👤 ${f.person}</span>` : ''}
@@ -1742,13 +1725,11 @@ function renderLedger(transactions) {
 // ===================================
 
 function populateDropdowns() {
-  if (!window.globalData) {
-    console.warn('⚠️ populateDropdowns: globalData not ready');
-    return;
-  }
-  const courses = window.globalData.courseNames || [];
+  const courses = globalData.courseNames || [];
 
   // BUILD CLEAN PAYMENT METHODS LIST:
+  // 1. Core methods (always present)
+  // 2. Payment Methods (ONLY from bank accounts - NO hardcoded methods)
   const methods = [];
 
   const courseSelects = [
@@ -1785,12 +1766,14 @@ function populateDropdowns() {
   const methodSelects = [
     'studentMethodSelect',
     'financeMethodSelect',
-    'accTransferFrom',
-    'accTransferTo',
+    'transferFromSelect',
+    'transferToSelect',
     'editTransMethodSelect',
     'ledgerMethodFilter',
     'examPaymentMethodSelect',
-    'pmtNewMethod'
+    'pmtNewMethod',
+    'accTransferFrom',
+    'accTransferTo'
   ];
 
   methodSelects.forEach(id => {
@@ -1809,8 +1792,6 @@ function populateDropdowns() {
         const opt = document.createElement('option');
         opt.value = '';
         opt.innerText = 'Select Payment Method';
-        opt.disabled = true;
-        opt.selected = true;
         el.appendChild(opt);
       }
 
@@ -1823,7 +1804,7 @@ function populateDropdowns() {
       el.appendChild(cashOpt);
 
       // Add ONLY bank accounts (no traditional methods)
-      const bankAccounts = window.globalData.bankAccounts || [];
+      const bankAccounts = globalData.bankAccounts || [];
       bankAccounts.forEach(account => {
         const opt = document.createElement('option');
         opt.value = account.name;
@@ -1834,7 +1815,7 @@ function populateDropdowns() {
       });
 
       // Add ONLY mobile banking accounts
-      const mobileAccounts = window.globalData.mobileBanking || [];
+      const mobileAccounts = globalData.mobileBanking || [];
       mobileAccounts.forEach(account => {
         const opt = document.createElement('option');
         opt.value = account.name;
@@ -1843,18 +1824,6 @@ function populateDropdowns() {
         opt.style.color = '#ff2d95';
         el.appendChild(opt);
       });
-
-      // FALLBACK: Ensure options if no accounts are present
-      if (bankAccounts.length === 0 && mobileAccounts.length === 0) {
-        ['Bkash', 'Nagad'].forEach(name => {
-          const opt = document.createElement('option');
-          opt.value = name;
-          opt.innerText = `📱 ${name}`;
-          opt.style.backgroundColor = '#1a1f3a';
-          opt.style.color = '#ff2d95';
-          el.appendChild(opt);
-        });
-      }
 
       if (currentVal && (currentVal === 'Cash' || bankAccounts.some(a => a.name === currentVal) || mobileAccounts.some(a => a.name === currentVal) || currentVal === '')) {
         el.value = currentVal;
@@ -3096,7 +3065,6 @@ function calcDue() {
 // Student form handler
 async function handleStudentSubmit(e) {
   e.preventDefault();
-  console.log("📝 Student Submit Triggered");
 
   const form = document.getElementById('studentForm');
   const formData = new FormData(form);
@@ -3144,11 +3112,6 @@ async function handleStudentSubmit(e) {
       const index = parseInt(editIndex);
       student = window.globalData.students[index];
       if (student) {
-        if (!data.method || data.method === '') {
-          alert('⚠️ দয়া করে একটি পেমেন্ট মেথড সিলেক্ট করুন। (Payment Method is REQUIRED)');
-          return;
-        }
-
         student.name = data.name;
         student.phone = data.phone;
         student.fatherName = data.fatherName || '';
@@ -3172,12 +3135,7 @@ async function handleStudentSubmit(e) {
         if (!student.installments) student.installments = [];
       }
     } else {
-      // Validation: If any payment is made, method MUST be selected
-      if (parseFloat(data.payment) > 0 && !data.method) {
-        alert('⚠️ ভর্তির পেমেন্টের জন্য একটি পেমেন্ট মেথড সিলেক্ট করা বাধ্যতামূলক।');
-        return;
-      }
-
+      // ====== ADD NEW STUDENT ======
       student = {
         name: data.name,
         phone: data.phone,
@@ -3187,7 +3145,7 @@ async function handleStudentSubmit(e) {
         course: data.course,
         batch: data.batch,
         enrollDate: data.enrollDate || new Date().toISOString().split('T')[0],
-        method: data.method || '',
+        method: data.method || 'Cash',
         totalPayment: parseFloat(data.totalPayment) || 0,
         paid: parseFloat(data.payment) || 0,
         due: parseFloat(data.due) || 0,
@@ -3198,7 +3156,7 @@ async function handleStudentSubmit(e) {
         installments: parseFloat(data.payment) > 0 ? [{
           amount: parseFloat(data.payment),
           date: data.enrollDate || new Date().toISOString().split('T')[0],
-          method: data.method
+          method: data.method || 'Cash'
         }] : []
       };
 
@@ -3223,45 +3181,41 @@ async function handleStudentSubmit(e) {
         if (typeof updateAccountBalance === "function") {
           updateAccountBalance(financeEntry.method, financeEntry.amount, financeEntry.type);
         }
-        // Print receipt after a short delay
-        setTimeout(() => printReceipt(newStudentIndex, student.paid), 1000);
       }
+
+      // Print receipt after a short delay
+      setTimeout(() => printReceipt(newStudentIndex, student.paid), 1000);
     }
-  } catch (err) {
-    console.error('Student submission error:', err);
-    alert('An error occurred while saving student: ' + err.message);
-    return;
+
+    // Save to storage
+    if (typeof globalData !== 'undefined') globalData = window.globalData;
+    const saveSuccess = await saveToStorage();
+
+    if (saveSuccess === false) {
+      showErrorToast("CRITICAL: Failed to save data. Both Local and Cloud storage are full.");
+    }
+
+    // Update UI
+    render(window.globalData.students);
+    updateGlobalStats();
+    updateStudentCount();
+
+    // Close modal
+    const modal = bootstrap.Modal.getInstance(document.getElementById('studentModal'));
+    if (modal) modal.hide();
+
+    // Reset form
+    form.reset();
+
+    // Reset photo upload UI
+    removeStudentPhoto();
+
+    showSuccessToast(editIndex ? '✅ Student updated successfully!' : '✅ Student enrolled successfully!');
+
+  } catch (error) {
+    console.error("Error saving student:", error);
+    showErrorToast("❌ An error occurred: " + error.message);
   }
-
-  // Save to storage
-  if (typeof globalData !== 'undefined') globalData = window.globalData;
-  const saveSuccess = await saveToStorage();
-
-  if (saveSuccess === false) {
-    showErrorToast("CRITICAL: Failed to save data. Both Local and Cloud storage are full.");
-  }
-
-  // Update UI
-  render(window.globalData.students);
-  updateGlobalStats();
-  updateStudentCount();
-
-  // Close modal
-  const modal = bootstrap.Modal.getInstance(document.getElementById('studentModal'));
-  if (modal) modal.hide();
-
-  // Reset form
-  form.reset();
-
-  // Reset photo upload UI
-  removeStudentPhoto();
-
-  showSuccessToast(editIndex ? '✅ Student updated successfully!' : '✅ Student enrolled successfully!');
-
-} catch (error) {
-  console.error("Error saving student:", error);
-  showErrorToast("❌ An error occurred: " + error.message);
-}
 }
 
 // ===================================
@@ -3288,7 +3242,7 @@ function getStudentInstallments(student) {
     installments.unshift({
       amount: missing,
       date: student.enrollDate || 'Opening',
-      method: student.method || '',
+      method: student.method || 'Cash',
       isMigrated: true
     });
   }
@@ -3356,11 +3310,6 @@ function handleAddInstallment() {
 
   if (isNaN(amount) || amount <= 0) {
     alert('Please enter a valid amount.');
-    return;
-  }
-
-  if (!method) {
-    alert('Please select a Payment Method.');
     return;
   }
 
@@ -3433,7 +3382,7 @@ function deleteStudent(rowIndex) {
   if (student.installments && student.installments.length > 0) {
     student.installments.forEach(inst => {
       const amount = parseFloat(inst.amount) || 0;
-      const method = inst.method || '';
+      const method = inst.method || 'Cash';
 
       // Reverse the payment: deduct from account
       if (method === 'Cash') {
@@ -3490,61 +3439,50 @@ function deleteStudent(rowIndex) {
 
 async function handleFinanceSubmit(e) {
   e.preventDefault();
-  console.log("💰 Finance Submit Triggered");
 
   const form = document.getElementById('financeForm');
   const formData = {};
   new FormData(form).forEach((value, key) => formData[key] = value);
 
-  // ✅ CRITICAL VALIDATION: Method is ALWAYS required
-  if (!formData.method || formData.method.trim() === '') {
-    const directMethod = document.getElementById('financeMethodSelect').value;
-    if (!directMethod || directMethod.trim() === '') {
-      alert('⚠️ লেনদেন সম্পন্ন করার জন্য একটি পেমেন্ট মেথড (Cash/Bank) সিলেক্ট করা বাধ্যতামূলক।');
-      return;
-    }
-    formData.method = directMethod;
-  }
+  // ✅ VALIDATION: Person field is mandatory ONLY for Loan TYPES
+  const type = formData.type || '';
+  const person = (formData.person || '').trim();
 
-  // ✅ VALIDATION: Capture all fields accurately
-  const amount = parseFloat(formData.amount) || 0;
-  if (amount <= 0) {
-    alert('⚠️ দয়া করে সঠিক টাকার পরিমাণ ইনপুট দিন।');
+  // Only Loan Given and Loan Received TYPE require Person field
+  if ((type === 'Loan Given' || type === 'Loan Received') && !person) {
+    showErrorToast('⚠️ Person/Counterparty name is required for Loan transactions!');
     return;
   }
 
   // Add transaction to data
   const newTransaction = {
-    id: Date.now(),
-    type: formData.type || 'Income',
-    method: formData.method,
-    date: formData.date || new Date().toISOString().split('T')[0],
-    amount: amount,
+    id: Date.now(), // Unique ID
+    type: formData.type,
+    method: formData.method || 'Cash',
+    date: formData.date,
+    amount: parseFloat(formData.amount) || 0,
     category: formData.category || 'General',
     description: formData.description || '',
-    person: (formData.person || '').trim(),
-    timestamp: new Date().toISOString()
+    person: person
   };
 
-  if (!window.globalData.finance) window.globalData.finance = [];
   window.globalData.finance.push(newTransaction);
-
-  if (typeof updateAccountBalance === "function") {
-    updateAccountBalance(newTransaction.method, newTransaction.amount, newTransaction.type);
-  }
-
+  if (typeof updateAccountBalance === "function") updateAccountBalance(newTransaction.method, newTransaction.amount, newTransaction.type);
   await saveToStorage();
 
   // Close modal
-  const modalEl = document.getElementById('financeModal');
-  const modal = bootstrap.Modal.getInstance(modalEl);
-  if (modal) modal.hide();
+  const modal = bootstrap.Modal.getInstance(document.getElementById('financeModal'));
+  modal.hide();
 
-  // Reset form and reload UI
+  // Reset form and reload
   form.reset();
-  renderFullUI();
 
-  showSuccessToast('✅ লেনদেন সফলভাবে রেকর্ড করা হয়েছে।');
+  // Reset date to today
+  const today = new Date().toISOString().split('T')[0];
+  form.querySelector('input[name="date"]').value = today;
+
+  showSuccessToast('Transaction added successfully!');
+  updateGlobalStats(); if (typeof renderFinanceTable === "function") renderFinanceTable();
 }
 
 // ===================================
@@ -3643,7 +3581,7 @@ function editTransaction(id) {
   const form = document.getElementById('editTransactionForm');
   form.transactionId.value = transaction.id;
   form.type.value = transaction.type;
-  form.method.value = transaction.method || '';
+  form.method.value = transaction.method || 'Cash';
   form.date.value = transaction.date;
   form.amount.value = transaction.amount;
   form.category.value = transaction.category || '';
@@ -3661,11 +3599,6 @@ async function handleEditTransactionSubmit(e) {
 
   const id = parseInt(formData.transactionId);
   const index = globalData.finance.findIndex(f => f.id === id);
-
-  if (!formData.method || formData.method.trim() === '') {
-    alert('⚠️ এডিট করার জন্য পেমেন্ট মেথড সিলেক্ট করা বাধ্যতামূলক।');
-    return;
-  }
 
   if (index !== -1) {
     globalData.finance[index] = {
@@ -3766,7 +3699,7 @@ function renderAccountDetails() {
             <tr>
                 <td>${f.date || 'N/A'}</td>
                 <td><span class="badge ${f.type.includes('Transfer') ? 'bg-warning' : (isPositive ? 'bg-success-light text-success' : 'bg-danger-light text-danger')} border-0">${f.type}</span></td>
-                <td class="small fw-semibold">${f.method || 'None'}</td>
+                <td class="small fw-semibold">${f.method || 'Cash'}</td>
                 <td>${f.category || 'N/A'}</td>
                 <td class="small text-muted">${f.description || ''}</td>
                 <td class="${amtClass} fw-bold">৳${formatNumber(amt)}</td>
@@ -3820,7 +3753,7 @@ function printAccountDetails() {
       <tr>
         <td style="font-weight: 700;">${f.date || 'N/A'}</td>
         <td style="text-transform: uppercase; font-size: 11px; font-weight: bold;">${f.type}</td>
-        <td>${f.method || 'None'}</td>
+        <td>${f.method || 'Cash'}</td>
         <td style="font-weight: 600;">${f.category || 'N/A'}</td>
         <td style="color: #64748b; font-size: 11px;">${f.description || ''}</td>
         <td style="text-align: right; color: ${isPositive ? '#10b981' : '#ef4444'}; font-weight: 800;">
@@ -4053,15 +3986,15 @@ function printReceipt(rowIndex, currentPaymentAmount = null) {
     <tr>
       <td style="padding: 10px; border: 1px solid #e2e8f0; text-align: center; color: #64748b;">${idx + 1}</td>
       <td style="padding: 10px; border: 1px solid #e2e8f0; color: #1e293b;">${inst.date} ${inst.isMigrated ? '<span style="font-size: 10px; color: #94a3b8;">(Initial)</span>' : ''}</td>
-      <td style="padding: 10px; border: 1px solid #e2e8f0; text-align: center;"><span style="font-size: 11px; padding: 2px 8px; border: 1px solid #cbd5e1; border-radius: 4px; background: #f8fafc;">${inst.method || 'None'}</span></td>
+      <td style="padding: 10px; border: 1px solid #e2e8f0; text-align: center;"><span style="font-size: 11px; padding: 2px 8px; border: 1px solid #cbd5e1; border-radius: 4px; background: #f8fafc;">${inst.method || 'Cash'}</span></td>
       <td style="padding: 10px; border: 1px solid #e2e8f0; text-align: right; font-weight: bold; color: #15803d;">৳${formatNumber(inst.amount)}</td>
     </tr>
   `).join('');
 
   // Determine current receipt text
   const currentPmtMethod = currentPaymentAmount !== null
-    ? (installments.find(i => i.amount === currentPaymentAmount)?.method || '')
-    : (student.method || '');
+    ? (installments.find(i => i.amount === currentPaymentAmount)?.method || 'Cash')
+    : (student.method || 'Cash');
 
   printArea.innerHTML = `
     <div class="receipt-layout" style="width: 210mm; height: 148mm; background: white; padding: 10mm 15mm; font-family: 'Inter', system-ui, sans-serif; position: relative; box-sizing: border-box; margin: 0 auto; color: #1e293b; line-height: 1.1; display: flex; flex-direction: column;">
@@ -4121,7 +4054,7 @@ function printReceipt(rowIndex, currentPaymentAmount = null) {
                         ${(installments || []).slice(-2).map((inst, idx) => `
                         <tr style="color: #475569; font-size: 10px;">
                             <td style="padding: 5px 10px; border: 1px solid #e2e8f0;">â””â”€ Payment received on ${inst.date} ${inst.isMigrated ? '(Adm. Installment)' : ''}</td>
-                            <td style="padding: 5px 10px; border: 1px solid #e2e8f0; text-align: center;"><span style="background: #f8fafc; padding: 1px 6px; border-radius: 3px; border: 1px solid #e2e8f0; font-size: 10px;">${inst.method || 'None'}</span></td>
+                            <td style="padding: 5px 10px; border: 1px solid #e2e8f0; text-align: center;"><span style="background: #f8fafc; padding: 1px 6px; border-radius: 3px; border: 1px solid #e2e8f0; font-size: 10px;">${inst.method || 'Cash'}</span></td>
                             <td style="padding: 5px 10px; border: 1px solid #e2e8f0; text-align: right; color: #15803d; font-weight: 700;">+ ${formatNumber(inst.amount)}</td>
                         </tr>
                         `).join('')}
@@ -4342,8 +4275,7 @@ function handleImportFile(event) {
   const file = event.target.files[0];
   if (!file) return;
 
-  const confirmMsg = '⚠️ সতর্কবার্তা: ব্যাকআপ ফাইল ইমপোর্ট করলে বর্তমান কম্পিউটারের এবং ক্লাউডের (Cloud) সকল ডাটা মুছে গিয়ে শুধু ফাইলের ডাটা চলে আসবে।\n\nআপনি কি নিশ্চিত?';
-  if (!confirm(confirmMsg)) {
+  if (!confirm('� ï¸ WARNING: Importing a backup will OVERWRITE all current data on this computer and the Cloud. Proceed?')) {
     event.target.value = '';
     return;
   }
@@ -4353,40 +4285,23 @@ function handleImportFile(event) {
     try {
       let importedData = JSON.parse(e.target.result);
 
-      // Smart Unwrap
+      // Smart Unwrap: handle data exported with different key names
       if (importedData.wingsfly_data) importedData = importedData.wingsfly_data;
       if (importedData.globalData) importedData = importedData.globalData;
 
-      // Validate structure (minimal check)
-      if (!importedData.students && !importedData.finance && !importedData.settings) {
-        throw new Error('Invalid backup file structure.');
+      // Validate structure
+      if (!importedData.students || !Array.isArray(importedData.students)) {
+        throw new Error('Invalid backup file. Could not find students list.');
       }
 
-      // Sanitize: Ensure all arrays exist to prevent UI crashes, but keep them empty if missing
-      const defaults = {
-        students: [],
-        finance: [],
-        employees: [],
-        incomeCategories: [],
-        expenseCategories: [],
-        paymentMethods: ['Cash'],
-        settings: { academyName: 'Wings Fly Aviation Academy' },
-        courseNames: [],
-        attendance: {},
-        examRegistrations: [],
-        visitors: [],
-        employeeRoles: [],
-        bankAccounts: [],
-        mobileBanking: [],
-        nextId: 1001
-      };
-
-      // Merge defaults for any missing core fields
-      Object.keys(defaults).forEach(key => {
-        if (typeof importedData[key] === 'undefined' || importedData[key] === null) {
-          importedData[key] = defaults[key];
-        }
-      });
+      // Sanitize: Fill in missing arrays
+      importedData.students = importedData.students || [];
+      importedData.finance = importedData.finance || [];
+      importedData.employees = importedData.employees || [];
+      importedData.incomeCategories = importedData.incomeCategories || ['Tuition Fees', 'Loan Received', 'Other'];
+      importedData.expenseCategories = importedData.expenseCategories || ['Salary', 'Rent', 'Utilities', 'Loan Given', 'Other'];
+      importedData.paymentMethods = importedData.paymentMethods || ['Cash', 'Bkash', 'Nogod'];
+      importedData.settings = importedData.settings || { academyName: 'Wings Fly Aviation Academy' };
 
       // Update globalData
       window.globalData = importedData;
@@ -4398,17 +4313,15 @@ function handleImportFile(event) {
       });
 
       // Update local timestamp
-      localStorage.setItem('lastLocalUpdate', Date.now().toString());
+      localStorage.setItem('lastLocalUpdate', new Date().toISOString());
 
       // Save and Force Sync to Cloud
-      // IMPORTANT: In a real scenario, we might want to bump the version significantly here 
-      // to ensure this import "wins" against all other devices.
       const syncSuccess = await saveToStorage();
 
       if (syncSuccess) {
-        alert(`✅ সফল: ব্যাকআপ ইমপোর্ট করা হয়েছে।\n${window.globalData.students.length} জন ছাত্র এবং অন্যান্য তথ্য রিস্টোর হয়েছে।`);
+        alert(`SUCCESS: ${window.globalData.students.length} students imported and synced to Cloud.`);
       } else {
-        alert(`⚠️ আংশিক সফল: তথ্য লোকাল কম্পিউটারে রিস্টোর হয়েছে, কিন্তু ক্লাউডে সিঙ্ক (Sync) ব্যর্থ হয়েছে। সিঙ্ক বাটনটি পুনরায় চাপুন।`);
+        alert(`PARTIAL SUCCESS: ${window.globalData.students.length} students imported locally, but Cloud sync failed.`);
       }
 
       window.location.reload();
@@ -4543,7 +4456,7 @@ function openStudentProfile(rowIndex) {
                 <tr>
                   <td class="ps-3">${p.date}</td>
                   <td>${p.category}</td>
-                  <td>${p.method || 'None'}</td>
+                  <td>${p.method || 'Cash'}</td>
                   <td class="text-end pe-3 fw-bold text-success">৳${formatNumber(p.amount)}</td>
                 </tr>
               `).join('') : '<tr><td colspan="4" class="text-center text-muted p-4">No specific payment records found for this student.</td></tr>'}
@@ -6923,29 +6836,13 @@ function applyFinanceToBankAccount(entry) {
 }
 
 
-/* 5️⃣ Hook into Finance Save (AUTO APPLY & STRICT ENFORCE) */
+/* 5️⃣ Hook into Finance Save (AUTO APPLY) */
 (function hookFinanceSave() {
-  if (!window.globalData || !window.globalData.finance) {
-    console.warn('Finance data not ready for hook. Retrying...');
-    setTimeout(hookFinanceSave, 500);
-    return;
-  }
-
   const originalPush = globalData.finance.push.bind(globalData.finance);
 
   globalData.finance.push = function () {
     for (let i = 0; i < arguments.length; i++) {
-      const entry = arguments[i];
-
-      // FINAL LAST-LINE-OF-DEFENSE CHECK
-      if (!entry.method || entry.method.trim() === '') {
-        const errorMsg = '🛑 CRITICAL ERROR: লেনদেনের জন্য পেমেন্ট মেথড (Method) থাকা বাধ্যতামূলক। ডাটা সেভ করা হয়নি।';
-        alert(errorMsg);
-        console.error(errorMsg, entry);
-        return 0; // Block the push
-      }
-
-      applyFinanceToBankAccount(entry);
+      applyFinanceToBankAccount(arguments[i]);
     }
     return originalPush(...arguments);
   };
@@ -7123,69 +7020,59 @@ document.addEventListener('DOMContentLoaded', () => {
 
 
 
-/**
- * DATA RESET: ONLY CLEAR TRANSACTIONAL DATA
- * Preserves settings, categories, and account configurations.
- */
-async function handleDataReset() {
+// NEW: Data-only reset - keeps all settings
+function handleDataReset() {
   console.log("Wings Fly: Data Reset triggered");
 
-  const confirm1 = confirm('⚠️ WARNING: This will delete all students, employees, transactions, attendance, and exam records.\n\nYour academy settings and categories will be preserved.\n\nসব সদস্য এবং লেনদেনের ডাটা মুছে ফেলা হবে। সেটিংস ঠিক থাকবে। আপনি কি নিশ্চিত?');
-  if (!confirm1) return;
-
-  const confirm2 = confirm('⚠️ FINAL WARNING: NO RECOVERY POSSIBLE for transactional data. Proceed?\n\nআপনি কি নিশ্চিতভাবে ডাটা মুছে ফেলতে চান? এটি আর ফিরিয়ে আনা সম্ভব নয়।');
-  if (!confirm2) return;
+  if (!confirm('⚠️ WARNING: This will delete all students, transactions, and balances.\n\nYour settings (categories, courses, bank accounts) will be preserved.\n\nContinue?')) return;
+  if (!confirm('⚠️ FINAL WARNING: All student and financial data will be deleted. Proceed?')) return;
 
   try {
-    // 1. Preserve current configuration
-    const preserved = {
-      settings: window.globalData.settings || { academyName: 'Wings Fly Aviation Academy' },
+    // Preserve current settings from window.globalData
+    const preservedSettings = {
+      settings: window.globalData.settings || { startBalances: {}, academyName: 'Wings Fly Aviation Academy' },
       incomeCategories: window.globalData.incomeCategories || ['Tuition Fees', 'Loan Received', 'Other'],
       expenseCategories: window.globalData.expenseCategories || ['Salary', 'Rent', 'Utilities', 'Loan Given', 'Other'],
-      paymentMethods: window.globalData.paymentMethods || ['Cash', 'Bkash', 'Nogod', 'Bank Transfer'],
-      bankAccounts: JSON.parse(JSON.stringify(window.globalData.bankAccounts || [])),
-      mobileBanking: JSON.parse(JSON.stringify(window.globalData.mobileBanking || [])),
+      paymentMethods: window.globalData.paymentMethods || [],
+      bankAccounts: window.globalData.bankAccounts || [],
+      mobileBanking: window.globalData.mobileBanking || [],
       courseNames: window.globalData.courseNames || [],
       employeeRoles: window.globalData.employeeRoles || ['Instructor', 'Admin', 'Staff', 'Manager'],
-      users: window.globalData.users || [{ username: 'admin', password: 'admin123', role: 'admin', name: 'Super Admin' }]
+      credentials: window.globalData.credentials || { username: 'admin', password: 'admin123' },
+      users: window.globalData.users || []
     };
 
-    // 2. Reset account balances to 0 in the preserved metadata
-    if (preserved.bankAccounts) preserved.bankAccounts.forEach(acc => acc.balance = 0);
-    if (preserved.mobileBanking) preserved.mobileBanking.forEach(acc => acc.balance = 0);
-
-    // 3. Reset transactional fields only
+    // Reset only data, keep settings
     window.globalData = {
-      ...preserved,
+      ...preservedSettings,
       students: [],
       employees: [],
       finance: [],
-      attendance: {},
-      examRegistrations: [],
-      visitors: [],
-      nextId: 1001,
       cashBalance: 0
     };
 
-    // Update global reference
-    if (typeof globalData !== 'undefined') globalData = window.globalData;
-
-    // 4. Save and Force Sync to Cloud
-    if (typeof saveToStorage === 'function') {
-      await saveToStorage();
+    // Reset all account balances to 0 but keep the accounts
+    if (window.globalData.bankAccounts && Array.isArray(window.globalData.bankAccounts)) {
+      window.globalData.bankAccounts.forEach(acc => acc.balance = 0);
+    }
+    if (window.globalData.mobileBanking && Array.isArray(window.globalData.mobileBanking)) {
+      window.globalData.mobileBanking.forEach(acc => acc.balance = 0);
     }
 
-    console.log("Wings Fly: Data reset complete, settings preserved");
-    alert('✅ SUCCESS: All student and financial data has been cleared.\nশুধুমাত্র ডাটা মুছে ফেলা হয়েছে, সেটিংস সংরক্ষিত আছে।');
-    window.location.reload();
+    // Update globalData reference
+    globalData = window.globalData;
 
+    saveToStorage();
+    console.log("Wings Fly: Data reset complete, settings preserved");
+    alert('✅ SUCCESS: All student and financial data has been cleared.\n\nYour settings have been preserved.');
+    window.location.reload();
   } catch (err) {
     alert('An error occurred during data reset: ' + err.message);
     console.error(err);
   }
 }
 
-// Global exposure
+// Expose to global
 window.handleDataReset = handleDataReset;
 
 // RECALCULATE CASH BALANCE FROM TRANSACTIONS

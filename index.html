@@ -261,7 +261,7 @@
     <base target="_top">
     <meta charset="utf-8">
     <meta name="viewport" content="width=device-width, initial-scale=1">
-    <title>Wings Fly Dashboard v12.0-STABLE-RECOVERY - Aviation Academy Management</title>
+    <title>Wings Fly Dashboard v3.0 - Aviation Academy Management</title>
     <meta name="description" content="Wings Fly Aviation Academy - Student and Finance Management Dashboard">
 
     <!-- Bootstrap CSS -->
@@ -293,16 +293,14 @@
 <body>
     <div id="printArea"></div>
     <!-- Login Section -->
-    <div id="loginSection" class="d-none">
+    <div id="loginSection">
         <div class="login-card card">
             <div class="login-header">
                 <div class="logo-circle overflow-hidden p-0">
                     <img src="logo.jpg.jpeg" alt="Logo" style="width: 100%; height: 100%; object-fit: cover;">
                 </div>
                 <h3 class="fw-bold mb-2">Wings Fly Admin</h3>
-                <p class="text-muted mb-2">Aviation Academy Management</p>
-                <div class="badge bg-danger text-white px-3 py-1 rounded-pill small" style="font-size: 0.65rem;">System
-                    v10.5-FIXED</div>
+                <p class="text-muted">Aviation Academy Management System</p>
             </div>
 
             <form id="loginForm" onsubmit="handleLogin(event)">
@@ -326,7 +324,7 @@
     </div>
 
     <!-- Dashboard Section (Redesigned) -->
-    <div id="dashboardSection">
+    <div id="dashboardSection" class="d-none">
         <div class="d-flex h-100 overflow-hidden">
             <!-- SIDEBAR -->
             <aside class="sidebar">
@@ -1790,8 +1788,7 @@
                             <div class="col-md-4 mb-3">
                                 <label class="form-label fw-bold small text-uppercase text-muted">Payment
                                     Method</label>
-                                <select name="method" class="form-select premium-input-modern" id="studentMethodSelect"
-                                    required>
+                                <select name="method" class="form-select premium-input-modern" id="studentMethodSelect">
                                     <!-- Populated dynamically -->
                                 </select>
                             </div>
@@ -1908,8 +1905,7 @@
                                             placeholder="Installment Amount" required>
                                     </div>
                                     <div class="col-md-4">
-                                        <select id="pmtNewMethod" class="form-select" required>
-                                            <option value="">Select Method</option>
+                                        <select id="pmtNewMethod" class="form-select">
                                             <option value="Cash">Cash</option>
                                             <option value="Bkash">Bkash</option>
                                             <option value="Nogod">Nogod</option>
@@ -1970,7 +1966,7 @@
                             </div>
                             <div class="col-4 mb-3">
                                 <label class="form-label fw-semibold">Method</label>
-                                <select name="method" class="form-select" id="financeMethodSelect" required>
+                                <select name="method" class="form-select" id="financeMethodSelect">
                                     <!-- Populated dynamically -->
                                 </select>
                             </div>
@@ -2202,7 +2198,7 @@
                                                             </div>
                                                             <div class="col-12 mt-2">
                                                                 <button type="button" class="btn btn-success w-100 py-2"
-                                                                    onclick="if(window.wingsSync) wingsSync.fullSync(); else alert('Sync system not ready');">
+                                                                    onclick="manualCloudSync()">
                                                                     ☁️ Sync with Cloud Now
                                                                 </button>
                                                                 <small class="text-muted d-block mt-1 text-center">
@@ -2369,7 +2365,7 @@
                             </div>
                             <div class="col-4 mb-3">
                                 <label class="form-label fw-semibold">Method</label>
-                                <select name="method" class="form-select" id="editTransMethodSelect" required>
+                                <select name="method" class="form-select" id="editTransMethodSelect">
                                     <!-- Populated dynamically -->
                                 </select>
                             </div>
@@ -3361,10 +3357,10 @@
     <script src="supabase-config.js"></script>
 
     <!-- Supabase Sync System (Multi-user Real-time Sync) -->
-    <script src="supabase-sync-SMART-V26.js"></script>
+    <script src="supabase-sync-READY.js"></script>
 
     <!-- Main Application (Sync code now embedded inside) -->
-    <script src="app.js?v=12.0"></script>
+    <script src="app.js?v=9.0"></script>
 
     <!-- =============================================== -->
     <!-- MOBILE BANKING MODAL -->
