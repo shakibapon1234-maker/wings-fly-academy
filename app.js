@@ -628,18 +628,19 @@ async function saveToStorage(skipCloudSync = false) {
     localStorage.setItem('lastModified', new Date().toISOString());
     localStorage.setItem('lastLocalUpdate', currentTime);
 
-    // Persistence
+    // Save strictly to the standard key
     localStorage.setItem('wingsfly_data', JSON.stringify(window.globalData));
+    console.log('💾 Data saved to local memory.');
 
-    console.log('💾 Local save OK');
+    // TRIGGER CLOUD SYNC ONLY ON ACTION
+    if (!skipCloudSync && typeof window.saveToCloud === 'function') {
+      const studentCount = window.globalData.students?.length || 0;
+      const financeCount = window.globalData.finance?.length || 0;
 
-    // SAFE CLOUD PUSH: Only push if we actually have data (prevents zero-wipe)
-    const hasData = (window.globalData.students && window.globalData.students.length > 0) ||
-      (window.globalData.finance && window.globalData.finance.length > 0);
-
-    if (!skipCloudSync && hasData && typeof window.saveToCloud === 'function') {
-      console.log('☁️ Triggering cloud push...');
-      window.saveToCloud();
+      if (studentCount > 0 || financeCount > 0) {
+        console.log('🚀 Local change detected! Syncing to cloud...');
+        await window.saveToCloud();
+      }
     }
     return true;
   } catch (error) {
@@ -647,6 +648,24 @@ async function saveToStorage(skipCloudSync = false) {
     return false;
   }
 }
+
+// Master Refresh Function
+window.renderFullUI = function () {
+  console.log('🔄 Performing Global UI Refresh...');
+  try {
+    if (typeof updateGlobalStats === 'function') updateGlobalStats();
+    if (typeof render === 'function') render(window.globalData.students || []);
+    if (typeof renderLedger === 'function') renderLedger(window.globalData.finance || []);
+    if (typeof renderDashboard === 'function') renderDashboard();
+    if (typeof renderCashBalance === 'function') renderCashBalance();
+    if (typeof renderRecentAdmissions === 'function') renderRecentAdmissions();
+    if (typeof updateGrandTotal === 'function') updateGrandTotal();
+    if (typeof populateDropdowns === 'function') populateDropdowns();
+    if (typeof populateBatchFilter === 'function') populateBatchFilter();
+  } catch (e) {
+    console.warn('UI Refresh partially skipped:', e);
+  }
+};
 
 // Toggle Auto-Sync
 function toggleAutoSync(enabled) {
