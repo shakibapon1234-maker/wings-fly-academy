@@ -3066,6 +3066,12 @@ async function handleStudentSubmit(e) {
   const data = {};
   formData.forEach((value, key) => data[key] = value);
 
+  // ✅ VALIDATION: Payment Method is REQUIRED
+  if (!data.method || data.method.trim() === '') {
+    showErrorToast('⚠️ Payment Method is required! Please select a payment method.');
+    return;
+  }
+
   try {
     const editIndex = data.studentRowIndex;
     let student;
@@ -3308,6 +3314,12 @@ function handleAddInstallment() {
     return;
   }
 
+  // ✅ VALIDATION: Payment Method is REQUIRED
+  if (!method || method.trim() === '') {
+    showErrorToast('⚠️ Payment Method is required! Please select a payment method.');
+    return;
+  }
+
   // Confirm if amount exceeds due
   if (amount > (student.due + 1)) { // Allow 1tk buffer for rounding
     if (!confirm(`Warning: Payment amount (৳${formatNumber(amount)}) exceeds current due (৳${formatNumber(student.due)}). Continue?`)) return;
@@ -3446,6 +3458,12 @@ async function handleFinanceSubmit(e) {
   // Only Loan Given and Loan Received TYPE require Person field
   if ((type === 'Loan Given' || type === 'Loan Received') && !person) {
     showErrorToast('⚠️ Person/Counterparty name is required for Loan transactions!');
+    return;
+  }
+
+  // ✅ VALIDATION: Payment Method is REQUIRED
+  if (!formData.method || formData.method.trim() === '') {
+    showErrorToast('⚠️ Payment Method is required! Please select a payment method.');
     return;
   }
 
@@ -3591,6 +3609,12 @@ async function handleEditTransactionSubmit(e) {
   const form = document.getElementById('editTransactionForm');
   const formData = {};
   new FormData(form).forEach((value, key) => formData[key] = value);
+
+  // ✅ VALIDATION: Payment Method is REQUIRED
+  if (!formData.method || formData.method.trim() === '') {
+    showErrorToast('⚠️ Payment Method is required! Please select a payment method.');
+    return;
+  }
 
   const id = parseInt(formData.transactionId);
   const index = globalData.finance.findIndex(f => f.id === id);

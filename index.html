@@ -1787,8 +1787,9 @@
                             </div>
                             <div class="col-md-4 mb-3">
                                 <label class="form-label fw-bold small text-uppercase text-muted">Payment
-                                    Method</label>
-                                <select name="method" class="form-select premium-input-modern" id="studentMethodSelect">
+                                    Method <span class="text-danger">*</span></label>
+                                <select name="method" class="form-select premium-input-modern" id="studentMethodSelect" required>
+                                    <option value="">-- Select Payment Method --</option>
                                     <!-- Populated dynamically -->
                                 </select>
                             </div>
@@ -1905,7 +1906,9 @@
                                             placeholder="Installment Amount" required>
                                     </div>
                                     <div class="col-md-4">
-                                        <select id="pmtNewMethod" class="form-select">
+                                        <label class="form-label">Method <span class="text-danger">*</span></label>
+                                        <select id="pmtNewMethod" class="form-select" required>
+                                            <option value="">-- Select Method --</option>
                                             <option value="Cash">Cash</option>
                                             <option value="Bkash">Bkash</option>
                                             <option value="Nogod">Nogod</option>
@@ -1965,8 +1968,9 @@
                                 </select>
                             </div>
                             <div class="col-4 mb-3">
-                                <label class="form-label fw-semibold">Method</label>
-                                <select name="method" class="form-select" id="financeMethodSelect">
+                                <label class="form-label fw-semibold">Method <span class="text-danger">*</span></label>
+                                <select name="method" class="form-select" id="financeMethodSelect" required>
+                                    <option value="">-- Select Payment Method --</option>
                                     <!-- Populated dynamically -->
                                 </select>
                             </div>
@@ -2364,8 +2368,9 @@
                                 </select>
                             </div>
                             <div class="col-4 mb-3">
-                                <label class="form-label fw-semibold">Method</label>
-                                <select name="method" class="form-select" id="editTransMethodSelect">
+                                <label class="form-label fw-semibold">Method <span class="text-danger">*</span></label>
+                                <select name="method" class="form-select" id="editTransMethodSelect" required>
+                                    <option value="">-- Select Payment Method --</option>
                                     <!-- Populated dynamically -->
                                 </select>
                             </div>
