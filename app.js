@@ -133,7 +133,7 @@ async function deleteStudentPhoto(photoKey) {
   transaction.objectStore(PHOTO_STORE_NAME).delete(photoKey);
 }
 
-function getStudentPhotoSrc(photoKey, imgElementId) {
+function getStudentPhotoSrc(photoKey, imgElementId = null) {
   const placeholder = 'data:image/svg+xml,%3Csvg xmlns="http://www.w3.org/2000/svg" width="200" height="200"%3E%3Crect fill="%2300d9ff" width="200" height="200"/%3E%3Ctext x="50%25" y="50%25" dominant-baseline="middle" text-anchor="middle" font-family="sans-serif" font-size="80" fill="%23ffffff"%3E👤%3C/text%3E%3C/svg%3E';
 
   if (!photoKey) return placeholder;
@@ -142,14 +142,17 @@ function getStudentPhotoSrc(photoKey, imgElementId) {
     const transaction = db.transaction([PHOTO_STORE_NAME], 'readonly');
     const request = transaction.objectStore(PHOTO_STORE_NAME).get(photoKey);
     request.onsuccess = () => {
-      if (request.result) {
+      if (request.result && imgElementId) {
         const img = document.getElementById(imgElementId);
-        if (img) img.src = request.result;
+        if (img) {
+          img.src = request.result;
+          img.style.objectFit = 'cover';
+        }
       }
     };
-  });
+  }).catch(err => console.warn('Photo load error:', err));
 
-  return placeholder; // Temporary
+  return placeholder;
 }
 
 // Make functions globally available
