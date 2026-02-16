@@ -3,9 +3,9 @@
 // CORE APPLICATION LOGIC
 // ===================================
 
-const APP_VERSION = "11.1-AUTO-FIX"; // System-wide Versioning
+const APP_VERSION = "12.0-STABLE-RECOVERY"; // System-wide Versioning
 console.warn(`🚀 Wings Fly Aviation - System Version: ${APP_VERSION}`);
-alert('🚀 Version 11.1: Payment Methods & Login Bypass Active');
+alert('🛠️ System Recovery Mode: v12.0 Active. Checking data integrity...');
 
 // Initialize Global Data immediately to prevent ReferenceErrors
 if (typeof window.globalData === 'undefined') {
@@ -538,9 +538,8 @@ document.addEventListener('DOMContentLoaded', function () {
     const username = sessionStorage.getItem('username') || 'Admin';
     showDashboard(username);
 
-    // CRITICAL: Attempt Initial Cloud Sync IMMEDIATELY
-    console.log('🔄 Initializing cloud sync on login...');
-    setTimeout(async () => {
+    // Cloud sync check disabled here (V26 system handles it)
+    if (false) setTimeout(async () => {
       if (typeof window.loadFromCloud === 'function') {
         try {
           console.log('💥 Pulling latest data from cloud on startup...');
@@ -1824,7 +1823,7 @@ function populateDropdowns() {
       el.appendChild(cashOpt);
 
       // Add ONLY bank accounts (no traditional methods)
-      const bankAccounts = globalData.bankAccounts || [];
+      const bankAccounts = window.globalData.bankAccounts || [];
       bankAccounts.forEach(account => {
         const opt = document.createElement('option');
         opt.value = account.name;
@@ -1845,18 +1844,14 @@ function populateDropdowns() {
         el.appendChild(opt);
       });
 
-      // FALLBACK: If ONLY Cash is present, add Bkash/Nagad as defaults if they don't exist in accounts
+      // FALLBACK: Ensure options if no accounts are present
       if (bankAccounts.length === 0 && mobileAccounts.length === 0) {
-        const fallbacks = [
-          { name: 'Bkash', icon: '📱', color: '#ff2d95' },
-          { name: 'Nagad', icon: '📱', color: '#ff2d95' }
-        ];
-        fallbacks.forEach(f => {
+        ['Bkash', 'Nagad'].forEach(name => {
           const opt = document.createElement('option');
-          opt.value = f.name;
-          opt.innerText = `${f.icon} ${f.name}`;
+          opt.value = name;
+          opt.innerText = `📱 ${name}`;
           opt.style.backgroundColor = '#1a1f3a';
-          opt.style.color = f.color;
+          opt.style.color = '#ff2d95';
           el.appendChild(opt);
         });
       }
