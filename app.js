@@ -3,10 +3,9 @@
 // CORE APPLICATION LOGIC
 // ===================================
 
-const APP_VERSION = "10.5-ULTRA-BYPASS"; // System-wide Versioning
-console.error("🚀 APP.JS LOADED: VERSION 10.5 IS ACTIVE");
+const APP_VERSION = "11.0-LOGIN-DISABLED"; // System-wide Versioning
 console.warn(`🚀 Wings Fly Aviation - System Version: ${APP_VERSION}`);
-alert('✅ System Initialized: v10.5 ULTRA BYPASS IS ACTIVE');
+alert('🚀 Login Disabled: Version 11.0 Active');
 
 // Initialize Global Data immediately to prevent ReferenceErrors
 if (typeof window.globalData === 'undefined') {
@@ -530,8 +529,11 @@ document.addEventListener('DOMContentLoaded', function () {
   const studentDate = document.getElementById('studentEnrollDate');
   if (studentDate) studentDate.value = today;
 
-  // Check if user is already logged in
-  const isLoggedIn = sessionStorage.getItem('isLoggedIn');
+  // ✅ LOGIN SYSTEM DISABLED (Bypass)
+  sessionStorage.setItem('isLoggedIn', 'true');
+  sessionStorage.setItem('username', 'Super Admin');
+  sessionStorage.setItem('role', 'admin');
+  const isLoggedIn = 'true';
   if (isLoggedIn === 'true') {
     const username = sessionStorage.getItem('username') || 'Admin';
     showDashboard(username);
@@ -1033,15 +1035,8 @@ function showDashboard(username) {
 }
 
 function logout() {
-  sessionStorage.removeItem('isLoggedIn');
-  sessionStorage.removeItem('username');
-
-  document.getElementById('dashboardSection').classList.add('d-none');
-  document.getElementById('loginSection').classList.remove('d-none');
-  document.getElementById('loginForm').reset();
-  document.getElementById('loginBtn').innerHTML = '<span>Login</span>';
-  document.getElementById('loginBtn').disabled = false;
-  document.getElementById('loginError').innerText = '';
+  console.log("Logout disabled.");
+  showSuccessToast("Logout is disabled in this version.");
 }
 window.handleLogin = handleLogin;
 function checkLogin() {
