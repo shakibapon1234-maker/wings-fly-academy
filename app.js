@@ -4130,9 +4130,11 @@ function printReceipt(rowIndex, currentPaymentAmount = null) {
 
   setTimeout(() => {
     window.print();
-    // Remove class after print dialog closes
+    // Remove class after print dialog closes and clear printArea
     setTimeout(() => {
       document.body.classList.remove('printing-receipt');
+      // Clear printArea to prevent ghost pages
+      document.getElementById('printArea').innerHTML = '';
     }, 1000);
   }, 500);
 }
@@ -4242,7 +4244,7 @@ function printReport(type) {
   }
 
   printArea.innerHTML = `
-    <div style="width: 100%; background: white; padding: 20px;">
+    <div style="width: 100%; background: white; padding: 20px; max-width: 100%; overflow: hidden;">
         ${getPrintHeader(title)}
         ${tableContent}
         ${getPrintFooter()}
@@ -4252,7 +4254,11 @@ function printReport(type) {
   document.body.classList.add('printing-receipt');
   setTimeout(() => {
     window.print();
-    setTimeout(() => document.body.classList.remove('printing-receipt'), 1000);
+    setTimeout(() => {
+      document.body.classList.remove('printing-receipt');
+      // Clear printArea to prevent ghost pages
+      printArea.innerHTML = '';
+    }, 1000);
   }, 500);
 }
 

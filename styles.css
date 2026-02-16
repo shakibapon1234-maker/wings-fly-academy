@@ -2331,6 +2331,8 @@ tfoot th {
     background: white !important;
     background-image: none !important;
     color: black !important;
+    overflow: hidden !important;
+    height: auto !important;
   }
 
   /* Hide background effects */
@@ -2342,6 +2344,10 @@ tfoot th {
   /* Hide all UI elements except printArea */
   body.printing-receipt>*:not(#printArea) {
     display: none !important;
+    visibility: hidden !important;
+    position: absolute !important;
+    height: 0 !important;
+    overflow: hidden !important;
   }
 
   /* Hide sidebar, navbar, modals */
@@ -2359,6 +2365,8 @@ tfoot th {
   body.printing-receipt button,
   body.printing-receipt .btn {
     display: none !important;
+    visibility: hidden !important;
+    height: 0 !important;
   }
 
   /* Show only printArea */
@@ -2369,6 +2377,10 @@ tfoot th {
     padding: 0 !important;
     margin: 0 !important;
     width: 100% !important;
+    max-width: 100% !important;
+    overflow: visible !important;
+    page-break-after: avoid !important;
+    page-break-inside: avoid !important;
   }
 
   /* Clean text colors */
@@ -2387,6 +2399,7 @@ tfoot th {
   body.printing-receipt h6 {
     color: black !important;
     text-shadow: none !important;
+    page-break-after: avoid !important;
   }
 
   /* Tables */
@@ -2395,6 +2408,7 @@ tfoot th {
     width: 100% !important;
     background: white !important;
     color: black !important;
+    page-break-inside: auto !important;
   }
 
   body.printing-receipt th,
@@ -2404,6 +2418,7 @@ tfoot th {
     background: white !important;
     color: black !important;
     text-shadow: none !important;
+    page-break-inside: avoid !important;
   }
 
   body.printing-receipt thead th {
@@ -2420,6 +2435,7 @@ tfoot th {
     color: black !important;
     font-weight: bold !important;
     border-top: 2px solid #000 !important;
+    page-break-inside: avoid !important;
   }
 
   /* Remove all effects */
@@ -2430,10 +2446,21 @@ tfoot th {
     text-shadow: none !important;
   }
 
-  /* Page settings */
+  /* Prevent orphaned content on second page */
+  body.printing-receipt #printArea > * {
+    page-break-after: avoid !important;
+  }
+
+  /* Page settings - CRITICAL for single page */
   @page {
     margin: 1cm;
     size: A4;
+  }
+
+  /* Force all content on first page */
+  html, body {
+    height: auto !important;
+    overflow: visible !important;
   }
 }
 
