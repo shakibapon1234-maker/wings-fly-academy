@@ -624,41 +624,26 @@ document.addEventListener('DOMContentLoaded', function () {
 
 async function saveToStorage(skipCloudSync = false) {
   try {
-    const currentTime = new Date().toISOString();
-    localStorage.setItem('lastModified', currentTime);
-    localStorage.setItem('lastLocalUpdate', Date.now().toString());
+    const currentTime = Date.now().toString();
+    localStorage.setItem('lastModified', new Date().toISOString());
+    localStorage.setItem('lastLocalUpdate', currentTime);
 
-    // Save individual arrays (Ensure keys match globalData structure)
-    localStorage.setItem('students', JSON.stringify(window.globalData.students || []));
-    localStorage.setItem('finance', JSON.stringify(window.globalData.finance || []));
-    localStorage.setItem('employees', JSON.stringify(window.globalData.employees || []));
-    localStorage.setItem('bankAccounts', JSON.stringify(window.globalData.bankAccounts || []));
-    localStorage.setItem('mobileBanking', JSON.stringify(window.globalData.mobileBanking || []));
-
-    // Also save complete data
-    const dataString = JSON.stringify(window.globalData);
-    localStorage.setItem('wingsfly_data', dataString);
+    // Persistence
+    localStorage.setItem('wingsfly_data', JSON.stringify(window.globalData));
 
     console.log('💾 Local save OK');
 
-    // Cloud sync
-    if (!skipCloudSync && typeof window.saveToCloud === 'function') {
-      console.log('☁️ Syncing to cloud...');
-      const cloudSuccess = await window.saveToCloud(false);
-      if (cloudSuccess) {
-        console.log('✅ Cloud sync OK');
-      } else {
-        console.warn('⚠️ Cloud sync failed');
-        setTimeout(() => window.saveToCloud(false), 3000);
-      }
-      return cloudSuccess;
+    // SAFE CLOUD PUSH: Only push if we actually have data (prevents zero-wipe)
+    const hasData = (window.globalData.students && window.globalData.students.length > 0) ||
+      (window.globalData.finance && window.globalData.finance.length > 0);
+
+    if (!skipCloudSync && hasData && typeof window.saveToCloud === 'function') {
+      console.log('☁️ Triggering cloud push...');
+      window.saveToCloud();
     }
     return true;
   } catch (error) {
     console.error('❌ Save error:', error);
-    if (typeof showErrorToast === 'function') {
-      showErrorToast("Failed to save");
-    }
     return false;
   }
 }
@@ -7686,12 +7671,14 @@ window.printAccountReport = printAccountReport;
 
 // Core UI Refresh Functions for Auto-Sync
 window.renderFullUI = function () {
-  if (typeof render === 'function') render(globalData.students);
-  if (typeof renderLedger === 'function') renderLedger(globalData.finance);
+  console.log('🔄 Global UI Refresh Triggered');
+  if (typeof render === 'function') render(window.globalData.students || []);
+  if (typeof renderLedger === 'function') renderLedger(window.globalData.finance || []);
   if (typeof updateGlobalStats === 'function') updateGlobalStats();
   if (typeof renderDashboard === 'function') renderDashboard();
   if (typeof renderCashBalance === 'function') renderCashBalance();
   if (typeof renderRecentAdmissions === 'function') renderRecentAdmissions();
+  if (typeof updateGrandTotal === 'function') updateGrandTotal();
 };
 
 // Auto-populate dropdown when data loads

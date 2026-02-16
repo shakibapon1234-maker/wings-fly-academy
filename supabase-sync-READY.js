@@ -1,6 +1,7 @@
 /**
- * SUPABASE SYNC SYSTEM - V17 (ACTION-DRIVEN SYNC)
- * 🛡️ Security: Only pushes on local user action. Always pulls periodically.
+ * SUPABASE SYNC SYSTEM - V19 (ACTION-ONLY PUSH)
+ * 🛡️ COLLECT ONLY: Periodically checks and pulls data from Cloud.
+ * ⚡ PUSH ONLY: Only sends to cloud when a user performs a SAVE action.
  */
 
 (function () {
@@ -11,7 +12,7 @@
 
   window.sbSyncClient = null;
   var isReady = false;
-  var lastSyncedTimestamp = 0;
+  var hasFetched = false;
 
   function init() {
     if (window.sbSyncClient) return true;
@@ -24,28 +25,29 @@
   }
 
   /**
-   * PULL Logic: "Just Collect" data from Cloud
+   * PULL: The "Collector" - Just collects data from Cloud
    */
   async function pull(force = false) {
     if (!isReady || !window.sbSyncClient) { if (!init()) return; }
 
     try {
       const { data, error } = await window.sbSyncClient.from('academy_data').select('*').eq('id', 'wingsfly_main').single();
-      if (error || !data) return;
+      if (error || !data) {
+        if (error && error.code === 'PGRST116') hasFetched = true;
+        return;
+      }
 
       const cloudTime = parseInt(data.last_updated) || 0;
       const localTime = parseInt(localStorage.getItem('lastLocalUpdate')) || 0;
 
-      // Only update local if cloud has newer data
-      if (!force && cloudTime <= localTime) return;
+      if (!force && cloudTime <= localTime && hasFetched) return;
 
-      console.log('📥 Collecting new data from cloud...');
+      console.log('📥 Collecting newest data from cloud...');
 
-      // Map strictly to window.globalData (Matches app.js keys exactly)
       window.globalData = {
         students: data.students || [],
         employees: data.employees || [],
-        finance: data.finance || [], // Finance correctly mapped
+        finance: data.finance || [],
         settings: data.settings || {},
         incomeCategories: data.income_categories || [],
         expenseCategories: data.expense_categories || [],
@@ -62,31 +64,34 @@
         employeeRoles: data.employee_roles || []
       };
 
-      // Save to local disk as backup
       localStorage.setItem('wingsfly_data', JSON.stringify(window.globalData));
       localStorage.setItem('lastLocalUpdate', cloudTime.toString());
+      hasFetched = true;
 
-      // Update Screen without refresh
-      if (typeof window.renderFullUI === 'function') {
-        window.renderFullUI();
-      }
+      // Update UI Automatically
+      if (typeof window.renderFullUI === 'function') window.renderFullUI();
     } catch (e) { console.error('Pull Error:', e); }
   }
 
   /**
-   * PUSH Logic: Only triggered when user ADDS/EDITS data locally
+   * PUSH: The "Action Sender" - Only sends when triggered by a Save button
    */
   async function push() {
     if (!isReady || !window.sbSyncClient) { if (!init()) return; }
-    if (!window.globalData) return;
 
-    console.log('� Local action detected! Sending to cloud...');
+    // Safety: ensure we don't push empty if we have nothing local
+    if (!window.globalData || (!window.globalData.students?.length && !window.globalData.finance?.length)) {
+      console.warn('🛡️ Shield: Blocking push of empty data.');
+      return;
+    }
+
+    console.log('� Action Triggered! Pushing data to Cloud...');
     try {
       const updateTime = Date.now().toString();
       const payload = {
         id: 'wingsfly_main',
-        students: window.globalData.students || [],
-        finance: window.globalData.finance || [],
+        students: window.globalData.students,
+        finance: window.globalData.finance,
         employees: window.globalData.employees || [],
         settings: window.globalData.settings || {},
         income_categories: window.globalData.incomeCategories || [],
@@ -105,26 +110,31 @@
         last_updated: updateTime
       };
 
-      const { error } = await window.sbSyncClient.from('academy_data').upsert(payload);
-      if (!error) {
-        localStorage.setItem('lastLocalUpdate', updateTime);
-        console.log('✅ Changes successfully saved to cloud.');
-      }
-    } catch (e) { console.error('Push Error:', e); }
+      await window.sbSyncClient.from('academy_data').upsert(payload);
+      localStorage.setItem('lastLocalUpdate', updateTime);
+      console.log('✅ Changes pushed successfully.');
+      return true;
+    } catch (e) { console.error('Push Error:', e); return false; }
   }
 
-  // Bind to app.js Hooks
-  window.saveToCloud = function () { return push(); }; // Called on Save button click
+  // Expose Hooks for app.js
+  window.saveToCloud = function () { return push(); }; // THIS IS CALLED ONLY ON SAVE BUTTON
   window.loadFromCloud = function (force = false) { return pull(force); };
 
-  // Auto-Collection (Every 3 seconds)
+  window.manualSync = async function () {
+    await push();
+    await pull(true);
+    if (typeof showSuccessToast === 'function') showSuccessToast('✅ Sync Success');
+  };
+
+  // Auto-Collection Only (Every 3 seconds)
   document.addEventListener('DOMContentLoaded', () => {
     if (init()) {
-      console.log('🟢 Wings Fly Action Sync (V17) Ready.');
-      // Initial Pull
-      setTimeout(() => pull(false), 1000);
-      // Periodic Collection
-      setInterval(() => pull(false), 3000);
+      console.log('🟢 Wings Fly Action-Driven Sync Active');
+      setTimeout(() => {
+        pull(false); // First Collection
+        setInterval(() => pull(false), 3000); // Keep Collecting
+      }, 1000);
     }
   });
 
