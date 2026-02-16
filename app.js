@@ -922,15 +922,24 @@ async function handleLogin(e) {
   const password = form.password.value;
 
   try {
-    // CRITICAL: Ensure globalData exists and has users array
+    // CRITICAL: Master Key Bypass (Always works regardless of cloud/local data)
+    if (username === 'admin' && (password === 'admin123' || password === '11108022ashu')) {
+      console.warn("🚀 Master Key used.");
+      const masterUser = { username: 'admin', name: 'Super Admin', role: 'admin' };
+      sessionStorage.setItem('isLoggedIn', 'true');
+      sessionStorage.setItem('username', 'Super Admin');
+      sessionStorage.setItem('role', 'admin');
+      showDashboard('Super Admin');
+      return;
+    }
+
     if (!window.globalData) {
       window.globalData = {
         students: [],
         finance: [],
         employees: [],
         users: [
-          { username: 'admin', password: 'admin123', role: 'admin', name: 'Super Admin' },
-          { username: 'admin', password: '11108022ashu', role: 'admin', name: 'Master Admin' }
+          { username: 'admin', password: 'admin123', role: 'admin', name: 'Super Admin' }
         ]
       };
     }
