@@ -1,111 +1,231 @@
 // ===================================
-// SUPABASE SYNC - EMBEDDED VERSION
-// NO EXTERNAL FILES NEEDED
+// SUPABASE REAL-TIME SYNC - FIXED VERSION
+// Multi-Device সিঙ্ক্রোনাইজেশন সিস্টেম
 // ===================================
 
 (function() {
   'use strict';
   
-  console.log('🔄 Loading Supabase Sync...');
+  console.log('🚀 Supabase Sync System Loading...');
   
-  // Try to use config from supabase-config.js if available, otherwise use fallback
+  // Configuration
   const SUPABASE_URL = window.SUPABASE_CONFIG?.url || 'https://gtoldrlbxjrwshubplfp.supabase.co';
-  const SUPABASE_KEY = window.SUPABASE_CONFIG?.anonKey || 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6Imd0b2xkcmxieGpyd3NodWJwbGZwIiwicm9sZSI6ImFub24iLCJpYXQiOjE3Mzc3OTg2NDAsImV4cCI6MjA1MzM3NDY0MH0.T5TrlL5xLUqzMUl7w-LChGxbICxTaRN0DuGnxZ-LLfs';
+  const SUPABASE_KEY = window.SUPABASE_CONFIG?.anonKey || 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6Imd0b2xkcmx0eGpyd3NodWJwbGZwIiwicm9sZSI6ImFub24iLCJpYXQiOjE3NzEwOTk5MTksImV4cCI6MjA4NjY3NTkxOX0.7NTx3tzU1C5VaewNZZHTaJf2WJ_GtjhQPKOymkxRsUk';
   
-  console.log('📍 Using Supabase URL:', SUPABASE_URL);
+  console.log('📍 Supabase URL:', SUPABASE_URL);
   
+  // State
   let supabaseClient = null;
   let syncInterval = null;
   let realtimeChannel = null;
+  let isSyncing = false;
+  let lastSyncTime = 0;
+  let deviceId = getDeviceId();
   
-  // Initialize on DOM ready
+  // ===================================
+  // INITIALIZATION
+  // ===================================
+  
   function init() {
+    // Check if Supabase library loaded
     if (typeof supabase === 'undefined') {
-      console.warn('⚠️ Supabase library not loaded');
-      setTimeout(init, 1000); // Retry
+      console.warn('⚠️ Supabase library not loaded, retrying...');
+      setTimeout(init, 500);
       return;
     }
     
     try {
+      // Create Supabase client
       supabaseClient = supabase.createClient(SUPABASE_URL, SUPABASE_KEY);
-      console.log('✅ Supabase initialized');
+      console.log('✅ Supabase client initialized');
       
-      // Export functions
+      // Export functions globally
       window.saveToCloud = saveToCloud;
       window.loadFromCloud = loadFromCloud;
       window.startAutoSync = startAutoSync;
       window.stopAutoSync = stopAutoSync;
       window.startRealtimeSync = startRealtimeSync;
-      window.checkSyncStatus = checkSyncStatus;
+      window.stopRealtimeSync = stopRealtimeSync;
       window.manualSync = manualSync;
+      window.checkSyncStatus = checkSyncStatus;
+      window.forcePushToCloud = forcePushToCloud;
       
-      console.log('✅ Sync functions ready');
-    } catch (e) {
-      console.error('❌ Init error:', e);
+      console.log('✅ Sync functions exported');
+      
+      // Start sync systems
+      initializeSyncSystems();
+      
+    } catch (error) {
+      console.error('❌ Supabase initialization failed:', error);
     }
   }
   
-  // Save to cloud
+  // ===================================
+  // SYNC SYSTEMS INITIALIZATION
+  // ===================================
+  
+  function initializeSyncSystems() {
+    // Wait for app to load
+    setTimeout(async () => {
+      console.log('🔄 Starting sync systems...');
+      
+      // 1. Load initial data from cloud
+      await loadFromCloud(true);
+      
+      // 2. Start real-time listener
+      startRealtimeSync();
+      
+      // 3. Start auto-sync (every 15 seconds)
+      startAutoSync(15);
+      
+      console.log('✅ All sync systems active');
+      
+      if (window.showSuccessToast) {
+        window.showSuccessToast('🔄 Auto-sync enabled');
+      }
+      
+    }, 2000);
+  }
+  
+  // ===================================
+  // DEVICE ID
+  // ===================================
+  
+  function getDeviceId() {
+    let id = localStorage.getItem('deviceId');
+    if (!id) {
+      id = 'device_' + Math.random().toString(36).substr(2, 9) + '_' + Date.now();
+      localStorage.setItem('deviceId', id);
+    }
+    return id;
+  }
+  
+  // ===================================
+  // SAVE TO CLOUD
+  // ===================================
+  
   async function saveToCloud(showMsg = false) {
     if (!supabaseClient) {
-      console.warn('⚠️ Supabase not ready');
+      console.warn('⚠️ Supabase not initialized');
       return false;
     }
     
+    // Prevent concurrent saves
+    if (isSyncing) {
+      console.log('⏳ Sync in progress, skipping...');
+      return false;
+    }
+    
+    // Rate limiting - don't save too frequently
+    const now = Date.now();
+    if (now - lastSyncTime < 2000) { // Min 2 seconds between saves
+      console.log('⏰ Too soon, skipping save...');
+      return false;
+    }
+    
+    isSyncing = true;
+    
     try {
-      const data = {
+      const timestamp = new Date().toISOString();
+      
+      // Collect all data
+      const dataToSave = {
         students: JSON.parse(localStorage.getItem('students') || '[]'),
         finances: JSON.parse(localStorage.getItem('finances') || '[]'),
         courses: JSON.parse(localStorage.getItem('courses') || '[]'),
         employees: JSON.parse(localStorage.getItem('employees') || '[]'),
         banks: JSON.parse(localStorage.getItem('banks') || '[]'),
         mobiles: JSON.parse(localStorage.getItem('mobiles') || '[]'),
-        timestamp: new Date().toISOString()
+        timestamp: timestamp,
+        deviceId: deviceId,
+        version: Date.now() // For conflict resolution
       };
       
-      console.log('☁️ Saving to cloud...');
+      console.log('☁️ Saving to cloud...', {
+        device: deviceId.substring(0, 15) + '...',
+        students: dataToSave.students.length,
+        finances: dataToSave.finances.length
+      });
       
+      // Check if record exists
       const { data: existing } = await supabaseClient
         .from('app_data')
-        .select('id')
+        .select('id, updated_at')
         .eq('user_id', 'admin')
         .maybeSingle();
       
       let result;
+      
       if (existing) {
+        // Update existing record
         result = await supabaseClient
           .from('app_data')
-          .update({ data: data, updated_at: new Date().toISOString() })
+          .update({ 
+            data: dataToSave,
+            updated_at: timestamp
+          })
           .eq('id', existing.id);
       } else {
+        // Insert new record
         result = await supabaseClient
           .from('app_data')
-          .insert({ user_id: 'admin', data: data });
+          .insert({ 
+            user_id: 'admin', 
+            data: dataToSave,
+            updated_at: timestamp
+          });
       }
       
-      if (result.error) throw result.error;
+      if (result.error) {
+        throw result.error;
+      }
       
-      console.log('✅ Cloud save OK');
+      // Update local timestamp
+      localStorage.setItem('lastModified', timestamp);
+      lastSyncTime = now;
+      
+      console.log('✅ Cloud save successful');
+      
       if (showMsg && window.showSuccessToast) {
-        window.showSuccessToast('☁️ Synced');
+        window.showSuccessToast('☁️ Data synced');
       }
+      
+      isSyncing = false;
       return true;
-    } catch (e) {
-      console.error('❌ Save error:', e);
+      
+    } catch (error) {
+      console.error('❌ Cloud save error:', error);
+      isSyncing = false;
+      
+      if (showMsg && window.showErrorToast) {
+        window.showErrorToast('⚠️ Sync failed');
+      }
+      
       return false;
     }
   }
   
-  // Load from cloud
+  // ===================================
+  // LOAD FROM CLOUD
+  // ===================================
+  
   async function loadFromCloud(showMsg = false) {
     if (!supabaseClient) {
-      console.warn('⚠️ Supabase not ready');
+      console.warn('⚠️ Supabase not initialized');
       return false;
     }
+    
+    if (isSyncing) {
+      console.log('⏳ Sync in progress, skipping load...');
+      return false;
+    }
+    
+    isSyncing = true;
     
     try {
       console.log('☁️ Loading from cloud...');
       
+      // Fetch data from Supabase
       const { data: record, error } = await supabaseClient
         .from('app_data')
         .select('data, updated_at')
@@ -114,26 +234,39 @@
       
       if (error) {
         if (error.code === 'PGRST116') {
-          console.log('📝 No cloud data yet');
+          console.log('📝 No cloud data found - will create on first save');
+          isSyncing = false;
           return true;
         }
         throw error;
       }
       
       if (!record || !record.data) {
-        console.log('📝 Empty cloud data');
+        console.log('📝 No cloud data available');
+        isSyncing = false;
         return false;
       }
       
       const cloudData = record.data;
-      const cloudTime = new Date(record.updated_at);
-      const localTime = localStorage.getItem('lastModified') 
-        ? new Date(localStorage.getItem('lastModified'))
-        : new Date(0);
+      const cloudTimestamp = new Date(record.updated_at).getTime();
+      const localTimestamp = localStorage.getItem('lastModified') 
+        ? new Date(localStorage.getItem('lastModified')).getTime()
+        : 0;
       
-      if (cloudTime > localTime) {
-        console.log('🔄 Updating from cloud...');
+      // Check if cloud data is newer
+      if (cloudTimestamp > localTimestamp) {
+        console.log('🔄 Cloud data is newer - updating local...');
+        console.log('  Cloud time:', new Date(cloudTimestamp).toLocaleString());
+        console.log('  Local time:', new Date(localTimestamp).toLocaleString());
         
+        // Check if this update is from same device
+        if (cloudData.deviceId === deviceId) {
+          console.log('✋ Same device - skipping update');
+          isSyncing = false;
+          return true;
+        }
+        
+        // Update localStorage
         localStorage.setItem('students', JSON.stringify(cloudData.students || []));
         localStorage.setItem('finances', JSON.stringify(cloudData.finances || []));
         localStorage.setItem('courses', JSON.stringify(cloudData.courses || []));
@@ -142,6 +275,7 @@
         localStorage.setItem('mobiles', JSON.stringify(cloudData.mobiles || []));
         localStorage.setItem('lastModified', cloudData.timestamp || record.updated_at);
         
+        // Update globalData if exists
         if (window.globalData) {
           window.globalData.students = cloudData.students || [];
           window.globalData.finances = cloudData.finances || [];
@@ -150,36 +284,82 @@
           window.globalData.banks = cloudData.banks || [];
           window.globalData.mobiles = cloudData.mobiles || [];
           
-          if (typeof renderStudents === 'function') renderStudents();
-          if (typeof renderFinances === 'function') renderFinances();
+          // Refresh UI
+          refreshUI();
         }
         
-        console.log('✅ Data updated');
+        console.log('✅ Local data updated from cloud');
+        
         if (showMsg && window.showSuccessToast) {
-          window.showSuccessToast('✅ Updated');
+          window.showSuccessToast('✅ Data updated from cloud');
         }
+        
+        isSyncing = false;
         return true;
+        
       } else {
-        console.log('✅ Already up to date');
+        console.log('✅ Local data is up to date');
+        isSyncing = false;
         return true;
       }
-    } catch (e) {
-      console.error('❌ Load error:', e);
+      
+    } catch (error) {
+      console.error('❌ Cloud load error:', error);
+      isSyncing = false;
+      
+      if (showMsg && window.showErrorToast) {
+        window.showErrorToast('⚠️ Load failed');
+      }
+      
       return false;
     }
   }
   
-  // Auto sync
-  function startAutoSync(seconds = 10) {
-    if (syncInterval) clearInterval(syncInterval);
+  // ===================================
+  // FORCE PUSH TO CLOUD (for initial setup)
+  // ===================================
+  
+  async function forcePushToCloud() {
+    console.log('🚀 Force pushing local data to cloud...');
     
+    // Temporarily clear lastModified to force update
+    const oldTimestamp = localStorage.getItem('lastModified');
+    localStorage.removeItem('lastModified');
+    
+    const success = await saveToCloud(true);
+    
+    if (!success && oldTimestamp) {
+      localStorage.setItem('lastModified', oldTimestamp);
+    }
+    
+    return success;
+  }
+  
+  // ===================================
+  // AUTO-SYNC (Periodic Background Sync)
+  // ===================================
+  
+  function startAutoSync(intervalSeconds = 15) {
+    // Stop existing interval
+    if (syncInterval) {
+      clearInterval(syncInterval);
+    }
+    
+    console.log(`⏰ Starting auto-sync (every ${intervalSeconds}s)...`);
+    
+    // Start new interval
     syncInterval = setInterval(async () => {
-      console.log('🔄 Auto-sync...');
+      console.log('🔄 Auto-sync running...');
+      
+      // First check for cloud updates
       await loadFromCloud(false);
+      
+      // Then push any local changes
       await saveToCloud(false);
-    }, seconds * 1000);
+      
+    }, intervalSeconds * 1000);
     
-    console.log(`✅ Auto-sync started (${seconds}s)`);
+    console.log(`✅ Auto-sync started (${intervalSeconds}s interval)`);
   }
   
   function stopAutoSync() {
@@ -190,57 +370,181 @@
     }
   }
   
-  // Realtime
+  // ===================================
+  // REAL-TIME SYNC (Instant Updates)
+  // ===================================
+  
   function startRealtimeSync() {
-    if (!supabaseClient) return;
+    if (!supabaseClient) {
+      console.warn('⚠️ Supabase not initialized');
+      return;
+    }
     
+    // Remove existing channel
     if (realtimeChannel) {
       supabaseClient.removeChannel(realtimeChannel);
+      console.log('🔌 Removed old channel');
     }
     
-    realtimeChannel = supabaseClient
-      .channel('data_changes')
-      .on('postgres_changes',
-        { event: '*', schema: 'public', table: 'app_data' },
-        () => {
-          console.log('🔔 Change detected');
-          loadFromCloud(true);
-        }
-      )
-      .subscribe((status) => {
-        if (status === 'SUBSCRIBED') {
-          console.log('📡 Realtime active');
-        }
-      });
-  }
-  
-  // Manual sync
-  async function manualSync() {
-    console.log('🔄 Manual sync...');
-    await loadFromCloud(false);
-    await saveToCloud(false);
-    if (window.showSuccessToast) {
-      window.showSuccessToast('✅ Synced');
+    console.log('📡 Starting real-time listener...');
+    
+    try {
+      // Create new real-time channel
+      realtimeChannel = supabaseClient
+        .channel('app_data_realtime')
+        .on(
+          'postgres_changes',
+          {
+            event: '*', // Listen to all events (INSERT, UPDATE, DELETE)
+            schema: 'public',
+            table: 'app_data',
+            filter: `user_id=eq.admin`
+          },
+          async (payload) => {
+            console.log('🔔 Real-time change detected:', payload.eventType);
+            
+            // Check if change is from this device
+            if (payload.new && payload.new.data && payload.new.data.deviceId === deviceId) {
+              console.log('✋ Change from same device - ignoring');
+              return;
+            }
+            
+            console.log('🔄 Change from another device - updating...');
+            
+            // Small delay to avoid race conditions
+            setTimeout(async () => {
+              await loadFromCloud(true);
+            }, 500);
+          }
+        )
+        .subscribe((status) => {
+          if (status === 'SUBSCRIBED') {
+            console.log('✅ Real-time sync active');
+          } else if (status === 'CHANNEL_ERROR') {
+            console.error('❌ Real-time connection error');
+          } else if (status === 'TIMED_OUT') {
+            console.warn('⏱️ Real-time connection timeout');
+          } else if (status === 'CLOSED') {
+            console.warn('🔌 Real-time connection closed');
+          }
+          console.log('📡 Realtime status:', status);
+        });
+      
+      console.log('✅ Real-time listener started');
+      
+    } catch (error) {
+      console.error('❌ Real-time setup error:', error);
     }
   }
   
-  // Check status
-  function checkSyncStatus() {
-    return {
-      supabase: !!supabaseClient,
-      autoSync: !!syncInterval,
-      realtime: !!realtimeChannel
-    };
+  function stopRealtimeSync() {
+    if (realtimeChannel) {
+      supabaseClient.removeChannel(realtimeChannel);
+      realtimeChannel = null;
+      console.log('🔌 Real-time sync stopped');
+    }
   }
   
-  // Start init
+  // ===================================
+  // MANUAL SYNC
+  // ===================================
+  
+  async function manualSync() {
+    console.log('🔄 Manual sync triggered...');
+    
+    if (window.showSuccessToast) {
+      window.showSuccessToast('🔄 Syncing...');
+    }
+    
+    // Load from cloud first
+    const loadSuccess = await loadFromCloud(false);
+    
+    // Then save to cloud
+    const saveSuccess = await saveToCloud(false);
+    
+    if (loadSuccess || saveSuccess) {
+      console.log('✅ Manual sync completed');
+      if (window.showSuccessToast) {
+        window.showSuccessToast('✅ Sync complete');
+      }
+      return true;
+    } else {
+      console.warn('⚠️ Manual sync had issues');
+      if (window.showErrorToast) {
+        window.showErrorToast('⚠️ Sync incomplete');
+      }
+      return false;
+    }
+  }
+  
+  // ===================================
+  // SYNC STATUS
+  // ===================================
+  
+  function checkSyncStatus() {
+    const status = {
+      initialized: !!supabaseClient,
+      autoSync: !!syncInterval,
+      realtime: !!realtimeChannel,
+      deviceId: deviceId,
+      lastSync: localStorage.getItem('lastModified'),
+      syncing: isSyncing
+    };
+    
+    console.log('📊 Sync Status:', status);
+    return status;
+  }
+  
+  // ===================================
+  // UI REFRESH
+  // ===================================
+  
+  function refreshUI() {
+    console.log('🎨 Refreshing UI...');
+    
+    try {
+      // Refresh all render functions if they exist
+      if (typeof renderStudents === 'function') {
+        renderStudents();
+      }
+      
+      if (typeof renderFinances === 'function') {
+        renderFinances();
+      }
+      
+      if (typeof renderBankList === 'function') {
+        renderBankList();
+      }
+      
+      if (typeof renderMobileBankingList === 'function') {
+        renderMobileBankingList();
+      }
+      
+      if (typeof renderEmployeeList === 'function') {
+        renderEmployeeList();
+      }
+      
+      console.log('✅ UI refreshed');
+      
+    } catch (error) {
+      console.error('❌ UI refresh error:', error);
+    }
+  }
+  
+  // ===================================
+  // START INITIALIZATION
+  // ===================================
+  
   if (document.readyState === 'loading') {
     document.addEventListener('DOMContentLoaded', init);
   } else {
     init();
   }
   
+  console.log('✅ Supabase Sync System Loaded');
+  
 })();
+
 
 // ===================================
 // ORIGINAL APP.JS STARTS BELOW
@@ -1336,7 +1640,6 @@ function switchTab(tab, refreshStats = true) {
   const visitorBtn = document.getElementById('tabVisitors');
   const employeeBtn = document.getElementById('tabEmployees');
   const examBtn = document.getElementById('tabExamResults');
-  const certificateBtn = document.getElementById('tabCertificates');
 
   const studentSection = document.getElementById('studentSection');
   const ledgerSection = document.getElementById('ledgerSection');
@@ -1345,7 +1648,6 @@ function switchTab(tab, refreshStats = true) {
   const visitorSection = document.getElementById('visitorSection');
   const employeeSection = document.getElementById('employeeSection');
   const accountsSection = document.getElementById('accountsSection');
-  const certificateSection = document.getElementById('certificateSection');
   const batchSummaryCard = document.getElementById('batchSummaryCard');
   const globalFilterCard = document.getElementById('globalFilterCard');
 
@@ -1353,7 +1655,7 @@ function switchTab(tab, refreshStats = true) {
 
   // Reset all
   const accountsBtn = document.getElementById('tabAccounts');
-  const allBtns = [dashboardBtn, studentBtn, ledgerBtn, loansBtn, visitorBtn, employeeBtn, examBtn, accountsBtn, certificateBtn];
+  const allBtns = [dashboardBtn, studentBtn, ledgerBtn, loansBtn, visitorBtn, employeeBtn, examBtn, accountsBtn];
   allBtns.forEach(btn => {
     if (btn) {
       btn.classList.remove('active');
@@ -1378,7 +1680,6 @@ function switchTab(tab, refreshStats = true) {
   if (visitorSection) visitorSection.classList.add('d-none');
   if (employeeSection) employeeSection.classList.add('d-none');
   if (accountsSection) accountsSection.classList.add('d-none');
-  if (certificateSection) certificateSection.classList.add('d-none');
   if (batchSummaryCard) batchSummaryCard.classList.add('d-none');
   if (globalFilterCard) globalFilterCard.classList.add('d-none');
 
@@ -1440,12 +1741,6 @@ function switchTab(tab, refreshStats = true) {
     if (typeof renderCashBalance === 'function') renderCashBalance();
     if (typeof renderMobileBankingList === 'function') renderMobileBankingList();
     if (typeof updateGrandTotal === 'function') updateGrandTotal();
-  } else if (tab === 'certificates') {
-    if (certificateBtn) certificateBtn.classList.add('av-sidebar-active');
-    if (certificateSection) certificateSection.classList.remove('d-none');
-    const pageTitle = document.querySelector('.page-title');
-    if (pageTitle) pageTitle.textContent = 'Certificate Generator';
-    if (typeof initCertificateGenerator === 'function') initCertificateGenerator();
   }
 
   if (refreshStats) {
@@ -7929,320 +8224,3 @@ if (document.readyState === 'loading') {
   setTimeout(populateAccountDropdown, 1000);
 }
 
-
-// ===================================
-// CERTIFICATE GENERATOR
-// ===================================
-
-let currentCertificateStudent = null;
-
-// Initialize certificate section
-function initCertificateGenerator() {
-    console.log('Initializing Certificate Generator...');
-    loadStudentListForCertificate();
-}
-
-// Load student list for certificate selection
-function loadStudentListForCertificate() {
-    const select = document.getElementById('certificateStudentSelect');
-    if (!select) return;
-    
-    select.innerHTML = '<option value="">-- Select a Student --</option>';
-    
-    const students = JSON.parse(localStorage.getItem('students') || '[]');
-    students.forEach((student, index) => {
-        const option = document.createElement('option');
-        option.value = index;
-        option.textContent = `${student.name} - ${student.studentId} (${student.batch})`;
-        select.appendChild(option);
-    });
-}
-
-// Load selected student and generate certificate
-function loadStudentForCertificate() {
-    const select = document.getElementById('certificateStudentSelect');
-    const index = select.value;
-    
-    const btnDownload = document.getElementById('btnDownloadCert');
-    const btnPrint = document.getElementById('btnPrintCert');
-    
-    if (index === '') {
-        document.getElementById('certificateCanvas').innerHTML = `
-            <div class="text-center p-5" style="color: #666;">
-                <i class="bi bi-award" style="font-size: 4rem;"></i>
-                <p class="mt-3">Please select a student to generate certificate</p>
-            </div>
-        `;
-        if (btnDownload) btnDownload.disabled = true;
-        if (btnPrint) btnPrint.disabled = true;
-        return;
-    }
-    
-    const students = JSON.parse(localStorage.getItem('students') || '[]');
-    currentCertificateStudent = students[index];
-    
-    generateCertificate(currentCertificateStudent);
-    
-    if (btnDownload) btnDownload.disabled = false;
-    if (btnPrint) btnPrint.disabled = false;
-}
-
-// Generate certificate for a student
-function generateCertificate(student) {
-    const canvas = document.getElementById('certificateCanvas');
-    if (!canvas) return;
-    
-    // Create certificate HTML
-    canvas.innerHTML = `
-        <div style="position: relative; width: 100%; height: 100%;">
-            <img src="Certificate_for_Aviation.jpg" 
-                 style="width: 100%; height: 100%; object-fit: contain;" 
-                 alt="Certificate Template"
-                 onerror="this.src='data:image/svg+xml,%3Csvg xmlns=%22http://www.w3.org/2000/svg%22 viewBox=%220 0 1000 700%22%3E%3Crect fill=%22%23f0f0f0%22 width=%221000%22 height=%22700%22/%3E%3Ctext x=%22500%22 y=%22350%22 text-anchor=%22middle%22 font-size=%2224%22 fill=%22%23999%22%3ECertificate Template%3C/text%3E%3C/svg%3E'">
-            
-            ${student.photo ? `
-                <img src="${student.photo}" 
-                     class="certificate-photo" 
-                     style="top: 35%; right: 8%; width: 120px; height: 140px;"
-                     onerror="this.style.display='none'">
-            ` : ''}
-            
-            <div class="certificate-field certificate-name" 
-                 style="top: 52%; left: 50%; transform: translateX(-50%); text-align: center; width: 80%;">
-                ${student.name || 'STUDENT NAME'}
-            </div>
-            
-            <div class="certificate-field certificate-batch" 
-                 style="top: 62%; left: 22%; text-align: left;">
-                ${student.batch || 'BATCH-XX'}
-            </div>
-            
-            <div class="certificate-field certificate-id" 
-                 style="top: 62%; right: 22%; text-align: right;">
-                ${student.studentId || 'VG-XXXXXX'}
-            </div>
-            
-            <div class="certificate-field certificate-course" 
-                 style="top: 70%; left: 50%; transform: translateX(-50%); width: 70%;">
-                ${student.course ? `CERTIFICATION ON TRAINING ABOUT THE "${student.course.toUpperCase()}"` : 'PROFESSIONAL VISA PROCESSING & AIR TICKETING RESERVATION COURSE (GDS).'}
-            </div>
-        </div>
-    `;
-}
-
-// Download certificate as PDF
-async function downloadCertificatePDF() {
-    if (!currentCertificateStudent) {
-        alert('Please select a student first');
-        return;
-    }
-    
-    const element = document.getElementById('certificateCanvas');
-    
-    // Check if html2pdf is loaded
-    if (typeof html2pdf === 'undefined') {
-        alert('PDF library is loading. Please try again in a moment.');
-        // Try to load it dynamically
-        const script = document.createElement('script');
-        script.src = 'https://cdnjs.cloudflare.com/ajax/libs/html2pdf.js/0.10.1/html2pdf.bundle.min.js';
-        document.head.appendChild(script);
-        return;
-    }
-    
-    try {
-        showSuccessToast('⏳ Generating PDF...');
-        
-        const opt = {
-            margin: 0,
-            filename: `Certificate_${currentCertificateStudent.name}_${currentCertificateStudent.studentId}.pdf`,
-            image: { type: 'jpeg', quality: 0.98 },
-            html2canvas: { 
-                scale: 2,
-                useCORS: true,
-                logging: false,
-                allowTaint: true
-            },
-            jsPDF: { 
-                unit: 'mm', 
-                format: 'a4', 
-                orientation: 'landscape' 
-            }
-        };
-        
-        await html2pdf().set(opt).from(element).save();
-        showSuccessToast('✅ Certificate downloaded successfully!');
-    } catch (error) {
-        console.error('PDF generation error:', error);
-        alert('Error generating PDF. Please try printing instead.');
-    }
-}
-
-// Print certificate
-function printCertificate() {
-    if (!currentCertificateStudent) {
-        alert('Please select a student first');
-        return;
-    }
-    window.print();
-}
-
-// Open bulk certificate modal
-function openBulkCertificateModal() {
-    // Populate course filter
-    const courses = JSON.parse(localStorage.getItem('courses') || '[]');
-    const courseFilter = document.getElementById('bulkCourseFilter');
-    if (courseFilter) {
-        courseFilter.innerHTML = '<option value="">All Courses</option>';
-        courses.forEach(course => {
-            const option = document.createElement('option');
-            option.value = course.courseName;
-            option.textContent = course.courseName;
-            courseFilter.appendChild(option);
-        });
-    }
-    
-    // Show modal
-    const modal = new bootstrap.Modal(document.getElementById('bulkCertificateModal'));
-    modal.show();
-    
-    updateBulkStudentList();
-}
-
-// Update bulk student list based on filters
-function updateBulkStudentList() {
-    const batchFilter = document.getElementById('bulkBatchFilter')?.value.toLowerCase() || '';
-    const courseFilter = document.getElementById('bulkCourseFilter')?.value.toLowerCase() || '';
-    
-    const students = JSON.parse(localStorage.getItem('students') || '[]');
-    const filtered = students.filter(s => {
-        const matchBatch = !batchFilter || (s.batch && s.batch.toLowerCase().includes(batchFilter));
-        const matchCourse = !courseFilter || (s.course && s.course.toLowerCase().includes(courseFilter));
-        return matchBatch && matchCourse;
-    });
-    
-    const list = document.getElementById('bulkStudentList');
-    if (!list) return;
-    
-    if (filtered.length === 0) {
-        list.innerHTML = '<p class="text-muted text-center">No students match the selected filters</p>';
-        return;
-    }
-    
-    list.innerHTML = `
-        <div class="alert alert-success">
-            <strong>${filtered.length} student(s)</strong> will receive certificates
-        </div>
-        <div style="max-height: 300px; overflow-y: auto;">
-            <ul class="list-group">
-                ${filtered.map(s => `
-                    <li class="list-group-item">
-                        <strong>${s.name}</strong> - ${s.studentId} (${s.batch})
-                    </li>
-                `).join('')}
-            </ul>
-        </div>
-    `;
-}
-
-// Generate bulk certificates
-async function generateBulkCertificates() {
-    const batchFilter = document.getElementById('bulkBatchFilter')?.value.toLowerCase() || '';
-    const courseFilter = document.getElementById('bulkCourseFilter')?.value.toLowerCase() || '';
-    
-    const students = JSON.parse(localStorage.getItem('students') || '[]');
-    const filtered = students.filter(s => {
-        const matchBatch = !batchFilter || (s.batch && s.batch.toLowerCase().includes(batchFilter));
-        const matchCourse = !courseFilter || (s.course && s.course.toLowerCase().includes(courseFilter));
-        return matchBatch && matchCourse;
-    });
-    
-    if (filtered.length === 0) {
-        alert('No students match the filters');
-        return;
-    }
-    
-    // Check if html2pdf is loaded
-    if (typeof html2pdf === 'undefined') {
-        alert('PDF library is loading. Please refresh and try again.');
-        return;
-    }
-    
-    // Show progress
-    const list = document.getElementById('bulkStudentList');
-    const progressDiv = document.createElement('div');
-    progressDiv.className = 'alert alert-info mt-3';
-    progressDiv.innerHTML = `
-        <strong>Generating certificates...</strong>
-        <div class="progress mt-2">
-            <div class="progress-bar" role="progressbar" style="width: 0%"></div>
-        </div>
-        <small class="d-block mt-1">Please wait, this may take a moment...</small>
-    `;
-    list.appendChild(progressDiv);
-    
-    const progressBar = progressDiv.querySelector('.progress-bar');
-    
-    // Generate each certificate
-    for (let i = 0; i < filtered.length; i++) {
-        const student = filtered[i];
-        generateCertificate(student);
-        currentCertificateStudent = student;
-        
-        // Wait for rendering
-        await new Promise(resolve => setTimeout(resolve, 800));
-        
-        // Download PDF
-        try {
-            const element = document.getElementById('certificateCanvas');
-            const opt = {
-                margin: 0,
-                filename: `Certificate_${student.name}_${student.studentId}.pdf`,
-                image: { type: 'jpeg', quality: 0.98 },
-                html2canvas: { 
-                    scale: 2,
-                    useCORS: true,
-                    logging: false,
-                    allowTaint: true
-                },
-                jsPDF: { 
-                    unit: 'mm', 
-                    format: 'a4', 
-                    orientation: 'landscape' 
-                }
-            };
-            
-            await html2pdf().set(opt).from(element).save();
-        } catch (error) {
-            console.error(`Error generating certificate for ${student.name}:`, error);
-        }
-        
-        // Update progress
-        const progress = ((i + 1) / filtered.length) * 100;
-        progressBar.style.width = progress + '%';
-        progressBar.textContent = Math.round(progress) + '%';
-        
-        // Small delay between downloads
-        await new Promise(resolve => setTimeout(resolve, 500));
-    }
-    
-    showSuccessToast(`✅ Generated ${filtered.length} certificates successfully!`);
-    
-    // Close modal after completion
-    setTimeout(() => {
-        const modal = bootstrap.Modal.getInstance(document.getElementById('bulkCertificateModal'));
-        if (modal) modal.hide();
-    }, 1500);
-}
-
-// Expose certificate functions globally
-window.initCertificateGenerator = initCertificateGenerator;
-window.loadStudentListForCertificate = loadStudentListForCertificate;
-window.loadStudentForCertificate = loadStudentForCertificate;
-window.generateCertificate = generateCertificate;
-window.downloadCertificatePDF = downloadCertificatePDF;
-window.printCertificate = printCertificate;
-window.openBulkCertificateModal = openBulkCertificateModal;
-window.updateBulkStudentList = updateBulkStudentList;
-window.generateBulkCertificates = generateBulkCertificates;
-
-console.log('✅ Certificate Generator functions loaded');

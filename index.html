@@ -279,78 +279,7 @@
     <!-- Custom Styles -->
     <link rel="stylesheet" href="styles.css?v=20260205_3">
 
-    <!-- Certificate Generator Styles -->
-    <style>
-        /* Certificate specific styles */
-        #certificateCanvas {
-            box-shadow: 0 0 30px rgba(0,0,0,0.2);
-            margin: 0 auto;
-            max-width: 1000px;
-        }
 
-        .certificate-field {
-            position: absolute;
-            font-family: 'Times New Roman', serif;
-            color: #000;
-        }
-
-        .certificate-name {
-            font-size: clamp(32px, 4vw, 48px);
-            font-weight: bold;
-            text-transform: uppercase;
-            letter-spacing: 2px;
-        }
-
-        .certificate-batch {
-            font-size: clamp(24px, 3vw, 32px);
-            font-weight: bold;
-        }
-
-        .certificate-id {
-            font-size: clamp(24px, 3vw, 32px);
-            font-weight: bold;
-        }
-
-        .certificate-course {
-            font-size: clamp(14px, 1.5vw, 18px);
-            text-align: center;
-            line-height: 1.5;
-        }
-
-        .certificate-photo {
-            position: absolute;
-            border: 3px solid #333;
-            border-radius: 10px;
-            object-fit: cover;
-        }
-
-        @media print {
-            body * {
-                visibility: hidden;
-            }
-            #certificateCanvas,
-            #certificateCanvas * {
-                visibility: visible;
-            }
-            #certificateCanvas {
-                position: absolute;
-                left: 0;
-                top: 0;
-                width: 100%;
-                box-shadow: none;
-            }
-            .btn, .section-header, .form-select {
-                display: none !important;
-            }
-        }
-
-        .icon-certificate {
-            background: linear-gradient(135deg, #FFD700, #FFA500);
-            -webkit-background-clip: text;
-            -webkit-text-fill-color: transparent;
-            background-clip: text;
-        }
-    </style>
 
     
 
@@ -444,10 +373,6 @@
                         onclick="if(globalData.students.length > 0) openIdCardModal(globalData.students[0].rowIndex); else alert('Please enroll a student first');">
                         <span class="nav-icon"><i class="bi bi-card-heading icon-student"></i></span>
                         <span class="nav-text">ID Cards</span>
-                    </button>
-                    <button class="nav-item-link" id="tabCertificates" onclick="switchTab('certificates')">
-                        <span class="nav-icon"><i class="bi bi-award icon-certificate"></i></span>
-                        <span class="nav-text">Certificates</span>
                     </button>
                     <button class="nav-item-link" data-bs-toggle="modal" data-bs-target="#settingsModal">
                         <span class="nav-icon"><i class="bi bi-gear-fill"></i></span>
@@ -1035,60 +960,6 @@
                         <!-- No Results Message -->
                         <div id="noResultsMessage" class="text-center text-muted py-5">
                             <p class="mb-0">Enter search criteria or clear filters to view exam results.</p>
-                        </div>
-                    </div>
-
-                    <!-- ===================================
-                         CERTIFICATE GENERATOR SECTION
-                         =================================== -->
-                    <div id="certificateSection" class="d-none">
-                        <div class="section-card">
-                            <div class="section-header d-flex justify-content-between align-items-center mb-4">
-                                <h4 class="fw-bold m-0"><span class="me-2">🎓</span>Certificate Generator</h4>
-                                <div class="d-flex gap-2">
-                                    <button class="btn btn-primary btn-sm" onclick="openBulkCertificateModal()">
-                                        <i class="bi bi-files"></i> Generate Bulk
-                                    </button>
-                                </div>
-                            </div>
-
-                            <!-- Student Selection -->
-                            <div class="row mb-4">
-                                <div class="col-md-12">
-                                    <label class="form-label fw-bold">Select Student for Certificate</label>
-                                    <select class="form-select" id="certificateStudentSelect" onchange="loadStudentForCertificate()">
-                                        <option value="">-- Select a Student --</option>
-                                    </select>
-                                </div>
-                            </div>
-
-                            <!-- Certificate Preview Area -->
-                            <div class="row">
-                                <div class="col-12">
-                                    <div class="card border-0 shadow-lg" style="background: white;">
-                                        <div class="card-body p-0">
-                                            <div id="certificateCanvas" style="position: relative; width: 100%; aspect-ratio: 1.414/1; background: white; overflow: hidden;">
-                                                <div class="text-center p-5" style="color: #666;">
-                                                    <i class="bi bi-award" style="font-size: 4rem;"></i>
-                                                    <p class="mt-3">Please select a student to generate certificate</p>
-                                                </div>
-                                            </div>
-                                        </div>
-                                    </div>
-                                </div>
-                            </div>
-
-                            <!-- Action Buttons -->
-                            <div class="row mt-4">
-                                <div class="col-12 text-center">
-                                    <button class="btn btn-primary btn-lg px-5" onclick="downloadCertificatePDF()" id="btnDownloadCert" disabled>
-                                        <i class="bi bi-download"></i> Download as PDF
-                                    </button>
-                                    <button class="btn btn-success btn-lg px-5 ms-2" onclick="printCertificate()" id="btnPrintCert" disabled>
-                                        <i class="bi bi-printer"></i> Print Certificate
-                                    </button>
-                                </div>
-                            </div>
                         </div>
                     </div>
 
@@ -3461,9 +3332,6 @@
     <!-- Supabase Configuration (Update with your credentials) -->
     <script src="supabase-config.js"></script>
     
-    <!-- html2pdf library for certificate PDF generation -->
-    <script src="https://cdnjs.cloudflare.com/ajax/libs/html2pdf.js/0.10.1/html2pdf.bundle.min.js"></script>
-    
     <!-- Main Application (Sync code now embedded inside) -->
     <script src="app.js?v=8.0"></script>
 
@@ -3527,44 +3395,6 @@
     <!-- =============================================== -->
     <!-- END MOBILE BANKING MODAL -->
     <!-- =============================================== -->
-
-    <!-- ===================================
-         BULK CERTIFICATE GENERATION MODAL
-         =================================== -->
-    <div class="modal fade" id="bulkCertificateModal" tabindex="-1">
-        <div class="modal-dialog modal-lg">
-            <div class="modal-content">
-                <div class="modal-header">
-                    <h5 class="modal-title"><i class="bi bi-files me-2"></i>Generate Bulk Certificates</h5>
-                    <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
-                </div>
-                <div class="modal-body">
-                    <div class="mb-3">
-                        <label class="form-label fw-bold">Filter by Batch</label>
-                        <input type="text" class="form-control" id="bulkBatchFilter" placeholder="Enter batch name (e.g., Batch-03)" oninput="updateBulkStudentList()">
-                    </div>
-                    <div class="mb-3">
-                        <label class="form-label fw-bold">Filter by Course</label>
-                        <select class="form-select" id="bulkCourseFilter" onchange="updateBulkStudentList()">
-                            <option value="">All Courses</option>
-                        </select>
-                    </div>
-                    <div class="alert alert-info">
-                        <i class="bi bi-info-circle"></i> Selected filters will generate certificates for matching students.
-                    </div>
-                    <div id="bulkStudentList" class="mt-3">
-                        <p class="text-muted text-center">Apply filters to see matching students</p>
-                    </div>
-                </div>
-                <div class="modal-footer">
-                    <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Cancel</button>
-                    <button type="button" class="btn btn-primary" onclick="generateBulkCertificates()">
-                        <i class="bi bi-download"></i> Generate All Certificates
-                    </button>
-                </div>
-            </div>
-        </div>
-    </div>
 
 </body>
 
