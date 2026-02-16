@@ -1,569 +1,14 @@
 // ===================================
-// SUPABASE REAL-TIME SYNC - FIXED VERSION
-// Multi-Device সিঙ্ক্রোনাইজেশন সিস্টেম
+// WINGS FLY AVIATION ACADEMY
+// CORE APPLICATION LOGIC
 // ===================================
 
-(function() {
-  'use strict';
-  
-  console.log('🚀 Supabase Sync System Loading...');
-  
-  // Configuration
-  const SUPABASE_URL = window.SUPABASE_CONFIG?.url || 'https://gtoldrlbxjrwshubplfp.supabase.co';
-  const SUPABASE_KEY = window.SUPABASE_CONFIG?.anonKey || 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6Imd0b2xkcmx0eGpyd3NodWJwbGZwIiwicm9sZSI6ImFub24iLCJpYXQiOjE3NzEwOTk5MTksImV4cCI6MjA4NjY3NTkxOX0.7NTx3tzU1C5VaewNZZHTaJf2WJ_GtjhQPKOymkxRsUk';
-  
-  console.log('📍 Supabase URL:', SUPABASE_URL);
-  
-  // State
-  let supabaseClient = null;
-  let syncInterval = null;
-  let realtimeChannel = null;
-  let isSyncing = false;
-  let lastSyncTime = 0;
-  let deviceId = getDeviceId();
-  
-  // ===================================
-  // INITIALIZATION
-  // ===================================
-  
-  function init() {
-    // Check if Supabase library loaded
-    if (typeof supabase === 'undefined') {
-      console.warn('⚠️ Supabase library not loaded, retrying...');
-      setTimeout(init, 500);
-      return;
-    }
-    
-    try {
-      // Create Supabase client
-      supabaseClient = supabase.createClient(SUPABASE_URL, SUPABASE_KEY);
-      console.log('✅ Supabase client initialized');
-      
-      // Export functions globally
-      window.saveToCloud = saveToCloud;
-      window.loadFromCloud = loadFromCloud;
-      window.startAutoSync = startAutoSync;
-      window.stopAutoSync = stopAutoSync;
-      window.startRealtimeSync = startRealtimeSync;
-      window.stopRealtimeSync = stopRealtimeSync;
-      window.manualSync = manualSync;
-      window.checkSyncStatus = checkSyncStatus;
-      window.forcePushToCloud = forcePushToCloud;
-      
-      console.log('✅ Sync functions exported');
-      
-      // Start sync systems
-      initializeSyncSystems();
-      
-    } catch (error) {
-      console.error('❌ Supabase initialization failed:', error);
-    }
-  }
-  
-  // ===================================
-  // SYNC SYSTEMS INITIALIZATION
-  // ===================================
-  
-  function initializeSyncSystems() {
-    // Wait for app to load
-    setTimeout(async () => {
-      console.log('🔄 Starting sync systems...');
-      
-      // 1. Load initial data from cloud
-      await loadFromCloud(true);
-      
-      // 2. Start real-time listener
-      startRealtimeSync();
-      
-      // 3. Start auto-sync (every 15 seconds)
-      startAutoSync(15);
-      
-      console.log('✅ All sync systems active');
-      
-      if (window.showSuccessToast) {
-        window.showSuccessToast('🔄 Auto-sync enabled');
-      }
-      
-    }, 2000);
-  }
-  
-  // ===================================
-  // DEVICE ID
-  // ===================================
-  
-  function getDeviceId() {
-    let id = localStorage.getItem('deviceId');
-    if (!id) {
-      id = 'device_' + Math.random().toString(36).substr(2, 9) + '_' + Date.now();
-      localStorage.setItem('deviceId', id);
-    }
-    return id;
-  }
-  
-  // ===================================
-  // SAVE TO CLOUD
-  // ===================================
-  
-  async function saveToCloud(showMsg = false) {
-    if (!supabaseClient) {
-      console.warn('⚠️ Supabase not initialized');
-      return false;
-    }
-    
-    // Prevent concurrent saves
-    if (isSyncing) {
-      console.log('⏳ Sync in progress, skipping...');
-      return false;
-    }
-    
-    // Rate limiting - don't save too frequently
-    const now = Date.now();
-    if (now - lastSyncTime < 2000) { // Min 2 seconds between saves
-      console.log('⏰ Too soon, skipping save...');
-      return false;
-    }
-    
-    isSyncing = true;
-    
-    try {
-      const timestamp = new Date().toISOString();
-      
-      // Collect all data
-      const dataToSave = {
-        students: JSON.parse(localStorage.getItem('students') || '[]'),
-        finances: JSON.parse(localStorage.getItem('finances') || '[]'),
-        courses: JSON.parse(localStorage.getItem('courses') || '[]'),
-        employees: JSON.parse(localStorage.getItem('employees') || '[]'),
-        banks: JSON.parse(localStorage.getItem('banks') || '[]'),
-        mobiles: JSON.parse(localStorage.getItem('mobiles') || '[]'),
-        timestamp: timestamp,
-        deviceId: deviceId,
-        version: Date.now() // For conflict resolution
-      };
-      
-      console.log('☁️ Saving to cloud...', {
-        device: deviceId.substring(0, 15) + '...',
-        students: dataToSave.students.length,
-        finances: dataToSave.finances.length
-      });
-      
-      // Check if record exists
-      const { data: existing } = await supabaseClient
-        .from('app_data')
-        .select('id, updated_at')
-        .eq('user_id', 'admin')
-        .maybeSingle();
-      
-      let result;
-      
-      if (existing) {
-        // Update existing record
-        result = await supabaseClient
-          .from('app_data')
-          .update({ 
-            data: dataToSave,
-            updated_at: timestamp
-          })
-          .eq('id', existing.id);
-      } else {
-        // Insert new record
-        result = await supabaseClient
-          .from('app_data')
-          .insert({ 
-            user_id: 'admin', 
-            data: dataToSave,
-            updated_at: timestamp
-          });
-      }
-      
-      if (result.error) {
-        throw result.error;
-      }
-      
-      // Update local timestamp
-      localStorage.setItem('lastModified', timestamp);
-      lastSyncTime = now;
-      
-      console.log('✅ Cloud save successful');
-      
-      if (showMsg && window.showSuccessToast) {
-        window.showSuccessToast('☁️ Data synced');
-      }
-      
-      isSyncing = false;
-      return true;
-      
-    } catch (error) {
-      console.error('❌ Cloud save error:', error);
-      isSyncing = false;
-      
-      if (showMsg && window.showErrorToast) {
-        window.showErrorToast('⚠️ Sync failed');
-      }
-      
-      return false;
-    }
-  }
-  
-  // ===================================
-  // LOAD FROM CLOUD
-  // ===================================
-  
-  async function loadFromCloud(showMsg = false) {
-    if (!supabaseClient) {
-      console.warn('⚠️ Supabase not initialized');
-      return false;
-    }
-    
-    if (isSyncing) {
-      console.log('⏳ Sync in progress, skipping load...');
-      return false;
-    }
-    
-    isSyncing = true;
-    
-    try {
-      console.log('☁️ Loading from cloud...');
-      
-      // Fetch data from Supabase
-      const { data: record, error } = await supabaseClient
-        .from('app_data')
-        .select('data, updated_at')
-        .eq('user_id', 'admin')
-        .maybeSingle();
-      
-      if (error) {
-        if (error.code === 'PGRST116') {
-          console.log('📝 No cloud data found - will create on first save');
-          isSyncing = false;
-          return true;
-        }
-        throw error;
-      }
-      
-      if (!record || !record.data) {
-        console.log('📝 No cloud data available');
-        isSyncing = false;
-        return false;
-      }
-      
-      const cloudData = record.data;
-      const cloudTimestamp = new Date(record.updated_at).getTime();
-      const localTimestamp = localStorage.getItem('lastModified') 
-        ? new Date(localStorage.getItem('lastModified')).getTime()
-        : 0;
-      
-      // 🛡️ SAFETY CHECK: Don't overwrite local data with empty cloud data
-      const hasLocalData = localStorage.getItem('students') && 
-        JSON.parse(localStorage.getItem('students') || '[]').length > 0;
-      
-      const cloudHasData = cloudData.students && cloudData.students.length > 0;
-      
-      if (hasLocalData && !cloudHasData) {
-        console.log('🛡️ PROTECTED: Local data exists, cloud is empty - keeping local data');
-        console.log('💡 Pushing local data to cloud instead...');
-        isSyncing = false;
-        // Push local data to cloud
-        await saveToCloud(false);
-        return true;
-      }
-      
-      // Check if cloud data is newer
-      if (cloudTimestamp > localTimestamp) {
-        console.log('🔄 Cloud data is newer - updating local...');
-        console.log('  Cloud time:', new Date(cloudTimestamp).toLocaleString());
-        console.log('  Local time:', new Date(localTimestamp).toLocaleString());
-        
-        // Check if this update is from same device
-        if (cloudData.deviceId === deviceId) {
-          console.log('✋ Same device - skipping update');
-          isSyncing = false;
-          return true;
-        }
-        
-        // Update localStorage
-        localStorage.setItem('students', JSON.stringify(cloudData.students || []));
-        localStorage.setItem('finances', JSON.stringify(cloudData.finances || []));
-        localStorage.setItem('courses', JSON.stringify(cloudData.courses || []));
-        localStorage.setItem('employees', JSON.stringify(cloudData.employees || []));
-        localStorage.setItem('banks', JSON.stringify(cloudData.banks || []));
-        localStorage.setItem('mobiles', JSON.stringify(cloudData.mobiles || []));
-        localStorage.setItem('lastModified', cloudData.timestamp || record.updated_at);
-        
-        // Update globalData if exists
-        if (window.globalData) {
-          window.globalData.students = cloudData.students || [];
-          window.globalData.finances = cloudData.finances || [];
-          window.globalData.courses = cloudData.courses || [];
-          window.globalData.employees = cloudData.employees || [];
-          window.globalData.banks = cloudData.banks || [];
-          window.globalData.mobiles = cloudData.mobiles || [];
-          
-          // Refresh UI
-          refreshUI();
-        }
-        
-        console.log('✅ Local data updated from cloud');
-        
-        if (showMsg && window.showSuccessToast) {
-          window.showSuccessToast('✅ Data updated from cloud');
-        }
-        
-        isSyncing = false;
-        return true;
-        
-      } else {
-        console.log('✅ Local data is up to date');
-        isSyncing = false;
-        return true;
-      }
-      
-    } catch (error) {
-      console.error('❌ Cloud load error:', error);
-      isSyncing = false;
-      
-      if (showMsg && window.showErrorToast) {
-        window.showErrorToast('⚠️ Load failed');
-      }
-      
-      return false;
-    }
-  }
-  
-  // ===================================
-  // FORCE PUSH TO CLOUD (for initial setup)
-  // ===================================
-  
-  async function forcePushToCloud() {
-    console.log('🚀 Force pushing local data to cloud...');
-    
-    // Temporarily clear lastModified to force update
-    const oldTimestamp = localStorage.getItem('lastModified');
-    localStorage.removeItem('lastModified');
-    
-    const success = await saveToCloud(true);
-    
-    if (!success && oldTimestamp) {
-      localStorage.setItem('lastModified', oldTimestamp);
-    }
-    
-    return success;
-  }
-  
-  // ===================================
-  // AUTO-SYNC (Periodic Background Sync)
-  // ===================================
-  
-  function startAutoSync(intervalSeconds = 15) {
-    // Stop existing interval
-    if (syncInterval) {
-      clearInterval(syncInterval);
-    }
-    
-    console.log(`⏰ Starting auto-sync (every ${intervalSeconds}s)...`);
-    
-    // Start new interval
-    syncInterval = setInterval(async () => {
-      console.log('🔄 Auto-sync running...');
-      
-      // First check for cloud updates
-      await loadFromCloud(false);
-      
-      // Then push any local changes
-      await saveToCloud(false);
-      
-    }, intervalSeconds * 1000);
-    
-    console.log(`✅ Auto-sync started (${intervalSeconds}s interval)`);
-  }
-  
-  function stopAutoSync() {
-    if (syncInterval) {
-      clearInterval(syncInterval);
-      syncInterval = null;
-      console.log('⏸️ Auto-sync stopped');
-    }
-  }
-  
-  // ===================================
-  // REAL-TIME SYNC (Instant Updates)
-  // ===================================
-  
-  function startRealtimeSync() {
-    if (!supabaseClient) {
-      console.warn('⚠️ Supabase not initialized');
-      return;
-    }
-    
-    // Remove existing channel
-    if (realtimeChannel) {
-      supabaseClient.removeChannel(realtimeChannel);
-      console.log('🔌 Removed old channel');
-    }
-    
-    console.log('📡 Starting real-time listener...');
-    
-    try {
-      // Create new real-time channel
-      realtimeChannel = supabaseClient
-        .channel('app_data_realtime')
-        .on(
-          'postgres_changes',
-          {
-            event: '*', // Listen to all events (INSERT, UPDATE, DELETE)
-            schema: 'public',
-            table: 'app_data',
-            filter: `user_id=eq.admin`
-          },
-          async (payload) => {
-            console.log('🔔 Real-time change detected:', payload.eventType);
-            
-            // Check if change is from this device
-            if (payload.new && payload.new.data && payload.new.data.deviceId === deviceId) {
-              console.log('✋ Change from same device - ignoring');
-              return;
-            }
-            
-            console.log('🔄 Change from another device - updating...');
-            
-            // Small delay to avoid race conditions
-            setTimeout(async () => {
-              await loadFromCloud(true);
-            }, 500);
-          }
-        )
-        .subscribe((status) => {
-          if (status === 'SUBSCRIBED') {
-            console.log('✅ Real-time sync active');
-          } else if (status === 'CHANNEL_ERROR') {
-            console.error('❌ Real-time connection error');
-          } else if (status === 'TIMED_OUT') {
-            console.warn('⏱️ Real-time connection timeout');
-          } else if (status === 'CLOSED') {
-            console.warn('🔌 Real-time connection closed');
-          }
-          console.log('📡 Realtime status:', status);
-        });
-      
-      console.log('✅ Real-time listener started');
-      
-    } catch (error) {
-      console.error('❌ Real-time setup error:', error);
-    }
-  }
-  
-  function stopRealtimeSync() {
-    if (realtimeChannel) {
-      supabaseClient.removeChannel(realtimeChannel);
-      realtimeChannel = null;
-      console.log('🔌 Real-time sync stopped');
-    }
-  }
-  
-  // ===================================
-  // MANUAL SYNC
-  // ===================================
-  
-  async function manualSync() {
-    console.log('🔄 Manual sync triggered...');
-    
-    if (window.showSuccessToast) {
-      window.showSuccessToast('🔄 Syncing...');
-    }
-    
-    // Load from cloud first
-    const loadSuccess = await loadFromCloud(false);
-    
-    // Then save to cloud
-    const saveSuccess = await saveToCloud(false);
-    
-    if (loadSuccess || saveSuccess) {
-      console.log('✅ Manual sync completed');
-      if (window.showSuccessToast) {
-        window.showSuccessToast('✅ Sync complete');
-      }
-      return true;
-    } else {
-      console.warn('⚠️ Manual sync had issues');
-      if (window.showErrorToast) {
-        window.showErrorToast('⚠️ Sync incomplete');
-      }
-      return false;
-    }
-  }
-  
-  // ===================================
-  // SYNC STATUS
-  // ===================================
-  
-  function checkSyncStatus() {
-    const status = {
-      initialized: !!supabaseClient,
-      autoSync: !!syncInterval,
-      realtime: !!realtimeChannel,
-      deviceId: deviceId,
-      lastSync: localStorage.getItem('lastModified'),
-      syncing: isSyncing
-    };
-    
-    console.log('📊 Sync Status:', status);
-    return status;
-  }
-  
-  // ===================================
-  // UI REFRESH
-  // ===================================
-  
-  function refreshUI() {
-    console.log('🎨 Refreshing UI...');
-    
-    try {
-      // Refresh all render functions if they exist
-      if (typeof renderStudents === 'function') {
-        renderStudents();
-      }
-      
-      if (typeof renderFinances === 'function') {
-        renderFinances();
-      }
-      
-      if (typeof renderBankList === 'function') {
-        renderBankList();
-      }
-      
-      if (typeof renderMobileBankingList === 'function') {
-        renderMobileBankingList();
-      }
-      
-      if (typeof renderEmployeeList === 'function') {
-        renderEmployeeList();
-      }
-      
-      console.log('✅ UI refreshed');
-      
-    } catch (error) {
-      console.error('❌ UI refresh error:', error);
-    }
-  }
-  
-  // ===================================
-  // START INITIALIZATION
-  // ===================================
-  
-  if (document.readyState === 'loading') {
-    document.addEventListener('DOMContentLoaded', init);
-  } else {
-    init();
-  }
-  
-  console.log('✅ Supabase Sync System Loaded');
-  
-})();
+const APP_VERSION = "5.0-SYNC-FIXED";
+console.log(`🚀 Wings Fly Aviation - System Version: ${APP_VERSION}`);
 
+// Legacy internal sync system removed to ensure data integrity.
+// System now relies on external global sync configuration.
 
-// ===================================
-// ORIGINAL APP.JS STARTS BELOW
-// ===================================
 
 // ===================================
 // DATA RESET (Fresh Start)
@@ -642,18 +87,18 @@ async function uploadStudentPhoto(studentId, file) {
   return new Promise((resolve, reject) => {
     try {
       const reader = new FileReader();
-      
-      reader.onload = function(event) {
+
+      reader.onload = function (event) {
         try {
           const base64Image = event.target.result;
           const photoKey = `student_photo_${studentId}`;
-          
+
           // Store in localStorage
           localStorage.setItem(photoKey, base64Image);
-          
+
           console.log(`✅ Photo saved locally for student: ${studentId}`);
           showSuccessToast('✅ Photo saved locally (visible only on this PC)');
-          
+
           // Return the local storage key as "URL"
           resolve(photoKey);
         } catch (storageError) {
@@ -662,12 +107,12 @@ async function uploadStudentPhoto(studentId, file) {
           reject(storageError);
         }
       };
-      
-      reader.onerror = function(error) {
+
+      reader.onerror = function (error) {
         console.error('File reading error:', error);
         reject(error);
       };
-      
+
       reader.readAsDataURL(file);
     } catch (error) {
       console.error('Photo processing error:', error);
@@ -694,14 +139,14 @@ function getStudentPhotoSrc(photoKey) {
     // Return placeholder image
     return 'data:image/svg+xml,%3Csvg xmlns="http://www.w3.org/2000/svg" width="200" height="200"%3E%3Crect fill="%2300d9ff" width="200" height="200"/%3E%3Ctext x="50%25" y="50%25" dominant-baseline="middle" text-anchor="middle" font-family="sans-serif" font-size="80" fill="%23ffffff"%3E👤%3C/text%3E%3C/svg%3E';
   }
-  
+
   // Try to get from localStorage
   const localPhoto = localStorage.getItem(photoKey);
-  
+
   if (localPhoto) {
     return localPhoto; // Return base64 image
   }
-  
+
   // If not in localStorage, return placeholder
   return 'data:image/svg+xml,%3Csvg xmlns="http://www.w3.org/2000/svg" width="200" height="200"%3E%3Crect fill="%23b537f2" width="200" height="200"/%3E%3Ctext x="50%25" y="50%25" dominant-baseline="middle" text-anchor="middle" font-family="sans-serif" font-size="60" fill="%23ffffff"%3E📷%3C/text%3E%3Ctext x="50%25" y="70%25" dominant-baseline="middle" text-anchor="middle" font-family="sans-serif" font-size="12" fill="%23ffffff"%3ENo Photo%3C/text%3E%3C/svg%3E';
 }
@@ -1114,7 +559,7 @@ document.addEventListener('DOMContentLoaded', function () {
 
   // Populate dropdowns initially
   populateDropdowns();
-  
+
   // ✅ AUTO-POPULATE BATCH FILTER ON PAGE LOAD
   setTimeout(() => {
     if (typeof populateBatchFilter === 'function') {
@@ -1405,7 +850,7 @@ function loadFromStorage() {
 
     // CLEANUP: Remove duplicate payment methods after loading
     cleanupPaymentMethods();
-    
+
     // ✅ CRITICAL FIX: Populate batch filter after loading data
     if (typeof populateBatchFilter === 'function') {
       setTimeout(() => {
@@ -1629,7 +1074,7 @@ function loadDashboard() {
 
       updateGlobalStats();
       updateStudentCount();
-      
+
       // Populate unified search dropdown
       if (typeof populateAccountDropdown === 'function') {
         populateAccountDropdown();
@@ -2100,12 +1545,12 @@ function render(students) {
 
   // Reverse to show newest first, then add rowIndex
   displayStudents.reverse();
-  
+
   // Now add correct rowIndex based on actual globalData position
   displayStudents.forEach((s, i) => {
     s.rowIndex = s.trueIndex; // Use trueIndex as rowIndex (points to globalData.students position)
   });
-  
+
   // Render each student
   displayStudents.forEach(s => {
     const now = new Date();
@@ -2186,7 +1631,7 @@ function render(students) {
 
   // ✅ UPDATE TABLE FOOTER TOTALS
   updateTableFooter(students);
-  
+
   // ✅ AUTO-POPULATE BATCH FILTER DROPDOWN
   populateBatchFilter();
 }
@@ -2556,7 +2001,7 @@ function updateFinanceCategoryOptions() {
   // ✅ FIXED: Toggle Person/Counterparty visibility based on TYPE
   const personContainer = document.getElementById('financePersonContainer');
   const personInput = document.getElementById('financePersonInput');
-  
+
   if (personContainer && personInput) {
     // Show ONLY for Loan Given and Loan Received
     if (type === 'Loan Given' || type === 'Loan Received') {
@@ -4894,10 +4339,10 @@ window.handleImportFile = handleImportFile;
 
 function openStudentProfile(rowIndex) {
   console.log('👤 openStudentProfile called, rowIndex:', rowIndex);
-  
+
   // Use direct array index instead of find
   const student = globalData.students[rowIndex];
-  
+
   if (!student) {
     console.error('❌ Student not found at index:', rowIndex);
     console.log('Total students:', globalData.students.length);
@@ -4914,7 +4359,7 @@ function openStudentProfile(rowIndex) {
     alert('Modal not found in HTML!');
     return;
   }
-  
+
   const modal = bootstrap.Modal.getOrCreateInstance(modalEl);
   const content = document.getElementById('studentProfileContent');
 
@@ -6935,21 +6380,21 @@ function populateBatchFilter() {
     console.warn('⚠️ batchFilterSelect element not found');
     return;
   }
-  
+
   if (!window.globalData || !window.globalData.students) {
     console.warn('⚠️ globalData.students not available');
     return;
   }
-  
+
   const batches = [...new Set(globalData.students.map(s => s.batch))].filter(b => b).sort((a, b) => a - b);
-  
+
   console.log('📊 Populating batch filter with', batches.length, 'batches:', batches);
-  
+
   select.innerHTML = '<option value="">All Batches</option>';
   batches.forEach(b => {
     select.innerHTML += `<option value="${b}">Batch ${b}</option>`;
   });
-  
+
   console.log('✅ Batch filter populated successfully');
 }
 
@@ -7006,15 +6451,15 @@ window.clearAdvancedSearch = clearAdvancedSearch;
 function quickFilterStudents() {
   const searchInput = document.getElementById('quickStudentSearch');
   if (!searchInput) return;
-  
+
   const query = searchInput.value.toLowerCase().trim();
-  
+
   // If empty, show all students
   if (query === '') {
     render(globalData.students);
     return;
   }
-  
+
   // Filter students by name, batch, ID, phone, or course
   const filtered = globalData.students.filter(student => {
     const name = (student.name || '').toLowerCase();
@@ -7022,17 +6467,17 @@ function quickFilterStudents() {
     const studentId = (student.studentId || '').toString().toLowerCase();
     const phone = (student.phone || '').toLowerCase();
     const course = (student.course || '').toLowerCase();
-    
-    return name.includes(query) || 
-           batch.includes(query) || 
-           studentId.includes(query) ||
-           phone.includes(query) ||
-           course.includes(query);
+
+    return name.includes(query) ||
+      batch.includes(query) ||
+      studentId.includes(query) ||
+      phone.includes(query) ||
+      course.includes(query);
   });
-  
+
   // Render filtered results
   render(filtered);
-  
+
   // Update count badge
   const countBadge = document.getElementById('studentCount');
   if (countBadge) {
@@ -7451,23 +6896,23 @@ function rebuildBankBalancesFromFinance() {
 /* 🔃 Auto rebuild on app load */
 document.addEventListener('DOMContentLoaded', () => {
   rebuildBankBalancesFromFinance();
-  
+
   // ===================================
   // AUTO-POPULATE DROPDOWNS ON MODAL OPEN
   // ===================================
-  
+
   console.log('🎯 Setting up dropdown auto-population...');
-  
+
   // Helper function to populate transfer dropdowns
   function populateTransferDropdownsNow() {
     const fromSelect = document.getElementById('accTransferFrom');
     const toSelect = document.getElementById('accTransferTo');
-    
+
     if (!fromSelect || !toSelect) return;
-    
+
     fromSelect.innerHTML = '<option value="">Select Source Account</option>';
     toSelect.innerHTML = '<option value="">Select Destination Account</option>';
-    
+
     const addToBoth = (value, label) => {
       [fromSelect, toSelect].forEach(select => {
         const opt = document.createElement('option');
@@ -7476,83 +6921,83 @@ document.addEventListener('DOMContentLoaded', () => {
         select.appendChild(opt);
       });
     };
-    
+
     addToBoth('Cash', '💵 Cash');
     (globalData.bankAccounts || []).forEach(b => addToBoth(b.name, `🏦 ${b.name} (${b.bankName})`));
     (globalData.mobileBanking || []).forEach(m => addToBoth(m.name, `📱 ${m.name}`));
   }
-  
+
   // Helper function to populate payment method dropdowns
   function populatePaymentDropdownsNow() {
     ['studentMethodSelect', 'financeMethodSelect', 'examPaymentMethodSelect'].forEach(id => {
       const select = document.getElementById(id);
       if (!select) return;
-      
+
       select.innerHTML = '<option value="">Select Payment Method</option>';
-      
+
       const addOpt = (value, label) => {
         const opt = document.createElement('option');
         opt.value = value;
         opt.textContent = label;
         select.appendChild(opt);
       };
-      
+
       addOpt('Cash', '💵 Cash');
       (globalData.bankAccounts || []).forEach(b => addOpt(b.name, `🏦 ${b.name}`));
       (globalData.mobileBanking || []).forEach(m => addOpt(m.name, `📱 ${m.name}`));
     });
   }
-  
+
   // Expose globally
   window.populateTransferDropdownsNow = populateTransferDropdownsNow;
   window.populatePaymentDropdownsNow = populatePaymentDropdownsNow;
-  
+
   // Transfer Modal
   const transferModal = document.getElementById('transferModal');
   if (transferModal) {
     transferModal.addEventListener('show.bs.modal', populateTransferDropdownsNow);
     console.log('✅ Transfer modal listener added');
   }
-  
+
   // Student Modal
   const studentModal = document.getElementById('studentModal');
   if (studentModal) {
     studentModal.addEventListener('show.bs.modal', populatePaymentDropdownsNow);
     console.log('✅ Student modal listener added');
   }
-  
+
   // Finance Modal
   const financeModal = document.getElementById('financeModal');
   if (financeModal) {
     financeModal.addEventListener('show.bs.modal', populatePaymentDropdownsNow);
     console.log('✅ Finance modal listener added');
   }
-  
+
   // Ledger Filter - populate when Finance tab is shown
   function populateLedgerFilter() {
     const filterSelect = document.getElementById('ledgerMethodFilter');
     if (!filterSelect) return;
-    
+
     const currentVal = filterSelect.value;
     filterSelect.innerHTML = '<option value="">All Methods</option>';
-    
+
     const addOpt = (value, label) => {
       const opt = document.createElement('option');
       opt.value = value;
       opt.textContent = label;
       filterSelect.appendChild(opt);
     };
-    
+
     addOpt('Cash', '💵 Cash');
     (globalData.bankAccounts || []).forEach(b => addOpt(b.name, `🏦 ${b.name}`));
     (globalData.mobileBanking || []).forEach(m => addOpt(m.name, `📱 ${m.name}`));
-    
+
     if (currentVal) filterSelect.value = currentVal;
   }
-  
+
   // Populate ledger filter when page loads
   populateLedgerFilter();
-  
+
   // Re-populate when switching to Finance tab
   const financeLink = document.querySelector('[onclick*="switchTab"][onclick*="ledger"]');
   if (financeLink) {
@@ -7560,9 +7005,9 @@ document.addEventListener('DOMContentLoaded', () => {
       setTimeout(populateLedgerFilter, 100);
     });
   }
-  
+
   window.populateLedgerFilter = populateLedgerFilter;
-  
+
   console.log('✅ Dropdown auto-population ready!');
 });
 
@@ -7685,20 +7130,20 @@ function populateAccountDropdown() {
   if (!dropdown) return;
 
   let optionsHTML = '<option value="">-- Select an Account --</option>';
-  
+
   // Add Cash
   optionsHTML += '<option value="cash|Cash">💵 Cash</option>';
-  
+
   // Add all Bank Accounts
   (globalData.bankAccounts || []).forEach(acc => {
     optionsHTML += `<option value="bank|${acc.name}">🏦 ${acc.name}</option>`;
   });
-  
+
   // Add all Mobile Banking accounts
   (globalData.mobileBanking || []).forEach(acc => {
     optionsHTML += `<option value="mobile|${acc.name}">📱 ${acc.name}</option>`;
   });
-  
+
   dropdown.innerHTML = optionsHTML;
 }
 
@@ -7707,13 +7152,13 @@ function populateAccountDropdown() {
  */
 function performUnifiedSearch() {
   console.log('🔍 performUnifiedSearch called');
-  
+
   const selectValue = document.getElementById('unifiedAccountSelect').value;
   const dateFrom = document.getElementById('unifiedDateFrom').value;
   const dateTo = document.getElementById('unifiedDateTo').value;
-  
+
   console.log('Search values:', { selectValue, dateFrom, dateTo });
-  
+
   // If no account selected, show alert
   if (!selectValue) {
     alert('⚠️ Please select an account first!');
@@ -7724,7 +7169,7 @@ function performUnifiedSearch() {
   // Parse selected value (format: "type|name")
   const [accountType, accountName] = selectValue.split('|');
   console.log('Account:', { accountType, accountName });
-  
+
   let accountData = null;
 
   // Get account data based on type
@@ -7778,12 +7223,12 @@ function performUnifiedSearch() {
   const transactions = getAccountTransactions(accountType, accountData, dateFrom, dateTo);
   currentSearchResults.transactions = transactions;
   displayTransactionHistory(transactions, accountData);
-  
+
   // Show success message
   if (typeof showSuccessToast === 'function') {
     showSuccessToast(`🔍 Showing results for ${accountData.name}`);
   }
-  
+
   console.log('✅ Search complete:', transactions.length, 'transactions found');
 }
 
@@ -7792,7 +7237,7 @@ function performUnifiedSearch() {
  */
 function displayAccountDetails(accountType, accountData) {
   let detailsHTML = '';
-  
+
   if (accountType === 'cash') {
     document.getElementById('searchResultTitle').textContent = '💵 CASH';
     detailsHTML = `
@@ -7874,7 +7319,7 @@ function getAccountTransactions(accountType, accountData, dateFrom, dateTo) {
     // FIX: Check both 'method' and 'paymentMethod' fields for compatibility
     const paymentMethod = record.paymentMethod || record.method;
     const matchesAccount = paymentMethod === accountName;
-    
+
     if (!matchesAccount) return false;
 
     // Apply date filter if provided
@@ -7902,7 +7347,7 @@ function getAccountTransactions(accountType, accountData, dateFrom, dateTo) {
  */
 function displayTransactionHistory(transactions, accountData) {
   const tbody = document.getElementById('searchTransactionBody');
-  
+
   if (transactions.length === 0) {
     tbody.innerHTML = '<tr><td colspan="6" class="text-center text-muted py-4">No transactions found</td></tr>';
     document.getElementById('searchTotalAmount').textContent = '৳0';
@@ -7916,15 +7361,15 @@ function displayTransactionHistory(transactions, accountData) {
 
   // Calculate running balance from oldest to newest
   const reversedTransactions = [...transactions].reverse();
-  
+
   reversedTransactions.forEach(record => {
     const amount = parseFloat(record.amount) || 0;
-    
+
     // Check if this is an incoming transaction (positive)
-    const isPositive = record.type === 'Income' || 
-                       record.type === 'Loan Received' || 
-                       record.type === 'Transfer In';
-    
+    const isPositive = record.type === 'Income' ||
+      record.type === 'Loan Received' ||
+      record.type === 'Transfer In';
+
     if (isPositive) {
       runningBalance += amount;
       totalIncome += amount;
@@ -7937,12 +7382,12 @@ function displayTransactionHistory(transactions, accountData) {
   // Now display from newest to oldest
   transactions.forEach(record => {
     const amount = parseFloat(record.amount) || 0;
-    
+
     // Check if this is an incoming transaction (positive)
-    const isIncome = record.type === 'Income' || 
-                     record.type === 'Loan Received' || 
-                     record.type === 'Transfer In';
-    
+    const isIncome = record.type === 'Income' ||
+      record.type === 'Loan Received' ||
+      record.type === 'Transfer In';
+
     const amountClass = isIncome ? 'text-success' : 'text-danger';
     const amountSign = isIncome ? '+' : '-';
 
@@ -7970,10 +7415,10 @@ function displayTransactionHistory(transactions, accountData) {
     `;
 
     // Update running balance for next row
-    const isPositiveForBalance = record.type === 'Income' || 
-                                  record.type === 'Loan Received' || 
-                                  record.type === 'Transfer In';
-    
+    const isPositiveForBalance = record.type === 'Income' ||
+      record.type === 'Loan Received' ||
+      record.type === 'Transfer In';
+
     if (isPositiveForBalance) {
       runningBalance -= amount;
     } else {
@@ -8103,7 +7548,7 @@ function exportAccountToExcel() {
     const amount = parseFloat(record.amount) || 0;
     const sign = record.type === 'Income' ? '+' : '-';
     const person = record.receivedFrom || record.paidTo || '';
-    
+
     csvContent += `${record.date},"${record.type}","${record.category}","${record.details || ''}","${sign}${amount}","${person}"\n`;
   });
 
@@ -8136,7 +7581,7 @@ function printAccountReport() {
 
   // Create print window
   const printWindow = window.open('', '_blank');
-  
+
   let printContent = `
     <!DOCTYPE html>
     <html>
