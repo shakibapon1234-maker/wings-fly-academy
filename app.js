@@ -3,18 +3,16 @@
 // CORE APPLICATION LOGIC
 // ===================================
 
-const APP_VERSION = "5.0-HOTFIX";
-console.log(`🚀 Wings Fly Aviation - System Version: ${APP_VERSION}`);
+// Version check handled globally to avoid redeclaration errors
+console.log('🚀 Wings Fly Aviation - Core Logic Loading...');
 
-// Legacy internal sync system removed to ensure data integrity.
-// System now relies on external global sync configuration.
+// Legacy internal sync system removed.
+// All data synchronization is now handled externally.
 
 
 // ===================================
 // DATA RESET (Fresh Start)
 // ===================================
-
-// Redundant declaration removed.
 console.log(`🚀 Wings Fly Aviation - System Version: ${APP_VERSION}`);
 
 // Utility to format numbers with commas (Bangladeshi/Indian system)
@@ -547,7 +545,7 @@ document.addEventListener('DOMContentLoaded', function () {
               console.log('🎧 Real-time listener started');
             }
           } else {
-            console.warn('� ï¸ Initial sync failed, will retry via auto-sync');
+            console.warn(' ï¸ Initial sync failed, will retry via auto-sync');
           }
         } catch (error) {
           console.error('âŒ Initial sync error:', error);
@@ -758,7 +756,7 @@ function loadFromStorage() {
 
     // Payment Method Migration: Ensure defaults exist if missing
     // This fixes the issue where only custom methods (Brac, Islami) were showing
-    const defaultMethods = ['Cash', 'Bkash', 'Nogod', 'Bank'];
+    const defaultMethods = ['Cash', 'Bkash', 'Nogad', 'Bank'];
     if (!globalData.paymentMethods) {
       globalData.paymentMethods = [...defaultMethods];
       migrationNeeded = true;
@@ -972,14 +970,14 @@ async function handleLogin(e) {
 
     // B. If not found locally, try Cloud (fetch latest Global Data)
     if (!validUser && typeof pullDataFromCloud === 'function') {
-      console.log("�ï¸ User not found locally, checking cloud...");
+      console.log("ï¸ User not found locally, checking cloud...");
       await pullDataFromCloud(false); // Silently pull
       validUser = globalData.users.find(u => u.username === username && u.password === password);
     }
 
     // C. EMERGENCY FALLBACK: Always allow default admin if users list is broken or out of sync
     if (!validUser && username === 'admin' && (password === 'admin123' || password === '11108022ashu')) {
-      console.warn("� ï¸ Using emergency admin fallback");
+      console.warn(" ï¸ Using emergency admin fallback");
       validUser = {
         username: 'admin',
         password: 'admin123',
@@ -1501,7 +1499,7 @@ function checkPersonBalance() {
 
   let html = '';
   if (balance < 0) {
-    html = `<span class="text-danger">� ï¸ They Owe: ৳${formatNumber(Math.abs(balance))}</span>`;
+    html = `<span class="text-danger"> ï¸ They Owe: ৳${formatNumber(Math.abs(balance))}</span>`;
   } else if (balance > 0) {
     html = `<span class="text-success">✅ We Owe: ৳${formatNumber(balance)}</span>`;
   } else {
@@ -2555,7 +2553,7 @@ function updateRecentActions() {
 
     // Determine descriptive Title & Icon
     let actionTitle = 'Transaction';
-    let actionIcon = '�';
+    let actionIcon = '';
 
     if (f.category === 'Student Fee') {
       actionTitle = 'Fee Payment';
