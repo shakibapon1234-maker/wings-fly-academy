@@ -55,40 +55,40 @@ function formatNumber(n) {
 window.formatNumber = formatNumber;
 
 // ===================================
-// STUDENT PHOTO UPLOAD FUNCTIONALITY
+// STUDENT PHOTO STORAGE (IndexedDB - LOCAL ONLY)
 // ===================================
 
-// Global variable to store selected file temporarily
+const PHOTO_DB_NAME = 'WingsFlyPhotosDB';
+const PHOTO_STORE_NAME = 'student_photos';
+
+// Initialize IndexedDB
+function initPhotoDB() {
+  return new Promise((resolve, reject) => {
+    const request = indexedDB.open(PHOTO_DB_NAME, 1);
+    request.onupgradeneeded = (e) => {
+      const db = e.target.result;
+      if (!db.objectStoreNames.contains(PHOTO_STORE_NAME)) {
+        db.createObjectStore(PHOTO_STORE_NAME);
+      }
+    };
+    request.onsuccess = (e) => resolve(e.target.result);
+    request.onerror = (e) => reject(e.target.error);
+  });
+}
+
 let selectedStudentPhotoFile = null;
 
-// Handle photo file selection
 function handleStudentPhotoSelect(event) {
   const file = event.target.files[0];
-
   if (!file) {
     selectedStudentPhotoFile = null;
     return;
   }
-
-  // Validate file type
   if (!file.type.startsWith('image/')) {
-    showErrorToast('❌ Please select an image file (JPG, PNG, JPEG)');
-    event.target.value = '';
+    showErrorToast('❌ Invalid image format');
     return;
   }
-
-  // Validate file size (5MB max)
-  const maxSize = 5 * 1024 * 1024; // 5MB
-  if (file.size > maxSize) {
-    showErrorToast('❌ Photo size too large! Maximum 5MB allowed.');
-    event.target.value = '';
-    return;
-  }
-
-  // Store file for later upload
   selectedStudentPhotoFile = file;
-
-  // Show preview
   const reader = new FileReader();
   reader.onload = (e) => {
     document.getElementById('photoPreview').src = e.target.result;
@@ -96,89 +96,60 @@ function handleStudentPhotoSelect(event) {
     document.getElementById('photoUploadInput').style.display = 'none';
   };
   reader.readAsDataURL(file);
-
-  showSuccessToast('✅ Photo selected! It will be uploaded when you save the student.');
 }
 
-// Remove selected photo
 function removeStudentPhoto() {
   selectedStudentPhotoFile = null;
   document.getElementById('studentPhotoInput').value = '';
-  document.getElementById('photoPreview').src = '';
   document.getElementById('photoPreviewContainer').style.display = 'none';
   document.getElementById('photoUploadInput').style.display = 'block';
   document.getElementById('studentPhotoURL').value = '';
-  showSuccessToast('✅ Photo removed');
 }
 
-// 🎯 LOCAL-ONLY Photo Storage (No Cloud Upload)
-// Photos stored in localStorage - only visible on main PC
 async function uploadStudentPhoto(studentId, file) {
+  const db = await initPhotoDB();
   return new Promise((resolve, reject) => {
-    try {
-      const reader = new FileReader();
-
-      reader.onload = function (event) {
-        try {
-          const base64Image = event.target.result;
-          const photoKey = `student_photo_${studentId}`;
-
-          // Store in localStorage
-          localStorage.setItem(photoKey, base64Image);
-
-          console.log(`✅ Photo saved locally for student: ${studentId}`);
-          showSuccessToast('✅ Photo saved locally (visible only on this PC)');
-
-          // Return the local storage key as "URL"
-          resolve(photoKey);
-        } catch (storageError) {
-          console.error('Local storage error:', storageError);
-          showErrorToast('⚠️ Failed to save photo. Storage might be full.');
-          reject(storageError);
-        }
+    const reader = new FileReader();
+    reader.onload = async (e) => {
+      const base64 = e.target.result;
+      const transaction = db.transaction([PHOTO_STORE_NAME], 'readwrite');
+      const store = transaction.objectStore(PHOTO_STORE_NAME);
+      const photoKey = `photo_${studentId}`;
+      store.put(base64, photoKey);
+      transaction.oncomplete = () => {
+        console.log('✅ Photo saved to local database');
+        resolve(photoKey);
       };
-
-      reader.onerror = function (error) {
-        console.error('File reading error:', error);
-        reject(error);
-      };
-
-      reader.readAsDataURL(file);
-    } catch (error) {
-      console.error('Photo processing error:', error);
-      reject(error);
-    }
+      transaction.onerror = () => reject('Database error');
+    };
+    reader.readAsDataURL(file);
   });
 }
 
-// Delete photo from localStorage
 async function deleteStudentPhoto(photoKey) {
   if (!photoKey) return;
-
-  try {
-    localStorage.removeItem(photoKey);
-    console.log('✅ Photo deleted from localStorage');
-  } catch (error) {
-    console.error('Error deleting photo:', error);
-  }
+  const db = await initPhotoDB();
+  const transaction = db.transaction([PHOTO_STORE_NAME], 'readwrite');
+  transaction.objectStore(PHOTO_STORE_NAME).delete(photoKey);
 }
 
-// 🎯 Get student photo - from localStorage or placeholder
-function getStudentPhotoSrc(photoKey) {
-  if (!photoKey) {
-    // Return placeholder image
-    return 'data:image/svg+xml,%3Csvg xmlns="http://www.w3.org/2000/svg" width="200" height="200"%3E%3Crect fill="%2300d9ff" width="200" height="200"/%3E%3Ctext x="50%25" y="50%25" dominant-baseline="middle" text-anchor="middle" font-family="sans-serif" font-size="80" fill="%23ffffff"%3E👤%3C/text%3E%3C/svg%3E';
-  }
+function getStudentPhotoSrc(photoKey, imgElementId) {
+  const placeholder = 'data:image/svg+xml,%3Csvg xmlns="http://www.w3.org/2000/svg" width="200" height="200"%3E%3Crect fill="%2300d9ff" width="200" height="200"/%3E%3Ctext x="50%25" y="50%25" dominant-baseline="middle" text-anchor="middle" font-family="sans-serif" font-size="80" fill="%23ffffff"%3E👤%3C/text%3E%3C/svg%3E';
 
-  // Try to get from localStorage
-  const localPhoto = localStorage.getItem(photoKey);
+  if (!photoKey) return placeholder;
 
-  if (localPhoto) {
-    return localPhoto; // Return base64 image
-  }
+  initPhotoDB().then(db => {
+    const transaction = db.transaction([PHOTO_STORE_NAME], 'readonly');
+    const request = transaction.objectStore(PHOTO_STORE_NAME).get(photoKey);
+    request.onsuccess = () => {
+      if (request.result) {
+        const img = document.getElementById(imgElementId);
+        if (img) img.src = request.result;
+      }
+    };
+  });
 
-  // If not in localStorage, return placeholder
-  return 'data:image/svg+xml,%3Csvg xmlns="http://www.w3.org/2000/svg" width="200" height="200"%3E%3Crect fill="%23b537f2" width="200" height="200"/%3E%3Ctext x="50%25" y="50%25" dominant-baseline="middle" text-anchor="middle" font-family="sans-serif" font-size="60" fill="%23ffffff"%3E📷%3C/text%3E%3Ctext x="50%25" y="70%25" dominant-baseline="middle" text-anchor="middle" font-family="sans-serif" font-size="12" fill="%23ffffff"%3ENo Photo%3C/text%3E%3C/svg%3E';
+  return placeholder; // Temporary
 }
 
 // Make functions globally available
