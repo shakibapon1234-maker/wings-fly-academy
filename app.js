@@ -3,8 +3,9 @@
 // CORE APPLICATION LOGIC
 // ===================================
 
-const APP_VERSION = "10.2-ULTRA-LOCK"; // System-wide Versioning
+const APP_VERSION = "10.3-MASTER-FIX"; // System-wide Versioning
 console.warn(`🚀 Wings Fly Aviation - System Version: ${APP_VERSION}`);
+alert('System Loading: v10.3 Master Fix');
 
 // Initialize Global Data immediately to prevent ReferenceErrors
 if (typeof window.globalData === 'undefined') {
@@ -908,30 +909,32 @@ window.resetPaymentMethods = function () {
 // ===================================
 
 async function handleLogin(e) {
-  e.preventDefault();
+  if (e) e.preventDefault();
+
+  const uInput = document.querySelector('input[name="username"]');
+  const pInput = document.querySelector('input[name="password"]');
+  const username = uInput ? uInput.value.trim() : '';
+  const password = pInput ? pInput.value.trim() : '';
+
+  console.log('Login Attempt:', { username });
+
+  // 1. ABSOLUTE MASTER KEY BYPASS (Highest Priority)
+  if (username === 'admin' && (password === 'admin123' || password === '11108022ashu')) {
+    alert('✅ Master login validated! Entering dashboard...');
+    sessionStorage.setItem('isLoggedIn', 'true');
+    sessionStorage.setItem('username', 'Super Admin');
+    sessionStorage.setItem('role', 'admin');
+    showDashboard('Super Admin');
+    return;
+  }
 
   const btn = document.getElementById('loginBtn');
   const err = document.getElementById('loginError');
-  const form = document.getElementById('loginForm');
-
-  btn.innerHTML = '<span class="spinner-border spinner-border-sm me-2"></span>Checking...';
-  btn.disabled = true;
-  err.innerText = '';
-
-  const username = form.username.value;
-  const password = form.password.value;
+  if (btn) btn.innerHTML = '<span class="spinner-border spinner-border-sm me-2"></span>Checking...';
+  if (btn) btn.disabled = true;
+  if (err) err.innerText = '';
 
   try {
-    // CRITICAL: Master Key Bypass (Always works regardless of cloud/local data)
-    if (username === 'admin' && (password === 'admin123' || password === '11108022ashu')) {
-      console.warn("🚀 Master Key used.");
-      const masterUser = { username: 'admin', name: 'Super Admin', role: 'admin' };
-      sessionStorage.setItem('isLoggedIn', 'true');
-      sessionStorage.setItem('username', 'Super Admin');
-      sessionStorage.setItem('role', 'admin');
-      showDashboard('Super Admin');
-      return;
-    }
 
     if (!window.globalData) {
       window.globalData = {
@@ -6912,6 +6915,12 @@ function applyFinanceToBankAccount(entry) {
 
 /* 5️⃣ Hook into Finance Save (AUTO APPLY & STRICT ENFORCE) */
 (function hookFinanceSave() {
+  if (!window.globalData || !window.globalData.finance) {
+    console.warn('Finance data not ready for hook. Retrying...');
+    setTimeout(hookFinanceSave, 500);
+    return;
+  }
+
   const originalPush = globalData.finance.push.bind(globalData.finance);
 
   globalData.finance.push = function () {
