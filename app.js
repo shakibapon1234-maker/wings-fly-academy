@@ -3,9 +3,9 @@
 // CORE APPLICATION LOGIC
 // ===================================
 
-const APP_VERSION = "10.3-MASTER-FIX"; // System-wide Versioning
+const APP_VERSION = "10.4-FIXED"; // System-wide Versioning
 console.warn(`🚀 Wings Fly Aviation - System Version: ${APP_VERSION}`);
-alert('System Loading: v10.3 Master Fix');
+alert('System Loading: v10.4 Fixed');
 
 // Initialize Global Data immediately to prevent ReferenceErrors
 if (typeof window.globalData === 'undefined') {
@@ -3217,41 +3217,42 @@ async function handleStudentSubmit(e) {
         // Print receipt after a short delay
         setTimeout(() => printReceipt(newStudentIndex, student.paid), 1000);
       }
-    } catch (err) {
-      console.error('Student submission error:', err);
-      alert('An error occurred while saving student: ' + err.message);
-      return;
     }
-
-    // Save to storage
-    if (typeof globalData !== 'undefined') globalData = window.globalData;
-    const saveSuccess = await saveToStorage();
-
-    if (saveSuccess === false) {
-      showErrorToast("CRITICAL: Failed to save data. Both Local and Cloud storage are full.");
-    }
-
-    // Update UI
-    render(window.globalData.students);
-    updateGlobalStats();
-    updateStudentCount();
-
-    // Close modal
-    const modal = bootstrap.Modal.getInstance(document.getElementById('studentModal'));
-    if (modal) modal.hide();
-
-    // Reset form
-    form.reset();
-
-    // Reset photo upload UI
-    removeStudentPhoto();
-
-    showSuccessToast(editIndex ? '✅ Student updated successfully!' : '✅ Student enrolled successfully!');
-
-  } catch (error) {
-    console.error("Error saving student:", error);
-    showErrorToast("❌ An error occurred: " + error.message);
+  } catch (err) {
+    console.error('Student submission error:', err);
+    alert('An error occurred while saving student: ' + err.message);
+    return;
   }
+
+  // Save to storage
+  if (typeof globalData !== 'undefined') globalData = window.globalData;
+  const saveSuccess = await saveToStorage();
+
+  if (saveSuccess === false) {
+    showErrorToast("CRITICAL: Failed to save data. Both Local and Cloud storage are full.");
+  }
+
+  // Update UI
+  render(window.globalData.students);
+  updateGlobalStats();
+  updateStudentCount();
+
+  // Close modal
+  const modal = bootstrap.Modal.getInstance(document.getElementById('studentModal'));
+  if (modal) modal.hide();
+
+  // Reset form
+  form.reset();
+
+  // Reset photo upload UI
+  removeStudentPhoto();
+
+  showSuccessToast(editIndex ? '✅ Student updated successfully!' : '✅ Student enrolled successfully!');
+
+} catch (error) {
+  console.error("Error saving student:", error);
+  showErrorToast("❌ An error occurred: " + error.message);
+}
 }
 
 // ===================================
