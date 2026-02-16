@@ -3,9 +3,9 @@
 // CORE APPLICATION LOGIC
 // ===================================
 
-const APP_VERSION = "11.0-LOGIN-DISABLED"; // System-wide Versioning
+const APP_VERSION = "11.1-AUTO-FIX"; // System-wide Versioning
 console.warn(`🚀 Wings Fly Aviation - System Version: ${APP_VERSION}`);
-alert('🚀 Login Disabled: Version 11.0 Active');
+alert('🚀 Version 11.1: Payment Methods & Login Bypass Active');
 
 // Initialize Global Data immediately to prevent ReferenceErrors
 if (typeof window.globalData === 'undefined') {
@@ -1743,11 +1743,13 @@ function renderLedger(transactions) {
 // ===================================
 
 function populateDropdowns() {
-  const courses = globalData.courseNames || [];
+  if (!window.globalData) {
+    console.warn('⚠️ populateDropdowns: globalData not ready');
+    return;
+  }
+  const courses = window.globalData.courseNames || [];
 
   // BUILD CLEAN PAYMENT METHODS LIST:
-  // 1. Core methods (always present)
-  // 2. Payment Methods (ONLY from bank accounts - NO hardcoded methods)
   const methods = [];
 
   const courseSelects = [
@@ -1833,7 +1835,7 @@ function populateDropdowns() {
       });
 
       // Add ONLY mobile banking accounts
-      const mobileAccounts = globalData.mobileBanking || [];
+      const mobileAccounts = window.globalData.mobileBanking || [];
       mobileAccounts.forEach(account => {
         const opt = document.createElement('option');
         opt.value = account.name;
@@ -1842,6 +1844,22 @@ function populateDropdowns() {
         opt.style.color = '#ff2d95';
         el.appendChild(opt);
       });
+
+      // FALLBACK: If ONLY Cash is present, add Bkash/Nagad as defaults if they don't exist in accounts
+      if (bankAccounts.length === 0 && mobileAccounts.length === 0) {
+        const fallbacks = [
+          { name: 'Bkash', icon: '📱', color: '#ff2d95' },
+          { name: 'Nagad', icon: '📱', color: '#ff2d95' }
+        ];
+        fallbacks.forEach(f => {
+          const opt = document.createElement('option');
+          opt.value = f.name;
+          opt.innerText = `${f.icon} ${f.name}`;
+          opt.style.backgroundColor = '#1a1f3a';
+          opt.style.color = f.color;
+          el.appendChild(opt);
+        });
+      }
 
       if (currentVal && (currentVal === 'Cash' || bankAccounts.some(a => a.name === currentVal) || mobileAccounts.some(a => a.name === currentVal) || currentVal === '')) {
         el.value = currentVal;
