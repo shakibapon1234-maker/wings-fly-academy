@@ -3,6 +3,39 @@
 // CORE APPLICATION LOGIC
 // ===================================
 
+const APP_VERSION = "5.0-SYNC-PRO"; // Redefined safely here
+console.log(`🚀 Wings Fly Aviation - System Version: ${APP_VERSION}`);
+
+// Initialize Global Data immediately to prevent ReferenceErrors
+if (typeof window.globalData === 'undefined') {
+  window.globalData = JSON.parse(localStorage.getItem('wingsfly_data')) || {
+    students: [],
+    employees: [],
+    finance: [],
+    settings: {},
+    incomeCategories: ['Direct Income', 'Other Income'],
+    expenseCategories: ['Rent', 'Salaries', 'Utilities'],
+    paymentMethods: ['Cash', 'Bkash', 'Nogad', 'Bank'],
+    cashBalance: 0,
+    bankAccounts: [],
+    mobileBanking: [],
+    courseNames: [],
+    attendance: {},
+    nextId: 1001,
+    users: [],
+    examRegistrations: [],
+    visitors: [],
+    employeeRoles: []
+  };
+}
+
+// Global Chart instances to prevent initialization errors
+window.financeChartInstance = null;
+window.studentStatusChart = null;
+window.paymentMethodChart = null;
+
+console.log('📦 Global Data Initialized.');
+
 // Version check handled globally to avoid redeclaration errors
 console.log('🚀 Wings Fly Aviation - Core Logic Loading...');
 
@@ -13,7 +46,6 @@ console.log('🚀 Wings Fly Aviation - Core Logic Loading...');
 // ===================================
 // DATA RESET (Fresh Start)
 // ===================================
-console.log(`🚀 Wings Fly Aviation - System Version: ${APP_VERSION}`);
 
 // Utility to format numbers with commas (Bangladeshi/Indian system)
 function formatNumber(n) {
