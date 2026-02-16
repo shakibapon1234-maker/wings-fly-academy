@@ -1,11 +1,10 @@
 // ===================================
-// SUPABASE SYNC SYSTEM - ULTIMATE FIX
+// SUPABASE SYNC SYSTEM - V10 (SYNC RECOVERY)
 // ===================================
 
 (function () {
   'use strict';
 
-  // Using var to avoid "already declared" errors in global scope
   var SYNC_URL = 'https://gtoldrltxjrwshubplfp.supabase.co';
   var SYNC_KEY = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6Imd0b2xkcmx0eGpyd3NodWJwbGZwIiwicm9sZSI6ImFub24iLCJpYXQiOjE3NzEwOTk5MTksImV4cCI6MjA4NjY3NTkxOX0.7NTx3tzU1C5VaewNZZHTaJf2WJ_GtjhQPKOymkxRsUk';
 
@@ -15,27 +14,51 @@
 
   function init() {
     if (window.sbSyncClient) return true;
-
     try {
-      if (typeof window.supabase === 'undefined') {
-        console.error('❌ Supabase library missing');
-        return false;
-      }
+      if (typeof window.supabase === 'undefined') return false;
       window.sbSyncClient = window.supabase.createClient(SYNC_URL, SYNC_KEY);
       isReady = true;
-      console.log('✅ Sync Client Ready');
       return true;
-    } catch (e) {
-      console.error('❌ Init error:', e);
-      return false;
-    }
+    } catch (e) { return false; }
   }
 
-  async function pull() {
+  window.refreshAllUI = function () {
+    console.log('🎨 UI Refresh Triggered');
+    try {
+      if (typeof renderStudents === 'function') renderStudents();
+      if (typeof renderFinances === 'function') renderFinances();
+      if (typeof renderDashboard === 'function') renderDashboard();
+      if (typeof renderBankList === 'function') renderBankList();
+      if (typeof renderMobileBankingList === 'function') renderMobileBankingList();
+      if (typeof renderEmployeeList === 'function') renderEmployeeList();
+    } catch (e) { console.warn('UI Refresh:', e); }
+  };
+
+  async function pull(force = false) {
     if (!isReady || !window.sbSyncClient) return;
     try {
+      console.log('📥 Checking cloud for data...');
       const { data, error } = await window.sbSyncClient.from('academy_data').select('*').eq('id', 'wingsfly_main').single();
-      if (error || !data) return;
+
+      if (error) {
+        if (error.code === 'PGRST116') {
+          console.log('ℹ️ Cloud empty. Ready to push local data.');
+          hasFetched = true;
+          return;
+        }
+        throw error;
+      }
+
+      if (!data) return;
+
+      // SAFETY: If we already have local data from MANUALLY importing, 
+      // DON'T let an automatic pull overwrite it unless forced.
+      const hasLocalData = window.globalData && window.globalData.students && window.globalData.students.length > 0;
+      if (hasLocalData && !force && !hasFetched) {
+        console.warn('🛡️ Local data exists. Skipping auto-pull to prevent overwrite. Click SYNC to merge.');
+        hasFetched = true;
+        return;
+      }
 
       hasFetched = true;
       window.globalData = {
@@ -58,14 +81,22 @@
         employeeRoles: data.employee_roles || []
       };
       localStorage.setItem('wingsfly_data', JSON.stringify(window.globalData));
-      if (typeof window.refreshAllUI === 'function') window.refreshAllUI();
-      console.log('☁️ Data synced from cloud');
-    } catch (e) { console.error(e); }
+      window.refreshAllUI();
+      console.log('✅ Data pulled and applied from cloud.');
+    } catch (e) { console.error('Pull Error:', e); }
   }
 
-  async function push() {
-    if (!isReady || !window.sbSyncClient || !hasFetched) return;
+  async function push(isManual = false) {
+    if (!isReady || !window.sbSyncClient) return;
+
+    // Block auto-push if we haven't pulled yet (safety)
+    if (!hasFetched && !isManual) {
+      console.warn('🛡️ Auto-push blocked until first successful pull.');
+      return;
+    }
+
     try {
+      console.log('📤 Pushing data to cloud...');
       const cloudData = {
         id: 'wingsfly_main',
         students: window.globalData.students || [],
@@ -87,22 +118,34 @@
         employee_roles: window.globalData.employeeRoles || [],
         last_updated: new Date().toISOString()
       };
-      await window.sbSyncClient.from('academy_data').upsert(cloudData);
-    } catch (e) { console.error(e); }
+
+      const { error } = await window.sbSyncClient.from('academy_data').upsert(cloudData);
+      if (error) throw error;
+
+      console.log('☁️ Data pushed successfully!');
+      if (isManual && typeof window.showSuccessToast === 'function') {
+        window.showSuccessToast('✅ Data Saved to Cloud');
+      }
+    } catch (e) { console.error('Push Error:', e); }
   }
 
-  // Export to window
   window.manualSync = async function () {
-    console.log('🔄 Syncing...');
-    await pull();
-    await push();
-    if (typeof window.showSuccessToast === 'function') window.showSuccessToast('✅ Synced');
+    console.log('🚀 Manual Sync Started...');
+    if (typeof window.showSuccessToast === 'function') window.showSuccessToast('🔄 Syncing...');
+
+    // Since user manually imported, we TRUST the local data now.
+    hasFetched = true;
+    await push(true);
+    await pull(true); // Double check
   };
+
+  window.saveToCloud = function () { push(false); };
+  window.loadFromCloud = function () { pull(false); };
 
   document.addEventListener('DOMContentLoaded', () => {
     if (init()) {
-      setTimeout(pull, 1500);
-      setInterval(pull, 60000); // Auto pull every minute
+      setTimeout(() => pull(false), 3000);
+      setInterval(() => pull(false), 60000);
     }
   });
 
