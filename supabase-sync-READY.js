@@ -1,6 +1,6 @@
 /**
- * SUPABASE SYNC SYSTEM - V15 (STRICT VARIABLE MAPPING)
- * FIX: 'finance' vs 'finances' conflict resolved.
+ * SUPABASE SYNC SYSTEM - V16 (DOWNTIME & DATA-LOSS PROTECTION)
+ * 🛡️ Anti-Overwrite Protection Enabled
  */
 
 (function () {
@@ -11,7 +11,7 @@
 
   window.sbSyncClient = null;
   var isReady = false;
-  var hasFetched = false;
+  var hasFetched = false; // Safety flag
   var syncInProgress = false;
 
   function init() {
@@ -31,6 +31,15 @@
     syncInProgress = true;
     try {
       const { data, error } = await window.sbSyncClient.from('academy_data').select('*').eq('id', 'wingsfly_main').single();
+
+      // If No Cloud Record Exists (First time using the app)
+      if (error && error.code === 'PGRST116') {
+        console.log('ℹ️ Cloud empty. Ready for first push.');
+        hasFetched = true; // Allow pushing since we confirmed cloud is empty
+        syncInProgress = false;
+        return;
+      }
+
       if (error || !data) {
         syncInProgress = false;
         return;
@@ -39,18 +48,19 @@
       const cloudTime = parseInt(data.last_updated) || 0;
       const localTime = parseInt(localStorage.getItem('lastLocalUpdate')) || 0;
 
+      // Only overwrite local if cloud is strictly newer OR we haven't fetched yet
       if (!force && cloudTime <= localTime && hasFetched) {
         syncInProgress = false;
         return;
       }
 
-      console.log('📥 New data detected from another device...');
+      console.log('📥 Syncing newer data from cloud...');
 
-      // CRITICAL: Strict Mapping to globalData (Matches app.js structure)
+      // Map strictly to window.globalData
       window.globalData = {
         students: data.students || [],
         employees: data.employees || [],
-        finance: data.finance || [], // MUST BE SINGULAR 'finance'
+        finance: data.finance || [],
         settings: data.settings || {},
         incomeCategories: data.income_categories || [],
         expenseCategories: data.expense_categories || [],
@@ -67,24 +77,33 @@
         employeeRoles: data.employee_roles || []
       };
 
+      // Global backup update
       localStorage.setItem('wingsfly_data', JSON.stringify(window.globalData));
       localStorage.setItem('lastLocalUpdate', cloudTime.toString());
 
-      hasFetched = true;
+      hasFetched = true; // Now safe to push local changes
 
-      // IF UI RENDERER EXISTS, CALL IT IMMEDIATELY
+      // Update UI
       if (typeof window.renderFullUI === 'function') {
         window.renderFullUI();
-      } else {
-        console.warn('⚠️ renderFullUI not found. UI might need manual refresh.');
+        console.log('✅ UI Updated from Cloud.');
       }
-    } catch (e) { console.error('Pull Failed:', e); }
+    } catch (e) { console.error('Cloud Pull Error:', e); }
     syncInProgress = false;
   }
 
-  async function push() {
-    if (!isReady || !window.sbSyncClient) { if (!init()) return; }
-    if (!window.globalData || !window.globalData.students) return;
+  async function push(isManual = false) {
+    if (!isReady || !window.sbSyncClient) { if (!init()) return false; }
+
+    // 🛡️ DATA LOSS PROTECTION:
+    // Never push if we haven't successfully checked the cloud yet.
+    // This prevents an empty PC from overwriting the Main PC's data on startup.
+    if (!hasFetched && !isManual) {
+      console.warn('🛡️ Sync Shield: Push blocked until first cloud pull completes.');
+      return false;
+    }
+
+    if (!window.globalData || !window.globalData.students) return false;
 
     try {
       const updateTime = Date.now().toString();
@@ -110,30 +129,39 @@
         last_updated: updateTime
       };
 
-      await window.sbSyncClient.from('academy_data').upsert(payload);
+      const { error } = await window.sbSyncClient.from('academy_data').upsert(payload);
+      if (error) throw error;
+
       localStorage.setItem('lastLocalUpdate', updateTime);
       return true;
-    } catch (e) { return false; }
+    } catch (e) {
+      console.error('Cloud Push Error:', e);
+      return false;
+    }
   }
 
-  // Public hooks
-  window.saveToCloud = function () { return push(); };
+  // Bind hooks for app.js
+  window.saveToCloud = function () { return push(false); };
   window.loadFromCloud = function (force = false) { return pull(force); };
 
   window.manualSync = async function () {
-    if (typeof showSuccessToast === 'function') showSuccessToast('🔄 Full Synchronizing...');
-    await push();
-    await pull(true);
-    if (typeof showSuccessToast === 'function') showSuccessToast('✅ Sync Success');
+    if (typeof showSuccessToast === 'function') showSuccessToast('🔄 Synchronizing...');
+    const pushed = await push(true);
+    const pulled = await pull(true);
+    if (pushed && pulled && typeof showSuccessToast === 'function') {
+      showSuccessToast('✅ Sync Complete');
+    }
   };
 
-  // Auto-check every 3 seconds for almost real-time experience
+  // Auto-Initialization
   document.addEventListener('DOMContentLoaded', () => {
     if (init()) {
-      console.log('🟢 Wings Fly V15 Active');
+      console.log('🟢 Wings Fly Shielded Sync Engine Ready');
+      // Small delay to let app.js load its local data first
       setTimeout(() => {
-        pull(false);
-        setInterval(() => pull(false), 3000);
+        pull(false); // Initial Pull
+        // Faster interval for real-time feel (2 seconds)
+        setInterval(() => pull(false), 2000);
       }, 1000);
     }
   });
