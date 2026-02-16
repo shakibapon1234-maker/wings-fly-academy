@@ -4386,10 +4386,16 @@ function openStudentProfile(rowIndex) {
       <div class="col-md-4">
         <div class="card h-100 border-0 shadow-sm glass-card">
           <div class="card-body text-center">
-            <div class="mb-3">
-              <span class="avatar-circle bg-primary text-white fw-bold fs-1 d-inline-block rounded-circle" style="width: 80px; height: 80px; line-height: 80px;">
-                ${student.name.charAt(0).toUpperCase()}
-              </span>
+            <div class="mb-3 d-flex justify-content-center">
+              <div class="position-relative" style="width: 100px; height: 100px;">
+                <img id="profilePhotoImg" src="${getStudentPhotoSrc(student.photo, 'profilePhotoImg')}" 
+                    class="rounded-circle shadow-sm border border-primary border-4" 
+                    style="width: 100px; height: 100px; object-fit: cover;">
+                <div class="bg-primary text-white rounded-circle position-absolute bottom-0 end-0 d-flex align-items-center justify-content-center" 
+                     style="width: 30px; height: 30px; border: 3px solid white;">
+                  <i class="bi bi-person-fill small"></i>
+                </div>
+              </div>
             </div>
             <h4 class="fw-bold mb-1">${student.name}</h4>
             <p class="text-muted mb-3">${student.course} • ${student.batch}</p>
