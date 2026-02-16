@@ -1,305 +1,246 @@
 // ===================================
-// SUPABASE SYNC SYSTEM (EMBEDDED)
-// Version: 2.1 - All-in-One
+// SUPABASE SYNC - EMBEDDED VERSION
+// NO EXTERNAL FILES NEEDED
 // ===================================
 
-console.log('🔄 Initializing Supabase Sync System v2.1...');
-
-// Supabase Configuration
-const SUPABASE_CONFIG = {
-  url: 'https://gtoldrlbxjrwshubplfp.supabase.co',
-  anonKey: 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6Imd0b2xkcmxieGpyd3NodWJwbGZwIiwicm9sZSI6ImFub24iLCJpYXQiOjE3Mzc3OTg2NDAsImV4cCI6MjA1MzM3NDY0MH0.T5TrlL5xLUqzMUl7w-LChGxbICxTaRN0DuGnxZ-LLfs'
-};
-
-// Global sync state
-let supabaseClient = null;
-let realtimeChannel = null;
-let autoSyncInterval = null;
-let lastSyncTimestamp = null;
-let isSyncing = false;
-
-// Initialize Supabase Client
-function initializeSupabaseSync() {
-  try {
-    // Check if Supabase library is loaded
+(function() {
+  'use strict';
+  
+  console.log('🔄 Loading Supabase Sync...');
+  
+  const SUPABASE_URL = 'https://gtoldrlbxjrwshubplfp.supabase.co';
+  const SUPABASE_KEY = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6Imd0b2xkcmxieGpyd3NodWJwbGZwIiwicm9sZSI6ImFub24iLCJpYXQiOjE3Mzc3OTg2NDAsImV4cCI6MjA1MzM3NDY0MH0.T5TrlL5xLUqzMUl7w-LChGxbICxTaRN0DuGnxZ-LLfs';
+  
+  let supabaseClient = null;
+  let syncInterval = null;
+  let realtimeChannel = null;
+  
+  // Initialize on DOM ready
+  function init() {
     if (typeof supabase === 'undefined') {
-      console.warn('⚠️ Supabase library not loaded. Sync disabled.');
-      return false;
-    }
-
-    // Create Supabase client
-    supabaseClient = supabase.createClient(SUPABASE_CONFIG.url, SUPABASE_CONFIG.anonKey);
-    console.log('✅ Supabase client initialized');
-    return true;
-  } catch (error) {
-    console.error('❌ Supabase initialization failed:', error);
-    return false;
-  }
-}
-
-// Get unique device ID
-function getDeviceId() {
-  let deviceId = localStorage.getItem('deviceId');
-  if (!deviceId) {
-    deviceId = 'device_' + Math.random().toString(36).substr(2, 9) + '_' + Date.now();
-    localStorage.setItem('deviceId', deviceId);
-  }
-  return deviceId;
-}
-
-// Save to Cloud
-async function saveToCloud(showNotification = false) {
-  if (!supabaseClient || isSyncing) return false;
-
-  isSyncing = true;
-  try {
-    const dataToSync = {
-      students: JSON.parse(localStorage.getItem('students') || '[]'),
-      finances: JSON.parse(localStorage.getItem('finances') || '[]'),
-      courses: JSON.parse(localStorage.getItem('courses') || '[]'),
-      employees: JSON.parse(localStorage.getItem('employees') || '[]'),
-      banks: JSON.parse(localStorage.getItem('banks') || '[]'),
-      mobiles: JSON.parse(localStorage.getItem('mobiles') || '[]'),
-      lastModified: new Date().toISOString(),
-      deviceId: getDeviceId()
-    };
-
-    console.log('☁️ Uploading to cloud...');
-
-    // Check if record exists
-    const { data: existing } = await supabaseClient
-      .from('app_data')
-      .select('id')
-      .eq('user_id', 'admin')
-      .single();
-
-    let result;
-    if (existing) {
-      // Update
-      result = await supabaseClient
-        .from('app_data')
-        .update({ data: dataToSync, updated_at: new Date().toISOString() })
-        .eq('id', existing.id);
-    } else {
-      // Insert
-      result = await supabaseClient
-        .from('app_data')
-        .insert({ user_id: 'admin', data: dataToSync, updated_at: new Date().toISOString() });
-    }
-
-    if (result.error) throw result.error;
-
-    lastSyncTimestamp = new Date().toISOString();
-    console.log('✅ Cloud save successful');
-    if (showNotification && typeof showSuccessToast === 'function') {
-      showSuccessToast('☁️ Synced to cloud');
+      console.warn('⚠️ Supabase library not loaded');
+      setTimeout(init, 1000); // Retry
+      return;
     }
     
-    isSyncing = false;
-    return true;
-  } catch (error) {
-    console.error('❌ Cloud save error:', error);
-    isSyncing = false;
-    return false;
-  }
-}
-
-// Load from Cloud
-async function loadFromCloud(showNotification = false) {
-  if (!supabaseClient || isSyncing) return false;
-
-  isSyncing = true;
-  try {
-    console.log('☁️ Loading from cloud...');
-
-    const { data, error } = await supabaseClient
-      .from('app_data')
-      .select('data, updated_at')
-      .eq('user_id', 'admin')
-      .single();
-
-    if (error) {
-      if (error.code === 'PGRST116') {
-        console.log('📝 No cloud data yet');
-        isSyncing = false;
-        return true;
-      }
-      throw error;
+    try {
+      supabaseClient = supabase.createClient(SUPABASE_URL, SUPABASE_KEY);
+      console.log('✅ Supabase initialized');
+      
+      // Export functions
+      window.saveToCloud = saveToCloud;
+      window.loadFromCloud = loadFromCloud;
+      window.startAutoSync = startAutoSync;
+      window.stopAutoSync = stopAutoSync;
+      window.startRealtimeSync = startRealtimeSync;
+      window.checkSyncStatus = checkSyncStatus;
+      window.manualSync = manualSync;
+      
+      console.log('✅ Sync functions ready');
+    } catch (e) {
+      console.error('❌ Init error:', e);
     }
-
-    if (!data || !data.data) {
-      console.log('📝 No data available');
-      isSyncing = false;
+  }
+  
+  // Save to cloud
+  async function saveToCloud(showMsg = false) {
+    if (!supabaseClient) {
+      console.warn('⚠️ Supabase not ready');
       return false;
     }
-
-    const cloudData = data.data;
-    const cloudTime = new Date(data.updated_at);
-    const localTime = localStorage.getItem('lastModified') ? new Date(localStorage.getItem('lastModified')) : new Date(0);
-
-    if (cloudTime > localTime) {
-      console.log('🔄 Cloud data newer, updating...');
+    
+    try {
+      const data = {
+        students: JSON.parse(localStorage.getItem('students') || '[]'),
+        finances: JSON.parse(localStorage.getItem('finances') || '[]'),
+        courses: JSON.parse(localStorage.getItem('courses') || '[]'),
+        employees: JSON.parse(localStorage.getItem('employees') || '[]'),
+        banks: JSON.parse(localStorage.getItem('banks') || '[]'),
+        mobiles: JSON.parse(localStorage.getItem('mobiles') || '[]'),
+        timestamp: new Date().toISOString()
+      };
       
-      localStorage.setItem('students', JSON.stringify(cloudData.students || []));
-      localStorage.setItem('finances', JSON.stringify(cloudData.finances || []));
-      localStorage.setItem('courses', JSON.stringify(cloudData.courses || []));
-      localStorage.setItem('employees', JSON.stringify(cloudData.employees || []));
-      localStorage.setItem('banks', JSON.stringify(cloudData.banks || []));
-      localStorage.setItem('mobiles', JSON.stringify(cloudData.mobiles || []));
-      localStorage.setItem('lastModified', cloudData.lastModified);
-
-      // Update globalData
-      if (window.globalData) {
-        window.globalData.students = cloudData.students || [];
-        window.globalData.finances = cloudData.finances || [];
-        window.globalData.courses = cloudData.courses || [];
-        window.globalData.employees = cloudData.employees || [];
-        window.globalData.banks = cloudData.banks || [];
-        window.globalData.mobiles = cloudData.mobiles || [];
-        
-        // Refresh UI
-        if (typeof renderStudents === 'function') renderStudents();
-        if (typeof renderFinances === 'function') renderFinances();
-        if (typeof renderBankList === 'function') renderBankList();
-        if (typeof renderMobileBankingList === 'function') renderMobileBankingList();
-      }
-
-      console.log('✅ Local data updated from cloud');
-      if (showNotification && typeof showSuccessToast === 'function') {
-        showSuccessToast('✅ Data updated');
+      console.log('☁️ Saving to cloud...');
+      
+      const { data: existing } = await supabaseClient
+        .from('app_data')
+        .select('id')
+        .eq('user_id', 'admin')
+        .maybeSingle();
+      
+      let result;
+      if (existing) {
+        result = await supabaseClient
+          .from('app_data')
+          .update({ data: data, updated_at: new Date().toISOString() })
+          .eq('id', existing.id);
+      } else {
+        result = await supabaseClient
+          .from('app_data')
+          .insert({ user_id: 'admin', data: data });
       }
       
-      isSyncing = false;
+      if (result.error) throw result.error;
+      
+      console.log('✅ Cloud save OK');
+      if (showMsg && window.showSuccessToast) {
+        window.showSuccessToast('☁️ Synced');
+      }
       return true;
-    } else {
-      console.log('✅ Local data up to date');
-      isSyncing = false;
-      return true;
+    } catch (e) {
+      console.error('❌ Save error:', e);
+      return false;
     }
-  } catch (error) {
-    console.error('❌ Cloud load error:', error);
-    isSyncing = false;
-    return false;
   }
-}
-
-// Start Real-time Sync
-function startRealtimeSync() {
-  if (!supabaseClient) return;
-
-  if (realtimeChannel) {
-    supabaseClient.removeChannel(realtimeChannel);
+  
+  // Load from cloud
+  async function loadFromCloud(showMsg = false) {
+    if (!supabaseClient) {
+      console.warn('⚠️ Supabase not ready');
+      return false;
+    }
+    
+    try {
+      console.log('☁️ Loading from cloud...');
+      
+      const { data: record, error } = await supabaseClient
+        .from('app_data')
+        .select('data, updated_at')
+        .eq('user_id', 'admin')
+        .maybeSingle();
+      
+      if (error) {
+        if (error.code === 'PGRST116') {
+          console.log('📝 No cloud data yet');
+          return true;
+        }
+        throw error;
+      }
+      
+      if (!record || !record.data) {
+        console.log('📝 Empty cloud data');
+        return false;
+      }
+      
+      const cloudData = record.data;
+      const cloudTime = new Date(record.updated_at);
+      const localTime = localStorage.getItem('lastModified') 
+        ? new Date(localStorage.getItem('lastModified'))
+        : new Date(0);
+      
+      if (cloudTime > localTime) {
+        console.log('🔄 Updating from cloud...');
+        
+        localStorage.setItem('students', JSON.stringify(cloudData.students || []));
+        localStorage.setItem('finances', JSON.stringify(cloudData.finances || []));
+        localStorage.setItem('courses', JSON.stringify(cloudData.courses || []));
+        localStorage.setItem('employees', JSON.stringify(cloudData.employees || []));
+        localStorage.setItem('banks', JSON.stringify(cloudData.banks || []));
+        localStorage.setItem('mobiles', JSON.stringify(cloudData.mobiles || []));
+        localStorage.setItem('lastModified', cloudData.timestamp || record.updated_at);
+        
+        if (window.globalData) {
+          window.globalData.students = cloudData.students || [];
+          window.globalData.finances = cloudData.finances || [];
+          window.globalData.courses = cloudData.courses || [];
+          window.globalData.employees = cloudData.employees || [];
+          window.globalData.banks = cloudData.banks || [];
+          window.globalData.mobiles = cloudData.mobiles || [];
+          
+          if (typeof renderStudents === 'function') renderStudents();
+          if (typeof renderFinances === 'function') renderFinances();
+        }
+        
+        console.log('✅ Data updated');
+        if (showMsg && window.showSuccessToast) {
+          window.showSuccessToast('✅ Updated');
+        }
+        return true;
+      } else {
+        console.log('✅ Already up to date');
+        return true;
+      }
+    } catch (e) {
+      console.error('❌ Load error:', e);
+      return false;
+    }
   }
-
-  try {
+  
+  // Auto sync
+  function startAutoSync(seconds = 10) {
+    if (syncInterval) clearInterval(syncInterval);
+    
+    syncInterval = setInterval(async () => {
+      console.log('🔄 Auto-sync...');
+      await loadFromCloud(false);
+      await saveToCloud(false);
+    }, seconds * 1000);
+    
+    console.log(`✅ Auto-sync started (${seconds}s)`);
+  }
+  
+  function stopAutoSync() {
+    if (syncInterval) {
+      clearInterval(syncInterval);
+      syncInterval = null;
+      console.log('⏸️ Auto-sync stopped');
+    }
+  }
+  
+  // Realtime
+  function startRealtimeSync() {
+    if (!supabaseClient) return;
+    
+    if (realtimeChannel) {
+      supabaseClient.removeChannel(realtimeChannel);
+    }
+    
     realtimeChannel = supabaseClient
-      .channel('app_data_changes')
-      .on('postgres_changes', 
-        { event: '*', schema: 'public', table: 'app_data', filter: 'user_id=eq.admin' },
-        async (payload) => {
-          console.log('🔔 Real-time update received');
-          const currentDevice = getDeviceId();
-          if (payload.new && payload.new.data && payload.new.data.deviceId === currentDevice) {
-            console.log('✋ Ignoring own update');
-            return;
-          }
-          await loadFromCloud(true);
+      .channel('data_changes')
+      .on('postgres_changes',
+        { event: '*', schema: 'public', table: 'app_data' },
+        () => {
+          console.log('🔔 Change detected');
+          loadFromCloud(true);
         }
       )
       .subscribe((status) => {
         if (status === 'SUBSCRIBED') {
-          console.log('✅ Real-time sync active');
+          console.log('📡 Realtime active');
         }
       });
-  } catch (error) {
-    console.error('❌ Real-time setup error:', error);
   }
-}
-
-// Stop Real-time Sync
-function stopRealtimeSync() {
-  if (realtimeChannel) {
-    supabaseClient.removeChannel(realtimeChannel);
-    realtimeChannel = null;
-    console.log('🔌 Real-time sync stopped');
-  }
-}
-
-// Start Auto-Sync
-function startAutoSync(intervalSeconds = 10) {
-  if (autoSyncInterval) clearInterval(autoSyncInterval);
-
-  autoSyncInterval = setInterval(async () => {
-    console.log('🔄 Auto-sync running...');
+  
+  // Manual sync
+  async function manualSync() {
+    console.log('🔄 Manual sync...');
     await loadFromCloud(false);
     await saveToCloud(false);
-  }, intervalSeconds * 1000);
-
-  console.log(`✅ Auto-sync started (${intervalSeconds}s)`);
-}
-
-// Stop Auto-Sync
-function stopAutoSync() {
-  if (autoSyncInterval) {
-    clearInterval(autoSyncInterval);
-    autoSyncInterval = null;
-    console.log('⏸️ Auto-sync stopped');
+    if (window.showSuccessToast) {
+      window.showSuccessToast('✅ Synced');
+    }
   }
-}
-
-// Manual Sync
-async function manualSync() {
-  console.log('🔄 Manual sync...');
-  if (typeof showSuccessToast === 'function') showSuccessToast('🔄 Syncing...');
-  const loadSuccess = await loadFromCloud(false);
-  const saveSuccess = await saveToCloud(false);
-  if (loadSuccess && saveSuccess) {
-    if (typeof showSuccessToast === 'function') showSuccessToast('✅ Sync complete');
-    return true;
+  
+  // Check status
+  function checkSyncStatus() {
+    return {
+      supabase: !!supabaseClient,
+      autoSync: !!syncInterval,
+      realtime: !!realtimeChannel
+    };
+  }
+  
+  // Start init
+  if (document.readyState === 'loading') {
+    document.addEventListener('DOMContentLoaded', init);
   } else {
-    if (typeof showErrorToast === 'function') showErrorToast('⚠️ Sync failed');
-    return false;
+    init();
   }
-}
-
-// Check Sync Status
-function checkSyncStatus() {
-  const status = {
-    supabaseConnected: !!supabaseClient,
-    realtimeActive: !!realtimeChannel,
-    autoSyncActive: !!autoSyncInterval,
-    lastSync: lastSyncTimestamp,
-    deviceId: getDeviceId()
-  };
-  console.log('📊 Sync Status:', status);
-  return status;
-}
-
-// Export to window
-window.saveToCloud = saveToCloud;
-window.loadFromCloud = loadFromCloud;
-window.startRealtimeSync = startRealtimeSync;
-window.stopRealtimeSync = stopRealtimeSync;
-window.startAutoSync = startAutoSync;
-window.stopAutoSync = stopAutoSync;
-window.manualSync = manualSync;
-window.checkSyncStatus = checkSyncStatus;
-
-// Auto-initialize on DOM ready
-document.addEventListener('DOMContentLoaded', function() {
-  console.log('🚀 Auto-initializing Supabase sync...');
-  const initialized = initializeSupabaseSync();
-  if (initialized) {
-    console.log('✅ Supabase sync ready!');
-  } else {
-    console.warn('⚠️ Supabase sync not available (library not loaded)');
-  }
-});
-
-console.log('✅ Supabase Sync System Loaded');
+  
+})();
 
 // ===================================
-// ORIGINAL APP.JS CODE STARTS HERE
+// ORIGINAL APP.JS STARTS BELOW
 // ===================================
 
 // ===================================
@@ -826,13 +767,13 @@ document.addEventListener('DOMContentLoaded', function () {
       if (typeof window.loadFromCloud === 'function') {
         try {
           console.log('💥 Pulling latest data from cloud on startup...');
-          const success = await window.loadFromCloud(true); // Show notification
+          const success = await window.loadFromCloud(true);
           if (success) {
             console.log('✅ Initial cloud sync successful');
             // Start auto-sync and real-time listener
             if (typeof window.startAutoSync === 'function') {
               window.startAutoSync(10);
-              console.log('🔄 Fast auto-sync started (10s interval)');
+              console.log('🔄 Auto-sync started (30s interval)');
             }
             if (typeof window.startRealtimeSync === 'function') {
               window.startRealtimeSync();
@@ -912,12 +853,11 @@ document.addEventListener('DOMContentLoaded', function () {
 
 async function saveToStorage(skipCloudSync = false) {
   try {
-    // Save with ISO timestamp for consistency
     const currentTime = new Date().toISOString();
     localStorage.setItem('lastModified', currentTime);
     localStorage.setItem('lastLocalUpdate', Date.now().toString());
 
-    // Save individual arrays for better sync
+    // Save individual arrays
     localStorage.setItem('students', JSON.stringify(window.globalData.students || []));
     localStorage.setItem('finances', JSON.stringify(window.globalData.finances || []));
     localStorage.setItem('courses', JSON.stringify(window.globalData.courses || []));
@@ -925,32 +865,29 @@ async function saveToStorage(skipCloudSync = false) {
     localStorage.setItem('banks', JSON.stringify(window.globalData.banks || []));
     localStorage.setItem('mobiles', JSON.stringify(window.globalData.mobiles || []));
 
-    // Also save as single object for backward compatibility
+    // Also save complete data
     const dataString = JSON.stringify(window.globalData);
     localStorage.setItem('wingsfly_data', dataString);
 
-    console.log('💾 Local save complete');
+    console.log('💾 Local save OK');
 
     // Cloud sync
     if (!skipCloudSync && typeof window.saveToCloud === 'function') {
-      console.log('☁️ Triggering cloud sync...');
+      console.log('☁️ Syncing to cloud...');
       const cloudSuccess = await window.saveToCloud(false);
       if (cloudSuccess) {
-        console.log('✅ Cloud sync successful');
+        console.log('✅ Cloud sync OK');
       } else {
-        console.warn('⚠️ Cloud sync failed, retrying...');
-        // Retry once after 2 seconds
-        setTimeout(async () => {
-          await window.saveToCloud(false);
-        }, 2000);
+        console.warn('⚠️ Cloud sync failed');
+        setTimeout(() => window.saveToCloud(false), 3000);
       }
       return cloudSuccess;
     }
     return true;
   } catch (error) {
-    console.error('❌ Error saving to storage:', error);
+    console.error('❌ Save error:', error);
     if (typeof showErrorToast === 'function') {
-      showErrorToast("CRITICAL: Failed to save data locally.");
+      showErrorToast("Failed to save");
     }
     return false;
   }
