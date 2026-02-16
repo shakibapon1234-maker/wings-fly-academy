@@ -6240,8 +6240,55 @@ function openTransferModal() {
   const form = document.getElementById('transferForm');
   form.reset();
   form.date.value = new Date().toISOString().split('T')[0];
+  
+  // Hide balance displays on open
+  document.getElementById('fromAccountBalance').style.display = 'none';
+  document.getElementById('toAccountBalance').style.display = 'none';
+  
   modal.show();
 }
+
+// NEW: Function to update account balance display in transfer modal
+function updateTransferAccountBalance(type) {
+  const selectId = type === 'from' ? 'accTransferFrom' : 'accTransferTo';
+  const balanceDisplayId = type === 'from' ? 'fromAccountBalance' : 'toAccountBalance';
+  const balanceAmountId = type === 'from' ? 'fromBalanceAmount' : 'toBalanceAmount';
+  
+  const selectedAccount = document.getElementById(selectId).value;
+  const balanceDisplay = document.getElementById(balanceDisplayId);
+  const balanceAmount = document.getElementById(balanceAmountId);
+  
+  if (!selectedAccount) {
+    balanceDisplay.style.display = 'none';
+    return;
+  }
+  
+  let balance = 0;
+  
+  // Get balance based on account type
+  if (selectedAccount === 'Cash') {
+    balance = parseFloat(globalData.cashBalance) || 0;
+  } else {
+    // Check in bank accounts
+    let account = globalData.bankAccounts.find(a => a.name === selectedAccount);
+    if (account) {
+      balance = parseFloat(account.balance) || 0;
+    } else {
+      // Check in mobile banking
+      account = globalData.mobileBanking.find(a => a.name === selectedAccount);
+      if (account) {
+        balance = parseFloat(account.balance) || 0;
+      }
+    }
+  }
+  
+  // Update display
+  balanceAmount.textContent = formatNumber(balance);
+  balanceDisplay.style.display = 'block';
+}
+
+// Expose to global
+window.updateTransferAccountBalance = updateTransferAccountBalance;
 
 async function handleTransferSubmit(e) {
   e.preventDefault();

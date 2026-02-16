@@ -3265,9 +3265,13 @@
                         <div class="mb-3">
                             <label class="form-label fw-bold small text-uppercase text-muted">From Account</label>
                             <select id="accTransferFrom" name="fromAccount" class="form-select premium-input-modern"
-                                required>
+                                required onchange="updateTransferAccountBalance('from')">
                                 <option value="">Select Source Account</option>
                             </select>
+                            <div id="fromAccountBalance" class="mt-2 text-end" style="display: none;">
+                                <small class="text-muted">Available: </small>
+                                <span class="badge bg-success fw-bold">৳ <span id="fromBalanceAmount">0</span></span>
+                            </div>
                         </div>
                         <div class="mb-3 text-center py-2">
                             <i class="bi bi-arrow-down fs-4 text-primary"></i>
@@ -3275,9 +3279,13 @@
                         <div class="mb-3">
                             <label class="form-label fw-bold small text-uppercase text-muted">To Account</label>
                             <select id="accTransferTo" name="toAccount" class="form-select premium-input-modern"
-                                required>
+                                required onchange="updateTransferAccountBalance('to')">
                                 <option value="">Select Destination Account</option>
                             </select>
+                            <div id="toAccountBalance" class="mt-2 text-end" style="display: none;">
+                                <small class="text-muted">Current: </small>
+                                <span class="badge bg-info fw-bold">৳ <span id="toBalanceAmount">0</span></span>
+                            </div>
                         </div>
                         <div class="row g-3 mb-4">
                             <div class="col-md-6">
