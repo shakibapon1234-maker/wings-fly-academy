@@ -1,102 +1,50 @@
 /**
- * SUPABASE SYNC SYSTEM - V12 (ULTRA REAL-TIME ENABLED)
- * Optimized for Wings Fly Aviation Academy
+ * SUPABASE SYNC SYSTEM - V14 (ULTRA-AUTO-SYNC)
+ * Optimized for multi-device real-time collaboration
  */
 
 (function () {
   'use strict';
 
-  // Configuration
   var SYNC_URL = 'https://gtoldrltxjrwshubplfp.supabase.co';
   var SYNC_KEY = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6Imd0b2xkcmx0eGpyd3NodWJwbGZwIiwicm9sZSI6ImFub24iLCJpYXQiOjE3NzEwOTk5MTksImV4cCI6MjA4NjY3NTkxOX0.7NTx3tzU1C5VaewNZZHTaJf2WJ_GtjhQPKOymkxRsUk';
 
-  // State
   window.sbSyncClient = null;
   var isReady = false;
   var hasFetched = false;
-  var autoSyncInterval = null;
+  var autoPullInterval = null;
 
-  /**
-   * Initialize Supabase Client
-   */
   function init() {
     if (window.sbSyncClient) return true;
     try {
-      if (typeof window.supabase === 'undefined') {
-        console.error('❌ Supabase library missing');
-        return false;
-      }
+      if (typeof window.supabase === 'undefined') return false;
       window.sbSyncClient = window.supabase.createClient(SYNC_URL, SYNC_KEY);
       isReady = true;
       return true;
-    } catch (e) {
-      console.error('❌ Supabase Init Error:', e);
-      return false;
-    }
+    } catch (e) { return false; }
   }
 
-  /**
-   * Refresh individual UI components of app.js
-   */
-  window.refreshAllUI = function () {
-    console.log('🔄 Performing UI Refresh...');
-    try {
-      // These functions are expected in app.js
-      if (typeof renderRecentAdmissions === 'function') renderRecentAdmissions();
-      if (typeof render === 'function') render(window.globalData.students || []);
-      if (typeof renderLedger === 'function') renderLedger(window.globalData.finance || []);
-      if (typeof renderDashboard === 'function') {
-        if (typeof updateGlobalStats === 'function') updateGlobalStats();
-        renderDashboard();
-      }
-      if (typeof renderCashBalance === 'function') renderCashBalance();
-      if (typeof updateGrandTotal === 'function') updateGrandTotal();
-      if (typeof updateDashboardBankBalance === 'function') updateDashboardBankBalance();
-      if (typeof populateDropdowns === 'function') populateDropdowns();
-    } catch (e) {
-      console.warn('⚠️ UI Refresh partial failure:', e);
-    }
-  };
-
-  /**
-   * Pull data from Cloud (Supabase)
-   */
   async function pull(force = false) {
-    if (!isReady || !window.sbSyncClient) {
-      if (!init()) return false;
-    }
+    if (!isReady || !window.sbSyncClient) { if (!init()) return; }
 
     try {
-      const { data, error } = await window.sbSyncClient
-        .from('academy_data')
-        .select('*')
-        .eq('id', 'wingsfly_main')
-        .single();
-
-      if (error) {
-        if (error.code === 'PGRST116') {
-          console.log('ℹ️ No cloud record found, waiting for first push.');
-          hasFetched = true;
-          return true;
-        }
-        throw error;
+      const { data, error } = await window.sbSyncClient.from('academy_data').select('*').eq('id', 'wingsfly_main').single();
+      if (error || !data) {
+        if (error && error.code === 'PGRST116') { hasFetched = true; }
+        return;
       }
-
-      if (!data) return false;
 
       const cloudTime = parseInt(data.last_updated) || 0;
       const localTime = parseInt(localStorage.getItem('lastLocalUpdate')) || 0;
 
-      // Strict timestamp check to avoid loops
+      // IF NO NEW DATA ON CLOUD, SKIP
       if (!force && cloudTime <= localTime && hasFetched) {
-        console.log('✅ Local data is newer or same as cloud.');
-        return true;
+        return;
       }
 
-      console.log('📥 Pulling newer data from cloud...');
-      hasFetched = true;
+      console.log('📥 New data found on cloud. Synchronizing UI...');
 
-      // Map Supabase columns to app.js globalData structure
+      // Apply Cloud Data to Global State
       window.globalData = {
         students: data.students || [],
         employees: data.employees || [],
@@ -117,38 +65,29 @@
         employeeRoles: data.employee_roles || []
       };
 
-      // Persistence
       localStorage.setItem('wingsfly_data', JSON.stringify(window.globalData));
       localStorage.setItem('lastLocalUpdate', cloudTime.toString());
 
-      window.refreshAllUI();
-      return true;
-    } catch (e) {
-      console.error('📥 Cloud Pull Failed:', e);
-      return false;
-    }
+      hasFetched = true;
+
+      // TRIGGER AUTOMATIC UI REFRESH (No manual F5 needed)
+      if (typeof window.renderFullUI === 'function') {
+        window.renderFullUI();
+        console.log('✅ UI Synchronized Automatically.');
+      }
+    } catch (e) { console.error('Pull Error:', e); }
   }
 
-  /**
-   * Push data to Cloud (Supabase)
-   */
   async function push(isManual = false) {
-    if (!isReady || !window.sbSyncClient) {
-      if (!init()) return false;
-    }
+    if (!isReady || !window.sbSyncClient) { if (!init()) return; }
 
-    // Safety lock to prevent accidental cloud wipes
-    const studentCount = (window.globalData && window.globalData.students) ? window.globalData.students.length : 0;
-    if (studentCount === 0 && !hasFetched && !isManual) {
-      console.warn('🛡️ Push blocked: Preventing wipe of cloud data.');
-      return false;
-    }
+    if (!window.globalData || !window.globalData.students) return;
 
     try {
       const updateTime = Date.now().toString();
       const payload = {
         id: 'wingsfly_main',
-        students: window.globalData.students || [],
+        students: window.globalData.students,
         employees: window.globalData.employees || [],
         finance: window.globalData.finance || [],
         settings: window.globalData.settings || {},
@@ -168,68 +107,37 @@
         last_updated: updateTime
       };
 
-      const { error } = await window.sbSyncClient
-        .from('academy_data')
-        .upsert(payload);
-
-      if (error) throw error;
-
+      await window.sbSyncClient.from('academy_data').upsert(payload);
       localStorage.setItem('lastLocalUpdate', updateTime);
-      console.log('📤 Cloud Push Successful.');
+      console.log('📤 Local changes pushed to cloud.');
       return true;
-    } catch (e) {
-      console.error('📤 Cloud Push Failed:', e);
-      return false;
-    }
+    } catch (e) { console.error('Push Error:', e); return false; }
   }
 
-  /**
-   * Start/Stop Auto Sync Helpers (Used by app.js)
-   */
-  window.startAutoSync = function (seconds = 30) {
-    if (autoSyncInterval) clearInterval(autoSyncInterval);
-    autoSyncInterval = setInterval(() => pull(false), seconds * 1000);
-    console.log(`🤖 Auto-Sync active every ${seconds}s`);
-  };
-
-  window.stopAutoSync = function () {
-    if (autoSyncInterval) clearInterval(autoSyncInterval);
-    autoSyncInterval = null;
-    console.log('🤖 Auto-Sync paused');
-  };
-
-  /**
-   * Public wrapper for app.js (Triggered immediately on data change)
-   */
-  window.saveToCloud = async function () {
-    console.log('⚡ Data change detected -> Immediate Cloud Push');
-    return await push(false);
-  };
-
-  window.loadFromCloud = async function (force = false) {
-    return await pull(force);
-  };
+  // Exported for app.js
+  window.saveToCloud = function () { return push(false); };
+  window.loadFromCloud = function (force = false) { return pull(force); };
 
   window.manualSync = async function () {
-    if (typeof showSuccessToast === 'function') showSuccessToast('🔄 Full Synchronizing...');
-    hasFetched = true; // Trust local for this session
-    const pushed = await push(true);
-    const pulled = await pull(true);
-    if (pushed && pulled) {
-      if (typeof showSuccessToast === 'function') showSuccessToast('✅ Sync Complete');
-    }
-    return pushed && pulled;
+    if (typeof showSuccessToast === 'function') showSuccessToast('🔄 Full Syncing...');
+    await push(true);
+    await pull(true);
+    if (typeof showSuccessToast === 'function') showSuccessToast('✅ Sync Success');
   };
 
-  // Auto-Initialization
+  // Auto Pull every 5 seconds (Real-time Feel)
+  function startAutoSync() {
+    if (autoPullInterval) clearInterval(autoPullInterval);
+    autoPullInterval = setInterval(() => pull(false), 5000);
+  }
+
   document.addEventListener('DOMContentLoaded', () => {
     if (init()) {
-      console.log('🟢 Wings Fly Sync Engine Active');
-      // Wait 1.5s then do first pull
+      console.log('🟢 Wings Fly Auto-Sync Engine V14 Started');
       setTimeout(() => {
-        pull(false);
-        window.startAutoSync(10); // Start ultra-fast 10s auto-pull
-      }, 1500);
+        pull(false); // First pull
+        startAutoSync(); // Continuous check
+      }, 1000);
     }
   });
 

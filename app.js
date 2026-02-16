@@ -7677,13 +7677,23 @@ function printAccountReport() {
   printWindow.document.close();
 }
 
-// Expose functions globally
+// Expose functions globally for Sync System
 window.performUnifiedSearch = performUnifiedSearch;
 window.clearUnifiedSearch = clearUnifiedSearch;
 window.populateAccountDropdown = populateAccountDropdown;
 window.exportAccountToPDF = exportAccountToPDF;
 window.exportAccountToExcel = exportAccountToExcel;
 window.printAccountReport = printAccountReport;
+
+// Core UI Refresh Functions for Auto-Sync
+window.renderFullUI = function () {
+  if (typeof render === 'function') render(globalData.students);
+  if (typeof renderLedger === 'function') renderLedger(globalData.finance);
+  if (typeof updateGlobalStats === 'function') updateGlobalStats();
+  if (typeof renderDashboard === 'function') renderDashboard();
+  if (typeof renderCashBalance === 'function') renderCashBalance();
+  if (typeof renderRecentAdmissions === 'function') renderRecentAdmissions();
+};
 
 // Auto-populate dropdown when data loads
 if (document.readyState === 'loading') {
