@@ -3,9 +3,10 @@
 // CORE APPLICATION LOGIC
 // ===================================
 
-const APP_VERSION = "10.4-FIXED"; // System-wide Versioning
+const APP_VERSION = "10.5-ULTRA-BYPASS"; // System-wide Versioning
+console.error("🚀 APP.JS LOADED: VERSION 10.5 IS ACTIVE");
 console.warn(`🚀 Wings Fly Aviation - System Version: ${APP_VERSION}`);
-alert('System Loading: v10.4 Fixed');
+alert('✅ System Initialized: v10.5 ULTRA BYPASS IS ACTIVE');
 
 // Initialize Global Data immediately to prevent ReferenceErrors
 if (typeof window.globalData === 'undefined') {
