@@ -8,8 +8,11 @@
   
   console.log('🔄 Loading Supabase Sync...');
   
-  const SUPABASE_URL = 'https://gtoldrlbxjrwshubplfp.supabase.co';
-  const SUPABASE_KEY = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6Imd0b2xkcmxieGpyd3NodWJwbGZwIiwicm9sZSI6ImFub24iLCJpYXQiOjE3Mzc3OTg2NDAsImV4cCI6MjA1MzM3NDY0MH0.T5TrlL5xLUqzMUl7w-LChGxbICxTaRN0DuGnxZ-LLfs';
+  // Try to use config from supabase-config.js if available, otherwise use fallback
+  const SUPABASE_URL = window.SUPABASE_CONFIG?.url || 'https://gtoldrlbxjrwshubplfp.supabase.co';
+  const SUPABASE_KEY = window.SUPABASE_CONFIG?.anonKey || 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6Imd0b2xkcmxieGpyd3NodWJwbGZwIiwicm9sZSI6ImFub24iLCJpYXQiOjE3Mzc3OTg2NDAsImV4cCI6MjA1MzM3NDY0MH0.T5TrlL5xLUqzMUl7w-LChGxbICxTaRN0DuGnxZ-LLfs';
+  
+  console.log('📍 Using Supabase URL:', SUPABASE_URL);
   
   let supabaseClient = null;
   let syncInterval = null;
