@@ -3,7 +3,7 @@
 // CORE APPLICATION LOGIC
 // ===================================
 
-const APP_VERSION = "5.0-SYNC-FIXED";
+const APP_VERSION = "5.0-HOTFIX";
 console.log(`🚀 Wings Fly Aviation - System Version: ${APP_VERSION}`);
 
 // Legacy internal sync system removed to ensure data integrity.
@@ -14,7 +14,7 @@ console.log(`🚀 Wings Fly Aviation - System Version: ${APP_VERSION}`);
 // DATA RESET (Fresh Start)
 // ===================================
 
-const APP_VERSION = "4.6";
+// Redundant declaration removed.
 console.log(`🚀 Wings Fly Aviation - System Version: ${APP_VERSION}`);
 
 // Utility to format numbers with commas (Bangladeshi/Indian system)
@@ -242,8 +242,8 @@ function handleResetAllData() {
   // Debug Alert - if you don't see this, the button isn't calling the function!
   console.log("Wings Fly: Reset triggered");
 
-  if (!confirm('� ï¸ ⚠ CRITICAL WARNING: This will PERMANENTLY delete ALL students, finance records, and settings.\n\nAre you sure?')) return;
-  if (!confirm('� ï¸ ⚠ FINAL WARNING: Everything will be wiped. This action cannot be undone. Proceed?')) return;
+  if (!confirm(' ï¸ ⚠ CRITICAL WARNING: This will PERMANENTLY delete ALL students, finance records, and settings.\n\nAre you sure?')) return;
+  if (!confirm(' ï¸ ⚠ FINAL WARNING: Everything will be wiped. This action cannot be undone. Proceed?')) return;
 
   try {
     // 1. Reset Global State to fresh defaults

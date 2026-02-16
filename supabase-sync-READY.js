@@ -8,7 +8,7 @@ const SUPABASE_URL = 'https://gtoldrltxjrwshubplfp.supabase.co';
 const SUPABASE_ANON_KEY = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6Imd0b2xkcmx0eGpyd3NodWJwbGZwIiwicm9sZSI6ImFub24iLCJpYXQiOjE3NzEwOTk5MTksImV4cCI6MjA4NjY3NTkxOX0.7NTx3tzU1C5VaewNZZHTaJf2WJ_GtjhQPKOymkxRsUk';
 
 // Supabase client initialization
-let supabase = null;
+let sbClient = null;
 let isSupabaseReady = false;
 let realtimeChannel = null;
 let hasLoadedFromCloud = false; // Safety flag
@@ -26,9 +26,9 @@ function initializeSupabase() {
     }
 
     // Create Supabase client
-    supabase = window.supabase.createClient(SUPABASE_URL, SUPABASE_ANON_KEY);
+    sbClient = window.supabase.createClient(SUPABASE_URL, SUPABASE_ANON_KEY);
 
-    if (!supabase) {
+    if (!sbClient) {
       console.error('❌ Failed to create Supabase client');
       return false;
     }
@@ -93,7 +93,7 @@ async function saveToCloud(showNotification = true) {
     };
 
     // Upsert data
-    const { data, error } = await supabase
+    const { data, error } = await sbClient
       .from('academy_data')
       .upsert(cloudData, { onConflict: 'id' });
 
@@ -132,7 +132,7 @@ async function loadFromCloud(showNotification = true) {
   }
 
   try {
-    const { data, error } = await supabase
+    const { data, error } = await sbClient
       .from('academy_data')
       .select('*')
       .eq('id', 'wingsfly_main')
@@ -243,7 +243,7 @@ function startRealtimeSync() {
   try {
     const currentUser = sessionStorage.getItem('username') || 'unknown';
 
-    realtimeChannel = supabase
+    realtimeChannel = sbClient
       .channel('academy_changes')
       .on(
         'postgres_changes',
@@ -313,7 +313,7 @@ function startRealtimeSync() {
  */
 function stopRealtimeSync() {
   if (realtimeChannel) {
-    supabase.removeChannel(realtimeChannel);
+    sbClient.removeChannel(realtimeChannel);
     realtimeChannel = null;
     console.log('🛑 Real-time sync stopped');
   }
@@ -379,7 +379,7 @@ async function uploadPhotoToCloud(studentId, file) {
     const fileName = `${studentId}_${Date.now()}.jpg`;
     const filePath = `student_photos/${fileName}`;
 
-    const { data, error } = await supabase.storage
+    const { data, error } = await sbClient.storage
       .from('student-photos')
       .upload(filePath, file, {
         cacheControl: '3600',
@@ -391,7 +391,7 @@ async function uploadPhotoToCloud(studentId, file) {
       return processAndSaveStudentPhoto(studentId, file);
     }
 
-    const { data: urlData } = supabase.storage
+    const { data: urlData } = sbClient.storage
       .from('student-photos')
       .getPublicUrl(filePath);
 
@@ -417,7 +417,7 @@ async function deletePhotoFromCloud(photoURL) {
 
     const filePath = `student_photos/${urlParts[1]}`;
 
-    const { error } = await supabase.storage
+    const { error } = await sbClient.storage
       .from('student-photos')
       .remove([filePath]);
 
@@ -440,7 +440,7 @@ async function checkCloudConnection() {
   }
 
   try {
-    const { data, error } = await supabase
+    const { data, error } = await sbClient
       .from('academy_data')
       .select('last_updated')
       .eq('id', 'wingsfly_main')
