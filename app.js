@@ -628,13 +628,12 @@ async function saveToStorage(skipCloudSync = false) {
     localStorage.setItem('lastModified', currentTime);
     localStorage.setItem('lastLocalUpdate', Date.now().toString());
 
-    // Save individual arrays
+    // Save individual arrays (Ensure keys match globalData structure)
     localStorage.setItem('students', JSON.stringify(window.globalData.students || []));
-    localStorage.setItem('finances', JSON.stringify(window.globalData.finances || []));
-    localStorage.setItem('courses', JSON.stringify(window.globalData.courses || []));
+    localStorage.setItem('finance', JSON.stringify(window.globalData.finance || []));
     localStorage.setItem('employees', JSON.stringify(window.globalData.employees || []));
-    localStorage.setItem('banks', JSON.stringify(window.globalData.banks || []));
-    localStorage.setItem('mobiles', JSON.stringify(window.globalData.mobiles || []));
+    localStorage.setItem('bankAccounts', JSON.stringify(window.globalData.bankAccounts || []));
+    localStorage.setItem('mobileBanking', JSON.stringify(window.globalData.mobileBanking || []));
 
     // Also save complete data
     const dataString = JSON.stringify(window.globalData);
