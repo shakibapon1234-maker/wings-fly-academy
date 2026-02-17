@@ -6377,9 +6377,10 @@ function renderTransferHistory() {
 
   if (transfers.length === 0) {
     tbody.innerHTML = `
-      <tr>
-        <td colspan="6" class="text-center text-muted py-5">
-          <i class="bi bi-clock-history fs-3 d-block mb-2 opacity-50"></i>
+      <tr style="background:transparent;">
+        <td colspan="6" class="text-center py-5"
+            style="color:rgba(255,255,255,0.4); border-color:rgba(0,217,255,0.1);">
+          <i class="bi bi-clock-history fs-3 d-block mb-2" style="color:rgba(0,217,255,0.3);"></i>
           ${fromDate || toDate ? 'No transfers found in this date range.' : 'No transfers yet. Use "Transfer Now" to move funds.'}
         </td>
       </tr>`;
@@ -6391,24 +6392,25 @@ function renderTransferHistory() {
   tbody.innerHTML = transfers.map((t, i) => {
     const amt = parseFloat(t.amount) || 0;
     totalAmount += amt;
+    const rowBg = i % 2 === 0 ? 'rgba(21,26,53,0.5)' : 'rgba(31,21,69,0.4)';
     return `
-      <tr>
-        <td style="padding:0.75rem 1rem; color:#888; font-size:0.85rem;">${i + 1}</td>
-        <td style="padding:0.75rem 1rem; font-weight:600;">${t.date || '—'}</td>
-        <td style="padding:0.75rem 1rem;">
-          <span class="badge rounded-pill px-3 py-2" style="background:#fee2e2; color:#dc2626; font-size:0.8rem;">
+      <tr style="background:${rowBg}; border-color:rgba(0,217,255,0.1);">
+        <td style="padding:0.75rem 1rem; color:rgba(0,217,255,0.5); font-size:0.85rem; border-color:rgba(0,217,255,0.1);">${i + 1}</td>
+        <td style="padding:0.75rem 1rem; font-weight:600; color:#e2e8f0; border-color:rgba(0,217,255,0.1);">${t.date || '—'}</td>
+        <td style="padding:0.75rem 1rem; border-color:rgba(0,217,255,0.1);">
+          <span class="badge rounded-pill px-3 py-2" style="background:rgba(220,38,38,0.25); color:#fca5a5; font-size:0.8rem; border:1px solid rgba(220,38,38,0.4);">
             <i class="bi bi-arrow-up-circle me-1"></i>${t.method || '—'}
           </span>
         </td>
-        <td style="padding:0.75rem 1rem;">
-          <span class="badge rounded-pill px-3 py-2" style="background:#dcfce7; color:#16a34a; font-size:0.8rem;">
+        <td style="padding:0.75rem 1rem; border-color:rgba(0,217,255,0.1);">
+          <span class="badge rounded-pill px-3 py-2" style="background:rgba(22,163,74,0.25); color:#86efac; font-size:0.8rem; border:1px solid rgba(22,163,74,0.4);">
             <i class="bi bi-arrow-down-circle me-1"></i>${t.person || '—'}
           </span>
         </td>
-        <td style="padding:0.75rem 1rem; text-align:right; font-weight:700; color:#0f172a; font-size:1rem;">
+        <td style="padding:0.75rem 1rem; text-align:right; font-weight:700; color:#ffd200; font-size:1rem; border-color:rgba(0,217,255,0.1);">
           ৳${formatNumber(amt)}
         </td>
-        <td style="padding:0.75rem 1rem; color:#64748b; font-size:0.88rem;">${t.notes || '—'}</td>
+        <td style="padding:0.75rem 1rem; color:rgba(255,255,255,0.55); font-size:0.88rem; border-color:rgba(0,217,255,0.1);">${t.notes || '—'}</td>
       </tr>`;
   }).join('');
 

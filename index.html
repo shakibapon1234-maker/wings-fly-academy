@@ -1540,9 +1540,10 @@
                     </div>
 
                     <!-- ========== TRANSFER HISTORY ========== -->
-                    <div class="card border-0 shadow-sm mb-5" style="border-radius: 16px; overflow: hidden;">
+                    <div class="card border-0 shadow-lg mb-5"
+                        style="border-radius: 16px; overflow: hidden; background: linear-gradient(135deg, rgba(21,26,53,0.97), rgba(31,21,69,0.97)); border: 1.5px solid rgba(0,217,255,0.25) !important;">
                         <div class="card-header border-0 py-3 px-4"
-                            style="background: linear-gradient(135deg, #1a1a2e 0%, #16213e 100%);">
+                            style="background: linear-gradient(135deg, #1a1a2e 0%, #16213e 100%); border-bottom: 1px solid rgba(0,217,255,0.2) !important;">
                             <div class="d-flex justify-content-between align-items-center flex-wrap gap-2">
                                 <h5 class="fw-bold text-white mb-0">
                                     <i class="bi bi-clock-history me-2" style="color:#ffd200;"></i>Transfer History
@@ -1550,10 +1551,12 @@
                                 <div class="d-flex align-items-center gap-2 flex-wrap">
                                     <label class="text-white small opacity-75 mb-0">From:</label>
                                     <input type="date" id="transferHistoryFrom" class="form-control form-control-sm"
-                                        style="width:140px;" onchange="renderTransferHistory()">
+                                        style="width:140px; background:rgba(21,26,53,0.9); border:1px solid rgba(0,217,255,0.4); color:#fff;"
+                                        onchange="renderTransferHistory()">
                                     <label class="text-white small opacity-75 mb-0">To:</label>
                                     <input type="date" id="transferHistoryTo" class="form-control form-control-sm"
-                                        style="width:140px;" onchange="renderTransferHistory()">
+                                        style="width:140px; background:rgba(21,26,53,0.9); border:1px solid rgba(0,217,255,0.4); color:#fff;"
+                                        onchange="renderTransferHistory()">
                                     <button class="btn btn-sm fw-bold rounded-pill px-3"
                                         style="background:#ffd200; color:#1a1a1a;"
                                         onclick="renderTransferHistory()">
@@ -1568,21 +1571,23 @@
                         </div>
                         <div class="card-body p-0">
                             <div class="table-responsive">
-                                <table class="table table-hover align-middle mb-0">
-                                    <thead style="background:#f1f5f9;">
+                                <table class="table table-hover align-middle mb-0"
+                                    style="background: transparent;">
+                                    <thead style="background: rgba(0,217,255,0.08);">
                                         <tr>
-                                            <th style="padding:0.85rem 1rem;">#</th>
-                                            <th style="padding:0.85rem 1rem;">Date</th>
-                                            <th style="padding:0.85rem 1rem;">From</th>
-                                            <th style="padding:0.85rem 1rem;">To</th>
-                                            <th style="padding:0.85rem 1rem; text-align:right;">Amount</th>
-                                            <th style="padding:0.85rem 1rem;">Notes</th>
+                                            <th style="padding:0.85rem 1rem; color:#00d9ff; border-color:rgba(0,217,255,0.15);">#</th>
+                                            <th style="padding:0.85rem 1rem; color:#00d9ff; border-color:rgba(0,217,255,0.15);">Date</th>
+                                            <th style="padding:0.85rem 1rem; color:#00d9ff; border-color:rgba(0,217,255,0.15);">From</th>
+                                            <th style="padding:0.85rem 1rem; color:#00d9ff; border-color:rgba(0,217,255,0.15);">To</th>
+                                            <th style="padding:0.85rem 1rem; color:#00d9ff; border-color:rgba(0,217,255,0.15); text-align:right;">Amount</th>
+                                            <th style="padding:0.85rem 1rem; color:#00d9ff; border-color:rgba(0,217,255,0.15);">Notes</th>
                                         </tr>
                                     </thead>
                                     <tbody id="transferHistoryBody">
-                                        <tr>
-                                            <td colspan="6" class="text-center text-muted py-5">
-                                                <i class="bi bi-clock-history fs-3 d-block mb-2 opacity-50"></i>
+                                        <tr style="background:transparent;">
+                                            <td colspan="6" class="text-center py-5"
+                                                style="color:rgba(255,255,255,0.4); border-color:rgba(0,217,255,0.1);">
+                                                <i class="bi bi-clock-history fs-3 d-block mb-2" style="color:rgba(0,217,255,0.3);"></i>
                                                 No transfers found. Use "Transfer Now" to move funds.
                                             </td>
                                         </tr>
@@ -1590,10 +1595,10 @@
                                 </table>
                             </div>
                             <div id="transferHistorySummary" class="d-none px-4 py-3"
-                                style="background:#f8f9fa; border-top:1px solid #e9ecef;">
+                                style="background: rgba(0,217,255,0.06); border-top:1px solid rgba(0,217,255,0.2);">
                                 <div class="d-flex justify-content-between align-items-center flex-wrap gap-2">
-                                    <span class="text-muted small" id="transferHistoryCount"></span>
-                                    <span class="fw-bold text-dark" id="transferHistoryTotal"></span>
+                                    <span style="color:rgba(255,255,255,0.6); font-size:0.85rem;" id="transferHistoryCount"></span>
+                                    <span class="fw-bold text-white" id="transferHistoryTotal"></span>
                                 </div>
                             </div>
                         </div>
