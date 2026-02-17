@@ -5085,100 +5085,114 @@ function generateCertificate() {
   dlBtn.parentNode.replaceChild(newBtn, dlBtn);
 
   newBtn.addEventListener('click', function() {
-    if (typeof html2pdf === 'undefined') {
-      alert('PDF library not loaded. Check internet connection.');
-      return;
-    }
     newBtn.disabled = true;
     newBtn.innerHTML = '⏳ Generating...';
 
-    // Create a full-size off-screen container
-    const old = document.getElementById('_certRenderWrap');
-    if (old) old.remove();
+    // Build full-size cert string for the iframe
+    const bgColor = (selectedDesign === 'cosmos') ? '#05081a' : '#040c1e';
+    const fullPage = '<!DOCTYPE html><html><head><meta charset="UTF-8">' +
+      '<style>*{margin:0;padding:0;box-sizing:border-box;}' +
+      'html,body{width:1056px;height:816px;overflow:hidden;background:' + bgColor + ';}</style>' +
+      '</head><body>' + certHtml + '</body></html>';
 
-    const wrap = document.createElement('div');
-    wrap.id = '_certRenderWrap';
-    wrap.style.cssText =
-      'position:fixed;left:0px;top:0px;' +
-      'width:1056px;height:816px;' +
-      'overflow:visible;z-index:99998;' +
-      'opacity:0.01;pointer-events:none;';
-    wrap.innerHTML = certHtml;
-    document.body.appendChild(wrap);
+    // Use an iframe to render at exact size
+    const iframe = document.createElement('iframe');
+    iframe.style.cssText = 'position:fixed;left:0;top:0;width:1056px;height:816px;border:none;z-index:-9999;opacity:0.01;pointer-events:none;';
+    iframe.setAttribute('scrolling', 'no');
+    document.body.appendChild(iframe);
 
-    // Force reflow
-    wrap.getBoundingClientRect();
+    iframe.onload = function() {
+      setTimeout(function() {
+        try {
+          const iDoc = iframe.contentDocument || iframe.contentWindow.document;
+          const certNode = iDoc.body.firstElementChild;
 
-    setTimeout(function() {
-      const renderEl = wrap.firstElementChild;
+          // Get html2canvas from the parent window (it's loaded there)
+          html2canvas(certNode, {
+            scale: 2,
+            useCORS: true,
+            allowTaint: true,
+            logging: false,
+            width: 1056,
+            height: 816,
+            backgroundColor: bgColor,
+            windowWidth: 1056,
+            windowHeight: 816
+          }).then(function(canvas) {
+            document.body.removeChild(iframe);
 
-      // Step 1: html2canvas → canvas
-      html2canvas(renderEl, {
-        scale: 2,
-        useCORS: true,
-        allowTaint: true,
-        logging: false,
-        width: 1056,
-        height: 816,
-        x: 0,
-        y: 0,
-        scrollX: 0,
-        scrollY: 0,
-        backgroundColor: (selectedDesign === 'cosmos') ? '#05081a' : '#040c1e',
-        windowWidth: 1056,
-        windowHeight: 816
-      }).then(function(canvas) {
-        if (document.body.contains(wrap)) document.body.removeChild(wrap);
+            const imgData = canvas.toDataURL('image/jpeg', 0.97);
 
-        // Step 2: canvas → image → jsPDF
-        const imgData = canvas.toDataURL('image/jpeg', 0.98);
+            // Use jsPDF directly — no html2canvas pipeline issues
+            let pdf;
+            if (window.jspdf && window.jspdf.jsPDF) {
+              pdf = new window.jspdf.jsPDF({ orientation:'landscape', unit:'mm', format:'a4' });
+            } else {
+              // fallback: use the one bundled in html2pdf
+              pdf = new jsPDF({ orientation:'landscape', unit:'mm', format:'a4' });
+            }
 
-        // jsPDF is bundled inside html2pdf — access via html2pdf's jsPDF
-        const { jsPDF } = window.jspdf || {};
-        if (jsPDF) {
-          // Use jsPDF directly
-          const pdf = new jsPDF({ orientation: 'landscape', unit: 'px', format: [1056, 816], hotfixes: ['px_scaling'] });
-          pdf.addImage(imgData, 'JPEG', 0, 0, 1056, 816);
-          pdf.save('Certificate_' + (s.name || 'Student').replace(/[^a-z0-9]/gi, '_') + '.pdf');
-          newBtn.disabled = false;
-          newBtn.innerHTML = '⬇️ Download PDF';
-          showSuccessToast('✅ Certificate downloaded!');
-        } else {
-          // Fallback: use html2pdf's built-in pipeline with the canvas image
-          const tempImg = document.createElement('img');
-          tempImg.src = imgData;
-          tempImg.style.cssText = 'width:1056px;height:816px;display:block;';
+            // A4 landscape = 297mm x 210mm
+            pdf.addImage(imgData, 'JPEG', 0, 0, 297, 210);
+            pdf.save('Certificate_' + (s.name||'Student').replace(/[^a-z0-9]/gi,'_') + '.pdf');
 
-          const tempWrap = document.createElement('div');
-          tempWrap.style.cssText = 'position:fixed;left:0;top:0;width:1056px;height:816px;overflow:hidden;z-index:-1;opacity:0.01;';
-          tempWrap.appendChild(tempImg);
-          document.body.appendChild(tempWrap);
+            newBtn.disabled = false;
+            newBtn.innerHTML = '⬇️ Download PDF';
+            showSuccessToast('✅ Certificate downloaded!');
 
-          html2pdf()
-            .set({
-              margin: 0,
-              filename: 'Certificate_' + (s.name || 'Student').replace(/[^a-z0-9]/gi, '_') + '.pdf',
-              image: { type: 'jpeg', quality: 0.98 },
-              html2canvas: { scale: 1, logging: false, backgroundColor: null },
-              jsPDF: { unit: 'px', format: [1056, 816], orientation: 'landscape', hotfixes: ['px_scaling'] }
-            })
-            .from(tempImg)
-            .save()
-            .then(function() {
-              document.body.removeChild(tempWrap);
+          }).catch(function(err) {
+            document.body.removeChild(iframe);
+            console.error('Canvas error:', err);
+            newBtn.disabled = false;
+            newBtn.innerHTML = '⬇️ Download PDF';
+            showErrorToast('Failed. Try again.');
+          });
+
+        } catch(e) {
+          // iframe cross-origin or other error — fallback to direct render
+          document.body.removeChild(iframe);
+          console.warn('iframe approach failed, trying direct:', e);
+
+          const old2 = document.getElementById('_certRenderWrap');
+          if (old2) old2.remove();
+          const wrap2 = document.createElement('div');
+          wrap2.id = '_certRenderWrap';
+          wrap2.style.cssText = 'position:fixed;left:0;top:0;width:1056px;height:816px;overflow:hidden;z-index:99998;opacity:0.01;pointer-events:none;';
+          wrap2.innerHTML = certHtml;
+          document.body.appendChild(wrap2);
+          wrap2.getBoundingClientRect();
+
+          setTimeout(function() {
+            html2canvas(wrap2.firstElementChild, {
+              scale: 2, useCORS: true, allowTaint: true, logging: false,
+              width: 1056, height: 816, backgroundColor: bgColor,
+              windowWidth: 1056, windowHeight: 816
+            }).then(function(canvas) {
+              if (document.body.contains(wrap2)) document.body.removeChild(wrap2);
+              const imgData = canvas.toDataURL('image/jpeg', 0.97);
+              let pdf;
+              try { pdf = new window.jspdf.jsPDF({ orientation:'landscape', unit:'mm', format:'a4' }); }
+              catch(e2) { pdf = new jsPDF({ orientation:'landscape', unit:'mm', format:'a4' }); }
+              pdf.addImage(imgData, 'JPEG', 0, 0, 297, 210);
+              pdf.save('Certificate_' + (s.name||'Student').replace(/[^a-z0-9]/gi,'_') + '.pdf');
               newBtn.disabled = false;
               newBtn.innerHTML = '⬇️ Download PDF';
               showSuccessToast('✅ Certificate downloaded!');
+            }).catch(function() {
+              if (document.body.contains(wrap2)) document.body.removeChild(wrap2);
+              newBtn.disabled = false;
+              newBtn.innerHTML = '⬇️ Download PDF';
+              showErrorToast('PDF failed. Try again.');
             });
+          }, 500);
         }
-      }).catch(function(err) {
-        console.error('Canvas error:', err);
-        if (document.body.contains(wrap)) document.body.removeChild(wrap);
-        newBtn.disabled = false;
-        newBtn.innerHTML = '⬇️ Download PDF';
-        showErrorToast('Failed. Try again.');
-      });
-    }, 600);
+      }, 800);
+    };
+
+    // Write content to iframe
+    iframe.contentDocument.open();
+    iframe.contentDocument.write(fullPage);
+    iframe.contentDocument.close();
   });
 }
 function generateIdCard() {
