@@ -244,7 +244,7 @@ window.showErrorToast = showErrorToast;
 function handleResetAllData() {
 
   // Debug Alert - if you don't see this, the button isn't calling the function!
-  console.log("Wings Fly: Factory Reset triggered");
+  console.log("Wings Fly: Reset triggered");
 
   if (!confirm(' ï¸ ⚠ CRITICAL WARNING: This will PERMANENTLY delete ALL students, finance records, and settings.\n\nAre you sure?')) return;
   if (!confirm(' ï¸ ⚠ FINAL WARNING: Everything will be wiped. This action cannot be undone. Proceed?')) return;
@@ -273,7 +273,7 @@ function handleResetAllData() {
 
     // 2. Save this clean state to localStorage (prevents demo data fallback)
     saveToStorage();
-    console.log("Wings Fly: Factory reset - all data and settings wiped to empty state");
+    console.log("Wings Fly: Local data reset to empty state");
 
     // 3. Backend Check (If running in Google environment)
     if (typeof google !== 'undefined' && google.script && google.script.run) {
@@ -3072,7 +3072,7 @@ async function handleStudentSubmit(e) {
     return;
   }
 
-  try {
+  try:
     const editIndex = data.studentRowIndex;
     let student;
     let photoURL = data.photoURL || null; // Get existing photo URL from hidden field
@@ -3783,10 +3783,10 @@ function printAccountDetails() {
   }).join('');
 
   printArea.innerHTML = `
-    <div style="width: 100%; max-width: 100%; background: white; padding: 20px; font-family: 'Outfit', sans-serif; box-sizing: border-box; overflow: hidden;">
+    <div style="width: 100%; background: white; padding: 40px; font-family: 'Outfit', sans-serif;">
         ${getPrintHeader('ACCOUNT STATEMENT')}
         
-        <div style="display: flex; justify-content: space-between; margin-top: 20px; padding: 12px; background: #f8fafc; border-radius: 8px; border: 1px solid #e2e8f0;">
+        <div style="display: flex; justify-content: space-between; margin-top: 30px; padding: 15px; background: #f8fafc; border-radius: 12px; border: 1px solid #e2e8f0;">
             <div>
                 <p style="margin: 0; font-size: 11px; color: #64748b; font-weight: bold; text-transform: uppercase;">Filtered Statistics</p>
                 <p style="margin: 5px 0 0 0; font-size: 14px; color: #1e293b; font-weight: 700;"> Period: ${startDate || 'All Time'} - ${endDate || 'Now'} </p>
@@ -3798,7 +3798,7 @@ function printAccountDetails() {
             </div>
         </div>
 
-        <table class="report-table" style="margin-top: 20px;">
+        <table class="report-table" style="margin-top: 30px;">
             <thead>
                 <tr>
                     <th style="width: 15%;">Date</th>
@@ -3814,13 +3814,13 @@ function printAccountDetails() {
             </tbody>
             <tfoot>
                 <tr>
-                    <td colspan="5" style="text-align: right; padding: 15px; font-weight: 900; color: #1e293b; text-transform: uppercase; font-size: 14px;">Total Settlement:</td>
-                    <td style="text-align: right; padding: 15px; font-weight: 900; color: ${totalBalance >= 0 ? '#10b981' : '#ef4444'}; font-size: 18px;">৳${formatNumber(totalBalance)}</td>
+                    <td colspan="5" style="text-align: right; padding: 20px; font-weight: 900; color: #1e293b; text-transform: uppercase; font-size: 14px;">Total Settlement:</td>
+                    <td style="text-align: right; padding: 20px; font-weight: 900; color: ${totalBalance >= 0 ? '#10b981' : '#ef4444'}; font-size: 18px;">৳${formatNumber(totalBalance)}</td>
                 </tr>
             </tfoot>
         </table>
 
-        <div style="margin-top: 20px; background: #fffbeb; border-left: 4px solid #f59e0b; padding: 12px;">
+        <div style="margin-top: 40px; background: #fffbeb; border-left: 4px solid #f59e0b; padding: 15px;">
             <p style="margin: 0; font-size: 11px; font-weight: bold; color: #92400e; text-transform: uppercase;">Disclaimer</p>
             <p style="margin: 5px 0 0 0; font-size: 11px; color: #b45309; line-height: 1.4;">This is a system-generated financial statement. Any discrepancies should be reported to the finance department immediately.</p>
         </div>
@@ -3832,11 +3832,7 @@ function printAccountDetails() {
   document.body.classList.add('printing-receipt');
   setTimeout(() => {
     window.print();
-    setTimeout(() => {
-      document.body.classList.remove('printing-receipt');
-      // Clear printArea to prevent extra pages
-      printArea.innerHTML = '';
-    }, 1000);
+    setTimeout(() => document.body.classList.remove('printing-receipt'), 1000);
   }, 800);
 }
 
@@ -3969,16 +3965,16 @@ function getPrintFooter() {
   const signature = (window.APP_LOGOS && window.APP_LOGOS.signature) ? window.APP_LOGOS.signature : '';
 
   return `
-    <div class="report-signature-block" style="margin-top: 30px; display: flex; justify-content: space-between; padding: 0 20px;">
-        <div style="width: 180px; border-top: 1.5px solid #111827; text-align: center; padding-top: 8px;">
-            <p style="margin: 0; font-size: 12px; font-weight: 800; color: #111827;">Applicant Signature</p>
+    <div class="report-signature-block" style="margin-top: 100px; display: flex; justify-content: space-between; padding: 0 40px;">
+        <div style="width: 200px; border-top: 1.5px solid #111827; text-align: center; padding-top: 10px;">
+            <p style="margin: 0; font-size: 13px; font-weight: 800; color: #111827;">Applicant Signature</p>
         </div>
-        <div style="width: 180px; border-top: 1.5px solid #111827; text-align: center; padding-top: 8px; position: relative;">
-            ${signature ? `<img src="${signature}" style="height: 35px; position: absolute; top: -40px; left: 50%; transform: translateX(-50%);">` : ''}
-            <p style="margin: 0; font-size: 12px; font-weight: 800; color: #111827;">Authorized Seal</p>
+        <div style="width: 200px; border-top: 1.5px solid #111827; text-align: center; padding-top: 10px; position: relative;">
+            ${signature ? `<img src="${signature}" style="height: 40px; position: absolute; top: -45px; left: 50%; transform: translateX(-50%);">` : ''}
+            <p style="margin: 0; font-size: 13px; font-weight: 800; color: #111827;">Authorized Seal</p>
         </div>
     </div>
-    <div style="text-align: center; margin-top: 20px; padding-top: 15px; border-top: 1px solid #f1f5f9;">
+    <div style="text-align: center; margin-top: 60px; padding-top: 20px; border-top: 1px solid #f1f5f9;">
         <p style="margin: 0; font-size: 10px; color: #94a3b8; font-weight: 600;">System Generated Official Document | www.winsflyaviation.com</p>
     </div>
   `;
@@ -4134,11 +4130,9 @@ function printReceipt(rowIndex, currentPaymentAmount = null) {
 
   setTimeout(() => {
     window.print();
-    // Remove class after print dialog closes and clear printArea
+    // Remove class after print dialog closes
     setTimeout(() => {
       document.body.classList.remove('printing-receipt');
-      // Clear printArea to prevent ghost pages
-      document.getElementById('printArea').innerHTML = '';
     }, 1000);
   }, 500);
 }
@@ -4248,7 +4242,7 @@ function printReport(type) {
   }
 
   printArea.innerHTML = `
-    <div style="width: 100%; background: white; padding: 20px; max-width: 100%; overflow: hidden;">
+    <div style="width: 100%; background: white; padding: 20px;">
         ${getPrintHeader(title)}
         ${tableContent}
         ${getPrintFooter()}
@@ -4258,11 +4252,7 @@ function printReport(type) {
   document.body.classList.add('printing-receipt');
   setTimeout(() => {
     window.print();
-    setTimeout(() => {
-      document.body.classList.remove('printing-receipt');
-      // Clear printArea to prevent ghost pages
-      printArea.innerHTML = '';
-    }, 1000);
+    setTimeout(() => document.body.classList.remove('printing-receipt'), 1000);
   }, 500);
 }
 
@@ -6250,55 +6240,8 @@ function openTransferModal() {
   const form = document.getElementById('transferForm');
   form.reset();
   form.date.value = new Date().toISOString().split('T')[0];
-  
-  // Hide balance displays on open
-  document.getElementById('fromAccountBalance').style.display = 'none';
-  document.getElementById('toAccountBalance').style.display = 'none';
-  
   modal.show();
 }
-
-// NEW: Function to update account balance display in transfer modal
-function updateTransferAccountBalance(type) {
-  const selectId = type === 'from' ? 'accTransferFrom' : 'accTransferTo';
-  const balanceDisplayId = type === 'from' ? 'fromAccountBalance' : 'toAccountBalance';
-  const balanceAmountId = type === 'from' ? 'fromBalanceAmount' : 'toBalanceAmount';
-  
-  const selectedAccount = document.getElementById(selectId).value;
-  const balanceDisplay = document.getElementById(balanceDisplayId);
-  const balanceAmount = document.getElementById(balanceAmountId);
-  
-  if (!selectedAccount) {
-    balanceDisplay.style.display = 'none';
-    return;
-  }
-  
-  let balance = 0;
-  
-  // Get balance based on account type
-  if (selectedAccount === 'Cash') {
-    balance = parseFloat(globalData.cashBalance) || 0;
-  } else {
-    // Check in bank accounts
-    let account = globalData.bankAccounts.find(a => a.name === selectedAccount);
-    if (account) {
-      balance = parseFloat(account.balance) || 0;
-    } else {
-      // Check in mobile banking
-      account = globalData.mobileBanking.find(a => a.name === selectedAccount);
-      if (account) {
-        balance = parseFloat(account.balance) || 0;
-      }
-    }
-  }
-  
-  // Update display
-  balanceAmount.textContent = formatNumber(balance);
-  balanceDisplay.style.display = 'block';
-}
-
-// Expose to global
-window.updateTransferAccountBalance = updateTransferAccountBalance;
 
 async function handleTransferSubmit(e) {
   e.preventDefault();
@@ -6426,6 +6369,48 @@ window.handleTransferSubmit = handleTransferSubmit;
 
 
 // === NEW ACTIONS MODAL LOGIC ===
+
+// NEW: Function to update account balance display in transfer modal
+function updateTransferAccountBalance(type) {
+  const selectId = type === 'from' ? 'accTransferFrom' : 'accTransferTo';
+  const balanceDisplayId = type === 'from' ? 'fromAccountBalance' : 'toAccountBalance';
+  const balanceAmountId = type === 'from' ? 'fromBalanceAmount' : 'toBalanceAmount';
+  
+  const selectedAccount = document.getElementById(selectId).value;
+  const balanceDisplay = document.getElementById(balanceDisplayId);
+  const balanceAmount = document.getElementById(balanceAmountId);
+  
+  if (!selectedAccount) {
+    balanceDisplay.style.display = 'none';
+    return;
+  }
+  
+  let balance = 0;
+  
+  // Get balance based on account type
+  if (selectedAccount === 'Cash') {
+    balance = parseFloat(globalData.cashBalance) || 0;
+  } else {
+    // Check in bank accounts
+    let account = globalData.bankAccounts.find(a => a.name === selectedAccount);
+    if (account) {
+      balance = parseFloat(account.balance) || 0;
+    } else {
+      // Check in mobile banking
+      account = globalData.mobileBanking.find(a => a.name === selectedAccount);
+      if (account) {
+        balance = parseFloat(account.balance) || 0;
+      }
+    }
+  }
+  
+  // Update display
+  balanceAmount.textContent = formatNumber(balance);
+  balanceDisplay.style.display = 'block';
+}
+
+// Expose to global
+window.updateTransferAccountBalance = updateTransferAccountBalance;
 function openStudentActionsModal(index) {
   const items = globalData.students || [];
   if (!items[index]) return;
@@ -7100,20 +7085,20 @@ document.addEventListener('DOMContentLoaded', () => {
 function handleDataReset() {
   console.log("Wings Fly: Data Reset triggered");
 
-  if (!confirm('⚠️ WARNING: This will delete all students, employees, transactions, and balances.\n\nYour settings (categories, courses, bank accounts, payment methods) will be preserved.\n\nContinue?')) return;
-  if (!confirm('⚠️ FINAL WARNING: All student, employee and financial data will be permanently deleted. Proceed?')) return;
+  if (!confirm('⚠️ WARNING: This will delete all students, transactions, and balances.\n\nYour settings (categories, courses, bank accounts) will be preserved.\n\nContinue?')) return;
+  if (!confirm('⚠️ FINAL WARNING: All student and financial data will be deleted. Proceed?')) return;
 
   try {
     // Preserve current settings from window.globalData
     const preservedSettings = {
       settings: window.globalData.settings || { startBalances: {}, academyName: 'Wings Fly Aviation Academy' },
-      incomeCategories: window.globalData.incomeCategories || [],
-      expenseCategories: window.globalData.expenseCategories || [],
+      incomeCategories: window.globalData.incomeCategories || ['Tuition Fees', 'Loan Received', 'Other'],
+      expenseCategories: window.globalData.expenseCategories || ['Salary', 'Rent', 'Utilities', 'Loan Given', 'Other'],
       paymentMethods: window.globalData.paymentMethods || [],
       bankAccounts: window.globalData.bankAccounts || [],
       mobileBanking: window.globalData.mobileBanking || [],
       courseNames: window.globalData.courseNames || [],
-      employeeRoles: window.globalData.employeeRoles || [],
+      employeeRoles: window.globalData.employeeRoles || ['Instructor', 'Admin', 'Staff', 'Manager'],
       credentials: window.globalData.credentials || { username: 'admin', password: 'admin123' },
       users: window.globalData.users || []
     };
@@ -7134,20 +7119,13 @@ function handleDataReset() {
     if (window.globalData.mobileBanking && Array.isArray(window.globalData.mobileBanking)) {
       window.globalData.mobileBanking.forEach(acc => acc.balance = 0);
     }
-    
-    // Reset start balances to 0 in settings
-    if (window.globalData.settings && window.globalData.settings.startBalances) {
-      Object.keys(window.globalData.settings.startBalances).forEach(key => {
-        window.globalData.settings.startBalances[key] = 0;
-      });
-    }
 
     // Update globalData reference
     globalData = window.globalData;
 
     saveToStorage();
     console.log("Wings Fly: Data reset complete, settings preserved");
-    alert('✅ SUCCESS: All student, employee and financial data has been cleared.\n\nYour settings have been preserved.');
+    alert('✅ SUCCESS: All student and financial data has been cleared.\n\nYour settings have been preserved.');
     window.location.reload();
   } catch (err) {
     alert('An error occurred during data reset: ' + err.message);
@@ -7785,22 +7763,3 @@ if (document.readyState === 'loading') {
   setTimeout(populateAccountDropdown, 1000);
 }
 
-
-// ===================================
-// FIX ALL DROPDOWN ARROWS
-// ===================================
-document.addEventListener('DOMContentLoaded', function() {
-  setTimeout(() => {
-    const allSelects = document.querySelectorAll('select.form-select, select.premium-input-modern');
-    const arrowStyle = "background-image: url('data:image/svg+xml;charset=UTF-8,%3Csvg xmlns=%22http://www.w3.org/2000/svg%22 width=%2216%22 height=%2216%22 viewBox=%220 0 16 16%22%3E%3Cpath fill=%22%2300d9ff%22 d=%22M8 11L3 6h10z%22/%3E%3C/svg%3E'); background-repeat: no-repeat; background-position: right 0.75rem center; background-size: 14px; -webkit-appearance: none; -moz-appearance: none; appearance: none; padding-right: 2.5rem;";
-    
-    allSelects.forEach(select => {
-      const currentStyle = select.getAttribute('style') || '';
-      if (!currentStyle.includes('background-image')) {
-        select.setAttribute('style', currentStyle + '; ' + arrowStyle);
-      }
-    });
-    
-    console.log('✅ Dropdown arrows fixed for', allSelects.length, 'select elements');
-  }, 500);
-});

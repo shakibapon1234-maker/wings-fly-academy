@@ -1767,8 +1767,7 @@
                         <div class="mb-3">
                             <label class="form-label fw-bold small text-uppercase text-muted">Course /
                                 Program</label>
-                            <select name="course" id="studentCourseSelect" class="form-select premium-input-modern"
-                                style="background-image: url('data:image/svg+xml;charset=UTF-8,%3Csvg xmlns=%22http://www.w3.org/2000/svg%22 width=%2216%22 height=%2216%22 viewBox=%220 0 16 16%22%3E%3Cpath fill=%22%2300d9ff%22 d=%22M8 11L3 6h10z%22/%3E%3C/svg%3E') !important; background-repeat: no-repeat !important; background-position: right 0.75rem center !important; background-size: 14px !important; -webkit-appearance: none !important; -moz-appearance: none !important; appearance: none !important;">
+                            <select name="course" id="studentCourseSelect" class="form-select premium-input-modern">
                                 <!-- Populated dynamically -->
                             </select>
                         </div>
@@ -1788,9 +1787,8 @@
                             </div>
                             <div class="col-md-4 mb-3">
                                 <label class="form-label fw-bold small text-uppercase text-muted">Payment
-                                    Method <span class="text-danger">*</span></label>
+                                    Method</label>
                                 <select name="method" class="form-select premium-input-modern" id="studentMethodSelect" required>
-                                    <option value="">-- Select Payment Method --</option>
                                     <!-- Populated dynamically -->
                                 </select>
                             </div>
@@ -1907,9 +1905,7 @@
                                             placeholder="Installment Amount" required>
                                     </div>
                                     <div class="col-md-4">
-                                        <label class="form-label">Method <span class="text-danger">*</span></label>
                                         <select id="pmtNewMethod" class="form-select" required>
-                                            <option value="">-- Select Method --</option>
                                             <option value="Cash">Cash</option>
                                             <option value="Bkash">Bkash</option>
                                             <option value="Nogod">Nogod</option>
@@ -1961,8 +1957,7 @@
                         <div class="row">
                             <div class="col-4 mb-3">
                                 <label class="form-label fw-semibold">Type</label>
-                                <select name="type" class="form-select" onchange="updateFinanceCategoryOptions()" 
-                                    style="background-image: url('data:image/svg+xml;charset=UTF-8,%3Csvg xmlns=%22http://www.w3.org/2000/svg%22 width=%2216%22 height=%2216%22 viewBox=%220 0 16 16%22%3E%3Cpath fill=%22%2300d9ff%22 d=%22M8 11L3 6h10z%22/%3E%3C/svg%3E') !important; background-repeat: no-repeat !important; background-position: right 0.75rem center !important; background-size: 14px !important; -webkit-appearance: none !important; -moz-appearance: none !important; appearance: none !important;">
+                                <select name="type" class="form-select" onchange="updateFinanceCategoryOptions()">
                                     <option value="Income">Income (+)</option>
                                     <option value="Expense">Expense (-)</option>
                                     <option value="Loan Given">Loan Giving (Money Out)</option>
@@ -1970,10 +1965,8 @@
                                 </select>
                             </div>
                             <div class="col-4 mb-3">
-                                <label class="form-label fw-semibold">Method <span class="text-danger">*</span></label>
-                                <select name="method" class="form-select" id="financeMethodSelect" required
-                                    style="background-image: url('data:image/svg+xml;charset=UTF-8,%3Csvg xmlns=%22http://www.w3.org/2000/svg%22 width=%2216%22 height=%2216%22 viewBox=%220 0 16 16%22%3E%3Cpath fill=%22%2300d9ff%22 d=%22M8 11L3 6h10z%22/%3E%3C/svg%3E') !important; background-repeat: no-repeat !important; background-position: right 0.75rem center !important; background-size: 14px !important; -webkit-appearance: none !important; -moz-appearance: none !important; appearance: none !important;">
-                                    <option value="">-- Select Payment Method --</option>
+                                <label class="form-label fw-semibold">Method</label>
+                                <select name="method" class="form-select" id="financeMethodSelect" required>
                                     <!-- Populated dynamically -->
                                 </select>
                             </div>
@@ -1984,8 +1977,7 @@
                         </div>
                         <div class="mb-3">
                             <label class="form-label fw-semibold">Category</label>
-                            <select name="category" class="form-select" id="financeCategorySelect"
-                                style="background-image: url('data:image/svg+xml;charset=UTF-8,%3Csvg xmlns=%22http://www.w3.org/2000/svg%22 width=%2216%22 height=%2216%22 viewBox=%220 0 16 16%22%3E%3Cpath fill=%22%2300d9ff%22 d=%22M8 11L3 6h10z%22/%3E%3C/svg%3E') !important; background-repeat: no-repeat !important; background-position: right 0.75rem center !important; background-size: 14px !important; -webkit-appearance: none !important; -moz-appearance: none !important; appearance: none !important;">
+                            <select name="category" class="form-select" id="financeCategorySelect">
                                 <!-- Populated dynamically -->
                             </select>
                         </div>
@@ -2372,9 +2364,8 @@
                                 </select>
                             </div>
                             <div class="col-4 mb-3">
-                                <label class="form-label fw-semibold">Method <span class="text-danger">*</span></label>
+                                <label class="form-label fw-semibold">Method</label>
                                 <select name="method" class="form-select" id="editTransMethodSelect" required>
-                                    <option value="">-- Select Payment Method --</option>
                                     <!-- Populated dynamically -->
                                 </select>
                             </div>

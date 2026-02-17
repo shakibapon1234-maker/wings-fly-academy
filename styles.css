@@ -1321,23 +1321,14 @@ body::after {
 
 .form-control,
 .form-select {
-  padding: 0.75rem 2.5rem 0.75rem 1rem;
+  padding: 0.75rem 1rem;
   border: 2px solid var(--neon-blue);
   border-radius: 12px;
   font-size: 0.95rem;
   transition: all var(--transition-normal);
+  background: rgba(10, 14, 39, 0.8);
   color: var(--text-white);
   font-weight: 500;
-  background-color: rgba(10, 14, 39, 0.8);
-  /* Remove default browser arrow */
-  -webkit-appearance: none;
-  -moz-appearance: none;
-  appearance: none;
-  /* Add bright cyan arrow - properly URL encoded */
-  background-image: url("data:image/svg+xml;charset=UTF-8,%3Csvg xmlns='http://www.w3.org/2000/svg' width='16' height='16' viewBox='0 0 16 16'%3E%3Cpath fill='%2300d9ff' d='M8 11L3 6h10z'/%3E%3C/svg%3E");
-  background-repeat: no-repeat;
-  background-position: right 0.75rem center;
-  background-size: 14px;
 }
 
 /* Colorful dropdown options */
@@ -2325,8 +2316,6 @@ tfoot th {
     background: white !important;
     background-image: none !important;
     color: black !important;
-    overflow: hidden !important;
-    height: auto !important;
   }
 
   /* Hide background effects */
@@ -2338,10 +2327,6 @@ tfoot th {
   /* Hide all UI elements except printArea */
   body.printing-receipt>*:not(#printArea) {
     display: none !important;
-    visibility: hidden !important;
-    position: absolute !important;
-    height: 0 !important;
-    overflow: hidden !important;
   }
 
   /* Hide sidebar, navbar, modals */
@@ -2359,8 +2344,6 @@ tfoot th {
   body.printing-receipt button,
   body.printing-receipt .btn {
     display: none !important;
-    visibility: hidden !important;
-    height: 0 !important;
   }
 
   /* Show only printArea */
@@ -2371,10 +2354,6 @@ tfoot th {
     padding: 0 !important;
     margin: 0 !important;
     width: 100% !important;
-    max-width: 100% !important;
-    overflow: visible !important;
-    page-break-after: avoid !important;
-    page-break-inside: avoid !important;
   }
 
   /* Clean text colors */
@@ -2393,7 +2372,6 @@ tfoot th {
   body.printing-receipt h6 {
     color: black !important;
     text-shadow: none !important;
-    page-break-after: avoid !important;
   }
 
   /* Tables */
@@ -2402,7 +2380,6 @@ tfoot th {
     width: 100% !important;
     background: white !important;
     color: black !important;
-    page-break-inside: auto !important;
   }
 
   body.printing-receipt th,
@@ -2412,7 +2389,6 @@ tfoot th {
     background: white !important;
     color: black !important;
     text-shadow: none !important;
-    page-break-inside: avoid !important;
   }
 
   body.printing-receipt thead th {
@@ -2429,7 +2405,6 @@ tfoot th {
     color: black !important;
     font-weight: bold !important;
     border-top: 2px solid #000 !important;
-    page-break-inside: avoid !important;
   }
 
   /* Remove all effects */
@@ -2440,23 +2415,10 @@ tfoot th {
     text-shadow: none !important;
   }
 
-  /* Page settings - FORCE SINGLE PAGE */
+  /* Page settings */
   @page {
-    margin: 0.5cm;
+    margin: 1cm;
     size: A4;
-  }
-
-  /* Force everything on one page */
-  body.printing-receipt,
-  body.printing-receipt * {
-    page-break-before: avoid !important;
-    page-break-after: avoid !important;
-    page-break-inside: avoid !important;
-  }
-
-  html, body {
-    height: 100% !important;
-    max-height: 100% !important;
   }
 }
 
