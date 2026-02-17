@@ -1,532 +1,568 @@
-/**
- * ========================================
- * WINGS FLY AVIATION ACADEMY
- * AUTOMATIC REAL-TIME SYNC SYSTEM V23
- * ========================================
- * 
- * Features:
- * ✅ Auto-push on every data change
- * ✅ Real-time listening from other devices
- * ✅ Zero data loss protection
- * ✅ Works with 3-4 PCs simultaneously
- * ✅ Debounced push (500ms delay to batch changes)
- * ✅ Conflict resolution
- * 
- * Author: Wings Fly IT Team
- * Date: February 2026
- */
+// ===================================
+// SUPABASE REAL-TIME SYNC SYSTEM
+// Wings Fly Aviation Academy
+// Multi-Device Sync with Conflict Resolution
+// ===================================
 
 (function () {
   'use strict';
 
-  // ==========================================
-  // CONFIGURATION
-  // ==========================================
-  const SUPABASE_URL = 'https://gtoldrltxjrwshubplfp.supabase.co';
-  const SUPABASE_KEY = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6Imd0b2xkcmx0eGpyd3NodWJwbGZwIiwicm9sZSI6ImFub24iLCJpYXQiOjE3NzEwOTk5MTksImV4cCI6MjA4NjY3NTkxOX0.7NTx3tzU1C5VaewNZZHTaJf2WJ_GtjhQPKOymkxRsUk';
-  const TABLE_NAME = 'academy_data';
-  const RECORD_ID = 'wingsfly_main';
-  const BACKUP_PULL_INTERVAL = 5000; // Pull every 5 seconds as backup
-  const PUSH_DEBOUNCE_DELAY = 500; // Wait 500ms to batch multiple changes
+  console.log('🚀 Supabase Sync System Loading...');
 
-  // ==========================================
-  // STATE MANAGEMENT
-  // ==========================================
+  // ===================================
+  // CONFIGURATION & INITIALIZATION
+  // ===================================
+
   let supabaseClient = null;
   let realtimeChannel = null;
-  let isInitialized = false;
-  let isPushing = false;
-  let isPulling = false;
-  let lastPushTime = 0;
-  let lastPullTime = 0;
-  let pushTimeout = null;
-  let isMonitoringEnabled = false;
+  let autoSyncInterval = null;
+  let isSyncing = false;
+  let lastSyncTimestamp = null;
+  let syncRetryCount = 0;
+  const MAX_RETRY_ATTEMPTS = 3;
+  const SYNC_INTERVAL = 30000; // 30 seconds
+  const USER_ID = 'admin'; // Single user ID for this application
 
-  // ==========================================
-  // LOGGING HELPER
-  // ==========================================
-  function log(emoji, message, data = null) {
-    const timestamp = new Date().toLocaleTimeString();
-    console.log(`[${timestamp}] ${emoji} ${message}`);
-    if (data) console.log(data);
-  }
-
-  // ==========================================
-  // INITIALIZATION
-  // ==========================================
-  function initialize() {
-    if (isInitialized) {
-      log('ℹ️', 'Already initialized');
-      return true;
-    }
-
+  // Initialize Supabase Client
+  function initializeSupabase() {
     try {
-      if (typeof window.supabase === 'undefined') {
-        log('❌', 'Supabase library not loaded! Make sure you included the CDN script.');
+      if (!window.SUPABASE_CONFIG) {
+        console.error('❌ Supabase config not found!');
         return false;
       }
 
-      supabaseClient = window.supabase.createClient(SUPABASE_URL, SUPABASE_KEY);
-      isInitialized = true;
-      log('✅', 'Supabase client initialized successfully');
-      return true;
+      const { url, anonKey } = window.SUPABASE_CONFIG;
+      
+      if (!url || !anonKey) {
+        console.error('❌ Missing Supabase URL or API key');
+        return false;
+      }
 
+      supabaseClient = window.supabase.createClient(url, anonKey, {
+        auth: {
+          persistSession: false,
+          autoRefreshToken: false
+        },
+        realtime: {
+          params: {
+            eventsPerSecond: 10
+          }
+        }
+      });
+
+      console.log('✅ Supabase client initialized');
+      console.log('📍 Connected to:', url);
+      return true;
     } catch (error) {
-      log('❌', 'Failed to initialize Supabase:', error);
+      console.error('❌ Supabase initialization error:', error);
       return false;
     }
   }
 
-  // ==========================================
-  // PULL FROM CLOUD (Download)
-  // ==========================================
-  async function pullFromCloud(forceUpdate = false) {
-    if (!isInitialized && !initialize()) {
-      log('⚠️', 'Cannot pull - not initialized');
-      return false;
+  // ===================================
+  // DATA SYNCHRONIZATION FUNCTIONS
+  // ===================================
+
+  // Upload local data to Supabase
+  async function pushToCloud() {
+    if (isSyncing) {
+      console.log('⏳ Sync already in progress, skipping...');
+      return { success: false, reason: 'sync_in_progress' };
     }
 
-    if (isPulling) {
-      log('⏳', 'Pull already in progress, skipping...');
-      return false;
-    }
-
-    isPulling = true;
+    isSyncing = true;
+    console.log('☁️ Pushing data to cloud...');
 
     try {
-      log('📥', 'Pulling data from cloud...');
+      const localData = window.globalData || {};
+      
+      // Prepare data payload
+      const dataPayload = {
+        students: localData.students || [],
+        employees: localData.employees || [],
+        finance: localData.finance || [],
+        settings: localData.settings || {},
+        incomeCategories: localData.incomeCategories || ['Direct Income', 'Other Income'],
+        expenseCategories: localData.expenseCategories || ['Rent', 'Salaries', 'Utilities'],
+        paymentMethods: localData.paymentMethods || ['Cash', 'Bkash', 'Nogad', 'Bank'],
+        cashBalance: localData.cashBalance || 0,
+        bankAccounts: localData.bankAccounts || [],
+        mobileBanking: localData.mobileBanking || [],
+        courseNames: localData.courseNames || [],
+        attendance: localData.attendance || {},
+        nextId: localData.nextId || 1001,
+        users: localData.users || [],
+        examRegistrations: localData.examRegistrations || [],
+        visitors: localData.visitors || [],
+        employeeRoles: localData.employeeRoles || []
+      };
 
+      // Check if user record exists
+      const { data: existingData, error: fetchError } = await supabaseClient
+        .from('app_data')
+        .select('id, updated_at')
+        .eq('user_id', USER_ID)
+        .single();
+
+      let result;
+
+      if (existingData) {
+        // Update existing record
+        result = await supabaseClient
+          .from('app_data')
+          .update({
+            data: dataPayload,
+            updated_at: new Date().toISOString()
+          })
+          .eq('user_id', USER_ID)
+          .select();
+      } else {
+        // Insert new record
+        result = await supabaseClient
+          .from('app_data')
+          .insert({
+            user_id: USER_ID,
+            data: dataPayload
+          })
+          .select();
+      }
+
+      if (result.error) {
+        throw result.error;
+      }
+
+      lastSyncTimestamp = new Date().toISOString();
+      syncRetryCount = 0;
+      
+      console.log('✅ Data pushed to cloud successfully');
+      console.log('📊 Synced items:', {
+        students: dataPayload.students.length,
+        employees: dataPayload.employees.length,
+        finance: dataPayload.finance.length,
+        bankAccounts: dataPayload.bankAccounts.length
+      });
+
+      updateSyncStatus('success', 'Cloud sync successful');
+      
+      isSyncing = false;
+      return { success: true, timestamp: lastSyncTimestamp };
+
+    } catch (error) {
+      console.error('❌ Push to cloud failed:', error);
+      syncRetryCount++;
+      
+      updateSyncStatus('error', `Sync failed (attempt ${syncRetryCount}/${MAX_RETRY_ATTEMPTS})`);
+      
+      isSyncing = false;
+      return { success: false, error: error.message };
+    }
+  }
+
+  // Download data from Supabase
+  async function pullFromCloud() {
+    if (isSyncing) {
+      console.log('⏳ Sync already in progress, skipping...');
+      return { success: false, reason: 'sync_in_progress' };
+    }
+
+    isSyncing = true;
+    console.log('📥 Pulling data from cloud...');
+
+    try {
       const { data, error } = await supabaseClient
-        .from(TABLE_NAME)
-        .select('*')
-        .eq('id', RECORD_ID)
+        .from('app_data')
+        .select('data, updated_at')
+        .eq('user_id', USER_ID)
         .single();
 
       if (error) {
         if (error.code === 'PGRST116') {
-          log('ℹ️', 'No data in cloud yet - this might be the first device');
-          isPulling = false;
-          return true;
+          // No data exists yet - this is OK for first time
+          console.log('ℹ️ No cloud data found - will create on next push');
+          isSyncing = false;
+          return { success: true, isFirstTime: true };
         }
         throw error;
       }
 
-      if (!data) {
-        log('ℹ️', 'No data found in cloud');
-        isPulling = false;
-        return false;
+      if (!data || !data.data) {
+        console.log('ℹ️ No cloud data available');
+        isSyncing = false;
+        return { success: true, isEmpty: true };
       }
 
-      // Get timestamps
-      const cloudTimestamp = parseInt(data.last_updated) || 0;
-      const localTimestamp = parseInt(localStorage.getItem('lastSyncTime')) || 0;
+      // Merge cloud data with local data
+      const cloudData = data.data;
+      const cloudTimestamp = data.updated_at;
 
-      log('🕐', `Cloud time: ${new Date(cloudTimestamp).toLocaleString()}`);
-      log('🕐', `Local time: ${new Date(localTimestamp).toLocaleString()}`);
-
-      // Only update if cloud data is newer OR force update is requested
-      if (forceUpdate || cloudTimestamp > localTimestamp) {
-        log('📥', 'Cloud data is newer - applying to local...');
-
-        // Temporarily disable monitoring to prevent auto-push during pull
-        const wasMonitoring = isMonitoringEnabled;
-        isMonitoringEnabled = false;
-
-        // Update global data
-        window.globalData = {
-          students: data.students || [],
-          employees: data.employees || [],
-          finance: data.finance || [],
-          settings: data.settings || {},
-          incomeCategories: data.income_categories || [],
-          expenseCategories: data.expense_categories || [],
-          paymentMethods: data.payment_methods || [],
-          cashBalance: data.cash_balance || 0,
-          bankAccounts: data.bank_accounts || [],
-          mobileBanking: data.mobile_banking || [],
-          courseNames: data.course_names || [],
-          attendance: data.attendance || {},
-          nextId: data.next_id || 1001,
-          users: data.users || [],
-          examRegistrations: data.exam_registrations || [],
-          visitors: data.visitors || [],
-          employeeRoles: data.employee_roles || []
-        };
-
-        // Save to localStorage
-        localStorage.setItem('wingsfly_data', JSON.stringify(window.globalData));
-        localStorage.setItem('lastSyncTime', cloudTimestamp.toString());
-
-        lastPullTime = Date.now();
-
-        // Refresh UI
-        if (typeof window.renderFullUI === 'function') {
-          window.renderFullUI();
-          log('✨', 'UI updated with cloud data');
-        }
-
-        // Re-enable monitoring
-        isMonitoringEnabled = wasMonitoring;
-
-        showNotification('📥 Data synced from cloud', 'success');
-        log('✅', 'Pull completed successfully');
-
-      } else {
-        log('ℹ️', 'Local data is already up to date');
-      }
-
-      isPulling = false;
-      return true;
-
-    } catch (error) {
-      log('❌', 'Pull error:', error);
-      isPulling = false;
-      showNotification('❌ Failed to sync from cloud', 'error');
-      return false;
-    }
-  }
-
-  // ==========================================
-  // PUSH TO CLOUD (Upload)
-  // ==========================================
-  async function pushToCloud() {
-    if (!isInitialized && !initialize()) {
-      log('⚠️', 'Cannot push - not initialized');
-      return false;
-    }
-
-    if (isPushing) {
-      log('⏳', 'Push already in progress, will retry later...');
-      return false;
-    }
-
-    isPushing = true;
-
-    try {
-      if (!window.globalData) {
-        log('⚠️', 'No global data to push');
-        isPushing = false;
-        return false;
-      }
-
-      log('📤', 'Pushing data to cloud...');
-
-      const timestamp = Date.now();
-      const payload = {
-        id: RECORD_ID,
-        students: window.globalData.students || [],
-        employees: window.globalData.employees || [],
-        finance: window.globalData.finance || [],
-        settings: window.globalData.settings || {},
-        income_categories: window.globalData.incomeCategories || [],
-        expense_categories: window.globalData.expenseCategories || [],
-        payment_methods: window.globalData.paymentMethods || [],
-        cash_balance: window.globalData.cashBalance || 0,
-        bank_accounts: window.globalData.bankAccounts || [],
-        mobile_banking: window.globalData.mobileBanking || [],
-        course_names: window.globalData.courseNames || [],
-        attendance: window.globalData.attendance || {},
-        next_id: window.globalData.nextId || 1001,
-        users: window.globalData.users || [],
-        exam_registrations: window.globalData.examRegistrations || [],
-        visitors: window.globalData.visitors || [],
-        employee_roles: window.globalData.employeeRoles || [],
-        last_updated: timestamp.toString()
+      // Update global data
+      window.globalData = {
+        ...window.globalData,
+        ...cloudData
       };
 
-      const { error } = await supabaseClient
-        .from(TABLE_NAME)
-        .upsert(payload, { onConflict: 'id' });
+      // Save to localStorage
+      localStorage.setItem('wingsfly_data', JSON.stringify(window.globalData));
 
-      if (error) {
-        throw error;
+      lastSyncTimestamp = cloudTimestamp;
+      syncRetryCount = 0;
+
+      console.log('✅ Data pulled from cloud successfully');
+      console.log('📊 Retrieved items:', {
+        students: cloudData.students?.length || 0,
+        employees: cloudData.employees?.length || 0,
+        finance: cloudData.finance?.length || 0,
+        bankAccounts: cloudData.bankAccounts?.length || 0
+      });
+
+      // Refresh UI
+      if (typeof window.renderFullUI === 'function') {
+        window.renderFullUI();
       }
 
-      // Update local timestamp
-      localStorage.setItem('lastSyncTime', timestamp.toString());
-      lastPushTime = timestamp;
+      updateSyncStatus('success', 'Data synced from cloud');
 
-      log('✅', `Pushed to cloud at ${new Date(timestamp).toLocaleTimeString()}`);
-      showNotification('📤 Data auto-saved to cloud', 'success');
-
-      isPushing = false;
-      return true;
+      isSyncing = false;
+      return { success: true, timestamp: cloudTimestamp };
 
     } catch (error) {
-      log('❌', 'Push error:', error);
-      isPushing = false;
-      showNotification('❌ Failed to save to cloud', 'error');
-      return false;
+      console.error('❌ Pull from cloud failed:', error);
+      syncRetryCount++;
+      
+      updateSyncStatus('error', `Sync failed (attempt ${syncRetryCount}/${MAX_RETRY_ATTEMPTS})`);
+      
+      isSyncing = false;
+      return { success: false, error: error.message };
     }
   }
 
-  // ==========================================
-  // DEBOUNCED PUSH (Batch multiple changes)
-  // ==========================================
-  function schedulePush() {
-    if (!isMonitoringEnabled) {
-      return; // Don't auto-push if monitoring is disabled
+  // Bidirectional sync (smart merge)
+  async function syncData() {
+    console.log('🔄 Starting bidirectional sync...');
+
+    try {
+      // First, pull latest data from cloud
+      const pullResult = await pullFromCloud();
+      
+      if (!pullResult.success && !pullResult.isFirstTime) {
+        console.warn('⚠️ Pull failed, attempting push only...');
+      }
+
+      // Then, push local changes to cloud
+      const pushResult = await pushToCloud();
+      
+      if (pushResult.success) {
+        console.log('✅ Bidirectional sync completed');
+        return { success: true };
+      } else {
+        console.warn('⚠️ Sync partially completed');
+        return { success: false, partial: true };
+      }
+
+    } catch (error) {
+      console.error('❌ Bidirectional sync failed:', error);
+      return { success: false, error: error.message };
     }
-
-    if (pushTimeout) {
-      clearTimeout(pushTimeout);
-    }
-
-    log('⏱️', `Data change detected - push scheduled in ${PUSH_DEBOUNCE_DELAY}ms`);
-
-    pushTimeout = setTimeout(() => {
-      log('🔄', 'Executing scheduled push...');
-      pushToCloud();
-    }, PUSH_DEBOUNCE_DELAY);
   }
 
-  // ==========================================
-  // REAL-TIME LISTENER
-  // ==========================================
+  // ===================================
+  // REAL-TIME SUBSCRIPTION
+  // ===================================
+
   function startRealtimeListener() {
-    if (!isInitialized) {
-      log('⚠️', 'Cannot start realtime - not initialized');
-      return;
-    }
-
-    if (realtimeChannel) {
-      log('ℹ️', 'Realtime listener already running');
-      return;
+    if (!supabaseClient) {
+      console.error('❌ Cannot start realtime: Supabase not initialized');
+      return false;
     }
 
     try {
-      log('👂', 'Starting real-time listener...');
+      // Remove existing channel if any
+      if (realtimeChannel) {
+        supabaseClient.removeChannel(realtimeChannel);
+      }
+
+      console.log('🎧 Starting realtime listener...');
 
       realtimeChannel = supabaseClient
-        .channel('academy_realtime_channel')
+        .channel('app_data_changes')
         .on(
           'postgres_changes',
           {
             event: '*',
             schema: 'public',
-            table: TABLE_NAME,
-            filter: `id=eq.${RECORD_ID}`
+            table: 'app_data',
+            filter: `user_id=eq.${USER_ID}`
           },
-          (payload) => {
-            log('🔔', 'Real-time change detected from cloud!');
+          async (payload) => {
+            console.log('🔔 Realtime update received:', payload.eventType);
+            
+            // Prevent circular updates (don't pull if we just pushed)
+            const timeSinceLastSync = Date.now() - (lastSyncTimestamp ? new Date(lastSyncTimestamp).getTime() : 0);
+            
+            if (timeSinceLastSync < 2000) {
+              console.log('⏭️ Skipping pull (recent push detected)');
+              return;
+            }
 
-            // Check if this change was from current device or another device
-            const changeTime = parseInt(payload.new?.last_updated) || 0;
-            const timeDiff = Math.abs(changeTime - lastPushTime);
-
-            if (timeDiff > 2000) {
-              // More than 2 seconds difference - likely from another device
-              log('📥', 'Change from another device - pulling updates...');
-              pullFromCloud(false);
-            } else {
-              // This change was likely from current device
-              log('ℹ️', 'Change from current device - ignoring to prevent loop');
+            // Pull new data
+            if (payload.eventType === 'UPDATE' || payload.eventType === 'INSERT') {
+              console.log('📥 Pulling updated data from another device...');
+              const result = await pullFromCloud();
+              
+              if (result.success) {
+                showRealtimeNotification('Data updated from another device');
+              }
             }
           }
         )
         .subscribe((status) => {
-          log('📡', `Realtime subscription status: ${status}`);
-
+          console.log('📡 Realtime status:', status);
+          
           if (status === 'SUBSCRIBED') {
-            log('✅', 'Real-time listener is now active!');
-            showNotification('🔄 Real-time sync enabled', 'success');
+            console.log('✅ Realtime listener active');
+            updateSyncStatus('connected', 'Real-time sync active');
+          } else if (status === 'CLOSED') {
+            console.warn('⚠️ Realtime connection closed');
+            updateSyncStatus('disconnected', 'Real-time sync disconnected');
           } else if (status === 'CHANNEL_ERROR') {
-            log('❌', 'Real-time listener error - will retry...');
-          } else if (status === 'TIMED_OUT') {
-            log('⚠️', 'Real-time listener timed out - will retry...');
+            console.error('❌ Realtime channel error');
+            updateSyncStatus('error', 'Real-time sync error');
           }
         });
 
+      return true;
     } catch (error) {
-      log('❌', 'Failed to start realtime listener:', error);
+      console.error('❌ Failed to start realtime listener:', error);
+      return false;
     }
   }
 
-  // ==========================================
-  // AUTO-SAVE MONITOR
-  // ==========================================
-  function installAutoSaveMonitor() {
-    if (isMonitoringEnabled) {
-      log('ℹ️', 'Auto-save monitor already installed');
+  function stopRealtimeListener() {
+    if (realtimeChannel) {
+      supabaseClient.removeChannel(realtimeChannel);
+      realtimeChannel = null;
+      console.log('🛑 Realtime listener stopped');
+    }
+  }
+
+  // ===================================
+  // AUTO-SYNC TIMER
+  // ===================================
+
+  function startAutoSync() {
+    if (autoSyncInterval) {
+      console.log('⚠️ Auto-sync already running');
       return;
     }
 
-    try {
-      // Save original localStorage.setItem
-      const originalSetItem = localStorage.setItem.bind(localStorage);
-
-      // Override setItem to detect data changes
-      localStorage.setItem = function (key, value) {
-        // Call original function first
-        originalSetItem(key, value);
-
-        // If wingsfly_data changed, schedule a push
-        if (key === 'wingsfly_data' && isMonitoringEnabled) {
-          log('💾', 'Data change detected in localStorage');
-          schedulePush();
-        }
-      };
-
-      isMonitoringEnabled = true;
-      log('🔧', 'Auto-save monitor installed successfully');
-
-    } catch (error) {
-      log('❌', 'Failed to install auto-save monitor:', error);
-    }
-  }
-
-  // ==========================================
-  // PERIODIC BACKUP SYNC
-  // ==========================================
-  function startPeriodicBackupSync() {
-    setInterval(() => {
-      // Only pull if not currently pushing or pulling
-      if (!isPushing && !isPulling) {
-        pullFromCloud(false);
-      }
-    }, BACKUP_PULL_INTERVAL);
-
-    log('⏰', `Periodic backup sync started (every ${BACKUP_PULL_INTERVAL / 1000}s)`);
-  }
-
-  // ==========================================
-  // NOTIFICATION HELPER
-  // ==========================================
-  function showNotification(message, type = 'info') {
-    // Try to use existing toast functions
-    if (type === 'success' && typeof window.showSuccessToast === 'function') {
-      window.showSuccessToast(message);
-    } else if (type === 'error' && typeof window.showErrorToast === 'function') {
-      window.showErrorToast(message);
-    } else {
-      // Fallback to console
-      console.log(`[${type.toUpperCase()}] ${message}`);
-    }
-  }
-
-  // ==========================================
-  // PUBLIC API
-  // ==========================================
-  window.wingsSync = {
-    /**
-     * Perform full sync (pull then push)
-     */
-    fullSync: async function () {
-      log('🔄', 'Starting full sync...');
-      showNotification('🔄 Starting full sync...', 'info');
-
-      await pullFromCloud(true);
+    console.log(`⏰ Starting auto-sync (every ${SYNC_INTERVAL / 1000}s)`);
+    
+    autoSyncInterval = setInterval(async () => {
+      console.log('🔄 Auto-sync triggered...');
       await pushToCloud();
+    }, SYNC_INTERVAL);
 
-      log('✅', 'Full sync completed');
-      showNotification('✅ Full sync completed', 'success');
-    },
+    updateSyncStatus('auto-sync', 'Auto-sync enabled');
+  }
 
-    /**
-     * Force push to cloud immediately
-     */
-    pushNow: function () {
-      log('📤', 'Manual push requested');
-      return pushToCloud();
-    },
-
-    /**
-     * Force pull from cloud immediately
-     */
-    pullNow: function () {
-      log('📥', 'Manual pull requested');
-      return pullFromCloud(true);
-    },
-
-    /**
-     * Get current sync status
-     */
-    getStatus: function () {
-      const status = {
-        initialized: isInitialized,
-        monitoring: isMonitoringEnabled,
-        realtimeActive: realtimeChannel !== null,
-        lastPush: lastPushTime ? new Date(lastPushTime).toLocaleString() : 'Never',
-        lastPull: lastPullTime ? new Date(lastPullTime).toLocaleString() : 'Never',
-        currentTime: new Date().toLocaleString()
-      };
-
-      console.table(status);
-      return status;
-    },
-
-    /**
-     * Enable/disable auto-monitoring
-     */
-    toggleMonitoring: function (enable) {
-      isMonitoringEnabled = enable;
-      log('🔧', `Auto-monitoring ${enable ? 'enabled' : 'disabled'}`);
+  function stopAutoSync() {
+    if (autoSyncInterval) {
+      clearInterval(autoSyncInterval);
+      autoSyncInterval = null;
+      console.log('🛑 Auto-sync stopped');
+      updateSyncStatus('manual', 'Auto-sync disabled');
     }
+  }
+
+  // ===================================
+  // UI UPDATES & NOTIFICATIONS
+  // ===================================
+
+  function updateSyncStatus(status, message) {
+    const statusEl = document.getElementById('syncStatus');
+    const statusTextEl = document.getElementById('syncStatusText');
+    
+    if (!statusEl || !statusTextEl) return;
+
+    const statusConfig = {
+      success: { icon: '✅', color: '#4ade80', text: message },
+      error: { icon: '❌', color: '#f87171', text: message },
+      syncing: { icon: '🔄', color: '#60a5fa', text: 'Syncing...' },
+      connected: { icon: '🟢', color: '#4ade80', text: message },
+      disconnected: { icon: '🔴', color: '#f87171', text: message },
+      'auto-sync': { icon: '⏰', color: '#60a5fa', text: message },
+      manual: { icon: '⏸️', color: '#94a3b8', text: message }
+    };
+
+    const config = statusConfig[status] || statusConfig.success;
+    
+    statusTextEl.innerHTML = `${config.icon} ${config.text}`;
+    statusTextEl.style.color = config.color;
+    
+    // Update last sync time
+    if (lastSyncTimestamp) {
+      const timeAgo = getTimeAgo(lastSyncTimestamp);
+      statusTextEl.innerHTML += ` <small>(${timeAgo})</small>`;
+    }
+  }
+
+  function getTimeAgo(timestamp) {
+    const seconds = Math.floor((new Date() - new Date(timestamp)) / 1000);
+    
+    if (seconds < 60) return `${seconds}s ago`;
+    if (seconds < 3600) return `${Math.floor(seconds / 60)}m ago`;
+    if (seconds < 86400) return `${Math.floor(seconds / 3600)}h ago`;
+    return `${Math.floor(seconds / 86400)}d ago`;
+  }
+
+  function showRealtimeNotification(message) {
+    // Create toast notification
+    if (typeof window.showSuccessToast === 'function') {
+      window.showSuccessToast(message);
+    } else {
+      console.log('📢', message);
+    }
+  }
+
+  // ===================================
+  // MANUAL SYNC CONTROLS
+  // ===================================
+
+  function setupManualSyncControls() {
+    // Manual sync button
+    const manualSyncBtn = document.getElementById('manualSyncBtn');
+    if (manualSyncBtn) {
+      manualSyncBtn.addEventListener('click', async () => {
+        updateSyncStatus('syncing', 'Manual sync in progress...');
+        const result = await syncData();
+        
+        if (result.success) {
+          showRealtimeNotification('✅ Manual sync completed');
+        } else {
+          showRealtimeNotification('❌ Manual sync failed');
+        }
+      });
+    }
+
+    // Auto-sync toggle
+    const autoSyncToggle = document.getElementById('autoSyncToggle');
+    if (autoSyncToggle) {
+      autoSyncToggle.checked = true; // Default to ON
+      
+      autoSyncToggle.addEventListener('change', (e) => {
+        if (e.target.checked) {
+          startAutoSync();
+          showRealtimeNotification('Auto-sync enabled');
+        } else {
+          stopAutoSync();
+          showRealtimeNotification('Auto-sync disabled');
+        }
+      });
+    }
+  }
+
+  // ===================================
+  // OVERRIDE saveToStorage FUNCTION
+  // ===================================
+
+  // Override the existing saveToStorage to trigger cloud sync
+  const originalSaveToStorage = window.saveToStorage;
+  
+  window.saveToStorage = async function (skipCloudSync = false) {
+    // Save to localStorage first
+    try {
+      localStorage.setItem('wingsfly_data', JSON.stringify(window.globalData));
+      console.log('💾 Data saved to localStorage');
+    } catch (error) {
+      console.error('❌ localStorage save failed:', error);
+    }
+
+    // Trigger cloud sync if not skipped
+    if (!skipCloudSync && supabaseClient) {
+      console.log('☁️ Triggering cloud sync...');
+      const result = await pushToCloud();
+      return result.success;
+    }
+
+    return true;
   };
 
-  // Backward compatibility with old code
-  window.saveToCloud = () => pushToCloud();
-  window.loadFromCloud = () => pullFromCloud(true);
-  window.manualSync = window.wingsSync.fullSync;
+  // ===================================
+  // INITIALIZATION
+  // ===================================
 
-  // ==========================================
-  // AUTO-START SYSTEM
-  // ==========================================
-  function startSyncSystem() {
-    log('🚀', '========================================');
-    log('🚀', 'Wings Fly Sync System V23 Starting...');
-    log('🚀', '========================================');
+  async function initialize() {
+    console.log('🚀 Initializing Supabase Sync System...');
 
-    // Step 1: Initialize Supabase
-    if (!initialize()) {
-      log('❌', 'Failed to initialize - sync system not started');
-      return;
+    // Initialize Supabase client
+    const initialized = initializeSupabase();
+    
+    if (!initialized) {
+      console.error('❌ Failed to initialize Supabase');
+      updateSyncStatus('error', 'Sync initialization failed');
+      return false;
     }
 
-    // Step 2: Pull latest data from cloud
-    log('📥', 'Step 1: Pulling initial data...');
-    pullFromCloud(false).then(() => {
-      log('✅', 'Initial pull completed');
+    // Setup manual controls
+    setupManualSyncControls();
 
-      // Step 3: Start real-time listener (after 1 second)
-      setTimeout(() => {
-        log('👂', 'Step 2: Starting real-time listener...');
-        startRealtimeListener();
-      }, 1000);
+    // Perform initial sync
+    console.log('🔄 Performing initial sync...');
+    const syncResult = await syncData();
+    
+    if (syncResult.success) {
+      console.log('✅ Initial sync successful');
+    } else {
+      console.warn('⚠️ Initial sync had issues, will retry...');
+    }
 
-      // Step 4: Install auto-save monitor (after 1.5 seconds)
-      setTimeout(() => {
-        log('🔧', 'Step 3: Installing auto-save monitor...');
-        installAutoSaveMonitor();
-      }, 1500);
+    // Start realtime listener
+    startRealtimeListener();
 
-      // Step 5: Start periodic backup sync (after 2 seconds)
-      setTimeout(() => {
-        log('⏰', 'Step 4: Starting periodic backup sync...');
-        startPeriodicBackupSync();
-      }, 2000);
+    // Start auto-sync (if enabled)
+    const autoSyncToggle = document.getElementById('autoSyncToggle');
+    if (!autoSyncToggle || autoSyncToggle.checked) {
+      startAutoSync();
+    }
 
-      // All done!
-      setTimeout(() => {
-        log('🎉', '========================================');
-        log('🎉', 'Sync system fully initialized!');
-        log('🎉', '========================================');
-        log('💡', 'Commands available:');
-        log('💡', '  - wingsSync.fullSync()    : Full sync');
-        log('💡', '  - wingsSync.pushNow()     : Push now');
-        log('💡', '  - wingsSync.pullNow()     : Pull now');
-        log('💡', '  - wingsSync.getStatus()   : Check status');
-        log('💡', '========================================');
-      }, 2500);
-    });
+    console.log('✅ Supabase Sync System initialized successfully');
+    
+    return true;
   }
 
-  // Start when DOM is ready
+  // ===================================
+  // EXPOSE GLOBAL FUNCTIONS
+  // ===================================
+
+  window.supabaseSync = {
+    pushToCloud,
+    pullFromCloud,
+    syncData,
+    startAutoSync,
+    stopAutoSync,
+    startRealtimeListener,
+    stopRealtimeListener,
+    getStatus: () => ({
+      isSyncing,
+      lastSyncTimestamp,
+      isAutoSyncActive: !!autoSyncInterval,
+      isRealtimeActive: !!realtimeChannel
+    })
+  };
+
+  // ===================================
+  // AUTO-INITIALIZE
+  // ===================================
+
+  // Wait for DOM and Supabase to be ready
   if (document.readyState === 'loading') {
-    document.addEventListener('DOMContentLoaded', startSyncSystem);
+    document.addEventListener('DOMContentLoaded', () => {
+      setTimeout(initialize, 1000);
+    });
   } else {
-    // DOM already loaded
-    startSyncSystem();
+    setTimeout(initialize, 1000);
   }
+
+  console.log('✅ Supabase Sync System loaded');
 
 })();

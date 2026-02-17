@@ -241,16 +241,16 @@ function showErrorToast(message) {
 window.showSuccessToast = showSuccessToast;
 window.showErrorToast = showErrorToast;
 
+// FACTORY RESET: সম্পূর্ণ রিসেট - একদম শূন্য থেকে শুরু
+// কোনো ডাটা, সেটিংস, একাউন্ট কিছুই থাকবে না
 function handleResetAllData() {
+  console.log("Wings Fly: Factory Reset triggered");
 
-  // Debug Alert - if you don't see this, the button isn't calling the function!
-  console.log("Wings Fly: Reset triggered");
-
-  if (!confirm(' ï¸ ⚠ CRITICAL WARNING: This will PERMANENTLY delete ALL students, finance records, and settings.\n\nAre you sure?')) return;
-  if (!confirm(' ï¸ ⚠ FINAL WARNING: Everything will be wiped. This action cannot be undone. Proceed?')) return;
+  if (!confirm('⚠️⚠️ চূড়ান্ত সতর্কতা: এটি সম্পূর্ণ সিস্টেম রিসেট করবে!\n\n- সকল ছাত্র-ছাত্রী\n- সকল লেনদেন\n- সকল ব্যাংক একাউন্ট\n- সকল সেটিংস\n- সকল ক্যাটাগরি\n- সকল কোর্স\n\nসবকিছু মুছে যাবে। নিশ্চিত?')) return;
+  if (!confirm('⚠️⚠️ চূড়ান্ত নিশ্চিতকরণ: সবকিছু একদম শূন্য হয়ে যাবে। এই কাজ পূর্বাবস্থায় ফেরানো যাবে না। এগিয়ে যাবেন?')) return;
 
   try {
-    // 1. Reset Global State to fresh defaults
+    // সম্পূর্ণ রিসেট - কোনো default ডাটা নেই
     globalData = {
       students: [],
       employees: [],
@@ -259,50 +259,37 @@ function handleResetAllData() {
         startBalances: {},
         academyName: 'Wings Fly Aviation Academy'
       },
-      incomeCategories: ['Tuition Fees', 'Loan Received', 'Other'],
-      expenseCategories: ['Salary', 'Rent', 'Utilities', 'Loan Given', 'Other'],
-      paymentMethods: [],
+      incomeCategories: [],      // খালি - কোনো default নেই
+      expenseCategories: [],     // খালি - কোনো default নেই
+      paymentMethods: [],        // খালি - কোনো default নেই
       cashBalance: 0,
-      bankAccounts: [
-        { sl: 1, name: 'CITY BANK', branch: 'BONOSREE', bankName: 'CITY BANK', accountNo: '1493888742001', balance: 0 },
-        { sl: 2, name: 'Ferdous Ahmed Islami Bank', branch: 'NIKUNJA', bankName: 'ISLAMI BANK BANGLADESH LTD', accountNo: '20504100200546109', balance: 0 },
-        { sl: 3, name: 'BRAC BANK LTD BANASREE', branch: 'BANASREE', bankName: 'BRAC BANK LTD BANASREE', accountNo: '2052189750001', balance: 0 },
-        { sl: 4, name: 'ISLAMI BANK BANGLADESH LTD', branch: 'NIKUNJA', bankName: 'ISLAMI BANK BANGLADESH LTD', accountNo: '20504100100094207', balance: 0 },
-        { sl: 5, name: 'DUTCH-BANGLA BANK LIMITED', branch: 'RAMPURA', bankName: 'DUTCH-BANGLA BANK LIMITED', accountNo: '1781100023959', balance: 0 },
-        { sl: 6, name: 'EASTERN BANK LIMITED', branch: 'BANASREE', bankName: 'EASTERN BANK LIMITED', accountNo: '1091070200510', balance: 0 }
-      ],
-      mobileBanking: [],
-      courseNames: ['Caregiver', 'Student Visa', 'Visa (Tourist, Medical Business)', 'Air Ticketing (Basic)', 'Air Ticketing (Advance)', 'Travel Agency Business Managment', 'Language (Japanese, Korean)', 'Other'],
-      credentials: { username: 'admin', password: 'admin123' }
+      bankAccounts: [],          // খালি - কোনো default একাউন্ট নেই
+      mobileBanking: [],         // খালি - কোনো default একাউন্ট নেই
+      courseNames: [],           // খালি - কোনো default কোর্স নেই
+      attendance: {},
+      nextId: 1001,
+      users: [],
+      examRegistrations: [],
+      visitors: [],
+      employeeRoles: [],         // খালি - কোনো default role নেই
+      credentials: { username: 'admin', password: 'admin123' }  // শুধু admin login রাখা
     };
 
-    // 2. Save this clean state to localStorage (prevents demo data fallback)
-    saveToStorage();
-    console.log("Wings Fly: Local data reset to empty state");
+    // Update window reference
+    window.globalData = globalData;
 
-    // 3. Backend Check (If running in Google environment)
-    if (typeof google !== 'undefined' && google.script && google.script.run) {
-      console.log("Attempting backend reset...");
-      google.script.run
-        .withSuccessHandler(function () {
-          alert('SUCCESS: All data (Local & Backend) has been reset.');
-          window.location.reload();
-        })
-        .withFailureHandler(function (err) {
-          alert('Local data cleared, but backend failed: ' + err);
-          window.location.reload();
-        })
-        .resetAllDataBackend();
-    } else {
-      console.log("Local-only reset complete");
-      alert('SUCCESS: All data has been cleared.');
-      window.location.reload();
-    }
+    // localStorage এ সংরক্ষণ
+    saveToStorage();
+    console.log("✅ Factory reset complete - all data cleared");
+
+    alert('✅ সফল: সম্পূর্ণ সিস্টেম রিসেট হয়েছে।\n\nসবকিছু একদম নতুন অবস্থায় ফিরে গেছে।');
+    window.location.reload();
   } catch (err) {
-    alert('An error occurred during reset: ' + err.message);
+    alert('ত্রুটি: ' + err.message);
     console.error(err);
   }
 }
+
 
 // Global exposure
 window.handleResetAllData = handleResetAllData;
@@ -7021,37 +7008,43 @@ document.addEventListener('DOMContentLoaded', () => {
 
 
 // NEW: Data-only reset - keeps all settings
+// DATA RESET: শুধুমাত্র Students, Employees, Finance ডাটা মুছবে
+// Settings, Categories, Accounts সব থাকবে
 function handleDataReset() {
   console.log("Wings Fly: Data Reset triggered");
 
-  if (!confirm('⚠️ WARNING: This will delete all students, transactions, and balances.\n\nYour settings (categories, courses, bank accounts) will be preserved.\n\nContinue?')) return;
-  if (!confirm('⚠️ FINAL WARNING: All student and financial data will be deleted. Proceed?')) return;
+  if (!confirm('⚠️ সতর্কতা: এটি সকল ছাত্র-ছাত্রী, কর্মচারী এবং লেনদেনের তথ্য মুছে দেবে।\n\nআপনার সেটিংস (ক্যাটাগরি, কোর্স, ব্যাংক একাউন্ট) সংরক্ষিত থাকবে।\n\nঅবশ্যই এগিয়ে যেতে চান?')) return;
+  if (!confirm('⚠️ চূড়ান্ত সতর্কতা: সকল ডাটা মুছে যাবে। এগিয়ে যাবেন?')) return;
 
   try {
-    // Preserve current settings from window.globalData
+    // বর্তমান সেটিংস সংরক্ষণ
     const preservedSettings = {
       settings: window.globalData.settings || { startBalances: {}, academyName: 'Wings Fly Aviation Academy' },
-      incomeCategories: window.globalData.incomeCategories || ['Tuition Fees', 'Loan Received', 'Other'],
-      expenseCategories: window.globalData.expenseCategories || ['Salary', 'Rent', 'Utilities', 'Loan Given', 'Other'],
+      incomeCategories: window.globalData.incomeCategories || [],
+      expenseCategories: window.globalData.expenseCategories || [],
       paymentMethods: window.globalData.paymentMethods || [],
       bankAccounts: window.globalData.bankAccounts || [],
       mobileBanking: window.globalData.mobileBanking || [],
       courseNames: window.globalData.courseNames || [],
-      employeeRoles: window.globalData.employeeRoles || ['Instructor', 'Admin', 'Staff', 'Manager'],
+      employeeRoles: window.globalData.employeeRoles || [],
       credentials: window.globalData.credentials || { username: 'admin', password: 'admin123' },
       users: window.globalData.users || []
     };
 
-    // Reset only data, keep settings
+    // শুধুমাত্র ডাটা রিসেট, সেটিংস রাখা
     window.globalData = {
       ...preservedSettings,
       students: [],
       employees: [],
       finance: [],
-      cashBalance: 0
+      cashBalance: 0,
+      attendance: {},
+      nextId: 1001,
+      examRegistrations: [],
+      visitors: []
     };
 
-    // Reset all account balances to 0 but keep the accounts
+    // সকল একাউন্টের ব্যালেন্স ০ করা কিন্তু একাউন্ট রাখা
     if (window.globalData.bankAccounts && Array.isArray(window.globalData.bankAccounts)) {
       window.globalData.bankAccounts.forEach(acc => acc.balance = 0);
     }
@@ -7063,14 +7056,15 @@ function handleDataReset() {
     globalData = window.globalData;
 
     saveToStorage();
-    console.log("Wings Fly: Data reset complete, settings preserved");
-    alert('✅ SUCCESS: All student and financial data has been cleared.\n\nYour settings have been preserved.');
+    console.log("✅ Data reset complete, settings preserved");
+    alert('✅ সফল: সকল ছাত্র-ছাত্রী এবং আর্থিক তথ্য মুছে ফেলা হয়েছে।\n\nআপনার সেটিংস সংরক্ষিত আছে।');
     window.location.reload();
   } catch (err) {
-    alert('An error occurred during data reset: ' + err.message);
+    alert('ত্রুটি: ' + err.message);
     console.error(err);
   }
 }
+
 
 // Expose to global
 window.handleDataReset = handleDataReset;
