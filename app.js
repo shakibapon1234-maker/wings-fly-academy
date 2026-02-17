@@ -5236,323 +5236,93 @@ function printStudentProfile() {
 function openAttendanceReportModal() {
   const modal = bootstrap.Modal.getOrCreateInstance(document.getElementById('attendanceReportModal'));
   const batchSelect = document.getElementById('attRepBatchSelect');
-  const yearSelect  = document.getElementById('attRepYear');
+  const yearSelect = document.getElementById('attRepYear');
   const monthSelect = document.getElementById('attRepMonth');
 
-  const batches = [...new Set(globalData.students.map(s => s.batch))].filter(b => b).sort();
+  const batches = [...new Set(globalData.students.map(s => s.batch))].filter(b => b);
   batchSelect.innerHTML = '<option value="">Select a batch...</option>' +
-    batches.map(b => '<option value="' + b + '">' + b + '</option>').join('');
+    batches.map(b => `<option value="${b}">${b}</option>`).join('');
 
   const now = new Date();
   const currentYear = now.getFullYear();
-  yearSelect.innerHTML = [currentYear - 2, currentYear - 1, currentYear, currentYear + 1]
-    .map(y => '<option value="' + y + '"' + (y === currentYear ? ' selected' : '') + '>' + y + '</option>').join('');
+  yearSelect.innerHTML = [currentYear - 1, currentYear, currentYear + 1]
+    .map(y => `<option value="${y}" ${y === currentYear ? 'selected' : ''}>${y}</option>`).join('');
 
   monthSelect.value = now.getMonth();
 
-  const container = document.getElementById('attendanceReportContainer');
-  if (container) container.innerHTML = '';
-  const emptyState = document.getElementById('monthlyAttEmptyState');
-  if (emptyState) emptyState.classList.remove('d-none');
-  const summaryCards = document.getElementById('monthlySummaryCards');
-  if (summaryCards) summaryCards.classList.add('d-none');
-  const headerInfo = document.getElementById('monthlyAttHeaderInfo');
-  if (headerInfo) headerInfo.textContent = 'Batch, Year \u0993 Month \u09ac\u09c7\u099b\u09c7 \u09a8\u09bf\u09a8';
-
+  document.getElementById('attendanceReportContainer').innerHTML = '';
   modal.show();
 }
 
 function renderAttendanceReport() {
   const batch = document.getElementById('attRepBatchSelect').value;
-  const year  = parseInt(document.getElementById('attRepYear').value);
+  const year = parseInt(document.getElementById('attRepYear').value);
   const month = parseInt(document.getElementById('attRepMonth').value);
 
-  const container    = document.getElementById('attendanceReportContainer');
-  const emptyState   = document.getElementById('monthlyAttEmptyState');
-  const summaryCards = document.getElementById('monthlySummaryCards');
-  const headerInfo   = document.getElementById('monthlyAttHeaderInfo');
-
   if (!batch) return;
-  if (emptyState) emptyState.classList.add('d-none');
 
-  const MONTH_NAMES = ['January','February','March','April','May','June',
-                       'July','August','September','October','November','December'];
-  const daysInMonth   = new Date(year, month + 1, 0).getDate();
-  const batchStudents = globalData.students.filter(function(s){ return s.batch === batch; });
+  const container = document.getElementById('attendanceReportContainer');
+  const daysInMonth = new Date(year, month + 1, 0).getDate();
+  const batchStudents = globalData.students.filter(s => s.batch === batch);
 
-  if (batchStudents.length === 0) {
-    if (container) container.innerHTML = '<p class="text-center text-muted py-5">\u098f\u0987 Batch-\u098f \u0995\u09cb\u09a8\u09cb \u099b\u09be\u09a4\u09cd\u09b0 \u09a8\u09c7\u0987\u0964</p>';
-    return;
+  let html = `
+    <table class="table table-bordered table-sm align-middle text-center small-text">
+      <thead class="table-light">
+        <tr>
+          <th class="text-start" style="min-width: 150px;">Student Name</th>
+  `;
+
+  for (let d = 1; d <= daysInMonth; d++) {
+    html += `<th style="width: 30px;">${d}</th>`;
   }
 
-  // Find working days
-  var workingDays = [];
-  for (var d = 1; d <= daysInMonth; d++) {
-    var ds = year + '-' + String(month+1).padStart(2,'0') + '-' + String(d).padStart(2,'0');
-    if (globalData.attendance && globalData.attendance[batch + '_' + ds]) workingDays.push(d);
-  }
+  html += `
+        <th class="bg-light">P</th>
+        <th class="bg-light">A</th>
+      </tr>
+    </thead>
+    <tbody>
+  `;
 
-  var totalPresentAll = 0, totalAbsentAll = 0;
-  var bestName = '\u2014', bestRate = -1;
+  batchStudents.forEach(s => {
+    let presentCount = 0;
+    let absentCount = 0;
+    html += `<tr><td class="text-start fw-bold">${s.name}</td>`;
 
-  // Build student rows
-  var studentRows = batchStudents.map(function(s, idx) {
-    var p = 0, a = 0, dayCells = '';
-    for (var d = 1; d <= daysInMonth; d++) {
-      var ds  = year + '-' + String(month+1).padStart(2,'0') + '-' + String(d).padStart(2,'0');
-      var key = batch + '_' + ds;
-      var status    = globalData.attendance && globalData.attendance[key] ? globalData.attendance[key][s.studentId] : undefined;
-      var isWorking = !!(globalData.attendance && globalData.attendance[key]);
-      var cellStyle = 'padding:4px 2px;text-align:center;border:1px solid rgba(255,255,255,0.06);font-size:0.75rem;min-width:28px;';
-      var cellText  = '';
-      if (status === 'Present')     { cellStyle += 'background:rgba(0,204,102,0.15);color:#00cc66;font-weight:700;'; cellText = 'P'; p++; }
-      else if (status === 'Absent') { cellStyle += 'background:rgba(255,51,80,0.15);color:#ff3350;font-weight:700;'; cellText = 'A'; a++; }
-      else if (isWorking)           { cellStyle += 'color:rgba(255,255,255,0.2);'; cellText = '\u2014'; }
-      else                          { cellStyle += 'color:rgba(255,255,255,0.08);'; cellText = ''; }
-      dayCells += '<td style="' + cellStyle + '">' + cellText + '</td>';
+    for (let d = 1; d <= daysInMonth; d++) {
+      const dateStr = `${year}-${String(month + 1).padStart(2, '0')}-${String(d).padStart(2, '0')}`;
+      const attendanceKey = `${batch}_${dateStr}`;
+      const status = globalData.attendance?.[attendanceKey]?.[s.studentId];
+
+      let cellClass = '';
+      let text = '';
+
+      if (status === 'Present') {
+        text = 'P';
+        cellClass = 'text-success fw-bold';
+        presentCount++;
+      } else if (status === 'Absent') {
+        text = 'A';
+        cellClass = 'text-danger fw-bold';
+        absentCount++;
+      }
+
+      html += `<td class="${cellClass}">${text}</td>`;
     }
-    totalPresentAll += p; totalAbsentAll += a;
-    var rate = workingDays.length > 0 ? Math.round(p / workingDays.length * 100) : 0;
-    if (rate > bestRate) { bestRate = rate; bestName = s.name.split(' ')[0]; }
-    var rateColor = rate >= 75 ? '#00cc66' : rate >= 50 ? '#ffcc00' : '#ff3350';
-    var rowBg = idx % 2 === 0 ? 'rgba(255,255,255,0.02)' : 'transparent';
-    return '<tr style="background:' + rowBg + ';">' +
-      '<td style="padding:8px 10px;border:1px solid rgba(255,255,255,0.06);color:rgba(255,255,255,0.4);font-size:0.8rem;text-align:center;">' + (idx+1) + '</td>' +
-      '<td style="padding:8px 12px;border:1px solid rgba(255,255,255,0.06);color:#00d9ff;font-size:0.8rem;font-family:monospace;">' + (s.studentId || '\u2014') + '</td>' +
-      '<td style="padding:8px 14px;border:1px solid rgba(255,255,255,0.06);font-weight:700;color:#e0e8ff;white-space:nowrap;">' + s.name + '</td>' +
-      dayCells +
-      '<td style="padding:8px 8px;border:1px solid rgba(255,255,255,0.06);text-align:center;font-weight:800;color:#00cc66;background:rgba(0,204,102,0.08);">' + p + '</td>' +
-      '<td style="padding:8px 8px;border:1px solid rgba(255,255,255,0.06);text-align:center;font-weight:800;color:#ff3350;background:rgba(255,51,80,0.08);">' + a + '</td>' +
-      '<td style="padding:8px 10px;border:1px solid rgba(255,255,255,0.06);text-align:center;font-weight:800;color:' + rateColor + ';font-size:0.9rem;">' + rate + '%</td>' +
-      '</tr>';
-  }).join('');
 
-  // Day headers
-  var dayHeaders = '';
-  for (var d = 1; d <= daysInMonth; d++) {
-    var ds2 = year + '-' + String(month+1).padStart(2,'0') + '-' + String(d).padStart(2,'0');
-    var isWorking2 = !!(globalData.attendance && globalData.attendance[batch + '_' + ds2]);
-    var isFri = new Date(year, month, d).getDay() === 5;
-    var bgC = isWorking2 ? 'rgba(0,180,255,0.2)' : (isFri ? 'rgba(255,200,0,0.1)' : 'rgba(255,255,255,0.04)');
-    var txtC = isWorking2 ? '#00d9ff' : (isFri ? '#ffcc00' : 'rgba(255,255,255,0.4)');
-    dayHeaders += '<th style="padding:6px 2px;text-align:center;min-width:28px;font-size:0.72rem;background:' + bgC + ';color:' + txtC + ';border:1px solid rgba(255,255,255,0.08);">' + d + '</th>';
-  }
-
-  // Footer per-day totals
-  var footerDays = '';
-  for (var d = 1; d <= daysInMonth; d++) {
-    var ds3 = year + '-' + String(month+1).padStart(2,'0') + '-' + String(d).padStart(2,'0');
-    var dayData = globalData.attendance && globalData.attendance[batch + '_' + ds3];
-    if (!dayData) { footerDays += '<td style="border:1px solid rgba(255,255,255,0.06);background:rgba(255,255,255,0.02);"></td>'; continue; }
-    var dp = Object.values(dayData).filter(function(v){ return v === 'Present'; }).length;
-    var da = Object.values(dayData).filter(function(v){ return v === 'Absent'; }).length;
-    footerDays += '<td style="padding:4px 2px;border:1px solid rgba(255,255,255,0.06);text-align:center;font-size:0.7rem;background:rgba(0,180,255,0.06);"><span style="color:#00cc66;font-weight:700;">' + dp + '</span><br><span style="color:#ff3350;font-weight:700;">' + da + '</span></td>';
-  }
-
-  var avgRate = workingDays.length > 0 && batchStudents.length > 0
-    ? Math.round(totalPresentAll / (workingDays.length * batchStudents.length) * 100) : 0;
-
-  container.innerHTML =
-    '<div style="margin-bottom:12px;padding:10px 14px;background:rgba(0,180,255,0.06);border-radius:10px;border:1px solid rgba(0,180,255,0.15);">' +
-      '<div style="font-size:0.8rem;color:rgba(255,255,255,0.5);margin-bottom:4px;">\uD83D\uDCC5 ' + MONTH_NAMES[month] + ' ' + year + ' \u2014 Batch ' + batch + '</div>' +
-      '<div style="font-size:0.75rem;color:rgba(255,255,255,0.4);">\uD83D\uDD35 Highlighted = attendance taken &nbsp;|&nbsp; P = Present &nbsp;|&nbsp; A = Absent</div>' +
-    '</div>' +
-    '<div style="overflow-x:auto;">' +
-      '<table style="width:100%;border-collapse:collapse;font-size:0.85rem;">' +
-        '<thead><tr>' +
-          '<th style="padding:8px 6px;text-align:center;min-width:36px;background:rgba(255,255,255,0.06);border:1px solid rgba(255,255,255,0.08);color:rgba(255,255,255,0.5);font-size:0.72rem;">#</th>' +
-          '<th style="padding:8px 10px;min-width:90px;background:rgba(255,255,255,0.06);border:1px solid rgba(255,255,255,0.08);color:rgba(255,255,255,0.5);font-size:0.72rem;">ID</th>' +
-          '<th style="padding:8px 14px;min-width:160px;text-align:left;background:rgba(255,255,255,0.06);border:1px solid rgba(255,255,255,0.08);color:rgba(255,255,255,0.5);font-size:0.72rem;">STUDENT NAME</th>' +
-          dayHeaders +
-          '<th style="padding:8px 6px;text-align:center;min-width:36px;background:rgba(0,204,102,0.12);border:1px solid rgba(255,255,255,0.08);color:#00cc66;font-size:0.72rem;">P</th>' +
-          '<th style="padding:8px 6px;text-align:center;min-width:36px;background:rgba(255,51,80,0.12);border:1px solid rgba(255,255,255,0.08);color:#ff3350;font-size:0.72rem;">A</th>' +
-          '<th style="padding:8px 8px;text-align:center;min-width:50px;background:rgba(255,200,0,0.1);border:1px solid rgba(255,255,255,0.08);color:#ffcc00;font-size:0.72rem;">RATE</th>' +
-        '</tr></thead>' +
-        '<tbody>' + studentRows + '</tbody>' +
-        '<tfoot><tr>' +
-          '<td colspan="3" style="padding:10px 14px;border:1px solid rgba(255,255,255,0.08);font-weight:700;color:rgba(255,255,255,0.6);font-size:0.8rem;background:rgba(255,255,255,0.04);">' +
-            'Total &nbsp;|\u00a0 ' + batchStudents.length + ' Students &nbsp;|\u00a0 ' + workingDays.length + ' Working Days' +
-          '</td>' +
-          footerDays +
-          '<td style="padding:10px 8px;border:1px solid rgba(255,255,255,0.08);text-align:center;font-weight:800;color:#00cc66;background:rgba(0,204,102,0.08);">' + totalPresentAll + '</td>' +
-          '<td style="padding:10px 8px;border:1px solid rgba(255,255,255,0.08);text-align:center;font-weight:800;color:#ff3350;background:rgba(255,51,80,0.08);">' + totalAbsentAll + '</td>' +
-          '<td style="padding:10px 8px;border:1px solid rgba(255,255,255,0.08);text-align:center;font-weight:800;color:#ffcc00;background:rgba(255,200,0,0.08);">' + avgRate + '%</td>' +
-        '</tr></tfoot>' +
-      '</table>' +
-    '</div>';
-
-  if (summaryCards) summaryCards.classList.remove('d-none');
-  var wdEl = document.getElementById('mthWorkingDays');
-  var tsEl = document.getElementById('mthTotalStudents');
-  var arEl = document.getElementById('mthAvgRate');
-  var bsEl = document.getElementById('mthBestStudent');
-  if (wdEl) wdEl.textContent = workingDays.length;
-  if (tsEl) tsEl.textContent = batchStudents.length;
-  if (arEl) arEl.textContent = avgRate + '%';
-  if (bsEl) bsEl.textContent = bestName;
-  if (headerInfo) headerInfo.textContent = 'Batch ' + batch + '  \u2022  ' + MONTH_NAMES[month] + ' ' + year + '  \u2022  ' + batchStudents.length + ' Students';
-}
-
-function printMonthlyAttendance() {
-  var batch = document.getElementById('attRepBatchSelect').value;
-  var year  = parseInt(document.getElementById('attRepYear').value);
-  var month = parseInt(document.getElementById('attRepMonth').value);
-  if (!batch) { showErrorToast('\u274C Batch \u09ac\u09c7\u099b\u09c7 \u09a8\u09bf\u09a8\u0964'); return; }
-
-  var MONTH_NAMES = ['January','February','March','April','May','June',
-                     'July','August','September','October','November','December'];
-  var daysInMonth   = new Date(year, month + 1, 0).getDate();
-  var batchStudents = globalData.students.filter(function(s){ return s.batch === batch; });
-  if (!batchStudents.length) { showErrorToast('\u098f\u0987 Batch-\u098f \u0995\u09cb\u09a8\u09cb \u099b\u09be\u09a4\u09cd\u09b0 \u09a8\u09c7\u0987\u0964'); return; }
-
-  var workingDays = [];
-  for (var d = 1; d <= daysInMonth; d++) {
-    var ds = year + '-' + String(month+1).padStart(2,'0') + '-' + String(d).padStart(2,'0');
-    if (globalData.attendance && globalData.attendance[batch + '_' + ds]) workingDays.push(d);
-  }
-
-  var dayThs = '';
-  for (var d = 1; d <= daysInMonth; d++) {
-    var ds2 = year + '-' + String(month+1).padStart(2,'0') + '-' + String(d).padStart(2,'0');
-    var isW = !!(globalData.attendance && globalData.attendance[batch + '_' + ds2]);
-    var isFr = new Date(year, month, d).getDay() === 5;
-    var bg = isW ? '#e8f4ff' : (isFr ? '#fffbe6' : '#fff');
-    var col = isW ? '#0066cc' : (isFr ? '#cc9900' : '#aaa');
-    dayThs += '<th style="border:1px solid #dde;width:26px;text-align:center;font-size:10px;background:' + bg + ';color:' + col + ';padding:4px 1px;">' + d + '</th>';
-  }
-
-  var totalP = 0, totalA = 0;
-  var rows = batchStudents.map(function(s, idx) {
-    var p = 0, a = 0, cells = '';
-    for (var d = 1; d <= daysInMonth; d++) {
-      var ds3 = year + '-' + String(month+1).padStart(2,'0') + '-' + String(d).padStart(2,'0');
-      var status  = globalData.attendance && globalData.attendance[batch+'_'+ds3] ? globalData.attendance[batch+'_'+ds3][s.studentId] : undefined;
-      var working = !!(globalData.attendance && globalData.attendance[batch+'_'+ds3]);
-      var txt = '', bg2 = '#fff', col2 = '#ccc';
-      if (status === 'Present')     { txt = 'P'; bg2 = '#f0fff8'; col2 = '#007744'; p++; }
-      else if (status === 'Absent') { txt = 'A'; bg2 = '#fff0f2'; col2 = '#cc2233'; a++; }
-      else if (working)             { txt = '\u00b7'; col2 = '#ddd'; }
-      cells += '<td style="border:1px solid #eef;text-align:center;font-size:10px;font-weight:700;background:' + bg2 + ';color:' + col2 + ';padding:3px 1px;">' + txt + '</td>';
-    }
-    totalP += p; totalA += a;
-    var rate = workingDays.length ? Math.round(p / workingDays.length * 100) : 0;
-    var rc = rate >= 75 ? '#007744' : rate >= 50 ? '#cc9900' : '#cc2233';
-    var rowBg2 = idx % 2 === 0 ? '#fafbff' : '#fff';
-    return '<tr style="background:' + rowBg2 + ';">' +
-      '<td style="border:1px solid #eef;padding:5px 6px;text-align:center;font-size:10px;color:#aaa;">' + (idx+1) + '</td>' +
-      '<td style="border:1px solid #eef;padding:5px 8px;font-family:monospace;font-size:10px;color:#1a4d6e;font-weight:600;">' + (s.studentId||'\u2014') + '</td>' +
-      '<td style="border:1px solid #eef;padding:5px 10px;font-weight:700;font-size:11px;color:#1a1a3a;white-space:nowrap;">' + s.name + '</td>' +
-      cells +
-      '<td style="border:1px solid #eef;padding:5px 6px;text-align:center;font-weight:800;font-size:11px;color:#007744;background:#f0fff8;">' + p + '</td>' +
-      '<td style="border:1px solid #eef;padding:5px 6px;text-align:center;font-weight:800;font-size:11px;color:#cc2233;background:#fff0f2;">' + a + '</td>' +
-      '<td style="border:1px solid #eef;padding:5px 6px;text-align:center;font-weight:800;font-size:11px;color:' + rc + ';">' + rate + '%</td>' +
-      '</tr>';
-  }).join('');
-
-  var footerDays2 = '';
-  for (var d = 1; d <= daysInMonth; d++) {
-    var ds4 = year + '-' + String(month+1).padStart(2,'0') + '-' + String(d).padStart(2,'0');
-    var dd = globalData.attendance && globalData.attendance[batch+'_'+ds4];
-    if (!dd) { footerDays2 += '<td style="border:1px solid #dde;background:#f9f9f9;"></td>'; continue; }
-    var dp = Object.values(dd).filter(function(v){ return v==='Present'; }).length;
-    var da = Object.values(dd).filter(function(v){ return v==='Absent'; }).length;
-    footerDays2 += '<td style="border:1px solid #dde;text-align:center;font-size:9px;padding:3px 1px;background:#e8f4ff;"><span style="color:#007744;font-weight:700;">' + dp + '</span><br><span style="color:#cc2233;font-weight:700;">' + da + '</span></td>';
-  }
-
-  var avgRate2 = workingDays.length && batchStudents.length
-    ? Math.round(totalP / (workingDays.length * batchStudents.length) * 100) : 0;
-  var linearLogo  = (window.APP_LOGOS && window.APP_LOGOS.linear)  ? window.APP_LOGOS.linear  : 'wings_logo_linear.png';
-  var premiumLogo = (window.APP_LOGOS && window.APP_LOGOS.premium) ? window.APP_LOGOS.premium : 'wings_logo_premium.png';
-
-  var pw = window.open('', '', 'width=1200,height=850');
-  pw.document.write('<!DOCTYPE html><html><head><meta charset="UTF-8"><title>Monthly Attendance - Batch ' + batch + '</title>' +
-    '<style>body{font-family:"Segoe UI",sans-serif;padding:24px 30px;background:#fff;color:#1a1a3a;}' +
-    '.header{text-align:center;margin-bottom:20px;}.logo-row{display:flex;justify-content:space-between;align-items:center;margin-bottom:8px;}' +
-    '.academy{font-size:22px;font-weight:900;color:#1a4d6e;text-transform:uppercase;letter-spacing:1px;}' +
-    '.subtitle{font-size:13px;color:#666;}.report-title{font-size:17px;font-weight:800;color:#003366;text-transform:uppercase;border-bottom:3px solid #00b4ff;display:inline-block;padding-bottom:3px;margin:10px 0 4px;}' +
-    '.meta{display:flex;justify-content:center;gap:28px;margin-bottom:14px;}' +
-    '.meta-item .lbl{font-size:10px;color:#aaa;text-transform:uppercase;font-weight:600;}' +
-    '.meta-item .val{font-weight:800;font-size:14px;color:#1a4d6e;}' +
-    'table{width:100%;border-collapse:collapse;}thead th{background:#1a4d6e;color:#fff;padding:7px 4px;font-size:10px;text-transform:uppercase;}' +
-    'tfoot td{background:#f0f4ff;font-weight:700;border:1px solid #dde;padding:6px 4px;}' +
-    '.footer{margin-top:20px;display:flex;justify-content:space-between;font-size:10px;color:#bbb;}' +
-    '@media print{@page{size:A3 landscape;margin:.4in;}}</style>' +
-    '</head><body onload="window.print()">' +
-    '<div class="header">' +
-      '<div class="logo-row"><img src="' + premiumLogo + '" style="height:65px;"><div><div class="academy">Wings Fly Aviation Academy</div><div class="subtitle">Monthly Attendance Report \u2014 Official Record</div></div><img src="' + linearLogo + '" style="height:48px;"></div>' +
-      '<div class="report-title">Monthly Attendance Sheet</div>' +
-      '<div class="meta">' +
-        '<div class="meta-item"><div class="lbl">Batch</div><div class="val">' + batch + '</div></div>' +
-        '<div class="meta-item"><div class="lbl">Month</div><div class="val">' + MONTH_NAMES[month] + ' ' + year + '</div></div>' +
-        '<div class="meta-item"><div class="lbl">Students</div><div class="val">' + batchStudents.length + '</div></div>' +
-        '<div class="meta-item"><div class="lbl">Working Days</div><div class="val">' + workingDays.length + '</div></div>' +
-        '<div class="meta-item"><div class="lbl" style="color:#007744;">Total Present</div><div class="val" style="color:#007744;">' + totalP + '</div></div>' +
-        '<div class="meta-item"><div class="lbl" style="color:#cc2233;">Total Absent</div><div class="val" style="color:#cc2233;">' + totalA + '</div></div>' +
-        '<div class="meta-item"><div class="lbl">Avg Rate</div><div class="val">' + avgRate2 + '%</div></div>' +
-      '</div>' +
-    '</div>' +
-    '<table><thead><tr>' +
-      '<th style="width:30px;">#</th><th style="width:85px;text-align:left;">Student ID</th><th style="min-width:140px;text-align:left;">Student Name</th>' +
-      dayThs +
-      '<th style="width:28px;background:#004d22;">P</th><th style="width:28px;background:#7a0010;">A</th><th style="width:40px;background:#4d3800;">Rate</th>' +
-    '</tr></thead>' +
-    '<tbody>' + rows + '</tbody>' +
-    '<tfoot><tr>' +
-      '<td colspan="3" style="text-align:right;font-size:11px;padding:6px 10px;">Total \u2192 Present: <strong style="color:#007744;">' + totalP + '</strong> &nbsp;|&nbsp; Absent: <strong style="color:#cc2233;">' + totalA + '</strong></td>' +
-      footerDays2 +
-      '<td style="text-align:center;color:#007744;font-weight:800;font-size:12px;">' + totalP + '</td>' +
-      '<td style="text-align:center;color:#cc2233;font-weight:800;font-size:12px;">' + totalA + '</td>' +
-      '<td style="text-align:center;color:#cc6600;font-weight:800;font-size:12px;">' + avgRate2 + '%</td>' +
-    '</tr></tfoot></table>' +
-    '<div class="footer"><span>Generated: ' + new Date().toLocaleString() + '</span><span>Wings Fly Aviation Academy \u2014 Confidential</span></div>' +
-    '</body></html>');
-  pw.document.close();
-}
-
-function downloadMonthlyAttendanceCsv() {
-  var batch = document.getElementById('attRepBatchSelect').value;
-  var year  = parseInt(document.getElementById('attRepYear').value);
-  var month = parseInt(document.getElementById('attRepMonth').value);
-  if (!batch) { showErrorToast('\u274C Batch \u09ac\u09c7\u099b\u09c7 \u09a8\u09bf\u09a8\u0964'); return; }
-
-  var MONTH_NAMES = ['January','February','March','April','May','June',
-                     'July','August','September','October','November','December'];
-  var daysInMonth   = new Date(year, month + 1, 0).getDate();
-  var batchStudents = globalData.students.filter(function(s){ return s.batch === batch; });
-  if (!batchStudents.length) { showErrorToast('\u098f\u0987 Batch-\u098f \u0995\u09cb\u09a8\u09cb \u099b\u09be\u09a4\u09cd\u09b0 \u09a8\u09c7\u0987\u0964'); return; }
-
-  var dayHdrs = Array.from({length: daysInMonth}, function(_, i){ return '"' + (i+1) + '"'; }).join(',');
-  var headerRow = '"#","Student ID","Student Name",' + dayHdrs + ',"Present","Absent","Rate"';
-
-  var dataRows = batchStudents.map(function(s, idx) {
-    var p = 0, a = 0;
-    var cells = Array.from({length: daysInMonth}, function(_, i) {
-      var d  = i + 1;
-      var ds = year + '-' + String(month+1).padStart(2,'0') + '-' + String(d).padStart(2,'0');
-      var st = globalData.attendance && globalData.attendance[batch+'_'+ds] ? globalData.attendance[batch+'_'+ds][s.studentId] : undefined;
-      if (st === 'Present') { p++; return '"P"'; }
-      if (st === 'Absent')  { a++; return '"A"'; }
-      return '""';
-    }).join(',');
-    var rate = (p + a) > 0 ? Math.round(p / (p + a) * 100) + '%' : '\u2014';
-    return '"' + (idx+1) + '","' + (s.studentId||'') + '","' + s.name + '",' + cells + ',"' + p + '","' + a + '","' + rate + '"';
+    html += `
+        <td class="bg-light text-success fw-bold">${presentCount}</td>
+        <td class="bg-light text-danger fw-bold">${absentCount}</td>
+      </tr>
+    `;
   });
 
-  var csv = 'Wings Fly Aviation Academy \u2014 Monthly Attendance\n' +
-            'Batch: ' + batch + ' | Month: ' + MONTH_NAMES[month] + ' ' + year + '\n\n' +
-            headerRow + '\n' + dataRows.join('\n');
-  var blob = new Blob(['\uFEFF' + csv], {type: 'text/csv;charset=utf-8;'});
-  var link = document.createElement('a');
-  link.href = URL.createObjectURL(blob);
-  link.download = 'monthly_attendance_batch' + batch + '_' + MONTH_NAMES[month] + '_' + year + '.csv';
-  link.click();
-  showSuccessToast('\u2705 Monthly CSV \u09a1\u09be\u0989\u09a8\u09b2\u09cb\u09a1 \u09b9\u09af\u09bc\u09c7\u099b\u09c7!');
+  html += '</tbody></table>';
+  container.innerHTML = html;
 }
 
-window.openAttendanceReportModal    = openAttendanceReportModal;
-window.renderAttendanceReport       = renderAttendanceReport;
-window.printMonthlyAttendance       = printMonthlyAttendance;
-window.downloadMonthlyAttendanceCsv = downloadMonthlyAttendanceCsv;
+window.openAttendanceReportModal = openAttendanceReportModal;
+window.renderAttendanceReport = renderAttendanceReport;
 window.printStudentProfile = printStudentProfile;
 window.showExpenseBreakdown = showExpenseBreakdown;
 window.generateStudentId = generateStudentId;
@@ -8409,3 +8179,394 @@ window.clearVisitorFilters  = clearVisitorFilters;
 window.editVisitor          = editVisitor;
 window.deleteVisitor        = deleteVisitor;
 
+
+// ============================================================
+// UPGRADED ATTENDANCE MODULE (Daily + Monthly)
+// ============================================================
+
+(function() {
+  document.addEventListener('DOMContentLoaded', function() {
+    var m = document.getElementById('attendanceModal');
+    if (m) {
+      m.addEventListener('show.bs.modal', function() {
+        var bs = document.getElementById('attendanceBatchSelect');
+        var di = document.getElementById('attendanceDate');
+        var batches = [];
+        (globalData.students || []).forEach(function(s) { if (s.batch && batches.indexOf(s.batch) === -1) batches.push(s.batch); });
+        batches.sort();
+        bs.innerHTML = '<option value="">\u2014 Select Batch \u2014</option>' + batches.map(function(b){ return '<option value="'+b+'">'+b+'</option>'; }).join('');
+        if (di && !di.value) di.value = new Date().toISOString().split('T')[0];
+        var c = document.getElementById('attendanceListContainer'); if (c) c.classList.add('d-none');
+        var e = document.getElementById('attendanceEmptyState');    if (e) e.classList.remove('d-none');
+        var q = document.getElementById('attendanceQuickStats');    if (q) q.classList.add('d-none');
+        var p = document.getElementById('attStatPlaceholder');      if (p) p.classList.remove('d-none');
+        var h = document.getElementById('attendanceHeaderInfo');    if (h) h.textContent = 'Batch & Date \u09a8\u09bf\u09b0\u09cd\u09ac\u09be\u099a\u09a8 \u0995\u09b0\u09c1\u09a8';
+      });
+    }
+  });
+})();
+
+window.openAttendanceModal = function openAttendanceModal() {
+  var modal = new bootstrap.Modal(document.getElementById('attendanceModal'));
+  var bs = document.getElementById('attendanceBatchSelect');
+  var di = document.getElementById('attendanceDate');
+  var batches = [];
+  (globalData.students || []).forEach(function(s) { if (s.batch && batches.indexOf(s.batch) === -1) batches.push(s.batch); });
+  batches.sort();
+  bs.innerHTML = '<option value="">\u2014 Select Batch \u2014</option>' + batches.map(function(b){ return '<option value="'+b+'">'+b+'</option>'; }).join('');
+  di.value = new Date().toISOString().split('T')[0];
+  var c = document.getElementById('attendanceListContainer'); if (c) c.classList.add('d-none');
+  var e = document.getElementById('attendanceEmptyState');    if (e) e.classList.remove('d-none');
+  var q = document.getElementById('attendanceQuickStats');    if (q) q.classList.add('d-none');
+  var p = document.getElementById('attStatPlaceholder');      if (p) p.classList.remove('d-none');
+  var h = document.getElementById('attendanceHeaderInfo');    if (h) h.textContent = 'Batch & Date \u09a8\u09bf\u09b0\u09cd\u09ac\u09be\u099a\u09a8 \u0995\u09b0\u09c1\u09a8';
+  modal.show();
+};
+
+window.loadAttendanceList = function loadAttendanceList() {
+  var batch = document.getElementById('attendanceBatchSelect').value;
+  var date  = document.getElementById('attendanceDate').value;
+  if (!batch || !date) return;
+
+  var container  = document.getElementById('attendanceListContainer');
+  var tbody      = document.getElementById('attendanceTableBody');
+  var emptyState = document.getElementById('attendanceEmptyState');
+  var quickStats = document.getElementById('attendanceQuickStats');
+  var placeholder= document.getElementById('attStatPlaceholder');
+  var headerInfo = document.getElementById('attendanceHeaderInfo');
+
+  if (emptyState) emptyState.classList.add('d-none');
+  container.classList.remove('d-none');
+
+  var batchStudents = (globalData.students || []).filter(function(s){ return s.batch === batch; });
+  var attendanceKey = batch + '_' + date;
+  var saved = (globalData.attendance && globalData.attendance[attendanceKey]) || {};
+
+  var dateObj = new Date(date + 'T00:00:00');
+  var dateStr = dateObj.toLocaleDateString('en-GB', {day:'2-digit',month:'short',year:'numeric'});
+  if (headerInfo) headerInfo.textContent = 'Batch: ' + batch + '  \u2022  ' + dateStr + '  \u2022  ' + batchStudents.length + ' Students';
+
+  tbody.innerHTML = batchStudents.map(function(s, index) {
+    var isAbsent = saved[s.studentId] === 'Absent';
+    return '<tr id="attRow_' + s.studentId + '" style="border-bottom:1px solid rgba(255,255,255,0.05);">' +
+      '<td class="px-4 py-3 text-muted small">' + (index+1) + '</td>' +
+      '<td class="py-3 small fw-semibold" style="color:#00d9ff;">' + (s.studentId||'\u2014') + '</td>' +
+      '<td class="py-3 fw-bold" style="font-size:1rem;color:#e0e8ff;">' + s.name + '</td>' +
+      '<td class="py-3 text-center">' +
+        '<div class="d-inline-flex gap-2">' +
+          '<label style="cursor:pointer;padding:6px 18px;border-radius:50px;font-weight:700;font-size:0.85rem;' +
+            'border:2px solid ' + (!isAbsent?'#00cc66':'rgba(0,204,102,0.25)') + ';' +
+            'background:' + (!isAbsent?'rgba(0,204,102,0.2)':'transparent') + ';' +
+            'color:' + (!isAbsent?'#00ff88':'rgba(255,255,255,0.4)') + ';transition:all 0.2s;">' +
+            '<input type="radio" name="att_' + s.studentId + '" value="Present" ' + (!isAbsent?'checked':'') + ' ' +
+            'onchange="attStatusChange(\'' + s.studentId + '\',this)" style="display:none;">' +
+            '\u2713 Present</label>' +
+          '<label style="cursor:pointer;padding:6px 18px;border-radius:50px;font-weight:700;font-size:0.85rem;' +
+            'border:2px solid ' + (isAbsent?'#ff3350':'rgba(255,51,80,0.25)') + ';' +
+            'background:' + (isAbsent?'rgba(255,51,80,0.2)':'transparent') + ';' +
+            'color:' + (isAbsent?'#ff5570':'rgba(255,255,255,0.4)') + ';transition:all 0.2s;">' +
+            '<input type="radio" name="att_' + s.studentId + '" value="Absent" ' + (isAbsent?'checked':'') + ' ' +
+            'onchange="attStatusChange(\'' + s.studentId + '\',this)" style="display:none;">' +
+            '\u2717 Absent</label>' +
+        '</div>' +
+      '</td>' +
+      '</tr>';
+  }).join('');
+
+  _attUpdateLiveStats(batchStudents, saved);
+  if (quickStats) quickStats.classList.remove('d-none');
+  if (placeholder) placeholder.classList.add('d-none');
+};
+
+function _attUpdateLiveStats(batchStudents, savedAttendance) {
+  var present = 0, absent = 0;
+  batchStudents.forEach(function(s) {
+    if (savedAttendance[s.studentId] === 'Absent') absent++; else present++;
+  });
+  var p = document.getElementById('attPresentCount');
+  var a = document.getElementById('attAbsentCount');
+  var t = document.getElementById('attTotalCount');
+  if (p) p.textContent = present;
+  if (a) a.textContent = absent;
+  if (t) t.textContent = batchStudents.length;
+}
+
+window.attStatusChange = function attStatusChange(studentId, radioEl) {
+  var row = document.getElementById('attRow_' + studentId);
+  if (!row) return;
+  var labels = row.querySelectorAll('label');
+  var isAbsent = radioEl.value === 'Absent';
+  labels.forEach(function(label) {
+    var isPresent = label.textContent.indexOf('Present') !== -1;
+    var active = isPresent ? !isAbsent : isAbsent;
+    label.style.borderColor = active ? (isPresent?'#00cc66':'#ff3350') : (isPresent?'rgba(0,204,102,0.25)':'rgba(255,51,80,0.25)');
+    label.style.background  = active ? (isPresent?'rgba(0,204,102,0.2)':'rgba(255,51,80,0.2)') : 'transparent';
+    label.style.color       = active ? (isPresent?'#00ff88':'#ff5570') : 'rgba(255,255,255,0.4)';
+  });
+  var batch = document.getElementById('attendanceBatchSelect').value;
+  var batchStudents = (globalData.students||[]).filter(function(s){ return s.batch===batch; });
+  var cur = {};
+  batchStudents.forEach(function(s) {
+    var el = document.querySelector('input[name="att_'+s.studentId+'"]:checked');
+    if (el) cur[s.studentId] = el.value;
+  });
+  _attUpdateLiveStats(batchStudents, cur);
+};
+
+window.markAllAttendance = function markAllAttendance(status) {
+  var batch = document.getElementById('attendanceBatchSelect').value;
+  if (!batch) return;
+  (globalData.students||[]).filter(function(s){ return s.batch===batch; }).forEach(function(s) {
+    var r = document.querySelector('input[name="att_'+s.studentId+'"][value="'+status+'"]');
+    if (r) { r.checked = true; window.attStatusChange(s.studentId, r); }
+  });
+};
+
+window.saveAttendance = function saveAttendance() {
+  var batch = document.getElementById('attendanceBatchSelect').value;
+  var date  = document.getElementById('attendanceDate').value;
+  if (!batch || !date) { showErrorToast('\u274C Batch \u0993 Date \u09ac\u09c7\u099b\u09c7 \u09a8\u09bf\u09a8\u0964'); return; }
+  if (!globalData.attendance) globalData.attendance = {};
+  var key = batch + '_' + date;
+  var cur = {};
+  var present = 0, absent = 0;
+  (globalData.students||[]).filter(function(s){ return s.batch===batch; }).forEach(function(s) {
+    var el = document.querySelector('input[name="att_'+s.studentId+'"]:checked');
+    var st = el ? el.value : 'Present';
+    cur[s.studentId] = st;
+    if (st === 'Absent') absent++; else present++;
+  });
+  globalData.attendance[key] = cur;
+  saveToStorage();
+  var dateStr = new Date(date+'T00:00:00').toLocaleDateString('en-GB',{day:'2-digit',month:'short',year:'numeric'});
+  showSuccessToast('\u2705 Attendance \u09b8\u09c7\u09ad \u09b9\u09af\u09bc\u09c7\u099b\u09c7 \u2014 Batch ' + batch + ' | ' + dateStr + ' | \u2714 ' + present + ' Present, \u2716 ' + absent + ' Absent');
+  bootstrap.Modal.getInstance(document.getElementById('attendanceModal')).hide();
+};
+
+window.printSavedAttendance = function printSavedAttendance() {
+  var batch = document.getElementById('attendanceBatchSelect').value;
+  var date  = document.getElementById('attendanceDate').value;
+  if (!batch || !date) { showErrorToast('\u274C Batch \u0993 Date \u09ac\u09c7\u099b\u09c7 \u09a8\u09bf\u09a8\u0964'); return; }
+  var saved = (globalData.attendance && globalData.attendance[batch+'_'+date]) || {};
+  var students = (globalData.students||[]).filter(function(s){ return s.batch===batch; });
+  var dateStr = new Date(date+'T00:00:00').toLocaleDateString('en-GB',{weekday:'long',day:'2-digit',month:'long',year:'numeric'});
+  var present=0, absent=0;
+  var rows = students.map(function(s,i) {
+    var st = saved[s.studentId]||'Present'; var isA = st==='Absent';
+    if(isA) absent++; else present++;
+    return '<tr><td style="border:1px solid #dde;padding:8px 12px;text-align:center;color:#555;">'+(i+1)+'</td>'+
+      '<td style="border:1px solid #dde;padding:8px 12px;font-family:monospace;color:#1a4d6e;font-weight:600;">'+(s.studentId||'\u2014')+'</td>'+
+      '<td style="border:1px solid #dde;padding:8px 14px;font-weight:700;color:#1a1a3a;">'+s.name+'</td>'+
+      '<td style="border:1px solid #dde;padding:8px 12px;text-align:center;"><span style="display:inline-block;padding:3px 18px;border-radius:50px;font-weight:800;font-size:0.9rem;background:'+(isA?'#fff0f2':'#f0fff8')+';color:'+(isA?'#cc2233':'#007744')+';border:1.5px solid '+(isA?'#ffb3bc':'#90e8bf')+'">'+(isA?'\u2717  Absent':'\u2713  Present')+'</span></td></tr>';
+  }).join('');
+  var lL=(window.APP_LOGOS&&window.APP_LOGOS.linear)?window.APP_LOGOS.linear:'wings_logo_linear.png';
+  var pL=(window.APP_LOGOS&&window.APP_LOGOS.premium)?window.APP_LOGOS.premium:'wings_logo_premium.png';
+  var pw=window.open('','','width=900,height=700');
+  pw.document.write('<!DOCTYPE html><html><head><meta charset="UTF-8"><title>Attendance Report</title><style>body{font-family:"Segoe UI",sans-serif;padding:30px 40px;}.logo-row{display:flex;justify-content:space-between;align-items:center;margin-bottom:10px;}.academy{font-size:22px;font-weight:900;color:#1a4d6e;text-transform:uppercase;}.meta{display:flex;justify-content:center;gap:36px;margin:14px 0;}.meta-item .lbl{font-size:11px;color:#aaa;text-transform:uppercase;font-weight:600;}.meta-item .val{font-weight:800;font-size:15px;color:#1a4d6e;}table{width:100%;border-collapse:collapse;}thead th{background:#1a4d6e;color:#fff;padding:10px 12px;font-size:12px;text-transform:uppercase;}tbody tr:nth-child(even){background:#f7f9fc;}.footer{margin-top:30px;display:flex;justify-content:space-between;font-size:12px;color:#aaa;}@media print{@page{size:A4 portrait;margin:.5in;}}</style></head><body onload="window.print()">'+
+    '<div class="logo-row"><img src="'+pL+'" style="height:70px;"><div style="text-align:center;"><div class="academy">Wings Fly Aviation Academy</div><div style="font-size:13px;color:#666;">Attendance Report</div></div><img src="'+lL+'" style="height:50px;"></div>'+
+    '<div style="text-align:center;font-size:18px;font-weight:800;color:#003366;border-bottom:3px solid #00b4ff;display:inline-block;padding-bottom:4px;margin:10px 0;">Daily Attendance Sheet</div>'+
+    '<div class="meta"><div class="meta-item"><div class="lbl">Batch</div><div class="val">'+batch+'</div></div><div class="meta-item"><div class="lbl">Date</div><div class="val">'+dateStr+'</div></div><div class="meta-item"><div class="lbl">Total</div><div class="val">'+students.length+'</div></div><div class="meta-item"><div class="lbl" style="color:#007744;">Present</div><div class="val" style="color:#007744;">'+present+'</div></div><div class="meta-item"><div class="lbl" style="color:#cc2233;">Absent</div><div class="val" style="color:#cc2233;">'+absent+'</div></div><div class="meta-item"><div class="lbl">Rate</div><div class="val">'+Math.round(present/students.length*100)+'%</div></div></div>'+
+    '<table><thead><tr><th style="width:50px;text-align:center;">#</th><th style="width:120px;">Student ID</th><th>Student Name</th><th style="width:140px;text-align:center;">Status</th></tr></thead><tbody>'+rows+'</tbody></table>'+
+    '<div class="footer"><span>Generated: '+new Date().toLocaleString()+'</span><span>Wings Fly Aviation Academy</span></div></body></html>');
+  pw.document.close();
+};
+
+window.downloadAttendanceReport = function downloadAttendanceReport() {
+  var batch = document.getElementById('attendanceBatchSelect').value;
+  var date  = document.getElementById('attendanceDate').value;
+  if (!batch || !date) { showErrorToast('\u274C Batch \u0993 Date \u09ac\u09c7\u099b\u09c7 \u09a8\u09bf\u09a8\u0964'); return; }
+  var saved = (globalData.attendance && globalData.attendance[batch+'_'+date]) || {};
+  var students = (globalData.students||[]).filter(function(s){ return s.batch===batch; });
+  var rows = students.map(function(s,i) {
+    return [i+1,s.studentId||'',s.name,batch,date,saved[s.studentId]||'Present'].map(function(v){ return '"'+String(v).replace(/"/g,'""')+'"'; }).join(',');
+  });
+  var csv = ['"#","Student ID","Student Name","Batch","Date","Status"'].concat(rows).join('\n');
+  var blob = new Blob(['\uFEFF'+csv],{type:'text/csv;charset=utf-8;'});
+  var link = document.createElement('a');
+  link.href = URL.createObjectURL(blob);
+  link.download = 'attendance_batch'+batch+'_'+date+'.csv';
+  link.click();
+  showSuccessToast('\u2705 CSV \u09a1\u09be\u0989\u09a8\u09b2\u09cb\u09a1 \u09b9\u09af\u09bc\u09c7\u099b\u09c7!');
+};
+
+// ── Monthly Report functions ──────────────────────────────
+
+window.openAttendanceReportModal = function openAttendanceReportModal() {
+  var modal = bootstrap.Modal.getOrCreateInstance(document.getElementById('attendanceReportModal'));
+  var bs = document.getElementById('attRepBatchSelect');
+  var ys = document.getElementById('attRepYear');
+  var ms = document.getElementById('attRepMonth');
+  var batches = [];
+  (globalData.students||[]).forEach(function(s){ if(s.batch && batches.indexOf(s.batch)===-1) batches.push(s.batch); });
+  batches.sort();
+  bs.innerHTML = '<option value="">Select a batch...</option>' + batches.map(function(b){ return '<option value="'+b+'">'+b+'</option>'; }).join('');
+  var now = new Date(), cy = now.getFullYear();
+  ys.innerHTML = [cy-2,cy-1,cy,cy+1].map(function(y){ return '<option value="'+y+'"'+(y===cy?' selected':'')+'>'+y+'</option>'; }).join('');
+  ms.value = now.getMonth();
+  var c = document.getElementById('attendanceReportContainer'); if(c) c.innerHTML='';
+  var e = document.getElementById('monthlyAttEmptyState');      if(e) e.classList.remove('d-none');
+  var sc= document.getElementById('monthlySummaryCards');       if(sc) sc.classList.add('d-none');
+  var h = document.getElementById('monthlyAttHeaderInfo');      if(h) h.textContent='Batch, Year \u0993 Month \u09ac\u09c7\u099b\u09c7 \u09a8\u09bf\u09a8';
+  modal.show();
+};
+
+window.renderAttendanceReport = function renderAttendanceReport() {
+  var batch = document.getElementById('attRepBatchSelect').value;
+  var year  = parseInt(document.getElementById('attRepYear').value);
+  var month = parseInt(document.getElementById('attRepMonth').value);
+  var container    = document.getElementById('attendanceReportContainer');
+  var emptyState   = document.getElementById('monthlyAttEmptyState');
+  var summaryCards = document.getElementById('monthlySummaryCards');
+  var headerInfo   = document.getElementById('monthlyAttHeaderInfo');
+  if (!batch) return;
+  if (emptyState) emptyState.classList.add('d-none');
+  var MN = ['January','February','March','April','May','June','July','August','September','October','November','December'];
+  var dim = new Date(year,month+1,0).getDate();
+  var students = (globalData.students||[]).filter(function(s){ return s.batch===batch; });
+  if (!students.length) { container.innerHTML='<p class="text-center text-muted py-5">\u098f\u0987 Batch-\u098f \u0995\u09cb\u09a8\u09cb \u099b\u09be\u09a4\u09cd\u09b0 \u09a8\u09c7\u0987\u0964</p>'; return; }
+  var workDays = [];
+  for(var d=1;d<=dim;d++){ var ds=year+'-'+String(month+1).padStart(2,'0')+'-'+String(d).padStart(2,'0'); if(globalData.attendance&&globalData.attendance[batch+'_'+ds]) workDays.push(d); }
+  var totalP=0,totalA=0,bestName='\u2014',bestRate=-1;
+  var bodyRows = students.map(function(s,idx){
+    var p=0,a=0,cells='';
+    for(var d=1;d<=dim;d++){
+      var ds2=year+'-'+String(month+1).padStart(2,'0')+'-'+String(d).padStart(2,'0');
+      var st=(globalData.attendance&&globalData.attendance[batch+'_'+ds2])?globalData.attendance[batch+'_'+ds2][s.studentId]:undefined;
+      var iw=!!(globalData.attendance&&globalData.attendance[batch+'_'+ds2]);
+      var cs='padding:4px 2px;text-align:center;border:1px solid rgba(255,255,255,0.06);font-size:0.75rem;min-width:28px;';
+      var ct='';
+      if(st==='Present'){cs+='background:rgba(0,204,102,0.15);color:#00cc66;font-weight:700;';ct='P';p++;}
+      else if(st==='Absent'){cs+='background:rgba(255,51,80,0.15);color:#ff3350;font-weight:700;';ct='A';a++;}
+      else if(iw){cs+='color:rgba(255,255,255,0.2);';ct='\u2014';}
+      cells+='<td style="'+cs+'">'+ct+'</td>';
+    }
+    totalP+=p;totalA+=a;
+    var rate=workDays.length>0?Math.round(p/workDays.length*100):0;
+    if(rate>bestRate){bestRate=rate;bestName=s.name.split(' ')[0];}
+    var rc=rate>=75?'#00cc66':rate>=50?'#ffcc00':'#ff3350';
+    return '<tr style="background:'+(idx%2===0?'rgba(255,255,255,0.02)':'transparent')+';">'+
+      '<td style="padding:8px 10px;border:1px solid rgba(255,255,255,0.06);color:rgba(255,255,255,0.4);font-size:0.8rem;text-align:center;">'+(idx+1)+'</td>'+
+      '<td style="padding:8px 12px;border:1px solid rgba(255,255,255,0.06);color:#00d9ff;font-size:0.8rem;font-family:monospace;">'+(s.studentId||'\u2014')+'</td>'+
+      '<td style="padding:8px 14px;border:1px solid rgba(255,255,255,0.06);font-weight:700;color:#e0e8ff;white-space:nowrap;">'+s.name+'</td>'+
+      cells+
+      '<td style="padding:8px 8px;border:1px solid rgba(255,255,255,0.06);text-align:center;font-weight:800;color:#00cc66;background:rgba(0,204,102,0.08);">'+p+'</td>'+
+      '<td style="padding:8px 8px;border:1px solid rgba(255,255,255,0.06);text-align:center;font-weight:800;color:#ff3350;background:rgba(255,51,80,0.08);">'+a+'</td>'+
+      '<td style="padding:8px 10px;border:1px solid rgba(255,255,255,0.06);text-align:center;font-weight:800;color:'+rc+';font-size:0.9rem;">'+rate+'%</td>'+
+      '</tr>';
+  }).join('');
+  var dayHdrs='';
+  for(var d=1;d<=dim;d++){
+    var ds3=year+'-'+String(month+1).padStart(2,'0')+'-'+String(d).padStart(2,'0');
+    var iw2=!!(globalData.attendance&&globalData.attendance[batch+'_'+ds3]);
+    var isFr=new Date(year,month,d).getDay()===5;
+    var bg=iw2?'rgba(0,180,255,0.2)':(isFr?'rgba(255,200,0,0.1)':'rgba(255,255,255,0.04)');
+    var tc=iw2?'#00d9ff':(isFr?'#ffcc00':'rgba(255,255,255,0.4)');
+    dayHdrs+='<th style="padding:6px 2px;text-align:center;min-width:28px;font-size:0.72rem;background:'+bg+';color:'+tc+';border:1px solid rgba(255,255,255,0.08);">'+d+'</th>';
+  }
+  var footDays='';
+  for(var d=1;d<=dim;d++){
+    var ds4=year+'-'+String(month+1).padStart(2,'0')+'-'+String(d).padStart(2,'0');
+    var dd=globalData.attendance&&globalData.attendance[batch+'_'+ds4];
+    if(!dd){footDays+='<td style="border:1px solid rgba(255,255,255,0.06);background:rgba(255,255,255,0.02);"></td>';continue;}
+    var dp=Object.values(dd).filter(function(v){return v==='Present';}).length;
+    var da=Object.values(dd).filter(function(v){return v==='Absent';}).length;
+    footDays+='<td style="padding:4px 2px;border:1px solid rgba(255,255,255,0.06);text-align:center;font-size:0.7rem;background:rgba(0,180,255,0.06);"><span style="color:#00cc66;font-weight:700;">'+dp+'</span><br><span style="color:#ff3350;font-weight:700;">'+da+'</span></td>';
+  }
+  var avgRate=workDays.length>0&&students.length>0?Math.round(totalP/(workDays.length*students.length)*100):0;
+  container.innerHTML=
+    '<div style="margin-bottom:12px;padding:10px 14px;background:rgba(0,180,255,0.06);border-radius:10px;border:1px solid rgba(0,180,255,0.15);">'+
+      '<div style="font-size:0.8rem;color:rgba(255,255,255,0.5);margin-bottom:4px;">\uD83D\uDCC5 '+MN[month]+' '+year+' \u2014 Batch '+batch+'</div>'+
+      '<div style="font-size:0.75rem;color:rgba(255,255,255,0.4);">\uD83D\uDD35 Highlighted = attendance taken | P = Present | A = Absent</div>'+
+    '</div>'+
+    '<div style="overflow-x:auto;">'+
+      '<table style="width:100%;border-collapse:collapse;font-size:0.85rem;">'+
+        '<thead><tr>'+
+          '<th style="padding:8px 6px;text-align:center;min-width:36px;background:rgba(255,255,255,0.06);border:1px solid rgba(255,255,255,0.08);color:rgba(255,255,255,0.5);font-size:0.72rem;">#</th>'+
+          '<th style="padding:8px 10px;min-width:90px;background:rgba(255,255,255,0.06);border:1px solid rgba(255,255,255,0.08);color:rgba(255,255,255,0.5);font-size:0.72rem;">ID</th>'+
+          '<th style="padding:8px 14px;min-width:160px;text-align:left;background:rgba(255,255,255,0.06);border:1px solid rgba(255,255,255,0.08);color:rgba(255,255,255,0.5);font-size:0.72rem;">STUDENT NAME</th>'+
+          dayHdrs+
+          '<th style="padding:8px 6px;text-align:center;min-width:36px;background:rgba(0,204,102,0.12);border:1px solid rgba(255,255,255,0.08);color:#00cc66;font-size:0.72rem;">P</th>'+
+          '<th style="padding:8px 6px;text-align:center;min-width:36px;background:rgba(255,51,80,0.12);border:1px solid rgba(255,255,255,0.08);color:#ff3350;font-size:0.72rem;">A</th>'+
+          '<th style="padding:8px 8px;text-align:center;min-width:50px;background:rgba(255,200,0,0.1);border:1px solid rgba(255,255,255,0.08);color:#ffcc00;font-size:0.72rem;">RATE</th>'+
+        '</tr></thead>'+
+        '<tbody>'+bodyRows+'</tbody>'+
+        '<tfoot><tr>'+
+          '<td colspan="3" style="padding:10px 14px;border:1px solid rgba(255,255,255,0.08);font-weight:700;color:rgba(255,255,255,0.6);font-size:0.8rem;background:rgba(255,255,255,0.04);">'+
+            'Total | '+students.length+' Students | '+workDays.length+' Working Days</td>'+
+          footDays+
+          '<td style="padding:10px 8px;border:1px solid rgba(255,255,255,0.08);text-align:center;font-weight:800;color:#00cc66;background:rgba(0,204,102,0.08);">'+totalP+'</td>'+
+          '<td style="padding:10px 8px;border:1px solid rgba(255,255,255,0.08);text-align:center;font-weight:800;color:#ff3350;background:rgba(255,51,80,0.08);">'+totalA+'</td>'+
+          '<td style="padding:10px 8px;border:1px solid rgba(255,255,255,0.08);text-align:center;font-weight:800;color:#ffcc00;background:rgba(255,200,0,0.08);">'+avgRate+'%</td>'+
+        '</tr></tfoot>'+
+      '</table></div>';
+  if(summaryCards) summaryCards.classList.remove('d-none');
+  var w=document.getElementById('mthWorkingDays');   if(w) w.textContent=workDays.length;
+  var ts=document.getElementById('mthTotalStudents');if(ts) ts.textContent=students.length;
+  var ar=document.getElementById('mthAvgRate');      if(ar) ar.textContent=avgRate+'%';
+  var bs2=document.getElementById('mthBestStudent'); if(bs2) bs2.textContent=bestName;
+  if(headerInfo) headerInfo.textContent='Batch '+batch+'  \u2022  '+MN[month]+' '+year+'  \u2022  '+students.length+' Students';
+};
+
+window.printMonthlyAttendance = function printMonthlyAttendance() {
+  var batch=document.getElementById('attRepBatchSelect').value;
+  var year=parseInt(document.getElementById('attRepYear').value);
+  var month=parseInt(document.getElementById('attRepMonth').value);
+  if(!batch){showErrorToast('\u274C Batch \u09ac\u09c7\u099b\u09c7 \u09a8\u09bf\u09a8\u0964');return;}
+  var MN=['January','February','March','April','May','June','July','August','September','October','November','December'];
+  var dim=new Date(year,month+1,0).getDate();
+  var students=(globalData.students||[]).filter(function(s){return s.batch===batch;});
+  if(!students.length){showErrorToast('\u098f\u0987 Batch-\u098f \u0995\u09cb\u09a8\u09cb \u099b\u09be\u09a4\u09cd\u09b0 \u09a8\u09c7\u0987\u0964');return;}
+  var workDays=[];
+  for(var d=1;d<=dim;d++){var ds=year+'-'+String(month+1).padStart(2,'0')+'-'+String(d).padStart(2,'0');if(globalData.attendance&&globalData.attendance[batch+'_'+ds])workDays.push(d);}
+  var dayThs='';
+  for(var d=1;d<=dim;d++){var ds2=year+'-'+String(month+1).padStart(2,'0')+'-'+String(d).padStart(2,'0');var iw=!!(globalData.attendance&&globalData.attendance[batch+'_'+ds2]);var isFr=new Date(year,month,d).getDay()===5;var bg=iw?'#e8f4ff':(isFr?'#fffbe6':'#fff');var col=iw?'#0066cc':(isFr?'#cc9900':'#aaa');dayThs+='<th style="border:1px solid #dde;width:26px;text-align:center;font-size:10px;background:'+bg+';color:'+col+';padding:4px 1px;">'+d+'</th>';}
+  var totalP=0,totalA=0;
+  var rows=students.map(function(s,idx){var p=0,a=0,cells='';
+    for(var d=1;d<=dim;d++){var ds3=year+'-'+String(month+1).padStart(2,'0')+'-'+String(d).padStart(2,'0');var st=(globalData.attendance&&globalData.attendance[batch+'_'+ds3])?globalData.attendance[batch+'_'+ds3][s.studentId]:undefined;var wk=!!(globalData.attendance&&globalData.attendance[batch+'_'+ds3]);var t='',bg2='#fff',c2='#ccc';if(st==='Present'){t='P';bg2='#f0fff8';c2='#007744';p++;}else if(st==='Absent'){t='A';bg2='#fff0f2';c2='#cc2233';a++;}else if(wk){t='\u00b7';c2='#ddd';}cells+='<td style="border:1px solid #eef;text-align:center;font-size:10px;font-weight:700;background:'+bg2+';color:'+c2+';padding:3px 1px;">'+t+'</td>';}
+    totalP+=p;totalA+=a;var rate=workDays.length?Math.round(p/workDays.length*100):0;var rc=rate>=75?'#007744':rate>=50?'#cc9900':'#cc2233';
+    return '<tr style="background:'+(idx%2===0?'#fafbff':'#fff')+';">'+
+      '<td style="border:1px solid #eef;padding:5px 6px;text-align:center;font-size:10px;color:#aaa;">'+(idx+1)+'</td>'+
+      '<td style="border:1px solid #eef;padding:5px 8px;font-family:monospace;font-size:10px;color:#1a4d6e;font-weight:600;">'+(s.studentId||'\u2014')+'</td>'+
+      '<td style="border:1px solid #eef;padding:5px 10px;font-weight:700;font-size:11px;white-space:nowrap;">'+s.name+'</td>'+
+      cells+
+      '<td style="border:1px solid #eef;padding:5px 6px;text-align:center;font-weight:800;font-size:11px;color:#007744;background:#f0fff8;">'+p+'</td>'+
+      '<td style="border:1px solid #eef;padding:5px 6px;text-align:center;font-weight:800;font-size:11px;color:#cc2233;background:#fff0f2;">'+a+'</td>'+
+      '<td style="border:1px solid #eef;padding:5px 6px;text-align:center;font-weight:800;font-size:11px;color:'+rc+';">'+rate+'%</td>'+
+      '</tr>';
+  }).join('');
+  var footD='';for(var d=1;d<=dim;d++){var ds4=year+'-'+String(month+1).padStart(2,'0')+'-'+String(d).padStart(2,'0');var dd=globalData.attendance&&globalData.attendance[batch+'_'+ds4];if(!dd){footD+='<td style="border:1px solid #dde;background:#f9f9f9;"></td>';continue;}var dp=Object.values(dd).filter(function(v){return v==='Present';}).length;var da=Object.values(dd).filter(function(v){return v==='Absent';}).length;footD+='<td style="border:1px solid #dde;text-align:center;font-size:9px;padding:3px 1px;background:#e8f4ff;"><span style="color:#007744;font-weight:700;">'+dp+'</span><br><span style="color:#cc2233;font-weight:700;">'+da+'</span></td>';}
+  var avg2=workDays.length&&students.length?Math.round(totalP/(workDays.length*students.length)*100):0;
+  var lL=(window.APP_LOGOS&&window.APP_LOGOS.linear)?window.APP_LOGOS.linear:'wings_logo_linear.png';
+  var pL=(window.APP_LOGOS&&window.APP_LOGOS.premium)?window.APP_LOGOS.premium:'wings_logo_premium.png';
+  var pw=window.open('','','width=1200,height=850');
+  pw.document.write('<!DOCTYPE html><html><head><meta charset="UTF-8"><title>Monthly Attendance - '+batch+'</title><style>body{font-family:"Segoe UI",sans-serif;padding:24px 30px;}.logo-row{display:flex;justify-content:space-between;align-items:center;margin-bottom:8px;}.academy{font-size:22px;font-weight:900;color:#1a4d6e;text-transform:uppercase;}.meta{display:flex;justify-content:center;gap:28px;margin-bottom:14px;}.meta-item .lbl{font-size:10px;color:#aaa;text-transform:uppercase;font-weight:600;}.meta-item .val{font-weight:800;font-size:14px;color:#1a4d6e;}table{width:100%;border-collapse:collapse;}thead th{background:#1a4d6e;color:#fff;padding:7px 4px;font-size:10px;text-transform:uppercase;}tfoot td{background:#f0f4ff;font-weight:700;}@media print{@page{size:A3 landscape;margin:.4in;}}</style></head><body onload="window.print()">'+
+    '<div class="logo-row"><img src="'+pL+'" style="height:65px;"><div style="text-align:center;"><div class="academy">Wings Fly Aviation Academy</div><div style="font-size:13px;color:#666;">Monthly Attendance Report</div></div><img src="'+lL+'" style="height:48px;"></div>'+
+    '<div style="text-align:center;font-size:17px;font-weight:800;color:#003366;border-bottom:3px solid #00b4ff;display:inline-block;padding-bottom:3px;margin:10px 0 4px;">Monthly Attendance Sheet</div>'+
+    '<div class="meta"><div class="meta-item"><div class="lbl">Batch</div><div class="val">'+batch+'</div></div><div class="meta-item"><div class="lbl">Month</div><div class="val">'+MN[month]+' '+year+'</div></div><div class="meta-item"><div class="lbl">Students</div><div class="val">'+students.length+'</div></div><div class="meta-item"><div class="lbl">Working Days</div><div class="val">'+workDays.length+'</div></div><div class="meta-item"><div class="lbl" style="color:#007744;">Present</div><div class="val" style="color:#007744;">'+totalP+'</div></div><div class="meta-item"><div class="lbl" style="color:#cc2233;">Absent</div><div class="val" style="color:#cc2233;">'+totalA+'</div></div><div class="meta-item"><div class="lbl">Avg</div><div class="val">'+avg2+'%</div></div></div>'+
+    '<table><thead><tr><th style="width:30px;">#</th><th style="width:85px;text-align:left;">ID</th><th style="min-width:140px;text-align:left;">Name</th>'+dayThs+'<th style="width:28px;background:#004d22;">P</th><th style="width:28px;background:#7a0010;">A</th><th style="width:40px;background:#4d3800;">Rate</th></tr></thead><tbody>'+rows+'</tbody><tfoot><tr><td colspan="3" style="text-align:right;font-size:11px;padding:6px 10px;">Total \u2192 Present: <strong style="color:#007744;">'+totalP+'</strong> | Absent: <strong style="color:#cc2233;">'+totalA+'</strong></td>'+footD+'<td style="text-align:center;color:#007744;font-weight:800;">'+totalP+'</td><td style="text-align:center;color:#cc2233;font-weight:800;">'+totalA+'</td><td style="text-align:center;color:#cc6600;font-weight:800;">'+avg2+'%</td></tr></tfoot></table>'+
+    '<div style="margin-top:20px;display:flex;justify-content:space-between;font-size:10px;color:#bbb;"><span>Generated: '+new Date().toLocaleString()+'</span><span>Wings Fly Aviation Academy</span></div></body></html>');
+  pw.document.close();
+};
+
+window.downloadMonthlyAttendanceCsv = function downloadMonthlyAttendanceCsv() {
+  var batch=document.getElementById('attRepBatchSelect').value;
+  var year=parseInt(document.getElementById('attRepYear').value);
+  var month=parseInt(document.getElementById('attRepMonth').value);
+  if(!batch){showErrorToast('\u274C Batch \u09ac\u09c7\u099b\u09c7 \u09a8\u09bf\u09a8\u0964');return;}
+  var MN=['January','February','March','April','May','June','July','August','September','October','November','December'];
+  var dim=new Date(year,month+1,0).getDate();
+  var students=(globalData.students||[]).filter(function(s){return s.batch===batch;});
+  if(!students.length){showErrorToast('\u098f\u0987 Batch-\u098f \u0995\u09cb\u09a8\u09cb \u099b\u09be\u09a4\u09cd\u09b0 \u09a8\u09c7\u0987\u0964');return;}
+  var dayHdrs=Array.from({length:dim},function(_,i){return '"'+(i+1)+'"';}).join(',');
+  var hdr='"#","Student ID","Student Name",'+dayHdrs+',"Present","Absent","Rate"';
+  var rows=students.map(function(s,idx){var p=0,a=0;
+    var cells=Array.from({length:dim},function(_,i){var d=i+1;var ds=year+'-'+String(month+1).padStart(2,'0')+'-'+String(d).padStart(2,'0');var st=(globalData.attendance&&globalData.attendance[batch+'_'+ds])?globalData.attendance[batch+'_'+ds][s.studentId]:undefined;if(st==='Present'){p++;return '"P"';}if(st==='Absent'){a++;return '"A"';}return '""';}).join(',');
+    var rate=(p+a)>0?Math.round(p/(p+a)*100)+'%':'\u2014';
+    return '"'+(idx+1)+'","'+(s.studentId||'')+'","'+s.name+'",'+cells+',"'+p+'","'+a+'","'+rate+'"';
+  });
+  var csv='Wings Fly Aviation Academy - Monthly Attendance\nBatch: '+batch+' | '+MN[month]+' '+year+'\n\n'+hdr+'\n'+rows.join('\n');
+  var blob=new Blob(['\uFEFF'+csv],{type:'text/csv;charset=utf-8;'});
+  var link=document.createElement('a');link.href=URL.createObjectURL(blob);link.download='monthly_att_'+batch+'_'+MN[month]+'_'+year+'.csv';link.click();
+  showSuccessToast('\u2705 Monthly CSV \u09a1\u09be\u0989\u09a8\u09b2\u09cb\u09a1 \u09b9\u09af\u09bc\u09c7\u099b\u09c7!');
+};
+// ── end attendance module ─────────────────────────────────
