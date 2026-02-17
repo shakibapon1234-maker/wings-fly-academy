@@ -259,16 +259,21 @@ function handleResetAllData() {
         startBalances: {},
         academyName: 'Wings Fly Aviation Academy'
       },
-      incomeCategories: [],
-      expenseCategories: [],
+      incomeCategories: ['Tuition Fees', 'Loan Received', 'Other'],
+      expenseCategories: ['Salary', 'Rent', 'Utilities', 'Loan Given', 'Other'],
       paymentMethods: [],
       cashBalance: 0,
-      bankAccounts: [],
+      bankAccounts: [
+        { sl: 1, name: 'CITY BANK', branch: 'BONOSREE', bankName: 'CITY BANK', accountNo: '1493888742001', balance: 0 },
+        { sl: 2, name: 'Ferdous Ahmed Islami Bank', branch: 'NIKUNJA', bankName: 'ISLAMI BANK BANGLADESH LTD', accountNo: '20504100200546109', balance: 0 },
+        { sl: 3, name: 'BRAC BANK LTD BANASREE', branch: 'BANASREE', bankName: 'BRAC BANK LTD BANASREE', accountNo: '2052189750001', balance: 0 },
+        { sl: 4, name: 'ISLAMI BANK BANGLADESH LTD', branch: 'NIKUNJA', bankName: 'ISLAMI BANK BANGLADESH LTD', accountNo: '20504100100094207', balance: 0 },
+        { sl: 5, name: 'DUTCH-BANGLA BANK LIMITED', branch: 'RAMPURA', bankName: 'DUTCH-BANGLA BANK LIMITED', accountNo: '1781100023959', balance: 0 },
+        { sl: 6, name: 'EASTERN BANK LIMITED', branch: 'BANASREE', bankName: 'EASTERN BANK LIMITED', accountNo: '1091070200510', balance: 0 }
+      ],
       mobileBanking: [],
-      courseNames: [],
-      employeeRoles: [],
-      credentials: { username: 'admin', password: 'admin123' },
-      users: []
+      courseNames: ['Caregiver', 'Student Visa', 'Visa (Tourist, Medical Business)', 'Air Ticketing (Basic)', 'Air Ticketing (Advance)', 'Travel Agency Business Managment', 'Language (Japanese, Korean)', 'Other'],
+      credentials: { username: 'admin', password: 'admin123' }
     };
 
     // 2. Save this clean state to localStorage (prevents demo data fallback)
@@ -3066,13 +3071,7 @@ async function handleStudentSubmit(e) {
   const data = {};
   formData.forEach((value, key) => data[key] = value);
 
-  // ✅ VALIDATION: Payment Method is REQUIRED
-  if (!data.method || data.method.trim() === '') {
-    showErrorToast('⚠️ Payment Method is required! Please select a payment method.');
-    return;
-  }
-
-  try:
+  try {
     const editIndex = data.studentRowIndex;
     let student;
     let photoURL = data.photoURL || null; // Get existing photo URL from hidden field
@@ -3314,12 +3313,6 @@ function handleAddInstallment() {
     return;
   }
 
-  // ✅ VALIDATION: Payment Method is REQUIRED
-  if (!method || method.trim() === '') {
-    showErrorToast('⚠️ Payment Method is required! Please select a payment method.');
-    return;
-  }
-
   // Confirm if amount exceeds due
   if (amount > (student.due + 1)) { // Allow 1tk buffer for rounding
     if (!confirm(`Warning: Payment amount (৳${formatNumber(amount)}) exceeds current due (৳${formatNumber(student.due)}). Continue?`)) return;
@@ -3458,12 +3451,6 @@ async function handleFinanceSubmit(e) {
   // Only Loan Given and Loan Received TYPE require Person field
   if ((type === 'Loan Given' || type === 'Loan Received') && !person) {
     showErrorToast('⚠️ Person/Counterparty name is required for Loan transactions!');
-    return;
-  }
-
-  // ✅ VALIDATION: Payment Method is REQUIRED
-  if (!formData.method || formData.method.trim() === '') {
-    showErrorToast('⚠️ Payment Method is required! Please select a payment method.');
     return;
   }
 
@@ -3609,12 +3596,6 @@ async function handleEditTransactionSubmit(e) {
   const form = document.getElementById('editTransactionForm');
   const formData = {};
   new FormData(form).forEach((value, key) => formData[key] = value);
-
-  // ✅ VALIDATION: Payment Method is REQUIRED
-  if (!formData.method || formData.method.trim() === '') {
-    showErrorToast('⚠️ Payment Method is required! Please select a payment method.');
-    return;
-  }
 
   const id = parseInt(formData.transactionId);
   const index = globalData.finance.findIndex(f => f.id === id);
@@ -6369,48 +6350,6 @@ window.handleTransferSubmit = handleTransferSubmit;
 
 
 // === NEW ACTIONS MODAL LOGIC ===
-
-// NEW: Function to update account balance display in transfer modal
-function updateTransferAccountBalance(type) {
-  const selectId = type === 'from' ? 'accTransferFrom' : 'accTransferTo';
-  const balanceDisplayId = type === 'from' ? 'fromAccountBalance' : 'toAccountBalance';
-  const balanceAmountId = type === 'from' ? 'fromBalanceAmount' : 'toBalanceAmount';
-  
-  const selectedAccount = document.getElementById(selectId).value;
-  const balanceDisplay = document.getElementById(balanceDisplayId);
-  const balanceAmount = document.getElementById(balanceAmountId);
-  
-  if (!selectedAccount) {
-    balanceDisplay.style.display = 'none';
-    return;
-  }
-  
-  let balance = 0;
-  
-  // Get balance based on account type
-  if (selectedAccount === 'Cash') {
-    balance = parseFloat(globalData.cashBalance) || 0;
-  } else {
-    // Check in bank accounts
-    let account = globalData.bankAccounts.find(a => a.name === selectedAccount);
-    if (account) {
-      balance = parseFloat(account.balance) || 0;
-    } else {
-      // Check in mobile banking
-      account = globalData.mobileBanking.find(a => a.name === selectedAccount);
-      if (account) {
-        balance = parseFloat(account.balance) || 0;
-      }
-    }
-  }
-  
-  // Update display
-  balanceAmount.textContent = formatNumber(balance);
-  balanceDisplay.style.display = 'block';
-}
-
-// Expose to global
-window.updateTransferAccountBalance = updateTransferAccountBalance;
 function openStudentActionsModal(index) {
   const items = globalData.students || [];
   if (!items[index]) return;
