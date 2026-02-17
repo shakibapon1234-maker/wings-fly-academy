@@ -280,13 +280,13 @@
                 overflow: hidden !important;
             }
 
-            #printArea > div {
+            #printArea>div {
                 page-break-after: avoid !important;
                 page-break-inside: auto !important;
             }
 
             /* Hide everything except print area */
-            body.printing-receipt > *:not(#printArea) {
+            body.printing-receipt>*:not(#printArea) {
                 display: none !important;
             }
 
@@ -484,55 +484,60 @@
                                         data-bs-target="#visitorModal">👤 Add Visitor</a></li>
                             </ul>
                         </div>
-                        <!-- Enhanced Sync Button with Dropdown -->
+                        <!-- Enhanced Supabase Sync Button with Dropdown -->
                         <div class="dropdown me-3">
-                            <i class="bi bi-cloud-arrow-up fs-5 text-muted cursor-pointer" id="cloudStatusIndicator"
-                                data-bs-toggle="dropdown" aria-expanded="false" title="Sync to Cloud"></i>
+                            <i class="bi bi-cloud-check-fill fs-5 text-primary cursor-pointer" id="cloudStatusIndicator"
+                                data-bs-toggle="dropdown" aria-expanded="false" title="Supabase Sync V2"></i>
 
-                            <ul class="dropdown-menu dropdown-menu-end shadow-lg border-0 p-3 rounded-3"
-                                style="min-width: 280px;">
+                            <ul class="dropdown-menu dropdown-menu-end shadow-lg border-0 p-3 rounded-4"
+                                style="min-width: 280px; background: rgba(13, 17, 34, 0.95); backdrop-filter: blur(10px); color: white;">
                                 <li class="mb-2">
                                     <div class="d-flex justify-content-between align-items-center mb-2">
-                                        <h6 class="mb-0 fw-bold">â˜ï¸ Cloud Sync</h6>
-                                        <span class="badge bg-light text-dark" id="syncStatusText">Ready</span>
+                                        <h6 class="mb-0 fw-bold text-info">🌌 Supabase V2 Sync</h6>
+                                        <span
+                                            class="badge bg-success-subtle text-success border border-success-subtle rounded-pill"
+                                            id="syncStatusText">Connected</span>
                                     </div>
-                                    <small class="text-muted d-block">Last sync: <span
-                                            id="lastSyncTime">Never</span></small>
+                                    <small class="text-muted d-block">LWW with Versioning Active</small>
+                                    <small class="text-info d-block mt-1">Local Version: <span
+                                            id="localVersionNum">v1</span></small>
                                 </li>
                                 <li>
-                                    <hr class="dropdown-divider">
+                                    <hr class="dropdown-divider opacity-10">
                                 </li>
                                 <li>
-                                    <button class="dropdown-item rounded-2 py-2 d-flex align-items-center gap-2"
-                                        onclick="wingsSync.fullSync()">
-                                        <i class="bi bi-arrow-repeat text-primary"></i>
-                                        <span>Sync Now</span>
+                                    <button
+                                        class="dropdown-item rounded-3 py-2 d-flex align-items-center gap-2 text-white"
+                                        onclick="supabaseSync.syncData()">
+                                        <i class="bi bi-arrow-repeat text-info"></i>
+                                        <span>Full Bidirectional Sync</span>
                                     </button>
                                 </li>
                                 <li>
-                                    <button class="dropdown-item rounded-2 py-2 d-flex align-items-center gap-2"
-                                        onclick="loadFromCloud()">
-                                        <i class="bi bi-cloud-download text-info"></i>
-                                        <span>Pull from Cloud</span>
+                                    <button
+                                        class="dropdown-item rounded-3 py-2 d-flex align-items-center gap-2 text-white"
+                                        onclick="supabaseSync.pushToCloud()">
+                                        <i class="bi bi-cloud-arrow-up text-primary"></i>
+                                        <span>Push Local Changes</span>
                                     </button>
                                 </li>
                                 <li>
-                                    <button class="dropdown-item rounded-2 py-2 d-flex align-items-center gap-2"
-                                        onclick="saveToCloud()">
-                                        <i class="bi bi-cloud-upload text-success"></i>
-                                        <span>Push to Cloud</span>
+                                    <button
+                                        class="dropdown-item rounded-3 py-2 d-flex align-items-center gap-2 text-white"
+                                        onclick="supabaseSync.pullFromCloud()">
+                                        <i class="bi bi-cloud-arrow-down text-warning"></i>
+                                        <span>Pull Latest Data</span>
                                     </button>
                                 </li>
                                 <li>
-                                    <hr class="dropdown-divider">
+                                    <hr class="dropdown-divider opacity-10">
                                 </li>
                                 <li>
-                                    <div class="form-check form-switch px-3 py-2">
-                                        <input class="form-check-input" type="checkbox" id="autoSyncToggle" checked
-                                            onchange="toggleAutoSync(this.checked)">
-                                        <label class="form-check-label small" for="autoSyncToggle">
-                                            Auto-sync (30s)
-                                        </label>
+                                    <div class="px-3 py-1">
+                                        <div class="d-flex justify-content-between">
+                                            <span class="small opacity-75">Auto-update</span>
+                                            <span class="badge bg-primary rounded-pill">30s</span>
+                                        </div>
                                     </div>
                                 </li>
                             </ul>
@@ -1844,7 +1849,8 @@
                             <div class="col-md-4 mb-3">
                                 <label class="form-label fw-bold small text-uppercase text-muted">Payment
                                     Method <span style="color: red;">*</span></label>
-                                <select name="method" class="form-select premium-input-modern" id="studentMethodSelect" required>
+                                <select name="method" class="form-select premium-input-modern" id="studentMethodSelect"
+                                    required>
                                     <!-- Populated dynamically -->
                                 </select>
                             </div>
@@ -1961,7 +1967,8 @@
                                             placeholder="Installment Amount" required>
                                     </div>
                                     <div class="col-md-4">
-                                        <label class="form-label small">Method <span style="color: red;">*</span></label>
+                                        <label class="form-label small">Method <span
+                                                style="color: red;">*</span></label>
                                         <select id="pmtNewMethod" class="form-select" required>
                                             <option value="">Select Method</option>
                                             <option value="Cash">Cash</option>
@@ -3411,14 +3418,26 @@
     <!-- Supabase JS Client for Multi-user Sync -->
     <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
 
-    <!-- Supabase Configuration (Update with your credentials) -->
+    <!-- Supabase Configuration -->
     <script src="supabase-config.js"></script>
+
+    <!-- Essential Data Modules -->
+    <script src="logos.js"></script>
 
     <!-- Supabase Sync System (Multi-user Real-time Sync) -->
     <script src="supabase-sync-READY.js"></script>
 
-    <!-- Main Application (Sync code now embedded inside) -->
-    <script src="app.js?v=9.0"></script>
+    <!-- Management Modules -->
+    <script src="batch_report.js"></script>
+    <script src="exam_management.js"></script>
+    <script src="visitor_management.js"></script>
+    <script src="search_enhancements.js"></script>
+
+    <!-- Main Application -->
+    <script src="app.js?v=9.1"></script>
+
+    <!-- Data Protection & Recovery (Loads last to wrap saving functions) -->
+    <script src="data_protection.js"></script>
 
     <!-- =============================================== -->
     <!-- MOBILE BANKING MODAL -->

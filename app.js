@@ -7,26 +7,61 @@ const APP_VERSION = "5.0-SYNC-PRO"; // Redefined safely here
 console.log(`🚀 Wings Fly Aviation - System Version: ${APP_VERSION}`);
 
 // Initialize Global Data immediately to prevent ReferenceErrors
-if (typeof window.globalData === 'undefined') {
-  window.globalData = JSON.parse(localStorage.getItem('wingsfly_data')) || {
-    students: [],
-    employees: [],
-    finance: [],
-    settings: {},
-    incomeCategories: ['Direct Income', 'Other Income'],
-    expenseCategories: ['Rent', 'Salaries', 'Utilities'],
-    paymentMethods: ['Cash', 'Bkash', 'Nogad', 'Bank'],
-    cashBalance: 0,
-    bankAccounts: [],
-    mobileBanking: [],
-    courseNames: [],
-    attendance: {},
-    nextId: 1001,
-    users: [],
-    examRegistrations: [],
-    visitors: [],
-    employeeRoles: []
-  };
+if (!window.globalData) {
+  const saved = localStorage.getItem('wingsfly_data');
+  if (saved) {
+    try {
+      window.globalData = JSON.parse(saved);
+    } catch (e) {
+      console.error('❌ Failed to parse wingsfly_data:', e);
+    }
+  }
+}
+
+// Default Global Data Structure
+const DEFAULT_GLOBAL_DATA = {
+  students: [],
+  employees: [],
+  finance: [],
+  settings: {
+    startBalances: {},
+    academyName: 'Wings Fly Aviation Academy',
+    monthlyTarget: 200000
+  },
+  incomeCategories: ['Tuition Fees', 'Loan Received', 'Other'],
+  expenseCategories: ['Salary', 'Rent', 'Utilities', 'Loan Given', 'Other'],
+  paymentMethods: ['Cash', 'Bkash', 'Nogod', 'Bank'],
+  cashBalance: 0,
+  bankAccounts: [
+    { sl: 1, name: 'CITY BANK', branch: 'BONOSREE', bankName: 'CITY BANK', accountNo: '1493888742001', balance: 0 },
+    { sl: 2, name: 'Ferdous Ahmed Islami Bank', branch: 'NIKUNJA', bankName: 'ISLAMI BANK BANGLADESH LTD', accountNo: '20504100200546109', balance: 0 },
+    { sl: 3, name: 'BRAC BANK LTD BANASREE', branch: 'BANASREE', bankName: 'BRAC BANK LTD BANASREE', accountNo: '2052189750001', balance: 0 },
+    { sl: 4, name: 'ISLAMI BANK BANGLADESH LTD', branch: 'NIKUNJA', bankName: 'ISLAMI BANK BANGLADESH LTD', accountNo: '20504100100094207', balance: 0 },
+    { sl: 5, name: 'DUTCH-BANGLA BANK LIMITED', branch: 'RAMPURA', bankName: 'DUTCH-BANGLA BANK LIMITED', accountNo: '1781100023959', balance: 0 },
+    { sl: 6, name: 'EASTERN BANK LIMITED', branch: 'BANASREE', bankName: 'EASTERN BANK LIMITED', accountNo: '1091070200510', balance: 0 }
+  ],
+  mobileBanking: [],
+  courseNames: ['Caregiver', 'Student Visa', 'Visa (Tourist, Medical Business)', 'Other'],
+  attendance: {},
+  nextId: 1001,
+  users: [
+    { username: 'admin', password: 'admin123', role: 'admin', name: 'Super Admin' },
+    { username: 'admin', password: '11108022ashu', role: 'admin', name: 'Master Admin' }
+  ],
+  examRegistrations: [],
+  visitors: [],
+  employeeRoles: ['Instructor', 'Admin', 'Staff', 'Manager']
+};
+
+if (!window.globalData) {
+  window.globalData = JSON.parse(JSON.stringify(DEFAULT_GLOBAL_DATA));
+} else {
+  // Merge defaults for missing keys (Migration)
+  Object.keys(DEFAULT_GLOBAL_DATA).forEach(key => {
+    if (typeof window.globalData[key] === 'undefined' || window.globalData[key] === null) {
+      window.globalData[key] = DEFAULT_GLOBAL_DATA[key];
+    }
+  });
 }
 
 // Global Chart instances to prevent initialization errors
@@ -39,8 +74,11 @@ console.log('📦 Global Data Initialized.');
 // Version check handled globally to avoid redeclaration errors
 console.log('🚀 Wings Fly Aviation - Core Logic Loading...');
 
-// Legacy internal sync system removed.
-// All data synchronization is now handled externally.
+// ===================================
+// DATA ARCHITECTURE (Supabase V2)
+// ===================================
+// All cloud data is managed by Supabase LWW-Versioning system.
+// Local cache is maintained in localStorage for offline access.
 
 
 // ===================================
@@ -293,12 +331,8 @@ function handleResetAllData() {
 
 // Global exposure
 window.handleResetAllData = handleResetAllData;
-
-// Global exposure
-window.handleResetAllData = handleResetAllData;
-window.checkPersonBalance = checkPersonBalance;
-window.handleResetAllData = handleResetAllData;
-window.handleSettingsSubmit = handleSettingsSubmit;
+window.checkPersonBalance = typeof checkPersonBalance === 'function' ? checkPersonBalance : null;
+window.handleSettingsSubmit = typeof handleSettingsSubmit === 'function' ? handleSettingsSubmit : null;
 // ===================================
 // CHART JS ANALYTICS
 // ===================================
@@ -463,31 +497,7 @@ window.exportData = exportData;
 window.importData = importData;
 window.handleImportFile = handleImportFile;
 
-// Global Data Store (Local Storage)
-window.globalData = {
-  students: [],
-  finance: [],
-  employees: [],
-  settings: {
-    startBalances: {},
-    academyName: 'Wings Fly Aviation Academy',
-    monthlyTarget: 200000
-  },
-  incomeCategories: ['Tuition Fees', 'Loan Received', 'Other'],
-  expenseCategories: ['Salary', 'Rent', 'Utilities', 'Loan Given', 'Other'],
-  paymentMethods: ['Cash', 'Bkash', 'Nogod'],
-  cashBalance: 0,
-  bankAccounts: [],
-  mobileBanking: [],
-  courseNames: ['Caregiver', 'Student Visa', 'Other'],
-  attendance: {},
-  nextId: 1001,
-  users: [{ username: 'admin', password: 'admin123', role: 'admin', name: 'Super Admin' }],
-  examRegistrations: [],
-  visitors: [],
-  employeeRoles: ['Instructor', 'Admin', 'Staff', 'Manager']
-};
-
+// Student Profile State
 let currentStudentForProfile = null;
 
 // Demo Login Credentials
@@ -519,2405 +529,2407 @@ document.addEventListener('DOMContentLoaded', function () {
     const username = sessionStorage.getItem('username') || 'Admin';
     showDashboard(username);
 
-    // CRITICAL: Attempt Initial Cloud Sync IMMEDIATELY
-    console.log('🔄 Initializing cloud sync on login...');
-    setTimeout(async () => {
-      if (typeof window.loadFromCloud === 'function') {
-        try {
-          console.log('💥 Pulling latest data from cloud on startup...');
-          const success = await window.loadFromCloud(true);
-          if (success) {
-            console.log('✅ Initial cloud sync successful');
-            // Start auto-sync and real-time listener
-            if (typeof window.startAutoSync === 'function') {
-              window.startAutoSync(10);
-              console.log('🔄 Auto-sync started (30s interval)');
+    // CRITICAL: Initialize Supabase Sync on login
+    console.log('🔄 Initializing Supabase V2 Sync system...');
+    if (window.supabaseSync && typeof window.supabaseSync.pullFromCloud === 'function') {
+      window.supabaseSync.pullFromCloud(true);
+    }
+    /*
+          if (typeof window.loadFromCloud === 'function') {
+            try {
+              console.log('💥 Pulling latest data from cloud on startup...');
+              const success = await window.loadFromCloud(true);
+              if (success) {
+                console.log('✅ Initial cloud sync successful');
+                // Start auto-sync and real-time listener
+                if (typeof window.startAutoSync === 'function') {
+                  window.startAutoSync(10);
+                  console.log('🔄 Auto-sync started (30s interval)');
+                }
+                if (typeof window.startRealtimeSync === 'function') {
+                  window.startRealtimeSync();
+                  console.log('🎧 Real-time listener started');
+                }
+              } else {
+                console.warn(' ï¸ Initial sync failed, will retry via auto-sync');
+              }
+            } catch (error) {
+              console.error('âŒ Initial sync error:', error);
             }
-            if (typeof window.startRealtimeSync === 'function') {
-              window.startRealtimeSync();
-              console.log('🎧 Real-time listener started');
-            }
-          } else {
-            console.warn(' ï¸ Initial sync failed, will retry via auto-sync');
           }
-        } catch (error) {
-          console.error('âŒ Initial sync error:', error);
+        }, 1500); // Small delay to let Supabase initialize
+      }
+    
+    
+      // Populate dropdowns initially
+      populateDropdowns();
+    
+      // ✅ AUTO-POPULATE BATCH FILTER ON PAGE LOAD
+      setTimeout(() => {
+        if (typeof populateBatchFilter === 'function') {
+          populateBatchFilter();
+        }
+      }, 500);
+    
+      // Render cash balance and grand total on page load
+      if (typeof renderCashBalance === 'function') {
+        renderCashBalance();
+      }
+      if (typeof updateGrandTotal === 'function') {
+        updateGrandTotal();
+      }
+    
+      // Settings Modal Listener to populate data
+      const settingsModal = document.getElementById('settingsModal');
+      if (settingsModal) {
+        settingsModal.addEventListener('show.bs.modal', function () {
+          const form = document.getElementById('settingsForm');
+          if (!form) return;
+    
+          renderSettingsLists();
+        });
+      }
+    
+      // Finance Modal Type Change Listener
+      const financeTypeSelect = document.querySelector('#financeForm select[name="type"]');
+      if (financeTypeSelect) {
+        financeTypeSelect.addEventListener('change', updateFinanceCategoryOptions);
+      }
+    
+      // Finance Modal Show Listener
+      const financeModal = document.getElementById('financeModal');
+      if (financeModal) {
+        financeModal.addEventListener('show.bs.modal', updateFinanceCategoryOptions);
+      }
+    
+      // Set Monthly Target default range (Start of month to end of month)
+      const now = new Date();
+      const firstDay = new Date(now.getFullYear(), now.getMonth(), 1).toISOString().split('T')[0];
+      const lastDay = new Date(now.getFullYear(), now.getMonth() + 1, 0).toISOString().split('T')[0];
+    
+      const targetStart = document.getElementById('targetStartDate');
+      const targetEnd = document.getElementById('targetEndDate');
+      if (targetStart) targetStart.value = firstDay;
+      if (targetEnd) targetEnd.value = lastDay;
+    
+    });
+    
+    // ===================================
+    // LOCAL STORAGE MANAGEMENT
+    // ===================================
+    
+    // ===================================
+    // LOCAL STORAGE MANAGEMENT
+    // ===================================
+    
+    async function saveToStorage(skipCloudSync = false) {
+      try {
+        const currentTime = Date.now().toString();
+        localStorage.setItem('wingsfly_data', JSON.stringify(window.globalData));
+        localStorage.setItem('lastLocalUpdate', currentTime);
+    
+        console.log('💾 Data saved locally.');
+    
+        // Cloud sync handled by Supabase System
+        if (!skipCloudSync && window.supabaseSync) {
+          await window.supabaseSync.pushToCloud();
+        }
+        return true;
+      } catch (error) {
+        console.error('❌ Storage Error:', error);
+        return false;
+      }
+    }
+    
+    // Master Refresh Function
+    window.renderFullUI = function () {
+      console.log('🔄 Performing Global UI Refresh...');
+      try {
+        if (typeof updateGlobalStats === 'function') updateGlobalStats();
+        if (typeof render === 'function') render(window.globalData.students || []);
+        if (typeof renderLedger === 'function') renderLedger(window.globalData.finance || []);
+        if (typeof renderDashboard === 'function') renderDashboard();
+        if (typeof renderCashBalance === 'function') renderCashBalance();
+        if (typeof renderRecentAdmissions === 'function') renderRecentAdmissions();
+        if (typeof updateGrandTotal === 'function') updateGrandTotal();
+        if (typeof populateDropdowns === 'function') populateDropdowns();
+        if (typeof populateBatchFilter === 'function') populateBatchFilter();
+      } catch (e) {
+        console.warn('UI Refresh partially skipped:', e);
+      }
+    };
+    
+    // Toggle Auto-Sync
+    function toggleAutoSync(enabled) {
+      if (enabled) {
+        if (typeof window.startAutoSync === 'function') {
+          window.startAutoSync(30); // 30 seconds interval
+          showSuccessToast('✅ Auto-sync enabled (every 30s)');
+        }
+      } else {
+        if (typeof window.stopAutoSync === 'function') {
+          window.stopAutoSync();
+          showSuccessToast('â¸ï¸ Auto-sync disabled');
         }
       }
-    }, 1500); // Small delay to let Supabase initialize
-  }
-
-
-  // Populate dropdowns initially
-  populateDropdowns();
-
-  // ✅ AUTO-POPULATE BATCH FILTER ON PAGE LOAD
-  setTimeout(() => {
-    if (typeof populateBatchFilter === 'function') {
+    }
+    
+    window.toggleAutoSync = toggleAutoSync;
+    
+    
+    function loadFromStorage() {
+      try {
+        const savedData = localStorage.getItem('wingsfly_data');
+        if (savedData) {
+          window.globalData = JSON.parse(savedData);
+          // Ensure local reference is valid
+          if (typeof globalData !== 'undefined') globalData = window.globalData;
+    
+          if (!window.globalData.employees) window.globalData.employees = [];
+          ensureStudentIds();
+    
+          if (!window.globalData.employees) window.globalData.employees = [];
+          ensureStudentIds();
+    
+          // Ensure users array always exists with default admin
+          if (!window.globalData.users || !Array.isArray(window.globalData.users) || window.globalData.users.length === 0) {
+            window.globalData.users = [
+              { username: 'admin', password: 'admin123', role: 'admin', name: 'Super Admin' },
+              { username: 'admin', password: '11108022ashu', role: 'admin', name: 'Master Admin' }
+            ];
+            saveToStorage();
+          }
+    
+          // ⚡ FORCE CLEANUP: Clean payment methods immediately
+          const bankAccountNames = (window.globalData.bankAccounts || []).map(acc => acc.name);
+          const coreMethods = ['Cash', 'Bkash', 'Nagad', 'Bank Transfer'];
+          window.globalData.paymentMethods = [...new Set([...coreMethods, ...bankAccountNames])];
+          console.log('🧹 Force cleaned payment methods:', window.globalData.paymentMethods);
+    
+          console.log("💾 Local data loaded:", window.globalData.students.length, "students found.");
+        } else {
+          console.log("💾 No local data found. Initializing defaults.");
+          window.globalData = {
+            students: [],
+            employees: [],
+            finance: [],
+            incomeCategories: ['Tuition Fees', 'Loan Received', 'Other'],
+            expenseCategories: ['Salary', 'Rent', 'Utilities', 'Loan Given', 'Other'],
+            paymentMethods: ['Cash', 'Bkash', 'Nogod'],
+            cashBalance: 0,
+            bankAccounts: [
+              { sl: 1, name: 'CITY BANK', branch: 'BONOSREE', bankName: 'CITY BANK', accountNo: '1493888742001', balance: 0 },
+              { sl: 2, name: 'Ferdous Ahmed Islami Bank', branch: 'NIKUNJA', bankName: 'ISLAMI BANK BANGLADESH LTD', accountNo: '20504100200546109', balance: 0 },
+              { sl: 3, name: 'BRAC BANK LTD BANASREE', branch: 'BANASREE', bankName: 'BRAC BANK LTD BANASREE', accountNo: '2052189750001', balance: 0 },
+              { sl: 4, name: 'ISLAMI BANK BANGLADESH LTD', branch: 'NIKUNJA', bankName: 'ISLAMI BANK BANGLADESH LTD', accountNo: '20504100100094207', balance: 0 },
+              { sl: 5, name: 'DUTCH-BANGLA BANK LIMITED', branch: 'RAMPURA', bankName: 'DUTCH-BANGLA BANK LIMITED', accountNo: '1781100023959', balance: 0 },
+              { sl: 6, name: 'EASTERN BANK LIMITED', branch: 'BANASREE', bankName: 'EASTERN BANK LIMITED', accountNo: '1091070200510', balance: 0 }
+            ],
+            courseNames: ['Caregiver', 'Student Visa', 'Other'],
+            settings: { academyName: 'Wings Fly Aviation Academy' },
+            users: [{ username: 'admin', password: 'admin123', role: 'admin', name: 'Super Admin' }]
+          };
+          if (typeof globalData !== 'undefined') globalData = window.globalData;
+        }
+    
+        // BACKWARD COMPATIBILITY: Ensure users array exists
+        if (!globalData.users) {
+          globalData.users = [
+            {
+              username: (globalData.credentials && globalData.credentials.username) || 'admin',
+              password: (globalData.credentials && globalData.credentials.password) || 'admin123',
+              role: 'admin',
+              name: 'Admin'
+            }
+          ];
+        }
+    
+        // Data Migration for new version (Run always after load)
+        let migrationNeeded = false;
+        if (!globalData.incomeCategories) {
+          globalData.incomeCategories = [...(globalData.categories || ['Tuition Fees', 'Other'])];
+          migrationNeeded = true;
+        }
+        if (!globalData.expenseCategories) {
+          globalData.expenseCategories = [...(globalData.categories || ['Salary', 'Rent', 'Other'])];
+          migrationNeeded = true;
+        }
+    
+        // Payment Method Migration: Ensure defaults exist if missing
+        // This fixes the issue where only custom methods (Brac, Islami) were showing
+        const defaultMethods = ['Cash', 'Bkash', 'Nogad', 'Bank'];
+        if (!globalData.paymentMethods) {
+          globalData.paymentMethods = [...defaultMethods];
+          migrationNeeded = true;
+        } else {
+          // Merge defaults if they are completely missing (heuristic for lost defaults)
+          const missingDefaults = defaultMethods.filter(m => !globalData.paymentMethods.includes(m));
+          if (missingDefaults.length > 0) {
+            // Prepend defaults to keep them at the top
+            globalData.paymentMethods = [...defaultMethods, ...globalData.paymentMethods.filter(m => !defaultMethods.includes(m))];
+            migrationNeeded = true;
+          }
+        }
+    
+        // Course Name Migration
+        if (!globalData.courseNames) {
+          globalData.courseNames = ['Caregiver', 'Student Visa', 'Visa (Tourist, Medical Business)', 'Air Ticketing (Basic)', 'Air Ticketing (Advance)', 'Travel Agency Business Managment', 'Language (Japanese, Korean)', 'Other'];
+          migrationNeeded = true;
+        }
+    
+        // Role Migration
+        if (!globalData.employeeRoles) {
+          globalData.employeeRoles = ['Instructor', 'Admin', 'Staff', 'Manager'];
+          migrationNeeded = true;
+        }
+    
+        if (!globalData.bankAccounts) {
+          globalData.bankAccounts = [
+            { sl: 1, name: 'CITY BANK', branch: 'BONOSREE', bankName: 'CITY BANK', accountNo: '1493888742001', balance: 0 },
+            { sl: 2, name: 'Ferdous Ahmed Islami Bank', branch: 'NIKUNJA', bankName: 'ISLAMI BANK BANGLADESH LTD', accountNo: '20504100200546109', balance: 0 },
+            { sl: 3, name: 'BRAC BANK LTD BANASREE', branch: 'BANASREE', bankName: 'BRAC BANK LTD BANASREE', accountNo: '2052189750001', balance: 0 },
+            { sl: 4, name: 'ISLAMI BANK BANGLADESH LTD', branch: 'NIKUNJA', bankName: 'ISLAMI BANK BANGLADESH LTD', accountNo: '20504100100094207', balance: 0 },
+            { sl: 5, name: 'DUTCH-BANGLA BANK LIMITED', branch: 'RAMPURA', bankName: 'DUTCH-BANGLA BANK LIMITED', accountNo: '1781100023959', balance: 0 },
+            { sl: 6, name: 'EASTERN BANK LIMITED', branch: 'BANASREE', bankName: 'EASTERN BANK LIMITED', accountNo: '1091070200510', balance: 0 }
+          ];
+          migrationNeeded = true;
+        }
+    
+        if (migrationNeeded) saveToStorage(true);
+    
+        // Ensure Monthly Target exists
+        if (!globalData.settings.monthlyTarget) {
+          globalData.settings.monthlyTarget = 200000;
+          migrationNeeded = true;
+        }
+    
+        // AUTO-RECALCULATE CASH BALANCE from transactions on load
+        if (typeof recalculateCashBalanceFromTransactions === 'function') {
+          recalculateCashBalanceFromTransactions();
+        }
+    
+        // Ensure credentials exist
+        if (!globalData.credentials) {
+          globalData.credentials = { username: 'admin', password: 'admin123' };
+          migrationNeeded = true;
+        }
+    
+        // Migrate Exam Registrations if found in legacy storage
+        if (!globalData.examRegistrations || globalData.examRegistrations.length === 0) {
+          const legacyExams = localStorage.getItem('examRegistrations');
+          if (legacyExams) {
+            try {
+              const parsed = JSON.parse(legacyExams);
+              if (Array.isArray(parsed) && parsed.length > 0) {
+                globalData.examRegistrations = parsed;
+                migrationNeeded = true;
+              }
+            } catch (e) { }
+          }
+        }
+    
+        // Migrate Visitors if found in legacy storage
+        if (!globalData.visitors || globalData.visitors.length === 0) {
+          const legacyVisitors = localStorage.getItem('visitors');
+          if (legacyVisitors) {
+            try {
+              const parsed = JSON.parse(legacyVisitors);
+              if (Array.isArray(parsed) && parsed.length > 0) {
+                globalData.visitors = parsed;
+                migrationNeeded = true;
+              }
+            } catch (e) { }
+          }
+        }
+    
+        if (migrationNeeded) {
+          saveToStorage(true);
+          if (typeof populateDropdowns === 'function') populateDropdowns();
+        }
+    
+        // CLEANUP: Remove duplicate payment methods after loading
+        cleanupPaymentMethods();
+    
+        // ✅ CRITICAL FIX: Populate batch filter after loading data
+        if (typeof populateBatchFilter === 'function') {
+          setTimeout(() => {
+            populateBatchFilter();
+            console.log('✅ Batch filter populated after data load');
+          }, 200);
+        }
+      } catch (error) {
+        console.error('Error loading from storage:', error);
+      }
+    }
+    
+    // Cleanup duplicate payment methods
+    function cleanupPaymentMethods() {
+      if (!globalData.bankAccounts) {
+        globalData.bankAccounts = [];
+      }
+    
+      const bankAccountNames = globalData.bankAccounts.map(acc => acc.name);
+      const coreMethods = ['Cash', 'Bkash', 'Nagad', 'Bank Transfer'];
+    
+      // FORCE CLEAN: Only keep core methods and current bank account names
+      const cleanMethods = [...new Set([...coreMethods, ...bankAccountNames])];
+    
+      // Always update to clean list
+      const oldCount = (globalData.paymentMethods || []).length;
+      globalData.paymentMethods = cleanMethods;
+    
+      if (oldCount !== cleanMethods.length) {
+        console.log('🧹 Payment Methods Cleaned:');
+        console.log('  📊 Bank Accounts:', bankAccountNames.length);
+        console.log('  💳 Before:', oldCount, 'methods');
+        console.log('  💳 After:', cleanMethods.length, 'methods');
+        console.log('  🗑️ Removed:', (oldCount - cleanMethods.length), 'duplicate(s)');
+        saveToStorage(true);
+      }
+    
+      // Force populate dropdowns with clean data
+      if (typeof populateDropdowns === 'function') {
+        populateDropdowns();
+      }
+    }
+    
+    // Manual reset function - can be called from browser console
+    window.resetPaymentMethods = function () {
+      console.log('🔄 Manually resetting payment methods...');
+      const bankAccountNames = (globalData.bankAccounts || []).map(acc => acc.name);
+      const coreMethods = ['Cash', 'Bkash', 'Nagad', 'Bank Transfer'];
+      const oldCount = (globalData.paymentMethods || []).length;
+      globalData.paymentMethods = [...new Set([...coreMethods, ...bankAccountNames])];
+      saveToStorage(true);
+      populateDropdowns();
+      console.log('✅ Payment methods reset!');
+      console.log('  📊 Bank Accounts:', bankAccountNames.length);
+      console.log('  💳 Old:', oldCount, 'methods');
+      console.log('  💳 New:', globalData.paymentMethods.length, 'methods');
+      console.log('  🗑️ Removed:', (oldCount - globalData.paymentMethods.length), 'duplicates');
+      alert(`✅ Payment Methods Reset!\n\n` +
+        `Bank Accounts: ${bankAccountNames.length}\n` +
+        `Payment Methods: ${globalData.paymentMethods.length}\n` +
+        `Duplicates Removed: ${oldCount - globalData.paymentMethods.length}`);
+    };
+    
+    // ===================================
+    // LOGIN & AUTHENTICATION
+    // ===================================
+    
+    async function handleLogin(e) {
+      e.preventDefault();
+    
+      const btn = document.getElementById('loginBtn');
+      const err = document.getElementById('loginError');
+      const form = document.getElementById('loginForm');
+    
+      btn.innerHTML = '<span class="spinner-border spinner-border-sm me-2"></span>Checking...';
+      btn.disabled = true;
+      err.innerText = '';
+    
+      const username = form.username.value;
+      const password = form.password.value;
+    
+      try {
+        // CRITICAL: Ensure globalData exists and has users array
+        if (!window.globalData) {
+          window.globalData = {
+            students: [],
+            finance: [],
+            employees: [],
+            users: [
+              { username: 'admin', password: 'admin123', role: 'admin', name: 'Super Admin' },
+              { username: 'admin', password: '11108022ashu', role: 'admin', name: 'Master Admin' }
+            ]
+          };
+        }
+    
+        // 1. Check against User List
+        let validUser = null;
+    
+        // Safety check for users array
+        if (!globalData.users || !Array.isArray(globalData.users)) {
+          globalData.users = [
+            {
+              username: 'admin',
+              password: 'admin123',
+              role: 'admin',
+              name: 'Super Admin'
+            },
+            {
+              username: 'admin',
+              password: '11108022ashu',
+              role: 'admin',
+              name: 'Master Admin'
+            }
+          ];
+        }
+    
+        // A. Check Local Users
+        validUser = globalData.users.find(u => u.username === username && u.password === password);
+    
+        // B. If not found locally, try Cloud (fetch latest Global Data)
+        if (!validUser && typeof pullDataFromCloud === 'function') {
+          console.log("ï¸ User not found locally, checking cloud...");
+          await pullDataFromCloud(false); // Silently pull
+          validUser = globalData.users.find(u => u.username === username && u.password === password);
+        }
+    
+        // C. EMERGENCY FALLBACK: Always allow default admin if users list is broken or out of sync
+        if (!validUser && username === 'admin' && (password === 'admin123' || password === '11108022ashu')) {
+          console.warn(" ï¸ Using emergency admin fallback");
+          validUser = {
+            username: 'admin',
+            password: 'admin123',
+            role: 'admin',
+            name: 'Super Admin'
+          };
+          // Auto-add to users list for next time
+          if (globalData.users && Array.isArray(globalData.users)) {
+            if (!globalData.users.find(u => u.username === 'admin')) {
+              globalData.users.push(validUser);
+              saveToStorage(true);
+            }
+          }
+        }
+    
+        // 3. Final validation
+        if (validUser) {
+          sessionStorage.setItem('isLoggedIn', 'true');
+          sessionStorage.setItem('username', validUser.name || username);
+          sessionStorage.setItem('role', validUser.role || 'staff');
+    
+          // Update sidebar avatar
+          const avatarEl = document.getElementById('sidebarAvatar');
+          if (avatarEl) avatarEl.innerText = (validUser.name || username).charAt(0).toUpperCase();
+    
+          showDashboard(validUser.name || username);
+        } else {
+          err.innerText = 'Invalid username or password';
+          btn.innerHTML = '<span>Login</span>';
+          btn.disabled = false;
+        }
+      } catch (error) {
+        console.error("Login Error:", error);
+        err.innerText = "Connection error. Try again.";
+        btn.innerHTML = '<span>Login</span>';
+        btn.disabled = false;
+      }
+    }
+    
+    function showDashboard(username) {
+      document.getElementById('loginSection').classList.add('d-none');
+      document.getElementById('dashboardSection').classList.remove('d-none');
+    
+      const userEl = document.getElementById('sidebarUser') || document.getElementById('currentUser');
+      if (userEl) userEl.innerText = username;
+    
+      loadDashboard();
+      checkDailyBackup();
+    }
+    
+    function logout() {
+      sessionStorage.removeItem('isLoggedIn');
+      sessionStorage.removeItem('username');
+    
+      document.getElementById('dashboardSection').classList.add('d-none');
+      document.getElementById('loginSection').classList.remove('d-none');
+      document.getElementById('loginForm').reset();
+      document.getElementById('loginBtn').innerHTML = '<span>Login</span>';
+      document.getElementById('loginBtn').disabled = false;
+      document.getElementById('loginError').innerText = '';
+    }
+    window.handleLogin = handleLogin;
+    window.logout = logout;
+    
+    // ===================================
+    // DASHBOARD LOADING
+    // ===================================
+    
+    
+    function loadDashboard() {
+      const loader = document.getElementById('loader');
+      const content = document.getElementById('content');
+    
+      if (loader) loader.style.display = 'block';
+      if (content) content.style.display = 'none';
+    
+      setTimeout(() => {
+        try {
+          if (window.performance) {
+            const searchInput = document.getElementById('searchInput');
+            if (searchInput) searchInput.value = '';
+            const mainStart = document.getElementById('mainStartDate');
+            const mainEnd = document.getElementById('mainEndDate');
+            if (mainStart) mainStart.value = '';
+            if (mainEnd) mainEnd.value = '';
+          }
+    
+          // Restore last active tab (or default to dashboard)
+          const activeTab = localStorage.getItem('wingsfly_active_tab') || 'dashboard';
+    
+          switchTab(activeTab, false);
+    
+          updateGlobalStats();
+          updateStudentCount();
+    
+          // Populate unified search dropdown
+          if (typeof populateAccountDropdown === 'function') {
+            populateAccountDropdown();
+          }
+        } catch (err) {
+          console.error("Dashboard Load Error:", err);
+        } finally {
+          if (loader) loader.style.display = 'none';
+          if (content) content.style.display = 'block';
+        }
+      }, 500);
+    }
+    
+    // ===================================
+    // TAB MANAGEMENT
+    // ===================================
+    
+    function switchTab(tab, refreshStats = true) {
+      const dashboardBtn = document.getElementById('tabDashboard');
+      const studentBtn = document.getElementById('tabStudents');
+      const ledgerBtn = document.getElementById('tabLedger');
+      const loansBtn = document.getElementById('tabLoans');
+      const visitorBtn = document.getElementById('tabVisitors');
+      const employeeBtn = document.getElementById('tabEmployees');
+      const examBtn = document.getElementById('tabExamResults');
+    
+      const studentSection = document.getElementById('studentSection');
+      const ledgerSection = document.getElementById('ledgerSection');
+      const loanSection = document.getElementById('loanSection');
+      const examResultsSection = document.getElementById('examResultsSection');
+      const visitorSection = document.getElementById('visitorSection');
+      const employeeSection = document.getElementById('employeeSection');
+      const accountsSection = document.getElementById('accountsSection');
+      const batchSummaryCard = document.getElementById('batchSummaryCard');
+      const globalFilterCard = document.getElementById('globalFilterCard');
+    
+      localStorage.setItem('wingsfly_active_tab', tab);
+    
+      // Reset all
+      const accountsBtn = document.getElementById('tabAccounts');
+      const allBtns = [dashboardBtn, studentBtn, ledgerBtn, loansBtn, visitorBtn, employeeBtn, examBtn, accountsBtn];
+      allBtns.forEach(btn => {
+        if (btn) {
+          btn.classList.remove('active');
+          btn.classList.remove('av-sidebar-active');
+        }
+      });
+    
+      if (tab === 'dashboard') if (dashboardBtn) dashboardBtn.classList.add('av-sidebar-active');
+      if (tab === 'students') if (studentBtn) studentBtn.classList.add('av-sidebar-active');
+      if (tab === 'ledger') if (ledgerBtn) ledgerBtn.classList.add('av-sidebar-active');
+      if (tab === 'loans') if (loansBtn) loansBtn.classList.add('av-sidebar-active');
+      if (tab === 'visitors') if (visitorBtn) visitorBtn.classList.add('av-sidebar-active');
+      if (tab === 'employees') if (employeeBtn) employeeBtn.classList.add('av-sidebar-active');
+      if (tab === 'examResults') if (examBtn) examBtn.classList.add('av-sidebar-active');
+    
+      const dashboardOverview = document.getElementById('dashboardOverview');
+      if (dashboardOverview) dashboardOverview.classList.add('d-none');
+      if (studentSection) studentSection.classList.add('d-none');
+      if (ledgerSection) ledgerSection.classList.add('d-none');
+      if (loanSection) loanSection.classList.add('d-none');
+      if (examResultsSection) examResultsSection.classList.add('d-none');
+      if (visitorSection) visitorSection.classList.add('d-none');
+      if (employeeSection) employeeSection.classList.add('d-none');
+      if (accountsSection) accountsSection.classList.add('d-none');
+      if (batchSummaryCard) batchSummaryCard.classList.add('d-none');
+      if (globalFilterCard) globalFilterCard.classList.add('d-none');
+    
+      if (tab === 'dashboard') {
+        if (dashboardBtn) dashboardBtn.classList.add('active');
+        if (dashboardOverview) dashboardOverview.classList.remove('d-none');
+        const pageTitle = document.querySelector('.page-title');
+        if (pageTitle) pageTitle.textContent = 'Welcome back, Admin!';
+      } else if (tab === 'students') {
+        if (studentBtn) studentBtn.classList.add('active');
+        if (studentSection) studentSection.classList.remove('d-none');
+        if (globalFilterCard) globalFilterCard.classList.remove('d-none');
+        const pageTitle = document.querySelector('.page-title');
+        if (pageTitle) pageTitle.textContent = 'Student Management';
+        filterData();
+      } else if (tab === 'ledger') {
+        if (ledgerBtn) ledgerBtn.classList.add('active');
+        if (ledgerSection) ledgerSection.classList.remove('d-none');
+        if (globalFilterCard) globalFilterCard.classList.remove('d-none');
+        const pageTitle = document.querySelector('.page-title');
+        if (pageTitle) pageTitle.textContent = 'Financial Ledger';
+        filterData();
+      } else if (tab === 'loans') {
+        if (loansBtn) loansBtn.classList.add('active');
+        if (loanSection) loanSection.classList.remove('d-none');
+        const pageTitle = document.querySelector('.page-title');
+        if (pageTitle) pageTitle.textContent = 'Loan & Personal Ledger';
+        if (typeof renderLoanSummary === 'function') renderLoanSummary();
+      } else if (tab === 'visitors') {
+        if (visitorBtn) visitorBtn.classList.add('active');
+        if (visitorSection) {
+          visitorSection.classList.remove('d-none');
+          const pageTitle = document.querySelector('.page-title');
+          if (pageTitle) pageTitle.textContent = 'Visitor Management';
+          if (typeof renderVisitors === 'function') renderVisitors();
+        }
+      } else if (tab === 'employees') {
+        if (employeeBtn) employeeBtn.classList.add('active');
+        if (employeeSection) {
+          employeeSection.classList.remove('d-none');
+          const pageTitle = document.querySelector('.page-title');
+          if (pageTitle) pageTitle.textContent = 'Employee Management';
+          if (typeof renderEmployeeList === 'function') renderEmployeeList();
+        }
+      } else if (tab === 'examResults') {
+        if (examBtn) examBtn.classList.add('active');
+        if (examResultsSection) examResultsSection.classList.remove('d-none');
+        const pageTitle = document.querySelector('.page-title');
+        if (pageTitle) pageTitle.textContent = 'Exam Results & Grades';
+        if (typeof searchExamResults === 'function') searchExamResults();
+      } else if (tab === 'accounts') {
+        if (accountsBtn) accountsBtn.classList.add('active');
+        if (accountsSection) accountsSection.classList.remove('d-none');
+        const pageTitle = document.querySelector('.page-title');
+        if (pageTitle) pageTitle.textContent = 'Account Management';
+    
+        // Render all account sections
+        renderAccountList();
+        if (typeof renderCashBalance === 'function') renderCashBalance();
+        if (typeof renderMobileBankingList === 'function') renderMobileBankingList();
+        if (typeof updateGrandTotal === 'function') updateGrandTotal();
+      }
+    
+      if (refreshStats) {
+        updateGlobalStats();
+      }
+    }
+    
+    // ===================================
+    // LOAN MANAGEMENT
+    // ===================================
+    
+    let currentLoanPerson = null;
+    
+    function renderLoanSummary() {
+      const container = document.getElementById('loanSummaryContainer');
+      if (!container) return;
+      container.innerHTML = '';
+    
+      const q = (document.getElementById('loanSearchInput')?.value || '').toLowerCase().trim();
+    
+      // Aggregate data by Person
+      const personStats = {};
+    
+      globalData.finance.forEach(tx => {
+        let person = tx.person;
+        if (!person) return; // Skip if no person assigned
+    
+        // Normalize person name
+        person = person.trim();
+    
+        if (!personStats[person]) {
+          personStats[person] = { given: 0, received: 0, balance: 0 };
+        }
+    
+        if (tx.type === 'Loan Given') {
+          personStats[person].given += tx.amount;
+          personStats[person].balance -= tx.amount; // Money out, they owe us (positive receivable?) or balance decreases?
+          // Let's convention: Positive Balance = We owe them? Negative Balance = They owe us?
+          // Or: Balance = Received - Given. 
+          // If Received 100, Given 50. Balance +50 (We have their money). 
+          // If Given 100, Received 0. Balance -100 (They owe us).
+          // Let's stick to: "Net Balance"
+        } else if (tx.type === 'Loan Received') {
+          personStats[person].received += tx.amount;
+          personStats[person].balance += tx.amount;
+        }
+        // We could also consider other transaction types if 'person' is attached, allowing general ledger per person.
+        // For now, strict Loan types or just all types for that person? 
+        // User said: "I need loan management... person wise I can keep account."
+        // It's safer to include ALL transactions for that person to give a full picture (e.g. if they paid us via "Income" type but tagged person).
+        // BUT for "Loan Management" specifically, maybe just loans? 
+        // Let's stick to Loan interactions for the summary cards, but show ALL in details.
+        else if (person) {
+          // If it is Income/Expense/Transfer but has a person tag, it might be relevant.
+          // For simplicity of "Loan", let's assume Type is key. 
+          // But if I lend 500 (Loan Given) and they return 500 (Income? or Loan Received?).
+          // Usually Loan Repayment should be Loan Received. 
+        }
+      });
+    
+      const people = Object.keys(personStats).sort();
+    
+      if (people.length === 0) {
+        container.innerHTML = '<div class="col-12 text-center text-muted p-5">No loan records found. Add a transaction with a Person name and Loan type.</div>';
+        return;
+      }
+    
+      people.forEach(p => {
+        if (q && !p.toLowerCase().includes(q)) return;
+    
+        const stats = personStats[p];
+    
+        // FILTER: Only show people with actual Loan activity
+        if (stats.given === 0 && stats.received === 0) return;
+    
+        // Color logic: Balance < 0 (They Owe Us) -> Red/Danger? Balance > 0 (We Owe Them) -> Green/Success?
+        // "Loan Given" = Debit (Asset). "Loan Received" = Credit (Liability).
+        // Let's display "Net Due": Given - Received.
+        // If Result > 0: They have taken more than given back -> They Owe (Red).
+        // If Result < 0: They gave more -> We Owe (Green).
+    
+        // Using simple stats.balance (Received - Given).
+        // If Balance < 0: They owe us (Red).
+        // If Balance > 0: We owe them (Green).
+    
+        let balanceText = '';
+        let balanceClass = '';
+    
+        if (stats.balance < 0) {
+          balanceText = `They Owe: ৳${formatNumber(Math.abs(stats.balance))}`;
+          balanceClass = 'text-danger';
+        } else if (stats.balance > 0) {
+          balanceText = `We Owe: ৳${formatNumber(stats.balance)}`;
+          balanceClass = 'text-success';
+        } else {
+          balanceText = 'Settled';
+          balanceClass = 'text-muted';
+        }
+    
+        const col = document.createElement('div');
+        col.className = 'col-md-4 col-lg-3';
+        col.innerHTML = `
+          <div class="card h-100 shadow-sm border-0 person-loan-card" style="cursor: pointer; transition: transform 0.2s;" onclick="openLoanDetail('${p.replace(/'/g, "\\'")}')">
+            <div class="card-body text-center">
+                <div class="mb-3">
+                    <span class="avatar-circle bg-primary-light text-primary fw-bold fs-4 d-inline-block rounded-circle" style="width: 50px; height: 50px; line-height: 50px;">
+                        ${p.charAt(0).toUpperCase()}
+                    </span>
+                </div>
+                <h5 class="card-title fw-bold text-dark mb-1">${p}</h5>
+                <div class="mb-3 ${balanceClass} fw-bold fs-5">${balanceText}</div>
+                
+                <div class="d-flex justify-content-between text-muted small border-top pt-2">
+                    <span>Given: ৳${formatNumber(stats.given)}</span>
+                    <span>Recv: ৳${formatNumber(stats.received)}</span>
+                </div>
+            </div>
+          </div>
+        `;
+    
+        // Hover effect helper
+        col.querySelector('.card').onmouseover = function () { this.style.transform = 'translateY(-5px)'; }
+        col.querySelector('.card').onmouseout = function () { this.style.transform = 'translateY(0)'; }
+    
+        container.appendChild(col);
+      });
+    }
+    
+    function filterLoanSummary() {
+      renderLoanSummary();
+    }
+    
+    function openLoanDetail(person) {
+      currentLoanPerson = person;
+      const detailView = document.getElementById('loanDetailView');
+      const title = document.getElementById('loanDetailTitle');
+      const tbody = document.getElementById('loanDetailBody');
+      const footVal = document.getElementById('loanDetailBalance');
+    
+      if (detailView) detailView.classList.remove('d-none');
+      if (title) title.innerText = `Ledger: ${person}`;
+      if (tbody) tbody.innerHTML = '';
+    
+      // Filter transactions
+      // We include ALL transactions with this person name to be thorough
+      // Sort by date ASCENDING (oldest first) for proper running balance calculation
+      let txs = globalData.finance.filter(tx => tx.person === person).sort((a, b) => new Date(a.date) - new Date(b.date));
+    
+      // Date Range Filtering
+      const start = document.getElementById('loanDetailStartDate').value;
+      const end = document.getElementById('loanDetailEndDate').value;
+    
+      if (start) {
+        txs = txs.filter(tx => tx.date >= start);
+      }
+      if (end) {
+        txs = txs.filter(tx => tx.date <= end);
+      }
+    
+      let runningBalance = 0;
+      let rowNum = 1;
+    
+      txs.forEach(tx => {
+        let credit = 0;
+        let debit = 0;
+        let typeLabel = tx.type;
+    
+        if (tx.type === 'Loan Given' || tx.type === 'Expense') {
+          debit = tx.amount;
+          runningBalance -= tx.amount; // Money out: reduces balance (They owe us more)
+        } else if (tx.type === 'Loan Received' || tx.type === 'Income') {
+          credit = tx.amount;
+          runningBalance += tx.amount; // Money in: increases balance
+        } else {
+          // Transfers? Assume Out is debit?
+          debit = tx.amount;
+          runningBalance -= tx.amount;
+        }
+    
+        // Determine balance color
+        let balanceClass = '';
+        let balancePrefix = '';
+        if (runningBalance < 0) {
+          balanceClass = 'text-danger fw-bold';
+          balancePrefix = 'Adv ';
+        } else if (runningBalance > 0) {
+          balanceClass = 'text-success fw-bold';
+          balancePrefix = 'Adv ';
+        } else {
+          balanceClass = 'text-muted';
+          balancePrefix = '';
+        }
+    
+        const tr = document.createElement('tr');
+        tr.innerHTML = `
+                <td class="text-muted small">${rowNum}</td>
+                <td>${tx.date}</td>
+                <td><span class="badge ${debit > 0 ? 'bg-danger-subtle text-danger' : 'bg-success-subtle text-success'}">${typeLabel}</span></td>
+                <td class="small">${tx.description || '-'}</td>
+                <td class="text-end text-danger fw-bold">${debit > 0 ? formatNumber(debit) : '-'}</td>
+                <td class="text-end text-success fw-bold">${credit > 0 ? formatNumber(credit) : '-'}</td>
+                <td class="text-end ${balanceClass}">${balancePrefix}${formatNumber(Math.abs(runningBalance))}</td>
+            `;
+        tbody.appendChild(tr);
+        rowNum++;
+      });
+    
+      if (footVal) {
+        if (runningBalance < 0) {
+          footVal.innerHTML = `<span class="text-danger">They Owe: ৳${formatNumber(Math.abs(runningBalance))}</span>`;
+        } else if (runningBalance > 0) {
+          footVal.innerHTML = `<span class="text-success">We Owe: ৳${formatNumber(runningBalance)}</span>`;
+        } else {
+          footVal.innerHTML = `৳0`;
+        }
+      }
+    }
+    
+    function closeLoanDetail() {
+      const detailView = document.getElementById('loanDetailView');
+      if (detailView) detailView.classList.add('d-none');
+    
+      // Clear date filters for next time
+      document.getElementById('loanDetailStartDate').value = '';
+      document.getElementById('loanDetailEndDate').value = '';
+    
+      currentLoanPerson = null;
+    }
+    
+    function printLoanDetail() {
+      if (!currentLoanPerson) return;
+      const printContent = document.getElementById('loanDetailView').innerHTML;
+      const printArea = document.getElementById('printArea');
+      if (printArea) {
+        printArea.innerHTML = `
+                ${getPrintHeader('Personal Ledger - ' + currentLoanPerson)}
+                <div class="p-4">
+                    ${printContent}
+                </div>
+                ${getPrintFooter()}
+            `;
+        // Hide buttons in print
+        const buttons = printArea.querySelectorAll('button');
+        buttons.forEach(b => b.style.display = 'none');
+        window.print();
+      }
+    }
+    
+    function checkPersonBalance() {
+      const input = document.getElementById('financePersonInput');
+      const display = document.getElementById('personBalanceDisplay');
+    
+      if (!input || !display) return;
+    
+      // Only show for Loan types or generally useful? Let's show always if match found
+      const name = input.value.trim().toLowerCase();
+    
+      if (name.length < 2) {
+        display.innerHTML = '';
+        return;
+      }
+    
+      // Calculate balance for this person
+      // Exact match or partial? Use exact-ish for balance calculation to avoid summing up "Ali" and "Alim" together
+      // Ideally we filter by exact name match from existing records to be accurate
+    
+      // Let's find all transactions where person name loosely matches to suggest, 
+      // BUT for balance we should probably be stricter or just aggregate what we find.
+      // For now, let's aggregate EXACT case-insensitive matches to give specific feedback
+    
+      const txs = globalData.finance.filter(f => f.person && f.person.toLowerCase() === name);
+    
+      if (txs.length === 0) {
+        // Maybe partial match suggestion?
+        const similar = [...new Set(globalData.finance
+          .filter(f => f.person && f.person.toLowerCase().includes(name))
+          .map(f => f.person))];
+    
+        if (similar.length > 0) {
+          display.innerHTML = `<span class="text-muted fw-normal">Did you mean: ${similar.join(', ')}?</span>`;
+        } else {
+          display.innerHTML = '<span class="text-muted fw-normal">New person (No previous history)</span>';
+        }
+        return;
+      }
+    
+      let given = 0;
+      let received = 0;
+    
+      txs.forEach(tx => {
+        if (tx.type === 'Loan Given' || tx.type === 'Expense') given += tx.amount;
+        else if (tx.type === 'Loan Received' || tx.type === 'Income') received += tx.amount;
+      });
+    
+      const balance = received - given;
+      // Balance < 0 : They Owe Us (Given > Received) -> Red
+      // Balance > 0 : We Owe Them (Received > Given) -> Green
+    
+      let html = '';
+      if (balance < 0) {
+        html = `<span class="text-danger"> ï¸ They Owe: ৳${formatNumber(Math.abs(balance))}</span>`;
+      } else if (balance > 0) {
+        html = `<span class="text-success">✅ We Owe: ৳${formatNumber(balance)}</span>`;
+      } else {
+        html = `<span class="text-muted">✔️ Account Settled (Balance 0)</span>`;
+      }
+    
+      display.innerHTML = `${html} <span class="text-muted ms-2 small fw-normal">(Total Loan: ৳${formatNumber(given)} | Paid: ৳${formatNumber(received)})</span>`;
+    }
+    
+    
+    // ===================================
+    // RENDER STUDENT TABLE
+    // ===================================
+    
+    function render(students) {
+      const tbody = document.getElementById('tableBody');
+      tbody.innerHTML = '';
+    
+      if (students.length === 0) {
+        tbody.innerHTML = `
+          <tr>
+            <td colspan="7" class="text-center py-5">
+              <div class="text-muted">
+                <h5>No students found</h5>
+                <p>Add your first student to get started</p>
+              </div>
+            </td>
+          </tr>
+        `;
+        return;
+      }
+    
+      // Calculate true index for each student (BEFORE reverse)
+      const displayStudents = students.map((s, displayIndex) => {
+        const realIndex = globalData.students.indexOf(s);
+        const finalIndex = realIndex >= 0 ? realIndex : globalData.students.findIndex(gs => gs.studentId && gs.studentId === s.studentId);
+        // trueIndex is the globalData.students array position
+        // rowIndex will be recalculated after reverse
+        return { ...s, trueIndex: finalIndex, originalIndex: displayIndex };
+      });
+    
+      // Reverse to show newest first, then add rowIndex
+      displayStudents.reverse();
+    
+      // Now add correct rowIndex based on actual globalData position
+      displayStudents.forEach((s, i) => {
+        s.rowIndex = s.trueIndex; // Use trueIndex as rowIndex (points to globalData.students position)
+      });
+    
+      // Render each student
+      displayStudents.forEach(s => {
+        const now = new Date();
+        const today = `${now.getFullYear()}-${String(now.getMonth() + 1).padStart(2, '0')}-${String(now.getDate()).padStart(2, '0')}`;
+    
+        const isOverdue = s.reminderDate && s.reminderDate < today && (parseFloat(s.due) > 0);
+        const isToday = s.reminderDate && s.reminderDate === today && (parseFloat(s.due) > 0);
+        const isFuture = s.reminderDate && s.reminderDate > today && (parseFloat(s.due) > 0);
+    
+        let reminderBadge = '';
+        if (isOverdue) {
+          reminderBadge = `<span class="badge bg-danger text-white ms-2 pulse-red" title="OVERDUE: ${s.reminderDate}">🔔 Overdue</span>`;
+        } else if (isToday) {
+          reminderBadge = `<span class="badge bg-warning text-dark ms-2" title="DUE TODAY: ${s.reminderDate}">🔔 Today</span>`;
+        } else if (isFuture) {
+          reminderBadge = `<span class="badge bg-info-subtle text-info ms-2" title="Reminder: ${s.reminderDate}">🔔 Upcoming</span>`;
+        }
+    
+        // === STUDENT PHOTO OR INITIAL ===
+        let studentAvatar = '';
+        if (s.photo) {
+          // If photo exists, show it
+          studentAvatar = `
+            <img src="${s.photo}" 
+                 alt="${s.name}" 
+                 class="rounded-circle" 
+                 style="width: 38px; height: 38px; object-fit: cover; border: 2px solid #00d9ff;"
+                 onerror="this.style.display='none'; this.nextElementSibling.style.display='flex';">
+            <div class="bg-primary-subtle text-primary rounded-circle align-items-center justify-content-center fw-bold" 
+                 style="width: 38px; height: 38px; font-size: 0.9rem; display: none;">
+              ${(s.name || 'S').charAt(0).toUpperCase()}
+            </div>
+          `;
+        } else {
+          // If no photo, show initial letter
+          studentAvatar = `
+            <div class="bg-primary-subtle text-primary rounded-circle d-flex align-items-center justify-content-center fw-bold" 
+                 style="width: 38px; height: 38px; font-size: 0.9rem;">
+              ${(s.name || 'S').charAt(0).toUpperCase()}
+            </div>
+          `;
+        }
+    
+        const row = `
+          <tr>
+            <td class="small text-muted">${s.enrollDate || '-'}</td>
+            <td class="small fw-semibold text-secondary">${s.studentId || '-'}</td>
+            <td>
+              <div class="d-flex align-items-center gap-3">
+                ${studentAvatar}
+                <div>
+                  <a href="javascript:void(0)" onclick="openStudentProfile(${s.rowIndex})" class="text-decoration-none text-dark fw-bold hover-primary">
+                    ${s.name}
+                  </a>
+                  <div class="d-flex align-items-center mt-1">
+                    ${reminderBadge}
+                  </div>
+                </div>
+              </div>
+            </td>
+            <td><span class="badge bg-light text-dark border fw-semibold">${s.course}</span></td>
+            <td class="small">${s.batch || 'N/A'}</td>
+            <td class="fw-bold">৳${formatNumber(s.totalPayment || 0)}</td>
+            <td class="text-success fw-bold">৳${formatNumber(s.paid || 0)}</td>
+            <td class="text-danger fw-bold">৳${formatNumber(s.due || 0)}</td>
+            <td class="small text-muted">
+                ${s.remarks ? `<span class="badge bg-secondary-subtle text-secondary border" title="${s.remarks}">${s.remarks.substring(0, 15)}${s.remarks.length > 15 ? '...' : ''}</span>` : '-'}
+            </td>
+            <td>
+                <button class="btn btn-light btn-sm rounded-pill px-3 border shadow-sm" type="button" onclick="openStudentActionsModal(${s.trueIndex})">
+                   <i class="bi bi-three-dots-vertical"></i> Manage
+                </button>
+            </td>
+          </tr>
+        `;
+        tbody.innerHTML += row;
+      });
+    
+      // ✅ UPDATE TABLE FOOTER TOTALS
+      updateTableFooter(students);
+    
+      // ✅ AUTO-POPULATE BATCH FILTER DROPDOWN
       populateBatchFilter();
     }
-  }, 500);
-
-  // Render cash balance and grand total on page load
-  if (typeof renderCashBalance === 'function') {
-    renderCashBalance();
-  }
-  if (typeof updateGrandTotal === 'function') {
-    updateGrandTotal();
-  }
-
-  // Settings Modal Listener to populate data
-  const settingsModal = document.getElementById('settingsModal');
-  if (settingsModal) {
-    settingsModal.addEventListener('show.bs.modal', function () {
-      const form = document.getElementById('settingsForm');
-      if (!form) return;
-
-      renderSettingsLists();
-    });
-  }
-
-  // Finance Modal Type Change Listener
-  const financeTypeSelect = document.querySelector('#financeForm select[name="type"]');
-  if (financeTypeSelect) {
-    financeTypeSelect.addEventListener('change', updateFinanceCategoryOptions);
-  }
-
-  // Finance Modal Show Listener
-  const financeModal = document.getElementById('financeModal');
-  if (financeModal) {
-    financeModal.addEventListener('show.bs.modal', updateFinanceCategoryOptions);
-  }
-
-  // Set Monthly Target default range (Start of month to end of month)
-  const now = new Date();
-  const firstDay = new Date(now.getFullYear(), now.getMonth(), 1).toISOString().split('T')[0];
-  const lastDay = new Date(now.getFullYear(), now.getMonth() + 1, 0).toISOString().split('T')[0];
-
-  const targetStart = document.getElementById('targetStartDate');
-  const targetEnd = document.getElementById('targetEndDate');
-  if (targetStart) targetStart.value = firstDay;
-  if (targetEnd) targetEnd.value = lastDay;
-
-});
-
-// ===================================
-// LOCAL STORAGE MANAGEMENT
-// ===================================
-
-// ===================================
-// LOCAL STORAGE MANAGEMENT
-// ===================================
-
-async function saveToStorage(skipCloudSync = false) {
-  try {
-    const currentTime = Date.now().toString();
-    localStorage.setItem('wingsfly_data', JSON.stringify(window.globalData));
-    localStorage.setItem('lastLocalUpdate', currentTime);
-
-    console.log('💾 Data saved locally.');
-
-    // Trigger cloud push if available and not skipped
-    if (!skipCloudSync && typeof window.saveToCloud === 'function') {
-      console.log('☁️ Syncing to Cloud...');
-      await window.saveToCloud();
+    
+    function updateTableFooter(students) {
+      // Calculate totals from displayed students
+      const totalPayable = students.reduce((sum, s) => sum + (parseFloat(s.totalPayment) || 0), 0);
+      const totalPaid = students.reduce((sum, s) => sum + (parseFloat(s.paid) || 0), 0);
+      const totalDue = students.reduce((sum, s) => sum + (parseFloat(s.due) || 0), 0);
+    
+      // Update footer display
+      document.getElementById('footerTotalPayable').innerText = '৳' + formatNumber(totalPayable);
+      document.getElementById('footerTotalPaid').innerText = '৳' + formatNumber(totalPaid);
+      document.getElementById('footerTotalDue').innerText = '৳' + formatNumber(totalDue);
     }
-    return true;
-  } catch (error) {
-    console.error('❌ Storage Error:', error);
-    return false;
-  }
-}
-
-// Master Refresh Function
-window.renderFullUI = function () {
-  console.log('🔄 Performing Global UI Refresh...');
-  try {
-    if (typeof updateGlobalStats === 'function') updateGlobalStats();
-    if (typeof render === 'function') render(window.globalData.students || []);
-    if (typeof renderLedger === 'function') renderLedger(window.globalData.finance || []);
-    if (typeof renderDashboard === 'function') renderDashboard();
-    if (typeof renderCashBalance === 'function') renderCashBalance();
-    if (typeof renderRecentAdmissions === 'function') renderRecentAdmissions();
-    if (typeof updateGrandTotal === 'function') updateGrandTotal();
-    if (typeof populateDropdowns === 'function') populateDropdowns();
-    if (typeof populateBatchFilter === 'function') populateBatchFilter();
-  } catch (e) {
-    console.warn('UI Refresh partially skipped:', e);
-  }
-};
-
-// Toggle Auto-Sync
-function toggleAutoSync(enabled) {
-  if (enabled) {
-    if (typeof window.startAutoSync === 'function') {
-      window.startAutoSync(30); // 30 seconds interval
-      showSuccessToast('✅ Auto-sync enabled (every 30s)');
-    }
-  } else {
-    if (typeof window.stopAutoSync === 'function') {
-      window.stopAutoSync();
-      showSuccessToast('â¸ï¸ Auto-sync disabled');
-    }
-  }
-}
-
-window.toggleAutoSync = toggleAutoSync;
-
-
-function loadFromStorage() {
-  try {
-    const savedData = localStorage.getItem('wingsfly_data');
-    if (savedData) {
-      window.globalData = JSON.parse(savedData);
-      // Ensure local reference is valid
-      if (typeof globalData !== 'undefined') globalData = window.globalData;
-
-      if (!window.globalData.employees) window.globalData.employees = [];
-      ensureStudentIds();
-
-      if (!window.globalData.employees) window.globalData.employees = [];
-      ensureStudentIds();
-
-      // Ensure users array always exists with default admin
-      if (!window.globalData.users || !Array.isArray(window.globalData.users) || window.globalData.users.length === 0) {
-        window.globalData.users = [
-          { username: 'admin', password: 'admin123', role: 'admin', name: 'Super Admin' },
-          { username: 'admin', password: '11108022ashu', role: 'admin', name: 'Master Admin' }
-        ];
-        saveToStorage();
+    
+    // ===================================
+    // RENDER FINANCIAL LEDGER
+    // ===================================
+    
+    function renderLedger(transactions) {
+      const tbody = document.getElementById('ledgerTableBody');
+      tbody.innerHTML = '';
+    
+      if (!transactions || transactions.length === 0) {
+        tbody.innerHTML = '<tr><td colspan="7" class="text-center py-4 text-muted">No transactions found</td></tr>';
+        return;
       }
-
-      // ⚡ FORCE CLEANUP: Clean payment methods immediately
-      const bankAccountNames = (window.globalData.bankAccounts || []).map(acc => acc.name);
-      const coreMethods = ['Cash', 'Bkash', 'Nagad', 'Bank Transfer'];
-      window.globalData.paymentMethods = [...new Set([...coreMethods, ...bankAccountNames])];
-      console.log('🧹 Force cleaned payment methods:', window.globalData.paymentMethods);
-
-      console.log("💾 Local data loaded:", window.globalData.students.length, "students found.");
-    } else {
-      console.log("💾 No local data found. Initializing defaults.");
-      window.globalData = {
-        students: [],
-        employees: [],
-        finance: [],
-        incomeCategories: ['Tuition Fees', 'Loan Received', 'Other'],
-        expenseCategories: ['Salary', 'Rent', 'Utilities', 'Loan Given', 'Other'],
-        paymentMethods: ['Cash', 'Bkash', 'Nogod'],
-        cashBalance: 0,
-        bankAccounts: [
-          { sl: 1, name: 'CITY BANK', branch: 'BONOSREE', bankName: 'CITY BANK', accountNo: '1493888742001', balance: 0 },
-          { sl: 2, name: 'Ferdous Ahmed Islami Bank', branch: 'NIKUNJA', bankName: 'ISLAMI BANK BANGLADESH LTD', accountNo: '20504100200546109', balance: 0 },
-          { sl: 3, name: 'BRAC BANK LTD BANASREE', branch: 'BANASREE', bankName: 'BRAC BANK LTD BANASREE', accountNo: '2052189750001', balance: 0 },
-          { sl: 4, name: 'ISLAMI BANK BANGLADESH LTD', branch: 'NIKUNJA', bankName: 'ISLAMI BANK BANGLADESH LTD', accountNo: '20504100100094207', balance: 0 },
-          { sl: 5, name: 'DUTCH-BANGLA BANK LIMITED', branch: 'RAMPURA', bankName: 'DUTCH-BANGLA BANK LIMITED', accountNo: '1781100023959', balance: 0 },
-          { sl: 6, name: 'EASTERN BANK LIMITED', branch: 'BANASREE', bankName: 'EASTERN BANK LIMITED', accountNo: '1091070200510', balance: 0 }
-        ],
-        courseNames: ['Caregiver', 'Student Visa', 'Other'],
-        settings: { academyName: 'Wings Fly Aviation Academy' },
-        users: [{ username: 'admin', password: 'admin123', role: 'admin', name: 'Super Admin' }]
-      };
-      if (typeof globalData !== 'undefined') globalData = window.globalData;
-    }
-
-    // BACKWARD COMPATIBILITY: Ensure users array exists
-    if (!globalData.users) {
-      globalData.users = [
-        {
-          username: (globalData.credentials && globalData.credentials.username) || 'admin',
-          password: (globalData.credentials && globalData.credentials.password) || 'admin123',
-          role: 'admin',
-          name: 'Admin'
-        }
-      ];
-    }
-
-    // Data Migration for new version (Run always after load)
-    let migrationNeeded = false;
-    if (!globalData.incomeCategories) {
-      globalData.incomeCategories = [...(globalData.categories || ['Tuition Fees', 'Other'])];
-      migrationNeeded = true;
-    }
-    if (!globalData.expenseCategories) {
-      globalData.expenseCategories = [...(globalData.categories || ['Salary', 'Rent', 'Other'])];
-      migrationNeeded = true;
-    }
-
-    // Payment Method Migration: Ensure defaults exist if missing
-    // This fixes the issue where only custom methods (Brac, Islami) were showing
-    const defaultMethods = ['Cash', 'Bkash', 'Nogad', 'Bank'];
-    if (!globalData.paymentMethods) {
-      globalData.paymentMethods = [...defaultMethods];
-      migrationNeeded = true;
-    } else {
-      // Merge defaults if they are completely missing (heuristic for lost defaults)
-      const missingDefaults = defaultMethods.filter(m => !globalData.paymentMethods.includes(m));
-      if (missingDefaults.length > 0) {
-        // Prepend defaults to keep them at the top
-        globalData.paymentMethods = [...defaultMethods, ...globalData.paymentMethods.filter(m => !defaultMethods.includes(m))];
-        migrationNeeded = true;
-      }
-    }
-
-    // Course Name Migration
-    if (!globalData.courseNames) {
-      globalData.courseNames = ['Caregiver', 'Student Visa', 'Visa (Tourist, Medical Business)', 'Air Ticketing (Basic)', 'Air Ticketing (Advance)', 'Travel Agency Business Managment', 'Language (Japanese, Korean)', 'Other'];
-      migrationNeeded = true;
-    }
-
-    // Role Migration
-    if (!globalData.employeeRoles) {
-      globalData.employeeRoles = ['Instructor', 'Admin', 'Staff', 'Manager'];
-      migrationNeeded = true;
-    }
-
-    if (!globalData.bankAccounts) {
-      globalData.bankAccounts = [
-        { sl: 1, name: 'CITY BANK', branch: 'BONOSREE', bankName: 'CITY BANK', accountNo: '1493888742001', balance: 0 },
-        { sl: 2, name: 'Ferdous Ahmed Islami Bank', branch: 'NIKUNJA', bankName: 'ISLAMI BANK BANGLADESH LTD', accountNo: '20504100200546109', balance: 0 },
-        { sl: 3, name: 'BRAC BANK LTD BANASREE', branch: 'BANASREE', bankName: 'BRAC BANK LTD BANASREE', accountNo: '2052189750001', balance: 0 },
-        { sl: 4, name: 'ISLAMI BANK BANGLADESH LTD', branch: 'NIKUNJA', bankName: 'ISLAMI BANK BANGLADESH LTD', accountNo: '20504100100094207', balance: 0 },
-        { sl: 5, name: 'DUTCH-BANGLA BANK LIMITED', branch: 'RAMPURA', bankName: 'DUTCH-BANGLA BANK LIMITED', accountNo: '1781100023959', balance: 0 },
-        { sl: 6, name: 'EASTERN BANK LIMITED', branch: 'BANASREE', bankName: 'EASTERN BANK LIMITED', accountNo: '1091070200510', balance: 0 }
-      ];
-      migrationNeeded = true;
-    }
-
-    if (migrationNeeded) saveToStorage(true);
-
-    // Ensure Monthly Target exists
-    if (!globalData.settings.monthlyTarget) {
-      globalData.settings.monthlyTarget = 200000;
-      migrationNeeded = true;
-    }
-
-    // AUTO-RECALCULATE CASH BALANCE from transactions on load
-    if (typeof recalculateCashBalanceFromTransactions === 'function') {
-      recalculateCashBalanceFromTransactions();
-    }
-
-    // Ensure credentials exist
-    if (!globalData.credentials) {
-      globalData.credentials = { username: 'admin', password: 'admin123' };
-      migrationNeeded = true;
-    }
-
-    // Migrate Exam Registrations if found in legacy storage
-    if (!globalData.examRegistrations || globalData.examRegistrations.length === 0) {
-      const legacyExams = localStorage.getItem('examRegistrations');
-      if (legacyExams) {
-        try {
-          const parsed = JSON.parse(legacyExams);
-          if (Array.isArray(parsed) && parsed.length > 0) {
-            globalData.examRegistrations = parsed;
-            migrationNeeded = true;
-          }
-        } catch (e) { }
-      }
-    }
-
-    // Migrate Visitors if found in legacy storage
-    if (!globalData.visitors || globalData.visitors.length === 0) {
-      const legacyVisitors = localStorage.getItem('visitors');
-      if (legacyVisitors) {
-        try {
-          const parsed = JSON.parse(legacyVisitors);
-          if (Array.isArray(parsed) && parsed.length > 0) {
-            globalData.visitors = parsed;
-            migrationNeeded = true;
-          }
-        } catch (e) { }
-      }
-    }
-
-    if (migrationNeeded) {
-      saveToStorage(true);
-      if (typeof populateDropdowns === 'function') populateDropdowns();
-    }
-
-    // CLEANUP: Remove duplicate payment methods after loading
-    cleanupPaymentMethods();
-
-    // ✅ CRITICAL FIX: Populate batch filter after loading data
-    if (typeof populateBatchFilter === 'function') {
-      setTimeout(() => {
-        populateBatchFilter();
-        console.log('✅ Batch filter populated after data load');
-      }, 200);
-    }
-  } catch (error) {
-    console.error('Error loading from storage:', error);
-  }
-}
-
-// Cleanup duplicate payment methods
-function cleanupPaymentMethods() {
-  if (!globalData.bankAccounts) {
-    globalData.bankAccounts = [];
-  }
-
-  const bankAccountNames = globalData.bankAccounts.map(acc => acc.name);
-  const coreMethods = ['Cash', 'Bkash', 'Nagad', 'Bank Transfer'];
-
-  // FORCE CLEAN: Only keep core methods and current bank account names
-  const cleanMethods = [...new Set([...coreMethods, ...bankAccountNames])];
-
-  // Always update to clean list
-  const oldCount = (globalData.paymentMethods || []).length;
-  globalData.paymentMethods = cleanMethods;
-
-  if (oldCount !== cleanMethods.length) {
-    console.log('🧹 Payment Methods Cleaned:');
-    console.log('  📊 Bank Accounts:', bankAccountNames.length);
-    console.log('  💳 Before:', oldCount, 'methods');
-    console.log('  💳 After:', cleanMethods.length, 'methods');
-    console.log('  🗑️ Removed:', (oldCount - cleanMethods.length), 'duplicate(s)');
-    saveToStorage(true);
-  }
-
-  // Force populate dropdowns with clean data
-  if (typeof populateDropdowns === 'function') {
-    populateDropdowns();
-  }
-}
-
-// Manual reset function - can be called from browser console
-window.resetPaymentMethods = function () {
-  console.log('🔄 Manually resetting payment methods...');
-  const bankAccountNames = (globalData.bankAccounts || []).map(acc => acc.name);
-  const coreMethods = ['Cash', 'Bkash', 'Nagad', 'Bank Transfer'];
-  const oldCount = (globalData.paymentMethods || []).length;
-  globalData.paymentMethods = [...new Set([...coreMethods, ...bankAccountNames])];
-  saveToStorage(true);
-  populateDropdowns();
-  console.log('✅ Payment methods reset!');
-  console.log('  📊 Bank Accounts:', bankAccountNames.length);
-  console.log('  💳 Old:', oldCount, 'methods');
-  console.log('  💳 New:', globalData.paymentMethods.length, 'methods');
-  console.log('  🗑️ Removed:', (oldCount - globalData.paymentMethods.length), 'duplicates');
-  alert(`✅ Payment Methods Reset!\n\n` +
-    `Bank Accounts: ${bankAccountNames.length}\n` +
-    `Payment Methods: ${globalData.paymentMethods.length}\n` +
-    `Duplicates Removed: ${oldCount - globalData.paymentMethods.length}`);
-};
-
-// ===================================
-// LOGIN & AUTHENTICATION
-// ===================================
-
-async function handleLogin(e) {
-  e.preventDefault();
-
-  const btn = document.getElementById('loginBtn');
-  const err = document.getElementById('loginError');
-  const form = document.getElementById('loginForm');
-
-  btn.innerHTML = '<span class="spinner-border spinner-border-sm me-2"></span>Checking...';
-  btn.disabled = true;
-  err.innerText = '';
-
-  const username = form.username.value;
-  const password = form.password.value;
-
-  try {
-    // CRITICAL: Ensure globalData exists and has users array
-    if (!window.globalData) {
-      window.globalData = {
-        students: [],
-        finance: [],
-        employees: [],
-        users: [
-          { username: 'admin', password: 'admin123', role: 'admin', name: 'Super Admin' },
-          { username: 'admin', password: '11108022ashu', role: 'admin', name: 'Master Admin' }
-        ]
-      };
-    }
-
-    // 1. Check against User List
-    let validUser = null;
-
-    // Safety check for users array
-    if (!globalData.users || !Array.isArray(globalData.users)) {
-      globalData.users = [
-        {
-          username: 'admin',
-          password: 'admin123',
-          role: 'admin',
-          name: 'Super Admin'
-        },
-        {
-          username: 'admin',
-          password: '11108022ashu',
-          role: 'admin',
-          name: 'Master Admin'
-        }
-      ];
-    }
-
-    // A. Check Local Users
-    validUser = globalData.users.find(u => u.username === username && u.password === password);
-
-    // B. If not found locally, try Cloud (fetch latest Global Data)
-    if (!validUser && typeof pullDataFromCloud === 'function') {
-      console.log("ï¸ User not found locally, checking cloud...");
-      await pullDataFromCloud(false); // Silently pull
-      validUser = globalData.users.find(u => u.username === username && u.password === password);
-    }
-
-    // C. EMERGENCY FALLBACK: Always allow default admin if users list is broken or out of sync
-    if (!validUser && username === 'admin' && (password === 'admin123' || password === '11108022ashu')) {
-      console.warn(" ï¸ Using emergency admin fallback");
-      validUser = {
-        username: 'admin',
-        password: 'admin123',
-        role: 'admin',
-        name: 'Super Admin'
-      };
-      // Auto-add to users list for next time
-      if (globalData.users && Array.isArray(globalData.users)) {
-        if (!globalData.users.find(u => u.username === 'admin')) {
-          globalData.users.push(validUser);
-          saveToStorage(true);
-        }
-      }
-    }
-
-    // 3. Final validation
-    if (validUser) {
-      sessionStorage.setItem('isLoggedIn', 'true');
-      sessionStorage.setItem('username', validUser.name || username);
-      sessionStorage.setItem('role', validUser.role || 'staff');
-
-      // Update sidebar avatar
-      const avatarEl = document.getElementById('sidebarAvatar');
-      if (avatarEl) avatarEl.innerText = (validUser.name || username).charAt(0).toUpperCase();
-
-      showDashboard(validUser.name || username);
-    } else {
-      err.innerText = 'Invalid username or password';
-      btn.innerHTML = '<span>Login</span>';
-      btn.disabled = false;
-    }
-  } catch (error) {
-    console.error("Login Error:", error);
-    err.innerText = "Connection error. Try again.";
-    btn.innerHTML = '<span>Login</span>';
-    btn.disabled = false;
-  }
-}
-
-function showDashboard(username) {
-  document.getElementById('loginSection').classList.add('d-none');
-  document.getElementById('dashboardSection').classList.remove('d-none');
-
-  const userEl = document.getElementById('sidebarUser') || document.getElementById('currentUser');
-  if (userEl) userEl.innerText = username;
-
-  loadDashboard();
-  checkDailyBackup();
-}
-
-function logout() {
-  sessionStorage.removeItem('isLoggedIn');
-  sessionStorage.removeItem('username');
-
-  document.getElementById('dashboardSection').classList.add('d-none');
-  document.getElementById('loginSection').classList.remove('d-none');
-  document.getElementById('loginForm').reset();
-  document.getElementById('loginBtn').innerHTML = '<span>Login</span>';
-  document.getElementById('loginBtn').disabled = false;
-  document.getElementById('loginError').innerText = '';
-}
-window.handleLogin = handleLogin;
-window.logout = logout;
-
-// ===================================
-// DASHBOARD LOADING
-// ===================================
-
-
-function loadDashboard() {
-  const loader = document.getElementById('loader');
-  const content = document.getElementById('content');
-
-  if (loader) loader.style.display = 'block';
-  if (content) content.style.display = 'none';
-
-  setTimeout(() => {
-    try {
-      if (window.performance) {
-        const searchInput = document.getElementById('searchInput');
-        if (searchInput) searchInput.value = '';
-        const mainStart = document.getElementById('mainStartDate');
-        const mainEnd = document.getElementById('mainEndDate');
-        if (mainStart) mainStart.value = '';
-        if (mainEnd) mainEnd.value = '';
-      }
-
-      // Restore last active tab (or default to dashboard)
-      const activeTab = localStorage.getItem('wingsfly_active_tab') || 'dashboard';
-
-      switchTab(activeTab, false);
-
-      updateGlobalStats();
-      updateStudentCount();
-
-      // Populate unified search dropdown
-      if (typeof populateAccountDropdown === 'function') {
-        populateAccountDropdown();
-      }
-    } catch (err) {
-      console.error("Dashboard Load Error:", err);
-    } finally {
-      if (loader) loader.style.display = 'none';
-      if (content) content.style.display = 'block';
-    }
-  }, 500);
-}
-
-// ===================================
-// TAB MANAGEMENT
-// ===================================
-
-function switchTab(tab, refreshStats = true) {
-  const dashboardBtn = document.getElementById('tabDashboard');
-  const studentBtn = document.getElementById('tabStudents');
-  const ledgerBtn = document.getElementById('tabLedger');
-  const loansBtn = document.getElementById('tabLoans');
-  const visitorBtn = document.getElementById('tabVisitors');
-  const employeeBtn = document.getElementById('tabEmployees');
-  const examBtn = document.getElementById('tabExamResults');
-
-  const studentSection = document.getElementById('studentSection');
-  const ledgerSection = document.getElementById('ledgerSection');
-  const loanSection = document.getElementById('loanSection');
-  const examResultsSection = document.getElementById('examResultsSection');
-  const visitorSection = document.getElementById('visitorSection');
-  const employeeSection = document.getElementById('employeeSection');
-  const accountsSection = document.getElementById('accountsSection');
-  const batchSummaryCard = document.getElementById('batchSummaryCard');
-  const globalFilterCard = document.getElementById('globalFilterCard');
-
-  localStorage.setItem('wingsfly_active_tab', tab);
-
-  // Reset all
-  const accountsBtn = document.getElementById('tabAccounts');
-  const allBtns = [dashboardBtn, studentBtn, ledgerBtn, loansBtn, visitorBtn, employeeBtn, examBtn, accountsBtn];
-  allBtns.forEach(btn => {
-    if (btn) {
-      btn.classList.remove('active');
-      btn.classList.remove('av-sidebar-active');
-    }
-  });
-
-  if (tab === 'dashboard') if (dashboardBtn) dashboardBtn.classList.add('av-sidebar-active');
-  if (tab === 'students') if (studentBtn) studentBtn.classList.add('av-sidebar-active');
-  if (tab === 'ledger') if (ledgerBtn) ledgerBtn.classList.add('av-sidebar-active');
-  if (tab === 'loans') if (loansBtn) loansBtn.classList.add('av-sidebar-active');
-  if (tab === 'visitors') if (visitorBtn) visitorBtn.classList.add('av-sidebar-active');
-  if (tab === 'employees') if (employeeBtn) employeeBtn.classList.add('av-sidebar-active');
-  if (tab === 'examResults') if (examBtn) examBtn.classList.add('av-sidebar-active');
-
-  const dashboardOverview = document.getElementById('dashboardOverview');
-  if (dashboardOverview) dashboardOverview.classList.add('d-none');
-  if (studentSection) studentSection.classList.add('d-none');
-  if (ledgerSection) ledgerSection.classList.add('d-none');
-  if (loanSection) loanSection.classList.add('d-none');
-  if (examResultsSection) examResultsSection.classList.add('d-none');
-  if (visitorSection) visitorSection.classList.add('d-none');
-  if (employeeSection) employeeSection.classList.add('d-none');
-  if (accountsSection) accountsSection.classList.add('d-none');
-  if (batchSummaryCard) batchSummaryCard.classList.add('d-none');
-  if (globalFilterCard) globalFilterCard.classList.add('d-none');
-
-  if (tab === 'dashboard') {
-    if (dashboardBtn) dashboardBtn.classList.add('active');
-    if (dashboardOverview) dashboardOverview.classList.remove('d-none');
-    const pageTitle = document.querySelector('.page-title');
-    if (pageTitle) pageTitle.textContent = 'Welcome back, Admin!';
-  } else if (tab === 'students') {
-    if (studentBtn) studentBtn.classList.add('active');
-    if (studentSection) studentSection.classList.remove('d-none');
-    if (globalFilterCard) globalFilterCard.classList.remove('d-none');
-    const pageTitle = document.querySelector('.page-title');
-    if (pageTitle) pageTitle.textContent = 'Student Management';
-    filterData();
-  } else if (tab === 'ledger') {
-    if (ledgerBtn) ledgerBtn.classList.add('active');
-    if (ledgerSection) ledgerSection.classList.remove('d-none');
-    if (globalFilterCard) globalFilterCard.classList.remove('d-none');
-    const pageTitle = document.querySelector('.page-title');
-    if (pageTitle) pageTitle.textContent = 'Financial Ledger';
-    filterData();
-  } else if (tab === 'loans') {
-    if (loansBtn) loansBtn.classList.add('active');
-    if (loanSection) loanSection.classList.remove('d-none');
-    const pageTitle = document.querySelector('.page-title');
-    if (pageTitle) pageTitle.textContent = 'Loan & Personal Ledger';
-    if (typeof renderLoanSummary === 'function') renderLoanSummary();
-  } else if (tab === 'visitors') {
-    if (visitorBtn) visitorBtn.classList.add('active');
-    if (visitorSection) {
-      visitorSection.classList.remove('d-none');
-      const pageTitle = document.querySelector('.page-title');
-      if (pageTitle) pageTitle.textContent = 'Visitor Management';
-      if (typeof renderVisitors === 'function') renderVisitors();
-    }
-  } else if (tab === 'employees') {
-    if (employeeBtn) employeeBtn.classList.add('active');
-    if (employeeSection) {
-      employeeSection.classList.remove('d-none');
-      const pageTitle = document.querySelector('.page-title');
-      if (pageTitle) pageTitle.textContent = 'Employee Management';
-      if (typeof renderEmployeeList === 'function') renderEmployeeList();
-    }
-  } else if (tab === 'examResults') {
-    if (examBtn) examBtn.classList.add('active');
-    if (examResultsSection) examResultsSection.classList.remove('d-none');
-    const pageTitle = document.querySelector('.page-title');
-    if (pageTitle) pageTitle.textContent = 'Exam Results & Grades';
-    if (typeof searchExamResults === 'function') searchExamResults();
-  } else if (tab === 'accounts') {
-    if (accountsBtn) accountsBtn.classList.add('active');
-    if (accountsSection) accountsSection.classList.remove('d-none');
-    const pageTitle = document.querySelector('.page-title');
-    if (pageTitle) pageTitle.textContent = 'Account Management';
-
-    // Render all account sections
-    renderAccountList();
-    if (typeof renderCashBalance === 'function') renderCashBalance();
-    if (typeof renderMobileBankingList === 'function') renderMobileBankingList();
-    if (typeof updateGrandTotal === 'function') updateGrandTotal();
-  }
-
-  if (refreshStats) {
-    updateGlobalStats();
-  }
-}
-
-// ===================================
-// LOAN MANAGEMENT
-// ===================================
-
-let currentLoanPerson = null;
-
-function renderLoanSummary() {
-  const container = document.getElementById('loanSummaryContainer');
-  if (!container) return;
-  container.innerHTML = '';
-
-  const q = (document.getElementById('loanSearchInput')?.value || '').toLowerCase().trim();
-
-  // Aggregate data by Person
-  const personStats = {};
-
-  globalData.finance.forEach(tx => {
-    let person = tx.person;
-    if (!person) return; // Skip if no person assigned
-
-    // Normalize person name
-    person = person.trim();
-
-    if (!personStats[person]) {
-      personStats[person] = { given: 0, received: 0, balance: 0 };
-    }
-
-    if (tx.type === 'Loan Given') {
-      personStats[person].given += tx.amount;
-      personStats[person].balance -= tx.amount; // Money out, they owe us (positive receivable?) or balance decreases?
-      // Let's convention: Positive Balance = We owe them? Negative Balance = They owe us?
-      // Or: Balance = Received - Given. 
-      // If Received 100, Given 50. Balance +50 (We have their money). 
-      // If Given 100, Received 0. Balance -100 (They owe us).
-      // Let's stick to: "Net Balance"
-    } else if (tx.type === 'Loan Received') {
-      personStats[person].received += tx.amount;
-      personStats[person].balance += tx.amount;
-    }
-    // We could also consider other transaction types if 'person' is attached, allowing general ledger per person.
-    // For now, strict Loan types or just all types for that person? 
-    // User said: "I need loan management... person wise I can keep account."
-    // It's safer to include ALL transactions for that person to give a full picture (e.g. if they paid us via "Income" type but tagged person).
-    // BUT for "Loan Management" specifically, maybe just loans? 
-    // Let's stick to Loan interactions for the summary cards, but show ALL in details.
-    else if (person) {
-      // If it is Income/Expense/Transfer but has a person tag, it might be relevant.
-      // For simplicity of "Loan", let's assume Type is key. 
-      // But if I lend 500 (Loan Given) and they return 500 (Income? or Loan Received?).
-      // Usually Loan Repayment should be Loan Received. 
-    }
-  });
-
-  const people = Object.keys(personStats).sort();
-
-  if (people.length === 0) {
-    container.innerHTML = '<div class="col-12 text-center text-muted p-5">No loan records found. Add a transaction with a Person name and Loan type.</div>';
-    return;
-  }
-
-  people.forEach(p => {
-    if (q && !p.toLowerCase().includes(q)) return;
-
-    const stats = personStats[p];
-
-    // FILTER: Only show people with actual Loan activity
-    if (stats.given === 0 && stats.received === 0) return;
-
-    // Color logic: Balance < 0 (They Owe Us) -> Red/Danger? Balance > 0 (We Owe Them) -> Green/Success?
-    // "Loan Given" = Debit (Asset). "Loan Received" = Credit (Liability).
-    // Let's display "Net Due": Given - Received.
-    // If Result > 0: They have taken more than given back -> They Owe (Red).
-    // If Result < 0: They gave more -> We Owe (Green).
-
-    // Using simple stats.balance (Received - Given).
-    // If Balance < 0: They owe us (Red).
-    // If Balance > 0: We owe them (Green).
-
-    let balanceText = '';
-    let balanceClass = '';
-
-    if (stats.balance < 0) {
-      balanceText = `They Owe: ৳${formatNumber(Math.abs(stats.balance))}`;
-      balanceClass = 'text-danger';
-    } else if (stats.balance > 0) {
-      balanceText = `We Owe: ৳${formatNumber(stats.balance)}`;
-      balanceClass = 'text-success';
-    } else {
-      balanceText = 'Settled';
-      balanceClass = 'text-muted';
-    }
-
-    const col = document.createElement('div');
-    col.className = 'col-md-4 col-lg-3';
-    col.innerHTML = `
-      <div class="card h-100 shadow-sm border-0 person-loan-card" style="cursor: pointer; transition: transform 0.2s;" onclick="openLoanDetail('${p.replace(/'/g, "\\'")}')">
-        <div class="card-body text-center">
-            <div class="mb-3">
-                <span class="avatar-circle bg-primary-light text-primary fw-bold fs-4 d-inline-block rounded-circle" style="width: 50px; height: 50px; line-height: 50px;">
-                    ${p.charAt(0).toUpperCase()}
-                </span>
-            </div>
-            <h5 class="card-title fw-bold text-dark mb-1">${p}</h5>
-            <div class="mb-3 ${balanceClass} fw-bold fs-5">${balanceText}</div>
-            
-            <div class="d-flex justify-content-between text-muted small border-top pt-2">
-                <span>Given: ৳${formatNumber(stats.given)}</span>
-                <span>Recv: ৳${formatNumber(stats.received)}</span>
-            </div>
-        </div>
-      </div>
-    `;
-
-    // Hover effect helper
-    col.querySelector('.card').onmouseover = function () { this.style.transform = 'translateY(-5px)'; }
-    col.querySelector('.card').onmouseout = function () { this.style.transform = 'translateY(0)'; }
-
-    container.appendChild(col);
-  });
-}
-
-function filterLoanSummary() {
-  renderLoanSummary();
-}
-
-function openLoanDetail(person) {
-  currentLoanPerson = person;
-  const detailView = document.getElementById('loanDetailView');
-  const title = document.getElementById('loanDetailTitle');
-  const tbody = document.getElementById('loanDetailBody');
-  const footVal = document.getElementById('loanDetailBalance');
-
-  if (detailView) detailView.classList.remove('d-none');
-  if (title) title.innerText = `Ledger: ${person}`;
-  if (tbody) tbody.innerHTML = '';
-
-  // Filter transactions
-  // We include ALL transactions with this person name to be thorough
-  // Sort by date ASCENDING (oldest first) for proper running balance calculation
-  let txs = globalData.finance.filter(tx => tx.person === person).sort((a, b) => new Date(a.date) - new Date(b.date));
-
-  // Date Range Filtering
-  const start = document.getElementById('loanDetailStartDate').value;
-  const end = document.getElementById('loanDetailEndDate').value;
-
-  if (start) {
-    txs = txs.filter(tx => tx.date >= start);
-  }
-  if (end) {
-    txs = txs.filter(tx => tx.date <= end);
-  }
-
-  let runningBalance = 0;
-  let rowNum = 1;
-
-  txs.forEach(tx => {
-    let credit = 0;
-    let debit = 0;
-    let typeLabel = tx.type;
-
-    if (tx.type === 'Loan Given' || tx.type === 'Expense') {
-      debit = tx.amount;
-      runningBalance -= tx.amount; // Money out: reduces balance (They owe us more)
-    } else if (tx.type === 'Loan Received' || tx.type === 'Income') {
-      credit = tx.amount;
-      runningBalance += tx.amount; // Money in: increases balance
-    } else {
-      // Transfers? Assume Out is debit?
-      debit = tx.amount;
-      runningBalance -= tx.amount;
-    }
-
-    // Determine balance color
-    let balanceClass = '';
-    let balancePrefix = '';
-    if (runningBalance < 0) {
-      balanceClass = 'text-danger fw-bold';
-      balancePrefix = 'Adv ';
-    } else if (runningBalance > 0) {
-      balanceClass = 'text-success fw-bold';
-      balancePrefix = 'Adv ';
-    } else {
-      balanceClass = 'text-muted';
-      balancePrefix = '';
-    }
-
-    const tr = document.createElement('tr');
-    tr.innerHTML = `
-            <td class="text-muted small">${rowNum}</td>
-            <td>${tx.date}</td>
-            <td><span class="badge ${debit > 0 ? 'bg-danger-subtle text-danger' : 'bg-success-subtle text-success'}">${typeLabel}</span></td>
-            <td class="small">${tx.description || '-'}</td>
-            <td class="text-end text-danger fw-bold">${debit > 0 ? formatNumber(debit) : '-'}</td>
-            <td class="text-end text-success fw-bold">${credit > 0 ? formatNumber(credit) : '-'}</td>
-            <td class="text-end ${balanceClass}">${balancePrefix}${formatNumber(Math.abs(runningBalance))}</td>
-        `;
-    tbody.appendChild(tr);
-    rowNum++;
-  });
-
-  if (footVal) {
-    if (runningBalance < 0) {
-      footVal.innerHTML = `<span class="text-danger">They Owe: ৳${formatNumber(Math.abs(runningBalance))}</span>`;
-    } else if (runningBalance > 0) {
-      footVal.innerHTML = `<span class="text-success">We Owe: ৳${formatNumber(runningBalance)}</span>`;
-    } else {
-      footVal.innerHTML = `৳0`;
-    }
-  }
-}
-
-function closeLoanDetail() {
-  const detailView = document.getElementById('loanDetailView');
-  if (detailView) detailView.classList.add('d-none');
-
-  // Clear date filters for next time
-  document.getElementById('loanDetailStartDate').value = '';
-  document.getElementById('loanDetailEndDate').value = '';
-
-  currentLoanPerson = null;
-}
-
-function printLoanDetail() {
-  if (!currentLoanPerson) return;
-  const printContent = document.getElementById('loanDetailView').innerHTML;
-  const printArea = document.getElementById('printArea');
-  if (printArea) {
-    printArea.innerHTML = `
-            ${getPrintHeader('Personal Ledger - ' + currentLoanPerson)}
-            <div class="p-4">
-                ${printContent}
-            </div>
-            ${getPrintFooter()}
-        `;
-    // Hide buttons in print
-    const buttons = printArea.querySelectorAll('button');
-    buttons.forEach(b => b.style.display = 'none');
-    window.print();
-  }
-}
-
-function checkPersonBalance() {
-  const input = document.getElementById('financePersonInput');
-  const display = document.getElementById('personBalanceDisplay');
-
-  if (!input || !display) return;
-
-  // Only show for Loan types or generally useful? Let's show always if match found
-  const name = input.value.trim().toLowerCase();
-
-  if (name.length < 2) {
-    display.innerHTML = '';
-    return;
-  }
-
-  // Calculate balance for this person
-  // Exact match or partial? Use exact-ish for balance calculation to avoid summing up "Ali" and "Alim" together
-  // Ideally we filter by exact name match from existing records to be accurate
-
-  // Let's find all transactions where person name loosely matches to suggest, 
-  // BUT for balance we should probably be stricter or just aggregate what we find.
-  // For now, let's aggregate EXACT case-insensitive matches to give specific feedback
-
-  const txs = globalData.finance.filter(f => f.person && f.person.toLowerCase() === name);
-
-  if (txs.length === 0) {
-    // Maybe partial match suggestion?
-    const similar = [...new Set(globalData.finance
-      .filter(f => f.person && f.person.toLowerCase().includes(name))
-      .map(f => f.person))];
-
-    if (similar.length > 0) {
-      display.innerHTML = `<span class="text-muted fw-normal">Did you mean: ${similar.join(', ')}?</span>`;
-    } else {
-      display.innerHTML = '<span class="text-muted fw-normal">New person (No previous history)</span>';
-    }
-    return;
-  }
-
-  let given = 0;
-  let received = 0;
-
-  txs.forEach(tx => {
-    if (tx.type === 'Loan Given' || tx.type === 'Expense') given += tx.amount;
-    else if (tx.type === 'Loan Received' || tx.type === 'Income') received += tx.amount;
-  });
-
-  const balance = received - given;
-  // Balance < 0 : They Owe Us (Given > Received) -> Red
-  // Balance > 0 : We Owe Them (Received > Given) -> Green
-
-  let html = '';
-  if (balance < 0) {
-    html = `<span class="text-danger"> ï¸ They Owe: ৳${formatNumber(Math.abs(balance))}</span>`;
-  } else if (balance > 0) {
-    html = `<span class="text-success">✅ We Owe: ৳${formatNumber(balance)}</span>`;
-  } else {
-    html = `<span class="text-muted">✔️ Account Settled (Balance 0)</span>`;
-  }
-
-  display.innerHTML = `${html} <span class="text-muted ms-2 small fw-normal">(Total Loan: ৳${formatNumber(given)} | Paid: ৳${formatNumber(received)})</span>`;
-}
-
-
-// ===================================
-// RENDER STUDENT TABLE
-// ===================================
-
-function render(students) {
-  const tbody = document.getElementById('tableBody');
-  tbody.innerHTML = '';
-
-  if (students.length === 0) {
-    tbody.innerHTML = `
-      <tr>
-        <td colspan="7" class="text-center py-5">
-          <div class="text-muted">
-            <h5>No students found</h5>
-            <p>Add your first student to get started</p>
-          </div>
-        </td>
-      </tr>
-    `;
-    return;
-  }
-
-  // Calculate true index for each student (BEFORE reverse)
-  const displayStudents = students.map((s, displayIndex) => {
-    const realIndex = globalData.students.indexOf(s);
-    const finalIndex = realIndex >= 0 ? realIndex : globalData.students.findIndex(gs => gs.studentId && gs.studentId === s.studentId);
-    // trueIndex is the globalData.students array position
-    // rowIndex will be recalculated after reverse
-    return { ...s, trueIndex: finalIndex, originalIndex: displayIndex };
-  });
-
-  // Reverse to show newest first, then add rowIndex
-  displayStudents.reverse();
-
-  // Now add correct rowIndex based on actual globalData position
-  displayStudents.forEach((s, i) => {
-    s.rowIndex = s.trueIndex; // Use trueIndex as rowIndex (points to globalData.students position)
-  });
-
-  // Render each student
-  displayStudents.forEach(s => {
-    const now = new Date();
-    const today = `${now.getFullYear()}-${String(now.getMonth() + 1).padStart(2, '0')}-${String(now.getDate()).padStart(2, '0')}`;
-
-    const isOverdue = s.reminderDate && s.reminderDate < today && (parseFloat(s.due) > 0);
-    const isToday = s.reminderDate && s.reminderDate === today && (parseFloat(s.due) > 0);
-    const isFuture = s.reminderDate && s.reminderDate > today && (parseFloat(s.due) > 0);
-
-    let reminderBadge = '';
-    if (isOverdue) {
-      reminderBadge = `<span class="badge bg-danger text-white ms-2 pulse-red" title="OVERDUE: ${s.reminderDate}">🔔 Overdue</span>`;
-    } else if (isToday) {
-      reminderBadge = `<span class="badge bg-warning text-dark ms-2" title="DUE TODAY: ${s.reminderDate}">🔔 Today</span>`;
-    } else if (isFuture) {
-      reminderBadge = `<span class="badge bg-info-subtle text-info ms-2" title="Reminder: ${s.reminderDate}">🔔 Upcoming</span>`;
-    }
-
-    // === STUDENT PHOTO OR INITIAL ===
-    let studentAvatar = '';
-    if (s.photo) {
-      // If photo exists, show it
-      studentAvatar = `
-        <img src="${s.photo}" 
-             alt="${s.name}" 
-             class="rounded-circle" 
-             style="width: 38px; height: 38px; object-fit: cover; border: 2px solid #00d9ff;"
-             onerror="this.style.display='none'; this.nextElementSibling.style.display='flex';">
-        <div class="bg-primary-subtle text-primary rounded-circle align-items-center justify-content-center fw-bold" 
-             style="width: 38px; height: 38px; font-size: 0.9rem; display: none;">
-          ${(s.name || 'S').charAt(0).toUpperCase()}
-        </div>
-      `;
-    } else {
-      // If no photo, show initial letter
-      studentAvatar = `
-        <div class="bg-primary-subtle text-primary rounded-circle d-flex align-items-center justify-content-center fw-bold" 
-             style="width: 38px; height: 38px; font-size: 0.9rem;">
-          ${(s.name || 'S').charAt(0).toUpperCase()}
-        </div>
-      `;
-    }
-
-    const row = `
-      <tr>
-        <td class="small text-muted">${s.enrollDate || '-'}</td>
-        <td class="small fw-semibold text-secondary">${s.studentId || '-'}</td>
-        <td>
-          <div class="d-flex align-items-center gap-3">
-            ${studentAvatar}
-            <div>
-              <a href="javascript:void(0)" onclick="openStudentProfile(${s.rowIndex})" class="text-decoration-none text-dark fw-bold hover-primary">
-                ${s.name}
-              </a>
-              <div class="d-flex align-items-center mt-1">
-                ${reminderBadge}
+    
+      // Reverse to show newest first
+      const displayItems = [...transactions].reverse();
+      let totalDisplayed = 0;
+    
+      displayItems.forEach(f => {
+        const amt = parseFloat(f.amount) || 0;
+        const isPositive = (f.type === 'Income' || f.type === 'Loan Received' || f.type === 'Transfer In');
+        const amtClass = isPositive ? 'text-success' : 'text-danger';
+    
+        // Accumulate total for footer
+        if (isPositive) totalDisplayed += amt;
+        else totalDisplayed -= amt;
+    
+        const row = `
+          <tr>
+            <td>${f.date || 'N/A'}</td>
+            <td><span class="badge ${f.type.includes('Transfer') ? 'bg-warning' : 'bg-light text-dark border'}">${f.type}</span></td>
+            <td class="fw-bold">${f.method || 'Cash'}</td>
+            <td>${f.category || 'N/A'}</td>
+            <td class="small">
+                ${f.person ? `<span class="fw-bold text-primary d-block mb-1">👤 ${f.person}</span>` : ''}
+                ${f.description || ''}
+            </td>
+            <td class="${amtClass} fw-bold">৳${formatNumber(amt)}</td>
+            <td class="text-end">
+              <div class="btn-group">
+                <button class="btn btn-sm btn-outline-primary" onclick="editTransaction(${f.id})" title="Edit record">
+                  ✏️ Edit
+                </button>
+                <button class="btn btn-sm btn-danger" onclick="deleteTransaction(${f.id})" title="Delete record">
+                  🗑️ Delete
+                </button>
               </div>
-            </div>
-          </div>
-        </td>
-        <td><span class="badge bg-light text-dark border fw-semibold">${s.course}</span></td>
-        <td class="small">${s.batch || 'N/A'}</td>
-        <td class="fw-bold">৳${formatNumber(s.totalPayment || 0)}</td>
-        <td class="text-success fw-bold">৳${formatNumber(s.paid || 0)}</td>
-        <td class="text-danger fw-bold">৳${formatNumber(s.due || 0)}</td>
-        <td class="small text-muted">
-            ${s.remarks ? `<span class="badge bg-secondary-subtle text-secondary border" title="${s.remarks}">${s.remarks.substring(0, 15)}${s.remarks.length > 15 ? '...' : ''}</span>` : '-'}
-        </td>
-        <td>
-            <button class="btn btn-light btn-sm rounded-pill px-3 border shadow-sm" type="button" onclick="openStudentActionsModal(${s.trueIndex})">
-               <i class="bi bi-three-dots-vertical"></i> Manage
-            </button>
-        </td>
-      </tr>
-    `;
-    tbody.innerHTML += row;
-  });
-
-  // ✅ UPDATE TABLE FOOTER TOTALS
-  updateTableFooter(students);
-
-  // ✅ AUTO-POPULATE BATCH FILTER DROPDOWN
-  populateBatchFilter();
-}
-
-function updateTableFooter(students) {
-  // Calculate totals from displayed students
-  const totalPayable = students.reduce((sum, s) => sum + (parseFloat(s.totalPayment) || 0), 0);
-  const totalPaid = students.reduce((sum, s) => sum + (parseFloat(s.paid) || 0), 0);
-  const totalDue = students.reduce((sum, s) => sum + (parseFloat(s.due) || 0), 0);
-
-  // Update footer display
-  document.getElementById('footerTotalPayable').innerText = '৳' + formatNumber(totalPayable);
-  document.getElementById('footerTotalPaid').innerText = '৳' + formatNumber(totalPaid);
-  document.getElementById('footerTotalDue').innerText = '৳' + formatNumber(totalDue);
-}
-
-// ===================================
-// RENDER FINANCIAL LEDGER
-// ===================================
-
-function renderLedger(transactions) {
-  const tbody = document.getElementById('ledgerTableBody');
-  tbody.innerHTML = '';
-
-  if (!transactions || transactions.length === 0) {
-    tbody.innerHTML = '<tr><td colspan="7" class="text-center py-4 text-muted">No transactions found</td></tr>';
-    return;
-  }
-
-  // Reverse to show newest first
-  const displayItems = [...transactions].reverse();
-  let totalDisplayed = 0;
-
-  displayItems.forEach(f => {
-    const amt = parseFloat(f.amount) || 0;
-    const isPositive = (f.type === 'Income' || f.type === 'Loan Received' || f.type === 'Transfer In');
-    const amtClass = isPositive ? 'text-success' : 'text-danger';
-
-    // Accumulate total for footer
-    if (isPositive) totalDisplayed += amt;
-    else totalDisplayed -= amt;
-
-    const row = `
-      <tr>
-        <td>${f.date || 'N/A'}</td>
-        <td><span class="badge ${f.type.includes('Transfer') ? 'bg-warning' : 'bg-light text-dark border'}">${f.type}</span></td>
-        <td class="fw-bold">${f.method || 'Cash'}</td>
-        <td>${f.category || 'N/A'}</td>
-        <td class="small">
-            ${f.person ? `<span class="fw-bold text-primary d-block mb-1">👤 ${f.person}</span>` : ''}
-            ${f.description || ''}
-        </td>
-        <td class="${amtClass} fw-bold">৳${formatNumber(amt)}</td>
-        <td class="text-end">
-          <div class="btn-group">
-            <button class="btn btn-sm btn-outline-primary" onclick="editTransaction(${f.id})" title="Edit record">
-              ✏️ Edit
-            </button>
-            <button class="btn btn-sm btn-danger" onclick="deleteTransaction(${f.id})" title="Delete record">
-              🗑️ Delete
-            </button>
-          </div>
-        </td>
-      </tr>
-    `;
-    tbody.innerHTML += row;
-  });
-
-  // Update total in header
-  const summaryTotalEl = document.getElementById('ledgerSummaryTotal');
-  if (summaryTotalEl) {
-    summaryTotalEl.innerText = '৳' + formatNumber(totalDisplayed);
-    summaryTotalEl.classList.remove('text-success', 'text-danger');
-    summaryTotalEl.classList.add(totalDisplayed >= 0 ? 'text-success' : 'text-danger');
-  }
-
-  // Update total in Footer
-  const footerTotal = document.getElementById('ledgerFooterTotal');
-  if (footerTotal) {
-    footerTotal.innerText = '৳' + formatNumber(totalDisplayed);
-    footerTotal.classList.remove('text-success', 'text-danger');
-    footerTotal.classList.add(totalDisplayed >= 0 ? 'text-success' : 'text-danger');
-  }
-
-  // Dynamically update category filter dropdown
-  updateCategoryDropdown();
-}
-
-// ===================================
-// DYNAMIC DROPDOWNS & SETTINGS MANAGEMENT
-// ===================================
-
-function populateDropdowns() {
-  const courses = globalData.courseNames || [];
-
-  // BUILD CLEAN PAYMENT METHODS LIST:
-  // 1. Core methods (always present)
-  // 2. Payment Methods (ONLY from bank accounts - NO hardcoded methods)
-  const methods = [];
-
-  const courseSelects = [
-    'studentCourseSelect',
-    'visitorCourseSelect',
-    'examSubjectSelect'
-  ];
-
-  courseSelects.forEach(id => {
-    const el = document.getElementById(id);
-    if (el) {
-      const currentVal = el.value;
-      el.innerHTML = '';
-
-      if (id === 'visitorCourseSelect') {
-        el.innerHTML = '<option value="">Select Interested Course...</option>';
-      } else if (id === 'examSubjectSelect') {
-        el.innerHTML = '<option value="">Select Course...</option>';
+            </td>
+          </tr>
+        `;
+        tbody.innerHTML += row;
+      });
+    
+      // Update total in header
+      const summaryTotalEl = document.getElementById('ledgerSummaryTotal');
+      if (summaryTotalEl) {
+        summaryTotalEl.innerText = '৳' + formatNumber(totalDisplayed);
+        summaryTotalEl.classList.remove('text-success', 'text-danger');
+        summaryTotalEl.classList.add(totalDisplayed >= 0 ? 'text-success' : 'text-danger');
       }
-
-      courses.forEach(c => {
+    
+      // Update total in Footer
+      const footerTotal = document.getElementById('ledgerFooterTotal');
+      if (footerTotal) {
+        footerTotal.innerText = '৳' + formatNumber(totalDisplayed);
+        footerTotal.classList.remove('text-success', 'text-danger');
+        footerTotal.classList.add(totalDisplayed >= 0 ? 'text-success' : 'text-danger');
+      }
+    
+      // Dynamically update category filter dropdown
+      updateCategoryDropdown();
+    }
+    
+    // ===================================
+    // DYNAMIC DROPDOWNS & SETTINGS MANAGEMENT
+    // ===================================
+    
+    function populateDropdowns() {
+      const courses = globalData.courseNames || [];
+    
+      // BUILD CLEAN PAYMENT METHODS LIST:
+      // 1. Core methods (always present)
+      // 2. Payment Methods (ONLY from bank accounts - NO hardcoded methods)
+      const methods = [];
+    
+      const courseSelects = [
+        'studentCourseSelect',
+        'visitorCourseSelect',
+        'examSubjectSelect'
+      ];
+    
+      courseSelects.forEach(id => {
+        const el = document.getElementById(id);
+        if (el) {
+          const currentVal = el.value;
+          el.innerHTML = '';
+    
+          if (id === 'visitorCourseSelect') {
+            el.innerHTML = '<option value="">Select Interested Course...</option>';
+          } else if (id === 'examSubjectSelect') {
+            el.innerHTML = '<option value="">Select Course...</option>';
+          }
+    
+          courses.forEach(c => {
+            const opt = document.createElement('option');
+            opt.value = c;
+            opt.innerText = c;
+            el.appendChild(opt);
+          });
+    
+          if (currentVal && courses.includes(currentVal)) {
+            el.value = currentVal;
+          }
+        }
+      });
+    
+      const methodSelects = [
+        'studentMethodSelect',
+        'financeMethodSelect',
+        'transferFromSelect',
+        'transferToSelect',
+        'editTransMethodSelect',
+        'ledgerMethodFilter',
+        'examPaymentMethodSelect',
+        'pmtNewMethod',
+        'accTransferFrom',
+        'accTransferTo'
+      ];
+    
+      methodSelects.forEach(id => {
+        const el = document.getElementById(id);
+        if (el) {
+          const currentVal = el.value;
+          el.innerHTML = '';
+    
+          // Add default option
+          if (id === 'ledgerMethodFilter') {
+            const opt = document.createElement('option');
+            opt.value = '';
+            opt.innerText = 'All Methods';
+            el.appendChild(opt);
+          } else {
+            const opt = document.createElement('option');
+            opt.value = '';
+            opt.innerText = 'Select Payment Method';
+            el.appendChild(opt);
+          }
+    
+          // Add Cash option FIRST
+          const cashOpt = document.createElement('option');
+          cashOpt.value = 'Cash';
+          cashOpt.innerText = '💵 Cash';
+          cashOpt.style.backgroundColor = '#1a1f3a';
+          cashOpt.style.color = '#00ff88';
+          el.appendChild(cashOpt);
+    
+          // Add ONLY bank accounts (no traditional methods)
+          const bankAccounts = globalData.bankAccounts || [];
+          bankAccounts.forEach(account => {
+            const opt = document.createElement('option');
+            opt.value = account.name;
+            opt.innerText = `🏦 ${account.name} (${account.bankName})`;
+            opt.style.backgroundColor = '#1a1f3a';
+            opt.style.color = '#00d9ff';
+            el.appendChild(opt);
+          });
+    
+          // Add ONLY mobile banking accounts
+          const mobileAccounts = globalData.mobileBanking || [];
+          mobileAccounts.forEach(account => {
+            const opt = document.createElement('option');
+            opt.value = account.name;
+            opt.innerText = `📱 ${account.name}`;
+            opt.style.backgroundColor = '#1a1f3a';
+            opt.style.color = '#ff2d95';
+            el.appendChild(opt);
+          });
+    
+          if (currentVal && (currentVal === 'Cash' || bankAccounts.some(a => a.name === currentVal) || mobileAccounts.some(a => a.name === currentVal) || currentVal === '')) {
+            el.value = currentVal;
+          }
+        }
+      });
+    
+      if (typeof renderSettingsLists === 'function') renderSettingsLists();
+    }
+    
+    function renderSettingsLists() {
+      const incCats = globalData.incomeCategories || [];
+      const expCats = globalData.expenseCategories || [];
+      const methods = globalData.paymentMethods || [];
+    
+      // Income List
+      const incList = document.getElementById('settingsIncomeCatList');
+      if (incList) {
+        incList.innerHTML = '';
+        incCats.forEach(c => {
+          const li = document.createElement('li');
+          li.className = 'list-group-item d-flex justify-content-between align-items-center';
+          li.innerHTML = `${c} <button class="btn btn-sm btn-outline-danger" onclick="deleteIncomeCategory('${c}')">&times;</button>`;
+          incList.appendChild(li);
+        });
+      }
+    
+      // Expense List
+      const expList = document.getElementById('settingsExpenseCatList');
+      if (expList) {
+        expList.innerHTML = '';
+        expCats.forEach(c => {
+          const li = document.createElement('li');
+          li.className = 'list-group-item d-flex justify-content-between align-items-center';
+          li.innerHTML = `${c} <button class="btn btn-sm btn-outline-danger" onclick="deleteExpenseCategory('${c}')">&times;</button>`;
+          expList.appendChild(li);
+        });
+      }
+    
+      // Course List
+      const courseList = document.getElementById('settingsCourseList');
+      if (courseList) {
+        courseList.innerHTML = '';
+        const courses = globalData.courseNames || [];
+        courses.forEach(c => {
+          const li = document.createElement('li');
+          li.className = 'list-group-item d-flex justify-content-between align-items-center';
+          li.innerHTML = `${c} <button class="btn btn-sm btn-outline-danger" onclick="deleteCourseName('${c}')">&times;</button>`;
+          courseList.appendChild(li);
+        });
+      }
+    
+      // Employee Roles List
+      const rolesList = document.getElementById('settingsEmployeeRoleList');
+      if (rolesList) {
+        rolesList.innerHTML = '';
+        const roles = globalData.employeeRoles || ['Instructor', 'Admin', 'Staff', 'Manager'];
+        roles.forEach((r, i) => {
+          const li = document.createElement('li');
+          li.className = 'list-group-item d-flex justify-content-between align-items-center';
+          li.innerHTML = `${r} <button class="btn btn-sm btn-outline-danger" onclick="deleteEmployeeRole(${i})">&times;</button>`;
+          rolesList.appendChild(li);
+        });
+      }
+    
+      // Academy Name & Monthly Target in Settings
+      const settingsForm = document.getElementById('settingsForm');
+      if (settingsForm) {
+        if (settingsForm.academyName) {
+          settingsForm.academyName.value = globalData.settings.academyName || '';
+        }
+        if (settingsForm.monthlyTarget) {
+          settingsForm.monthlyTarget.value = globalData.settings.monthlyTarget || 200000;
+        }
+        // Dynamic Starting Balances List
+        const balanceContainer = document.getElementById('startingBalancesList');
+        if (balanceContainer) {
+          balanceContainer.innerHTML = '';
+    
+          // Define allMethods before using it
+          const allMethods = ['Cash'];
+          const bankAccounts = globalData.bankAccounts || [];
+          const mobileAccounts = globalData.mobileBanking || [];
+    
+          bankAccounts.forEach(acc => allMethods.push(acc.name));
+          mobileAccounts.forEach(acc => allMethods.push(acc.name));
+    
+          allMethods.forEach(m => {
+            const div = document.createElement('div');
+            div.className = 'col-6 mb-2';
+            div.innerHTML = `
+              <label class="form-label small fw-bold text-muted mb-1">${m} Starting ৳</label>
+              <input type="number" name="startBalance_${m}" class="form-control form-control-sm" 
+                     value="${globalData.settings.startBalances?.[m] || 0}" placeholder="0">
+            `;
+            balanceContainer.appendChild(div);
+          });
+          // Populate Security Fields
+          if (document.getElementById('settingsUsername')) {
+            document.getElementById('settingsUsername').value = (globalData.credentials && globalData.credentials.username) || 'admin';
+          }
+          if (document.getElementById('settingsPassword')) {
+            document.getElementById('settingsPassword').value = (globalData.credentials && globalData.credentials.password) || 'admin123';
+          }
+        }
+      }
+    }
+    
+    // --- Category Management ---
+    
+    function addIncomeCategory() {
+      const input = document.getElementById('newIncomeCatInput');
+      const val = input.value.trim();
+      if (!val) return;
+      if (!globalData.incomeCategories) globalData.incomeCategories = [];
+      if (globalData.incomeCategories.includes(val)) { alert('Exists!'); return; }
+      globalData.incomeCategories.push(val);
+      saveToStorage();
+      renderSettingsLists();
+      updateFinanceCategoryOptions();
+      input.value = '';
+    }
+    
+    function deleteIncomeCategory(name) {
+      if (!confirm(`Delete Income Category "${name}"?`)) return;
+      globalData.incomeCategories = globalData.incomeCategories.filter(c => c !== name);
+      saveToStorage();
+      renderSettingsLists();
+      updateFinanceCategoryOptions();
+    }
+    
+    function addExpenseCategory() {
+      const input = document.getElementById('newExpenseCatInput');
+      const val = input.value.trim();
+      if (!val) return;
+      if (!globalData.expenseCategories) globalData.expenseCategories = [];
+      if (globalData.expenseCategories.includes(val)) { alert('Exists!'); return; }
+      globalData.expenseCategories.push(val);
+      saveToStorage();
+      renderSettingsLists();
+      updateFinanceCategoryOptions();
+      input.value = '';
+    }
+    
+    function deleteExpenseCategory(name) {
+      if (!confirm(`Delete Expense Category "${name}"?`)) return;
+      globalData.expenseCategories = globalData.expenseCategories.filter(c => c !== name);
+      saveToStorage();
+      renderSettingsLists();
+      updateFinanceCategoryOptions();
+    }
+    
+    function updateFinanceCategoryOptions() {
+      const typeSelect = document.querySelector('#financeForm select[name="type"]');
+      const catSelect = document.getElementById('financeCategorySelect');
+      if (!typeSelect || !catSelect) return;
+    
+      const type = typeSelect.value;
+      let options = [];
+    
+      if (type === 'Income' || type === 'Loan Received') {
+        options = globalData.incomeCategories || [];
+      } else {
+        options = globalData.expenseCategories || [];
+      }
+    
+      catSelect.innerHTML = '';
+      options.forEach(c => {
         const opt = document.createElement('option');
         opt.value = c;
         opt.innerText = c;
-        el.appendChild(opt);
+        catSelect.appendChild(opt);
       });
-
-      if (currentVal && courses.includes(currentVal)) {
-        el.value = currentVal;
+    
+      // ✅ FIXED: Toggle Person/Counterparty visibility based on TYPE
+      const personContainer = document.getElementById('financePersonContainer');
+      const personInput = document.getElementById('financePersonInput');
+    
+      if (personContainer && personInput) {
+        // Show ONLY for Loan Given and Loan Received
+        if (type === 'Loan Given' || type === 'Loan Received') {
+          personContainer.classList.remove('d-none');
+          personInput.required = true;
+          console.log('✅ Person field: VISIBLE + REQUIRED (Type:', type + ')');
+        } else {
+          personContainer.classList.add('d-none');
+          personInput.required = false;
+          personInput.value = ''; // Clear value when hidden
+          console.log('ℹ️ Person field: HIDDEN (Type:', type + ')');
+        }
       }
     }
-  });
-
-  const methodSelects = [
-    'studentMethodSelect',
-    'financeMethodSelect',
-    'transferFromSelect',
-    'transferToSelect',
-    'editTransMethodSelect',
-    'ledgerMethodFilter',
-    'examPaymentMethodSelect',
-    'pmtNewMethod',
-    'accTransferFrom',
-    'accTransferTo'
-  ];
-
-  methodSelects.forEach(id => {
-    const el = document.getElementById(id);
-    if (el) {
-      const currentVal = el.value;
-      el.innerHTML = '';
-
-      // Add default option
-      if (id === 'ledgerMethodFilter') {
-        const opt = document.createElement('option');
-        opt.value = '';
-        opt.innerText = 'All Methods';
-        el.appendChild(opt);
-      } else {
-        const opt = document.createElement('option');
-        opt.value = '';
-        opt.innerText = 'Select Payment Method';
-        el.appendChild(opt);
+    
+    // ✅ Remove old togglePersonField function - not needed anymore
+    
+    // --- Payment Method Management ---
+    // NOTE: Payment methods are now automatically synced from Bank Accounts
+    // These functions kept for backward compatibility
+    function addPaymentMethod() {
+      const input = document.getElementById('newMethodInput');
+      if (!input) return; // Element doesn't exist in UI anymore
+      const val = input.value.trim();
+      if (!val) return;
+    
+      if (!globalData.paymentMethods) {
+        globalData.paymentMethods = ['Cash', 'Bkash', 'Nogod'];
       }
-
-      // Add Cash option FIRST
-      const cashOpt = document.createElement('option');
-      cashOpt.value = 'Cash';
-      cashOpt.innerText = '💵 Cash';
-      cashOpt.style.backgroundColor = '#1a1f3a';
-      cashOpt.style.color = '#00ff88';
-      el.appendChild(cashOpt);
-
-      // Add ONLY bank accounts (no traditional methods)
-      const bankAccounts = globalData.bankAccounts || [];
-      bankAccounts.forEach(account => {
-        const opt = document.createElement('option');
-        opt.value = account.name;
-        opt.innerText = `🏦 ${account.name} (${account.bankName})`;
-        opt.style.backgroundColor = '#1a1f3a';
-        opt.style.color = '#00d9ff';
-        el.appendChild(opt);
-      });
-
-      // Add ONLY mobile banking accounts
-      const mobileAccounts = globalData.mobileBanking || [];
-      mobileAccounts.forEach(account => {
-        const opt = document.createElement('option');
-        opt.value = account.name;
-        opt.innerText = `📱 ${account.name}`;
-        opt.style.backgroundColor = '#1a1f3a';
-        opt.style.color = '#ff2d95';
-        el.appendChild(opt);
-      });
-
-      if (currentVal && (currentVal === 'Cash' || bankAccounts.some(a => a.name === currentVal) || mobileAccounts.some(a => a.name === currentVal) || currentVal === '')) {
-        el.value = currentVal;
+    
+      if (globalData.paymentMethods.includes(val)) { alert('Exists!'); return; }
+    
+      globalData.paymentMethods.push(val);
+      saveToStorage();
+      populateDropdowns();
+      input.value = '';
+    }
+    
+    function deletePaymentMethod(name) {
+      if (!confirm(`Delete payment method "${name}"?`)) return;
+      if (!globalData.paymentMethods) return;
+      globalData.paymentMethods = globalData.paymentMethods.filter(m => m !== name);
+      saveToStorage();
+      populateDropdowns();
+    }
+    
+    // --- Course Management ---
+    function addCourseName() {
+      const input = document.getElementById('newCourseInput');
+      const val = input.value.trim();
+      if (!val) return;
+    
+      if (!globalData.courseNames) {
+        globalData.courseNames = ['Caregiver', 'Student Visa', 'Visa (Tourist, Medical Business)', 'Air Ticketing (Basic)', 'Air Ticketing (Advance)', 'Travel Agency Business Managment', 'Language (Japanese, Korean)', 'Other'];
       }
+    
+      if (globalData.courseNames.includes(val)) { alert('Exists!'); return; }
+    
+      globalData.courseNames.push(val);
+      saveToStorage();
+      populateDropdowns();
+      input.value = '';
     }
-  });
-
-  if (typeof renderSettingsLists === 'function') renderSettingsLists();
-}
-
-function renderSettingsLists() {
-  const incCats = globalData.incomeCategories || [];
-  const expCats = globalData.expenseCategories || [];
-  const methods = globalData.paymentMethods || [];
-
-  // Income List
-  const incList = document.getElementById('settingsIncomeCatList');
-  if (incList) {
-    incList.innerHTML = '';
-    incCats.forEach(c => {
-      const li = document.createElement('li');
-      li.className = 'list-group-item d-flex justify-content-between align-items-center';
-      li.innerHTML = `${c} <button class="btn btn-sm btn-outline-danger" onclick="deleteIncomeCategory('${c}')">&times;</button>`;
-      incList.appendChild(li);
-    });
-  }
-
-  // Expense List
-  const expList = document.getElementById('settingsExpenseCatList');
-  if (expList) {
-    expList.innerHTML = '';
-    expCats.forEach(c => {
-      const li = document.createElement('li');
-      li.className = 'list-group-item d-flex justify-content-between align-items-center';
-      li.innerHTML = `${c} <button class="btn btn-sm btn-outline-danger" onclick="deleteExpenseCategory('${c}')">&times;</button>`;
-      expList.appendChild(li);
-    });
-  }
-
-  // Course List
-  const courseList = document.getElementById('settingsCourseList');
-  if (courseList) {
-    courseList.innerHTML = '';
-    const courses = globalData.courseNames || [];
-    courses.forEach(c => {
-      const li = document.createElement('li');
-      li.className = 'list-group-item d-flex justify-content-between align-items-center';
-      li.innerHTML = `${c} <button class="btn btn-sm btn-outline-danger" onclick="deleteCourseName('${c}')">&times;</button>`;
-      courseList.appendChild(li);
-    });
-  }
-
-  // Employee Roles List
-  const rolesList = document.getElementById('settingsEmployeeRoleList');
-  if (rolesList) {
-    rolesList.innerHTML = '';
-    const roles = globalData.employeeRoles || ['Instructor', 'Admin', 'Staff', 'Manager'];
-    roles.forEach((r, i) => {
-      const li = document.createElement('li');
-      li.className = 'list-group-item d-flex justify-content-between align-items-center';
-      li.innerHTML = `${r} <button class="btn btn-sm btn-outline-danger" onclick="deleteEmployeeRole(${i})">&times;</button>`;
-      rolesList.appendChild(li);
-    });
-  }
-
-  // Academy Name & Monthly Target in Settings
-  const settingsForm = document.getElementById('settingsForm');
-  if (settingsForm) {
-    if (settingsForm.academyName) {
-      settingsForm.academyName.value = globalData.settings.academyName || '';
+    
+    function deleteCourseName(name) {
+      if (!confirm(`Delete course "${name}"?`)) return;
+      globalData.courseNames = globalData.courseNames.filter(c => c !== name);
+      saveToStorage();
+      populateDropdowns();
     }
-    if (settingsForm.monthlyTarget) {
-      settingsForm.monthlyTarget.value = globalData.settings.monthlyTarget || 200000;
+    
+    
+    
+    // Override updateCategoryDropdown to use globalData
+    function updateCategoryDropdown() {
+      const select = document.getElementById('ledgerCategoryFilter');
+      if (!select) return;
+    
+      const currentVal = select.value;
+      // Use global categories + any legacy categories found in transactions
+      const legacyCats = new Set(globalData.finance.map(f => f.category));
+      const incCats = globalData.incomeCategories || [];
+      const expCats = globalData.expenseCategories || [];
+      const allCats = [...new Set([...incCats, ...expCats, ...legacyCats])].sort();
+    
+      select.innerHTML = '<option value="">All Categories</option>';
+      allCats.forEach(cat => {
+        if (!cat) return;
+        const opt = document.createElement('option');
+        opt.value = cat;
+        opt.innerText = cat;
+        select.appendChild(opt);
+      });
+      select.value = currentVal;
     }
-    // Dynamic Starting Balances List
-    const balanceContainer = document.getElementById('startingBalancesList');
-    if (balanceContainer) {
-      balanceContainer.innerHTML = '';
-
-      // Define allMethods before using it
-      const allMethods = ['Cash'];
-      const bankAccounts = globalData.bankAccounts || [];
-      const mobileAccounts = globalData.mobileBanking || [];
-
-      bankAccounts.forEach(acc => allMethods.push(acc.name));
-      mobileAccounts.forEach(acc => allMethods.push(acc.name));
-
-      allMethods.forEach(m => {
-        const div = document.createElement('div');
-        div.className = 'col-6 mb-2';
-        div.innerHTML = `
-          <label class="form-label small fw-bold text-muted mb-1">${m} Starting ৳</label>
-          <input type="number" name="startBalance_${m}" class="form-control form-control-sm" 
-                 value="${globalData.settings.startBalances?.[m] || 0}" placeholder="0">
+    
+    // ===================================
+    // PDF EXPORT
+    // ===================================
+    
+    
+    
+    function downloadLedgerExcel() {
+      const q = document.getElementById('searchInput').value.toLowerCase().trim();
+      const startDate = document.getElementById('mainStartDate').value;
+      const endDate = document.getElementById('mainEndDate').value;
+      const type = document.getElementById('ledgerTypeFilter').value;
+      const category = document.getElementById('ledgerCategoryFilter').value;
+      const method = document.getElementById('ledgerMethodFilter').value;
+    
+      const filtered = globalData.finance.filter(f => {
+        const matchSearch = !q || (f.category && f.category.toLowerCase().includes(q)) || (f.description && f.description.toLowerCase().includes(q)) || (f.method && f.method.toLowerCase().includes(q)) || (f.type && f.type.toLowerCase().includes(q));
+        const matchDate = (!startDate || f.date >= startDate) && (!endDate || f.date <= endDate);
+        const matchType = !type || f.type === type;
+        const matchCategory = !category || f.category === category;
+        const matchMethod = !method || f.method === method;
+        return matchSearch && matchDate && matchType && matchCategory && matchMethod;
+      });
+    
+      if (filtered.length === 0) { alert('No data to export!'); return; }
+    
+      let csv = 'Date,Type,Method,Category,Description,Amount\n';
+      filtered.forEach(f => {
+        csv += `${f.date},${f.type},${f.method},${f.category},"${(f.description || '').replace(/"/g, '""')}",${f.amount}\n`;
+      });
+    
+      const blob = new Blob([csv], { type: 'text/csv;charset=utf-8;' });
+      const link = document.createElement('a');
+      link.href = URL.createObjectURL(blob);
+      link.setAttribute('download', `Ledger_Report_${new Date().toISOString().split('T')[0]}.csv`);
+      document.body.appendChild(link);
+      link.click();
+      document.body.removeChild(link);
+    }
+    
+    function mailLedgerReport() {
+      const academy = globalData.settings.academyName || 'Wings Fly Aviation Academy';
+      const q = document.getElementById('searchInput').value.toLowerCase().trim();
+      const startDate = document.getElementById('mainStartDate').value || 'All Time';
+      const endDate = document.getElementById('mainEndDate').value || 'Present';
+      const type = document.getElementById('ledgerTypeFilter').value;
+      const category = document.getElementById('ledgerCategoryFilter').value;
+      const method = document.getElementById('ledgerMethodFilter').value;
+    
+      const filtered = globalData.finance.filter(f => {
+        const matchSearch = !q || (f.category && f.category.toLowerCase().includes(q)) || (f.description && f.description.toLowerCase().includes(q)) || (f.method && f.method.toLowerCase().includes(q)) || (f.type && f.type.toLowerCase().includes(q));
+        const matchDate = (!startDate || startDate === 'All Time' || f.date >= startDate) && (!endDate || endDate === 'Present' || f.date <= endDate);
+        const matchType = !type || f.type === type;
+        const matchCategory = !category || f.category === category;
+        const matchMethod = !method || f.method === method;
+        return matchSearch && matchDate && matchType && matchCategory && matchMethod;
+      });
+    
+      let inc = 0, exp = 0;
+      filtered.forEach(f => {
+        const amt = parseFloat(f.amount) || 0;
+        if (f.type === 'Income' || f.type === 'Loan Received') inc += amt;
+        else if (f.type === 'Expense' || f.type === 'Loan Given') exp += amt;
+      });
+      const balance = inc - exp;
+    
+      const subject = encodeURIComponent(`${academy} - Financial Ledger Report (${startDate} to ${endDate})`);
+      const body = encodeURIComponent(`Hello,\n\nPlease find the financial summary for ${academy}.\n\nPeriod: ${startDate} to ${endDate}\nSearch Filter: ${q || 'None'}\nCategory Filter: ${category || 'All'}\n\n--- SUMMARY ---\nTotal Income: ৳${formatNumber(inc)}\nTotal Expense: ৳${formatNumber(exp)}\nNet Balance: ৳${formatNumber(balance)}\n\nThis is an automated summary of the current ledger view.\n\nRegards,\nAdmin`);
+    
+      window.location.href = `mailto:?subject=${subject}&body=${body}`;
+    }
+    
+    // ACCOUNT DETAILS REPORTS
+    
+    
+    function downloadAccountDetailsExcel() {
+      const startDate = document.getElementById('detStartDate').value;
+      const endDate = document.getElementById('detEndDate').value;
+      const typeFilter = document.getElementById('detTypeFilter').value;
+      const categoryFilter = document.getElementById('detCategoryFilter').value;
+    
+      const filtered = globalData.finance.filter(f => {
+        const matchDate = (!startDate || f.date >= startDate) && (!endDate || f.date <= endDate);
+        const matchCategory = !categoryFilter || f.category === categoryFilter;
+        let matchType = true;
+        if (typeFilter) {
+          if (typeFilter === 'Income') matchType = f.type === 'Income';
+          else if (typeFilter === 'Expense') matchType = f.type === 'Expense';
+          else if (typeFilter === 'Transfer') matchType = f.type.includes('Transfer');
+        }
+        return matchDate && matchCategory && matchType;
+      });
+    
+      if (filtered.length === 0) { alert('No data to export!'); return; }
+    
+      let csv = 'Date,Type,Method,Category,Description,Amount\n';
+      filtered.forEach(f => {
+        csv += `${f.date},${f.type},${f.method},${f.category},"${(f.description || '').replace(/"/g, '""')}",${f.amount}\n`;
+      });
+    
+      const blob = new Blob([csv], { type: 'text/csv;charset=utf-8;' });
+      const link = document.createElement('a');
+      link.href = URL.createObjectURL(blob);
+      link.setAttribute('download', `Account_Details_${new Date().toISOString().split('T')[0]}.csv`);
+      document.body.appendChild(link);
+      link.click();
+      document.body.removeChild(link);
+    }
+    
+    function mailAccountDetailsReport() {
+      const academy = globalData.settings.academyName || 'Wings Fly Aviation Academy';
+      const startDate = document.getElementById('detStartDate').value || 'All Time';
+      const endDate = document.getElementById('detEndDate').value || 'Present';
+      const type = document.getElementById('detTypeFilter').value || 'All';
+      const category = document.getElementById('detCategoryFilter').value || 'All';
+    
+      // Recalculate totals for mail body
+      const filtered = globalData.finance.filter(f => {
+        const matchDate = (!startDate || f.date >= startDate) && (!endDate || f.date <= endDate);
+        const matchCategory = !category || category === 'All' || f.category === category;
+        let matchType = true;
+        if (type && type !== 'All') {
+          if (type === 'Income') matchType = f.type === 'Income';
+          else if (type === 'Expense') matchType = f.type === 'Expense';
+          else if (type === 'Transfer') matchType = f.type.includes('Transfer');
+        }
+        return matchDate && matchCategory && matchType;
+      });
+    
+      let total = 0;
+      filtered.forEach(f => {
+        const amt = parseFloat(f.amount) || 0;
+        const isPositive = (f.type === 'Income' || f.type === 'Loan Received' || f.type === 'Transfer In');
+        if (isPositive) total += amt;
+        else total -= amt;
+      });
+    
+      const subject = encodeURIComponent(`${academy} - Account Statement (${startDate} to ${endDate})`);
+      const body = encodeURIComponent(`Hello,\n\nPlease find the detailed account statement for ${academy}.\n\nPeriod: ${startDate} to ${endDate}\nType: ${type}\nCategory: ${category}\n\nSUMMARY BALANCE: ৳${formatNumber(total)}\n\nRegards,\nAdmin`);
+    
+      window.location.href = `mailto:?subject=${subject}&body=${body}`;
+    }
+    
+    
+    function updateStudentCount() {
+      const count = globalData.students.length;
+      document.getElementById('studentCount').innerText = `${count} Student${count !== 1 ? 's' : ''}`;
+    }
+    
+    // ===================================
+    // CALCULATE GLOBAL STATISTICS
+    // ===================================
+    
+    function updateGlobalStats() {
+      let income = 0;
+      let expense = 0;
+    
+      // Update Academy Name display
+      if (globalData.settings?.academyName) {
+        const titleEl = document.querySelector('.page-title') || document.querySelector('.dashboard-header h2');
+        if (titleEl) titleEl.innerText = globalData.settings.academyName;
+      }
+    
+      // Monthly Income Calculation
+      const currentMonth = new Date().getMonth();
+      const currentYear = new Date().getFullYear();
+      let monthIncome = 0;
+    
+      // Calculate Income and Expense from finance transactions ONLY
+      // DO NOT calculate account balances from transactions!
+      (globalData.finance || []).forEach(f => {
+        const amt = parseFloat(f.amount) || 0;
+        const d = new Date(f.date);
+    
+        if (f.type === 'Income') {
+          income += amt;
+          // Check for current month income
+          if (d.getMonth() === currentMonth && d.getFullYear() === currentYear) {
+            monthIncome += amt;
+          }
+        } else if (f.type === 'Expense') {
+          expense += amt;
+        }
+        // Note: Loans and Transfers do NOT affect Income/Expense
+      });
+    
+      const profit = income - expense;
+    
+      // --- AVIATION PREMIUM DASHBOARD METRICS ---
+    
+      // 1. Total Students
+      const dashStudentEl = document.getElementById('dashTotalStudents');
+      const dashStudentCenter = document.getElementById('dashTotalStudentsCenter');
+      if (dashStudentEl) dashStudentEl.innerText = globalData.students.length;
+      if (dashStudentCenter) dashStudentCenter.innerText = globalData.students.length;
+    
+      // 2. Total Income
+      const dashIncomeEl = document.getElementById('dashTotalIncome');
+      if (dashIncomeEl) dashIncomeEl.innerText = '৳' + formatNumber(income);
+    
+      // 3. Total Expense
+      const dashExpenseEl = document.getElementById('dashTotalExpense');
+      if (dashExpenseEl) dashExpenseEl.innerText = '৳' + formatNumber(expense);
+    
+      // 4. Net Profit / Loss
+      const dashProfitEl = document.getElementById('dashTotalProfit');
+      const dashProfitStatus = document.getElementById('dashProfitStatus');
+    
+      if (dashProfitEl) {
+        dashProfitEl.innerText = '৳' + formatNumber(Math.abs(profit));
+        if (profit >= 0) {
+          dashProfitEl.className = "av-card-value text-success";
+          if (dashProfitStatus) dashProfitStatus.innerText = "Profit Growth";
+        } else {
+          dashProfitEl.className = "av-card-value text-danger";
+          if (dashProfitStatus) dashProfitStatus.innerText = "Current Loss";
+        }
+      }
+    
+      // Update New Dashboard Widgets
+      renderDashLoanSummary();
+      updateRecentActions();
+      renderDashReminders();
+    
+      // Call Recent Admissions
+      renderRecentAdmissions();
+    
+      // Call Charts Update
+      if (typeof updateCharts === 'function') {
+        updateCharts();
+      }
+    
+      // --- ACCOUNT SUMMARY DISPLAY (Using ACTUAL account balances) ---
+      const accountSummaryRow = document.getElementById('accountSummaryRow');
+      if (accountSummaryRow) {
+        accountSummaryRow.innerHTML = '';
+    
+        // Add Cash card first
+        const cashBalance = parseFloat(globalData.cashBalance) || 0;
+        const cashCard = `
+          <div class="col-md-3 mb-4">
+            <div class="card account-card cash-card">
+              <div class="account-icon">💵</div>
+              <div class="account-info">
+                <span class="account-name">Cash Balance</span>
+                <h4 class="account-val">৳${formatNumber(cashBalance)}</h4>
+              </div>
+            </div>
+          </div>
         `;
-        balanceContainer.appendChild(div);
+        accountSummaryRow.innerHTML += cashCard;
+    
+        // Add Bank Account cards
+        (globalData.bankAccounts || []).forEach(acc => {
+          const balance = parseFloat(acc.balance) || 0;
+          const card = `
+            <div class="col-md-3 mb-4">
+              <div class="card account-card bank-card">
+                <div class="account-icon">🏦</div>
+                <div class="account-info">
+                  <span class="account-name">${acc.name}</span>
+                  <h4 class="account-val">৳${formatNumber(balance)}</h4>
+                </div>
+              </div>
+            </div>
+          `;
+          accountSummaryRow.innerHTML += card;
+        });
+    
+        // Add Mobile Banking cards
+        (globalData.mobileBanking || []).forEach(acc => {
+          const balance = parseFloat(acc.balance) || 0;
+          const card = `
+            <div class="col-md-3 mb-4">
+              <div class="card account-card mobile-card">
+                <div class="account-icon">📱</div>
+                <div class="account-info">
+                  <span class="account-name">${acc.name}</span>
+                  <h4 class="account-val">৳${formatNumber(balance)}</h4>
+                </div>
+              </div>
+            </div>
+          `;
+          accountSummaryRow.innerHTML += card;
+        });
+      }
+    
+      // Check payment reminders
+      if (typeof checkPaymentReminders === 'function') checkPaymentReminders();
+      // Update Recent Actions
+      if (typeof updateRecentActions === 'function') updateRecentActions();
+      // Update Monthly Target
+      if (typeof updateTargetProgress === 'function') updateTargetProgress();
+      // Update Recent Exams
+      if (typeof updateRecentExams === 'function') updateRecentExams();
+      // Update Unified Search Dropdown
+      if (typeof populateAccountDropdown === 'function') populateAccountDropdown();
+    }
+    function updateTargetProgress() {
+      const targetStart = document.getElementById('targetStartDate')?.value;
+      const targetEnd = document.getElementById('targetEndDate')?.value;
+    
+      // Calculate income within range
+      const filteredIncome = globalData.finance
+        .filter(f => {
+          // Logic for income: explicitly marked Income, Student Fee, or Transfer In
+          const isIncome = (f.type === 'Income' || f.category === 'Student Fee' || f.type === 'Transfer In');
+          if (!isIncome) return false;
+    
+          if (targetStart && f.date < targetStart) return false;
+          if (targetEnd && f.date > targetEnd) return false;
+    
+          return true;
+        })
+        .reduce((sum, f) => sum + parseFloat(f.amount || 0), 0);
+    
+      const target = globalData.settings.monthlyTarget || 200000;
+      const percentage = Math.min(Math.round((filteredIncome / target) * 100), 100);
+    
+      // Update UI
+      const pb = document.getElementById('targetProgressBar');
+      const percText = document.getElementById('targetPercentage');
+      const collText = document.getElementById('targetCollected');
+      const totalText = document.getElementById('targetTotal');
+    
+      if (pb) pb.style.width = `${percentage}%`;
+      if (percText) percText.innerText = `${percentage}%`;
+      if (collText) collText.innerText = `৳${formatNumber(filteredIncome)}`;
+      if (totalText) totalText.innerText = `৳${formatNumber(target)}`;
+    }
+    
+    function checkDailyBackup() {
+      const today = new Date().toISOString().split('T')[0];
+      const lastBackup = localStorage.getItem('last_auto_backup_date');
+    
+      if (lastBackup !== today) {
+        console.log("Wings Fly: Daily auto-backup triggered");
+        exportData();
+        localStorage.setItem('last_auto_backup_date', today);
+        showSuccessToast('Daily Auto-Backup completed successfully!');
+      }
+    }
+    
+    // ===================================
+    // PAYMENT REMINDERS
+    // ===================================
+    
+    function checkPaymentReminders() {
+      const now = new Date();
+      const today = `${now.getFullYear()}-${String(now.getMonth() + 1).padStart(2, '0')}-${String(now.getDate()).padStart(2, '0')}`;
+      const widget = document.getElementById('paymentRemindersWidget');
+      const list = document.getElementById('remindersList');
+    
+      if (!widget || !list) return;
+    
+      // Filter students with any reminder date
+      const reminders = globalData.students.filter(s => {
+        return s.reminderDate && s.due > 0;
+      }).sort((a, b) => a.reminderDate.localeCompare(b.reminderDate));
+    
+      // Update Sidebar Badge (Only Today or Overdue)
+      const dueTodayOrOverdue = reminders.filter(s => s.reminderDate <= today).length;
+    
+      // Update Sidebar Badge
+      const badge = document.getElementById('sidebarReminderBadge');
+      if (badge) {
+        if (dueTodayOrOverdue > 0) {
+          badge.innerText = dueTodayOrOverdue;
+          badge.classList.remove('d-none');
+        } else {
+          badge.classList.add('d-none');
+        }
+      }
+    
+      if (reminders.length === 0) {
+        list.innerHTML = `
+          <div class="text-muted text-center py-3">
+            <p class="mb-0">No active reminders.</p>
+          </div>
+        `;
+        return;
+      }
+    
+      // Show widget
+      widget.classList.remove('d-none');
+      list.innerHTML = '';
+    
+      reminders.forEach(student => {
+        const isOverdue = student.reminderDate < today;
+        const isToday = student.reminderDate === today;
+    
+        let statusClass = 'info';
+        let statusText = 'UPCOMING';
+    
+        if (isOverdue) {
+          statusClass = 'danger';
+          statusText = 'OVERDUE';
+        } else if (isToday) {
+          statusClass = 'warning';
+          statusText = 'TODAY';
+        }
+    
+        const item = document.createElement('div');
+        item.className = 'list-group-item border-0 px-0';
+        item.innerHTML = `
+          <div class="d-flex justify-content-between align-items-start">
+            <div class="flex-grow-1">
+              <div class="d-flex align-items-center gap-2 mb-2">
+                <h6 class="mb-0 fw-bold">${student.name}</h6>
+                <span class="badge bg-${statusClass}-subtle text-${statusClass} fw-bold">${statusText}</span>
+              </div>
+              <div class="small text-muted">
+                <span class="me-3">⏰ Reminder: ${student.reminderDate}</span>
+                <span class="me-3">🎓 Batch: ${student.batch || 'N/A'}</span>
+                <span class="me-3">🎓 ${student.course || 'N/A'}</span>
+                <span class="text-danger fw-bold">Due: ৳${formatNumber(student.due)}</span>
+              </div>
+            </div>
+            <div class="d-flex gap-2">
+              <button class="btn btn-sm btn-success" onclick="markReminderDone('${student.rowIndex}')" title="Mark as contacted">
+                âœ“ Done
+              </button>
+              <button class="btn btn-sm btn-outline-secondary" onclick="snoozeReminder('${student.rowIndex}')" title="Set next reminder date">
+                ⏰ Reschedule
+              </button>
+            </div>
+          </div>
+        `;
+        list.appendChild(item);
       });
-      // Populate Security Fields
-      if (document.getElementById('settingsUsername')) {
-        document.getElementById('settingsUsername').value = (globalData.credentials && globalData.credentials.username) || 'admin';
+    }
+    
+    // ===================================
+    // DASHBOARD WIDGETS RENDERING
+    // ===================================
+    
+    function updateRecentActions() {
+      const list = document.getElementById('recentActionsList');
+      if (!list) return;
+    
+      // Get last 5 transactions
+      const transactions = [...(globalData.finance || [])].reverse().slice(0, 5);
+    
+      if (transactions.length === 0) {
+        list.innerHTML = '<div class="text-muted text-center py-3">No recent actions</div>';
+        const dashWorks = document.getElementById('dashRecentWorks');
+        if (dashWorks) dashWorks.innerHTML = list.innerHTML;
+        return;
       }
-      if (document.getElementById('settingsPassword')) {
-        document.getElementById('settingsPassword').value = (globalData.credentials && globalData.credentials.password) || 'admin123';
+    
+      list.innerHTML = '';
+      transactions.forEach(f => {
+        const isIncome = (f.type === 'Income' || f.type === 'Loan Received' || f.type === 'Transfer In');
+        const amountClass = isIncome ? 'text-success' : 'text-danger';
+        const symbol = isIncome ? '+' : '-';
+    
+        // Determine descriptive Title & Icon
+        let actionTitle = 'Transaction';
+        let actionIcon = '';
+    
+        if (f.category === 'Student Fee') {
+          actionTitle = 'Fee Payment';
+          actionIcon = '👨‍🎓';
+        } else if (f.type === 'Loan Given') {
+          actionTitle = 'Give Loan';
+          actionIcon = '🤝';
+        } else if (f.type === 'Loan Received') {
+          actionTitle = 'Recv Loan';
+          actionIcon = '💥';
+        } else if (f.type === 'Expense') {
+          actionTitle = 'Add Expense';
+          actionIcon = '💸';
+        } else if (f.type === 'Income') {
+          actionTitle = 'Add Income';
+          actionIcon = '💰';
+        } else if (f.type.includes('Transfer')) {
+          actionTitle = 'Fund Transfer';
+          actionIcon = '🔄';
+        }
+    
+        const item = document.createElement('div');
+        item.className = 'list-group-item border-0 px-0 small d-flex justify-content-between align-items-center';
+        item.innerHTML = `
+          <div class="d-flex align-items-center gap-2 overflow-hidden">
+            <span class="flex-shrink-0 fs-5">${actionIcon}</span>
+            <div class="text-truncate">
+              <div class="fw-bold text-dark text-truncate">${actionTitle}</div>
+              <div class="text-muted" style="font-size: 0.7rem;">
+                ${f.description || f.category} • ${f.date}
+              </div>
+            </div>
+          </div>
+          <div class="ms-2 fw-bold ${amountClass} flex-shrink-0">
+            ${symbol}৳${formatNumber(f.amount)}
+          </div>
+        `;
+        list.appendChild(item);
+      });
+    
+      // Also populate dashRecentWorks if it exists
+      const dashWorks = document.getElementById('dashRecentWorks');
+      if (dashWorks) {
+        dashWorks.innerHTML = list.innerHTML;
       }
     }
-  }
-}
+    
+    function renderDashLoanSummary() {
+      const container = document.getElementById('dashLoanSummary');
+      if (!container) return;
+    
+      const personStats = {};
+      globalData.finance.forEach(tx => {
+        let person = tx.person;
+        if (!person) return;
+        person = person.trim();
+        if (!personStats[person]) personStats[person] = { given: 0, received: 0, balance: 0 };
+        if (tx.type === 'Loan Given') {
+          personStats[person].given += tx.amount;
+          personStats[person].balance -= tx.amount;
+        } else if (tx.type === 'Loan Received') {
+          personStats[person].received += tx.amount;
+          personStats[person].balance += tx.amount;
+        }
+      });
+    
+      const debtors = Object.entries(personStats)
+        .filter(([name, stats]) => stats.balance !== 0)
+        .sort((a, b) => a[1].balance - b[1].balance) // Biggest debt first (more negative)
+        .slice(0, 4);
+    
+      if (debtors.length === 0) {
+        container.innerHTML = '<div class="text-center text-muted py-3">No active loans.</div>';
+        return;
+      }
+    
+      container.innerHTML = '<div class="list-group list-group-flush">';
+      debtors.forEach(([name, stats]) => {
+        const isReceivable = stats.balance < 0; // We gave them money, they owe us
+        const color = isReceivable ? 'text-danger' : 'text-success';
+        const label = isReceivable ? 'They Owe' : 'We Owe';
+    
+        container.innerHTML += `
+          <div class="list-group-item border-0 px-0 d-flex justify-content-between align-items-center">
+            <div>
+              <div class="fw-bold">${name}</div>
+              <small class="text-muted">${label}</small>
+            </div>
+            <div class="fw-bold ${color}">৳${formatNumber(Math.abs(stats.balance))}</div>
+          </div>
+        `;
+      });
+      container.innerHTML += '</div>';
+    }
+    
+    function renderDashReminders() {
+      const container = document.getElementById('dashReminders');
+      if (!container) return;
+    
+      const today = new Date().toISOString().split('T')[0];
+      const reminders = globalData.students
+        .filter(s => s.reminderDate && (parseFloat(s.due) > 0))
+        .sort((a, b) => a.reminderDate.localeCompare(b.reminderDate))
+        .slice(0, 5);
+    
+      if (reminders.length === 0) {
+        container.innerHTML = '<div class="text-center text-muted py-3">No upcoming reminders.</div>';
+        return;
+      }
+    
+      container.innerHTML = '<div class="list-group list-group-flush">';
+      reminders.forEach(s => {
+        const isOverdue = s.reminderDate < today;
+        const dateColor = isOverdue ? 'text-danger' : 'text-primary';
+    
+        container.innerHTML += `
+          <div class="list-group-item border-0 px-0 d-flex justify-content-between align-items-center">
+            <div class="overflow-hidden">
+              <div class="fw-bold text-truncate">${s.name}</div>
+              <small class="${dateColor} fw-bold">${isOverdue ? 'OVERDUE' : 'Due'}: ${s.reminderDate}</small>
+            </div>
+            <div class="text-end">
+              <div class="fw-bold text-danger">৳${formatNumber(s.due)}</div>
+              <button class="btn btn-sm btn-link p-0 text-success text-decoration-none" onclick="openStudentPaymentModal(${s.rowIndex})">Paid?</button>
+            </div>
+          </div>
+        `;
+      });
+      container.innerHTML += '</div>';
+    }
+    
+    function markReminderDone(studentId) {
+      const student = globalData.students.find(s => s.rowIndex == studentId);
+      if (student) {
+        student.reminderDate = null; // Clear reminder
+        saveToStorage();
+        checkPaymentReminders(); // Refresh
+        showSuccessToast(`Reminder cleared for ${student.name}`);
+      }
+    }
+    
+    function snoozeReminder(studentId) {
+      const student = globalData.students.find(s => s.rowIndex == studentId);
+      if (student) {
+        const now = new Date();
+        // Default to tomorrow
+        const nextDay = new Date(now);
+        nextDay.setDate(now.getDate() + 1);
+        const tomorrowStr = `${nextDay.getFullYear()}-${String(nextDay.getMonth() + 1).padStart(2, '0')}-${String(nextDay.getDate()).padStart(2, '0')}`;
+    
+        const newDate = prompt(
+          `Set next payment reminder for: ${student.name}\n\nEnter the date the client promised to pay (YYYY-MM-DD):`,
+          tomorrowStr
+        );
+    
+        if (newDate === null) return; // Cancelled
+    
+        // Validate date format
+        if (!/^\d{4}-\d{2}-\d{2}$/.test(newDate)) {
+          alert('Invalid date format. Please use YYYY-MM-DD');
+          return;
+        }
+    
+        student.reminderDate = newDate;
+        saveToStorage();
+        checkPaymentReminders(); // Refresh
+        showSuccessToast(`Reminder rescheduled for ${student.name} to ${newDate}`);
+      }
+    }
+    
+    function dismissReminders() {
+      if (!confirm('This will clear ALL active payment reminders. Continue?')) return;
+    
+      globalData.students.forEach(s => {
+        if (s.reminderDate) s.reminderDate = null;
+      });
+      saveToStorage();
+      checkPaymentReminders();
+      showSuccessToast('All reminders dismissed');
+    }
+    
+    function quickSetReminder(rowIndex) {
+      const student = globalData.students[rowIndex];
+      if (!student) return;
+    
+      const now = new Date();
+      const today = `${now.getFullYear()}-${String(now.getMonth() + 1).padStart(2, '0')}-${String(now.getDate()).padStart(2, '0')}`;
+      const currentReminder = student.reminderDate || today;
+    
+      const newDate = prompt(
+        `Set payment reminder for: ${student.name}\n\nCurrent reminder: ${student.reminderDate || 'None'}\n\nEnter new date (YYYY-MM-DD):`,
+        currentReminder
+      );
+    
+      if (newDate === null) return; // Cancelled
+    
+      // Validate date format
+      if (!/^\d{4}-\d{2}-\d{2}$/.test(newDate)) {
+        alert('Invalid date format. Please use YYYY-MM-DD');
+        return;
+      }
+    
+      student.reminderDate = newDate;
+      saveToStorage();
+      updateGlobalStats(); // Refresh to show bell icon
+      showSuccessToast(`Reminder set for ${student.name} on ${newDate}`);
+    }
+    
+    function openAllRemindersModal() {
+      const modalEl = document.getElementById('allRemindersModal');
+      if (!modalEl) return;
+    
+      const modal = bootstrap.Modal.getOrCreateInstance(modalEl);
+      const list = document.getElementById('allRemindersList');
+    
+      if (!list) return;
+    
+      const today = new Date().toISOString().split('T')[0];
+      const reminders = globalData.students
+        .filter(s => s.reminderDate && (parseFloat(s.due) > 0))
+        .sort((a, b) => a.reminderDate.localeCompare(b.reminderDate));
+    
+      if (reminders.length === 0) {
+        list.innerHTML = `
+          <div class="text-center text-muted py-5">
+            <i class="bi bi-bell-slash fs-1 d-block mb-3 opacity-25"></i>
+            <p class="mb-0 fw-bold">No active payment reminders found.</p>
+            <small>Set a reminder from the student list to see it here.</small>
+          </div>
+        `;
+      } else {
+        list.innerHTML = `
+          <table class="table table-hover align-middle modern-table mb-0">
+            <thead class="bg-light">
+              <tr>
+                <th>Date</th>
+                <th>Student Name</th>
+                <th>Batch</th>
+                <th>Course</th>
+                <th class="text-end">Due Amount</th>
+                <th class="text-end">Action</th>
+              </tr>
+            </thead>
+            <tbody>
+              ${reminders.map(s => {
+          const isOverdue = s.reminderDate < today;
+          const dateClass = isOverdue ? 'text-danger fw-bold' : 'text-primary fw-bold';
+          const badge = isOverdue ? '<span class="badge bg-danger-subtle text-danger ms-2">Overdue</span>' : '';
+    
+          return `
+                  <tr>
+                    <td>
+                       <div class="${dateClass}">${s.reminderDate}</div>
+                       ${badge}
+                    </td>
+                    <td class="fw-bold">${s.name}</td>
+                    <td><span class="badge bg-light text-dark border">${s.batch || '-'}</span></td>
+                    <td class="small text-muted">${s.course || '-'}</td>
+                    <td class="text-end text-danger fw-bold">৳${formatNumber(s.due)}</td>
+                    <td class="text-end">
+                      <div class="d-flex justify-content-end gap-2">
+                        <button class="btn btn-sm btn-outline-primary fw-bold" 
+                          onclick="bootstrap.Modal.getInstance(document.getElementById('allRemindersModal')).hide(); openStudentProfile('${s.rowIndex}')">
+                          Profile
+                        </button>
+                        <button class="btn btn-sm btn-success fw-bold" 
+                          onclick="markReminderDone('${s.rowIndex}'); openAllRemindersModal();">
+                          âœ“ Done
+                        </button>
+                      </div>
+                    </td>
+                  </tr>
+                `;
+        }).join('')}
+            </tbody>
+          </table>
+        `;
+      }
+    
+      modal.show();
+    }
+    
+    window.openAllRemindersModal = openAllRemindersModal;
+    
+    // ===================================
+    // SEARCH & FILTER
+    // ===================================
+    
+    function filterData() {
+      const q = document.getElementById('searchInput').value.toLowerCase().trim();
+      const batchSummary = document.getElementById('batchSummaryCard');
+      const activeTab = localStorage.getItem('wingsfly_active_tab') || 'students';
+    
+      // Unified Global Dates (Read from main or ledger depending on what was changed)
+      const mainStart = document.getElementById('mainStartDate');
+      const mainEnd = document.getElementById('mainEndDate');
+      const ledgerStart = document.getElementById('ledgerStartDate');
+      const ledgerEnd = document.getElementById('ledgerEndDate');
+    
+      let startDate = mainStart.value;
+      let endDate = mainEnd.value;
+    
+      // If we are on ledger, prioritize ledger inputs
+      if (activeTab === 'ledger' && ledgerStart && ledgerEnd) {
+        if (ledgerStart.value) {
+          startDate = ledgerStart.value;
+          mainStart.value = startDate;
+        }
+        if (ledgerEnd.value) {
+          endDate = ledgerEnd.value;
+          mainEnd.value = endDate;
+        }
+      } else if (ledgerStart && ledgerEnd) {
+        ledgerStart.value = startDate;
+        ledgerEnd.value = endDate;
+      }
+    
+      if (activeTab === 'students') {
+        const filtered = globalData.students.filter(s => {
+          const matchSearch = !q || (
+            (s.name && s.name.toLowerCase().includes(q)) ||
+            (s.batch && s.batch.toString() === q) || /* EXACT MATCH for batch number */
+    (s.course && s.course.toLowerCase().includes(q)) ||
+      (s.phone && q.length > 3 && s.phone.includes(q)) /* Increased threshold for phone */
+      );
 
-// --- Category Management ---
+// Explicitly ignore financial fields unless user searches specifically (advanced)
+// This prevents "6" from matching "600" in Paid/Due etc.
 
-function addIncomeCategory() {
-  const input = document.getElementById('newIncomeCatInput');
-  const val = input.value.trim();
-  if (!val) return;
-  if (!globalData.incomeCategories) globalData.incomeCategories = [];
-  if (globalData.incomeCategories.includes(val)) { alert('Exists!'); return; }
-  globalData.incomeCategories.push(val);
-  saveToStorage();
-  renderSettingsLists();
-  updateFinanceCategoryOptions();
-  input.value = '';
-}
+const matchDate = (!startDate || s.enrollDate >= startDate) && (!endDate || s.enrollDate <= endDate);
 
-function deleteIncomeCategory(name) {
-  if (!confirm(`Delete Income Category "${name}"?`)) return;
-  globalData.incomeCategories = globalData.incomeCategories.filter(c => c !== name);
-  saveToStorage();
-  renderSettingsLists();
-  updateFinanceCategoryOptions();
-}
+return matchSearch && matchDate;
+    });
 
-function addExpenseCategory() {
-  const input = document.getElementById('newExpenseCatInput');
-  const val = input.value.trim();
-  if (!val) return;
-  if (!globalData.expenseCategories) globalData.expenseCategories = [];
-  if (globalData.expenseCategories.includes(val)) { alert('Exists!'); return; }
-  globalData.expenseCategories.push(val);
-  saveToStorage();
-  renderSettingsLists();
-  updateFinanceCategoryOptions();
-  input.value = '';
-}
+render(filtered);
 
-function deleteExpenseCategory(name) {
-  if (!confirm(`Delete Expense Category "${name}"?`)) return;
-  globalData.expenseCategories = globalData.expenseCategories.filter(c => c !== name);
-  saveToStorage();
-  renderSettingsLists();
-  updateFinanceCategoryOptions();
-}
-
-function updateFinanceCategoryOptions() {
-  const typeSelect = document.querySelector('#financeForm select[name="type"]');
-  const catSelect = document.getElementById('financeCategorySelect');
-  if (!typeSelect || !catSelect) return;
-
-  const type = typeSelect.value;
-  let options = [];
-
-  if (type === 'Income' || type === 'Loan Received') {
-    options = globalData.incomeCategories || [];
+// Batch summary logic
+if (q) {
+  const uniqueBatches = [...new Set(globalData.students.map(s => s.batch))];
+  const matchedBatch = uniqueBatches.find(b => b && b.toString().toLowerCase() === q);
+  if (matchedBatch) {
+    showBatchSummary(matchedBatch, filtered);
   } else {
-    options = globalData.expenseCategories || [];
+    batchSummary.classList.add('d-none');
   }
-
-  catSelect.innerHTML = '';
-  options.forEach(c => {
-    const opt = document.createElement('option');
-    opt.value = c;
-    opt.innerText = c;
-    catSelect.appendChild(opt);
-  });
-
-  // ✅ FIXED: Toggle Person/Counterparty visibility based on TYPE
-  const personContainer = document.getElementById('financePersonContainer');
-  const personInput = document.getElementById('financePersonInput');
-
-  if (personContainer && personInput) {
-    // Show ONLY for Loan Given and Loan Received
-    if (type === 'Loan Given' || type === 'Loan Received') {
-      personContainer.classList.remove('d-none');
-      personInput.required = true;
-      console.log('✅ Person field: VISIBLE + REQUIRED (Type:', type + ')');
-    } else {
-      personContainer.classList.add('d-none');
-      personInput.required = false;
-      personInput.value = ''; // Clear value when hidden
-      console.log('ℹ️ Person field: HIDDEN (Type:', type + ')');
-    }
-  }
+} else {
+  batchSummary.classList.add('d-none');
 }
-
-// ✅ Remove old togglePersonField function - not needed anymore
-
-// --- Payment Method Management ---
-// NOTE: Payment methods are now automatically synced from Bank Accounts
-// These functions kept for backward compatibility
-function addPaymentMethod() {
-  const input = document.getElementById('newMethodInput');
-  if (!input) return; // Element doesn't exist in UI anymore
-  const val = input.value.trim();
-  if (!val) return;
-
-  if (!globalData.paymentMethods) {
-    globalData.paymentMethods = ['Cash', 'Bkash', 'Nogod'];
-  }
-
-  if (globalData.paymentMethods.includes(val)) { alert('Exists!'); return; }
-
-  globalData.paymentMethods.push(val);
-  saveToStorage();
-  populateDropdowns();
-  input.value = '';
-}
-
-function deletePaymentMethod(name) {
-  if (!confirm(`Delete payment method "${name}"?`)) return;
-  if (!globalData.paymentMethods) return;
-  globalData.paymentMethods = globalData.paymentMethods.filter(m => m !== name);
-  saveToStorage();
-  populateDropdowns();
-}
-
-// --- Course Management ---
-function addCourseName() {
-  const input = document.getElementById('newCourseInput');
-  const val = input.value.trim();
-  if (!val) return;
-
-  if (!globalData.courseNames) {
-    globalData.courseNames = ['Caregiver', 'Student Visa', 'Visa (Tourist, Medical Business)', 'Air Ticketing (Basic)', 'Air Ticketing (Advance)', 'Travel Agency Business Managment', 'Language (Japanese, Korean)', 'Other'];
-  }
-
-  if (globalData.courseNames.includes(val)) { alert('Exists!'); return; }
-
-  globalData.courseNames.push(val);
-  saveToStorage();
-  populateDropdowns();
-  input.value = '';
-}
-
-function deleteCourseName(name) {
-  if (!confirm(`Delete course "${name}"?`)) return;
-  globalData.courseNames = globalData.courseNames.filter(c => c !== name);
-  saveToStorage();
-  populateDropdowns();
-}
-
-
-
-// Override updateCategoryDropdown to use globalData
-function updateCategoryDropdown() {
-  const select = document.getElementById('ledgerCategoryFilter');
-  if (!select) return;
-
-  const currentVal = select.value;
-  // Use global categories + any legacy categories found in transactions
-  const legacyCats = new Set(globalData.finance.map(f => f.category));
-  const incCats = globalData.incomeCategories || [];
-  const expCats = globalData.expenseCategories || [];
-  const allCats = [...new Set([...incCats, ...expCats, ...legacyCats])].sort();
-
-  select.innerHTML = '<option value="">All Categories</option>';
-  allCats.forEach(cat => {
-    if (!cat) return;
-    const opt = document.createElement('option');
-    opt.value = cat;
-    opt.innerText = cat;
-    select.appendChild(opt);
-  });
-  select.value = currentVal;
-}
-
-// ===================================
-// PDF EXPORT
-// ===================================
-
-
-
-function downloadLedgerExcel() {
-  const q = document.getElementById('searchInput').value.toLowerCase().trim();
-  const startDate = document.getElementById('mainStartDate').value;
-  const endDate = document.getElementById('mainEndDate').value;
+  } else {
+  // Ledger tab filtering
   const type = document.getElementById('ledgerTypeFilter').value;
   const category = document.getElementById('ledgerCategoryFilter').value;
   const method = document.getElementById('ledgerMethodFilter').value;
 
-  const filtered = globalData.finance.filter(f => {
-    const matchSearch = !q || (f.category && f.category.toLowerCase().includes(q)) || (f.description && f.description.toLowerCase().includes(q)) || (f.method && f.method.toLowerCase().includes(q)) || (f.type && f.type.toLowerCase().includes(q));
-    const matchDate = (!startDate || f.date >= startDate) && (!endDate || f.date <= endDate);
-    const matchType = !type || f.type === type;
-    const matchCategory = !category || f.category === category;
-    const matchMethod = !method || f.method === method;
-    return matchSearch && matchDate && matchType && matchCategory && matchMethod;
-  });
-
-  if (filtered.length === 0) { alert('No data to export!'); return; }
-
-  let csv = 'Date,Type,Method,Category,Description,Amount\n';
-  filtered.forEach(f => {
-    csv += `${f.date},${f.type},${f.method},${f.category},"${(f.description || '').replace(/"/g, '""')}",${f.amount}\n`;
-  });
-
-  const blob = new Blob([csv], { type: 'text/csv;charset=utf-8;' });
-  const link = document.createElement('a');
-  link.href = URL.createObjectURL(blob);
-  link.setAttribute('download', `Ledger_Report_${new Date().toISOString().split('T')[0]}.csv`);
-  document.body.appendChild(link);
-  link.click();
-  document.body.removeChild(link);
-}
-
-function mailLedgerReport() {
-  const academy = globalData.settings.academyName || 'Wings Fly Aviation Academy';
-  const q = document.getElementById('searchInput').value.toLowerCase().trim();
-  const startDate = document.getElementById('mainStartDate').value || 'All Time';
-  const endDate = document.getElementById('mainEndDate').value || 'Present';
-  const type = document.getElementById('ledgerTypeFilter').value;
-  const category = document.getElementById('ledgerCategoryFilter').value;
-  const method = document.getElementById('ledgerMethodFilter').value;
-
-  const filtered = globalData.finance.filter(f => {
-    const matchSearch = !q || (f.category && f.category.toLowerCase().includes(q)) || (f.description && f.description.toLowerCase().includes(q)) || (f.method && f.method.toLowerCase().includes(q)) || (f.type && f.type.toLowerCase().includes(q));
-    const matchDate = (!startDate || startDate === 'All Time' || f.date >= startDate) && (!endDate || endDate === 'Present' || f.date <= endDate);
-    const matchType = !type || f.type === type;
-    const matchCategory = !category || f.category === category;
-    const matchMethod = !method || f.method === method;
-    return matchSearch && matchDate && matchType && matchCategory && matchMethod;
-  });
-
-  let inc = 0, exp = 0;
-  filtered.forEach(f => {
-    const amt = parseFloat(f.amount) || 0;
-    if (f.type === 'Income' || f.type === 'Loan Received') inc += amt;
-    else if (f.type === 'Expense' || f.type === 'Loan Given') exp += amt;
-  });
-  const balance = inc - exp;
-
-  const subject = encodeURIComponent(`${academy} - Financial Ledger Report (${startDate} to ${endDate})`);
-  const body = encodeURIComponent(`Hello,\n\nPlease find the financial summary for ${academy}.\n\nPeriod: ${startDate} to ${endDate}\nSearch Filter: ${q || 'None'}\nCategory Filter: ${category || 'All'}\n\n--- SUMMARY ---\nTotal Income: ৳${formatNumber(inc)}\nTotal Expense: ৳${formatNumber(exp)}\nNet Balance: ৳${formatNumber(balance)}\n\nThis is an automated summary of the current ledger view.\n\nRegards,\nAdmin`);
-
-  window.location.href = `mailto:?subject=${subject}&body=${body}`;
-}
-
-// ACCOUNT DETAILS REPORTS
-
-
-function downloadAccountDetailsExcel() {
-  const startDate = document.getElementById('detStartDate').value;
-  const endDate = document.getElementById('detEndDate').value;
-  const typeFilter = document.getElementById('detTypeFilter').value;
-  const categoryFilter = document.getElementById('detCategoryFilter').value;
-
-  const filtered = globalData.finance.filter(f => {
-    const matchDate = (!startDate || f.date >= startDate) && (!endDate || f.date <= endDate);
-    const matchCategory = !categoryFilter || f.category === categoryFilter;
-    let matchType = true;
-    if (typeFilter) {
-      if (typeFilter === 'Income') matchType = f.type === 'Income';
-      else if (typeFilter === 'Expense') matchType = f.type === 'Expense';
-      else if (typeFilter === 'Transfer') matchType = f.type.includes('Transfer');
-    }
-    return matchDate && matchCategory && matchType;
-  });
-
-  if (filtered.length === 0) { alert('No data to export!'); return; }
-
-  let csv = 'Date,Type,Method,Category,Description,Amount\n';
-  filtered.forEach(f => {
-    csv += `${f.date},${f.type},${f.method},${f.category},"${(f.description || '').replace(/"/g, '""')}",${f.amount}\n`;
-  });
-
-  const blob = new Blob([csv], { type: 'text/csv;charset=utf-8;' });
-  const link = document.createElement('a');
-  link.href = URL.createObjectURL(blob);
-  link.setAttribute('download', `Account_Details_${new Date().toISOString().split('T')[0]}.csv`);
-  document.body.appendChild(link);
-  link.click();
-  document.body.removeChild(link);
-}
-
-function mailAccountDetailsReport() {
-  const academy = globalData.settings.academyName || 'Wings Fly Aviation Academy';
-  const startDate = document.getElementById('detStartDate').value || 'All Time';
-  const endDate = document.getElementById('detEndDate').value || 'Present';
-  const type = document.getElementById('detTypeFilter').value || 'All';
-  const category = document.getElementById('detCategoryFilter').value || 'All';
-
-  // Recalculate totals for mail body
-  const filtered = globalData.finance.filter(f => {
-    const matchDate = (!startDate || f.date >= startDate) && (!endDate || f.date <= endDate);
-    const matchCategory = !category || category === 'All' || f.category === category;
-    let matchType = true;
-    if (type && type !== 'All') {
-      if (type === 'Income') matchType = f.type === 'Income';
-      else if (type === 'Expense') matchType = f.type === 'Expense';
-      else if (type === 'Transfer') matchType = f.type.includes('Transfer');
-    }
-    return matchDate && matchCategory && matchType;
-  });
-
-  let total = 0;
-  filtered.forEach(f => {
-    const amt = parseFloat(f.amount) || 0;
-    const isPositive = (f.type === 'Income' || f.type === 'Loan Received' || f.type === 'Transfer In');
-    if (isPositive) total += amt;
-    else total -= amt;
-  });
-
-  const subject = encodeURIComponent(`${academy} - Account Statement (${startDate} to ${endDate})`);
-  const body = encodeURIComponent(`Hello,\n\nPlease find the detailed account statement for ${academy}.\n\nPeriod: ${startDate} to ${endDate}\nType: ${type}\nCategory: ${category}\n\nSUMMARY BALANCE: ৳${formatNumber(total)}\n\nRegards,\nAdmin`);
-
-  window.location.href = `mailto:?subject=${subject}&body=${body}`;
-}
-
-
-function updateStudentCount() {
-  const count = globalData.students.length;
-  document.getElementById('studentCount').innerText = `${count} Student${count !== 1 ? 's' : ''}`;
-}
-
-// ===================================
-// CALCULATE GLOBAL STATISTICS
-// ===================================
-
-function updateGlobalStats() {
-  let income = 0;
-  let expense = 0;
-
-  // Update Academy Name display
-  if (globalData.settings?.academyName) {
-    const titleEl = document.querySelector('.page-title') || document.querySelector('.dashboard-header h2');
-    if (titleEl) titleEl.innerText = globalData.settings.academyName;
-  }
-
-  // Monthly Income Calculation
-  const currentMonth = new Date().getMonth();
-  const currentYear = new Date().getFullYear();
-  let monthIncome = 0;
-
-  // Calculate Income and Expense from finance transactions ONLY
-  // DO NOT calculate account balances from transactions!
-  (globalData.finance || []).forEach(f => {
-    const amt = parseFloat(f.amount) || 0;
-    const d = new Date(f.date);
-
-    if (f.type === 'Income') {
-      income += amt;
-      // Check for current month income
-      if (d.getMonth() === currentMonth && d.getFullYear() === currentYear) {
-        monthIncome += amt;
-      }
-    } else if (f.type === 'Expense') {
-      expense += amt;
-    }
-    // Note: Loans and Transfers do NOT affect Income/Expense
-  });
-
-  const profit = income - expense;
-
-  // --- AVIATION PREMIUM DASHBOARD METRICS ---
-
-  // 1. Total Students
-  const dashStudentEl = document.getElementById('dashTotalStudents');
-  const dashStudentCenter = document.getElementById('dashTotalStudentsCenter');
-  if (dashStudentEl) dashStudentEl.innerText = globalData.students.length;
-  if (dashStudentCenter) dashStudentCenter.innerText = globalData.students.length;
-
-  // 2. Total Income
-  const dashIncomeEl = document.getElementById('dashTotalIncome');
-  if (dashIncomeEl) dashIncomeEl.innerText = '৳' + formatNumber(income);
-
-  // 3. Total Expense
-  const dashExpenseEl = document.getElementById('dashTotalExpense');
-  if (dashExpenseEl) dashExpenseEl.innerText = '৳' + formatNumber(expense);
-
-  // 4. Net Profit / Loss
-  const dashProfitEl = document.getElementById('dashTotalProfit');
-  const dashProfitStatus = document.getElementById('dashProfitStatus');
-
-  if (dashProfitEl) {
-    dashProfitEl.innerText = '৳' + formatNumber(Math.abs(profit));
-    if (profit >= 0) {
-      dashProfitEl.className = "av-card-value text-success";
-      if (dashProfitStatus) dashProfitStatus.innerText = "Profit Growth";
-    } else {
-      dashProfitEl.className = "av-card-value text-danger";
-      if (dashProfitStatus) dashProfitStatus.innerText = "Current Loss";
-    }
-  }
-
-  // Update New Dashboard Widgets
-  renderDashLoanSummary();
-  updateRecentActions();
-  renderDashReminders();
-
-  // Call Recent Admissions
-  renderRecentAdmissions();
-
-  // Call Charts Update
-  if (typeof updateCharts === 'function') {
-    updateCharts();
-  }
-
-  // --- ACCOUNT SUMMARY DISPLAY (Using ACTUAL account balances) ---
-  const accountSummaryRow = document.getElementById('accountSummaryRow');
-  if (accountSummaryRow) {
-    accountSummaryRow.innerHTML = '';
-
-    // Add Cash card first
-    const cashBalance = parseFloat(globalData.cashBalance) || 0;
-    const cashCard = `
-      <div class="col-md-3 mb-4">
-        <div class="card account-card cash-card">
-          <div class="account-icon">💵</div>
-          <div class="account-info">
-            <span class="account-name">Cash Balance</span>
-            <h4 class="account-val">৳${formatNumber(cashBalance)}</h4>
-          </div>
-        </div>
-      </div>
-    `;
-    accountSummaryRow.innerHTML += cashCard;
-
-    // Add Bank Account cards
-    (globalData.bankAccounts || []).forEach(acc => {
-      const balance = parseFloat(acc.balance) || 0;
-      const card = `
-        <div class="col-md-3 mb-4">
-          <div class="card account-card bank-card">
-            <div class="account-icon">🏦</div>
-            <div class="account-info">
-              <span class="account-name">${acc.name}</span>
-              <h4 class="account-val">৳${formatNumber(balance)}</h4>
-            </div>
-          </div>
-        </div>
-      `;
-      accountSummaryRow.innerHTML += card;
-    });
-
-    // Add Mobile Banking cards
-    (globalData.mobileBanking || []).forEach(acc => {
-      const balance = parseFloat(acc.balance) || 0;
-      const card = `
-        <div class="col-md-3 mb-4">
-          <div class="card account-card mobile-card">
-            <div class="account-icon">📱</div>
-            <div class="account-info">
-              <span class="account-name">${acc.name}</span>
-              <h4 class="account-val">৳${formatNumber(balance)}</h4>
-            </div>
-          </div>
-        </div>
-      `;
-      accountSummaryRow.innerHTML += card;
-    });
-  }
-
-  // Check payment reminders
-  if (typeof checkPaymentReminders === 'function') checkPaymentReminders();
-  // Update Recent Actions
-  if (typeof updateRecentActions === 'function') updateRecentActions();
-  // Update Monthly Target
-  if (typeof updateTargetProgress === 'function') updateTargetProgress();
-  // Update Recent Exams
-  if (typeof updateRecentExams === 'function') updateRecentExams();
-  // Update Unified Search Dropdown
-  if (typeof populateAccountDropdown === 'function') populateAccountDropdown();
-}
-function updateTargetProgress() {
-  const targetStart = document.getElementById('targetStartDate')?.value;
-  const targetEnd = document.getElementById('targetEndDate')?.value;
-
-  // Calculate income within range
-  const filteredIncome = globalData.finance
-    .filter(f => {
-      // Logic for income: explicitly marked Income, Student Fee, or Transfer In
-      const isIncome = (f.type === 'Income' || f.category === 'Student Fee' || f.type === 'Transfer In');
-      if (!isIncome) return false;
-
-      if (targetStart && f.date < targetStart) return false;
-      if (targetEnd && f.date > targetEnd) return false;
-
-      return true;
-    })
-    .reduce((sum, f) => sum + parseFloat(f.amount || 0), 0);
-
-  const target = globalData.settings.monthlyTarget || 200000;
-  const percentage = Math.min(Math.round((filteredIncome / target) * 100), 100);
-
-  // Update UI
-  const pb = document.getElementById('targetProgressBar');
-  const percText = document.getElementById('targetPercentage');
-  const collText = document.getElementById('targetCollected');
-  const totalText = document.getElementById('targetTotal');
-
-  if (pb) pb.style.width = `${percentage}%`;
-  if (percText) percText.innerText = `${percentage}%`;
-  if (collText) collText.innerText = `৳${formatNumber(filteredIncome)}`;
-  if (totalText) totalText.innerText = `৳${formatNumber(target)}`;
-}
-
-function checkDailyBackup() {
-  const today = new Date().toISOString().split('T')[0];
-  const lastBackup = localStorage.getItem('last_auto_backup_date');
-
-  if (lastBackup !== today) {
-    console.log("Wings Fly: Daily auto-backup triggered");
-    exportData();
-    localStorage.setItem('last_auto_backup_date', today);
-    showSuccessToast('Daily Auto-Backup completed successfully!');
-  }
-}
-
-// ===================================
-// PAYMENT REMINDERS
-// ===================================
-
-function checkPaymentReminders() {
-  const now = new Date();
-  const today = `${now.getFullYear()}-${String(now.getMonth() + 1).padStart(2, '0')}-${String(now.getDate()).padStart(2, '0')}`;
-  const widget = document.getElementById('paymentRemindersWidget');
-  const list = document.getElementById('remindersList');
-
-  if (!widget || !list) return;
-
-  // Filter students with any reminder date
-  const reminders = globalData.students.filter(s => {
-    return s.reminderDate && s.due > 0;
-  }).sort((a, b) => a.reminderDate.localeCompare(b.reminderDate));
-
-  // Update Sidebar Badge (Only Today or Overdue)
-  const dueTodayOrOverdue = reminders.filter(s => s.reminderDate <= today).length;
-
-  // Update Sidebar Badge
-  const badge = document.getElementById('sidebarReminderBadge');
-  if (badge) {
-    if (dueTodayOrOverdue > 0) {
-      badge.innerText = dueTodayOrOverdue;
-      badge.classList.remove('d-none');
-    } else {
-      badge.classList.add('d-none');
-    }
-  }
-
-  if (reminders.length === 0) {
-    list.innerHTML = `
-      <div class="text-muted text-center py-3">
-        <p class="mb-0">No active reminders.</p>
-      </div>
-    `;
-    return;
-  }
-
-  // Show widget
-  widget.classList.remove('d-none');
-  list.innerHTML = '';
-
-  reminders.forEach(student => {
-    const isOverdue = student.reminderDate < today;
-    const isToday = student.reminderDate === today;
-
-    let statusClass = 'info';
-    let statusText = 'UPCOMING';
-
-    if (isOverdue) {
-      statusClass = 'danger';
-      statusText = 'OVERDUE';
-    } else if (isToday) {
-      statusClass = 'warning';
-      statusText = 'TODAY';
-    }
-
-    const item = document.createElement('div');
-    item.className = 'list-group-item border-0 px-0';
-    item.innerHTML = `
-      <div class="d-flex justify-content-between align-items-start">
-        <div class="flex-grow-1">
-          <div class="d-flex align-items-center gap-2 mb-2">
-            <h6 class="mb-0 fw-bold">${student.name}</h6>
-            <span class="badge bg-${statusClass}-subtle text-${statusClass} fw-bold">${statusText}</span>
-          </div>
-          <div class="small text-muted">
-            <span class="me-3">⏰ Reminder: ${student.reminderDate}</span>
-            <span class="me-3">🎓 Batch: ${student.batch || 'N/A'}</span>
-            <span class="me-3">🎓 ${student.course || 'N/A'}</span>
-            <span class="text-danger fw-bold">Due: ৳${formatNumber(student.due)}</span>
-          </div>
-        </div>
-        <div class="d-flex gap-2">
-          <button class="btn btn-sm btn-success" onclick="markReminderDone('${student.rowIndex}')" title="Mark as contacted">
-            âœ“ Done
-          </button>
-          <button class="btn btn-sm btn-outline-secondary" onclick="snoozeReminder('${student.rowIndex}')" title="Set next reminder date">
-            ⏰ Reschedule
-          </button>
-        </div>
-      </div>
-    `;
-    list.appendChild(item);
-  });
-}
-
-// ===================================
-// DASHBOARD WIDGETS RENDERING
-// ===================================
-
-function updateRecentActions() {
-  const list = document.getElementById('recentActionsList');
-  if (!list) return;
-
-  // Get last 5 transactions
-  const transactions = [...(globalData.finance || [])].reverse().slice(0, 5);
-
-  if (transactions.length === 0) {
-    list.innerHTML = '<div class="text-muted text-center py-3">No recent actions</div>';
-    const dashWorks = document.getElementById('dashRecentWorks');
-    if (dashWorks) dashWorks.innerHTML = list.innerHTML;
-    return;
-  }
-
-  list.innerHTML = '';
-  transactions.forEach(f => {
-    const isIncome = (f.type === 'Income' || f.type === 'Loan Received' || f.type === 'Transfer In');
-    const amountClass = isIncome ? 'text-success' : 'text-danger';
-    const symbol = isIncome ? '+' : '-';
-
-    // Determine descriptive Title & Icon
-    let actionTitle = 'Transaction';
-    let actionIcon = '';
-
-    if (f.category === 'Student Fee') {
-      actionTitle = 'Fee Payment';
-      actionIcon = '👨‍🎓';
-    } else if (f.type === 'Loan Given') {
-      actionTitle = 'Give Loan';
-      actionIcon = '🤝';
-    } else if (f.type === 'Loan Received') {
-      actionTitle = 'Recv Loan';
-      actionIcon = '💥';
-    } else if (f.type === 'Expense') {
-      actionTitle = 'Add Expense';
-      actionIcon = '💸';
-    } else if (f.type === 'Income') {
-      actionTitle = 'Add Income';
-      actionIcon = '💰';
-    } else if (f.type.includes('Transfer')) {
-      actionTitle = 'Fund Transfer';
-      actionIcon = '🔄';
-    }
-
-    const item = document.createElement('div');
-    item.className = 'list-group-item border-0 px-0 small d-flex justify-content-between align-items-center';
-    item.innerHTML = `
-      <div class="d-flex align-items-center gap-2 overflow-hidden">
-        <span class="flex-shrink-0 fs-5">${actionIcon}</span>
-        <div class="text-truncate">
-          <div class="fw-bold text-dark text-truncate">${actionTitle}</div>
-          <div class="text-muted" style="font-size: 0.7rem;">
-            ${f.description || f.category} • ${f.date}
-          </div>
-        </div>
-      </div>
-      <div class="ms-2 fw-bold ${amountClass} flex-shrink-0">
-        ${symbol}৳${formatNumber(f.amount)}
-      </div>
-    `;
-    list.appendChild(item);
-  });
-
-  // Also populate dashRecentWorks if it exists
-  const dashWorks = document.getElementById('dashRecentWorks');
-  if (dashWorks) {
-    dashWorks.innerHTML = list.innerHTML;
-  }
-}
-
-function renderDashLoanSummary() {
-  const container = document.getElementById('dashLoanSummary');
-  if (!container) return;
-
-  const personStats = {};
-  globalData.finance.forEach(tx => {
-    let person = tx.person;
-    if (!person) return;
-    person = person.trim();
-    if (!personStats[person]) personStats[person] = { given: 0, received: 0, balance: 0 };
-    if (tx.type === 'Loan Given') {
-      personStats[person].given += tx.amount;
-      personStats[person].balance -= tx.amount;
-    } else if (tx.type === 'Loan Received') {
-      personStats[person].received += tx.amount;
-      personStats[person].balance += tx.amount;
-    }
-  });
-
-  const debtors = Object.entries(personStats)
-    .filter(([name, stats]) => stats.balance !== 0)
-    .sort((a, b) => a[1].balance - b[1].balance) // Biggest debt first (more negative)
-    .slice(0, 4);
-
-  if (debtors.length === 0) {
-    container.innerHTML = '<div class="text-center text-muted py-3">No active loans.</div>';
-    return;
-  }
-
-  container.innerHTML = '<div class="list-group list-group-flush">';
-  debtors.forEach(([name, stats]) => {
-    const isReceivable = stats.balance < 0; // We gave them money, they owe us
-    const color = isReceivable ? 'text-danger' : 'text-success';
-    const label = isReceivable ? 'They Owe' : 'We Owe';
-
-    container.innerHTML += `
-      <div class="list-group-item border-0 px-0 d-flex justify-content-between align-items-center">
-        <div>
-          <div class="fw-bold">${name}</div>
-          <small class="text-muted">${label}</small>
-        </div>
-        <div class="fw-bold ${color}">৳${formatNumber(Math.abs(stats.balance))}</div>
-      </div>
-    `;
-  });
-  container.innerHTML += '</div>';
-}
-
-function renderDashReminders() {
-  const container = document.getElementById('dashReminders');
-  if (!container) return;
-
-  const today = new Date().toISOString().split('T')[0];
-  const reminders = globalData.students
-    .filter(s => s.reminderDate && (parseFloat(s.due) > 0))
-    .sort((a, b) => a.reminderDate.localeCompare(b.reminderDate))
-    .slice(0, 5);
-
-  if (reminders.length === 0) {
-    container.innerHTML = '<div class="text-center text-muted py-3">No upcoming reminders.</div>';
-    return;
-  }
-
-  container.innerHTML = '<div class="list-group list-group-flush">';
-  reminders.forEach(s => {
-    const isOverdue = s.reminderDate < today;
-    const dateColor = isOverdue ? 'text-danger' : 'text-primary';
-
-    container.innerHTML += `
-      <div class="list-group-item border-0 px-0 d-flex justify-content-between align-items-center">
-        <div class="overflow-hidden">
-          <div class="fw-bold text-truncate">${s.name}</div>
-          <small class="${dateColor} fw-bold">${isOverdue ? 'OVERDUE' : 'Due'}: ${s.reminderDate}</small>
-        </div>
-        <div class="text-end">
-          <div class="fw-bold text-danger">৳${formatNumber(s.due)}</div>
-          <button class="btn btn-sm btn-link p-0 text-success text-decoration-none" onclick="openStudentPaymentModal(${s.rowIndex})">Paid?</button>
-        </div>
-      </div>
-    `;
-  });
-  container.innerHTML += '</div>';
-}
-
-function markReminderDone(studentId) {
-  const student = globalData.students.find(s => s.rowIndex == studentId);
-  if (student) {
-    student.reminderDate = null; // Clear reminder
-    saveToStorage();
-    checkPaymentReminders(); // Refresh
-    showSuccessToast(`Reminder cleared for ${student.name}`);
-  }
-}
-
-function snoozeReminder(studentId) {
-  const student = globalData.students.find(s => s.rowIndex == studentId);
-  if (student) {
-    const now = new Date();
-    // Default to tomorrow
-    const nextDay = new Date(now);
-    nextDay.setDate(now.getDate() + 1);
-    const tomorrowStr = `${nextDay.getFullYear()}-${String(nextDay.getMonth() + 1).padStart(2, '0')}-${String(nextDay.getDate()).padStart(2, '0')}`;
-
-    const newDate = prompt(
-      `Set next payment reminder for: ${student.name}\n\nEnter the date the client promised to pay (YYYY-MM-DD):`,
-      tomorrowStr
+  const filteredFinance = globalData.finance.filter(f => {
+    const matchSearch = !q || (
+      (f.category && f.category.toLowerCase().includes(q)) ||
+      (f.description && f.description.toLowerCase().includes(q)) ||
+      (f.method && f.method.toLowerCase().includes(q)) ||
+      (f.type && f.type.toLowerCase().includes(q)) ||
+      (f.person && f.person.toLowerCase().includes(q))
     );
 
-    if (newDate === null) return; // Cancelled
+    const loanOnly = document.getElementById('ledgerLoanOnly')?.checked;
 
-    // Validate date format
-    if (!/^\d{4}-\d{2}-\d{2}$/.test(newDate)) {
-      alert('Invalid date format. Please use YYYY-MM-DD');
-      return;
-    }
+    const matchDate = (!startDate || f.date >= startDate) && (!endDate || f.date <= endDate);
+    const matchType = !type || f.type === type;
+    const matchCategory = !category || f.category === category;
+    const matchMethod = !method || f.method === method;
+    const matchLoan = !loanOnly || (f.type === 'Loan Given' || f.type === 'Loan Received');
 
-    student.reminderDate = newDate;
-    saveToStorage();
-    checkPaymentReminders(); // Refresh
-    showSuccessToast(`Reminder rescheduled for ${student.name} to ${newDate}`);
-  }
-}
-
-function dismissReminders() {
-  if (!confirm('This will clear ALL active payment reminders. Continue?')) return;
-
-  globalData.students.forEach(s => {
-    if (s.reminderDate) s.reminderDate = null;
+    return matchSearch && matchDate && matchType && matchCategory && matchMethod && matchLoan;
   });
-  saveToStorage();
-  checkPaymentReminders();
-  showSuccessToast('All reminders dismissed');
+  renderLedger(filteredFinance);
 }
-
-function quickSetReminder(rowIndex) {
-  const student = globalData.students[rowIndex];
-  if (!student) return;
-
-  const now = new Date();
-  const today = `${now.getFullYear()}-${String(now.getMonth() + 1).padStart(2, '0')}-${String(now.getDate()).padStart(2, '0')}`;
-  const currentReminder = student.reminderDate || today;
-
-  const newDate = prompt(
-    `Set payment reminder for: ${student.name}\n\nCurrent reminder: ${student.reminderDate || 'None'}\n\nEnter new date (YYYY-MM-DD):`,
-    currentReminder
-  );
-
-  if (newDate === null) return; // Cancelled
-
-  // Validate date format
-  if (!/^\d{4}-\d{2}-\d{2}$/.test(newDate)) {
-    alert('Invalid date format. Please use YYYY-MM-DD');
-    return;
-  }
-
-  student.reminderDate = newDate;
-  saveToStorage();
-  updateGlobalStats(); // Refresh to show bell icon
-  showSuccessToast(`Reminder set for ${student.name} on ${newDate}`);
-}
-
-function openAllRemindersModal() {
-  const modalEl = document.getElementById('allRemindersModal');
-  if (!modalEl) return;
-
-  const modal = bootstrap.Modal.getOrCreateInstance(modalEl);
-  const list = document.getElementById('allRemindersList');
-
-  if (!list) return;
-
-  const today = new Date().toISOString().split('T')[0];
-  const reminders = globalData.students
-    .filter(s => s.reminderDate && (parseFloat(s.due) > 0))
-    .sort((a, b) => a.reminderDate.localeCompare(b.reminderDate));
-
-  if (reminders.length === 0) {
-    list.innerHTML = `
-      <div class="text-center text-muted py-5">
-        <i class="bi bi-bell-slash fs-1 d-block mb-3 opacity-25"></i>
-        <p class="mb-0 fw-bold">No active payment reminders found.</p>
-        <small>Set a reminder from the student list to see it here.</small>
-      </div>
-    `;
-  } else {
-    list.innerHTML = `
-      <table class="table table-hover align-middle modern-table mb-0">
-        <thead class="bg-light">
-          <tr>
-            <th>Date</th>
-            <th>Student Name</th>
-            <th>Batch</th>
-            <th>Course</th>
-            <th class="text-end">Due Amount</th>
-            <th class="text-end">Action</th>
-          </tr>
-        </thead>
-        <tbody>
-          ${reminders.map(s => {
-      const isOverdue = s.reminderDate < today;
-      const dateClass = isOverdue ? 'text-danger fw-bold' : 'text-primary fw-bold';
-      const badge = isOverdue ? '<span class="badge bg-danger-subtle text-danger ms-2">Overdue</span>' : '';
-
-      return `
-              <tr>
-                <td>
-                   <div class="${dateClass}">${s.reminderDate}</div>
-                   ${badge}
-                </td>
-                <td class="fw-bold">${s.name}</td>
-                <td><span class="badge bg-light text-dark border">${s.batch || '-'}</span></td>
-                <td class="small text-muted">${s.course || '-'}</td>
-                <td class="text-end text-danger fw-bold">৳${formatNumber(s.due)}</td>
-                <td class="text-end">
-                  <div class="d-flex justify-content-end gap-2">
-                    <button class="btn btn-sm btn-outline-primary fw-bold" 
-                      onclick="bootstrap.Modal.getInstance(document.getElementById('allRemindersModal')).hide(); openStudentProfile('${s.rowIndex}')">
-                      Profile
-                    </button>
-                    <button class="btn btn-sm btn-success fw-bold" 
-                      onclick="markReminderDone('${s.rowIndex}'); openAllRemindersModal();">
-                      âœ“ Done
-                    </button>
-                  </div>
-                </td>
-              </tr>
-            `;
-    }).join('')}
-        </tbody>
-      </table>
-    `;
-  }
-
-  modal.show();
-}
-
-window.openAllRemindersModal = openAllRemindersModal;
-
-// ===================================
-// SEARCH & FILTER
-// ===================================
-
-function filterData() {
-  const q = document.getElementById('searchInput').value.toLowerCase().trim();
-  const batchSummary = document.getElementById('batchSummaryCard');
-  const activeTab = localStorage.getItem('wingsfly_active_tab') || 'students';
-
-  // Unified Global Dates (Read from main or ledger depending on what was changed)
-  const mainStart = document.getElementById('mainStartDate');
-  const mainEnd = document.getElementById('mainEndDate');
-  const ledgerStart = document.getElementById('ledgerStartDate');
-  const ledgerEnd = document.getElementById('ledgerEndDate');
-
-  let startDate = mainStart.value;
-  let endDate = mainEnd.value;
-
-  // If we are on ledger, prioritize ledger inputs
-  if (activeTab === 'ledger' && ledgerStart && ledgerEnd) {
-    if (ledgerStart.value) {
-      startDate = ledgerStart.value;
-      mainStart.value = startDate;
-    }
-    if (ledgerEnd.value) {
-      endDate = ledgerEnd.value;
-      mainEnd.value = endDate;
-    }
-  } else if (ledgerStart && ledgerEnd) {
-    ledgerStart.value = startDate;
-    ledgerEnd.value = endDate;
-  }
-
-  if (activeTab === 'students') {
-    const filtered = globalData.students.filter(s => {
-      const matchSearch = !q || (
-        (s.name && s.name.toLowerCase().includes(q)) ||
-        (s.batch && s.batch.toString() === q) || /* EXACT MATCH for batch number */
-        (s.course && s.course.toLowerCase().includes(q)) ||
-        (s.phone && q.length > 3 && s.phone.includes(q)) /* Increased threshold for phone */
-      );
-
-      // Explicitly ignore financial fields unless user searches specifically (advanced)
-      // This prevents "6" from matching "600" in Paid/Due etc.
-
-      const matchDate = (!startDate || s.enrollDate >= startDate) && (!endDate || s.enrollDate <= endDate);
-
-      return matchSearch && matchDate;
-    });
-
-    render(filtered);
-
-    // Batch summary logic
-    if (q) {
-      const uniqueBatches = [...new Set(globalData.students.map(s => s.batch))];
-      const matchedBatch = uniqueBatches.find(b => b && b.toString().toLowerCase() === q);
-      if (matchedBatch) {
-        showBatchSummary(matchedBatch, filtered);
-      } else {
-        batchSummary.classList.add('d-none');
-      }
-    } else {
-      batchSummary.classList.add('d-none');
-    }
-  } else {
-    // Ledger tab filtering
-    const type = document.getElementById('ledgerTypeFilter').value;
-    const category = document.getElementById('ledgerCategoryFilter').value;
-    const method = document.getElementById('ledgerMethodFilter').value;
-
-    const filteredFinance = globalData.finance.filter(f => {
-      const matchSearch = !q || (
-        (f.category && f.category.toLowerCase().includes(q)) ||
-        (f.description && f.description.toLowerCase().includes(q)) ||
-        (f.method && f.method.toLowerCase().includes(q)) ||
-        (f.type && f.type.toLowerCase().includes(q)) ||
-        (f.person && f.person.toLowerCase().includes(q))
-      );
-
-      const loanOnly = document.getElementById('ledgerLoanOnly')?.checked;
-
-      const matchDate = (!startDate || f.date >= startDate) && (!endDate || f.date <= endDate);
-      const matchType = !type || f.type === type;
-      const matchCategory = !category || f.category === category;
-      const matchMethod = !method || f.method === method;
-      const matchLoan = !loanOnly || (f.type === 'Loan Given' || f.type === 'Loan Received');
-
-      return matchSearch && matchDate && matchType && matchCategory && matchMethod && matchLoan;
-    });
-    renderLedger(filteredFinance);
-  }
 }
 
 function handleGlobalSearch() {
@@ -3079,8 +3091,8 @@ async function handleStudentSubmit(e) {
           ? window.globalData.students[parseInt(data.studentRowIndex)]?.studentId
           : generateStudentId(data.batch);
 
-        // Upload photo to Firebase Storage
-        showSuccessToast('⏳ Uploading photo...');
+        // Upload photo to Local IndexedDB (Sync not yet supported for photos)
+        showSuccessToast('⏳ Saving photo...');
         photoURL = await uploadStudentPhoto(tempStudentId, selectedStudentPhotoFile);
 
         // If updating student and had old photo, delete it
@@ -5732,9 +5744,9 @@ async function handleEmployeeSubmit(e) {
     renderEmployeeList();
 
     // Attempt cloud sync in background
-    if (typeof window.saveToCloud === 'function') {
+    if (window.supabaseSync && typeof window.supabaseSync.pushToCloud === 'function') {
       console.log('🚀 Initiating employee sync to cloud...');
-      window.saveToCloud(true).catch(err => {
+      window.supabaseSync.pushToCloud().catch(err => {
         console.error('Background cloud sync failed:', err);
       });
     }
