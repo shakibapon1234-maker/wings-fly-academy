@@ -5061,68 +5061,94 @@ function generateCertificate() {
   const academyName = "Wings Fly Aviation & Career Development Academy";
   const selectedDesign = globalData.settings?.certDesign || 'navy';
 
-  // Build cert HTML (base64 images are embedded inside the builder)
   const certHtml = (selectedDesign === 'cosmos')
     ? buildCertHtml_Cosmos(s, '', '', '', '', academyName)
     : buildCertHtml_Navy(s, '', '', '', '', academyName);
 
-  // === STRATEGY: inject into page, render with html2canvas, download ===
-  // Remove any previous hidden cert container
-  const oldWrap = document.getElementById('_certRenderWrap');
-  if (oldWrap) oldWrap.remove();
+  // ── Show preview modal ──────────────────────────────────────────
+  const wrapper = document.getElementById('certPreviewWrapper');
+  if (!wrapper) { alert('Please refresh the page and try again.'); return; }
 
-  // Create container at actual certificate size, painted on screen (opacity near 0)
-  const wrap = document.createElement('div');
-  wrap.id = '_certRenderWrap';
-  wrap.style.cssText = 'position:fixed;left:0;top:0;width:1056px;height:816px;z-index:-1000;opacity:0.001;pointer-events:none;overflow:hidden;';
-  wrap.innerHTML = certHtml;
-  document.body.appendChild(wrap);
+  wrapper.innerHTML = certHtml;
 
-  const certEl = wrap.firstElementChild;
+  // Scale cert to fit modal width
+  const modalW = Math.min(window.innerWidth - 60, 1056);
+  const scale  = modalW / 1056;
+  const certEl = wrapper.firstElementChild;
+  if (certEl) {
+    certEl.style.transform       = 'scale(' + scale + ')';
+    certEl.style.transformOrigin = 'top left';
+    certEl.style.display         = 'block';
+  }
+  wrapper.style.width  = Math.round(1056 * scale) + 'px';
+  wrapper.style.height = Math.round(816  * scale) + 'px';
+  wrapper.style.overflow = 'hidden';
 
-  // Show progress in button
-  const btn = document.getElementById('btnCertificate');
-  if (btn) { btn.disabled = true; btn.innerHTML = '⏳ Generating...'; }
+  const modal = new bootstrap.Modal(document.getElementById('certPreviewModal'));
+  modal.show();
 
-  // Wait for images + fonts (700ms is enough for base64 images)
-  setTimeout(function() {
+  // ── Wire Download button ────────────────────────────────────────
+  const dlBtn = document.getElementById('certDownloadBtn');
+  // Remove old listener by cloning
+  const newBtn = dlBtn.cloneNode(true);
+  dlBtn.parentNode.replaceChild(newBtn, dlBtn);
+
+  newBtn.addEventListener('click', function() {
     if (typeof html2pdf === 'undefined') {
-      document.body.removeChild(wrap);
-      if (btn) { btn.disabled = false; btn.innerHTML = '🎓 Course Certificate'; }
       alert('PDF library not loaded. Check internet connection.');
       return;
     }
 
-    const opt = {
-      margin: 0,
-      filename: 'Certificate_' + (s.name || 'Student').replace(/[^a-z0-9]/gi, '_') + '.pdf',
-      image: { type: 'jpeg', quality: 0.98 },
-      html2canvas: {
-        scale: 2,
-        useCORS: true,
-        allowTaint: true,
-        logging: false,
-        width: 1056,
-        height: 816,
-        backgroundColor: '#040c1e',
-        removeContainer: false
-      },
-      jsPDF: { unit: 'px', format: [1056, 816], orientation: 'landscape' }
-    };
+    newBtn.disabled = true;
+    newBtn.innerHTML = '⏳ Generating PDF...';
 
-    html2pdf().from(certEl).set(opt).save()
-      .then(function() {
-        document.body.removeChild(wrap);
-        if (btn) { btn.disabled = false; btn.innerHTML = '🎓 Course Certificate'; }
-        showSuccessToast('✅ Certificate downloaded!');
-      })
-      .catch(function(err) {
-        console.error('PDF err:', err);
-        document.body.removeChild(wrap);
-        if (btn) { btn.disabled = false; btn.innerHTML = '🎓 Course Certificate'; }
-        showErrorToast('PDF generation failed. Try again.');
-      });
-  }, 700);
+    // ── Render the cert in a hidden full-size container ──────────
+    const old = document.getElementById('_certRenderWrap');
+    if (old) old.remove();
+
+    const wrap = document.createElement('div');
+    wrap.id = '_certRenderWrap';
+    // Must be on-screen (opacity near 0) for html2canvas to paint it
+    wrap.style.cssText = 'position:fixed;left:0;top:0;width:1056px;height:816px;' +
+                         'z-index:-9999;opacity:0.001;pointer-events:none;overflow:hidden;';
+    wrap.innerHTML = certHtml;
+    document.body.appendChild(wrap);
+    const renderEl = wrap.firstElementChild;
+
+    // Small delay to let browser paint before capture
+    setTimeout(function() {
+      const opt = {
+        margin: 0,
+        filename: 'Certificate_' + (s.name || 'Student').replace(/[^a-z0-9]/gi, '_') + '.pdf',
+        image: { type: 'jpeg', quality: 0.98 },
+        html2canvas: {
+          scale: 2,
+          useCORS: true,
+          allowTaint: true,
+          logging: false,
+          width:  1056,
+          height: 816,
+          backgroundColor: (selectedDesign === 'cosmos') ? '#05081a' : '#040c1e'
+        },
+        jsPDF: { unit: 'px', format: [1056, 816], orientation: 'landscape' }
+      };
+
+      html2pdf().from(renderEl).set(opt).save()
+        .then(function() {
+          document.body.removeChild(wrap);
+          newBtn.disabled = false;
+          newBtn.innerHTML = '⬇️ Download PDF';
+          showSuccessToast('✅ Certificate downloaded!');
+        })
+        .catch(function(err) {
+          console.error('PDF error:', err);
+          document.body.removeChild(wrap);
+          newBtn.disabled = false;
+          newBtn.innerHTML = '⬇️ Download PDF';
+          showErrorToast('PDF failed. Try again.');
+        });
+    }, 600);
+  });
 }
 function generateIdCard() {
   const btn = document.getElementById('btnIdCard');
