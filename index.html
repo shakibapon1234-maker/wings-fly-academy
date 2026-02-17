@@ -2719,28 +2719,112 @@
     <div class="modal fade" id="attendanceReportModal" tabindex="-1">
         <div class="modal-dialog modal-fullscreen">
             <div class="modal-content custom-modal" style="border-radius:0;">
-                <div class="modal-header border-0 px-4 pt-4 pb-3" style="background:linear-gradient(135deg,rgba(0,150,255,0.1),rgba(123,47,247,0.08));">
+                <div class="modal-header border-0 px-4 pt-4 pb-3"
+                    style="background:linear-gradient(135deg,rgba(0,150,255,0.1),rgba(123,47,247,0.08));">
                     <div class="d-flex align-items-center gap-3">
-                        <div class="rounded-circle d-flex align-items-center justify-content-center" style="width:46px;height:46px;background:linear-gradient(135deg,#7b2ff7,#00b4ff);box-shadow:0 4px 15px rgba(123,47,247,0.4);"><i class="bi bi-calendar3-range-fill text-white fs-5"></i></div>
-                        <div><h5 class="modal-title fw-bold mb-0">Monthly Attendance Report</h5><div class="small text-muted" id="monthlyAttHeaderInfo">Batch, Year ও Month বেছে নিন</div></div>
+                        <div class="rounded-circle d-flex align-items-center justify-content-center"
+                            style="width:46px;height:46px;background:linear-gradient(135deg,#7b2ff7,#00b4ff);box-shadow:0 4px 15px rgba(123,47,247,0.4);">
+                            <i class="bi bi-calendar3-range-fill text-white fs-5"></i>
+                        </div>
+                        <div>
+                            <h5 class="modal-title fw-bold mb-0">Monthly Attendance Report</h5>
+                            <div class="small text-muted" id="monthlyAttHeaderInfo">Batch, Year ও Month বেছে নিন</div>
+                        </div>
                     </div>
                     <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
                 </div>
-                <div class="px-4 py-3 no-print" style="background:rgba(255,255,255,0.03);border-bottom:1px solid rgba(255,255,255,0.08);">
+                <div class="px-4 py-3 no-print"
+                    style="background:rgba(255,255,255,0.03); border-bottom:1px solid rgba(255,255,255,0.08);">
                     <div class="row g-3 align-items-end">
-                        <div class="col-md-3"><label class="form-label small fw-bold text-uppercase text-muted mb-1"><i class="bi bi-people-fill me-1 text-primary"></i>Batch</label><select id="attRepBatchSelect" class="form-select premium-input-modern fw-bold" onchange="renderAttendanceReport()"><option value="">Select a batch...</option></select></div>
-                        <div class="col-md-2"><label class="form-label small fw-bold text-uppercase text-muted mb-1"><i class="bi bi-calendar-event me-1 text-info"></i>Year</label><select id="attRepYear" class="form-select premium-input-modern fw-bold" onchange="renderAttendanceReport()"></select></div>
-                        <div class="col-md-2"><label class="form-label small fw-bold text-uppercase text-muted mb-1"><i class="bi bi-calendar2-month me-1 text-warning"></i>Month</label><select id="attRepMonth" class="form-select premium-input-modern fw-bold" onchange="renderAttendanceReport()"><option value="0">January</option><option value="1">February</option><option value="2">March</option><option value="3">April</option><option value="4">May</option><option value="5">June</option><option value="6">July</option><option value="7">August</option><option value="8">September</option><option value="9">October</option><option value="10">November</option><option value="11">December</option></select></div>
-                        <div class="col-md-5"><div id="monthlySummaryCards" class="d-none"><div class="d-flex gap-2"><div class="flex-fill text-center py-2 rounded-3" style="background:rgba(0,255,136,0.1);border:1px solid rgba(0,255,136,0.25);"><div class="fw-bold text-success fs-6" id="mthWorkingDays">—</div><div style="font-size:0.72rem;" class="text-muted">Working Days</div></div><div class="flex-fill text-center py-2 rounded-3" style="background:rgba(0,180,255,0.1);border:1px solid rgba(0,180,255,0.25);"><div class="fw-bold text-info fs-6" id="mthTotalStudents">—</div><div style="font-size:0.72rem;" class="text-muted">Students</div></div><div class="flex-fill text-center py-2 rounded-3" style="background:rgba(255,200,0,0.1);border:1px solid rgba(255,200,0,0.25);"><div class="fw-bold text-warning fs-6" id="mthAvgRate">—</div><div style="font-size:0.72rem;" class="text-muted">Avg Rate</div></div><div class="flex-fill text-center py-2 rounded-3" style="background:rgba(255,50,80,0.1);border:1px solid rgba(255,50,80,0.25);"><div class="fw-bold text-danger fs-6" id="mthBestStudent">—</div><div style="font-size:0.72rem;" class="text-muted">Best Attender</div></div></div></div></div>
+                        <div class="col-md-3">
+                            <label class="form-label small fw-bold text-uppercase text-muted mb-1">
+                                <i class="bi bi-people-fill me-1 text-primary"></i>Batch
+                            </label>
+                            <select id="attRepBatchSelect" class="form-select premium-input-modern fw-bold"
+                                onchange="renderAttendanceReport()">
+                                <option value="">Select a batch...</option>
+                            </select>
+                        </div>
+                        <div class="col-md-2">
+                            <label class="form-label small fw-bold text-uppercase text-muted mb-1">
+                                <i class="bi bi-calendar-event me-1 text-info"></i>Year
+                            </label>
+                            <select id="attRepYear" class="form-select premium-input-modern fw-bold"
+                                onchange="renderAttendanceReport()">
+                            </select>
+                        </div>
+                        <div class="col-md-2">
+                            <label class="form-label small fw-bold text-uppercase text-muted mb-1">
+                                <i class="bi bi-calendar2-month me-1 text-warning"></i>Month
+                            </label>
+                            <select id="attRepMonth" class="form-select premium-input-modern fw-bold"
+                                onchange="renderAttendanceReport()">
+                                <option value="0">January</option>
+                                <option value="1">February</option>
+                                <option value="2">March</option>
+                                <option value="3">April</option>
+                                <option value="4">May</option>
+                                <option value="5">June</option>
+                                <option value="6">July</option>
+                                <option value="7">August</option>
+                                <option value="8">September</option>
+                                <option value="9">October</option>
+                                <option value="10">November</option>
+                                <option value="11">December</option>
+                            </select>
+                        </div>
+                        <div class="col-md-5">
+                            <div id="monthlySummaryCards" class="d-none">
+                                <div class="d-flex gap-2">
+                                    <div class="flex-fill text-center py-2 rounded-3"
+                                        style="background:rgba(0,255,136,0.1);border:1px solid rgba(0,255,136,0.25);">
+                                        <div class="fw-bold text-success fs-6" id="mthWorkingDays">—</div>
+                                        <div style="font-size:0.72rem;" class="text-muted">Working Days</div>
+                                    </div>
+                                    <div class="flex-fill text-center py-2 rounded-3"
+                                        style="background:rgba(0,180,255,0.1);border:1px solid rgba(0,180,255,0.25);">
+                                        <div class="fw-bold text-info fs-6" id="mthTotalStudents">—</div>
+                                        <div style="font-size:0.72rem;" class="text-muted">Students</div>
+                                    </div>
+                                    <div class="flex-fill text-center py-2 rounded-3"
+                                        style="background:rgba(255,200,0,0.1);border:1px solid rgba(255,200,0,0.25);">
+                                        <div class="fw-bold text-warning fs-6" id="mthAvgRate">—</div>
+                                        <div style="font-size:0.72rem;" class="text-muted">Avg Rate</div>
+                                    </div>
+                                    <div class="flex-fill text-center py-2 rounded-3"
+                                        style="background:rgba(255,50,80,0.1);border:1px solid rgba(255,50,80,0.25);">
+                                        <div class="fw-bold text-danger fs-6" id="mthBestStudent">—</div>
+                                        <div style="font-size:0.72rem;" class="text-muted">Best Attender</div>
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
                     </div>
                 </div>
                 <div class="modal-body p-0" style="overflow:auto;">
-                    <div id="monthlyAttEmptyState" class="text-center py-5 text-muted"><i class="bi bi-calendar3-range" style="font-size:3.5rem;opacity:0.2;display:block;margin-bottom:16px;"></i><p class="fw-semibold">Batch, Year ও Month বেছে নিলেই Monthly Report দেখাবে</p><p class="small">প্রতিটি দিনের P / A এবং মাসের মোট হিসাব দেখতে পাবেন</p></div>
-                    <div id="attendanceReportContainer" style="min-width:900px;padding:16px;"></div>
+                    <div id="monthlyAttEmptyState" class="text-center py-5 text-muted">
+                        <i class="bi bi-calendar3-range" style="font-size:3.5rem;opacity:0.2;display:block;margin-bottom:16px;"></i>
+                        <p class="fw-semibold">Batch, Year ও Month বেছে নিলেই Monthly Report দেখাবে</p>
+                        <p class="small">প্রতিটি দিনের P / A এবং মাসের মোট হিসাব এখানে দেখতে পাবেন</p>
+                    </div>
+                    <div id="attendanceReportContainer" style="min-width:900px; padding:16px;"></div>
                 </div>
-                <div class="modal-footer no-print border-0 px-4 py-3 flex-wrap gap-2" style="background:rgba(255,255,255,0.03);border-top:1px solid rgba(255,255,255,0.08) !important;">
-                    <div class="d-flex gap-2 flex-wrap"><button class="btn btn-outline-info rounded-pill px-3 fw-bold" onclick="downloadMonthlyAttendanceCsv()"><i class="bi bi-download me-1"></i>CSV Download</button><button class="btn btn-outline-primary rounded-pill px-3 fw-bold" onclick="printMonthlyAttendance()"><i class="bi bi-printer me-1"></i>Print Report</button></div>
-                    <div class="ms-auto"><button type="button" class="btn btn-secondary rounded-pill px-4" data-bs-dismiss="modal">Close</button></div>
+                <div class="modal-footer no-print border-0 px-4 py-3 flex-wrap gap-2"
+                    style="background:rgba(255,255,255,0.03); border-top:1px solid rgba(255,255,255,0.08) !important;">
+                    <div class="d-flex gap-2 flex-wrap">
+                        <button class="btn btn-outline-info rounded-pill px-3 fw-bold"
+                            onclick="downloadMonthlyAttendanceCsv()">
+                            <i class="bi bi-download me-1"></i>CSV Download
+                        </button>
+                        <button class="btn btn-outline-primary rounded-pill px-3 fw-bold"
+                            onclick="printMonthlyAttendance()">
+                            <i class="bi bi-printer me-1"></i>Print Report
+                        </button>
+                    </div>
+                    <div class="ms-auto">
+                        <button type="button" class="btn btn-secondary rounded-pill px-4"
+                            data-bs-dismiss="modal">Close</button>
+                    </div>
                 </div>
             </div>
         </div>
@@ -2818,100 +2902,35 @@
         </div>
     </div>
 
-    <!-- Attendance Modal — Upgraded -->
+    <!-- Attendance Modal -->
     <div class="modal fade" id="attendanceModal" tabindex="-1">
-        <div class="modal-dialog modal-xl modal-dialog-centered modal-dialog-scrollable">
-            <div class="modal-content custom-modal" style="border-radius:20px; overflow:hidden;">
-
-                <div class="modal-header border-0 pb-0 px-4 pt-4"
-                    style="background:linear-gradient(135deg,rgba(0,150,255,0.12),rgba(0,217,255,0.06));">
-                    <div class="d-flex align-items-center gap-3">
-                        <div class="rounded-circle d-flex align-items-center justify-content-center"
-                            style="width:46px;height:46px;background:linear-gradient(135deg,#00b4ff,#00d9ff);box-shadow:0 4px 15px rgba(0,180,255,0.4);">
-                            <i class="bi bi-calendar-check-fill text-white fs-5"></i>
-                        </div>
-                        <div>
-                            <h5 class="modal-title fw-bold mb-0" style="font-size:1.2rem;">Student Attendance</h5>
-                            <div class="small text-muted" id="attendanceHeaderInfo">Batch &amp; Date নির্বাচন করুন</div>
-                        </div>
-                    </div>
+        <div class="modal-dialog modal-lg modal-dialog-centered">
+            <div class="modal-content custom-modal">
+                <div class="modal-header">
+                    <h5 class="modal-title fw-bold">�… Student Attendance</h5>
                     <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
                 </div>
-
-                <div class="px-4 py-3"
-                    style="background:rgba(255,255,255,0.03); border-bottom:1px solid rgba(255,255,255,0.08);">
-                    <div class="row g-3 align-items-end">
-                        <div class="col-md-4">
-                            <label class="form-label small fw-bold text-uppercase text-muted mb-1">
-                                <i class="bi bi-people-fill me-1 text-primary"></i>Batch
-                            </label>
-                            <select id="attendanceBatchSelect" class="form-select premium-input-modern fw-bold"
-                                onchange="loadAttendanceList()">
-                                <option value="">— Select Batch —</option>
+                <div class="modal-body">
+                    <div class="row g-3 mb-4">
+                        <div class="col-md-6">
+                            <label class="form-label small fw-bold">Select Batch</label>
+                            <select id="attendanceBatchSelect" class="form-select" onchange="loadAttendanceList()">
+                                <option value="">Select a batch...</option>
                             </select>
                         </div>
-                        <div class="col-md-4">
-                            <label class="form-label small fw-bold text-uppercase text-muted mb-1">
-                                <i class="bi bi-calendar3 me-1 text-info"></i>Date
-                            </label>
-                            <input type="date" id="attendanceDate" class="form-control premium-input-modern fw-bold"
-                                onchange="loadAttendanceList()">
+                        <div class="col-md-6">
+                            <label class="form-label small fw-bold">Date</label>
+                            <input type="date" id="attendanceDate" class="form-control" onchange="loadAttendanceList()">
                         </div>
-                        <div class="col-md-4">
-                            <div id="attendanceQuickStats" class="d-none">
-                                <div class="d-flex gap-2">
-                                    <div class="flex-fill text-center py-2 rounded-3"
-                                        style="background:rgba(0,255,136,0.1);border:1px solid rgba(0,255,136,0.25);">
-                                        <div class="fw-bold text-success fs-5" id="attPresentCount">0</div>
-                                        <div class="small text-muted">Present</div>
-                                    </div>
-                                    <div class="flex-fill text-center py-2 rounded-3"
-                                        style="background:rgba(255,50,80,0.1);border:1px solid rgba(255,50,80,0.25);">
-                                        <div class="fw-bold text-danger fs-5" id="attAbsentCount">0</div>
-                                        <div class="small text-muted">Absent</div>
-                                    </div>
-                                    <div class="flex-fill text-center py-2 rounded-3"
-                                        style="background:rgba(0,180,255,0.1);border:1px solid rgba(0,180,255,0.25);">
-                                        <div class="fw-bold text-info fs-5" id="attTotalCount">0</div>
-                                        <div class="small text-muted">Total</div>
-                                    </div>
-                                </div>
-                            </div>
-                            <div id="attStatPlaceholder" class="text-center text-muted small py-2">
-                                Batch ও Date বেছে নিন
-                            </div>
-                        </div>
-                    </div>
-                </div>
-
-                <div class="modal-body p-0">
-                    <div id="attendanceEmptyState" class="text-center py-5 text-muted">
-                        <i class="bi bi-journal-text" style="font-size:3rem;opacity:0.25;"></i>
-                        <p class="mt-3 fw-semibold">Batch ও তারিখ সিলেক্ট করলেই ছাত্রের তালিকা আসবে</p>
                     </div>
                     <div id="attendanceListContainer" class="d-none">
-                        <div class="d-flex align-items-center justify-content-between px-4 py-2"
-                            style="background:rgba(0,180,255,0.06); border-bottom:1px solid rgba(255,255,255,0.07);">
-                            <span class="small fw-bold text-muted text-uppercase">Quick Mark All:</span>
-                            <div class="d-flex gap-2">
-                                <button class="btn btn-sm btn-success rounded-pill px-3 fw-bold"
-                                    onclick="markAllAttendance('Present')">
-                                    <i class="bi bi-check-all me-1"></i>সবাই Present
-                                </button>
-                                <button class="btn btn-sm btn-danger rounded-pill px-3 fw-bold"
-                                    onclick="markAllAttendance('Absent')">
-                                    <i class="bi bi-x-circle me-1"></i>সবাই Absent
-                                </button>
-                            </div>
-                        </div>
-                        <div class="table-responsive" style="max-height:55vh; overflow-y:auto;">
-                            <table class="table table-hover align-middle mb-0" style="font-size:0.95rem;">
-                                <thead style="position:sticky;top:0;z-index:5;background:rgba(20,25,60,0.97);border-bottom:2px solid rgba(0,180,255,0.3);">
+                        <div class="table-responsive rounded border">
+                            <table class="table table-hover align-middle mb-0">
+                                <thead class="bg-light">
                                     <tr>
-                                        <th class="px-4 py-3" style="width:50px;">#</th>
-                                        <th class="py-3" style="width:110px;">Student ID</th>
-                                        <th class="py-3">Name</th>
-                                        <th class="py-3 text-center" style="width:220px;">Status</th>
+                                        <th>ID</th>
+                                        <th>Name</th>
+                                        <th class="text-center">Status</th>
                                     </tr>
                                 </thead>
                                 <tbody id="attendanceTableBody"></tbody>
@@ -2919,38 +2938,22 @@
                         </div>
                     </div>
                 </div>
-
-                <div class="modal-footer px-4 py-3 border-0 flex-wrap gap-2"
-                    style="background:rgba(255,255,255,0.03); border-top:1px solid rgba(255,255,255,0.08) !important;">
+                <div class="modal-footer justify-content-between flex-wrap gap-2">
                     <div class="d-flex gap-2 flex-wrap">
-                        <button type="button" class="btn btn-outline-secondary rounded-pill px-3 fw-bold"
+                        <button type="button" class="btn btn-outline-secondary fw-bold rounded-pill px-3"
                             onclick="printBlankAttendanceSheet()">
-                            <i class="bi bi-file-earmark-text me-1"></i>Blank Sheet
+                            Blank Sheet
                         </button>
-                        <button type="button" class="btn btn-outline-info rounded-pill px-3 fw-bold"
-                            onclick="downloadAttendanceReport()">
-                            <i class="bi bi-download me-1"></i>Report Download
-                        </button>
-                        <button type="button" class="btn btn-outline-primary rounded-pill px-3 fw-bold"
-                            onclick="printSavedAttendance()">
-                            <i class="bi bi-printer me-1"></i>Print Report
-                        </button>
-                        <button type="button" class="btn btn-outline-warning rounded-pill px-3 fw-bold"
+                        <button type="button" class="btn btn-outline-info fw-bold rounded-pill px-3"
                             onclick="openAttendanceReportModal()">
-                            <i class="bi bi-calendar3-range me-1"></i>Monthly Report
+                            Monthly Report
                         </button>
                     </div>
-                    <div class="ms-auto d-flex gap-2">
-                        <button type="button" class="btn btn-secondary rounded-pill px-4"
-                            data-bs-dismiss="modal">Close</button>
-                        <button type="button" class="btn btn-primary rounded-pill px-4 fw-bold shadow"
-                            onclick="saveAttendance()"
-                            style="background:linear-gradient(135deg,#00b4ff,#7b2ff7);border:none;">
-                            <i class="bi bi-save2-fill me-1"></i>Save Attendance
-                        </button>
-                    </div>
+                    <button type="button" class="btn btn-primary px-4 fw-bold rounded-pill"
+                        onclick="saveAttendance()">
+                        Save Attendance
+                    </button>
                 </div>
-
             </div>
         </div>
     </div>
@@ -3516,6 +3519,13 @@
 
     <!-- Main Application (Sync code now embedded inside) -->
     <script src="app.js?v=9.0"></script>
+
+    <!-- =============================================== -->
+    <!-- EXAM REGISTRATION FIX — সকল সমস্যা সমাধান     -->
+    <!-- autoPopulateStudentDetails, handleExamRegistration,  -->
+    <!-- searchExamResults, renderExamResults সব এখানে  -->
+    <!-- =============================================== -->
+    <script src="exam-fix.js"></script>
 
     <!-- =============================================== -->
     <!-- MOBILE BANKING MODAL -->
