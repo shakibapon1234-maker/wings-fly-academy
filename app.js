@@ -4879,7 +4879,7 @@ function buildCertHtml_Navy(s, _a, _b, _c, _d, academyName) {
 
         <!-- LEFT: Shakib -->
         <div style="text-align:center;width:200px;">
-          <img src="${_signS}" style="height:48px;width:auto;max-width:185px;display:block;margin:0 auto 3px;">
+          <img src="${_signS}" style="height:52px;width:auto;max-width:185px;display:block;margin:0 auto 3px;">
           <div style="width:185px;height:1.5px;background:rgba(255,215,0,0.65);margin:0 auto 4px;"></div>
           <div style="font-size:9.5px;font-weight:700;text-transform:uppercase;color:#FFD700;letter-spacing:1.5px;">Course Coordinator</div>
           <div style="font-size:11px;color:rgba(255,255,255,0.9);font-weight:600;margin-top:2px;">Shakib Ibna Mustafa</div>
@@ -4892,7 +4892,7 @@ function buildCertHtml_Navy(s, _a, _b, _c, _d, academyName) {
 
         <!-- RIGHT: Ferdous -->
         <div style="text-align:center;width:200px;">
-          <img src="${_signF}" style="height:48px;width:auto;max-width:185px;display:block;margin:0 auto 3px;">
+          <img src="${_signF}" style="height:72px;width:auto;max-width:185px;display:block;margin:0 auto 3px;">
           <div style="width:185px;height:1.5px;background:rgba(255,215,0,0.65);margin:0 auto 4px;"></div>
           <div style="font-size:9.5px;font-weight:700;text-transform:uppercase;color:#FFD700;letter-spacing:1.5px;">Chairman</div>
           <div style="font-size:11px;color:rgba(255,255,255,0.9);font-weight:600;margin-top:2px;">Ferdous Ahmed</div>
@@ -5061,13 +5061,12 @@ function generateCertificate() {
     ? buildCertHtml_Cosmos(s, '', '', '', '', academyName)
     : buildCertHtml_Navy(s, '', '', '', '', academyName);
 
-  // ── Preview modal ────────────────────────────────────────────────
+  // ── Show preview modal ───────────────────────────────────────────
   const wrapper = document.getElementById('certPreviewWrapper');
   if (!wrapper) { alert('Please refresh the page.'); return; }
 
   wrapper.innerHTML = certHtml;
   const certEl = wrapper.firstElementChild;
-
   const availW = Math.min(window.innerWidth - 80, 1056);
   const scale  = availW / 1056;
   certEl.style.transform       = 'scale(' + scale + ')';
@@ -5093,68 +5092,93 @@ function generateCertificate() {
     newBtn.disabled = true;
     newBtn.innerHTML = '⏳ Generating...';
 
-    // Build a fresh full-size element for rendering
+    // Create a full-size off-screen container
     const old = document.getElementById('_certRenderWrap');
     if (old) old.remove();
 
     const wrap = document.createElement('div');
     wrap.id = '_certRenderWrap';
-    // MUST be at 0,0 with exact size — no scaling, no offset
     wrap.style.cssText =
       'position:fixed;left:0px;top:0px;' +
       'width:1056px;height:816px;' +
-      'overflow:hidden;z-index:99998;' +
+      'overflow:visible;z-index:99998;' +
       'opacity:0.01;pointer-events:none;';
     wrap.innerHTML = certHtml;
     document.body.appendChild(wrap);
 
-    // Force layout
+    // Force reflow
     wrap.getBoundingClientRect();
 
     setTimeout(function() {
       const renderEl = wrap.firstElementChild;
 
-      html2pdf()
-        .set({
-          margin: 0,
-          filename: 'Certificate_' + (s.name || 'Student').replace(/[^a-z0-9]/gi, '_') + '.pdf',
-          image: { type: 'jpeg', quality: 0.98 },
-          html2canvas: {
-            scale: 2,
-            useCORS: true,
-            allowTaint: true,
-            logging: false,
-            width: 1056,
-            height: 816,
-            backgroundColor: (selectedDesign === 'cosmos') ? '#05081a' : '#040c1e',
-            scrollX: 0,
-            scrollY: 0,
-            windowWidth: 1056,
-            windowHeight: 816
-          },
-          jsPDF: {
-            unit: 'px',
-            format: [1056, 816],
-            orientation: 'landscape',
-            hotfixes: ['px_scaling']
-          }
-        })
-        .from(renderEl)
-        .save()
-        .then(function() {
-          if (document.body.contains(wrap)) document.body.removeChild(wrap);
+      // Step 1: html2canvas → canvas
+      html2canvas(renderEl, {
+        scale: 2,
+        useCORS: true,
+        allowTaint: true,
+        logging: false,
+        width: 1056,
+        height: 816,
+        x: 0,
+        y: 0,
+        scrollX: 0,
+        scrollY: 0,
+        backgroundColor: (selectedDesign === 'cosmos') ? '#05081a' : '#040c1e',
+        windowWidth: 1056,
+        windowHeight: 816
+      }).then(function(canvas) {
+        if (document.body.contains(wrap)) document.body.removeChild(wrap);
+
+        // Step 2: canvas → image → jsPDF
+        const imgData = canvas.toDataURL('image/jpeg', 0.98);
+
+        // jsPDF is bundled inside html2pdf — access via html2pdf's jsPDF
+        const { jsPDF } = window.jspdf || {};
+        if (jsPDF) {
+          // Use jsPDF directly
+          const pdf = new jsPDF({ orientation: 'landscape', unit: 'px', format: [1056, 816], hotfixes: ['px_scaling'] });
+          pdf.addImage(imgData, 'JPEG', 0, 0, 1056, 816);
+          pdf.save('Certificate_' + (s.name || 'Student').replace(/[^a-z0-9]/gi, '_') + '.pdf');
           newBtn.disabled = false;
           newBtn.innerHTML = '⬇️ Download PDF';
           showSuccessToast('✅ Certificate downloaded!');
-        })
-        .catch(function(err) {
-          console.error('PDF error:', err);
-          if (document.body.contains(wrap)) document.body.removeChild(wrap);
-          newBtn.disabled = false;
-          newBtn.innerHTML = '⬇️ Download PDF';
-          showErrorToast('PDF failed. Try again.');
-        });
-    }, 800);
+        } else {
+          // Fallback: use html2pdf's built-in pipeline with the canvas image
+          const tempImg = document.createElement('img');
+          tempImg.src = imgData;
+          tempImg.style.cssText = 'width:1056px;height:816px;display:block;';
+
+          const tempWrap = document.createElement('div');
+          tempWrap.style.cssText = 'position:fixed;left:0;top:0;width:1056px;height:816px;overflow:hidden;z-index:-1;opacity:0.01;';
+          tempWrap.appendChild(tempImg);
+          document.body.appendChild(tempWrap);
+
+          html2pdf()
+            .set({
+              margin: 0,
+              filename: 'Certificate_' + (s.name || 'Student').replace(/[^a-z0-9]/gi, '_') + '.pdf',
+              image: { type: 'jpeg', quality: 0.98 },
+              html2canvas: { scale: 1, logging: false, backgroundColor: null },
+              jsPDF: { unit: 'px', format: [1056, 816], orientation: 'landscape', hotfixes: ['px_scaling'] }
+            })
+            .from(tempImg)
+            .save()
+            .then(function() {
+              document.body.removeChild(tempWrap);
+              newBtn.disabled = false;
+              newBtn.innerHTML = '⬇️ Download PDF';
+              showSuccessToast('✅ Certificate downloaded!');
+            });
+        }
+      }).catch(function(err) {
+        console.error('Canvas error:', err);
+        if (document.body.contains(wrap)) document.body.removeChild(wrap);
+        newBtn.disabled = false;
+        newBtn.innerHTML = '⬇️ Download PDF';
+        showErrorToast('Failed. Try again.');
+      });
+    }, 600);
   });
 }
 function generateIdCard() {
