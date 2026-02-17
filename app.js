@@ -6934,9 +6934,16 @@ document.addEventListener('DOMContentLoaded', () => {
       });
     };
 
-    addToBoth('Cash', '💵 Cash');
-    (globalData.bankAccounts || []).forEach(b => addToBoth(b.name, `🏦 ${b.name} (${b.bankName})`));
-    (globalData.mobileBanking || []).forEach(m => addToBoth(m.name, `📱 ${m.name}`));
+    const cashBal = parseFloat(globalData.cashBalance) || 0;
+    addToBoth('Cash', `💵 Cash  —  ৳${formatNumber(cashBal)}`);
+    (globalData.bankAccounts || []).forEach(b => {
+      const bal = parseFloat(b.balance) || 0;
+      addToBoth(b.name, `🏦 ${b.name} (${b.bankName})  —  ৳${formatNumber(bal)}`);
+    });
+    (globalData.mobileBanking || []).forEach(m => {
+      const bal = parseFloat(m.balance) || 0;
+      addToBoth(m.name, `📱 ${m.name}  —  ৳${formatNumber(bal)}`);
+    });
   }
 
   // Helper function to populate payment method dropdowns
@@ -6954,9 +6961,16 @@ document.addEventListener('DOMContentLoaded', () => {
         select.appendChild(opt);
       };
 
-      addOpt('Cash', '💵 Cash');
-      (globalData.bankAccounts || []).forEach(b => addOpt(b.name, `🏦 ${b.name}`));
-      (globalData.mobileBanking || []).forEach(m => addOpt(m.name, `📱 ${m.name}`));
+      const cashBal = parseFloat(globalData.cashBalance) || 0;
+      addOpt('Cash', `💵 Cash  —  ৳${formatNumber(cashBal)}`);
+      (globalData.bankAccounts || []).forEach(b => {
+        const bal = parseFloat(b.balance) || 0;
+        addOpt(b.name, `🏦 ${b.name}  —  ৳${formatNumber(bal)}`);
+      });
+      (globalData.mobileBanking || []).forEach(m => {
+        const bal = parseFloat(m.balance) || 0;
+        addOpt(m.name, `📱 ${m.name}  —  ৳${formatNumber(bal)}`);
+      });
     });
   }
 
@@ -6968,6 +6982,18 @@ document.addEventListener('DOMContentLoaded', () => {
   const transferModal = document.getElementById('transferModal');
   if (transferModal) {
     transferModal.addEventListener('show.bs.modal', populateTransferDropdownsNow);
+    transferModal.addEventListener('shown.bs.modal', () => {
+      // Attach balance badge to From/To selects
+      ['accTransferFrom', 'accTransferTo'].forEach(id => {
+        const el = document.getElementById(id);
+        if (el) {
+          // Remove old badge
+          const old = document.getElementById(`${id}_balanceBadge`);
+          if (old) old.remove();
+          el.addEventListener('change', () => showMethodBalance(id));
+        }
+      });
+    });
     console.log('✅ Transfer modal listener added');
   }
 
@@ -7796,12 +7822,17 @@ function attachMethodBalanceListeners() {
     'studentMethodSelect',
     'financeMethodSelect',
     'editTransMethodSelect',
-    'examPaymentMethodSelect'
+    'examPaymentMethodSelect',
+    'accTransferFrom',
+    'accTransferTo'
   ];
   targets.forEach(id => {
     const el = document.getElementById(id);
     if (el) {
-      el.addEventListener('change', () => showMethodBalance(id));
+      // Remove duplicate listeners by replacing with clone
+      const newEl = el.cloneNode(true);
+      el.parentNode.replaceChild(newEl, el);
+      newEl.addEventListener('change', () => showMethodBalance(id));
     }
   });
 }
