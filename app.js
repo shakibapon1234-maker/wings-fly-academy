@@ -3058,6 +3058,13 @@ async function handleStudentSubmit(e) {
   const data = {};
   formData.forEach((value, key) => data[key] = value);
 
+  // ✅ CRITICAL VALIDATION: Payment Method is REQUIRED
+  if (!data.method || data.method.trim() === '') {
+    showErrorToast('❌ Payment Method is required! Please select a payment method.');
+    document.getElementById('studentMethodSelect').focus();
+    return;
+  }
+
   try {
     const editIndex = data.studentRowIndex;
     let student;
@@ -3295,6 +3302,13 @@ function handleAddInstallment() {
   const method = document.getElementById('pmtNewMethod').value;
   const today = new Date().toISOString().split('T')[0];
 
+  // ✅ CRITICAL VALIDATION: Payment Method is REQUIRED
+  if (!method || method.trim() === '') {
+    showErrorToast('❌ Payment Method is required! Please select a payment method.');
+    document.getElementById('pmtNewMethod').focus();
+    return;
+  }
+
   if (isNaN(amount) || amount <= 0) {
     alert('Please enter a valid amount.');
     return;
@@ -3431,6 +3445,13 @@ async function handleFinanceSubmit(e) {
   const formData = {};
   new FormData(form).forEach((value, key) => formData[key] = value);
 
+  // ✅ CRITICAL VALIDATION: Payment Method is REQUIRED
+  if (!formData.method || formData.method.trim() === '') {
+    showErrorToast('❌ Payment Method is required! Please select a payment method.');
+    document.getElementById('financeMethodSelect').focus();
+    return;
+  }
+
   // ✅ VALIDATION: Person field is mandatory ONLY for Loan TYPES
   const type = formData.type || '';
   const person = (formData.person || '').trim();
@@ -3445,7 +3466,7 @@ async function handleFinanceSubmit(e) {
   const newTransaction = {
     id: Date.now(), // Unique ID
     type: formData.type,
-    method: formData.method || 'Cash',
+    method: formData.method,
     date: formData.date,
     amount: parseFloat(formData.amount) || 0,
     category: formData.category || 'General',
@@ -3583,6 +3604,13 @@ async function handleEditTransactionSubmit(e) {
   const form = document.getElementById('editTransactionForm');
   const formData = {};
   new FormData(form).forEach((value, key) => formData[key] = value);
+
+  // ✅ CRITICAL VALIDATION: Payment Method is REQUIRED
+  if (!formData.method || formData.method.trim() === '') {
+    showErrorToast('❌ Payment Method is required! Please select a payment method.');
+    document.getElementById('editTransMethodSelect').focus();
+    return;
+  }
 
   const id = parseInt(formData.transactionId);
   const index = globalData.finance.findIndex(f => f.id === id);
