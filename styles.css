@@ -2443,3 +2443,176 @@ tfoot th {
 #photoPreview:hover {
   transform: scale(1.05);
 }
+
+/* ===================================
+   STUDENT PROFILE - DARK NEON CARDS
+   NO WHITE BACKGROUNDS
+   =================================== */
+
+/* Student Profile Stats Cards - Dark Gradients with Neon Borders */
+#studentModal .card-body > .row > div[class*="col"]:has(.text-muted.small) {
+  background: transparent !important;
+}
+
+/* Total Fee Card - Cyan Blue Neon */
+#studentModal .bg-info.bg-opacity-10,
+.student-stat-total,
+.fee-card-total {
+  background: linear-gradient(135deg, 
+    rgba(0, 60, 100, 0.5) 0%, 
+    rgba(0, 40, 80, 0.7) 50%, 
+    rgba(10, 14, 39, 0.9) 100%) !important;
+  border: 3px solid #00d9ff !important;
+  border-radius: 15px !important;
+  padding: 25px !important;
+  box-shadow: 
+    0 0 30px rgba(0, 217, 255, 0.5),
+    inset 0 0 30px rgba(0, 217, 255, 0.1) !important;
+  position: relative !important;
+  overflow: hidden !important;
+}
+
+/* Paid Card - Green Neon */
+#studentModal .bg-success.bg-opacity-10,
+.student-stat-paid,
+.fee-card-paid {
+  background: linear-gradient(135deg, 
+    rgba(0, 80, 40, 0.5) 0%, 
+    rgba(0, 60, 30, 0.7) 50%, 
+    rgba(10, 14, 39, 0.9) 100%) !important;
+  border: 3px solid #00ff88 !important;
+  border-radius: 15px !important;
+  padding: 25px !important;
+  box-shadow: 
+    0 0 30px rgba(0, 255, 136, 0.5),
+    inset 0 0 30px rgba(0, 255, 136, 0.1) !important;
+  position: relative !important;
+  overflow: hidden !important;
+}
+
+/* Due Card - Pink/Red Neon */
+#studentModal .bg-danger.bg-opacity-10,
+.student-stat-due,
+.fee-card-due {
+  background: linear-gradient(135deg, 
+    rgba(100, 0, 40, 0.5) 0%, 
+    rgba(80, 0, 30, 0.7) 50%, 
+    rgba(10, 14, 39, 0.9) 100%) !important;
+  border: 3px solid #ff2366 !important;
+  border-radius: 15px !important;
+  padding: 25px !important;
+  box-shadow: 
+    0 0 30px rgba(255, 35, 102, 0.5),
+    inset 0 0 30px rgba(255, 35, 102, 0.1) !important;
+  position: relative !important;
+  overflow: hidden !important;
+}
+
+/* Shimmer animation for stat cards */
+.student-stat-total::before,
+.student-stat-paid::before,
+.student-stat-due::before,
+.fee-card-total::before,
+.fee-card-paid::before,
+.fee-card-due::before,
+#studentModal .bg-info.bg-opacity-10::before,
+#studentModal .bg-success.bg-opacity-10::before,
+#studentModal .bg-danger.bg-opacity-10::before {
+  content: '' !important;
+  position: absolute !important;
+  top: -50% !important;
+  left: -50% !important;
+  width: 200% !important;
+  height: 200% !important;
+  background: linear-gradient(45deg, transparent, rgba(255, 255, 255, 0.1), transparent) !important;
+  animation: cardShimmer 3s infinite !important;
+  pointer-events: none !important;
+  z-index: 0 !important;
+}
+
+@keyframes cardShimmer {
+  0% { transform: translateX(-100%) translateY(-100%) rotate(45deg); }
+  100% { transform: translateX(100%) translateY(100%) rotate(45deg); }
+}
+
+/* Teacher's Remarks - Cyan Neon (Option 3) */
+#studentModal .bg-warning.bg-opacity-10,
+#studentModal .bg-light.border,
+.teacher-remarks,
+.remarks-card {
+  background: linear-gradient(135deg, 
+    rgba(0, 70, 90, 0.5) 0%, 
+    rgba(0, 55, 75, 0.7) 50%, 
+    rgba(10, 14, 39, 0.9) 100%) !important;
+  border: 3px solid #5eead4 !important;
+  border-radius: 15px !important;
+  padding: 25px !important;
+  box-shadow: 
+    0 0 35px rgba(94, 234, 212, 0.6),
+    inset 0 0 35px rgba(94, 234, 212, 0.2) !important;
+  position: relative !important;
+  overflow: hidden !important;
+  color: #ccfbf1 !important;
+}
+
+/* Teacher's Remarks title */
+#studentModal .bg-warning.bg-opacity-10 .text-uppercase,
+#studentModal .bg-warning.bg-opacity-10 .fw-bold,
+#studentModal .bg-light.border .text-uppercase,
+.teacher-remarks .text-uppercase,
+.teacher-remarks .fw-bold,
+.remarks-card .text-uppercase {
+  color: #5eead4 !important;
+  text-shadow: 0 0 20px rgba(94, 234, 212, 1) !important;
+}
+
+/* Teacher's Remarks shimmer */
+#studentModal .bg-warning.bg-opacity-10::before,
+#studentModal .bg-light.border::before,
+.teacher-remarks::before,
+.remarks-card::before {
+  content: '' !important;
+  position: absolute !important;
+  top: -50% !important;
+  left: -50% !important;
+  width: 200% !important;
+  height: 200% !important;
+  background: linear-gradient(45deg, transparent, rgba(94, 234, 212, 0.15), transparent) !important;
+  animation: cardShimmer 4s infinite !important;
+  pointer-events: none !important;
+  z-index: 0 !important;
+}
+
+/* Override any remaining light backgrounds in student modal */
+#studentModal .bg-light,
+#studentModal .bg-white,
+#studentModal [class*="bg-light"]:not(.bg-warning),
+#studentModal [class*="bg-white"] {
+  background: linear-gradient(135deg, rgba(21, 26, 53, 0.9), rgba(31, 21, 69, 0.9)) !important;
+  color: #ffffff !important;
+}
+
+/* Stat labels with neon glow */
+#studentModal .text-info {
+  color: #00d9ff !important;
+  text-shadow: 0 0 10px rgba(0, 217, 255, 0.8) !important;
+}
+
+#studentModal .text-success {
+  color: #00ff88 !important;
+  text-shadow: 0 0 10px rgba(0, 255, 136, 0.8) !important;
+}
+
+#studentModal .text-danger {
+  color: #ff2366 !important;
+  text-shadow: 0 0 10px rgba(255, 35, 102, 0.8) !important;
+}
+
+/* Make sure all text is visible */
+#studentModal .card-body,
+#studentModal .card-body *,
+#studentModal .bg-opacity-10,
+#studentModal .bg-opacity-10 * {
+  position: relative !important;
+  z-index: 1 !important;
+}
