@@ -2440,21 +2440,23 @@ tfoot th {
     text-shadow: none !important;
   }
 
-  /* Prevent orphaned content on second page */
-  body.printing-receipt #printArea > * {
-    page-break-after: avoid !important;
-  }
-
-  /* Page settings - CRITICAL for single page */
+  /* Page settings - FORCE SINGLE PAGE */
   @page {
-    margin: 1cm;
+    margin: 0.5cm;
     size: A4;
   }
 
-  /* Force all content on first page */
+  /* Force everything on one page */
+  body.printing-receipt,
+  body.printing-receipt * {
+    page-break-before: avoid !important;
+    page-break-after: avoid !important;
+    page-break-inside: avoid !important;
+  }
+
   html, body {
-    height: auto !important;
-    overflow: visible !important;
+    height: 100% !important;
+    max-height: 100% !important;
   }
 }
 

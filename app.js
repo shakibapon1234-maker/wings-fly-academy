@@ -3783,10 +3783,10 @@ function printAccountDetails() {
   }).join('');
 
   printArea.innerHTML = `
-    <div style="width: 100%; background: white; padding: 40px; font-family: 'Outfit', sans-serif;">
+    <div style="width: 100%; max-width: 100%; background: white; padding: 20px; font-family: 'Outfit', sans-serif; box-sizing: border-box; overflow: hidden;">
         ${getPrintHeader('ACCOUNT STATEMENT')}
         
-        <div style="display: flex; justify-content: space-between; margin-top: 30px; padding: 15px; background: #f8fafc; border-radius: 12px; border: 1px solid #e2e8f0;">
+        <div style="display: flex; justify-content: space-between; margin-top: 20px; padding: 12px; background: #f8fafc; border-radius: 8px; border: 1px solid #e2e8f0;">
             <div>
                 <p style="margin: 0; font-size: 11px; color: #64748b; font-weight: bold; text-transform: uppercase;">Filtered Statistics</p>
                 <p style="margin: 5px 0 0 0; font-size: 14px; color: #1e293b; font-weight: 700;"> Period: ${startDate || 'All Time'} - ${endDate || 'Now'} </p>
@@ -3798,7 +3798,7 @@ function printAccountDetails() {
             </div>
         </div>
 
-        <table class="report-table" style="margin-top: 30px;">
+        <table class="report-table" style="margin-top: 20px;">
             <thead>
                 <tr>
                     <th style="width: 15%;">Date</th>
@@ -3814,13 +3814,13 @@ function printAccountDetails() {
             </tbody>
             <tfoot>
                 <tr>
-                    <td colspan="5" style="text-align: right; padding: 20px; font-weight: 900; color: #1e293b; text-transform: uppercase; font-size: 14px;">Total Settlement:</td>
-                    <td style="text-align: right; padding: 20px; font-weight: 900; color: ${totalBalance >= 0 ? '#10b981' : '#ef4444'}; font-size: 18px;">৳${formatNumber(totalBalance)}</td>
+                    <td colspan="5" style="text-align: right; padding: 15px; font-weight: 900; color: #1e293b; text-transform: uppercase; font-size: 14px;">Total Settlement:</td>
+                    <td style="text-align: right; padding: 15px; font-weight: 900; color: ${totalBalance >= 0 ? '#10b981' : '#ef4444'}; font-size: 18px;">৳${formatNumber(totalBalance)}</td>
                 </tr>
             </tfoot>
         </table>
 
-        <div style="margin-top: 40px; background: #fffbeb; border-left: 4px solid #f59e0b; padding: 15px;">
+        <div style="margin-top: 20px; background: #fffbeb; border-left: 4px solid #f59e0b; padding: 12px;">
             <p style="margin: 0; font-size: 11px; font-weight: bold; color: #92400e; text-transform: uppercase;">Disclaimer</p>
             <p style="margin: 5px 0 0 0; font-size: 11px; color: #b45309; line-height: 1.4;">This is a system-generated financial statement. Any discrepancies should be reported to the finance department immediately.</p>
         </div>
@@ -3832,7 +3832,11 @@ function printAccountDetails() {
   document.body.classList.add('printing-receipt');
   setTimeout(() => {
     window.print();
-    setTimeout(() => document.body.classList.remove('printing-receipt'), 1000);
+    setTimeout(() => {
+      document.body.classList.remove('printing-receipt');
+      // Clear printArea to prevent extra pages
+      printArea.innerHTML = '';
+    }, 1000);
   }, 800);
 }
 
@@ -3965,16 +3969,16 @@ function getPrintFooter() {
   const signature = (window.APP_LOGOS && window.APP_LOGOS.signature) ? window.APP_LOGOS.signature : '';
 
   return `
-    <div class="report-signature-block" style="margin-top: 100px; display: flex; justify-content: space-between; padding: 0 40px;">
-        <div style="width: 200px; border-top: 1.5px solid #111827; text-align: center; padding-top: 10px;">
-            <p style="margin: 0; font-size: 13px; font-weight: 800; color: #111827;">Applicant Signature</p>
+    <div class="report-signature-block" style="margin-top: 30px; display: flex; justify-content: space-between; padding: 0 20px;">
+        <div style="width: 180px; border-top: 1.5px solid #111827; text-align: center; padding-top: 8px;">
+            <p style="margin: 0; font-size: 12px; font-weight: 800; color: #111827;">Applicant Signature</p>
         </div>
-        <div style="width: 200px; border-top: 1.5px solid #111827; text-align: center; padding-top: 10px; position: relative;">
-            ${signature ? `<img src="${signature}" style="height: 40px; position: absolute; top: -45px; left: 50%; transform: translateX(-50%);">` : ''}
-            <p style="margin: 0; font-size: 13px; font-weight: 800; color: #111827;">Authorized Seal</p>
+        <div style="width: 180px; border-top: 1.5px solid #111827; text-align: center; padding-top: 8px; position: relative;">
+            ${signature ? `<img src="${signature}" style="height: 35px; position: absolute; top: -40px; left: 50%; transform: translateX(-50%);">` : ''}
+            <p style="margin: 0; font-size: 12px; font-weight: 800; color: #111827;">Authorized Seal</p>
         </div>
     </div>
-    <div style="text-align: center; margin-top: 60px; padding-top: 20px; border-top: 1px solid #f1f5f9;">
+    <div style="text-align: center; margin-top: 20px; padding-top: 15px; border-top: 1px solid #f1f5f9;">
         <p style="margin: 0; font-size: 10px; color: #94a3b8; font-weight: 600;">System Generated Official Document | www.winsflyaviation.com</p>
     </div>
   `;
@@ -7781,3 +7785,22 @@ if (document.readyState === 'loading') {
   setTimeout(populateAccountDropdown, 1000);
 }
 
+
+// ===================================
+// FIX ALL DROPDOWN ARROWS
+// ===================================
+document.addEventListener('DOMContentLoaded', function() {
+  setTimeout(() => {
+    const allSelects = document.querySelectorAll('select.form-select, select.premium-input-modern');
+    const arrowStyle = "background-image: url('data:image/svg+xml;charset=UTF-8,%3Csvg xmlns=%22http://www.w3.org/2000/svg%22 width=%2216%22 height=%2216%22 viewBox=%220 0 16 16%22%3E%3Cpath fill=%22%2300d9ff%22 d=%22M8 11L3 6h10z%22/%3E%3C/svg%3E'); background-repeat: no-repeat; background-position: right 0.75rem center; background-size: 14px; -webkit-appearance: none; -moz-appearance: none; appearance: none; padding-right: 2.5rem;";
+    
+    allSelects.forEach(select => {
+      const currentStyle = select.getAttribute('style') || '';
+      if (!currentStyle.includes('background-image')) {
+        select.setAttribute('style', currentStyle + '; ' + arrowStyle);
+      }
+    });
+    
+    console.log('✅ Dropdown arrows fixed for', allSelects.length, 'select elements');
+  }, 500);
+});
