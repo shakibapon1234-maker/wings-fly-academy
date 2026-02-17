@@ -1419,21 +1419,148 @@ function closeLoanDetail() {
 
 function printLoanDetail() {
   if (!currentLoanPerson) return;
-  const printContent = document.getElementById('loanDetailView').innerHTML;
-  const printArea = document.getElementById('printArea');
-  if (printArea) {
-    printArea.innerHTML = `
-            ${getPrintHeader('Personal Ledger - ' + currentLoanPerson)}
-            <div class="p-4">
-                ${printContent}
-            </div>
-            ${getPrintFooter()}
-        `;
-    // Hide buttons in print
-    const buttons = printArea.querySelectorAll('button');
-    buttons.forEach(b => b.style.display = 'none');
-    window.print();
+
+  // ── Collect data directly from globalData (not innerHTML) ──
+  let txs = (globalData.finance || [])
+    .filter(tx => tx.person === currentLoanPerson)
+    .sort((a, b) => new Date(a.date) - new Date(b.date));
+
+  const start = document.getElementById('loanDetailStartDate')?.value || '';
+  const end   = document.getElementById('loanDetailEndDate')?.value   || '';
+  if (start) txs = txs.filter(tx => tx.date >= start);
+  if (end)   txs = txs.filter(tx => tx.date <= end);
+
+  const academy = (globalData.settings?.academyName) || 'Wings Fly Aviation Academy';
+  const dateRange = (start || end) ? `${start || 'Beginning'} → ${end || 'Today'}` : 'All Time';
+
+  // ── Build rows ──
+  let runningBalance = 0;
+  let rowsHTML = '';
+
+  txs.forEach((tx, i) => {
+    let debit = 0, credit = 0;
+    if (tx.type === 'Loan Given' || tx.type === 'Expense') {
+      debit = parseFloat(tx.amount) || 0;
+      runningBalance -= debit;
+    } else {
+      credit = parseFloat(tx.amount) || 0;
+      runningBalance += credit;
+    }
+    const balColor = runningBalance < 0 ? '#dc2626' : runningBalance > 0 ? '#16a34a' : '#64748b';
+    const typeColor = debit > 0 ? '#dc2626' : '#16a34a';
+    const typeBg    = debit > 0 ? '#fee2e2' : '#dcfce7';
+
+    rowsHTML += `
+      <tr style="background:${i % 2 === 0 ? '#f8fafc' : '#ffffff'};">
+        <td style="padding:8px 10px; color:#94a3b8; font-size:12px; text-align:center;">${i + 1}</td>
+        <td style="padding:8px 10px; font-weight:600; font-size:13px;">${tx.date || '—'}</td>
+        <td style="padding:8px 10px;">
+          <span style="background:${typeBg}; color:${typeColor}; padding:3px 10px; border-radius:20px; font-size:11px; font-weight:700;">
+            ${tx.type}
+          </span>
+        </td>
+        <td style="padding:8px 10px; font-size:12px; color:#475569;">${tx.description || '—'}</td>
+        <td style="padding:8px 10px; text-align:right; color:#dc2626; font-weight:700; font-size:13px;">
+          ${debit > 0 ? '৳' + formatNumber(debit) : '—'}
+        </td>
+        <td style="padding:8px 10px; text-align:right; color:#16a34a; font-weight:700; font-size:13px;">
+          ${credit > 0 ? '৳' + formatNumber(credit) : '—'}
+        </td>
+        <td style="padding:8px 10px; text-align:right; color:${balColor}; font-weight:800; font-size:13px;">
+          ৳${formatNumber(Math.abs(runningBalance))}
+        </td>
+      </tr>`;
+  });
+
+  // ── Net balance label ──
+  let netLabel, netColor;
+  if (runningBalance < 0) {
+    netLabel = `They Owe Us: ৳${formatNumber(Math.abs(runningBalance))}`;
+    netColor = '#dc2626';
+  } else if (runningBalance > 0) {
+    netLabel = `We Owe Them: ৳${formatNumber(runningBalance)}`;
+    netColor = '#16a34a';
+  } else {
+    netLabel = 'Settled — ৳0';
+    netColor = '#64748b';
   }
+
+  // ── Open dedicated print window ──
+  const pw = window.open('', '_blank', 'width=900,height=700');
+  pw.document.write(`<!DOCTYPE html>
+<html><head>
+<meta charset="utf-8">
+<title>Personal Ledger – ${currentLoanPerson}</title>
+<style>
+  * { margin:0; padding:0; box-sizing:border-box; }
+  body { font-family: Arial, sans-serif; color: #1e293b; background:#fff; padding:30px; }
+  .header { display:flex; justify-content:space-between; align-items:flex-start;
+            padding-bottom:16px; border-bottom:3px solid #111827; margin-bottom:20px; }
+  .academy-name { font-size:20px; font-weight:900; color:#111827; }
+  .sub { font-size:10px; color:#64748b; letter-spacing:1px; text-transform:uppercase; margin-top:4px; }
+  .title-block { text-align:right; }
+  .report-title { font-size:18px; font-weight:800; color:#3b82f6; border-bottom:2px solid #3b82f6;
+                  display:inline-block; padding-bottom:3px; }
+  .meta { font-size:11px; color:#94a3b8; margin-top:5px; }
+  table { width:100%; border-collapse:collapse; margin-top:10px; }
+  thead tr { background:#1e293b; }
+  thead th { padding:10px; color:#fff; font-size:12px; font-weight:700; text-align:left; }
+  thead th:nth-child(5), thead th:nth-child(6), thead th:nth-child(7) { text-align:right; }
+  tfoot tr { background:#f1f5f9; }
+  tfoot td { padding:12px 10px; font-weight:800; font-size:14px; }
+  .footer { text-align:center; margin-top:30px; padding-top:15px; border-top:2px solid #e2e8f0; }
+  .footer p { font-size:10px; color:#64748b; }
+  @media print {
+    body { padding:15px; }
+    @page { margin:10mm; }
+  }
+</style>
+</head><body>
+
+<div class="header">
+  <div>
+    <div class="academy-name">${academy}</div>
+    <div class="sub">Aviation Career Experts</div>
+  </div>
+  <div class="title-block">
+    <div class="report-title">Personal Ledger – ${currentLoanPerson}</div>
+    <div class="meta">Date: ${new Date().toLocaleDateString('en-GB')} &nbsp;|&nbsp; Range: ${dateRange}</div>
+  </div>
+</div>
+
+<table>
+  <thead>
+    <tr>
+      <th style="width:40px; text-align:center;">#</th>
+      <th>Date</th>
+      <th>Type</th>
+      <th>Description</th>
+      <th>Debit (−)</th>
+      <th>Credit (+)</th>
+      <th>Balance</th>
+    </tr>
+  </thead>
+  <tbody>
+    ${rowsHTML || `<tr><td colspan="7" style="text-align:center;padding:20px;color:#94a3b8;">No transactions found.</td></tr>`}
+  </tbody>
+  <tfoot>
+    <tr>
+      <td colspan="6" style="text-align:right; padding-right:16px;">NET BALANCE:</td>
+      <td style="text-align:right; color:${netColor}; font-size:16px;">${netLabel}</td>
+    </tr>
+  </tfoot>
+</table>
+
+<div class="footer">
+  <p>System Generated Official Document | ${academy}</p>
+  <p style="margin-top:4px; font-size:9px; color:#94a3b8;">www.wingsfly-aviation.com</p>
+</div>
+
+<script>
+  window.onload = function() { window.print(); }
+<\/script>
+</body></html>`);
+  pw.document.close();
 }
 
 function checkPersonBalance() {
