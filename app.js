@@ -4680,23 +4680,11 @@ function openAttendanceModal() {
   const dateInput = document.getElementById('attendanceDate');
 
   const batches = [...new Set(globalData.students.map(s => s.batch))].filter(b => b);
-  batchSelect.innerHTML = '<option value="">— Select Batch —</option>' +
+  batchSelect.innerHTML = '<option value="">Select a batch...</option>' +
     batches.map(b => `<option value="${b}">${b}</option>`).join('');
 
   dateInput.value = new Date().toISOString().split('T')[0];
-
-  // Reset UI
-  const container = document.getElementById('attendanceListContainer');
-  if (container) container.classList.add('d-none');
-  const emptyState = document.getElementById('attendanceEmptyState');
-  if (emptyState) emptyState.classList.remove('d-none');
-  const quickStats = document.getElementById('attendanceQuickStats');
-  if (quickStats) quickStats.classList.add('d-none');
-  const placeholder = document.getElementById('attStatPlaceholder');
-  if (placeholder) placeholder.classList.remove('d-none');
-  const headerInfo = document.getElementById('attendanceHeaderInfo');
-  if (headerInfo) headerInfo.textContent = 'Batch & Date নির্বাচন করুন';
-
+  document.getElementById('attendanceListContainer').classList.add('d-none');
   modal.show();
 }
 
@@ -4707,161 +4695,47 @@ function loadAttendanceList() {
 
   const container = document.getElementById('attendanceListContainer');
   const tbody = document.getElementById('attendanceTableBody');
-  const emptyState = document.getElementById('attendanceEmptyState');
-  const quickStats = document.getElementById('attendanceQuickStats');
-  const placeholder = document.getElementById('attStatPlaceholder');
-  const headerInfo = document.getElementById('attendanceHeaderInfo');
-
-  if (emptyState) emptyState.classList.add('d-none');
   container.classList.remove('d-none');
 
   const batchStudents = globalData.students.filter(s => s.batch === batch);
   const attendanceKey = `${batch}_${date}`;
   const savedAttendance = globalData.attendance?.[attendanceKey] || {};
 
-  // Format date nicely
-  const dateObj = new Date(date + 'T00:00:00');
-  const dateFormatted = dateObj.toLocaleDateString('en-GB', { day: '2-digit', month: 'short', year: 'numeric' });
-
-  if (headerInfo) headerInfo.textContent = `Batch: ${batch}  •  ${dateFormatted}  •  ${batchStudents.length} Students`;
-
-  tbody.innerHTML = batchStudents.map((s, index) => {
-    const isAbsent = savedAttendance[s.studentId] === 'Absent';
-    return `
-    <tr id="attRow_${s.studentId}" style="border-bottom:1px solid rgba(255,255,255,0.05); transition:background 0.2s;">
-      <td class="px-4 py-3 text-muted small">${index + 1}</td>
-      <td class="py-3 small fw-semibold" style="color:#00d9ff;">${s.studentId || '—'}</td>
-      <td class="py-3 fw-bold" style="font-size:1rem; color:#e0e8ff;">${s.name}</td>
-      <td class="py-3 text-center">
-        <div class="d-inline-flex gap-2">
-          <label class="att-btn-label att-present ${!isAbsent ? 'att-active-present' : ''}" 
-                 style="cursor:pointer; padding:6px 18px; border-radius:50px; font-weight:700; font-size:0.85rem;
-                        border:2px solid ${!isAbsent ? '#00cc66' : 'rgba(0,204,102,0.25)'};
-                        background:${!isAbsent ? 'rgba(0,204,102,0.2)' : 'transparent'};
-                        color:${!isAbsent ? '#00ff88' : 'rgba(255,255,255,0.4)'};
-                        transition:all 0.2s;">
-            <input type="radio" name="att_${s.studentId}" value="Present" 
-                   ${!isAbsent ? 'checked' : ''} 
-                   onchange="attStatusChange('${s.studentId}', this)"
-                   style="display:none;">
-            ✓ Present
-          </label>
-          <label class="att-btn-label att-absent ${isAbsent ? 'att-active-absent' : ''}"
-                 style="cursor:pointer; padding:6px 18px; border-radius:50px; font-weight:700; font-size:0.85rem;
-                        border:2px solid ${isAbsent ? '#ff3350' : 'rgba(255,51,80,0.25)'};
-                        background:${isAbsent ? 'rgba(255,51,80,0.2)' : 'transparent'};
-                        color:${isAbsent ? '#ff5570' : 'rgba(255,255,255,0.4)'};
-                        transition:all 0.2s;">
-            <input type="radio" name="att_${s.studentId}" value="Absent" 
-                   ${isAbsent ? 'checked' : ''}
-                   onchange="attStatusChange('${s.studentId}', this)"
-                   style="display:none;">
-            ✗ Absent
-          </label>
-        </div>
+  tbody.innerHTML = batchStudents.map(s => `
+    <tr>
+      <td>${s.studentId || '-'}</td>
+      <td class="fw-bold">${s.name}</td>
+      <td class="text-center">
+        <label class="btn btn-sm btn-outline-success mx-1">
+          <input type="radio" name="att_${s.studentId}" value="Present" ${savedAttendance[s.studentId] !== 'Absent' ? 'checked' : ''}> P
+        </label>
+        <label class="btn btn-sm btn-outline-danger mx-1">
+          <input type="radio" name="att_${s.studentId}" value="Absent" ${savedAttendance[s.studentId] === 'Absent' ? 'checked' : ''}> A
+        </label>
       </td>
-    </tr>`;
-  }).join('');
-
-  // Update Quick Stats
-  _attUpdateStats(batchStudents, savedAttendance);
-  if (quickStats) quickStats.classList.remove('d-none');
-  if (placeholder) placeholder.classList.add('d-none');
-}
-
-function _attUpdateStats(batchStudents, savedAttendance) {
-  if (!batchStudents) {
-    const batch = document.getElementById('attendanceBatchSelect').value;
-    const date = document.getElementById('attendanceDate').value;
-    batchStudents = globalData.students.filter(s => s.batch === batch);
-    const attendanceKey = `${batch}_${date}`;
-    savedAttendance = globalData.attendance?.[attendanceKey] || {};
-  }
-  let present = 0, absent = 0;
-  batchStudents.forEach(s => {
-    if (savedAttendance[s.studentId] === 'Absent') absent++;
-    else present++;
-  });
-  const pEl = document.getElementById('attPresentCount');
-  const aEl = document.getElementById('attAbsentCount');
-  const tEl = document.getElementById('attTotalCount');
-  if (pEl) pEl.textContent = present;
-  if (aEl) aEl.textContent = absent;
-  if (tEl) tEl.textContent = batchStudents.length;
-}
-
-// Called when a radio button changes — updates row styling & stats live
-function attStatusChange(studentId, radioEl) {
-  const row = document.getElementById(`attRow_${studentId}`);
-  if (!row) return;
-  const labels = row.querySelectorAll('label');
-  const isAbsent = radioEl.value === 'Absent';
-
-  labels.forEach(label => {
-    const isPresent = label.classList.contains('att-present');
-    const active = isPresent ? !isAbsent : isAbsent;
-    label.style.borderColor = active
-      ? (isPresent ? '#00cc66' : '#ff3350')
-      : (isPresent ? 'rgba(0,204,102,0.25)' : 'rgba(255,51,80,0.25)');
-    label.style.background = active
-      ? (isPresent ? 'rgba(0,204,102,0.2)' : 'rgba(255,51,80,0.2)')
-      : 'transparent';
-    label.style.color = active
-      ? (isPresent ? '#00ff88' : '#ff5570')
-      : 'rgba(255,255,255,0.4)';
-  });
-
-  // Recalculate live stats
-  const batch = document.getElementById('attendanceBatchSelect').value;
-  const date = document.getElementById('attendanceDate').value;
-  const batchStudents = globalData.students.filter(s => s.batch === batch);
-  const currentData = {};
-  batchStudents.forEach(s => {
-    const checked = document.querySelector(`input[name="att_${s.studentId}"]:checked`);
-    if (checked) currentData[s.studentId] = checked.value;
-  });
-  _attUpdateStats(batchStudents, currentData);
-}
-
-// Mark All Present or Absent
-function markAllAttendance(status) {
-  const batch = document.getElementById('attendanceBatchSelect').value;
-  if (!batch) return;
-  const batchStudents = globalData.students.filter(s => s.batch === batch);
-  batchStudents.forEach(s => {
-    const radio = document.querySelector(`input[name="att_${s.studentId}"][value="${status}"]`);
-    if (radio) {
-      radio.checked = true;
-      attStatusChange(s.studentId, radio);
-    }
-  });
+    </tr>
+  `).join('');
 }
 
 function saveAttendance() {
   const batch = document.getElementById('attendanceBatchSelect').value;
   const date = document.getElementById('attendanceDate').value;
-  if (!batch || !date) { showErrorToast('❌ Batch ও Date বেছে নিন।'); return; }
+  if (!batch || !date) return;
 
   if (!globalData.attendance) globalData.attendance = {};
   const attendanceKey = `${batch}_${date}`;
   const currentAttendance = {};
 
   const batchStudents = globalData.students.filter(s => s.batch === batch);
-  let present = 0, absent = 0;
   batchStudents.forEach(s => {
-    const status = document.querySelector(`input[name="att_${s.studentId}"]:checked`)?.value || 'Present';
+    const status = document.querySelector(`input[name="att_${s.studentId}"]:checked`)?.value;
     currentAttendance[s.studentId] = status;
-    if (status === 'Absent') absent++; else present++;
   });
 
   globalData.attendance[attendanceKey] = currentAttendance;
   saveToStorage();
-
-  const dateObj = new Date(date + 'T00:00:00');
-  const dateStr = dateObj.toLocaleDateString('en-GB', { day: '2-digit', month: 'short', year: 'numeric' });
-  showSuccessToast(`✅ Attendance সেভ হয়েছে — Batch ${batch} | ${dateStr} | ✔ ${present} Present, ✖ ${absent} Absent`);
-
   bootstrap.Modal.getInstance(document.getElementById('attendanceModal')).hide();
+  showSuccessToast(`Attendance saved for ${batch} on ${date}`);
 }
 
 function generateCertificate() {
@@ -5362,199 +5236,340 @@ function printStudentProfile() {
 function openAttendanceReportModal() {
   const modal = bootstrap.Modal.getOrCreateInstance(document.getElementById('attendanceReportModal'));
   const batchSelect = document.getElementById('attRepBatchSelect');
-  const yearSelect = document.getElementById('attRepYear');
+  const yearSelect  = document.getElementById('attRepYear');
   const monthSelect = document.getElementById('attRepMonth');
 
-  const batches = [...new Set(globalData.students.map(s => s.batch))].filter(b => b);
+  const batches = [...new Set(globalData.students.map(s => s.batch))].filter(b => b).sort();
   batchSelect.innerHTML = '<option value="">Select a batch...</option>' +
     batches.map(b => `<option value="${b}">${b}</option>`).join('');
 
   const now = new Date();
   const currentYear = now.getFullYear();
-  yearSelect.innerHTML = [currentYear - 1, currentYear, currentYear + 1]
+  yearSelect.innerHTML = [currentYear - 2, currentYear - 1, currentYear, currentYear + 1]
     .map(y => `<option value="${y}" ${y === currentYear ? 'selected' : ''}>${y}</option>`).join('');
 
   monthSelect.value = now.getMonth();
 
-  document.getElementById('attendanceReportContainer').innerHTML = '';
+  // Reset UI
+  const container = document.getElementById('attendanceReportContainer');
+  if (container) container.innerHTML = '';
+  const emptyState = document.getElementById('monthlyAttEmptyState');
+  if (emptyState) emptyState.classList.remove('d-none');
+  const summaryCards = document.getElementById('monthlySummaryCards');
+  if (summaryCards) summaryCards.classList.add('d-none');
+  const headerInfo = document.getElementById('monthlyAttHeaderInfo');
+  if (headerInfo) headerInfo.textContent = 'Batch, Year ও Month বেছে নিন';
+
   modal.show();
 }
 
 function renderAttendanceReport() {
   const batch = document.getElementById('attRepBatchSelect').value;
-  const year = parseInt(document.getElementById('attRepYear').value);
+  const year  = parseInt(document.getElementById('attRepYear').value);
   const month = parseInt(document.getElementById('attRepMonth').value);
+
+  const container  = document.getElementById('attendanceReportContainer');
+  const emptyState = document.getElementById('monthlyAttEmptyState');
+  const summaryCards = document.getElementById('monthlySummaryCards');
+  const headerInfo   = document.getElementById('monthlyAttHeaderInfo');
 
   if (!batch) return;
 
-  const container = document.getElementById('attendanceReportContainer');
-  const daysInMonth = new Date(year, month + 1, 0).getDate();
+  if (emptyState) emptyState.classList.add('d-none');
+
+  const monthNames = ['January','February','March','April','May','June',
+                      'July','August','September','October','November','December'];
+  const daysInMonth   = new Date(year, month + 1, 0).getDate();
   const batchStudents = globalData.students.filter(s => s.batch === batch);
 
-  let html = `
-    <table class="table table-bordered table-sm align-middle text-center small-text">
-      <thead class="table-light">
-        <tr>
-          <th class="text-start" style="min-width: 150px;">Student Name</th>
-  `;
-
-  for (let d = 1; d <= daysInMonth; d++) {
-    html += `<th style="width: 30px;">${d}</th>`;
+  if (batchStudents.length === 0) {
+    container.innerHTML = '<p class="text-center text-muted py-5">এই Batch-এ কোনো ছাত্র নেই।</p>';
+    return;
   }
 
-  html += `
-        <th class="bg-light">P</th>
-        <th class="bg-light">A</th>
-      </tr>
-    </thead>
-    <tbody>
-  `;
+  // Figure out which days have any attendance recorded (working days)
+  const workingDays = [];
+  for (let d = 1; d <= daysInMonth; d++) {
+    const dateStr = `${year}-${String(month+1).padStart(2,'0')}-${String(d).padStart(2,'0')}`;
+    const key = `${batch}_${dateStr}`;
+    if (globalData.attendance?.[key]) workingDays.push(d);
+  }
 
-  batchStudents.forEach(s => {
-    let presentCount = 0;
-    let absentCount = 0;
-    html += `<tr><td class="text-start fw-bold">${s.name}</td>`;
+  // Build student data
+  let totalPresentAll = 0, totalAbsentAll = 0;
+  let bestStudentName = '—', bestRate = -1;
+
+  const studentRows = batchStudents.map((s, idx) => {
+    let presentCount = 0, absentCount = 0;
+    let dayCells = '';
 
     for (let d = 1; d <= daysInMonth; d++) {
-      const dateStr = `${year}-${String(month + 1).padStart(2, '0')}-${String(d).padStart(2, '0')}`;
-      const attendanceKey = `${batch}_${dateStr}`;
-      const status = globalData.attendance?.[attendanceKey]?.[s.studentId];
+      const dateStr = `${year}-${String(month+1).padStart(2,'0')}-${String(d).padStart(2,'0')}`;
+      const key    = `${batch}_${dateStr}`;
+      const status = globalData.attendance?.[key]?.[s.studentId];
+      const isWorking = globalData.attendance?.[key] !== undefined;
 
-      let cellClass = '';
-      let text = '';
+      let cellStyle = 'padding:4px 2px; text-align:center; border:1px solid rgba(255,255,255,0.06); font-size:0.75rem; min-width:28px;';
+      let cellText  = '';
 
       if (status === 'Present') {
-        text = 'P';
-        cellClass = 'text-success fw-bold';
+        cellStyle += 'background:rgba(0,204,102,0.15); color:#00cc66; font-weight:700;';
+        cellText = 'P';
         presentCount++;
       } else if (status === 'Absent') {
-        text = 'A';
-        cellClass = 'text-danger fw-bold';
+        cellStyle += 'background:rgba(255,51,80,0.15); color:#ff3350; font-weight:700;';
+        cellText = 'A';
         absentCount++;
+      } else if (isWorking) {
+        cellStyle += 'color:rgba(255,255,255,0.2);';
+        cellText = '—';
+      } else {
+        cellStyle += 'color:rgba(255,255,255,0.08);';
+        cellText = '';
       }
 
-      html += `<td class="${cellClass}">${text}</td>`;
+      dayCells += `<td style="${cellStyle}">${cellText}</td>`;
     }
 
-    html += `
-        <td class="bg-light text-success fw-bold">${presentCount}</td>
-        <td class="bg-light text-danger fw-bold">${absentCount}</td>
-      </tr>
-    `;
-  });
+    totalPresentAll += presentCount;
+    totalAbsentAll  += absentCount;
+    const rate = workingDays.length > 0 ? Math.round(presentCount / workingDays.length * 100) : 0;
+    if (rate > bestRate) { bestRate = rate; bestStudentName = s.name.split(' ')[0]; }
 
-  html += '</tbody></table>';
-  container.innerHTML = html;
+    const rateColor = rate >= 75 ? '#00cc66' : rate >= 50 ? '#ffcc00' : '#ff3350';
+    const rowBg = idx % 2 === 0 ? 'rgba(255,255,255,0.02)' : 'transparent';
+
+    return `<tr style="background:${rowBg};">
+      <td style="padding:8px 10px; border:1px solid rgba(255,255,255,0.06); color:rgba(255,255,255,0.4); font-size:0.8rem; text-align:center;">${idx+1}</td>
+      <td style="padding:8px 12px; border:1px solid rgba(255,255,255,0.06); color:#00d9ff; font-size:0.8rem; font-family:monospace;">${s.studentId || '—'}</td>
+      <td style="padding:8px 14px; border:1px solid rgba(255,255,255,0.06); font-weight:700; color:#e0e8ff; white-space:nowrap;">${s.name}</td>
+      ${dayCells}
+      <td style="padding:8px 8px; border:1px solid rgba(255,255,255,0.06); text-align:center; font-weight:800; color:#00cc66; background:rgba(0,204,102,0.08);">${presentCount}</td>
+      <td style="padding:8px 8px; border:1px solid rgba(255,255,255,0.06); text-align:center; font-weight:800; color:#ff3350; background:rgba(255,51,80,0.08);">${absentCount}</td>
+      <td style="padding:8px 10px; border:1px solid rgba(255,255,255,0.06); text-align:center; font-weight:800; color:${rateColor}; font-size:0.9rem;">${rate}%</td>
+    </tr>`;
+  }).join('');
+
+  // Day header cells
+  let dayHeaders = '';
+  for (let d = 1; d <= daysInMonth; d++) {
+    const dateStr = `${year}-${String(month+1).padStart(2,'0')}-${String(d).padStart(2,'0')}`;
+    const isWorking = globalData.attendance?.[`${batch}_${dateStr}`] !== undefined;
+    const dayOfWeek = new Date(year, month, d).getDay();
+    const isFriday  = dayOfWeek === 5;
+    const bgColor   = isWorking ? 'rgba(0,180,255,0.2)' : (isFriday ? 'rgba(255,200,0,0.1)' : 'rgba(255,255,255,0.04)');
+    const textColor = isWorking ? '#00d9ff' : (isFriday ? '#ffcc00' : 'rgba(255,255,255,0.4)');
+    dayHeaders += `<th style="padding:6px 2px; text-align:center; min-width:28px; font-size:0.72rem;
+      background:${bgColor}; color:${textColor}; border:1px solid rgba(255,255,255,0.08);">${d}</th>`;
+  }
+
+  const avgRate = workingDays.length > 0 && batchStudents.length > 0
+    ? Math.round(totalPresentAll / (workingDays.length * batchStudents.length) * 100)
+    : 0;
+
+  container.innerHTML = `
+    <div style="margin-bottom:12px; padding:10px 14px; background:rgba(0,180,255,0.06); border-radius:10px; border:1px solid rgba(0,180,255,0.15);">
+      <div style="font-size:0.8rem; color:rgba(255,255,255,0.5); margin-bottom:4px;">📅 ${monthNames[month]} ${year} — Batch ${batch}</div>
+      <div style="font-size:0.75rem; color:rgba(255,255,255,0.4);">
+        🔵 Highlighted days = attendance was taken &nbsp;|&nbsp; 🟡 Friday &nbsp;|&nbsp; P = Present &nbsp;|&nbsp; A = Absent
+      </div>
+    </div>
+    <div style="overflow-x:auto;">
+      <table style="width:100%; border-collapse:collapse; font-size:0.85rem;">
+        <thead>
+          <tr>
+            <th style="padding:8px 6px; text-align:center; min-width:36px; background:rgba(255,255,255,0.06); border:1px solid rgba(255,255,255,0.08); color:rgba(255,255,255,0.5); font-size:0.72rem;">#</th>
+            <th style="padding:8px 10px; min-width:90px; background:rgba(255,255,255,0.06); border:1px solid rgba(255,255,255,0.08); color:rgba(255,255,255,0.5); font-size:0.72rem;">ID</th>
+            <th style="padding:8px 14px; min-width:160px; text-align:left; background:rgba(255,255,255,0.06); border:1px solid rgba(255,255,255,0.08); color:rgba(255,255,255,0.5); font-size:0.72rem;">STUDENT NAME</th>
+            ${dayHeaders}
+            <th style="padding:8px 6px; text-align:center; min-width:36px; background:rgba(0,204,102,0.12); border:1px solid rgba(255,255,255,0.08); color:#00cc66; font-size:0.72rem;">P</th>
+            <th style="padding:8px 6px; text-align:center; min-width:36px; background:rgba(255,51,80,0.12); border:1px solid rgba(255,255,255,0.08); color:#ff3350; font-size:0.72rem;">A</th>
+            <th style="padding:8px 8px; text-align:center; min-width:50px; background:rgba(255,200,0,0.1); border:1px solid rgba(255,255,255,0.08); color:#ffcc00; font-size:0.72rem;">RATE</th>
+          </tr>
+        </thead>
+        <tbody>${studentRows}</tbody>
+        <tfoot>
+          <tr>
+            <td colspan="3" style="padding:10px 14px; border:1px solid rgba(255,255,255,0.08); font-weight:700; color:rgba(255,255,255,0.6); font-size:0.8rem; background:rgba(255,255,255,0.04);">
+              Total &nbsp;|&nbsp; ${batchStudents.length} Students &nbsp;|&nbsp; ${workingDays.length} Working Days
+            </td>
+            ${Array.from({length: daysInMonth}, (_, i) => {
+              const d = i + 1;
+              const dateStr = `${year}-${String(month+1).padStart(2,'0')}-${String(d).padStart(2,'0')}`;
+              const key = `${batch}_${dateStr}`;
+              const dayData = globalData.attendance?.[key];
+              if (!dayData) return '<td style="border:1px solid rgba(255,255,255,0.06); background:rgba(255,255,255,0.02);"></td>';
+              const p = Object.values(dayData).filter(v => v === 'Present').length;
+              const a = Object.values(dayData).filter(v => v === 'Absent').length;
+              return `<td style="padding:4px 2px; border:1px solid rgba(255,255,255,0.06); text-align:center; font-size:0.7rem; background:rgba(0,180,255,0.06);">
+                <span style="color:#00cc66; font-weight:700;">${p}</span><br>
+                <span style="color:#ff3350; font-weight:700;">${a}</span>
+              </td>`;
+            }).join('')}
+            <td style="padding:10px 8px; border:1px solid rgba(255,255,255,0.08); text-align:center; font-weight:800; color:#00cc66; background:rgba(0,204,102,0.08);">${totalPresentAll}</td>
+            <td style="padding:10px 8px; border:1px solid rgba(255,255,255,0.08); text-align:center; font-weight:800; color:#ff3350; background:rgba(255,51,80,0.08);">${totalAbsentAll}</td>
+            <td style="padding:10px 8px; border:1px solid rgba(255,255,255,0.08); text-align:center; font-weight:800; color:#ffcc00; background:rgba(255,200,0,0.08);">${avgRate}%</td>
+          </tr>
+        </tfoot>
+      </table>
+    </div>`;
+
+  // Update summary cards
+  if (summaryCards) summaryCards.classList.remove('d-none');
+  const wdEl = document.getElementById('mthWorkingDays');
+  const tsEl = document.getElementById('mthTotalStudents');
+  const arEl = document.getElementById('mthAvgRate');
+  const bsEl = document.getElementById('mthBestStudent');
+  if (wdEl) wdEl.textContent = workingDays.length;
+  if (tsEl) tsEl.textContent = batchStudents.length;
+  if (arEl) arEl.textContent = avgRate + '%';
+  if (bsEl) bsEl.textContent = bestStudentName;
+  if (headerInfo) headerInfo.textContent = `Batch ${batch}  •  ${monthNames[month]} ${year}  •  ${batchStudents.length} Students`;
 }
 
-window.openAttendanceReportModal = openAttendanceReportModal;
-window.renderAttendanceReport = renderAttendanceReport;
-window.printStudentProfile = printStudentProfile;
-window.showExpenseBreakdown = showExpenseBreakdown;
-window.generateStudentId = generateStudentId;
-window.openAttendanceModal = openAttendanceModal;
-window.loadAttendanceList = loadAttendanceList;
-window.saveAttendance = saveAttendance;
-window.attStatusChange = attStatusChange;
-window.markAllAttendance = markAllAttendance;
-window.printSavedAttendance = printSavedAttendance;
-window.downloadAttendanceReport = downloadAttendanceReport;
+// ─── Print Monthly Attendance ───
+function printMonthlyAttendance() {
+  const batch = document.getElementById('attRepBatchSelect').value;
+  const year  = parseInt(document.getElementById('attRepYear').value);
+  const month = parseInt(document.getElementById('attRepMonth').value);
+  if (!batch) { showErrorToast('❌ Batch বেছে নিন।'); return; }
 
-// ─── Print saved attendance for selected batch+date ───
-function printSavedAttendance() {
-  const batch = document.getElementById('attendanceBatchSelect').value;
-  const date  = document.getElementById('attendanceDate').value;
-  if (!batch || !date) { showErrorToast('❌ Batch ও Date বেছে নিন।'); return; }
-
-  const attendanceKey = `${batch}_${date}`;
-  const saved = globalData.attendance?.[attendanceKey] || {};
+  const monthNames = ['January','February','March','April','May','June',
+                      'July','August','September','October','November','December'];
+  const daysInMonth   = new Date(year, month + 1, 0).getDate();
   const batchStudents = globalData.students.filter(s => s.batch === batch);
-  if (batchStudents.length === 0) { showErrorToast('এই Batch-এ কোনো ছাত্র নেই।'); return; }
+  if (!batchStudents.length) { showErrorToast('এই Batch-এ কোনো ছাত্র নেই।'); return; }
 
-  const dateObj = new Date(date + 'T00:00:00');
-  const dateStr = dateObj.toLocaleDateString('en-GB', { weekday:'long', day:'2-digit', month:'long', year:'numeric' });
-  let present = 0, absent = 0;
+  const workingDays = [];
+  for (let d = 1; d <= daysInMonth; d++) {
+    const ds = `${year}-${String(month+1).padStart(2,'0')}-${String(d).padStart(2,'0')}`;
+    if (globalData.attendance?.[`${batch}_${ds}`]) workingDays.push(d);
+  }
 
-  const rows = batchStudents.map((s, i) => {
-    const status = saved[s.studentId] || 'Present';
-    const isAbsent = status === 'Absent';
-    if (isAbsent) absent++; else present++;
-    return `<tr>
-      <td style="border:1px solid #dde;padding:8px 12px;text-align:center;color:#555;">${i+1}</td>
-      <td style="border:1px solid #dde;padding:8px 12px;font-family:monospace;color:#1a4d6e;font-weight:600;">${s.studentId || '—'}</td>
-      <td style="border:1px solid #dde;padding:8px 14px;font-weight:700;color:#1a1a3a;">${s.name}</td>
-      <td style="border:1px solid #dde;padding:8px 12px;text-align:center;">
-        <span style="display:inline-block;padding:3px 18px;border-radius:50px;font-weight:800;font-size:0.9rem;
-          background:${isAbsent ? '#fff0f2' : '#f0fff8'};
-          color:${isAbsent ? '#cc2233' : '#007744'};
-          border:1.5px solid ${isAbsent ? '#ffb3bc' : '#90e8bf'};">
-          ${isAbsent ? '✗  Absent' : '✓  Present'}
-        </span>
-      </td>
+  // Day headers
+  let dayThs = '';
+  for (let d = 1; d <= daysInMonth; d++) {
+    const ds = `${year}-${String(month+1).padStart(2,'0')}-${String(d).padStart(2,'0')}`;
+    const isWorking = !!globalData.attendance?.[`${batch}_${ds}`];
+    const isFri = new Date(year, month, d).getDay() === 5;
+    const bg = isWorking ? '#e8f4ff' : (isFri ? '#fffbe6' : '#fff');
+    const color = isWorking ? '#0066cc' : (isFri ? '#cc9900' : '#aaa');
+    dayThs += `<th style="border:1px solid #dde; width:26px; text-align:center; font-size:10px; background:${bg}; color:${color}; padding:4px 1px;">${d}</th>`;
+  }
+
+  // Student rows
+  let totalP = 0, totalA = 0;
+  const rows = batchStudents.map((s, idx) => {
+    let p = 0, a = 0, cells = '';
+    for (let d = 1; d <= daysInMonth; d++) {
+      const ds = `${year}-${String(month+1).padStart(2,'0')}-${String(d).padStart(2,'0')}`;
+      const status  = globalData.attendance?.[`${batch}_${ds}`]?.[s.studentId];
+      const working = !!globalData.attendance?.[`${batch}_${ds}`];
+      let text = '', bg = '#fff', color = '#ccc';
+      if (status === 'Present')     { text = 'P'; bg = '#f0fff8'; color = '#007744'; p++; }
+      else if (status === 'Absent') { text = 'A'; bg = '#fff0f2'; color = '#cc2233'; a++; }
+      else if (working)             { text = '·'; color = '#ddd'; }
+      cells += `<td style="border:1px solid #eef; text-align:center; font-size:10px; font-weight:700; background:${bg}; color:${color}; padding:3px 1px;">${text}</td>`;
+    }
+    totalP += p; totalA += a;
+    const rate = workingDays.length ? Math.round(p / workingDays.length * 100) : 0;
+    const rateColor = rate >= 75 ? '#007744' : rate >= 50 ? '#cc9900' : '#cc2233';
+    const rowBg = idx % 2 === 0 ? '#fafbff' : '#fff';
+    return `<tr style="background:${rowBg};">
+      <td style="border:1px solid #eef; padding:5px 6px; text-align:center; font-size:10px; color:#aaa;">${idx+1}</td>
+      <td style="border:1px solid #eef; padding:5px 8px; font-family:monospace; font-size:10px; color:#1a4d6e; font-weight:600;">${s.studentId || '—'}</td>
+      <td style="border:1px solid #eef; padding:5px 10px; font-weight:700; font-size:11px; color:#1a1a3a; white-space:nowrap;">${s.name}</td>
+      ${cells}
+      <td style="border:1px solid #eef; padding:5px 6px; text-align:center; font-weight:800; font-size:11px; color:#007744; background:#f0fff8;">${p}</td>
+      <td style="border:1px solid #eef; padding:5px 6px; text-align:center; font-weight:800; font-size:11px; color:#cc2233; background:#fff0f2;">${a}</td>
+      <td style="border:1px solid #eef; padding:5px 6px; text-align:center; font-weight:800; font-size:11px; color:${rateColor};">${rate}%</td>
     </tr>`;
   }).join('');
 
   const linearLogo  = (window.APP_LOGOS && window.APP_LOGOS.linear)  ? window.APP_LOGOS.linear  : 'wings_logo_linear.png';
   const premiumLogo = (window.APP_LOGOS && window.APP_LOGOS.premium) ? window.APP_LOGOS.premium : 'wings_logo_premium.png';
+  const avgRate = workingDays.length && batchStudents.length
+    ? Math.round(totalP / (workingDays.length * batchStudents.length) * 100) : 0;
 
-  const pw = window.open('', '', 'width=900,height=700');
+  const pw = window.open('', '', 'width=1200,height=850');
   pw.document.write(`<!DOCTYPE html><html><head>
     <meta charset="UTF-8">
-    <title>Attendance Report — Batch ${batch}</title>
+    <title>Monthly Attendance — Batch ${batch} — ${monthNames[month]} ${year}</title>
     <style>
-      body{font-family:'Segoe UI',sans-serif;padding:30px 40px;background:#fff;color:#1a1a3a;}
-      .header{text-align:center;margin-bottom:28px;}
-      .logo-row{display:flex;justify-content:space-between;align-items:center;margin-bottom:10px;}
-      .academy-name{font-size:24px;font-weight:900;color:#1a4d6e;text-transform:uppercase;letter-spacing:1px;}
-      .subtitle{font-size:14px;color:#555;margin-top:2px;}
-      .report-title{font-size:18px;font-weight:800;color:#003366;text-transform:uppercase;
-        border-bottom:3px solid #00b4ff;display:inline-block;padding-bottom:4px;margin:14px 0 6px;}
-      .meta-row{display:flex;justify-content:center;gap:36px;margin-bottom:20px;font-size:13px;}
-      .meta-item{text-align:center;}
-      .meta-item .label{color:#888;font-size:11px;text-transform:uppercase;font-weight:600;}
-      .meta-item .val{font-weight:800;font-size:15px;color:#1a4d6e;}
-      table{width:100%;border-collapse:collapse;margin-top:10px;}
-      thead th{background:#1a4d6e;color:#fff;padding:10px 12px;font-size:12px;text-transform:uppercase;letter-spacing:.5px;}
-      tbody tr:nth-child(even){background:#f7f9fc;}
-      tfoot td{border:1px solid #dde;padding:10px;font-weight:700;}
-      .footer{margin-top:30px;display:flex;justify-content:space-between;font-size:12px;color:#aaa;}
-      @media print{@page{size:A4 portrait;margin:.5in;}}
+      body { font-family:'Segoe UI',sans-serif; padding:24px 30px; background:#fff; color:#1a1a3a; }
+      .header { text-align:center; margin-bottom:20px; }
+      .logo-row { display:flex; justify-content:space-between; align-items:center; margin-bottom:8px; }
+      .academy { font-size:22px; font-weight:900; color:#1a4d6e; text-transform:uppercase; letter-spacing:1px; }
+      .subtitle { font-size:13px; color:#666; }
+      .report-title { font-size:17px; font-weight:800; color:#003366; text-transform:uppercase;
+        border-bottom:3px solid #00b4ff; display:inline-block; padding-bottom:3px; margin:10px 0 4px; }
+      .meta { display:flex; justify-content:center; gap:30px; margin-bottom:16px; }
+      .meta-item .lbl { font-size:10px; color:#aaa; text-transform:uppercase; font-weight:600; }
+      .meta-item .val { font-weight:800; font-size:14px; color:#1a4d6e; }
+      table { width:100%; border-collapse:collapse; }
+      thead th { background:#1a4d6e; color:#fff; padding:7px 4px; font-size:10px; text-transform:uppercase; }
+      tfoot td { background:#f0f4ff; font-weight:700; border:1px solid #dde; padding:6px 4px; }
+      .legend { font-size:10px; color:#aaa; margin-bottom:8px; }
+      .footer { margin-top:20px; display:flex; justify-content:space-between; font-size:10px; color:#bbb; }
+      @media print { @page { size:A3 landscape; margin:.4in; } }
     </style>
   </head><body onload="window.print()">
     <div class="header">
       <div class="logo-row">
-        <img src="${premiumLogo}" style="height:70px;">
+        <img src="${premiumLogo}" style="height:65px;">
         <div>
-          <div class="academy-name">Wings Fly Aviation Academy</div>
-          <div class="subtitle">Attendance Report — Official Record</div>
+          <div class="academy">Wings Fly Aviation Academy</div>
+          <div class="subtitle">Monthly Attendance Report — Official Record</div>
         </div>
-        <img src="${linearLogo}" style="height:50px;">
+        <img src="${linearLogo}" style="height:48px;">
       </div>
-      <div class="report-title">Daily Attendance Sheet</div>
-      <div class="meta-row">
-        <div class="meta-item"><div class="label">Batch</div><div class="val">${batch}</div></div>
-        <div class="meta-item"><div class="label">Date</div><div class="val">${dateStr}</div></div>
-        <div class="meta-item"><div class="label">Total</div><div class="val">${batchStudents.length}</div></div>
-        <div class="meta-item"><div class="label" style="color:#007744;">Present</div><div class="val" style="color:#007744;">${present}</div></div>
-        <div class="meta-item"><div class="label" style="color:#cc2233;">Absent</div><div class="val" style="color:#cc2233;">${absent}</div></div>
-        <div class="meta-item"><div class="label">Rate</div><div class="val">${Math.round(present/batchStudents.length*100)}%</div></div>
+      <div class="report-title">Monthly Attendance Sheet</div>
+      <div class="meta">
+        <div class="meta-item"><div class="lbl">Batch</div><div class="val">${batch}</div></div>
+        <div class="meta-item"><div class="lbl">Month</div><div class="val">${monthNames[month]} ${year}</div></div>
+        <div class="meta-item"><div class="lbl">Students</div><div class="val">${batchStudents.length}</div></div>
+        <div class="meta-item"><div class="lbl">Working Days</div><div class="val">${workingDays.length}</div></div>
+        <div class="meta-item"><div class="lbl" style="color:#007744;">Total Present</div><div class="val" style="color:#007744;">${totalP}</div></div>
+        <div class="meta-item"><div class="lbl" style="color:#cc2233;">Total Absent</div><div class="val" style="color:#cc2233;">${totalA}</div></div>
+        <div class="meta-item"><div class="lbl">Avg Rate</div><div class="val">${avgRate}%</div></div>
       </div>
     </div>
+    <div class="legend">🔵 Highlighted header = attendance taken that day &nbsp;|&nbsp; P = Present &nbsp;|&nbsp; A = Absent &nbsp;|&nbsp; · = day recorded but no data</div>
     <table>
-      <thead><tr>
-        <th style="width:50px;text-align:center;">#</th>
-        <th style="width:120px;">Student ID</th>
-        <th>Student Name</th>
-        <th style="width:140px;text-align:center;">Status</th>
-      </tr></thead>
+      <thead>
+        <tr>
+          <th style="width:30px;">#</th>
+          <th style="width:85px; text-align:left;">Student ID</th>
+          <th style="min-width:140px; text-align:left;">Student Name</th>
+          ${dayThs}
+          <th style="width:28px; background:#004d22;">P</th>
+          <th style="width:28px; background:#7a0010;">A</th>
+          <th style="width:40px; background:#4d3800;">Rate</th>
+        </tr>
+      </thead>
       <tbody>${rows}</tbody>
-      <tfoot><tr>
-        <td colspan="3" style="text-align:right;border:1px solid #dde;">
-          Total Present: <span style="color:#007744;">${present}</span> &nbsp;|&nbsp;
-          Total Absent: <span style="color:#cc2233;">${absent}</span>
-        </td>
-        <td style="text-align:center;">Rate: <strong>${Math.round(present/batchStudents.length*100)}%</strong></td>
-      </tr></tfoot>
+      <tfoot>
+        <tr>
+          <td colspan="3" style="text-align:right; font-size:11px; padding:6px 10px;">
+            Total → Present: <strong style="color:#007744;">${totalP}</strong> &nbsp;|&nbsp; Absent: <strong style="color:#cc2233;">${totalA}</strong>
+          </td>
+          ${Array.from({length: daysInMonth}, (_, i) => {
+            const d = i + 1;
+            const ds = `${year}-${String(month+1).padStart(2,'0')}-${String(d).padStart(2,'0')}`;
+            const dayData = globalData.attendance?.[`${batch}_${ds}`];
+            if (!dayData) return '<td style="border:1px solid #dde; background:#f9f9f9;"></td>';
+            const dp = Object.values(dayData).filter(v => v === 'Present').length;
+            const da = Object.values(dayData).filter(v => v === 'Absent').length;
+            return `<td style="border:1px solid #dde; text-align:center; font-size:9px; padding:3px 1px; background:#e8f4ff;">
+              <span style="color:#007744; font-weight:700;">${dp}</span><br>
+              <span style="color:#cc2233; font-weight:700;">${da}</span>
+            </td>`;
+          }).join('')}
+          <td style="text-align:center; color:#007744; font-weight:800; font-size:12px;">${totalP}</td>
+          <td style="text-align:center; color:#cc2233; font-weight:800; font-size:12px;">${totalA}</td>
+          <td style="text-align:center; color:#cc6600; font-weight:800; font-size:12px;">${avgRate}%</td>
+        </tr>
+      </tfoot>
     </table>
     <div class="footer">
       <span>Generated: ${new Date().toLocaleString()}</span>
@@ -5564,32 +5579,58 @@ function printSavedAttendance() {
   pw.document.close();
 }
 
-// ─── Download CSV Report ───
-function downloadAttendanceReport() {
-  const batch = document.getElementById('attendanceBatchSelect').value;
-  const date  = document.getElementById('attendanceDate').value;
-  if (!batch || !date) { showErrorToast('❌ Batch ও Date বেছে নিন।'); return; }
+// ─── Download Monthly CSV ───
+function downloadMonthlyAttendanceCsv() {
+  const batch = document.getElementById('attRepBatchSelect').value;
+  const year  = parseInt(document.getElementById('attRepYear').value);
+  const month = parseInt(document.getElementById('attRepMonth').value);
+  if (!batch) { showErrorToast('❌ Batch বেছে নিন।'); return; }
 
-  const attendanceKey = `${batch}_${date}`;
-  const saved = globalData.attendance?.[attendanceKey] || {};
+  const monthNames = ['January','February','March','April','May','June',
+                      'July','August','September','October','November','December'];
+  const daysInMonth   = new Date(year, month + 1, 0).getDate();
   const batchStudents = globalData.students.filter(s => s.batch === batch);
-  if (batchStudents.length === 0) { showErrorToast('এই Batch-এ কোনো ছাত্র নেই।'); return; }
+  if (!batchStudents.length) { showErrorToast('এই Batch-এ কোনো ছাত্র নেই।'); return; }
 
-  const headers = ['SL', 'Student ID', 'Student Name', 'Batch', 'Date', 'Status'];
-  const rows = batchStudents.map((s, i) => {
-    const status = saved[s.studentId] || 'Present';
-    return [i + 1, s.studentId || '', s.name || '', batch, date, status]
-      .map(v => `"${String(v).replace(/"/g, '""')}"`).join(',');
-  });
+  // Header row: SL, ID, Name, Day1...DayN, P, A, Rate
+  const dayHeaders = Array.from({length: daysInMonth}, (_, i) => `"${i+1}"`).join(',');
+  const headerRow  = `"#","Student ID","Student Name",${dayHeaders},"Present","Absent","Rate"`;
 
-  const csv = [headers.join(','), ...rows].join('\n');
-  const blob = new Blob(['\uFEFF' + csv], { type: 'text/csv;charset=utf-8;' });
+  const rows = batchStudents.map((s, idx) => {
+    let p = 0, a = 0;
+    const dayCells = Array.from({length: daysInMonth}, (_, i) => {
+      const d  = i + 1;
+      const ds = `${year}-${String(month+1).padStart(2,'0')}-${String(d).padStart(2,'0')}`;
+      const status = globalData.attendance?.[`${batch}_${ds}`]?.[s.studentId];
+      if (status === 'Present') { p++; return '"P"'; }
+      if (status === 'Absent')  { a++; return '"A"'; }
+      return '""';
+    }).join(',');
+
+    const total = p + a;
+    const rate  = total > 0 ? Math.round(p / total * 100) + '%' : '—';
+    return `"${idx+1}","${s.studentId || ''}","${s.name}",${dayCells},"${p}","${a}","${rate}"`;
+  }).join('
+');
+
+  const csv = `Wings Fly Aviation Academy — Monthly Attendance
+Batch: ${batch} | Month: ${monthNames[month]} ${year}
+
+${headerRow}
+${rows}`;
+  const blob = new Blob(['﻿' + csv], { type: 'text/csv;charset=utf-8;' });
   const link = document.createElement('a');
   link.href = URL.createObjectURL(blob);
-  link.download = `attendance_batch${batch}_${date}.csv`;
+  link.download = `monthly_attendance_batch${batch}_${monthNames[month]}_${year}.csv`;
   link.click();
-  showSuccessToast('✅ CSV রিপোর্ট ডাউনলোড হয়েছে!');
+  showSuccessToast('✅ Monthly CSV ডাউনলোড হয়েছে!');
 }
+
+window.openAttendanceReportModal = openAttendanceReportModal;
+window.renderAttendanceReport    = renderAttendanceReport;
+window.printMonthlyAttendance    = printMonthlyAttendance;
+window.downloadMonthlyAttendanceCsv = downloadMonthlyAttendanceCsv;
+
 function printBlankAttendanceSheet() {
   const batch = document.getElementById('attendanceBatchSelect').value;
   if (!batch) {
