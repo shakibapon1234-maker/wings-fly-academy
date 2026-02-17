@@ -1188,7 +1188,6 @@ function switchTab(tab, refreshStats = true) {
     if (typeof renderCashBalance === 'function') renderCashBalance();
     if (typeof renderMobileBankingList === 'function') renderMobileBankingList();
     if (typeof updateGrandTotal === 'function') updateGrandTotal();
-    if (typeof renderTransferHistory === 'function') renderTransferHistory();
   }
 
   if (refreshStats) {
@@ -1784,9 +1783,10 @@ function populateDropdowns() {
       }
 
       // Add Cash option FIRST
+      const cashBal = parseFloat(globalData.cashBalance) || 0;
       const cashOpt = document.createElement('option');
       cashOpt.value = 'Cash';
-      cashOpt.innerText = '💵 Cash';
+      cashOpt.innerText = `💵 Cash  —  ৳${formatNumber(cashBal)}`;
       cashOpt.style.backgroundColor = '#1a1f3a';
       cashOpt.style.color = '#00ff88';
       el.appendChild(cashOpt);
@@ -1794,9 +1794,10 @@ function populateDropdowns() {
       // Add ONLY bank accounts (no traditional methods)
       const bankAccounts = globalData.bankAccounts || [];
       bankAccounts.forEach(account => {
+        const bal = parseFloat(account.balance) || 0;
         const opt = document.createElement('option');
         opt.value = account.name;
-        opt.innerText = `🏦 ${account.name} (${account.bankName})`;
+        opt.innerText = `🏦 ${account.name} (${account.bankName})  —  ৳${formatNumber(bal)}`;
         opt.style.backgroundColor = '#1a1f3a';
         opt.style.color = '#00d9ff';
         el.appendChild(opt);
@@ -1805,9 +1806,10 @@ function populateDropdowns() {
       // Add ONLY mobile banking accounts
       const mobileAccounts = globalData.mobileBanking || [];
       mobileAccounts.forEach(account => {
+        const bal = parseFloat(account.balance) || 0;
         const opt = document.createElement('option');
         opt.value = account.name;
-        opt.innerText = `📱 ${account.name}`;
+        opt.innerText = `📱 ${account.name}  —  ৳${formatNumber(bal)}`;
         opt.style.backgroundColor = '#1a1f3a';
         opt.style.color = '#ff2d95';
         el.appendChild(opt);
@@ -6342,96 +6344,7 @@ async function handleTransferSubmit(e) {
   updateGlobalStats();
 
   showSuccessToast('✅ Balance transferred successfully!');
-
-  // Refresh transfer history if visible
-  if (typeof renderTransferHistory === 'function') renderTransferHistory();
 }
-
-// ===================================
-// TRANSFER HISTORY RENDER
-// ===================================
-function renderTransferHistory() {
-  const tbody = document.getElementById('transferHistoryBody');
-  const summary = document.getElementById('transferHistorySummary');
-  const countEl = document.getElementById('transferHistoryCount');
-  const totalEl = document.getElementById('transferHistoryTotal');
-
-  if (!tbody) return;
-
-  const fromDate = document.getElementById('transferHistoryFrom')?.value || '';
-  const toDate = document.getElementById('transferHistoryTo')?.value || '';
-
-  // Get only "Transfer Out" entries (each transfer = one paired entry)
-  let transfers = (window.globalData.finance || []).filter(f => f.type === 'Transfer Out');
-
-  // Apply date filter
-  if (fromDate) {
-    transfers = transfers.filter(f => f.date >= fromDate);
-  }
-  if (toDate) {
-    transfers = transfers.filter(f => f.date <= toDate);
-  }
-
-  // Sort newest first
-  transfers = transfers.sort((a, b) => new Date(b.date) - new Date(a.date));
-
-  if (transfers.length === 0) {
-    tbody.innerHTML = `
-      <tr style="background:transparent;">
-        <td colspan="6" class="text-center py-5"
-            style="color:rgba(255,255,255,0.4); border-color:rgba(0,217,255,0.1);">
-          <i class="bi bi-clock-history fs-3 d-block mb-2" style="color:rgba(0,217,255,0.3);"></i>
-          ${fromDate || toDate ? 'No transfers found in this date range.' : 'No transfers yet. Use "Transfer Now" to move funds.'}
-        </td>
-      </tr>`;
-    if (summary) summary.classList.add('d-none');
-    return;
-  }
-
-  let totalAmount = 0;
-  tbody.innerHTML = transfers.map((t, i) => {
-    const amt = parseFloat(t.amount) || 0;
-    totalAmount += amt;
-    const rowBg = i % 2 === 0 ? 'rgba(21,26,53,0.5)' : 'rgba(31,21,69,0.4)';
-    return `
-      <tr style="background:${rowBg}; border-color:rgba(0,217,255,0.1);">
-        <td style="padding:0.75rem 1rem; color:rgba(0,217,255,0.5); font-size:0.85rem; border-color:rgba(0,217,255,0.1);">${i + 1}</td>
-        <td style="padding:0.75rem 1rem; font-weight:600; color:#e2e8f0; border-color:rgba(0,217,255,0.1);">${t.date || '—'}</td>
-        <td style="padding:0.75rem 1rem; border-color:rgba(0,217,255,0.1);">
-          <span class="badge rounded-pill px-3 py-2" style="background:rgba(220,38,38,0.25); color:#fca5a5; font-size:0.8rem; border:1px solid rgba(220,38,38,0.4);">
-            <i class="bi bi-arrow-up-circle me-1"></i>${t.method || '—'}
-          </span>
-        </td>
-        <td style="padding:0.75rem 1rem; border-color:rgba(0,217,255,0.1);">
-          <span class="badge rounded-pill px-3 py-2" style="background:rgba(22,163,74,0.25); color:#86efac; font-size:0.8rem; border:1px solid rgba(22,163,74,0.4);">
-            <i class="bi bi-arrow-down-circle me-1"></i>${t.person || '—'}
-          </span>
-        </td>
-        <td style="padding:0.75rem 1rem; text-align:right; font-weight:700; color:#ffd200; font-size:1rem; border-color:rgba(0,217,255,0.1);">
-          ৳${formatNumber(amt)}
-        </td>
-        <td style="padding:0.75rem 1rem; color:rgba(255,255,255,0.55); font-size:0.88rem; border-color:rgba(0,217,255,0.1);">${t.notes || '—'}</td>
-      </tr>`;
-  }).join('');
-
-  // Show summary
-  if (summary) {
-    summary.classList.remove('d-none');
-    if (countEl) countEl.textContent = `${transfers.length} transfer${transfers.length > 1 ? 's' : ''}${fromDate || toDate ? ' (filtered)' : ''}`;
-    if (totalEl) totalEl.innerHTML = `Total Transferred: <span style="color:#f7971e;">৳${formatNumber(totalAmount)}</span>`;
-  }
-}
-
-function clearTransferHistory() {
-  const fromEl = document.getElementById('transferHistoryFrom');
-  const toEl = document.getElementById('transferHistoryTo');
-  if (fromEl) fromEl.value = '';
-  if (toEl) toEl.value = '';
-  renderTransferHistory();
-}
-
-window.renderTransferHistory = renderTransferHistory;
-window.clearTransferHistory = clearTransferHistory;
 
 // Global Exposure
 window.renderAccountList = renderAccountList;
@@ -7062,6 +6975,12 @@ document.addEventListener('DOMContentLoaded', () => {
   const studentModal = document.getElementById('studentModal');
   if (studentModal) {
     studentModal.addEventListener('show.bs.modal', populatePaymentDropdownsNow);
+    studentModal.addEventListener('shown.bs.modal', () => {
+      attachMethodBalanceListeners();
+      // Remove old badge if modal reopened
+      const old = document.getElementById('studentMethodSelect_balanceBadge');
+      if (old) old.remove();
+    });
     console.log('✅ Student modal listener added');
   }
 
@@ -7069,6 +6988,11 @@ document.addEventListener('DOMContentLoaded', () => {
   const financeModal = document.getElementById('financeModal');
   if (financeModal) {
     financeModal.addEventListener('show.bs.modal', populatePaymentDropdownsNow);
+    financeModal.addEventListener('shown.bs.modal', () => {
+      attachMethodBalanceListeners();
+      const old = document.getElementById('financeMethodSelect_balanceBadge');
+      if (old) old.remove();
+    });
     console.log('✅ Finance modal listener added');
   }
 
@@ -7797,8 +7721,91 @@ window.renderFullUI = function () {
 if (document.readyState === 'loading') {
   document.addEventListener('DOMContentLoaded', () => {
     setTimeout(populateAccountDropdown, 1000);
+    setTimeout(attachMethodBalanceListeners, 1200);
   });
 } else {
   setTimeout(populateAccountDropdown, 1000);
+  setTimeout(attachMethodBalanceListeners, 1200);
 }
+
+// ===================================
+// PAYMENT METHOD BALANCE DISPLAY
+// ===================================
+
+function getMethodBalance(methodName) {
+  if (!methodName) return null;
+  if (methodName === 'Cash') {
+    return { balance: parseFloat(globalData.cashBalance) || 0, type: 'cash' };
+  }
+  const bank = (globalData.bankAccounts || []).find(a => a.name === methodName);
+  if (bank) return { balance: parseFloat(bank.balance) || 0, type: 'bank', extra: bank.bankName };
+  const mobile = (globalData.mobileBanking || []).find(a => a.name === methodName);
+  if (mobile) return { balance: parseFloat(mobile.balance) || 0, type: 'mobile' };
+  return null;
+}
+
+function showMethodBalance(selectId) {
+  const sel = document.getElementById(selectId);
+  if (!sel) return;
+  const badgeId = `${selectId}_balanceBadge`;
+  let badge = document.getElementById(badgeId);
+
+  const val = sel.value;
+  const info = getMethodBalance(val);
+
+  if (!info) {
+    if (badge) badge.remove();
+    return;
+  }
+
+  if (!badge) {
+    badge = document.createElement('div');
+    badge.id = badgeId;
+    badge.style.cssText = `
+      margin-top: 6px;
+      padding: 6px 12px;
+      border-radius: 8px;
+      font-size: 0.82rem;
+      font-weight: 700;
+      display: inline-flex;
+      align-items: center;
+      gap: 6px;
+      transition: all 0.2s ease;
+    `;
+    sel.parentNode.appendChild(badge);
+  }
+
+  const colorMap = { cash: '#00ff88', bank: '#00d9ff', mobile: '#ff2d95' };
+  const bgMap   = { cash: 'rgba(0,255,136,0.12)', bank: 'rgba(0,217,255,0.12)', mobile: 'rgba(255,45,149,0.12)' };
+  const iconMap = { cash: '💵', bank: '🏦', mobile: '📱' };
+  const borderMap = { cash: 'rgba(0,255,136,0.35)', bank: 'rgba(0,217,255,0.35)', mobile: 'rgba(255,45,149,0.35)' };
+
+  const c = info.type;
+  badge.style.background = bgMap[c];
+  badge.style.border = `1px solid ${borderMap[c]}`;
+  badge.style.color = colorMap[c];
+  badge.innerHTML = `
+    <span>${iconMap[c]}</span>
+    <span>Available Balance:</span>
+    <span style="font-size:0.95rem; letter-spacing:0.3px;">৳${formatNumber(info.balance)}</span>
+  `;
+}
+
+function attachMethodBalanceListeners() {
+  const targets = [
+    'studentMethodSelect',
+    'financeMethodSelect',
+    'editTransMethodSelect',
+    'examPaymentMethodSelect'
+  ];
+  targets.forEach(id => {
+    const el = document.getElementById(id);
+    if (el) {
+      el.addEventListener('change', () => showMethodBalance(id));
+    }
+  });
+}
+
+window.showMethodBalance = showMethodBalance;
+window.attachMethodBalanceListeners = attachMethodBalanceListeners;
 
