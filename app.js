@@ -1188,6 +1188,7 @@ function switchTab(tab, refreshStats = true) {
     if (typeof renderCashBalance === 'function') renderCashBalance();
     if (typeof renderMobileBankingList === 'function') renderMobileBankingList();
     if (typeof updateGrandTotal === 'function') updateGrandTotal();
+    if (typeof renderTransferHistory === 'function') renderTransferHistory();
   }
 
   if (refreshStats) {
@@ -2497,7 +2498,7 @@ function checkPaymentReminders() {
           </div>
           <div class="small text-muted">
             <span class="me-3">⏰ Reminder: ${student.reminderDate}</span>
-            <span class="me-3">🎓 Batch Number: ${student.batch || 'N/A'}</span>
+            <span class="me-3">🎓 Batch: ${student.batch || 'N/A'}</span>
             <span class="me-3">🎓 ${student.course || 'N/A'}</span>
             <span class="text-danger fw-bold">Due: ৳${formatNumber(student.due)}</span>
           </div>
@@ -2780,7 +2781,7 @@ function openAllRemindersModal() {
           <tr>
             <th>Date</th>
             <th>Student Name</th>
-            <th>Batch Number</th>
+            <th>Batch</th>
             <th>Course</th>
             <th class="text-end">Due Amount</th>
             <th class="text-end">Action</th>
@@ -3058,13 +3059,6 @@ async function handleStudentSubmit(e) {
   const data = {};
   formData.forEach((value, key) => data[key] = value);
 
-  // ✅ CRITICAL VALIDATION: Batch Number is REQUIRED
-  if (!data.batch || data.batch.trim() === '') {
-    showErrorToast('❌ Batch Number is required! Please enter a batch number.');
-    document.querySelector('[name="batch"]')?.focus();
-    return;
-  }
-
   // ✅ CRITICAL VALIDATION: Payment Method is REQUIRED
   if (!data.method || data.method.trim() === '') {
     showErrorToast('❌ Payment Method is required! Please select a payment method.');
@@ -3175,7 +3169,7 @@ async function handleStudentSubmit(e) {
           category: 'Student Fee',
           person: student.name,
           amount: student.paid,
-          description: `Enrollment fee for student: ${student.name} | Batch Number: ${student.batch}`,
+          description: `Enrollment fee for student: ${student.name} | Batch: ${student.batch}`,
           timestamp: new Date().toISOString()
         };
         window.globalData.finance.push(financeEntry);
@@ -3345,7 +3339,7 @@ function handleAddInstallment() {
     category: 'Student Installment',
     person: student.name,
     amount: amount,
-    description: `Installment payment for student: ${student.name} | Batch Number: ${student.batch}`,
+    description: `Installment payment for student: ${student.name} | Batch: ${student.batch}`,
     timestamp: new Date().toISOString()
   };
   globalData.finance.push(financeEntry);
@@ -4161,7 +4155,7 @@ function printReport(type) {
             <th style="text-align: left;">Date</th>
             <th style="text-align: left;">Name</th>
             <th style="text-align: left;">Course</th>
-            <th style="text-align: left;">Batch Number</th>
+            <th style="text-align: left;">Batch</th>
             <th style="text-align: right;">Total</th>
             <th style="text-align: right;">Paid</th>
             <th style="text-align: right;">Due</th>
@@ -4612,7 +4606,7 @@ function saveAttendance() {
   globalData.attendance[attendanceKey] = currentAttendance;
   saveToStorage();
   bootstrap.Modal.getInstance(document.getElementById('attendanceModal')).hide();
-  showSuccessToast(`Attendance saved for Batch Number ${batch} on ${date}`);
+  showSuccessToast(`Attendance saved for ${batch} on ${date}`);
 }
 
 function generateCertificate() {
@@ -4773,7 +4767,7 @@ function generateCertificate() {
             color: #000;
           ">
             <div style="font-size: 24px; font-weight: 900;">
-              BATCH NUMBER - ${s.batch || 'N/A'}
+              BATCH - ${s.batch || 'N/A'}
             </div>
             <div style="font-size: 24px; font-weight: 900;">
               STUDENT ID : ${s.studentId || '-'}
@@ -4950,7 +4944,7 @@ function generateIdCard() {
                     <div style="color: #dba11c; text-align: right;">ID NO:</div>
                     <div style="font-weight: 900; font-family: 'Courier New', monospace; font-size: 18px; color: #000;">${s.studentId}</div>
                     
-                    <div style="color: #dba11c; text-align: right;">BATCH NUMBER:</div>
+                    <div style="color: #dba11c; text-align: right;">BATCH:</div>
                     <div style="text-transform: uppercase;">${s.batch || 'N/A'}</div>
                     
                     <div style="color: #dba11c; text-align: right;">COURSE:</div>
@@ -5055,7 +5049,7 @@ function printStudentProfile() {
           <div>
              <h2 style="margin: 0; color: #4a3e91;">${s.name}</h2>
              <p style="margin: 5px 0;">Student ID: <strong>${s.studentId}</strong></p>
-             <p style="margin: 5px 0;">Course: ${s.course} | Batch Number: ${s.batch}</p>
+             <p style="margin: 5px 0;">Course: ${s.course} | Batch: ${s.batch}</p>
           </div>
           <div style="text-align: right;">
              <p style="margin: 5px 0;">Phone: ${s.phone}</p>
@@ -5287,7 +5281,7 @@ function printBlankAttendanceSheet() {
                 <div style="width: 80px;"></div> <!-- Spacer for balance -->
             </div>
             <div class="main-title">WINGS FLY AVIATION ACADEMY</div>
-            <div class="sub-title">${batchStudents[0].course || 'COURSE'} PRESENT SHEET - BATCH NUMBER ${batch}</div>
+            <div class="sub-title">${batchStudents[0].course || 'COURSE'} PRESENT SHEET - ${batch}</div>
         </div>
 
         <table>
@@ -5461,7 +5455,7 @@ function openIdCardModal(rowIndex) {
     document.getElementById('idCardName').innerText = student.name || 'Unknown Student';
     document.getElementById('idCardStudentId').innerText = student.studentId || 'N/A';
     document.getElementById('idCardCourse').innerText = student.course || 'N/A';
-    document.getElementById('idCardBatch').innerText = student.batch ? `Batch Number: ${student.batch}` : '';
+    document.getElementById('idCardBatch').innerText = student.batch ? `Batch ${student.batch}` : '';
     document.getElementById('idCardBlood').innerText = student.bloodGroup || 'N/A';
     document.getElementById('idCardPhone').innerText = student.phone || 'N/A';
 
@@ -6348,7 +6342,94 @@ async function handleTransferSubmit(e) {
   updateGlobalStats();
 
   showSuccessToast('✅ Balance transferred successfully!');
+
+  // Refresh transfer history if visible
+  if (typeof renderTransferHistory === 'function') renderTransferHistory();
 }
+
+// ===================================
+// TRANSFER HISTORY RENDER
+// ===================================
+function renderTransferHistory() {
+  const tbody = document.getElementById('transferHistoryBody');
+  const summary = document.getElementById('transferHistorySummary');
+  const countEl = document.getElementById('transferHistoryCount');
+  const totalEl = document.getElementById('transferHistoryTotal');
+
+  if (!tbody) return;
+
+  const fromDate = document.getElementById('transferHistoryFrom')?.value || '';
+  const toDate = document.getElementById('transferHistoryTo')?.value || '';
+
+  // Get only "Transfer Out" entries (each transfer = one paired entry)
+  let transfers = (window.globalData.finance || []).filter(f => f.type === 'Transfer Out');
+
+  // Apply date filter
+  if (fromDate) {
+    transfers = transfers.filter(f => f.date >= fromDate);
+  }
+  if (toDate) {
+    transfers = transfers.filter(f => f.date <= toDate);
+  }
+
+  // Sort newest first
+  transfers = transfers.sort((a, b) => new Date(b.date) - new Date(a.date));
+
+  if (transfers.length === 0) {
+    tbody.innerHTML = `
+      <tr>
+        <td colspan="6" class="text-center text-muted py-5">
+          <i class="bi bi-clock-history fs-3 d-block mb-2 opacity-50"></i>
+          ${fromDate || toDate ? 'No transfers found in this date range.' : 'No transfers yet. Use "Transfer Now" to move funds.'}
+        </td>
+      </tr>`;
+    if (summary) summary.classList.add('d-none');
+    return;
+  }
+
+  let totalAmount = 0;
+  tbody.innerHTML = transfers.map((t, i) => {
+    const amt = parseFloat(t.amount) || 0;
+    totalAmount += amt;
+    return `
+      <tr>
+        <td style="padding:0.75rem 1rem; color:#888; font-size:0.85rem;">${i + 1}</td>
+        <td style="padding:0.75rem 1rem; font-weight:600;">${t.date || '—'}</td>
+        <td style="padding:0.75rem 1rem;">
+          <span class="badge rounded-pill px-3 py-2" style="background:#fee2e2; color:#dc2626; font-size:0.8rem;">
+            <i class="bi bi-arrow-up-circle me-1"></i>${t.method || '—'}
+          </span>
+        </td>
+        <td style="padding:0.75rem 1rem;">
+          <span class="badge rounded-pill px-3 py-2" style="background:#dcfce7; color:#16a34a; font-size:0.8rem;">
+            <i class="bi bi-arrow-down-circle me-1"></i>${t.person || '—'}
+          </span>
+        </td>
+        <td style="padding:0.75rem 1rem; text-align:right; font-weight:700; color:#0f172a; font-size:1rem;">
+          ৳${formatNumber(amt)}
+        </td>
+        <td style="padding:0.75rem 1rem; color:#64748b; font-size:0.88rem;">${t.notes || '—'}</td>
+      </tr>`;
+  }).join('');
+
+  // Show summary
+  if (summary) {
+    summary.classList.remove('d-none');
+    if (countEl) countEl.textContent = `${transfers.length} transfer${transfers.length > 1 ? 's' : ''}${fromDate || toDate ? ' (filtered)' : ''}`;
+    if (totalEl) totalEl.innerHTML = `Total Transferred: <span style="color:#f7971e;">৳${formatNumber(totalAmount)}</span>`;
+  }
+}
+
+function clearTransferHistory() {
+  const fromEl = document.getElementById('transferHistoryFrom');
+  const toEl = document.getElementById('transferHistoryTo');
+  if (fromEl) fromEl.value = '';
+  if (toEl) toEl.value = '';
+  renderTransferHistory();
+}
+
+window.renderTransferHistory = renderTransferHistory;
+window.clearTransferHistory = clearTransferHistory;
 
 // Global Exposure
 window.renderAccountList = renderAccountList;
@@ -6406,9 +6487,9 @@ function populateBatchFilter() {
 
   console.log('📊 Populating batch filter with', batches.length, 'batches:', batches);
 
-  select.innerHTML = '<option value="">All Batch Numbers</option>';
+  select.innerHTML = '<option value="">All Batches</option>';
   batches.forEach(b => {
-    select.innerHTML += `<option value="${b}">Batch Number ${b}</option>`;
+    select.innerHTML += `<option value="${b}">Batch ${b}</option>`;
   });
 
   console.log('✅ Batch filter populated successfully');
@@ -6476,7 +6557,7 @@ function quickFilterStudents() {
     return;
   }
 
-  // Filter students by name, batch number, ID, phone, or course
+  // Filter students by name, batch, ID, phone, or course
   const filtered = globalData.students.filter(student => {
     const name = (student.name || '').toLowerCase();
     const batch = (student.batch || '').toString().toLowerCase();
