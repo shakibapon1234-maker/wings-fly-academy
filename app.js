@@ -2497,7 +2497,7 @@ function checkPaymentReminders() {
           </div>
           <div class="small text-muted">
             <span class="me-3">⏰ Reminder: ${student.reminderDate}</span>
-            <span class="me-3">🎓 Batch: ${student.batch || 'N/A'}</span>
+            <span class="me-3">🎓 Batch Number: ${student.batch || 'N/A'}</span>
             <span class="me-3">🎓 ${student.course || 'N/A'}</span>
             <span class="text-danger fw-bold">Due: ৳${formatNumber(student.due)}</span>
           </div>
@@ -2780,7 +2780,7 @@ function openAllRemindersModal() {
           <tr>
             <th>Date</th>
             <th>Student Name</th>
-            <th>Batch</th>
+            <th>Batch Number</th>
             <th>Course</th>
             <th class="text-end">Due Amount</th>
             <th class="text-end">Action</th>
@@ -3058,6 +3058,13 @@ async function handleStudentSubmit(e) {
   const data = {};
   formData.forEach((value, key) => data[key] = value);
 
+  // ✅ CRITICAL VALIDATION: Batch Number is REQUIRED
+  if (!data.batch || data.batch.trim() === '') {
+    showErrorToast('❌ Batch Number is required! Please enter a batch number.');
+    document.querySelector('[name="batch"]')?.focus();
+    return;
+  }
+
   // ✅ CRITICAL VALIDATION: Payment Method is REQUIRED
   if (!data.method || data.method.trim() === '') {
     showErrorToast('❌ Payment Method is required! Please select a payment method.');
@@ -3168,7 +3175,7 @@ async function handleStudentSubmit(e) {
           category: 'Student Fee',
           person: student.name,
           amount: student.paid,
-          description: `Enrollment fee for student: ${student.name} | Batch: ${student.batch}`,
+          description: `Enrollment fee for student: ${student.name} | Batch Number: ${student.batch}`,
           timestamp: new Date().toISOString()
         };
         window.globalData.finance.push(financeEntry);
@@ -3338,7 +3345,7 @@ function handleAddInstallment() {
     category: 'Student Installment',
     person: student.name,
     amount: amount,
-    description: `Installment payment for student: ${student.name} | Batch: ${student.batch}`,
+    description: `Installment payment for student: ${student.name} | Batch Number: ${student.batch}`,
     timestamp: new Date().toISOString()
   };
   globalData.finance.push(financeEntry);
@@ -4154,7 +4161,7 @@ function printReport(type) {
             <th style="text-align: left;">Date</th>
             <th style="text-align: left;">Name</th>
             <th style="text-align: left;">Course</th>
-            <th style="text-align: left;">Batch</th>
+            <th style="text-align: left;">Batch Number</th>
             <th style="text-align: right;">Total</th>
             <th style="text-align: right;">Paid</th>
             <th style="text-align: right;">Due</th>
@@ -4605,7 +4612,7 @@ function saveAttendance() {
   globalData.attendance[attendanceKey] = currentAttendance;
   saveToStorage();
   bootstrap.Modal.getInstance(document.getElementById('attendanceModal')).hide();
-  showSuccessToast(`Attendance saved for ${batch} on ${date}`);
+  showSuccessToast(`Attendance saved for Batch Number ${batch} on ${date}`);
 }
 
 function generateCertificate() {
@@ -4766,7 +4773,7 @@ function generateCertificate() {
             color: #000;
           ">
             <div style="font-size: 24px; font-weight: 900;">
-              BATCH - ${s.batch || 'N/A'}
+              BATCH NUMBER - ${s.batch || 'N/A'}
             </div>
             <div style="font-size: 24px; font-weight: 900;">
               STUDENT ID : ${s.studentId || '-'}
@@ -4943,7 +4950,7 @@ function generateIdCard() {
                     <div style="color: #dba11c; text-align: right;">ID NO:</div>
                     <div style="font-weight: 900; font-family: 'Courier New', monospace; font-size: 18px; color: #000;">${s.studentId}</div>
                     
-                    <div style="color: #dba11c; text-align: right;">BATCH:</div>
+                    <div style="color: #dba11c; text-align: right;">BATCH NUMBER:</div>
                     <div style="text-transform: uppercase;">${s.batch || 'N/A'}</div>
                     
                     <div style="color: #dba11c; text-align: right;">COURSE:</div>
@@ -5048,7 +5055,7 @@ function printStudentProfile() {
           <div>
              <h2 style="margin: 0; color: #4a3e91;">${s.name}</h2>
              <p style="margin: 5px 0;">Student ID: <strong>${s.studentId}</strong></p>
-             <p style="margin: 5px 0;">Course: ${s.course} | Batch: ${s.batch}</p>
+             <p style="margin: 5px 0;">Course: ${s.course} | Batch Number: ${s.batch}</p>
           </div>
           <div style="text-align: right;">
              <p style="margin: 5px 0;">Phone: ${s.phone}</p>
@@ -5280,7 +5287,7 @@ function printBlankAttendanceSheet() {
                 <div style="width: 80px;"></div> <!-- Spacer for balance -->
             </div>
             <div class="main-title">WINGS FLY AVIATION ACADEMY</div>
-            <div class="sub-title">${batchStudents[0].course || 'COURSE'} PRESENT SHEET - ${batch}</div>
+            <div class="sub-title">${batchStudents[0].course || 'COURSE'} PRESENT SHEET - BATCH NUMBER ${batch}</div>
         </div>
 
         <table>
@@ -5454,7 +5461,7 @@ function openIdCardModal(rowIndex) {
     document.getElementById('idCardName').innerText = student.name || 'Unknown Student';
     document.getElementById('idCardStudentId').innerText = student.studentId || 'N/A';
     document.getElementById('idCardCourse').innerText = student.course || 'N/A';
-    document.getElementById('idCardBatch').innerText = student.batch ? `Batch ${student.batch}` : '';
+    document.getElementById('idCardBatch').innerText = student.batch ? `Batch Number: ${student.batch}` : '';
     document.getElementById('idCardBlood').innerText = student.bloodGroup || 'N/A';
     document.getElementById('idCardPhone').innerText = student.phone || 'N/A';
 
@@ -6399,9 +6406,9 @@ function populateBatchFilter() {
 
   console.log('📊 Populating batch filter with', batches.length, 'batches:', batches);
 
-  select.innerHTML = '<option value="">All Batches</option>';
+  select.innerHTML = '<option value="">All Batch Numbers</option>';
   batches.forEach(b => {
-    select.innerHTML += `<option value="${b}">Batch ${b}</option>`;
+    select.innerHTML += `<option value="${b}">Batch Number ${b}</option>`;
   });
 
   console.log('✅ Batch filter populated successfully');
@@ -6469,7 +6476,7 @@ function quickFilterStudents() {
     return;
   }
 
-  // Filter students by name, batch, ID, phone, or course
+  // Filter students by name, batch number, ID, phone, or course
   const filtered = globalData.students.filter(student => {
     const name = (student.name || '').toLowerCase();
     const batch = (student.batch || '').toString().toLowerCase();

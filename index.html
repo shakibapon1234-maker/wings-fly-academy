@@ -656,7 +656,7 @@
                                             <th>Student Name</th>
                                             <th>Course</th>
                                             <th>Admission Date</th>
-                                            <th>Batch</th>
+                                            <th>Batch Number</th>
                                         </tr>
                                     </thead>
                                     <tbody id="recentAdmissionsBody">
@@ -669,14 +669,14 @@
                         <!-- BATCH ANALYSIS TOOL (Secondary Styling) -->
                         <div class="card border-0 shadow-sm rounded-4 p-4 mb-4 bg-light">
                             <div class="d-flex flex-wrap justify-content-between align-items-center gap-3">
-                                <h6 class="fw-bold mb-0 text-av-main">📊 Batch Financial Analysis</h6>
+                                <h6 class="fw-bold mb-0 text-av-main">📊 Batch Number Financial Analysis</h6>
                                 <div class="d-flex flex-wrap gap-2 align-items-center">
                                     <div class="search-wrapper position-relative">
                                         <i
                                             class="bi bi-search position-absolute top-50 translate-middle-y ms-2 text-muted small"></i>
                                         <input type="text" id="dashBatchSearch"
                                             class="form-control form-control-sm rounded-pill ps-4 border-0"
-                                            placeholder="Enter Batch Name..." onkeyup="calcBatchProfit()">
+                                            placeholder="Enter Batch Number..." onkeyup="calcBatchProfit()">
                                     </div>
                                     <div class="d-flex align-items-center gap-1 bg-transparent px-2 py-1 rounded-pill">
                                         <input type="date" id="dashBatchStart"
@@ -880,7 +880,7 @@
                                         </div>
                                     </div>
                                     <div class="col-md-2">
-                                        <label class="form-label fw-bold small text-muted text-uppercase">Batch</label>
+                                        <label class="form-label fw-bold small text-muted text-uppercase">Batch Number</label>
                                         <input type="text" id="examBatchFilter" class="form-control"
                                             placeholder="All Batches" onkeyup="searchExamResults()">
                                     </div>
@@ -929,7 +929,7 @@
                                                 <th>Reg ID</th>
                                                 <th>Student ID</th>
                                                 <th>Student Name</th>
-                                                <th>Batch</th>
+                                                <th>Batch Number</th>
                                                 <th>Session</th>
                                                 <th>Subject</th>
                                                 <th>Exam Fee</th>
@@ -982,10 +982,10 @@
                                 </div>
                                 <div class="row g-3">
                                     <div class="col-md-3">
-                                        <label class="form-label small fw-bold">Filter by Batch</label>
+                                        <label class="form-label small fw-bold">Filter by Batch Number</label>
                                         <select id="batchFilterSelect" class="form-select form-select-sm"
                                             onchange="applyAdvancedSearch()">
-                                            <option value="">All Batches</option>
+                                            <option value="">All Batch Numbers</option>
                                         </select>
                                     </div>
                                     <div class="col-md-3">
@@ -1030,7 +1030,7 @@
                             <div class="input-group" style="max-width: 500px;">
                                 <span class="input-group-text bg-dark border-end-0">🎓</span>
                                 <input type="text" id="quickStudentSearch" class="form-control border-start-0"
-                                    placeholder="Quick search by student name or batch..."
+                                    placeholder="Quick search by student name or batch number..."
                                     onkeyup="quickFilterStudents()">
                             </div>
                         </div>
@@ -1058,7 +1058,7 @@
                                             <th>ID</th>
                                             <th>Name</th>
                                             <th>Course</th>
-                                            <th>Batch</th>
+                                            <th>Batch Number</th>
                                             <th>Total</th>
                                             <th>Paid</th>
                                             <th>Due</th>
@@ -1774,10 +1774,9 @@
 
                         <div class="row g-3">
                             <div class="col-md-4 mb-3">
-                                <label class="form-label fw-bold small text-uppercase text-muted">Batch
-                                    ID</label>
+                                <label class="form-label fw-bold small text-uppercase text-muted">Batch Number</label>
                                 <input type="text" name="batch" class="form-control premium-input-modern"
-                                    placeholder="e.g., Batch 101">
+                                    placeholder="e.g., Batch 101" required>
                             </div>
                             <div class="col-md-4 mb-3">
                                 <label class="form-label fw-bold small text-uppercase text-muted">Enrollment
@@ -2491,7 +2490,7 @@
             <div class="modal-content custom-modal">
                 <div class="modal-header">
                     <h5 class="modal-title fw-bold">
-                        <span class="me-2">📊</span>Batch Wise Profit/Loss Report
+                        <span class="me-2">📊</span>Batch Number Wise Profit/Loss Report
                     </h5>
                     <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
                 </div>
@@ -2508,9 +2507,9 @@
                                 style="width: auto;" onchange="renderBatchReport()">
 
                             <div class="ms-3 d-flex align-items-center gap-2">
-                                <label class="small fw-bold text-muted mb-0">Batch:</label>
+                                <label class="small fw-bold text-muted mb-0">Batch Number:</label>
                                 <input type="text" id="batchSearchInput" class="form-control form-control-sm"
-                                    placeholder="Search Batch..." onkeyup="renderBatchReport()" style="width: 130px;">
+                                    placeholder="Search Batch Number..." onkeyup="renderBatchReport()" style="width: 130px;">
                             </div>
                         </div>
                         <button class="btn btn-sm btn-primary" onclick="renderBatchReport()">�„ Refresh
@@ -2520,7 +2519,7 @@
                         <table class="table table-hover align-middle modern-table">
                             <thead>
                                 <tr>
-                                    <th>Batch Name</th>
+                                    <th>Batch Number</th>
                                     <th>Students (In Period)</th>
                                     <th class="text-end">Total Receivable</th>
                                     <th class="text-end">Collected (Income)</th>
@@ -2597,7 +2596,7 @@
             <div style="margin:20px 0;">
                 <p><strong>Student Name:</strong> <span id="recName"></span></p>
                 <p><strong>Course:</strong> <span id="recCourse"></span></p>
-                <p><strong>Batch:</strong> <span id="recBatch"></span></p>
+                <p><strong>Batch Number:</strong> <span id="recBatch"></span></p>
             </div>
             <table style="width:100%; border-collapse: collapse; margin: 20px 0;">
                 <tr style="border-bottom: 1px solid #ddd;">
@@ -2639,9 +2638,9 @@
                 <div class="modal-body">
                     <div class="row g-3 mb-4 no-print">
                         <div class="col-md-4">
-                            <label class="form-label small fw-bold">Select Batch</label>
+                            <label class="form-label small fw-bold">Select Batch Number</label>
                             <select id="attRepBatchSelect" class="form-select" onchange="renderAttendanceReport()">
-                                <option value="">Select a batch...</option>
+                                <option value="">Select a batch number...</option>
                             </select>
                         </div>
                         <div class="col-md-3">
@@ -2764,9 +2763,9 @@
                 <div class="modal-body">
                     <div class="row g-3 mb-4">
                         <div class="col-md-6">
-                            <label class="form-label small fw-bold">Select Batch</label>
+                            <label class="form-label small fw-bold">Select Batch Number</label>
                             <select id="attendanceBatchSelect" class="form-select" onchange="loadAttendanceList()">
-                                <option value="">Select a batch...</option>
+                                <option value="">Select a batch number...</option>
                             </select>
                         </div>
                         <div class="col-md-6">
@@ -2829,7 +2828,7 @@
                                     readonly>
                             </div>
                             <div class="col-md-4">
-                                <label class="form-label fw-bold small text-uppercase text-muted">Batch</label>
+                                <label class="form-label fw-bold small text-uppercase text-muted">Batch Number</label>
                                 <input type="text" name="studentBatch" id="examStudentBatchInput"
                                     class="form-control premium-input-modern bg-light" placeholder="Auto" readonly>
                             </div>
@@ -3043,7 +3042,7 @@
                                                 style="max-width: 200px;">Aviation Management</div>
                                         </div>
                                         <div class="col-6 pe-2">
-                                            <div class="id-card-label">Batch</div>
+                                            <div class="id-card-label">Batch Number</div>
                                             <div class="id-card-value" id="idCardBatch">Batch 00</div>
                                         </div>
                                         <div class="col-6">
