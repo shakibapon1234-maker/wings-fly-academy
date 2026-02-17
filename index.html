@@ -656,7 +656,7 @@
                                             <th>Student Name</th>
                                             <th>Course</th>
                                             <th>Admission Date</th>
-                                            <th>Batch Number</th>
+                                            <th>Batch</th>
                                         </tr>
                                     </thead>
                                     <tbody id="recentAdmissionsBody">
@@ -669,14 +669,14 @@
                         <!-- BATCH ANALYSIS TOOL (Secondary Styling) -->
                         <div class="card border-0 shadow-sm rounded-4 p-4 mb-4 bg-light">
                             <div class="d-flex flex-wrap justify-content-between align-items-center gap-3">
-                                <h6 class="fw-bold mb-0 text-av-main">📊 Batch Number Financial Analysis</h6>
+                                <h6 class="fw-bold mb-0 text-av-main">📊 Batch Financial Analysis</h6>
                                 <div class="d-flex flex-wrap gap-2 align-items-center">
                                     <div class="search-wrapper position-relative">
                                         <i
                                             class="bi bi-search position-absolute top-50 translate-middle-y ms-2 text-muted small"></i>
                                         <input type="text" id="dashBatchSearch"
                                             class="form-control form-control-sm rounded-pill ps-4 border-0"
-                                            placeholder="Enter Batch Number..." onkeyup="calcBatchProfit()">
+                                            placeholder="Enter Batch Name..." onkeyup="calcBatchProfit()">
                                     </div>
                                     <div class="d-flex align-items-center gap-1 bg-transparent px-2 py-1 rounded-pill">
                                         <input type="date" id="dashBatchStart"
@@ -880,7 +880,7 @@
                                         </div>
                                     </div>
                                     <div class="col-md-2">
-                                        <label class="form-label fw-bold small text-muted text-uppercase">Batch Number</label>
+                                        <label class="form-label fw-bold small text-muted text-uppercase">Batch</label>
                                         <input type="text" id="examBatchFilter" class="form-control"
                                             placeholder="All Batches" onkeyup="searchExamResults()">
                                     </div>
@@ -929,7 +929,7 @@
                                                 <th>Reg ID</th>
                                                 <th>Student ID</th>
                                                 <th>Student Name</th>
-                                                <th>Batch Number</th>
+                                                <th>Batch</th>
                                                 <th>Session</th>
                                                 <th>Subject</th>
                                                 <th>Exam Fee</th>
@@ -982,10 +982,10 @@
                                 </div>
                                 <div class="row g-3">
                                     <div class="col-md-3">
-                                        <label class="form-label small fw-bold">Filter by Batch Number</label>
+                                        <label class="form-label small fw-bold">Filter by Batch</label>
                                         <select id="batchFilterSelect" class="form-select form-select-sm"
                                             onchange="applyAdvancedSearch()">
-                                            <option value="">All Batch Numbers</option>
+                                            <option value="">All Batches</option>
                                         </select>
                                     </div>
                                     <div class="col-md-3">
@@ -1030,7 +1030,7 @@
                             <div class="input-group" style="max-width: 500px;">
                                 <span class="input-group-text bg-dark border-end-0">🎓</span>
                                 <input type="text" id="quickStudentSearch" class="form-control border-start-0"
-                                    placeholder="Quick search by student name or batch number..."
+                                    placeholder="Quick search by student name or batch..."
                                     onkeyup="quickFilterStudents()">
                             </div>
                         </div>
@@ -1058,7 +1058,7 @@
                                             <th>ID</th>
                                             <th>Name</th>
                                             <th>Course</th>
-                                            <th>Batch Number</th>
+                                            <th>Batch</th>
                                             <th>Total</th>
                                             <th>Paid</th>
                                             <th>Due</th>
@@ -1517,21 +1517,37 @@
                         </div>
                     </div>
 
+                    <!-- ========== INTERNAL TRANSFER – HIGHLIGHTED STANDALONE ========== -->
+                    <div class="card border-0 shadow-lg mb-5"
+                        style="background: linear-gradient(135deg, #f7971e 0%, #ffd200 100%); border-radius: 20px;">
+                        <div class="card-body p-4">
+                            <div class="d-flex justify-content-between align-items-center flex-wrap gap-3">
+                                <div>
+                                    <h4 class="fw-bold m-0" style="color: #1a1a1a;">
+                                        <span class="me-2" style="font-size: 2rem;">🔄</span> INTERNAL BALANCE TRANSFER
+                                    </h4>
+                                    <p class="mb-0 mt-1" style="color: rgba(0,0,0,0.6); font-size: 0.95rem;">
+                                        Move funds between Cash, Bank &amp; Mobile accounts instantly
+                                    </p>
+                                </div>
+                                <button class="btn fw-bold px-5 py-2 rounded-pill shadow"
+                                    style="background:#1a1a1a; color:#ffd200; font-size:1rem; letter-spacing:0.5px;"
+                                    onclick="openTransferModal()">
+                                    <i class="bi bi-arrow-left-right me-2"></i>Transfer Now
+                                </button>
+                            </div>
+                        </div>
+                    </div>
+
                     <!-- ========== BANK DETAILS SECTION ========== -->
                     <div class="mb-5">
                         <div class="d-flex justify-content-between align-items-center mb-4">
                             <h4 class="fw-bold m-0">
                                 <span class="me-2" style="font-size: 1.5rem;">🏦</span> BANK DETAILS
                             </h4>
-                            <div class="d-flex gap-2">
-                                <button class="btn btn-outline-primary fw-bold px-4 rounded-3"
-                                    onclick="openTransferModal()">
-                                    <i class="bi bi-arrow-left-right me-2"></i>Transfer Balance
-                                </button>
-                                <button class="btn btn-primary fw-bold px-4 rounded-3" onclick="openAccountModal()">
-                                    <i class="bi bi-plus-circle-fill me-2"></i>Add New Bank Account
-                                </button>
-                            </div>
+                            <button class="btn btn-primary fw-bold px-4 rounded-3" onclick="openAccountModal()">
+                                <i class="bi bi-plus-circle-fill me-2"></i>Add New Bank Account
+                            </button>
                         </div>
 
                         <!-- Bank Accounts Table -->
@@ -1564,41 +1580,6 @@
                         <!-- No Bank Accounts Message -->
                         <div id="noAccountsMessage" class="text-center text-muted py-5 d-none">
                             <p class="mb-0">No bank accounts found matching your search.</p>
-                        </div>
-
-                        <!-- Total Balance Summary (Cash + Bank + Mobile) -->
-                        <div class="card border-0 shadow-sm mt-4"
-                            style="background: linear-gradient(135deg, #4facfe 0%, #00f2fe 100%); border-radius: 15px;">
-                            <div class="card-body p-4">
-                                <div class="row align-items-center">
-                                    <div class="col-md-3 text-center text-md-start mb-3 mb-md-0">
-                                        <h5 class="text-white mb-1 fw-bold opacity-75">💰 TOTAL BALANCE</h5>
-                                        <p class="text-white mb-0 small opacity-75">Cash + Bank + Mobile</p>
-                                    </div>
-                                    <div class="col-md-9">
-                                        <div class="row text-center">
-                                            <div class="col-4">
-                                                <div class="text-white opacity-75 small mb-1">💵 Cash</div>
-                                                <div class="text-white fw-bold fs-5" id="totalBalanceCash">৳0</div>
-                                            </div>
-                                            <div class="col-4">
-                                                <div class="text-white opacity-75 small mb-1">🏦 Bank</div>
-                                                <div class="text-white fw-bold fs-5" id="totalBalanceBank">৳0</div>
-                                            </div>
-                                            <div class="col-4">
-                                                <div class="text-white opacity-75 small mb-1">📱 Mobile</div>
-                                                <div class="text-white fw-bold fs-5" id="totalBalanceMobile">৳0</div>
-                                            </div>
-                                        </div>
-                                        <hr class="my-3" style="border-color: rgba(255,255,255,0.3);">
-                                        <div class="text-center">
-                                            <div class="text-white opacity-75 small mb-1">GRAND TOTAL</div>
-                                            <div class="text-white fw-bold" style="font-size: 2rem;"
-                                                id="totalBalanceGrand">৳0</div>
-                                        </div>
-                                    </div>
-                                </div>
-                            </div>
                         </div>
                     </div>
 
@@ -1644,6 +1625,47 @@
                         <!-- No Mobile Accounts Message -->
                         <div id="noMobileMessage" class="text-center text-muted py-5 d-none">
                             <p class="mb-0">No mobile banking accounts found.</p>
+                        </div>
+                    </div>
+
+                    <!-- ========== TOTAL BALANCE SUMMARY (BOTTOM) ========== -->
+                    <div class="card border-0 shadow-lg mb-4"
+                        style="background: linear-gradient(135deg, #0f2027 0%, #203a43 50%, #2c5364 100%); border-radius: 20px; border: 2px solid rgba(79,172,254,0.4) !important;">
+                        <div class="card-body p-4 p-md-5">
+                            <div class="text-center mb-4">
+                                <h4 class="fw-bold text-white mb-1">
+                                    <span class="me-2">💰</span> TOTAL BALANCE OVERVIEW
+                                </h4>
+                                <p class="text-white opacity-75 mb-0 small">Cash + Bank + Mobile Banking Combined</p>
+                            </div>
+                            <div class="row g-4 text-center mb-4">
+                                <div class="col-md-4">
+                                    <div class="p-3 rounded-4" style="background: rgba(255,255,255,0.08); border: 1px solid rgba(255,255,255,0.15);">
+                                        <div class="mb-2" style="font-size: 1.8rem;">💵</div>
+                                        <div class="text-white opacity-75 small fw-bold text-uppercase mb-1">Cash</div>
+                                        <div class="text-white fw-bold" style="font-size: 1.4rem;" id="totalBalanceCash">৳0</div>
+                                    </div>
+                                </div>
+                                <div class="col-md-4">
+                                    <div class="p-3 rounded-4" style="background: rgba(255,255,255,0.08); border: 1px solid rgba(255,255,255,0.15);">
+                                        <div class="mb-2" style="font-size: 1.8rem;">🏦</div>
+                                        <div class="text-white opacity-75 small fw-bold text-uppercase mb-1">Bank</div>
+                                        <div class="text-white fw-bold" style="font-size: 1.4rem;" id="totalBalanceBank">৳0</div>
+                                    </div>
+                                </div>
+                                <div class="col-md-4">
+                                    <div class="p-3 rounded-4" style="background: rgba(255,255,255,0.08); border: 1px solid rgba(255,255,255,0.15);">
+                                        <div class="mb-2" style="font-size: 1.8rem;">📱</div>
+                                        <div class="text-white opacity-75 small fw-bold text-uppercase mb-1">Mobile Banking</div>
+                                        <div class="text-white fw-bold" style="font-size: 1.4rem;" id="totalBalanceMobile">৳0</div>
+                                    </div>
+                                </div>
+                            </div>
+                            <div class="text-center pt-3" style="border-top: 1px solid rgba(255,255,255,0.2);">
+                                <div class="text-white opacity-75 small fw-bold text-uppercase mb-2 letter-spacing-1">Grand Total</div>
+                                <div class="text-white fw-bold" style="font-size: 2.5rem; text-shadow: 0 0 20px rgba(79,172,254,0.6);"
+                                    id="totalBalanceGrand">৳0</div>
+                            </div>
                         </div>
                     </div>
 
@@ -1774,9 +1796,10 @@
 
                         <div class="row g-3">
                             <div class="col-md-4 mb-3">
-                                <label class="form-label fw-bold small text-uppercase text-muted">Batch Number</label>
+                                <label class="form-label fw-bold small text-uppercase text-muted">Batch
+                                    ID</label>
                                 <input type="text" name="batch" class="form-control premium-input-modern"
-                                    placeholder="e.g., Batch 101" required>
+                                    placeholder="e.g., Batch 101">
                             </div>
                             <div class="col-md-4 mb-3">
                                 <label class="form-label fw-bold small text-uppercase text-muted">Enrollment
@@ -2490,7 +2513,7 @@
             <div class="modal-content custom-modal">
                 <div class="modal-header">
                     <h5 class="modal-title fw-bold">
-                        <span class="me-2">📊</span>Batch Number Wise Profit/Loss Report
+                        <span class="me-2">📊</span>Batch Wise Profit/Loss Report
                     </h5>
                     <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
                 </div>
@@ -2507,9 +2530,9 @@
                                 style="width: auto;" onchange="renderBatchReport()">
 
                             <div class="ms-3 d-flex align-items-center gap-2">
-                                <label class="small fw-bold text-muted mb-0">Batch Number:</label>
+                                <label class="small fw-bold text-muted mb-0">Batch:</label>
                                 <input type="text" id="batchSearchInput" class="form-control form-control-sm"
-                                    placeholder="Search Batch Number..." onkeyup="renderBatchReport()" style="width: 130px;">
+                                    placeholder="Search Batch..." onkeyup="renderBatchReport()" style="width: 130px;">
                             </div>
                         </div>
                         <button class="btn btn-sm btn-primary" onclick="renderBatchReport()">�„ Refresh
@@ -2519,7 +2542,7 @@
                         <table class="table table-hover align-middle modern-table">
                             <thead>
                                 <tr>
-                                    <th>Batch Number</th>
+                                    <th>Batch Name</th>
                                     <th>Students (In Period)</th>
                                     <th class="text-end">Total Receivable</th>
                                     <th class="text-end">Collected (Income)</th>
@@ -2596,7 +2619,7 @@
             <div style="margin:20px 0;">
                 <p><strong>Student Name:</strong> <span id="recName"></span></p>
                 <p><strong>Course:</strong> <span id="recCourse"></span></p>
-                <p><strong>Batch Number:</strong> <span id="recBatch"></span></p>
+                <p><strong>Batch:</strong> <span id="recBatch"></span></p>
             </div>
             <table style="width:100%; border-collapse: collapse; margin: 20px 0;">
                 <tr style="border-bottom: 1px solid #ddd;">
@@ -2638,9 +2661,9 @@
                 <div class="modal-body">
                     <div class="row g-3 mb-4 no-print">
                         <div class="col-md-4">
-                            <label class="form-label small fw-bold">Select Batch Number</label>
+                            <label class="form-label small fw-bold">Select Batch</label>
                             <select id="attRepBatchSelect" class="form-select" onchange="renderAttendanceReport()">
-                                <option value="">Select a batch number...</option>
+                                <option value="">Select a batch...</option>
                             </select>
                         </div>
                         <div class="col-md-3">
@@ -2763,9 +2786,9 @@
                 <div class="modal-body">
                     <div class="row g-3 mb-4">
                         <div class="col-md-6">
-                            <label class="form-label small fw-bold">Select Batch Number</label>
+                            <label class="form-label small fw-bold">Select Batch</label>
                             <select id="attendanceBatchSelect" class="form-select" onchange="loadAttendanceList()">
-                                <option value="">Select a batch number...</option>
+                                <option value="">Select a batch...</option>
                             </select>
                         </div>
                         <div class="col-md-6">
@@ -2828,7 +2851,7 @@
                                     readonly>
                             </div>
                             <div class="col-md-4">
-                                <label class="form-label fw-bold small text-uppercase text-muted">Batch Number</label>
+                                <label class="form-label fw-bold small text-uppercase text-muted">Batch</label>
                                 <input type="text" name="studentBatch" id="examStudentBatchInput"
                                     class="form-control premium-input-modern bg-light" placeholder="Auto" readonly>
                             </div>
@@ -3042,7 +3065,7 @@
                                                 style="max-width: 200px;">Aviation Management</div>
                                         </div>
                                         <div class="col-6 pe-2">
-                                            <div class="id-card-label">Batch Number</div>
+                                            <div class="id-card-label">Batch</div>
                                             <div class="id-card-value" id="idCardBatch">Batch 00</div>
                                         </div>
                                         <div class="col-6">
