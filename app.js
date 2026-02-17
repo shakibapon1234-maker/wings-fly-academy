@@ -4788,439 +4788,362 @@ function buildCertHtml_Navy(s, linearLogo, premiumLogo, signatureImg, nsdaLogo, 
   return `
   <div id="certContainer" style="
     width:1056px; height:816px; padding:0; position:relative;
-    background:#060d1f; font-family:'Outfit',sans-serif; color:#fff;
-    overflow:hidden; box-sizing:border-box; border:12px solid #00e5ff;">
+    background:#040c1e; font-family:'Outfit',sans-serif; color:#fff;
+    overflow:hidden; box-sizing:border-box; border:10px solid #FFD700;">
 
     <!-- SVG Background -->
     <svg style="position:absolute;inset:0;width:100%;height:100%;z-index:0;" viewBox="0 0 1056 816" preserveAspectRatio="none" xmlns="http://www.w3.org/2000/svg">
       <defs>
         <linearGradient id="nc1" x1="0%" y1="0%" x2="100%" y2="100%">
-          <stop offset="0%" style="stop-color:#005Bea;stop-opacity:0.7"/>
-          <stop offset="100%" style="stop-color:#00C6FB;stop-opacity:0.7"/>
+          <stop offset="0%" style="stop-color:#003380;stop-opacity:0.85"/>
+          <stop offset="100%" style="stop-color:#0066CC;stop-opacity:0.85"/>
         </linearGradient>
         <linearGradient id="nc2" x1="0%" y1="0%" x2="100%" y2="100%">
-          <stop offset="0%" style="stop-color:#00e5ff;stop-opacity:0.5"/>
-          <stop offset="100%" style="stop-color:#005Bea;stop-opacity:0.5"/>
+          <stop offset="0%" style="stop-color:#FFD700;stop-opacity:0.12"/>
+          <stop offset="100%" style="stop-color:#005Bea;stop-opacity:0.15"/>
         </linearGradient>
-        <pattern id="ngrid" width="60" height="60" patternUnits="userSpaceOnUse">
-          <path d="M 60 0 L 0 0 0 60" fill="none" stroke="rgba(0,229,255,0.05)" stroke-width="0.5"/>
+        <linearGradient id="nc3" x1="0%" y1="0%" x2="100%" y2="100%">
+          <stop offset="0%" style="stop-color:#00e5ff;stop-opacity:0.08"/>
+          <stop offset="100%" style="stop-color:#FFD700;stop-opacity:0.05"/>
+        </linearGradient>
+        <pattern id="ngrid" width="55" height="55" patternUnits="userSpaceOnUse">
+          <path d="M 55 0 L 0 0 0 55" fill="none" stroke="rgba(255,215,0,0.04)" stroke-width="0.5"/>
         </pattern>
       </defs>
       <rect width="1056" height="816" fill="url(#ngrid)"/>
-      <path d="M0,0 L620,0 C330,8 95,290 0,630 Z" fill="url(#nc1)" opacity="0.18"/>
-      <path d="M0,0 L430,0 C215,8 55,200 0,430 Z" fill="url(#nc2)" opacity="0.25"/>
-      <path d="M1056,816 L530,816 C760,800 1050,540 1056,310 Z" fill="url(#nc1)" opacity="0.18"/>
-      <path d="M1056,816 L640,816 C820,800 1050,600 1056,430 Z" fill="url(#nc2)" opacity="0.25"/>
-      <circle cx="0" cy="0" r="180" fill="rgba(0,91,234,0.15)"/>
-      <circle cx="1056" cy="816" r="180" fill="rgba(0,198,251,0.12)"/>
+      <path d="M0,0 L580,0 C290,10 80,280 0,600 Z" fill="url(#nc1)" opacity="0.22"/>
+      <path d="M0,0 L400,0 C200,8 50,180 0,400 Z" fill="url(#nc2)" opacity="1"/>
+      <path d="M1056,816 L500,816 C740,800 1040,540 1056,300 Z" fill="url(#nc1)" opacity="0.22"/>
+      <path d="M1056,816 L660,816 C840,800 1050,600 1056,440 Z" fill="url(#nc2)" opacity="1"/>
+      <circle cx="120" cy="120" r="200" fill="rgba(0,51,128,0.12)"/>
+      <circle cx="936" cy="696" r="180" fill="rgba(0,102,204,0.1)"/>
+      <!-- Decorative gold dots -->
+      <circle cx="50" cy="400" r="2" fill="rgba(255,215,0,0.3)"/>
+      <circle cx="1006" cy="400" r="2" fill="rgba(255,215,0,0.3)"/>
     </svg>
 
-    <!-- Inner Frame -->
-    <div style="position:absolute;top:35px;left:35px;right:35px;bottom:35px;border:2px solid rgba(0,229,255,0.4);z-index:5;pointer-events:none;"></div>
-    <!-- Corner Accents -->
-    <svg style="position:absolute;top:28px;left:28px;z-index:6;width:40px;height:40px;" viewBox="0 0 40 40"><path d="M0,0 L25,0 M0,0 L0,25" stroke="#00e5ff" stroke-width="2" fill="none"/><circle cx="0" cy="0" r="3" fill="#00e5ff"/></svg>
-    <svg style="position:absolute;top:28px;right:28px;z-index:6;width:40px;height:40px;" viewBox="0 0 40 40"><path d="M40,0 L15,0 M40,0 L40,25" stroke="#00e5ff" stroke-width="2" fill="none"/><circle cx="40" cy="0" r="3" fill="#00e5ff"/></svg>
-    <svg style="position:absolute;bottom:28px;left:28px;z-index:6;width:40px;height:40px;" viewBox="0 0 40 40"><path d="M0,40 L25,40 M0,40 L0,15" stroke="#00e5ff" stroke-width="2" fill="none"/><circle cx="0" cy="40" r="3" fill="#00e5ff"/></svg>
-    <svg style="position:absolute;bottom:28px;right:28px;z-index:6;width:40px;height:40px;" viewBox="0 0 40 40"><path d="M40,40 L15,40 M40,40 L40,15" stroke="#00e5ff" stroke-width="2" fill="none"/><circle cx="40" cy="40" r="3" fill="#00e5ff"/></svg>
+    <!-- Double Border Frame - Gold + Cyan -->
+    <div style="position:absolute;top:28px;left:28px;right:28px;bottom:28px;border:2px solid rgba(255,215,0,0.5);z-index:5;pointer-events:none;"></div>
+    <div style="position:absolute;top:34px;left:34px;right:34px;bottom:34px;border:1px solid rgba(0,229,255,0.2);z-index:5;pointer-events:none;"></div>
+
+    <!-- Corner Accents - Gold -->
+    <svg style="position:absolute;top:22px;left:22px;z-index:6;width:45px;height:45px;" viewBox="0 0 45 45"><path d="M0,0 L30,0 M0,0 L0,30" stroke="#FFD700" stroke-width="2.5" fill="none"/><circle cx="0" cy="0" r="3.5" fill="#FFD700"/></svg>
+    <svg style="position:absolute;top:22px;right:22px;z-index:6;width:45px;height:45px;" viewBox="0 0 45 45"><path d="M45,0 L15,0 M45,0 L45,30" stroke="#FFD700" stroke-width="2.5" fill="none"/><circle cx="45" cy="0" r="3.5" fill="#FFD700"/></svg>
+    <svg style="position:absolute;bottom:22px;left:22px;z-index:6;width:45px;height:45px;" viewBox="0 0 45 45"><path d="M0,45 L30,45 M0,45 L0,15" stroke="#FFD700" stroke-width="2.5" fill="none"/><circle cx="0" cy="45" r="3.5" fill="#FFD700"/></svg>
+    <svg style="position:absolute;bottom:22px;right:22px;z-index:6;width:45px;height:45px;" viewBox="0 0 45 45"><path d="M45,45 L15,45 M45,45 L45,15" stroke="#FFD700" stroke-width="2.5" fill="none"/><circle cx="45" cy="45" r="3.5" fill="#FFD700"/></svg>
 
     <!-- Content -->
-    <div style="position:relative;z-index:10;padding:50px 70px;height:100%;">
-      <!-- Header -->
-      <div style="display:flex;justify-content:space-between;align-items:flex-start;margin-bottom:20px;">
-        <div style="width:100px;height:100px;background:#0a1a3a;border-radius:50%;padding:5px;box-shadow:0 0 20px rgba(0,229,255,0.5),0 0 40px rgba(0,91,234,0.3);display:flex;align-items:center;justify-content:center;">
-          <img src="${nsdaLogo}" style="max-height:86px;max-width:86px;border-radius:50%;" onerror="this.style.display='none'">
+    <div style="position:relative;z-index:10;padding:46px 68px;height:100%;box-sizing:border-box;">
+
+      <!-- Header Row -->
+      <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:0;">
+
+        <!-- NSDA Logo (Left) -->
+        <div style="width:105px;height:105px;background:#071428;border-radius:50%;padding:5px;box-shadow:0 0 0 2.5px #FFD700,0 0 20px rgba(255,215,0,0.35);display:flex;align-items:center;justify-content:center;flex-shrink:0;">
+          <img src="${nsdaLogo}" style="max-height:88px;max-width:88px;border-radius:50%;" onerror="this.style.display='none'">
         </div>
-        <div style="padding-top:8px;text-align:center;">
-          <div style="font-size:10px;letter-spacing:5px;color:rgba(0,229,255,0.6);font-family:'Josefin Sans',sans-serif;margin-bottom:8px;">· WINGS FLY AVIATION ACADEMY ·</div>
-          <img src="${linearLogo}" style="height:55px;width:auto;filter:brightness(0) invert(1);" onerror="this.style.display='none'">
+
+        <!-- Center: Academy + Logo -->
+        <div style="text-align:center;">
+          <div style="font-size:9.5px;letter-spacing:5px;color:#FFD700;font-family:sans-serif;margin-bottom:7px;text-transform:uppercase;">✦ Wings Fly Aviation Academy ✦</div>
+          <img src="${linearLogo}" style="height:50px;width:auto;filter:brightness(0) invert(1);" onerror="this.style.display='none'">
+          <div style="margin-top:5px;font-size:8.5px;letter-spacing:3px;color:rgba(0,229,255,0.5);text-transform:uppercase;">Excellence in Aviation Training</div>
         </div>
-        <div style="position:relative;width:110px;height:110px;">
-          <svg viewBox="0 0 110 110" style="position:absolute;inset:0;width:100%;height:100%;">
-            <polygon points="55,5 67,38 102,38 74,59 84,92 55,71 26,92 36,59 8,38 43,38" fill="#FFD700" opacity="0.95"/>
-            <polygon points="55,16 65,40 90,40 69,54 77,80 55,65 33,80 41,54 20,40 45,40" fill="#FFA000"/>
-            <text x="55" y="52" text-anchor="middle" font-size="8" fill="white" font-family="sans-serif" letter-spacing="0.5" font-weight="700">EXCELLENCE</text>
-            <text x="55" y="64" text-anchor="middle" font-size="7" fill="white" font-family="sans-serif" letter-spacing="0.5">CERTIFICATE</text>
+
+        <!-- Gold Star Seal (Right) -->
+        <div style="flex-shrink:0;width:118px;height:118px;">
+          <svg viewBox="0 0 118 118" style="width:118px;height:118px;">
+            <circle cx="59" cy="59" r="55" fill="none" stroke="#FFD700" stroke-width="1.5" stroke-dasharray="5,3" opacity="0.45"/>
+            <circle cx="59" cy="59" r="49" fill="none" stroke="#FFD700" stroke-width="1" opacity="0.3"/>
+            <polygon points="59,7 72,42 109,42 80,64 91,99 59,77 27,99 38,64 9,42 46,42" fill="#D4A800"/>
+            <polygon points="59,18 69,44 96,44 75,59 83,85 59,69 35,85 43,59 22,44 49,44" fill="#FFD700"/>
+            <text x="59" y="54" text-anchor="middle" font-size="7.5" fill="#003380" font-family="sans-serif" letter-spacing="0.5" font-weight="900">WINGS FLY</text>
+            <text x="59" y="65" text-anchor="middle" font-size="6.5" fill="#003380" font-family="sans-serif" letter-spacing="0.5" font-weight="700">AVIATION</text>
+            <text x="59" y="75" text-anchor="middle" font-size="5.5" fill="#003380" font-family="sans-serif" letter-spacing="0.5">ACADEMY</text>
           </svg>
         </div>
       </div>
 
+      <!-- Gold Top Divider -->
+      <div style="margin:8px 0 0;height:1.5px;background:linear-gradient(90deg,transparent,#FFD700 25%,rgba(0,229,255,0.6) 50%,#FFD700 75%,transparent);opacity:0.65;"></div>
+
       <!-- Body -->
-      <div style="text-align:center;margin-top:30px;">
-        <div style="font-size:11px;letter-spacing:5px;color:rgba(0,229,255,0.6);font-family:sans-serif;text-transform:uppercase;margin-bottom:6px;">· Wings Fly Aviation Academy ·</div>
-        <svg width="500" height="8" style="display:block;margin:0 auto 6px;"><defs><linearGradient id="lg_n1" x1="0%" y1="0%" x2="100%" y2="0%"><stop offset="0%" stop-color="transparent"/><stop offset="50%" stop-color="#00e5ff"/><stop offset="100%" stop-color="transparent"/></linearGradient></defs><line x1="0" y1="4" x2="500" y2="4" stroke="url(#lg_n1)" stroke-width="1"/></svg>
-        <div style="font-size:85px;font-weight:900;font-family:'Oswald',sans-serif;letter-spacing:5px;line-height:1;background:linear-gradient(135deg,#00e5ff,#a0f0ff,#00e5ff);-webkit-background-clip:text;-webkit-text-fill-color:transparent;background-clip:text;">CERTIFICATE</div>
-        <div style="font-size:28px;font-weight:600;color:rgba(255,255,255,0.7);letter-spacing:2px;margin-top:4px;">of Appreciation</div>
-        <p style="font-size:17px;margin-top:30px;color:rgba(255,255,255,0.45);font-style:italic;font-family:'Cormorant Garamond',serif;letter-spacing:1px;">This certificate is proudly presented for honorable achievement to</p>
-        <div style="font-size:62px;margin:16px 0;color:#fff;font-family:'Rye',serif;font-weight:400;text-transform:uppercase;letter-spacing:2px;text-shadow:0 0 30px rgba(0,229,255,0.5),0 0 60px rgba(0,91,234,0.3);">
+      <div style="text-align:center;margin-top:18px;">
+
+        <!-- CERTIFICATE Title -->
+        <div style="font-size:80px;font-weight:900;font-family:'Oswald',sans-serif;letter-spacing:6px;line-height:1;color:#00e5ff;text-shadow:0 0 25px rgba(0,229,255,0.5),0 2px 0 rgba(0,40,100,0.5);">CERTIFICATE</div>
+        <div style="font-size:25px;font-weight:700;letter-spacing:5px;margin-top:3px;color:#FFD700;text-shadow:0 0 12px rgba(255,215,0,0.4);">✦ OF APPRECIATION ✦</div>
+
+        <p style="font-size:15.5px;margin-top:18px;color:rgba(255,255,255,0.5);font-style:italic;letter-spacing:0.8px;">This certificate is proudly presented for honorable achievement to</p>
+
+        <!-- Student Name -->
+        <div style="font-size:56px;margin:10px 0 5px;color:#fff;font-family:'Rye',serif;font-weight:400;text-transform:uppercase;letter-spacing:2px;text-shadow:0 0 20px rgba(0,229,255,0.35),0 0 50px rgba(0,91,234,0.2);">
           ${s.name || 'Student Name'}
         </div>
-        <div style="display:flex;justify-content:center;gap:0;margin:12px 0;font-family:'Courier New',monospace;font-size:23px;font-weight:900;color:#fff;">
-          BATCH – ${s.batch || 'N/A'} &nbsp;✦&nbsp; STUDENT ID : ${s.studentId || '-'}
+
+        <!-- Name underline -->
+        <div style="width:440px;height:1.5px;background:linear-gradient(90deg,transparent,#FFD700,rgba(0,229,255,0.7),#FFD700,transparent);margin:0 auto 12px;opacity:0.7;"></div>
+
+        <!-- Batch + ID Badge -->
+        <div style="display:inline-flex;align-items:center;gap:18px;padding:7px 28px;border:1.5px solid rgba(255,215,0,0.35);border-radius:4px;background:rgba(0,51,128,0.2);font-family:'Courier New',monospace;font-size:18px;font-weight:900;color:#fff;letter-spacing:1px;">
+          <span>BATCH — ${s.batch || 'N/A'}</span>
+          <span style="color:#FFD700;font-size:14px;">✦</span>
+          <span>STUDENT ID : ${s.studentId || '-'}</span>
         </div>
-        <svg width="450" height="8" style="display:block;margin:4px auto;"><line x1="0" y1="4" x2="450" y2="4" stroke="url(#lg_n1)" stroke-width="1"/></svg>
-        <div style="margin-top:22px;padding:0 80px;font-size:14px;color:rgba(255,255,255,0.45);font-weight:700;text-transform:uppercase;line-height:1.7;letter-spacing:0.5px;">
-          Certification on Training About The "${(s.course || 'COURSE')}"<br>At ${academyName.toUpperCase()}
+
+        <!-- Course Info -->
+        <div style="margin-top:16px;padding:0 90px;font-size:13px;color:rgba(255,255,255,0.42);font-weight:700;text-transform:uppercase;line-height:1.9;letter-spacing:0.5px;">
+          Certification On Training About The &ldquo;${(s.course || 'COURSE')}&rdquo;<br>At ${academyName.toUpperCase()}
         </div>
       </div>
 
       <!-- Footer -->
-      <div style="position:absolute;bottom:50px;left:70px;z-index:20;">
-        <p style="margin:0;font-size:13px;color:rgba(0,229,255,0.5);font-weight:700;">wingsflyaviationacademy.com</p>
+      <div style="position:absolute;bottom:46px;left:66px;z-index:20;">
+        <div style="width:2px;height:24px;background:#FFD700;margin-bottom:5px;opacity:0.55;"></div>
+        <p style="margin:0;font-size:12px;color:rgba(0,229,255,0.55);font-weight:700;letter-spacing:0.8px;">wingsflyaviationacademy.com</p>
+        <p style="margin:2px 0 0;font-size:10px;color:rgba(255,255,255,0.28);letter-spacing:0.5px;">Dhaka, Bangladesh</p>
       </div>
-      <div style="position:absolute;bottom:50px;right:70px;z-index:20;text-align:center;">
-        <div style="margin-bottom:2px;height:70px;display:flex;align-items:flex-end;justify-content:center;">
-          ${signatureImg ? `<img src="${signatureImg}" style="height:65px;width:auto;" onerror="this.style.display='none'">` : ''}
+      <div style="position:absolute;bottom:44px;right:66px;z-index:20;text-align:center;">
+        <div style="height:65px;display:flex;align-items:flex-end;justify-content:center;margin-bottom:4px;">
+          ${signatureImg ? `<img src="${signatureImg}" style="height:60px;width:auto;" onerror="this.style.display='none'">` : '<div style="height:60px;"></div>'}
         </div>
-        <div style="width:200px;height:2px;background:linear-gradient(90deg,#00e5ff,#005bea);margin:0 auto 5px;"></div>
-        <p style="margin:0;font-weight:800;font-size:14px;text-transform:uppercase;color:#fff;">CHAIRMAN</p>
-        <p style="margin:0;font-size:13px;color:rgba(0,229,255,0.7);font-weight:700;">FERDOUS AHMED</p>
+        <div style="width:175px;height:1.5px;background:linear-gradient(90deg,rgba(0,229,255,0.3),#FFD700,rgba(0,229,255,0.3));margin:0 auto 5px;"></div>
+        <p style="margin:0;font-weight:800;font-size:12.5px;text-transform:uppercase;color:#FFD700;letter-spacing:2px;">CHAIRMAN</p>
+        <p style="margin:2px 0 0;font-size:12px;color:rgba(255,255,255,0.8);font-weight:700;">FERDOUS AHMED</p>
       </div>
     </div>
   </div>`;
 }
-
 function buildCertHtml_Cosmos(s, linearLogo, premiumLogo, signatureImg, nsdaLogo, academyName) {
   return `
   <div id="certContainer" style="
     width:1056px; height:816px; padding:0; position:relative;
-    background:#060b1a; font-family:'Outfit',sans-serif; color:#fff;
-    overflow:hidden; box-sizing:border-box; border:12px solid #8a2be2;">
+    background:#05081a; font-family:'Outfit',sans-serif; color:#fff;
+    overflow:hidden; box-sizing:border-box; border:10px solid #a855f7;">
 
     <!-- SVG Background -->
     <svg style="position:absolute;inset:0;width:100%;height:100%;z-index:0;" viewBox="0 0 1056 816" preserveAspectRatio="none" xmlns="http://www.w3.org/2000/svg">
       <defs>
         <linearGradient id="cc1" x1="0%" y1="0%" x2="100%" y2="100%">
-          <stop offset="0%" style="stop-color:#8a2be2;stop-opacity:0.6"/>
-          <stop offset="100%" style="stop-color:#4400ff;stop-opacity:0.6"/>
+          <stop offset="0%" style="stop-color:#7c3aed;stop-opacity:0.7"/>
+          <stop offset="100%" style="stop-color:#4f46e5;stop-opacity:0.7"/>
         </linearGradient>
         <linearGradient id="cc2" x1="0%" y1="0%" x2="100%" y2="100%">
-          <stop offset="0%" style="stop-color:#00ffc8;stop-opacity:0.4"/>
-          <stop offset="100%" style="stop-color:#8a2be2;stop-opacity:0.4"/>
+          <stop offset="0%" style="stop-color:#00ffc8;stop-opacity:0.15"/>
+          <stop offset="100%" style="stop-color:#7c3aed;stop-opacity:0.15"/>
         </linearGradient>
-        <pattern id="cgrid" width="55" height="55" patternUnits="userSpaceOnUse">
-          <path d="M 55 0 L 0 0 0 55" fill="none" stroke="rgba(138,43,226,0.06)" stroke-width="0.5"/>
+        <radialGradient id="cc_glow1" cx="15%" cy="15%" r="40%">
+          <stop offset="0%" style="stop-color:#7c3aed;stop-opacity:0.3"/>
+          <stop offset="100%" style="stop-color:transparent;stop-opacity:0"/>
+        </radialGradient>
+        <radialGradient id="cc_glow2" cx="85%" cy="85%" r="40%">
+          <stop offset="0%" style="stop-color:#00ffc8;stop-opacity:0.2"/>
+          <stop offset="100%" style="stop-color:transparent;stop-opacity:0"/>
+        </radialGradient>
+        <pattern id="cgrid" width="50" height="50" patternUnits="userSpaceOnUse">
+          <path d="M 50 0 L 0 0 0 50" fill="none" stroke="rgba(168,85,247,0.07)" stroke-width="0.5"/>
         </pattern>
       </defs>
       <rect width="1056" height="816" fill="url(#cgrid)"/>
-      <circle cx="0" cy="0" r="280" fill="rgba(138,43,226,0.18)"/>
-      <circle cx="1056" cy="816" r="250" fill="rgba(0,255,200,0.12)"/>
-      <circle cx="528" cy="408" r="320" fill="rgba(255,100,0,0.04)"/>
-      <path d="M0,0 L620,0 C330,8 95,290 0,630 Z" fill="url(#cc1)" opacity="0.22"/>
-      <path d="M0,0 L430,0 C215,8 55,200 0,430 Z" fill="url(#cc2)" opacity="0.28"/>
-      <path d="M1056,816 L530,816 C760,800 1050,540 1056,310 Z" fill="url(#cc1)" opacity="0.22"/>
-      <path d="M1056,816 L640,816 C820,800 1050,600 1056,430 Z" fill="url(#cc2)" opacity="0.28"/>
+      <rect width="1056" height="816" fill="url(#cc_glow1)"/>
+      <rect width="1056" height="816" fill="url(#cc_glow2)"/>
+      <!-- Large corner orbs -->
+      <circle cx="0" cy="0" r="320" fill="rgba(124,58,237,0.15)"/>
+      <circle cx="1056" cy="816" r="280" fill="rgba(0,255,200,0.1)"/>
+      <circle cx="528" cy="408" r="280" fill="rgba(79,70,229,0.05)"/>
+      <!-- Corner shapes -->
+      <path d="M0,0 L580,0 C290,10 80,280 0,600 Z" fill="url(#cc1)" opacity="0.2"/>
+      <path d="M0,0 L380,0 C190,8 45,170 0,380 Z" fill="url(#cc2)" opacity="1"/>
+      <path d="M1056,816 L500,816 C740,800 1040,540 1056,300 Z" fill="url(#cc1)" opacity="0.2"/>
+      <path d="M1056,816 L680,816 C850,800 1050,620 1056,460 Z" fill="url(#cc2)" opacity="1"/>
+      <!-- Star particles -->
+      <circle cx="200" cy="650" r="1.5" fill="rgba(168,85,247,0.6)"/>
+      <circle cx="850" cy="160" r="1.5" fill="rgba(0,255,200,0.6)"/>
+      <circle cx="950" cy="450" r="1" fill="rgba(168,85,247,0.4)"/>
+      <circle cx="100" cy="300" r="1" fill="rgba(0,255,200,0.4)"/>
     </svg>
 
-    <!-- Inner Frame -->
-    <div style="position:absolute;top:35px;left:35px;right:35px;bottom:35px;border:2px solid rgba(138,43,226,0.4);z-index:5;pointer-events:none;"></div>
-    <!-- Corner Accents -->
-    <svg style="position:absolute;top:28px;left:28px;z-index:6;width:40px;height:40px;" viewBox="0 0 40 40"><path d="M0,0 L25,0 M0,0 L0,25" stroke="#8a2be2" stroke-width="2" fill="none"/><circle cx="0" cy="0" r="3" fill="#8a2be2"/></svg>
-    <svg style="position:absolute;top:28px;right:28px;z-index:6;width:40px;height:40px;" viewBox="0 0 40 40"><path d="M40,0 L15,0 M40,0 L40,25" stroke="#00ffc8" stroke-width="2" fill="none"/><circle cx="40" cy="0" r="3" fill="#00ffc8"/></svg>
-    <svg style="position:absolute;bottom:28px;left:28px;z-index:6;width:40px;height:40px;" viewBox="0 0 40 40"><path d="M0,40 L25,40 M0,40 L0,15" stroke="#00ffc8" stroke-width="2" fill="none"/><circle cx="0" cy="40" r="3" fill="#00ffc8"/></svg>
-    <svg style="position:absolute;bottom:28px;right:28px;z-index:6;width:40px;height:40px;" viewBox="0 0 40 40"><path d="M40,40 L15,40 M40,40 L40,15" stroke="#8a2be2" stroke-width="2" fill="none"/><circle cx="40" cy="40" r="3" fill="#8a2be2"/></svg>
+    <!-- Double Border -->
+    <div style="position:absolute;top:28px;left:28px;right:28px;bottom:28px;border:2px solid rgba(168,85,247,0.55);z-index:5;pointer-events:none;"></div>
+    <div style="position:absolute;top:34px;left:34px;right:34px;bottom:34px;border:1px solid rgba(0,255,200,0.18);z-index:5;pointer-events:none;"></div>
+
+    <!-- Corner Accents - Purple + Teal alternating -->
+    <svg style="position:absolute;top:22px;left:22px;z-index:6;width:45px;height:45px;" viewBox="0 0 45 45"><path d="M0,0 L30,0 M0,0 L0,30" stroke="#a855f7" stroke-width="2.5" fill="none"/><circle cx="0" cy="0" r="3.5" fill="#a855f7"/></svg>
+    <svg style="position:absolute;top:22px;right:22px;z-index:6;width:45px;height:45px;" viewBox="0 0 45 45"><path d="M45,0 L15,0 M45,0 L45,30" stroke="#00ffc8" stroke-width="2.5" fill="none"/><circle cx="45" cy="0" r="3.5" fill="#00ffc8"/></svg>
+    <svg style="position:absolute;bottom:22px;left:22px;z-index:6;width:45px;height:45px;" viewBox="0 0 45 45"><path d="M0,45 L30,45 M0,45 L0,15" stroke="#00ffc8" stroke-width="2.5" fill="none"/><circle cx="0" cy="45" r="3.5" fill="#00ffc8"/></svg>
+    <svg style="position:absolute;bottom:22px;right:22px;z-index:6;width:45px;height:45px;" viewBox="0 0 45 45"><path d="M45,45 L15,45 M45,45 L45,15" stroke="#a855f7" stroke-width="2.5" fill="none"/><circle cx="45" cy="45" r="3.5" fill="#a855f7"/></svg>
 
     <!-- Content -->
-    <div style="position:relative;z-index:10;padding:50px 70px;height:100%;">
-      <!-- Header -->
-      <div style="display:flex;justify-content:space-between;align-items:flex-start;margin-bottom:20px;">
-        <div style="width:100px;height:100px;background:#120930;border-radius:50%;padding:5px;box-shadow:0 0 20px rgba(138,43,226,0.6),0 0 40px rgba(68,0,255,0.3);display:flex;align-items:center;justify-content:center;">
-          <img src="${nsdaLogo}" style="max-height:86px;max-width:86px;border-radius:50%;" onerror="this.style.display='none'">
+    <div style="position:relative;z-index:10;padding:46px 68px;height:100%;box-sizing:border-box;">
+
+      <!-- Header Row -->
+      <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:0;">
+
+        <!-- NSDA Logo (Left) -->
+        <div style="width:105px;height:105px;background:#100826;border-radius:50%;padding:5px;box-shadow:0 0 0 2.5px #a855f7,0 0 20px rgba(168,85,247,0.45);display:flex;align-items:center;justify-content:center;flex-shrink:0;">
+          <img src="${nsdaLogo}" style="max-height:88px;max-width:88px;border-radius:50%;" onerror="this.style.display='none'">
         </div>
-        <div style="padding-top:8px;text-align:center;">
-          <div style="font-size:10px;letter-spacing:5px;color:rgba(0,255,200,0.6);font-family:sans-serif;margin-bottom:8px;">· WINGS FLY AVIATION ACADEMY ·</div>
-          <img src="${linearLogo}" style="height:55px;width:auto;filter:brightness(0) invert(1);" onerror="this.style.display='none'">
+
+        <!-- Center: Academy + Logo -->
+        <div style="text-align:center;">
+          <div style="font-size:9.5px;letter-spacing:5px;color:#00ffc8;font-family:sans-serif;margin-bottom:7px;text-transform:uppercase;">✦ Wings Fly Aviation Academy ✦</div>
+          <img src="${linearLogo}" style="height:50px;width:auto;filter:brightness(0) invert(1);" onerror="this.style.display='none'">
+          <div style="margin-top:5px;font-size:8.5px;letter-spacing:3px;color:rgba(168,85,247,0.6);text-transform:uppercase;">Excellence in Aviation Training</div>
         </div>
-        <div style="position:relative;width:110px;height:110px;">
-          <svg viewBox="0 0 110 110" style="position:absolute;inset:0;width:100%;height:100%;">
-            <polygon points="55,5 67,38 102,38 74,59 84,92 55,71 26,92 36,59 8,38 43,38" fill="#8a2be2" opacity="0.9"/>
-            <polygon points="55,16 65,40 90,40 69,54 77,80 55,65 33,80 41,54 20,40 45,40" fill="#5500aa"/>
-            <text x="55" y="52" text-anchor="middle" font-size="8" fill="#00ffc8" font-family="sans-serif" letter-spacing="0.5" font-weight="700">EXCELLENCE</text>
-            <text x="55" y="64" text-anchor="middle" font-size="7" fill="#00ffc8" font-family="sans-serif" letter-spacing="0.5">CERTIFICATE</text>
+
+        <!-- Cosmos Seal (Right) -->
+        <div style="flex-shrink:0;width:118px;height:118px;">
+          <svg viewBox="0 0 118 118" style="width:118px;height:118px;">
+            <circle cx="59" cy="59" r="55" fill="none" stroke="#a855f7" stroke-width="1.5" stroke-dasharray="5,3" opacity="0.5"/>
+            <circle cx="59" cy="59" r="49" fill="none" stroke="#00ffc8" stroke-width="1" opacity="0.3"/>
+            <polygon points="59,7 72,42 109,42 80,64 91,99 59,77 27,99 38,64 9,42 46,42" fill="#5b21b6"/>
+            <polygon points="59,18 69,44 96,44 75,59 83,85 59,69 35,85 43,59 22,44 49,44" fill="#7c3aed"/>
+            <text x="59" y="54" text-anchor="middle" font-size="7.5" fill="#00ffc8" font-family="sans-serif" letter-spacing="0.5" font-weight="900">WINGS FLY</text>
+            <text x="59" y="65" text-anchor="middle" font-size="6.5" fill="#00ffc8" font-family="sans-serif" letter-spacing="0.5" font-weight="700">AVIATION</text>
+            <text x="59" y="75" text-anchor="middle" font-size="5.5" fill="rgba(0,255,200,0.7)" font-family="sans-serif" letter-spacing="0.5">ACADEMY</text>
           </svg>
         </div>
       </div>
 
+      <!-- Divider -->
+      <div style="margin:8px 0 0;height:1.5px;background:linear-gradient(90deg,transparent,#a855f7 30%,#00ffc8 55%,#a855f7 80%,transparent);opacity:0.6;"></div>
+
       <!-- Body -->
-      <div style="text-align:center;margin-top:28px;">
-        <div style="font-size:11px;letter-spacing:5px;color:rgba(0,255,200,0.55);font-family:sans-serif;text-transform:uppercase;margin-bottom:6px;">· Wings Fly Aviation Academy ·</div>
-        <svg width="500" height="8" style="display:block;margin:0 auto 6px;"><defs><linearGradient id="lg_c1" x1="0%" y1="0%" x2="100%" y2="0%"><stop offset="0%" stop-color="transparent"/><stop offset="30%" stop-color="#8a2be2"/><stop offset="70%" stop-color="#00ffc8"/><stop offset="100%" stop-color="transparent"/></linearGradient></defs><line x1="0" y1="4" x2="500" y2="4" stroke="url(#lg_c1)" stroke-width="1"/></svg>
-        <div style="font-size:85px;font-weight:900;font-family:'Oswald',sans-serif;letter-spacing:5px;line-height:1;background:linear-gradient(135deg,#8a2be2 0%,#00ffc8 50%,#ff6400 100%);-webkit-background-clip:text;-webkit-text-fill-color:transparent;background-clip:text;">CERTIFICATE</div>
-        <div style="font-size:28px;font-weight:600;color:rgba(255,255,255,0.65);letter-spacing:2px;margin-top:4px;">✦ of Appreciation ✦</div>
-        <p style="font-size:17px;margin-top:28px;color:rgba(255,255,255,0.4);font-style:italic;font-family:'Cormorant Garamond',serif;letter-spacing:1px;">This certificate is proudly presented for honorable achievement to</p>
-        <div style="font-size:60px;margin:14px 0;color:#fff;font-family:'Rye',serif;font-weight:400;text-transform:uppercase;letter-spacing:2px;text-shadow:0 0 30px rgba(138,43,226,0.6),0 0 60px rgba(0,255,200,0.3);">
+      <div style="text-align:center;margin-top:18px;">
+
+        <!-- CERTIFICATE Title -->
+        <div style="font-size:80px;font-weight:900;font-family:'Oswald',sans-serif;letter-spacing:6px;line-height:1;color:#b44fff;text-shadow:0 0 25px rgba(168,85,247,0.6),0 2px 0 rgba(50,0,80,0.5);">CERTIFICATE</div>
+        <div style="font-size:25px;font-weight:700;letter-spacing:5px;margin-top:3px;color:#00ffc8;text-shadow:0 0 12px rgba(0,255,200,0.4);">✦ OF APPRECIATION ✦</div>
+
+        <p style="font-size:15.5px;margin-top:18px;color:rgba(255,255,255,0.45);font-style:italic;letter-spacing:0.8px;">This certificate is proudly presented for honorable achievement to</p>
+
+        <!-- Student Name -->
+        <div style="font-size:56px;margin:10px 0 5px;color:#fff;font-family:'Rye',serif;font-weight:400;text-transform:uppercase;letter-spacing:2px;text-shadow:0 0 20px rgba(168,85,247,0.5),0 0 50px rgba(0,255,200,0.2);">
           ${s.name || 'Student Name'}
         </div>
-        <div style="display:flex;justify-content:center;gap:0;margin:10px 0;font-family:'Courier New',monospace;font-size:22px;font-weight:900;color:#fff;">
-          BATCH – ${s.batch || 'N/A'} &nbsp;✦&nbsp; STUDENT ID : ${s.studentId || '-'}
+
+        <!-- Name underline -->
+        <div style="width:440px;height:1.5px;background:linear-gradient(90deg,transparent,#a855f7,#00ffc8,#a855f7,transparent);margin:0 auto 12px;opacity:0.7;"></div>
+
+        <!-- Batch + ID Badge -->
+        <div style="display:inline-flex;align-items:center;gap:18px;padding:7px 28px;border:1.5px solid rgba(168,85,247,0.4);border-radius:4px;background:rgba(124,58,237,0.15);font-family:'Courier New',monospace;font-size:18px;font-weight:900;color:#fff;letter-spacing:1px;">
+          <span>BATCH — ${s.batch || 'N/A'}</span>
+          <span style="color:#00ffc8;font-size:14px;">✦</span>
+          <span>STUDENT ID : ${s.studentId || '-'}</span>
         </div>
-        <svg width="450" height="8" style="display:block;margin:4px auto;"><line x1="0" y1="4" x2="450" y2="4" stroke="url(#lg_c1)" stroke-width="1"/></svg>
-        <div style="margin-top:20px;padding:0 80px;font-size:14px;color:rgba(255,255,255,0.4);font-weight:700;text-transform:uppercase;line-height:1.7;letter-spacing:0.5px;">
-          Certification on Training About The "${(s.course || 'COURSE')}"<br>At ${academyName.toUpperCase()}
+
+        <!-- Course Info -->
+        <div style="margin-top:16px;padding:0 90px;font-size:13px;color:rgba(255,255,255,0.4);font-weight:700;text-transform:uppercase;line-height:1.9;letter-spacing:0.5px;">
+          Certification On Training About The &ldquo;${(s.course || 'COURSE')}&rdquo;<br>At ${academyName.toUpperCase()}
         </div>
       </div>
 
       <!-- Footer -->
-      <div style="position:absolute;bottom:50px;left:70px;z-index:20;">
-        <p style="margin:0;font-size:13px;color:rgba(0,255,200,0.45);font-weight:700;">wingsflyaviationacademy.com</p>
+      <div style="position:absolute;bottom:46px;left:66px;z-index:20;">
+        <div style="width:2px;height:24px;background:#00ffc8;margin-bottom:5px;opacity:0.5;"></div>
+        <p style="margin:0;font-size:12px;color:rgba(0,255,200,0.5);font-weight:700;letter-spacing:0.8px;">wingsflyaviationacademy.com</p>
+        <p style="margin:2px 0 0;font-size:10px;color:rgba(255,255,255,0.25);letter-spacing:0.5px;">Dhaka, Bangladesh</p>
       </div>
-      <div style="position:absolute;bottom:50px;right:70px;z-index:20;text-align:center;">
-        <div style="margin-bottom:2px;height:70px;display:flex;align-items:flex-end;justify-content:center;">
-          ${signatureImg ? `<img src="${signatureImg}" style="height:65px;width:auto;" onerror="this.style.display='none'">` : ''}
+      <div style="position:absolute;bottom:44px;right:66px;z-index:20;text-align:center;">
+        <div style="height:65px;display:flex;align-items:flex-end;justify-content:center;margin-bottom:4px;">
+          ${signatureImg ? `<img src="${signatureImg}" style="height:60px;width:auto;" onerror="this.style.display='none'">` : '<div style="height:60px;"></div>'}
         </div>
-        <div style="width:200px;height:2px;background:linear-gradient(90deg,#8a2be2,#00ffc8);margin:0 auto 5px;"></div>
-        <p style="margin:0;font-weight:800;font-size:14px;text-transform:uppercase;color:#fff;">CHAIRMAN</p>
-        <p style="margin:0;font-size:13px;color:rgba(0,255,200,0.65);font-weight:700;">FERDOUS AHMED</p>
+        <div style="width:175px;height:1.5px;background:linear-gradient(90deg,rgba(168,85,247,0.4),#00ffc8,rgba(168,85,247,0.4));margin:0 auto 5px;"></div>
+        <p style="margin:0;font-weight:800;font-size:12.5px;text-transform:uppercase;color:#00ffc8;letter-spacing:2px;">CHAIRMAN</p>
+        <p style="margin:2px 0 0;font-size:12px;color:rgba(255,255,255,0.8);font-weight:700;">FERDOUS AHMED</p>
       </div>
     </div>
   </div>`;
 }
-
 // ===================================
 // ORIGINAL generateCertificate (updated with design switch)
 // ===================================
 
 function generateCertificate() {
-  const btn = document.getElementById('btnCertificate');
-  const originalText = btn.innerHTML;
-
-  // Validate student selection
   if (!currentStudentForProfile) {
     showErrorToast('No student selected.');
     return;
   }
 
-  const s = currentStudentForProfile;
-  const academyName = "Wings Fly Aviation & Career Development Academy";
-
-  // Show loading status
-  btn.innerHTML = 'â³ Generating...';
-  btn.disabled = true;
-
-  // Use pre-loaded Base64 logos if available
-  const linearLogo = (window.APP_LOGOS && window.APP_LOGOS.linear) ? window.APP_LOGOS.linear : 'wings_logo_linear.png';
-  const premiumLogo = (window.APP_LOGOS && window.APP_LOGOS.premium) ? window.APP_LOGOS.premium : 'wings_logo_premium.png';
-  const signatureImg = (window.APP_LOGOS && window.APP_LOGOS.signature) ? window.APP_LOGOS.signature : '';
-  const nsdaLogo = (window.APP_LOGOS && window.APP_LOGOS.nsda) ? window.APP_LOGOS.nsda : '';
-
-  // === DESIGN SWITCH: Choose based on settings ===
+  const s            = currentStudentForProfile;
+  const academyName  = "Wings Fly Aviation & Career Development Academy";
   const selectedDesign = globalData.settings?.certDesign || 'navy';
-  let certHtml;
-  if (selectedDesign === 'cosmos') {
-    certHtml = buildCertHtml_Cosmos(s, linearLogo, premiumLogo, signatureImg, nsdaLogo, academyName);
-  } else if (selectedDesign === 'navy') {
-    certHtml = buildCertHtml_Navy(s, linearLogo, premiumLogo, signatureImg, nsdaLogo, academyName);
-  } else {
-    // fallback: original design
-    certHtml = buildCertHtml_Navy(s, linearLogo, premiumLogo, signatureImg, nsdaLogo, academyName);
-  }
 
-  /* ===== ORIGINAL DESIGN (kept as reference — not used when new design selected) =====
-  const certHtml_original = `
-    <div id="certContainer" style="
-      width: 1056px; 
-      height: 816px; 
-      padding: 0; 
-      position: relative; 
-      background: #e6f4ff;
-      font-family: 'Outfit', sans-serif;
-      color: #333;
-      overflow: hidden;
-      box-sizing: border-box;
-      border: 12px solid #0d2e5c; 
-    ">
-      <!-- Graphics Layer -->
-      <div style="position: absolute; top: 0; left: 0; width: 100%; height: 100%; z-index: 0;">
-         <svg viewBox="0 0 1056 816" xmlns="http://www.w3.org/2000/svg" preserveAspectRatio="none" style="width: 100%; height: 100%;">
-            <defs>
-               <!-- Vibrant Blue Gradient (Brand Color) -->
-               <linearGradient id="vibrantBlue" x1="0%" y1="0%" x2="100%" y2="100%">
-                  <stop offset="0%" style="stop-color:#005Bea;stop-opacity:1" /> <!-- Royal Blue -->
-                  <stop offset="100%" style="stop-color:#00C6FB;stop-opacity:1" /> <!-- Bright Cyan -->
-               </linearGradient>
-               
-               <!-- Rich Gold Gradient -->
-               <linearGradient id="goldGrad" x1="0%" y1="0%" x2="100%" y2="100%">
-                  <stop offset="0%" style="stop-color:#FFD700;stop-opacity:1" />
-                  <stop offset="50%" style="stop-color:#FFAA00;stop-opacity:1" /> <!-- Slightly warmer orange-gold -->
-                  <stop offset="100%" style="stop-color:#FFD700;stop-opacity:1" />
-               </linearGradient>
-               
-               <!-- Cool Platinum/Silver Gradient -->
-               <linearGradient id="platinumGrad" x1="0%" y1="0%" x2="100%" y2="100%">
-                  <stop offset="0%" style="stop-color:#e0eafc;stop-opacity:1" />
-                  <stop offset="100%" style="stop-color:#cfdef3;stop-opacity:1" />
-               </linearGradient>
-            </defs>
-            
-            <!-- Top-Left Curves -->
-            <!-- Platinum (Outer) -->
-            <path d="M0,0 L650,0 C350,10 100,300 0,650 Z" fill="url(#platinumGrad)" />
-            <!-- Gold (Middle) -->
-            <path d="M0,0 L520,0 C300,10 80,250 0,520 Z" fill="url(#goldGrad)" />
-            <!-- Vibrant Blue (Inner) -->
-            <path d="M0,0 L420,0 C220,10 50,180 0,420 Z" fill="url(#vibrantBlue)" />
+  const linearLogo   = (window.APP_LOGOS && window.APP_LOGOS.linear)    ? window.APP_LOGOS.linear    : 'wings_logo_linear.png';
+  const premiumLogo  = (window.APP_LOGOS && window.APP_LOGOS.premium)   ? window.APP_LOGOS.premium   : 'wings_logo_premium.png';
+  const signatureImg = (window.APP_LOGOS && window.APP_LOGOS.signature) ? window.APP_LOGOS.signature : '';
+  const nsdaLogo     = (window.APP_LOGOS && window.APP_LOGOS.nsda)      ? window.APP_LOGOS.nsda      : '';
 
-            <!-- Bottom-Right Curves -->
-            <!-- Gold (Outer) -->
-            <path d="M1056,816 L500,816 C750,800 1050,550 1056,300 Z" fill="url(#goldGrad)" />
-            <!-- Vibrant Blue (Inner) -->
-            <path d="M1056,816 L620,816 C820,800 1050,600 1056,420 Z" fill="url(#vibrantBlue)" />
-         </svg>
-      </div>
+  const certHtml = (selectedDesign === 'cosmos')
+    ? buildCertHtml_Cosmos(s, linearLogo, premiumLogo, signatureImg, nsdaLogo, academyName)
+    : buildCertHtml_Navy(s, linearLogo, premiumLogo, signatureImg, nsdaLogo, academyName);
 
-      <!-- Inner Gold Border Frame -->
-      <div style="
-         position: absolute; 
-         top: 35px; left: 35px; right: 35px; bottom: 35px; 
-         border: 3px solid #D4AF37; 
-         z-index: 5; 
-         pointer-events: none;
-      "></div>
+  // Inject certificate into preview wrapper (same DOM = html2canvas works perfectly)
+  const wrapper = document.getElementById('certPreviewWrapper');
+  if (!wrapper) { alert('Preview modal not found. Please refresh the page.'); return; }
 
-      <div style="position: relative; z-index: 10; padding: 50px 70px;">
-        <!-- Header Logos -->
-        <div style="display: flex; justify-content: space-between; align-items: flex-start; margin-bottom: 20px;">
-          
-          <!-- NSDA Logo (Left) - Now over the blue corner, needing a white backdrop -->
-          <div style="height: 110px; width: 110px; display: flex; align-items: center; justify-content: center; background: white; border-radius: 50%; padding: 5px; box-shadow: 0 4px 10px rgba(0,0,0,0.3);">
-            <img src="${nsdaLogo}" style="max-height: 90px; max-width: 90px; border-radius: 50%;" onerror="this.style.display='none'">
-          </div>
+  wrapper.innerHTML = certHtml;
 
-          <!-- Linear Logo (Center) -->
-          <div style="padding: 10px 20px;">
-             <img src="${linearLogo}" style="height: 70px; width: auto;" onerror="this.style.display='none'">
-          </div>
-          
-          <!-- Seal Logo (Right) -->
-          <div style="height: 140px; width: 140px; display: flex; align-items: center; justify-content: center;">
-            <img src="${premiumLogo}" style="height: 140px; width: auto; filter: drop-shadow(0 5px 15px rgba(0,0,0,0.3));">
-          </div>
-        </div>
+  // Scale down to fit modal nicely (certificate is 1056x816)
+  const scale = Math.min(1, (window.innerWidth - 80) / 1056);
+  wrapper.style.transform = 'scale(' + scale + ')';
+  wrapper.style.marginBottom = '-' + Math.round(816 * (1 - scale)) + 'px';
 
-        <!-- Main Content (Starts in White Area) -->
-        <div style="text-align: center; margin-top: 50px;">
-          <!-- Changed Title color to Gold/Dark Gold to match theme -->
-          <h1 style="
-            font-size: 85px; 
-            margin: 0; 
-            color: #D4AF37; 
-            font-weight: 900; 
-            font-family: 'Oswald', sans-serif;
-            text-transform: uppercase;
-            letter-spacing: 5px;
-            text-shadow: 1px 1px 0 #0d2e5c;
-          ">Certificate</h1>
-          
-          <h3 style="
-            font-size: 30px; 
-            color: #0d2e5c; 
-            margin-top: 5px; 
-            font-weight: 700; 
-            letter-spacing: 2px;
-          ">Of Appreciation</h3>
-          
-          <p style="
-            font-size: 18px; 
-            margin-top: 40px; 
-            color: #555; 
-            font-weight: 600;
-          ">This certificate is proudly presented for honorable achievement to</p>
-          
-          <!-- Student Name -->
-          <h2 style="
-            font-size: 64px; 
-            margin: 25px 0; 
-            color: #000; 
-            font-family: 'Rye', serif; 
-            font-weight: 400; 
-            text-transform: uppercase;
-            letter-spacing: 2px;
-            text-shadow: 1px 1px 0 rgba(0,0,0,0.1);
-          ">
-            ${(s.name || 'Student Name')}
-          </h2>
+  // Show the preview modal
+  const modal = new bootstrap.Modal(document.getElementById('certPreviewModal'));
+  modal.show();
 
-          <!-- Batch & ID Row (Centered & Bold) -->
-          <div style="
-            display: flex; 
-            justify-content: center; 
-            gap: 50px; 
-            margin: 20px 0;
-            font-family: 'Courier New', monospace;
-            color: #000;
-          ">
-            <div style="font-size: 24px; font-weight: 900;">
-              BATCH - ${s.batch || 'N/A'}
-            </div>
-            <div style="font-size: 24px; font-weight: 900;">
-              STUDENT ID : ${s.studentId || '-'}
-            </div>
-          </div>
-          
-          <!-- Course Info -->
-          <div style="margin-top: 30px; padding: 0 80px;">
-             <p style="font-size: 15px; color: #444; font-weight: 800; text-transform: uppercase; line-height: 1.6;">
-               CERTIFICATION ON TRAINING ABOUT THE "${(s.course || 'COURSE')}"<br>
-               AT ${academyName.toUpperCase()}
-             </p>
-          </div>
-        </div>
+  // Wire up download button
+  const dlBtn = document.getElementById('certDownloadBtn');
+  dlBtn.onclick = function() {
+    if (typeof html2pdf === 'undefined') {
+      alert('PDF library not loaded. Check your internet connection.');
+      return;
+    }
 
-        <!-- Footer Area (Absolute Positioning) -->
-        
-        <!-- Website (Bottom Left - Inside Border) -->
-        <div style="position: absolute; bottom: 50px; left: 50px; z-index: 20;">
-           <p style="margin: 0; font-size: 14px; color: #0d2e5c; font-weight: 700;">wingsflyaviationacademy.com</p>
-        </div>
+    dlBtn.disabled = true;
+    dlBtn.innerHTML = '⏳ Generating PDF...';
 
-        <!-- Signature (Bottom Right - Inside Border) -->
-        <div style="
-           position: absolute; 
-           bottom: 50px; 
-           right: 50px; 
-           text-align: center;
-           z-index: 20;
-        ">
-          <div style="margin-bottom: 2px; height: 70px; display: flex; align-items: flex-end; justify-content: center;">
-             ${signatureImg ? `<img src="${signatureImg}" style="height: 65px; width: auto;" onerror="this.style.display='none'">` : ``}
-          </div>
-          <!-- Line -->
-          <div style="width: 200px; height: 2px; background: #333; margin: 0 auto 5px auto;"></div>
-          
-          <p style="margin: 0; font-weight: 800; font-size: 14px; text-transform: uppercase; color: #000;">CHAIRMAN</p>
-          <p style="margin: 0; font-size: 14px; color: #000; font-weight: 700;">FERDOUS AHMED</p>
-        </div>
-      </div>
-    </div>
-  `; ===== END ORIGINAL DESIGN ===== */
+    const certEl = wrapper.firstElementChild;
 
-  const opt = {
-    margin: 0,
-    filename: `Certificate_${s.name.replace(/[^a-z0-9]/gi, '_')}.pdf`,
-    image: { type: 'jpeg', quality: 0.98 },
-    html2canvas: { scale: 1.5, useCORS: true, logging: true },
-    jsPDF: { unit: 'px', format: [1056, 816], orientation: 'landscape' }
+    // Temporarily reset scale so html2canvas captures at full size
+    wrapper.style.transform = 'none';
+    wrapper.style.marginBottom = '0';
+
+    const opt = {
+      margin: 0,
+      filename: 'Certificate_' + (s.name || 'Student').replace(/[^a-z0-9]/gi, '_') + '.pdf',
+      image:      { type: 'jpeg', quality: 0.98 },
+      html2canvas: {
+        scale: 1.5,
+        useCORS: true,
+        allowTaint: true,
+        logging: false,
+        width: 1056,
+        height: 816,
+        backgroundColor: (selectedDesign === 'cosmos') ? '#05081a' : '#040c1e'
+      },
+      jsPDF: { unit: 'px', format: [1056, 816], orientation: 'landscape' }
+    };
+
+    html2pdf().from(certEl).set(opt).save()
+      .then(function() {
+        wrapper.style.transform = 'scale(' + scale + ')';
+        wrapper.style.marginBottom = '-' + Math.round(816 * (1 - scale)) + 'px';
+        dlBtn.disabled = false;
+        dlBtn.innerHTML = '⬇️ Download PDF';
+        showSuccessToast('✅ Certificate downloaded!');
+      })
+      .catch(function(err) {
+        console.error('PDF error:', err);
+        wrapper.style.transform = 'scale(' + scale + ')';
+        wrapper.style.marginBottom = '-' + Math.round(816 * (1 - scale)) + 'px';
+        dlBtn.disabled = false;
+        dlBtn.innerHTML = '⬇️ Download PDF';
+        alert('PDF generation failed. Try right-clicking the preview and selecting "Print".');
+      });
   };
-
-  if (typeof html2pdf === 'undefined') {
-    alert('PDF Library (html2pdf) is not loaded. Please ensure you are connected to the internet.');
-    btn.innerHTML = originalText;
-    btn.disabled = false;
-    return;
-  }
-
-  html2pdf().from(certHtml).set(opt).save().then(() => {
-    btn.innerHTML = originalText;
-    btn.disabled = false;
-    showSuccessToast('Certificate downloaded successfully!');
-  }).catch(err => {
-    console.error(err);
-    alert('Error generating PDF. Check console for details.');
-    btn.innerHTML = originalText;
-    btn.disabled = false;
-  });
 }
-
 function generateIdCard() {
   const btn = document.getElementById('btnIdCard');
   const originalText = btn.innerHTML;

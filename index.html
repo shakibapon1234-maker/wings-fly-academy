@@ -3665,6 +3665,31 @@
     <!-- END MOBILE BANKING MODAL -->
     <!-- =============================================== -->
 
+
+    <!-- ============================================ -->
+    <!-- CERTIFICATE PREVIEW MODAL                    -->
+    <!-- ============================================ -->
+    <div class="modal fade" id="certPreviewModal" tabindex="-1" style="z-index:99999;">
+      <div class="modal-dialog modal-dialog-centered" style="max-width:1100px;">
+        <div class="modal-content border-0" style="background:#111;border-radius:16px;overflow:hidden;">
+          <div class="modal-header border-0 px-4 py-3" style="background:#0a0a1a;">
+            <h5 class="modal-title text-white fw-bold">🎓 Certificate Preview</h5>
+            <button type="button" class="btn-close btn-close-white" data-bs-dismiss="modal"></button>
+          </div>
+          <div class="modal-body p-3" style="background:#0d0d1f;overflow:auto;text-align:center;">
+            <div id="certPreviewWrapper" style="display:inline-block;transform-origin:top center;"></div>
+          </div>
+          <div class="modal-footer border-0 px-4 py-3 justify-content-center gap-3" style="background:#0a0a1a;">
+            <button id="certDownloadBtn" class="btn fw-bold px-5 py-2" 
+              style="background:linear-gradient(135deg,#00e5ff,#0066ff);color:#000;border-radius:30px;font-size:16px;border:none;">
+              ⬇️ Download PDF
+            </button>
+            <button class="btn btn-outline-secondary px-4 py-2 rounded-pill" data-bs-dismiss="modal">Close</button>
+          </div>
+        </div>
+      </div>
+    </div>
+
 </body>
 
 </html>
