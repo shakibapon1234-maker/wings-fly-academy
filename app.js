@@ -3751,10 +3751,10 @@ function printAccountDetails() {
   }).join('');
 
   printArea.innerHTML = `
-    <div style="width: 100%; background: white; padding: 40px; font-family: 'Outfit', sans-serif;">
+    <div style="width: 100%; background: white; padding: 30px 40px 20px 40px; font-family: 'Outfit', sans-serif; page-break-after: avoid;">
         ${getPrintHeader('ACCOUNT STATEMENT')}
         
-        <div style="display: flex; justify-content: space-between; margin-top: 30px; padding: 15px; background: #f8fafc; border-radius: 12px; border: 1px solid #e2e8f0;">
+        <div style="display: flex; justify-content: space-between; margin-top: 20px; padding: 12px; background: #f8fafc; border-radius: 8px; border: 1px solid #e2e8f0;">
             <div>
                 <p style="margin: 0; font-size: 11px; color: #64748b; font-weight: bold; text-transform: uppercase;">Filtered Statistics</p>
                 <p style="margin: 5px 0 0 0; font-size: 14px; color: #1e293b; font-weight: 700;"> Period: ${startDate || 'All Time'} - ${endDate || 'Now'} </p>
@@ -3766,7 +3766,7 @@ function printAccountDetails() {
             </div>
         </div>
 
-        <table class="report-table" style="margin-top: 30px;">
+        <table class="report-table" style="margin-top: 20px; page-break-inside: auto;">
             <thead>
                 <tr>
                     <th style="width: 15%;">Date</th>
@@ -3782,13 +3782,13 @@ function printAccountDetails() {
             </tbody>
             <tfoot>
                 <tr>
-                    <td colspan="5" style="text-align: right; padding: 20px; font-weight: 900; color: #1e293b; text-transform: uppercase; font-size: 14px;">Total Settlement:</td>
-                    <td style="text-align: right; padding: 20px; font-weight: 900; color: ${totalBalance >= 0 ? '#10b981' : '#ef4444'}; font-size: 18px;">৳${formatNumber(totalBalance)}</td>
+                    <td colspan="5" style="text-align: right; padding: 15px; font-weight: 900; color: #1e293b; text-transform: uppercase; font-size: 14px;">Total Settlement:</td>
+                    <td style="text-align: right; padding: 15px; font-weight: 900; color: ${totalBalance >= 0 ? '#10b981' : '#ef4444'}; font-size: 18px;">৳${formatNumber(totalBalance)}</td>
                 </tr>
             </tfoot>
         </table>
 
-        <div style="margin-top: 40px; background: #fffbeb; border-left: 4px solid #f59e0b; padding: 15px;">
+        <div style="margin-top: 25px; background: #fffbeb; border-left: 4px solid #f59e0b; padding: 12px; page-break-inside: avoid;">
             <p style="margin: 0; font-size: 11px; font-weight: bold; color: #92400e; text-transform: uppercase;">Disclaimer</p>
             <p style="margin: 5px 0 0 0; font-size: 11px; color: #b45309; line-height: 1.4;">This is a system-generated financial statement. Any discrepancies should be reported to the finance department immediately.</p>
         </div>

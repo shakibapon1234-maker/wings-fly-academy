@@ -257,6 +257,62 @@
         button * {
             vertical-align: middle !important;
         }
+
+        /* ===================================
+           PRINT STYLES - PREVENT BLANK PAGE
+           =================================== */
+        @media print {
+            @page {
+                size: A4;
+                margin: 10mm;
+            }
+
+            body {
+                margin: 0;
+                padding: 0;
+                print-color-adjust: exact;
+                -webkit-print-color-adjust: exact;
+            }
+
+            #printArea {
+                page-break-after: avoid !important;
+                page-break-inside: avoid !important;
+                overflow: hidden !important;
+            }
+
+            #printArea > div {
+                page-break-after: avoid !important;
+                page-break-inside: auto !important;
+            }
+
+            /* Hide everything except print area */
+            body.printing-receipt > *:not(#printArea) {
+                display: none !important;
+            }
+
+            /* Remove extra space and margins */
+            .no-print {
+                display: none !important;
+            }
+
+            /* Optimize table printing */
+            table {
+                page-break-inside: auto !important;
+            }
+
+            tr {
+                page-break-inside: avoid !important;
+                page-break-after: auto !important;
+            }
+
+            thead {
+                display: table-header-group !important;
+            }
+
+            tfoot {
+                display: table-footer-group !important;
+            }
+        }
     </style>
     <base target="_top">
     <meta charset="utf-8">
