@@ -8179,3 +8179,332 @@ window.clearVisitorFilters  = clearVisitorFilters;
 window.editVisitor          = editVisitor;
 window.deleteVisitor        = deleteVisitor;
 
+
+// =========================================================
+// EXAM REGISTRATION MODULE — COMPLETE (Added by Fix)
+// =========================================================
+
+// 1. modal খোলার সময় student datalist ও payment method পপুলেট করা
+(function () {
+  document.addEventListener('DOMContentLoaded', function () {
+    var examModal = document.getElementById('examRegistrationModal');
+    if (examModal) {
+      examModal.addEventListener('show.bs.modal', function () {
+        _examPopulateStudentList();
+        _examPopulatePaymentMethods();
+        // আজকের তারিখ auto-set
+        var dateEl = document.getElementById('examRegistrationDate');
+        if (dateEl && !dateEl.value) {
+          dateEl.value = new Date().toISOString().split('T')[0];
+        }
+      });
+    }
+  });
+})();
+
+function _examPopulateStudentList() {
+  var dl = document.getElementById('studentList');
+  if (!dl) return;
+  dl.innerHTML = '';
+  var students = (window.globalData && window.globalData.students) ? window.globalData.students : [];
+  students.forEach(function (s) {
+    var opt = document.createElement('option');
+    opt.value = s.name || '';
+    dl.appendChild(opt);
+  });
+}
+
+function _examPopulatePaymentMethods() {
+  var sel = document.getElementById('examPaymentMethodSelect');
+  if (!sel) return;
+  sel.innerHTML = '<option value="">Select Payment Method</option>';
+  var cashBal = parseFloat((window.globalData && window.globalData.cashBalance) || 0);
+  var cashOpt = document.createElement('option');
+  cashOpt.value = 'Cash';
+  cashOpt.textContent = '💵 Cash — ৳' + formatNumber(cashBal);
+  sel.appendChild(cashOpt);
+  var banks = (window.globalData && window.globalData.bankAccounts) ? window.globalData.bankAccounts : [];
+  banks.forEach(function (acc) {
+    var opt = document.createElement('option');
+    opt.value = acc.name;
+    opt.textContent = '🏦 ' + acc.name + ' — ৳' + formatNumber(acc.balance || 0);
+    sel.appendChild(opt);
+  });
+  var mobiles = (window.globalData && window.globalData.mobileBanking) ? window.globalData.mobileBanking : [];
+  mobiles.forEach(function (acc) {
+    var opt = document.createElement('option');
+    opt.value = acc.name;
+    opt.textContent = '📱 ' + acc.name + ' — ৳' + formatNumber(acc.balance || 0);
+    sel.appendChild(opt);
+  });
+}
+
+// 2. Student Name টাইপ করলে ID ও Batch auto-populate
+function autoPopulateStudentDetails() {
+  var nameEl  = document.getElementById('examStudentNameInput');
+  var idEl    = document.getElementById('examStudentIdInput');
+  var batchEl = document.getElementById('examStudentBatchInput');
+  if (!nameEl) return;
+  var typed = nameEl.value.trim().toLowerCase();
+  var students = (window.globalData && window.globalData.students) ? window.globalData.students : [];
+  var found = null;
+  for (var i = 0; i < students.length; i++) {
+    if ((students[i].name || '').trim().toLowerCase() === typed) {
+      found = students[i];
+      break;
+    }
+  }
+  if (found) {
+    if (idEl)    idEl.value    = found.studentId || '';
+    if (batchEl) batchEl.value = found.batch     || '';
+  } else {
+    if (idEl)    idEl.value    = '';
+    if (batchEl) batchEl.value = '';
+  }
+}
+
+// 3. Form submit — Exam Registration সেভ করা
+async function handleExamRegistration(e) {
+  e.preventDefault();
+  var form = e.target;
+
+  var studentName   = (document.getElementById('examStudentNameInput')  ? document.getElementById('examStudentNameInput').value  : '').trim();
+  var studentId     = (document.getElementById('examStudentIdInput')     ? document.getElementById('examStudentIdInput').value     : '').trim();
+  var studentBatch  = (document.getElementById('examStudentBatchInput')  ? document.getElementById('examStudentBatchInput').value  : '').trim();
+  var examSession   = (form.elements['examSession']    ? form.elements['examSession'].value    : '').trim();
+  var subjectName   = (form.elements['subjectName']    ? form.elements['subjectName'].value    : '').trim();
+  var examFee       = parseFloat(form.elements['examFee']       ? form.elements['examFee'].value       : 0) || 0;
+  var paymentMethod = (form.elements['paymentMethod']  ? form.elements['paymentMethod'].value  : '').trim();
+  var regDate       = (form.elements['registrationDate'] ? form.elements['registrationDate'].value : '') || new Date().toISOString().split('T')[0];
+  var examComment   = (form.elements['examComment']    ? form.elements['examComment'].value    : '').trim();
+
+  // Validation
+  if (!studentName)   { showErrorToast('❌ Student name is required.');        return; }
+  if (!subjectName)   { showErrorToast('❌ Subject name is required.');        return; }
+  if (examFee <= 0)   { showErrorToast('❌ Exam fee must be greater than 0.'); return; }
+  if (!paymentMethod) { showErrorToast('❌ Please select a payment method.');  return; }
+  if (!regDate)       { showErrorToast('❌ Registration date is required.');   return; }
+
+  // Reg ID generate
+  if (!window.globalData.examRegistrations) window.globalData.examRegistrations = [];
+  var regId = 'EXAM-' + String(window.globalData.examRegistrations.length + 1).padStart(4, '0');
+
+  var newReg = {
+    regId:            regId,
+    studentName:      studentName,
+    studentId:        studentId,
+    studentBatch:     studentBatch,
+    examSession:      examSession,
+    subjectName:      subjectName,
+    examFee:          examFee,
+    paymentMethod:    paymentMethod,
+    registrationDate: regDate,
+    examComment:      examComment,
+    grade:            '',
+    createdAt:        new Date().toISOString()
+  };
+
+  window.globalData.examRegistrations.push(newReg);
+
+  // Financial Ledger এ income entry যোগ করা
+  if (!window.globalData.finance) window.globalData.finance = [];
+  var finEntry = {
+    id:          Date.now(),
+    date:        regDate,
+    type:        'Income',
+    category:    'Exam Fee',
+    description: 'Exam Reg: ' + studentName + ' — ' + subjectName + ' (' + regId + ')',
+    amount:      examFee,
+    method:      paymentMethod,
+    note:        examComment,
+    createdAt:   new Date().toISOString()
+  };
+  window.globalData.finance.push(finEntry);
+
+  // Account balance আপডেট
+  if (typeof updateAccountBalance === 'function') {
+    updateAccountBalance(paymentMethod, examFee, 'Income', true);
+  }
+
+  await saveToStorage();
+  showSuccessToast('✅ Exam Registration সম্পন্ন! ID: ' + regId);
+
+  // Modal বন্ধ করা
+  var modalEl   = document.getElementById('examRegistrationModal');
+  var modalInst = bootstrap.Modal.getInstance(modalEl);
+  if (modalInst) modalInst.hide();
+
+  // Form reset
+  form.reset();
+  var idEl    = document.getElementById('examStudentIdInput');
+  var batchEl = document.getElementById('examStudentBatchInput');
+  if (idEl)    idEl.value    = '';
+  if (batchEl) batchEl.value = '';
+
+  // সব UI refresh
+  if (typeof searchExamResults  === 'function') searchExamResults();
+  if (typeof updateGlobalStats  === 'function') updateGlobalStats();
+  if (typeof renderLedger       === 'function') renderLedger(window.globalData.finance || []);
+}
+
+// 4. Exam Results section — filter & render
+function searchExamResults() {
+  var q        = ((document.getElementById('examResultSearchInput')  || {}).value || '').toLowerCase().trim();
+  var batchF   = ((document.getElementById('examBatchFilter')        || {}).value || '').toLowerCase().trim();
+  var sessionF = ((document.getElementById('examSessionFilter')      || {}).value || '').toLowerCase().trim();
+  var subjectF = ((document.getElementById('examSubjectFilter')      || {}).value || '').toLowerCase().trim();
+  var startD   = ((document.getElementById('examStartDateFilter')    || {}).value || '');
+  var endD     = ((document.getElementById('examEndDateFilter')      || {}).value || '');
+
+  var all = (window.globalData && window.globalData.examRegistrations) ? window.globalData.examRegistrations.slice() : [];
+  // সর্বশেষ আগে দেখাবে
+  all.reverse();
+
+  var list = all.filter(function (r) {
+    if (q && !(
+      (r.studentName || '').toLowerCase().includes(q) ||
+      (r.regId       || '').toLowerCase().includes(q) ||
+      (r.studentId   || '').toLowerCase().includes(q)
+    )) return false;
+    if (batchF   && !(r.studentBatch || '').toLowerCase().includes(batchF))   return false;
+    if (sessionF && !(r.examSession  || '').toLowerCase().includes(sessionF)) return false;
+    if (subjectF && !(r.subjectName  || '').toLowerCase().includes(subjectF)) return false;
+    if (startD   && (r.registrationDate || '') < startD) return false;
+    if (endD     && (r.registrationDate || '') > endD)   return false;
+    return true;
+  });
+
+  _examRenderTable(list);
+}
+
+function _examRenderTable(list) {
+  var tbody      = document.getElementById('examResultsTableBody');
+  var displayDiv = document.getElementById('examResultsDisplay');
+  var noMsg      = document.getElementById('noResultsMessage');
+  var countEl    = document.getElementById('filteredExamCount');
+  var creditEl   = document.getElementById('examTotalCredit');
+  var netEl      = document.getElementById('examNetTotal');
+  var totalFeeEl = document.getElementById('examTotalFeeDisplay');
+
+  if (!tbody) return;
+
+  // সবসময় table দেখাবে, "no results" লুকাবে
+  if (displayDiv) displayDiv.classList.remove('d-none');
+  if (noMsg)      noMsg.classList.add('d-none');
+
+  if (list.length === 0) {
+    tbody.innerHTML = '<tr><td colspan="12" class="text-center py-5 text-muted">কোনো Exam Registration পাওয়া যায়নি।</td></tr>';
+    if (countEl)    countEl.textContent    = '0';
+    if (creditEl)   creditEl.textContent   = '৳0';
+    if (netEl)      netEl.textContent      = '৳0';
+    if (totalFeeEl) totalFeeEl.textContent = '৳0';
+    return;
+  }
+
+  var totalFee = 0;
+  var rows = '';
+  list.forEach(function (r) {
+    totalFee += parseFloat(r.examFee) || 0;
+    rows += '<tr>' +
+      '<td><span class="badge bg-primary rounded-pill px-2">' + (r.regId || '—') + '</span></td>' +
+      '<td class="fw-semibold small">' + (r.studentId || '—') + '</td>' +
+      '<td class="fw-bold">' + (r.studentName || '—') + '</td>' +
+      '<td>' + (r.studentBatch || '—') + '</td>' +
+      '<td>' + (r.examSession  || '—') + '</td>' +
+      '<td>' + (r.subjectName  || '—') + '</td>' +
+      '<td class="fw-bold text-success">৳' + formatNumber(r.examFee) + '</td>' +
+      '<td>' + (r.paymentMethod || '—') + '</td>' +
+      '<td>' + (r.grade
+        ? '<span class="badge bg-success">' + r.grade + '</span>'
+        : '<button class="btn btn-sm btn-outline-secondary rounded-pill px-2 py-0" style="font-size:0.75rem;" onclick="examAddGrade(\'' + r.regId + '\')">+ Grade</button>') +
+      '</td>' +
+      '<td class="small">' + (r.registrationDate || '—') + '</td>' +
+      '<td class="small text-muted" style="max-width:120px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;" title="' + (r.examComment || '') + '">' + (r.examComment || '—') + '</td>' +
+      '<td class="text-end no-print">' +
+        '<button class="btn btn-sm btn-outline-danger rounded-pill px-2 py-0" style="font-size:0.75rem;" onclick="examDeleteReg(\'' + r.regId + '\')">🗑️</button>' +
+      '</td>' +
+      '</tr>';
+  });
+  tbody.innerHTML = rows;
+
+  if (countEl)    countEl.textContent    = list.length;
+  if (creditEl)   creditEl.textContent   = '৳' + formatNumber(totalFee);
+  if (netEl)      netEl.textContent      = '৳' + formatNumber(totalFee);
+  if (totalFeeEl) totalFeeEl.textContent = '৳' + formatNumber(totalFee);
+}
+
+// 5. Grade যোগ করা
+async function examAddGrade(regId) {
+  var grade = prompt('Grade দিন (যেমন: A+, A, B, C, Fail):');
+  if (!grade) return;
+  var regs = window.globalData.examRegistrations || [];
+  for (var i = 0; i < regs.length; i++) {
+    if (regs[i].regId === regId) {
+      regs[i].grade = grade.trim();
+      break;
+    }
+  }
+  await saveToStorage();
+  showSuccessToast('✅ Grade সেট হয়েছে!');
+  searchExamResults();
+}
+
+// 6. Delete Registration
+async function examDeleteReg(regId) {
+  if (!confirm('এই Registration (' + regId + ') মুছবেন?')) return;
+  var regs = window.globalData.examRegistrations || [];
+  var idx = -1;
+  for (var i = 0; i < regs.length; i++) {
+    if (regs[i].regId === regId) { idx = i; break; }
+  }
+  if (idx >= 0) {
+    regs.splice(idx, 1);
+    await saveToStorage();
+    showSuccessToast('🗑️ মুছে ফেলা হয়েছে।');
+    searchExamResults();
+  }
+}
+
+// 7. Clear Filters
+function clearExamFilters() {
+  var ids = ['examResultSearchInput','examBatchFilter','examSessionFilter','examSubjectFilter','examStartDateFilter','examEndDateFilter'];
+  ids.forEach(function (id) { var el = document.getElementById(id); if (el) el.value = ''; });
+  searchExamResults();
+}
+
+// 8. Print
+function printExamResults() {
+  window.print();
+}
+
+// 9. Export CSV
+function exportExamResultsExcel() {
+  var list = (window.globalData && window.globalData.examRegistrations) ? window.globalData.examRegistrations : [];
+  if (list.length === 0) { showErrorToast('কোনো ডাটা নেই।'); return; }
+  var headers = ['Reg ID','Student ID','Student Name','Batch','Session','Subject','Exam Fee','Payment','Grade','Date','Comment'];
+  var rows = list.map(function (r) {
+    return [r.regId,r.studentId,r.studentName,r.studentBatch,r.examSession,r.subjectName,r.examFee,r.paymentMethod,r.grade,r.registrationDate,r.examComment]
+      .map(function (v) { return '"' + String(v || '').replace(/"/g, '""') + '"'; }).join(',');
+  });
+  var csv = [headers.join(',')].concat(rows).join('\n');
+  var blob = new Blob(['\uFEFF' + csv], { type: 'text/csv;charset=utf-8;' });
+  var link = document.createElement('a');
+  link.href = URL.createObjectURL(blob);
+  link.download = 'exam_registrations_' + new Date().toISOString().split('T')[0] + '.csv';
+  link.click();
+  showSuccessToast('✅ Export সফল!');
+}
+
+// Global expose
+window.autoPopulateStudentDetails = autoPopulateStudentDetails;
+window.handleExamRegistration     = handleExamRegistration;
+window.searchExamResults          = searchExamResults;
+window.clearExamFilters           = clearExamFilters;
+window.printExamResults           = printExamResults;
+window.exportExamResultsExcel     = exportExamResultsExcel;
+window.examAddGrade               = examAddGrade;
+window.examDeleteReg              = examDeleteReg;
+
+// =========================================================
+// END EXAM REGISTRATION MODULE
+// =========================================================
