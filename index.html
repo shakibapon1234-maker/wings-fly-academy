@@ -257,62 +257,6 @@
         button * {
             vertical-align: middle !important;
         }
-
-        /* ===================================
-           PRINT STYLES - PREVENT BLANK PAGE
-           =================================== */
-        @media print {
-            @page {
-                size: A4;
-                margin: 10mm;
-            }
-
-            body {
-                margin: 0;
-                padding: 0;
-                print-color-adjust: exact;
-                -webkit-print-color-adjust: exact;
-            }
-
-            #printArea {
-                page-break-after: avoid !important;
-                page-break-inside: avoid !important;
-                overflow: hidden !important;
-            }
-
-            #printArea > div {
-                page-break-after: avoid !important;
-                page-break-inside: auto !important;
-            }
-
-            /* Hide everything except print area */
-            body.printing-receipt > *:not(#printArea) {
-                display: none !important;
-            }
-
-            /* Remove extra space and margins */
-            .no-print {
-                display: none !important;
-            }
-
-            /* Optimize table printing */
-            table {
-                page-break-inside: auto !important;
-            }
-
-            tr {
-                page-break-inside: avoid !important;
-                page-break-after: auto !important;
-            }
-
-            thead {
-                display: table-header-group !important;
-            }
-
-            tfoot {
-                display: table-footer-group !important;
-            }
-        }
     </style>
     <base target="_top">
     <meta charset="utf-8">
@@ -1843,8 +1787,8 @@
                             </div>
                             <div class="col-md-4 mb-3">
                                 <label class="form-label fw-bold small text-uppercase text-muted">Payment
-                                    Method <span style="color: red;">*</span></label>
-                                <select name="method" class="form-select premium-input-modern" id="studentMethodSelect" required>
+                                    Method</label>
+                                <select name="method" class="form-select premium-input-modern" id="studentMethodSelect">
                                     <!-- Populated dynamically -->
                                 </select>
                             </div>
@@ -1961,9 +1905,7 @@
                                             placeholder="Installment Amount" required>
                                     </div>
                                     <div class="col-md-4">
-                                        <label class="form-label small">Method <span style="color: red;">*</span></label>
-                                        <select id="pmtNewMethod" class="form-select" required>
-                                            <option value="">Select Method</option>
+                                        <select id="pmtNewMethod" class="form-select">
                                             <option value="Cash">Cash</option>
                                             <option value="Bkash">Bkash</option>
                                             <option value="Nogod">Nogod</option>
@@ -2023,8 +1965,8 @@
                                 </select>
                             </div>
                             <div class="col-4 mb-3">
-                                <label class="form-label fw-semibold">Method <span style="color: red;">*</span></label>
-                                <select name="method" class="form-select" id="financeMethodSelect" required>
+                                <label class="form-label fw-semibold">Method</label>
+                                <select name="method" class="form-select" id="financeMethodSelect">
                                     <!-- Populated dynamically -->
                                 </select>
                             </div>
@@ -2422,8 +2364,8 @@
                                 </select>
                             </div>
                             <div class="col-4 mb-3">
-                                <label class="form-label fw-semibold">Method <span style="color: red;">*</span></label>
-                                <select name="method" class="form-select" id="editTransMethodSelect" required>
+                                <label class="form-label fw-semibold">Method</label>
+                                <select name="method" class="form-select" id="editTransMethodSelect">
                                     <!-- Populated dynamically -->
                                 </select>
                             </div>
@@ -3415,7 +3357,7 @@
     <script src="supabase-config.js"></script>
 
     <!-- Supabase Sync System (Multi-user Real-time Sync) -->
-    <script src="supabase-sync-READY.js"></script>
+    <script src="supabase-sync-SMART-V26.js"></script>
 
     <!-- Main Application (Sync code now embedded inside) -->
     <script src="app.js?v=9.0"></script>
