@@ -4680,11 +4680,23 @@ function openAttendanceModal() {
   const dateInput = document.getElementById('attendanceDate');
 
   const batches = [...new Set(globalData.students.map(s => s.batch))].filter(b => b);
-  batchSelect.innerHTML = '<option value="">Select a batch...</option>' +
+  batchSelect.innerHTML = '<option value="">— Select Batch —</option>' +
     batches.map(b => `<option value="${b}">${b}</option>`).join('');
 
   dateInput.value = new Date().toISOString().split('T')[0];
-  document.getElementById('attendanceListContainer').classList.add('d-none');
+
+  // Reset UI
+  const container = document.getElementById('attendanceListContainer');
+  if (container) container.classList.add('d-none');
+  const emptyState = document.getElementById('attendanceEmptyState');
+  if (emptyState) emptyState.classList.remove('d-none');
+  const quickStats = document.getElementById('attendanceQuickStats');
+  if (quickStats) quickStats.classList.add('d-none');
+  const placeholder = document.getElementById('attStatPlaceholder');
+  if (placeholder) placeholder.classList.remove('d-none');
+  const headerInfo = document.getElementById('attendanceHeaderInfo');
+  if (headerInfo) headerInfo.textContent = 'Batch & Date নির্বাচন করুন';
+
   modal.show();
 }
 
@@ -4695,47 +4707,161 @@ function loadAttendanceList() {
 
   const container = document.getElementById('attendanceListContainer');
   const tbody = document.getElementById('attendanceTableBody');
+  const emptyState = document.getElementById('attendanceEmptyState');
+  const quickStats = document.getElementById('attendanceQuickStats');
+  const placeholder = document.getElementById('attStatPlaceholder');
+  const headerInfo = document.getElementById('attendanceHeaderInfo');
+
+  if (emptyState) emptyState.classList.add('d-none');
   container.classList.remove('d-none');
 
   const batchStudents = globalData.students.filter(s => s.batch === batch);
   const attendanceKey = `${batch}_${date}`;
   const savedAttendance = globalData.attendance?.[attendanceKey] || {};
 
-  tbody.innerHTML = batchStudents.map(s => `
-    <tr>
-      <td>${s.studentId || '-'}</td>
-      <td class="fw-bold">${s.name}</td>
-      <td class="text-center">
-        <label class="btn btn-sm btn-outline-success mx-1">
-          <input type="radio" name="att_${s.studentId}" value="Present" ${savedAttendance[s.studentId] !== 'Absent' ? 'checked' : ''}> P
-        </label>
-        <label class="btn btn-sm btn-outline-danger mx-1">
-          <input type="radio" name="att_${s.studentId}" value="Absent" ${savedAttendance[s.studentId] === 'Absent' ? 'checked' : ''}> A
-        </label>
+  // Format date nicely
+  const dateObj = new Date(date + 'T00:00:00');
+  const dateFormatted = dateObj.toLocaleDateString('en-GB', { day: '2-digit', month: 'short', year: 'numeric' });
+
+  if (headerInfo) headerInfo.textContent = `Batch: ${batch}  •  ${dateFormatted}  •  ${batchStudents.length} Students`;
+
+  tbody.innerHTML = batchStudents.map((s, index) => {
+    const isAbsent = savedAttendance[s.studentId] === 'Absent';
+    return `
+    <tr id="attRow_${s.studentId}" style="border-bottom:1px solid rgba(255,255,255,0.05); transition:background 0.2s;">
+      <td class="px-4 py-3 text-muted small">${index + 1}</td>
+      <td class="py-3 small fw-semibold" style="color:#00d9ff;">${s.studentId || '—'}</td>
+      <td class="py-3 fw-bold" style="font-size:1rem; color:#e0e8ff;">${s.name}</td>
+      <td class="py-3 text-center">
+        <div class="d-inline-flex gap-2">
+          <label class="att-btn-label att-present ${!isAbsent ? 'att-active-present' : ''}" 
+                 style="cursor:pointer; padding:6px 18px; border-radius:50px; font-weight:700; font-size:0.85rem;
+                        border:2px solid ${!isAbsent ? '#00cc66' : 'rgba(0,204,102,0.25)'};
+                        background:${!isAbsent ? 'rgba(0,204,102,0.2)' : 'transparent'};
+                        color:${!isAbsent ? '#00ff88' : 'rgba(255,255,255,0.4)'};
+                        transition:all 0.2s;">
+            <input type="radio" name="att_${s.studentId}" value="Present" 
+                   ${!isAbsent ? 'checked' : ''} 
+                   onchange="attStatusChange('${s.studentId}', this)"
+                   style="display:none;">
+            ✓ Present
+          </label>
+          <label class="att-btn-label att-absent ${isAbsent ? 'att-active-absent' : ''}"
+                 style="cursor:pointer; padding:6px 18px; border-radius:50px; font-weight:700; font-size:0.85rem;
+                        border:2px solid ${isAbsent ? '#ff3350' : 'rgba(255,51,80,0.25)'};
+                        background:${isAbsent ? 'rgba(255,51,80,0.2)' : 'transparent'};
+                        color:${isAbsent ? '#ff5570' : 'rgba(255,255,255,0.4)'};
+                        transition:all 0.2s;">
+            <input type="radio" name="att_${s.studentId}" value="Absent" 
+                   ${isAbsent ? 'checked' : ''}
+                   onchange="attStatusChange('${s.studentId}', this)"
+                   style="display:none;">
+            ✗ Absent
+          </label>
+        </div>
       </td>
-    </tr>
-  `).join('');
+    </tr>`;
+  }).join('');
+
+  // Update Quick Stats
+  _attUpdateStats(batchStudents, savedAttendance);
+  if (quickStats) quickStats.classList.remove('d-none');
+  if (placeholder) placeholder.classList.add('d-none');
+}
+
+function _attUpdateStats(batchStudents, savedAttendance) {
+  if (!batchStudents) {
+    const batch = document.getElementById('attendanceBatchSelect').value;
+    const date = document.getElementById('attendanceDate').value;
+    batchStudents = globalData.students.filter(s => s.batch === batch);
+    const attendanceKey = `${batch}_${date}`;
+    savedAttendance = globalData.attendance?.[attendanceKey] || {};
+  }
+  let present = 0, absent = 0;
+  batchStudents.forEach(s => {
+    if (savedAttendance[s.studentId] === 'Absent') absent++;
+    else present++;
+  });
+  const pEl = document.getElementById('attPresentCount');
+  const aEl = document.getElementById('attAbsentCount');
+  const tEl = document.getElementById('attTotalCount');
+  if (pEl) pEl.textContent = present;
+  if (aEl) aEl.textContent = absent;
+  if (tEl) tEl.textContent = batchStudents.length;
+}
+
+// Called when a radio button changes — updates row styling & stats live
+function attStatusChange(studentId, radioEl) {
+  const row = document.getElementById(`attRow_${studentId}`);
+  if (!row) return;
+  const labels = row.querySelectorAll('label');
+  const isAbsent = radioEl.value === 'Absent';
+
+  labels.forEach(label => {
+    const isPresent = label.classList.contains('att-present');
+    const active = isPresent ? !isAbsent : isAbsent;
+    label.style.borderColor = active
+      ? (isPresent ? '#00cc66' : '#ff3350')
+      : (isPresent ? 'rgba(0,204,102,0.25)' : 'rgba(255,51,80,0.25)');
+    label.style.background = active
+      ? (isPresent ? 'rgba(0,204,102,0.2)' : 'rgba(255,51,80,0.2)')
+      : 'transparent';
+    label.style.color = active
+      ? (isPresent ? '#00ff88' : '#ff5570')
+      : 'rgba(255,255,255,0.4)';
+  });
+
+  // Recalculate live stats
+  const batch = document.getElementById('attendanceBatchSelect').value;
+  const date = document.getElementById('attendanceDate').value;
+  const batchStudents = globalData.students.filter(s => s.batch === batch);
+  const currentData = {};
+  batchStudents.forEach(s => {
+    const checked = document.querySelector(`input[name="att_${s.studentId}"]:checked`);
+    if (checked) currentData[s.studentId] = checked.value;
+  });
+  _attUpdateStats(batchStudents, currentData);
+}
+
+// Mark All Present or Absent
+function markAllAttendance(status) {
+  const batch = document.getElementById('attendanceBatchSelect').value;
+  if (!batch) return;
+  const batchStudents = globalData.students.filter(s => s.batch === batch);
+  batchStudents.forEach(s => {
+    const radio = document.querySelector(`input[name="att_${s.studentId}"][value="${status}"]`);
+    if (radio) {
+      radio.checked = true;
+      attStatusChange(s.studentId, radio);
+    }
+  });
 }
 
 function saveAttendance() {
   const batch = document.getElementById('attendanceBatchSelect').value;
   const date = document.getElementById('attendanceDate').value;
-  if (!batch || !date) return;
+  if (!batch || !date) { showErrorToast('❌ Batch ও Date বেছে নিন।'); return; }
 
   if (!globalData.attendance) globalData.attendance = {};
   const attendanceKey = `${batch}_${date}`;
   const currentAttendance = {};
 
   const batchStudents = globalData.students.filter(s => s.batch === batch);
+  let present = 0, absent = 0;
   batchStudents.forEach(s => {
-    const status = document.querySelector(`input[name="att_${s.studentId}"]:checked`)?.value;
+    const status = document.querySelector(`input[name="att_${s.studentId}"]:checked`)?.value || 'Present';
     currentAttendance[s.studentId] = status;
+    if (status === 'Absent') absent++; else present++;
   });
 
   globalData.attendance[attendanceKey] = currentAttendance;
   saveToStorage();
+
+  const dateObj = new Date(date + 'T00:00:00');
+  const dateStr = dateObj.toLocaleDateString('en-GB', { day: '2-digit', month: 'short', year: 'numeric' });
+  showSuccessToast(`✅ Attendance সেভ হয়েছে — Batch ${batch} | ${dateStr} | ✔ ${present} Present, ✖ ${absent} Absent`);
+
   bootstrap.Modal.getInstance(document.getElementById('attendanceModal')).hide();
-  showSuccessToast(`Attendance saved for ${batch} on ${date}`);
 }
 
 function generateCertificate() {
@@ -5329,6 +5455,141 @@ window.generateStudentId = generateStudentId;
 window.openAttendanceModal = openAttendanceModal;
 window.loadAttendanceList = loadAttendanceList;
 window.saveAttendance = saveAttendance;
+window.attStatusChange = attStatusChange;
+window.markAllAttendance = markAllAttendance;
+window.printSavedAttendance = printSavedAttendance;
+window.downloadAttendanceReport = downloadAttendanceReport;
+
+// ─── Print saved attendance for selected batch+date ───
+function printSavedAttendance() {
+  const batch = document.getElementById('attendanceBatchSelect').value;
+  const date  = document.getElementById('attendanceDate').value;
+  if (!batch || !date) { showErrorToast('❌ Batch ও Date বেছে নিন।'); return; }
+
+  const attendanceKey = `${batch}_${date}`;
+  const saved = globalData.attendance?.[attendanceKey] || {};
+  const batchStudents = globalData.students.filter(s => s.batch === batch);
+  if (batchStudents.length === 0) { showErrorToast('এই Batch-এ কোনো ছাত্র নেই।'); return; }
+
+  const dateObj = new Date(date + 'T00:00:00');
+  const dateStr = dateObj.toLocaleDateString('en-GB', { weekday:'long', day:'2-digit', month:'long', year:'numeric' });
+  let present = 0, absent = 0;
+
+  const rows = batchStudents.map((s, i) => {
+    const status = saved[s.studentId] || 'Present';
+    const isAbsent = status === 'Absent';
+    if (isAbsent) absent++; else present++;
+    return `<tr>
+      <td style="border:1px solid #dde;padding:8px 12px;text-align:center;color:#555;">${i+1}</td>
+      <td style="border:1px solid #dde;padding:8px 12px;font-family:monospace;color:#1a4d6e;font-weight:600;">${s.studentId || '—'}</td>
+      <td style="border:1px solid #dde;padding:8px 14px;font-weight:700;color:#1a1a3a;">${s.name}</td>
+      <td style="border:1px solid #dde;padding:8px 12px;text-align:center;">
+        <span style="display:inline-block;padding:3px 18px;border-radius:50px;font-weight:800;font-size:0.9rem;
+          background:${isAbsent ? '#fff0f2' : '#f0fff8'};
+          color:${isAbsent ? '#cc2233' : '#007744'};
+          border:1.5px solid ${isAbsent ? '#ffb3bc' : '#90e8bf'};">
+          ${isAbsent ? '✗  Absent' : '✓  Present'}
+        </span>
+      </td>
+    </tr>`;
+  }).join('');
+
+  const linearLogo  = (window.APP_LOGOS && window.APP_LOGOS.linear)  ? window.APP_LOGOS.linear  : 'wings_logo_linear.png';
+  const premiumLogo = (window.APP_LOGOS && window.APP_LOGOS.premium) ? window.APP_LOGOS.premium : 'wings_logo_premium.png';
+
+  const pw = window.open('', '', 'width=900,height=700');
+  pw.document.write(`<!DOCTYPE html><html><head>
+    <meta charset="UTF-8">
+    <title>Attendance Report — Batch ${batch}</title>
+    <style>
+      body{font-family:'Segoe UI',sans-serif;padding:30px 40px;background:#fff;color:#1a1a3a;}
+      .header{text-align:center;margin-bottom:28px;}
+      .logo-row{display:flex;justify-content:space-between;align-items:center;margin-bottom:10px;}
+      .academy-name{font-size:24px;font-weight:900;color:#1a4d6e;text-transform:uppercase;letter-spacing:1px;}
+      .subtitle{font-size:14px;color:#555;margin-top:2px;}
+      .report-title{font-size:18px;font-weight:800;color:#003366;text-transform:uppercase;
+        border-bottom:3px solid #00b4ff;display:inline-block;padding-bottom:4px;margin:14px 0 6px;}
+      .meta-row{display:flex;justify-content:center;gap:36px;margin-bottom:20px;font-size:13px;}
+      .meta-item{text-align:center;}
+      .meta-item .label{color:#888;font-size:11px;text-transform:uppercase;font-weight:600;}
+      .meta-item .val{font-weight:800;font-size:15px;color:#1a4d6e;}
+      table{width:100%;border-collapse:collapse;margin-top:10px;}
+      thead th{background:#1a4d6e;color:#fff;padding:10px 12px;font-size:12px;text-transform:uppercase;letter-spacing:.5px;}
+      tbody tr:nth-child(even){background:#f7f9fc;}
+      tfoot td{border:1px solid #dde;padding:10px;font-weight:700;}
+      .footer{margin-top:30px;display:flex;justify-content:space-between;font-size:12px;color:#aaa;}
+      @media print{@page{size:A4 portrait;margin:.5in;}}
+    </style>
+  </head><body onload="window.print()">
+    <div class="header">
+      <div class="logo-row">
+        <img src="${premiumLogo}" style="height:70px;">
+        <div>
+          <div class="academy-name">Wings Fly Aviation Academy</div>
+          <div class="subtitle">Attendance Report — Official Record</div>
+        </div>
+        <img src="${linearLogo}" style="height:50px;">
+      </div>
+      <div class="report-title">Daily Attendance Sheet</div>
+      <div class="meta-row">
+        <div class="meta-item"><div class="label">Batch</div><div class="val">${batch}</div></div>
+        <div class="meta-item"><div class="label">Date</div><div class="val">${dateStr}</div></div>
+        <div class="meta-item"><div class="label">Total</div><div class="val">${batchStudents.length}</div></div>
+        <div class="meta-item"><div class="label" style="color:#007744;">Present</div><div class="val" style="color:#007744;">${present}</div></div>
+        <div class="meta-item"><div class="label" style="color:#cc2233;">Absent</div><div class="val" style="color:#cc2233;">${absent}</div></div>
+        <div class="meta-item"><div class="label">Rate</div><div class="val">${Math.round(present/batchStudents.length*100)}%</div></div>
+      </div>
+    </div>
+    <table>
+      <thead><tr>
+        <th style="width:50px;text-align:center;">#</th>
+        <th style="width:120px;">Student ID</th>
+        <th>Student Name</th>
+        <th style="width:140px;text-align:center;">Status</th>
+      </tr></thead>
+      <tbody>${rows}</tbody>
+      <tfoot><tr>
+        <td colspan="3" style="text-align:right;border:1px solid #dde;">
+          Total Present: <span style="color:#007744;">${present}</span> &nbsp;|&nbsp;
+          Total Absent: <span style="color:#cc2233;">${absent}</span>
+        </td>
+        <td style="text-align:center;">Rate: <strong>${Math.round(present/batchStudents.length*100)}%</strong></td>
+      </tr></tfoot>
+    </table>
+    <div class="footer">
+      <span>Generated: ${new Date().toLocaleString()}</span>
+      <span>Wings Fly Aviation Academy — Confidential</span>
+    </div>
+  </body></html>`);
+  pw.document.close();
+}
+
+// ─── Download CSV Report ───
+function downloadAttendanceReport() {
+  const batch = document.getElementById('attendanceBatchSelect').value;
+  const date  = document.getElementById('attendanceDate').value;
+  if (!batch || !date) { showErrorToast('❌ Batch ও Date বেছে নিন।'); return; }
+
+  const attendanceKey = `${batch}_${date}`;
+  const saved = globalData.attendance?.[attendanceKey] || {};
+  const batchStudents = globalData.students.filter(s => s.batch === batch);
+  if (batchStudents.length === 0) { showErrorToast('এই Batch-এ কোনো ছাত্র নেই।'); return; }
+
+  const headers = ['SL', 'Student ID', 'Student Name', 'Batch', 'Date', 'Status'];
+  const rows = batchStudents.map((s, i) => {
+    const status = saved[s.studentId] || 'Present';
+    return [i + 1, s.studentId || '', s.name || '', batch, date, status]
+      .map(v => `"${String(v).replace(/"/g, '""')}"`).join(',');
+  });
+
+  const csv = [headers.join(','), ...rows].join('\n');
+  const blob = new Blob(['\uFEFF' + csv], { type: 'text/csv;charset=utf-8;' });
+  const link = document.createElement('a');
+  link.href = URL.createObjectURL(blob);
+  link.download = `attendance_batch${batch}_${date}.csv`;
+  link.click();
+  showSuccessToast('✅ CSV রিপোর্ট ডাউনলোড হয়েছে!');
+}
 function printBlankAttendanceSheet() {
   const batch = document.getElementById('attendanceBatchSelect').value;
   if (!batch) {
@@ -8179,332 +8440,3 @@ window.clearVisitorFilters  = clearVisitorFilters;
 window.editVisitor          = editVisitor;
 window.deleteVisitor        = deleteVisitor;
 
-
-// =========================================================
-// EXAM REGISTRATION MODULE — COMPLETE (Added by Fix)
-// =========================================================
-
-// 1. modal খোলার সময় student datalist ও payment method পপুলেট করা
-(function () {
-  document.addEventListener('DOMContentLoaded', function () {
-    var examModal = document.getElementById('examRegistrationModal');
-    if (examModal) {
-      examModal.addEventListener('show.bs.modal', function () {
-        _examPopulateStudentList();
-        _examPopulatePaymentMethods();
-        // আজকের তারিখ auto-set
-        var dateEl = document.getElementById('examRegistrationDate');
-        if (dateEl && !dateEl.value) {
-          dateEl.value = new Date().toISOString().split('T')[0];
-        }
-      });
-    }
-  });
-})();
-
-function _examPopulateStudentList() {
-  var dl = document.getElementById('studentList');
-  if (!dl) return;
-  dl.innerHTML = '';
-  var students = (window.globalData && window.globalData.students) ? window.globalData.students : [];
-  students.forEach(function (s) {
-    var opt = document.createElement('option');
-    opt.value = s.name || '';
-    dl.appendChild(opt);
-  });
-}
-
-function _examPopulatePaymentMethods() {
-  var sel = document.getElementById('examPaymentMethodSelect');
-  if (!sel) return;
-  sel.innerHTML = '<option value="">Select Payment Method</option>';
-  var cashBal = parseFloat((window.globalData && window.globalData.cashBalance) || 0);
-  var cashOpt = document.createElement('option');
-  cashOpt.value = 'Cash';
-  cashOpt.textContent = '💵 Cash — ৳' + formatNumber(cashBal);
-  sel.appendChild(cashOpt);
-  var banks = (window.globalData && window.globalData.bankAccounts) ? window.globalData.bankAccounts : [];
-  banks.forEach(function (acc) {
-    var opt = document.createElement('option');
-    opt.value = acc.name;
-    opt.textContent = '🏦 ' + acc.name + ' — ৳' + formatNumber(acc.balance || 0);
-    sel.appendChild(opt);
-  });
-  var mobiles = (window.globalData && window.globalData.mobileBanking) ? window.globalData.mobileBanking : [];
-  mobiles.forEach(function (acc) {
-    var opt = document.createElement('option');
-    opt.value = acc.name;
-    opt.textContent = '📱 ' + acc.name + ' — ৳' + formatNumber(acc.balance || 0);
-    sel.appendChild(opt);
-  });
-}
-
-// 2. Student Name টাইপ করলে ID ও Batch auto-populate
-function autoPopulateStudentDetails() {
-  var nameEl  = document.getElementById('examStudentNameInput');
-  var idEl    = document.getElementById('examStudentIdInput');
-  var batchEl = document.getElementById('examStudentBatchInput');
-  if (!nameEl) return;
-  var typed = nameEl.value.trim().toLowerCase();
-  var students = (window.globalData && window.globalData.students) ? window.globalData.students : [];
-  var found = null;
-  for (var i = 0; i < students.length; i++) {
-    if ((students[i].name || '').trim().toLowerCase() === typed) {
-      found = students[i];
-      break;
-    }
-  }
-  if (found) {
-    if (idEl)    idEl.value    = found.studentId || '';
-    if (batchEl) batchEl.value = found.batch     || '';
-  } else {
-    if (idEl)    idEl.value    = '';
-    if (batchEl) batchEl.value = '';
-  }
-}
-
-// 3. Form submit — Exam Registration সেভ করা
-async function handleExamRegistration(e) {
-  e.preventDefault();
-  var form = e.target;
-
-  var studentName   = (document.getElementById('examStudentNameInput')  ? document.getElementById('examStudentNameInput').value  : '').trim();
-  var studentId     = (document.getElementById('examStudentIdInput')     ? document.getElementById('examStudentIdInput').value     : '').trim();
-  var studentBatch  = (document.getElementById('examStudentBatchInput')  ? document.getElementById('examStudentBatchInput').value  : '').trim();
-  var examSession   = (form.elements['examSession']    ? form.elements['examSession'].value    : '').trim();
-  var subjectName   = (form.elements['subjectName']    ? form.elements['subjectName'].value    : '').trim();
-  var examFee       = parseFloat(form.elements['examFee']       ? form.elements['examFee'].value       : 0) || 0;
-  var paymentMethod = (form.elements['paymentMethod']  ? form.elements['paymentMethod'].value  : '').trim();
-  var regDate       = (form.elements['registrationDate'] ? form.elements['registrationDate'].value : '') || new Date().toISOString().split('T')[0];
-  var examComment   = (form.elements['examComment']    ? form.elements['examComment'].value    : '').trim();
-
-  // Validation
-  if (!studentName)   { showErrorToast('❌ Student name is required.');        return; }
-  if (!subjectName)   { showErrorToast('❌ Subject name is required.');        return; }
-  if (examFee <= 0)   { showErrorToast('❌ Exam fee must be greater than 0.'); return; }
-  if (!paymentMethod) { showErrorToast('❌ Please select a payment method.');  return; }
-  if (!regDate)       { showErrorToast('❌ Registration date is required.');   return; }
-
-  // Reg ID generate
-  if (!window.globalData.examRegistrations) window.globalData.examRegistrations = [];
-  var regId = 'EXAM-' + String(window.globalData.examRegistrations.length + 1).padStart(4, '0');
-
-  var newReg = {
-    regId:            regId,
-    studentName:      studentName,
-    studentId:        studentId,
-    studentBatch:     studentBatch,
-    examSession:      examSession,
-    subjectName:      subjectName,
-    examFee:          examFee,
-    paymentMethod:    paymentMethod,
-    registrationDate: regDate,
-    examComment:      examComment,
-    grade:            '',
-    createdAt:        new Date().toISOString()
-  };
-
-  window.globalData.examRegistrations.push(newReg);
-
-  // Financial Ledger এ income entry যোগ করা
-  if (!window.globalData.finance) window.globalData.finance = [];
-  var finEntry = {
-    id:          Date.now(),
-    date:        regDate,
-    type:        'Income',
-    category:    'Exam Fee',
-    description: 'Exam Reg: ' + studentName + ' — ' + subjectName + ' (' + regId + ')',
-    amount:      examFee,
-    method:      paymentMethod,
-    note:        examComment,
-    createdAt:   new Date().toISOString()
-  };
-  window.globalData.finance.push(finEntry);
-
-  // Account balance আপডেট
-  if (typeof updateAccountBalance === 'function') {
-    updateAccountBalance(paymentMethod, examFee, 'Income', true);
-  }
-
-  await saveToStorage();
-  showSuccessToast('✅ Exam Registration সম্পন্ন! ID: ' + regId);
-
-  // Modal বন্ধ করা
-  var modalEl   = document.getElementById('examRegistrationModal');
-  var modalInst = bootstrap.Modal.getInstance(modalEl);
-  if (modalInst) modalInst.hide();
-
-  // Form reset
-  form.reset();
-  var idEl    = document.getElementById('examStudentIdInput');
-  var batchEl = document.getElementById('examStudentBatchInput');
-  if (idEl)    idEl.value    = '';
-  if (batchEl) batchEl.value = '';
-
-  // সব UI refresh
-  if (typeof searchExamResults  === 'function') searchExamResults();
-  if (typeof updateGlobalStats  === 'function') updateGlobalStats();
-  if (typeof renderLedger       === 'function') renderLedger(window.globalData.finance || []);
-}
-
-// 4. Exam Results section — filter & render
-function searchExamResults() {
-  var q        = ((document.getElementById('examResultSearchInput')  || {}).value || '').toLowerCase().trim();
-  var batchF   = ((document.getElementById('examBatchFilter')        || {}).value || '').toLowerCase().trim();
-  var sessionF = ((document.getElementById('examSessionFilter')      || {}).value || '').toLowerCase().trim();
-  var subjectF = ((document.getElementById('examSubjectFilter')      || {}).value || '').toLowerCase().trim();
-  var startD   = ((document.getElementById('examStartDateFilter')    || {}).value || '');
-  var endD     = ((document.getElementById('examEndDateFilter')      || {}).value || '');
-
-  var all = (window.globalData && window.globalData.examRegistrations) ? window.globalData.examRegistrations.slice() : [];
-  // সর্বশেষ আগে দেখাবে
-  all.reverse();
-
-  var list = all.filter(function (r) {
-    if (q && !(
-      (r.studentName || '').toLowerCase().includes(q) ||
-      (r.regId       || '').toLowerCase().includes(q) ||
-      (r.studentId   || '').toLowerCase().includes(q)
-    )) return false;
-    if (batchF   && !(r.studentBatch || '').toLowerCase().includes(batchF))   return false;
-    if (sessionF && !(r.examSession  || '').toLowerCase().includes(sessionF)) return false;
-    if (subjectF && !(r.subjectName  || '').toLowerCase().includes(subjectF)) return false;
-    if (startD   && (r.registrationDate || '') < startD) return false;
-    if (endD     && (r.registrationDate || '') > endD)   return false;
-    return true;
-  });
-
-  _examRenderTable(list);
-}
-
-function _examRenderTable(list) {
-  var tbody      = document.getElementById('examResultsTableBody');
-  var displayDiv = document.getElementById('examResultsDisplay');
-  var noMsg      = document.getElementById('noResultsMessage');
-  var countEl    = document.getElementById('filteredExamCount');
-  var creditEl   = document.getElementById('examTotalCredit');
-  var netEl      = document.getElementById('examNetTotal');
-  var totalFeeEl = document.getElementById('examTotalFeeDisplay');
-
-  if (!tbody) return;
-
-  // সবসময় table দেখাবে, "no results" লুকাবে
-  if (displayDiv) displayDiv.classList.remove('d-none');
-  if (noMsg)      noMsg.classList.add('d-none');
-
-  if (list.length === 0) {
-    tbody.innerHTML = '<tr><td colspan="12" class="text-center py-5 text-muted">কোনো Exam Registration পাওয়া যায়নি।</td></tr>';
-    if (countEl)    countEl.textContent    = '0';
-    if (creditEl)   creditEl.textContent   = '৳0';
-    if (netEl)      netEl.textContent      = '৳0';
-    if (totalFeeEl) totalFeeEl.textContent = '৳0';
-    return;
-  }
-
-  var totalFee = 0;
-  var rows = '';
-  list.forEach(function (r) {
-    totalFee += parseFloat(r.examFee) || 0;
-    rows += '<tr>' +
-      '<td><span class="badge bg-primary rounded-pill px-2">' + (r.regId || '—') + '</span></td>' +
-      '<td class="fw-semibold small">' + (r.studentId || '—') + '</td>' +
-      '<td class="fw-bold">' + (r.studentName || '—') + '</td>' +
-      '<td>' + (r.studentBatch || '—') + '</td>' +
-      '<td>' + (r.examSession  || '—') + '</td>' +
-      '<td>' + (r.subjectName  || '—') + '</td>' +
-      '<td class="fw-bold text-success">৳' + formatNumber(r.examFee) + '</td>' +
-      '<td>' + (r.paymentMethod || '—') + '</td>' +
-      '<td>' + (r.grade
-        ? '<span class="badge bg-success">' + r.grade + '</span>'
-        : '<button class="btn btn-sm btn-outline-secondary rounded-pill px-2 py-0" style="font-size:0.75rem;" onclick="examAddGrade(\'' + r.regId + '\')">+ Grade</button>') +
-      '</td>' +
-      '<td class="small">' + (r.registrationDate || '—') + '</td>' +
-      '<td class="small text-muted" style="max-width:120px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;" title="' + (r.examComment || '') + '">' + (r.examComment || '—') + '</td>' +
-      '<td class="text-end no-print">' +
-        '<button class="btn btn-sm btn-outline-danger rounded-pill px-2 py-0" style="font-size:0.75rem;" onclick="examDeleteReg(\'' + r.regId + '\')">🗑️</button>' +
-      '</td>' +
-      '</tr>';
-  });
-  tbody.innerHTML = rows;
-
-  if (countEl)    countEl.textContent    = list.length;
-  if (creditEl)   creditEl.textContent   = '৳' + formatNumber(totalFee);
-  if (netEl)      netEl.textContent      = '৳' + formatNumber(totalFee);
-  if (totalFeeEl) totalFeeEl.textContent = '৳' + formatNumber(totalFee);
-}
-
-// 5. Grade যোগ করা
-async function examAddGrade(regId) {
-  var grade = prompt('Grade দিন (যেমন: A+, A, B, C, Fail):');
-  if (!grade) return;
-  var regs = window.globalData.examRegistrations || [];
-  for (var i = 0; i < regs.length; i++) {
-    if (regs[i].regId === regId) {
-      regs[i].grade = grade.trim();
-      break;
-    }
-  }
-  await saveToStorage();
-  showSuccessToast('✅ Grade সেট হয়েছে!');
-  searchExamResults();
-}
-
-// 6. Delete Registration
-async function examDeleteReg(regId) {
-  if (!confirm('এই Registration (' + regId + ') মুছবেন?')) return;
-  var regs = window.globalData.examRegistrations || [];
-  var idx = -1;
-  for (var i = 0; i < regs.length; i++) {
-    if (regs[i].regId === regId) { idx = i; break; }
-  }
-  if (idx >= 0) {
-    regs.splice(idx, 1);
-    await saveToStorage();
-    showSuccessToast('🗑️ মুছে ফেলা হয়েছে।');
-    searchExamResults();
-  }
-}
-
-// 7. Clear Filters
-function clearExamFilters() {
-  var ids = ['examResultSearchInput','examBatchFilter','examSessionFilter','examSubjectFilter','examStartDateFilter','examEndDateFilter'];
-  ids.forEach(function (id) { var el = document.getElementById(id); if (el) el.value = ''; });
-  searchExamResults();
-}
-
-// 8. Print
-function printExamResults() {
-  window.print();
-}
-
-// 9. Export CSV
-function exportExamResultsExcel() {
-  var list = (window.globalData && window.globalData.examRegistrations) ? window.globalData.examRegistrations : [];
-  if (list.length === 0) { showErrorToast('কোনো ডাটা নেই।'); return; }
-  var headers = ['Reg ID','Student ID','Student Name','Batch','Session','Subject','Exam Fee','Payment','Grade','Date','Comment'];
-  var rows = list.map(function (r) {
-    return [r.regId,r.studentId,r.studentName,r.studentBatch,r.examSession,r.subjectName,r.examFee,r.paymentMethod,r.grade,r.registrationDate,r.examComment]
-      .map(function (v) { return '"' + String(v || '').replace(/"/g, '""') + '"'; }).join(',');
-  });
-  var csv = [headers.join(',')].concat(rows).join('\n');
-  var blob = new Blob(['\uFEFF' + csv], { type: 'text/csv;charset=utf-8;' });
-  var link = document.createElement('a');
-  link.href = URL.createObjectURL(blob);
-  link.download = 'exam_registrations_' + new Date().toISOString().split('T')[0] + '.csv';
-  link.click();
-  showSuccessToast('✅ Export সফল!');
-}
-
-// Global expose
-window.autoPopulateStudentDetails = autoPopulateStudentDetails;
-window.handleExamRegistration     = handleExamRegistration;
-window.searchExamResults          = searchExamResults;
-window.clearExamFilters           = clearExamFilters;
-window.printExamResults           = printExamResults;
-window.exportExamResultsExcel     = exportExamResultsExcel;
-window.examAddGrade               = examAddGrade;
-window.examDeleteReg              = examDeleteReg;
-
-// =========================================================
-// END EXAM REGISTRATION MODULE
-// =========================================================
