@@ -1,0 +1,67 @@
+/* ============================================================
+   WINGS FLY — TWO-FIX PATCH
+   Fix 1: Dropdown white background → dark theme
+   Fix 2: Batch ID label → Batch Name
+   ============================================================ */
+
+/* ── Fix 1: Select/option — সাদা background সরাও ── */
+
+/* Native <select> — সব browser এ dark করা */
+select,
+select.form-select,
+select.form-control,
+select.premium-input-modern,
+.att-filter-group select {
+  background-color: #0c1028 !important;
+  background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='12' height='8' viewBox='0 0 12 8'%3E%3Cpath fill='%2300d9ff' d='M1.41 0L6 4.58 10.59 0 12 1.41l-6 6-6-6z'/%3E%3C/svg%3E") !important;
+  background-repeat: no-repeat !important;
+  background-position: right 14px center !important;
+  background-size: 12px !important;
+  color: #ffffff !important;
+  border-color: rgba(0, 217, 255, 0.4) !important;
+  -webkit-appearance: none !important;
+  -moz-appearance: none !important;
+  appearance: none !important;
+}
+
+/* <option> items — dark background, white text */
+select option,
+select.form-select option,
+.att-filter-group select option {
+  background-color: #0e1230 !important;
+  color: #ffffff !important;
+  font-weight: 500;
+  padding: 10px 14px;
+}
+
+/* Option group label */
+select optgroup {
+  background-color: #07091c !important;
+  color: rgba(0, 217, 255, 0.7) !important;
+  font-weight: 700;
+}
+
+/* Checked / selected option */
+select option:checked,
+select option:focus,
+select option:hover {
+  background-color: #1a3a5c !important;
+  color: #00d9ff !important;
+}
+
+/* Focus state */
+select:focus,
+select.form-select:focus,
+.att-filter-group select:focus {
+  border-color: #00d9ff !important;
+  box-shadow: 0 0 0 3px rgba(0, 217, 255, 0.15) !important;
+  outline: none !important;
+  background-color: #0c1028 !important;
+}
+
+/* Windows Chrome specific fix — the dropdown list box */
+@media screen {
+  select:-webkit-any(option) {
+    background: #0e1230 !important;
+  }
+}

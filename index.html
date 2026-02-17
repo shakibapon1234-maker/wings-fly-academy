@@ -287,6 +287,9 @@
     <!-- Attendance Pro Styles -->
     <link rel="stylesheet" href="attendance-pro.css">
 
+    <!-- Quick Fix: Dropdown dark bg + Batch Name label -->
+    <link rel="stylesheet" href="quick-fix.css">
+
 
 
 
@@ -1865,9 +1868,10 @@
                         <div class="row g-3">
                             <div class="col-md-4 mb-3">
                                 <label class="form-label fw-bold small text-uppercase text-muted">Batch
-                                    ID</label>
+                                    Name</label>
                                 <input type="text" name="batch" class="form-control premium-input-modern"
-                                    placeholder="e.g., Batch 101">
+                                    placeholder="e.g., Batch Jan-2026" list="batchNameList">
+                                <datalist id="batchNameList"></datalist>
                             </div>
                             <div class="col-md-4 mb-3">
                                 <label class="form-label fw-bold small text-uppercase text-muted">Enrollment
@@ -3535,6 +3539,9 @@
     <!-- Monthly | Yearly | Course-wise | Blank Sheet   -->
     <!-- =============================================== -->
     <script src="attendance-pro.js"></script>
+
+    <!-- Quick Fix: Batch Name datalist -->
+    <script src="quick-fix.js"></script>
 
     <!-- =============================================== -->
     <!-- MOBILE BANKING MODAL -->
