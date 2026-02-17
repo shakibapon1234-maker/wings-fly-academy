@@ -284,12 +284,6 @@
     <!-- Custom Styles -->
     <link rel="stylesheet" href="styles.css?v=20260205_3">
 
-    <!-- Attendance Pro Styles -->
-    <link rel="stylesheet" href="attendance-pro.css">
-
-    <!-- Quick Fix: Dropdown dark bg + Batch Name label -->
-    <link rel="stylesheet" href="quick-fix.css">
-
 
 
 
@@ -835,7 +829,7 @@
                     <!-- Batch Summary -->
                     <div id="batchSummaryCard" class="card batch-summary-card d-none mb-4 shadow-sm border-0">
                         <div class="card-body">
-                            <h5 class="fw-bold mb-3"><span class="me-2">�</span> Batch <span
+                            <h5 class="fw-bold mb-3"><span class="me-2">📋</span> Batch <span
                                     id="summaryBatchName"></span>
                                 Summary</h5>
                             <div class="row text-center">
@@ -1045,7 +1039,7 @@
                             <h5 class="fw-bold m-0">Student Enrollment List</h5>
                             <div class="d-flex gap-2">
                                 <button class="btn btn-sm btn-outline-danger fw-bold"
-                                    onclick="printReport('students')">�
+                                    onclick="printReport('students')"><i class='bi bi-printer-fill me-1'></i>
                                     Print</button>
                                 <button class="btn btn-sm btn-outline-success fw-bold"
                                     onclick="exportStudentListExcel()">📊
@@ -1123,7 +1117,7 @@
                                         onchange="openLoanDetail(currentLoanPerson)" style="width: 120px;">
                                 </div>
                                 <div class="d-flex gap-2">
-                                    <button class="btn btn-sm btn-outline-danger fw-bold" onclick="printLoanDetail()">�
+                                    <button class="btn btn-sm btn-outline-danger fw-bold" onclick="printLoanDetail()"><i class='bi bi-printer-fill me-1'></i>
                                         Print</button>
                                     <button class="btn btn-sm btn-light border" onclick="closeLoanDetail()">Close
                                         Details</button>
@@ -1162,14 +1156,14 @@
                             <h5 class="fw-bold m-0">Financial Ledger</h5>
                             <div class="d-flex gap-2 align-items-center">
                                 <!-- Ledger Actions Toolbar -->
-                                <button class="btn btn-sm btn-outline-info fw-bold" onclick="showExpenseBreakdown()">�
+                                <button class="btn btn-sm btn-outline-info fw-bold" onclick="showExpenseBreakdown()"><i class='bi bi-bar-chart-fill me-1'></i>
                                     Breakdown</button>
-                                <button class="btn btn-sm btn-outline-danger fw-bold" onclick="printReport('ledger')">�
+                                <button class="btn btn-sm btn-outline-danger fw-bold" onclick="printReport('ledger')"><i class='bi bi-printer-fill me-1'></i>
                                     Print</button>
                                 <button class="btn btn-sm btn-outline-success fw-bold"
                                     onclick="downloadLedgerExcel()">📊
                                     Excel</button>
-                                <button class="btn btn-sm btn-outline-primary fw-bold" onclick="mailLedgerReport()">�
+                                <button class="btn btn-sm btn-outline-primary fw-bold" onclick="mailLedgerReport()"><i class='bi bi-envelope-fill me-1'></i>
                                     Mail</button>
                                 <div class="bg-primary text-white px-3 py-1 rounded-pill fw-bold small">
                                     Balance:
@@ -1317,7 +1311,7 @@
                 <!-- Employee Management Section -->
                 <div id="employeeSection" class="d-none">
                     <div class="d-flex justify-content-between align-items-center mb-4">
-                        <h4 class="fw-bold m-0"><span class="me-2">�</span> Employee Management</h4>
+                        <h4 class="fw-bold m-0"><span class="me-2">👔</span> Employee Management</h4>
                         <button class="btn btn-primary fw-bold px-4 rounded-3" onclick="openEmployeeModal()">
                             <i class="bi bi-person-plus-fill me-2"></i>Add New Employee
                         </button>
@@ -1868,10 +1862,9 @@
                         <div class="row g-3">
                             <div class="col-md-4 mb-3">
                                 <label class="form-label fw-bold small text-uppercase text-muted">Batch
-                                    Number</label>
+                                    ID</label>
                                 <input type="text" name="batch" class="form-control premium-input-modern"
-                                    placeholder="e.g., Batch Jan-2026" list="batchNameList">
-                                <datalist id="batchNameList"></datalist>
+                                    placeholder="e.g., Batch 101">
                             </div>
                             <div class="col-md-4 mb-3">
                                 <label class="form-label fw-bold small text-uppercase text-muted">Enrollment
@@ -1887,7 +1880,7 @@
                                 </select>
                             </div>
                             <div class="col-md-4 mb-3">
-                                <label class="form-label fw-bold small text-uppercase text-muted">�… Payment
+                                <label class="form-label fw-bold small text-uppercase text-muted">🔔 Payment
                                     Reminder</label>
                                 <input type="date" name="reminderDate" class="form-control premium-input-modern"
                                     placeholder="Optional reminder date">
@@ -2136,7 +2129,7 @@
                                     </button>
                                     <button class="nav-link" data-bs-toggle="pill" data-bs-target="#tab-security"
                                         type="button">
-                                        <span>�’</span> Security & Access
+                                        <span>🔒</span> Security & Access
                                     </button>
                                 </div>
                                 <div class="mt-auto pt-4 text-center">
@@ -2372,7 +2365,7 @@
                                                         <div class="d-flex align-items-center mb-4">
                                                             <div class="icon-box bg-primary-subtle text-primary me-3"
                                                                 style="width: 45px; height: 45px; border-radius: 12px; display: flex; align-items: center; justify-content: center; font-size: 1.2rem;">
-                                                                �‘</div>
+                                                                🔒</div>
                                                             <div>
                                                                 <h6 class="fw-bold mb-0">Admin Login Credentials</h6>
                                                                 <small class="text-muted">Change your password to stop
@@ -2402,7 +2395,7 @@
                                                                 <button class="btn btn-outline-secondary border-start-0"
                                                                     type="button"
                                                                     onclick="const p = document.getElementById('settingsPassword'); p.type = p.type === 'password' ? 'text' : 'password';">
-                                                                    �ï¸
+                                                                    🖨️
                                                                 </button>
                                                             </div>
                                                             <small class="text-muted mt-2 d-block">Use a unique password
@@ -2607,7 +2600,7 @@
                                     placeholder="Search Batch..." onkeyup="renderBatchReport()" style="width: 130px;">
                             </div>
                         </div>
-                        <button class="btn btn-sm btn-primary" onclick="renderBatchReport()">�„ Refresh
+                        <button class="btn btn-sm btn-primary" onclick="renderBatchReport()"><i class='bi bi-arrow-clockwise me-1'></i>Refresh
                             Report</button>
                     </div>
                     <div class="table-responsive">
@@ -2632,7 +2625,7 @@
                     </div>
                     <div class="mt-4 text-end">
                         <button class="btn btn-outline-danger" onclick="printBatchReport()">
-                            � Print Report
+                            <i class="bi bi-printer-fill me-1"></i>Print Report
                         </button>
                         <button class="btn btn-outline-success" onclick="exportBatchReportExcel()">
                             📊 Export Excel
@@ -2842,7 +2835,7 @@
         <div class="modal-dialog modal-dialog-centered">
             <div class="modal-content custom-modal">
                 <div class="modal-header">
-                    <h5 class="modal-title fw-bold">�‰ Expense Breakdown</h5>
+                    <h5 class="modal-title fw-bold">📊 Expense Breakdown</h5>
                     <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
                 </div>
                 <div class="modal-body">
@@ -2914,7 +2907,7 @@
         <div class="modal-dialog modal-lg modal-dialog-centered">
             <div class="modal-content custom-modal">
                 <div class="modal-header">
-                    <h5 class="modal-title fw-bold">�… Student Attendance</h5>
+                    <h5 class="modal-title fw-bold">📋 Student Attendance</h5>
                     <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
                 </div>
                 <div class="modal-body">
@@ -2971,7 +2964,7 @@
             <div class="modal-content custom-modal">
                 <div class="modal-header border-0 pb-0">
                     <h5 class="modal-title fw-bold text-primary">
-                        <span class="me-2 header-icon-circle bg-primary-light">�</span>Exam Registration
+                        <span class="me-2 header-icon-circle bg-primary-light">📝</span>Exam Registration
                     </h5>
                     <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
                 </div>
@@ -3249,7 +3242,7 @@
             <div class="modal-content custom-modal">
                 <div class="modal-header border-0 pb-0">
                     <h5 class="modal-title fw-bold">
-                        <span class="me-2 header-icon-circle bg-primary-light">�</span>Add New Employee
+                        <span class="me-2 header-icon-circle bg-primary-light">👔</span>Add New Employee
                     </h5>
                     <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
                 </div>
@@ -3416,7 +3409,7 @@
             <div class="modal-content custom-modal">
                 <div class="modal-header border-0 pb-0">
                     <h5 class="modal-title fw-bold">
-                        <span class="me-2 header-icon-circle bg-primary-light">�„</span>Internal Balance Transfer
+                        <span class="me-2 header-icon-circle bg-primary-light">💸</span>Internal Balance Transfer
                     </h5>
                     <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
                 </div>
@@ -3473,7 +3466,7 @@
             <div class="modal-content custom-modal">
                 <div class="modal-header border-0 pb-0">
                     <h5 class="modal-title fw-bold">
-                        <span class="me-2 header-icon-circle bg-warning-subtle text-warning">�”</span>All Student
+                        <span class="me-2 header-icon-circle bg-warning-subtle text-warning">⚠️</span>All Student
                         Reminders
                     </h5>
                     <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
@@ -3526,25 +3519,6 @@
 
     <!-- Main Application (Sync code now embedded inside) -->
     <script src="app.js?v=9.0"></script>
-
-    <!-- =============================================== -->
-    <!-- EXAM REGISTRATION FIX — সকল সমস্যা সমাধান     -->
-    <!-- autoPopulateStudentDetails, handleExamRegistration,  -->
-    <!-- searchExamResults, renderExamResults সব এখানে  -->
-    <!-- =============================================== -->
-    <script src="exam-fix.js"></script>
-
-    <!-- =============================================== -->
-    <!-- ATTENDANCE PRO MODULE                          -->
-    <!-- Monthly | Yearly | Course-wise | Blank Sheet   -->
-    <!-- =============================================== -->
-    <script src="attendance-pro.js"></script>
-
-    <!-- Quick Fix: Batch Name datalist -->
-    <script src="quick-fix.js"></script>
-
-    <!-- Print Layout Fix: Balanced column widths -->
-    <script src="print-fix.js"></script>
 
     <!-- =============================================== -->
     <!-- MOBILE BANKING MODAL -->
