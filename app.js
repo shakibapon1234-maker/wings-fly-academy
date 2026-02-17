@@ -3792,8 +3792,6 @@ function printAccountDetails() {
             <p style="margin: 0; font-size: 11px; font-weight: bold; color: #92400e; text-transform: uppercase;">Disclaimer</p>
             <p style="margin: 5px 0 0 0; font-size: 11px; color: #b45309; line-height: 1.4;">This is a system-generated financial statement. Any discrepancies should be reported to the finance department immediately.</p>
         </div>
-
-        ${getPrintFooter()}
     </div>
   `;
 
@@ -3930,20 +3928,10 @@ function getPrintHeader(title) {
 }
 
 function getPrintFooter() {
-  const signature = (window.APP_LOGOS && window.APP_LOGOS.signature) ? window.APP_LOGOS.signature : '';
-
   return `
-    <div class="report-signature-block" style="margin-top: 100px; display: flex; justify-content: space-between; padding: 0 40px;">
-        <div style="width: 200px; border-top: 1.5px solid #111827; text-align: center; padding-top: 10px;">
-            <p style="margin: 0; font-size: 13px; font-weight: 800; color: #111827;">Applicant Signature</p>
-        </div>
-        <div style="width: 200px; border-top: 1.5px solid #111827; text-align: center; padding-top: 10px; position: relative;">
-            ${signature ? `<img src="${signature}" style="height: 40px; position: absolute; top: -45px; left: 50%; transform: translateX(-50%);">` : ''}
-            <p style="margin: 0; font-size: 13px; font-weight: 800; color: #111827;">Authorized Seal</p>
-        </div>
-    </div>
-    <div style="text-align: center; margin-top: 60px; padding-top: 20px; border-top: 1px solid #f1f5f9;">
-        <p style="margin: 0; font-size: 10px; color: #94a3b8; font-weight: 600;">System Generated Official Document | www.winsflyaviation.com</p>
+    <div style="text-align: center; margin-top: 30px; padding-top: 15px; border-top: 2px solid #e2e8f0;">
+        <p style="margin: 0; font-size: 10px; color: #64748b; font-weight: 600;">System Generated Official Document | Wings Fly Aviation Academy</p>
+        <p style="margin: 5px 0 0 0; font-size: 9px; color: #94a3b8;">www.wingsfly aviation.com</p>
     </div>
   `;
 }
