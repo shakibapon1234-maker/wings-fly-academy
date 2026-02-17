@@ -574,6 +574,8 @@ document.addEventListener('DOMContentLoaded', function () {
       if (!form) return;
 
       renderSettingsLists();
+      // Restore certificate design selection highlight
+      setTimeout(() => restoreCertDesignUI(), 150);
     });
   }
 
@@ -4738,6 +4740,245 @@ function saveAttendance() {
   showSuccessToast(`Attendance saved for ${batch} on ${date}`);
 }
 
+// ===================================
+// CERTIFICATE DESIGN SELECTOR
+// ===================================
+
+function selectCertDesign(designId) {
+  // Save to globalData
+  if (!globalData.settings) globalData.settings = {};
+  globalData.settings.certDesign = designId;
+  saveToStorage();
+
+  // Update UI — highlight selected card
+  ['navy', 'cosmos'].forEach(id => {
+    const card = document.getElementById('designCard_' + id);
+    const check = document.getElementById('designCheck_' + id);
+    if (card && check) {
+      if (id === designId) {
+        card.style.border = id === 'navy'
+          ? '3px solid #00e5ff'
+          : '3px solid #8a2be2';
+        card.style.boxShadow = id === 'navy'
+          ? '0 0 20px rgba(0,229,255,0.3)'
+          : '0 0 20px rgba(138,43,226,0.3)';
+        check.style.display = 'block';
+      } else {
+        card.style.border = '3px solid transparent';
+        card.style.boxShadow = 'none';
+        check.style.display = 'none';
+      }
+    }
+  });
+
+  showSuccessToast('✅ Certificate design updated!');
+}
+
+// Restore selected design highlight when settings modal opens
+function restoreCertDesignUI() {
+  const savedDesign = globalData.settings?.certDesign || 'navy';
+  selectCertDesign(savedDesign);
+}
+
+// ===================================
+// CERTIFICATE HTML BUILDERS
+// ===================================
+
+function buildCertHtml_Navy(s, linearLogo, premiumLogo, signatureImg, nsdaLogo, academyName) {
+  return `
+  <div id="certContainer" style="
+    width:1056px; height:816px; padding:0; position:relative;
+    background:#060d1f; font-family:'Outfit',sans-serif; color:#fff;
+    overflow:hidden; box-sizing:border-box; border:12px solid #00e5ff;">
+
+    <!-- SVG Background -->
+    <svg style="position:absolute;inset:0;width:100%;height:100%;z-index:0;" viewBox="0 0 1056 816" preserveAspectRatio="none" xmlns="http://www.w3.org/2000/svg">
+      <defs>
+        <linearGradient id="nc1" x1="0%" y1="0%" x2="100%" y2="100%">
+          <stop offset="0%" style="stop-color:#005Bea;stop-opacity:0.7"/>
+          <stop offset="100%" style="stop-color:#00C6FB;stop-opacity:0.7"/>
+        </linearGradient>
+        <linearGradient id="nc2" x1="0%" y1="0%" x2="100%" y2="100%">
+          <stop offset="0%" style="stop-color:#00e5ff;stop-opacity:0.5"/>
+          <stop offset="100%" style="stop-color:#005Bea;stop-opacity:0.5"/>
+        </linearGradient>
+        <pattern id="ngrid" width="60" height="60" patternUnits="userSpaceOnUse">
+          <path d="M 60 0 L 0 0 0 60" fill="none" stroke="rgba(0,229,255,0.05)" stroke-width="0.5"/>
+        </pattern>
+      </defs>
+      <rect width="1056" height="816" fill="url(#ngrid)"/>
+      <path d="M0,0 L620,0 C330,8 95,290 0,630 Z" fill="url(#nc1)" opacity="0.18"/>
+      <path d="M0,0 L430,0 C215,8 55,200 0,430 Z" fill="url(#nc2)" opacity="0.25"/>
+      <path d="M1056,816 L530,816 C760,800 1050,540 1056,310 Z" fill="url(#nc1)" opacity="0.18"/>
+      <path d="M1056,816 L640,816 C820,800 1050,600 1056,430 Z" fill="url(#nc2)" opacity="0.25"/>
+      <circle cx="0" cy="0" r="180" fill="rgba(0,91,234,0.15)"/>
+      <circle cx="1056" cy="816" r="180" fill="rgba(0,198,251,0.12)"/>
+    </svg>
+
+    <!-- Inner Frame -->
+    <div style="position:absolute;top:35px;left:35px;right:35px;bottom:35px;border:2px solid rgba(0,229,255,0.4);z-index:5;pointer-events:none;"></div>
+    <!-- Corner Accents -->
+    <svg style="position:absolute;top:28px;left:28px;z-index:6;width:40px;height:40px;" viewBox="0 0 40 40"><path d="M0,0 L25,0 M0,0 L0,25" stroke="#00e5ff" stroke-width="2" fill="none"/><circle cx="0" cy="0" r="3" fill="#00e5ff"/></svg>
+    <svg style="position:absolute;top:28px;right:28px;z-index:6;width:40px;height:40px;" viewBox="0 0 40 40"><path d="M40,0 L15,0 M40,0 L40,25" stroke="#00e5ff" stroke-width="2" fill="none"/><circle cx="40" cy="0" r="3" fill="#00e5ff"/></svg>
+    <svg style="position:absolute;bottom:28px;left:28px;z-index:6;width:40px;height:40px;" viewBox="0 0 40 40"><path d="M0,40 L25,40 M0,40 L0,15" stroke="#00e5ff" stroke-width="2" fill="none"/><circle cx="0" cy="40" r="3" fill="#00e5ff"/></svg>
+    <svg style="position:absolute;bottom:28px;right:28px;z-index:6;width:40px;height:40px;" viewBox="0 0 40 40"><path d="M40,40 L15,40 M40,40 L40,15" stroke="#00e5ff" stroke-width="2" fill="none"/><circle cx="40" cy="40" r="3" fill="#00e5ff"/></svg>
+
+    <!-- Content -->
+    <div style="position:relative;z-index:10;padding:50px 70px;height:100%;">
+      <!-- Header -->
+      <div style="display:flex;justify-content:space-between;align-items:flex-start;margin-bottom:20px;">
+        <div style="width:100px;height:100px;background:#0a1a3a;border-radius:50%;padding:5px;box-shadow:0 0 20px rgba(0,229,255,0.5),0 0 40px rgba(0,91,234,0.3);display:flex;align-items:center;justify-content:center;">
+          <img src="${nsdaLogo}" style="max-height:86px;max-width:86px;border-radius:50%;" onerror="this.style.display='none'">
+        </div>
+        <div style="padding-top:8px;text-align:center;">
+          <div style="font-size:10px;letter-spacing:5px;color:rgba(0,229,255,0.6);font-family:'Josefin Sans',sans-serif;margin-bottom:8px;">· WINGS FLY AVIATION ACADEMY ·</div>
+          <img src="${linearLogo}" style="height:55px;width:auto;filter:brightness(0) invert(1);" onerror="this.style.display='none'">
+        </div>
+        <div style="position:relative;width:110px;height:110px;">
+          <svg viewBox="0 0 110 110" style="position:absolute;inset:0;width:100%;height:100%;">
+            <polygon points="55,5 67,38 102,38 74,59 84,92 55,71 26,92 36,59 8,38 43,38" fill="#FFD700" opacity="0.95"/>
+            <polygon points="55,16 65,40 90,40 69,54 77,80 55,65 33,80 41,54 20,40 45,40" fill="#FFA000"/>
+            <text x="55" y="52" text-anchor="middle" font-size="8" fill="white" font-family="sans-serif" letter-spacing="0.5" font-weight="700">EXCELLENCE</text>
+            <text x="55" y="64" text-anchor="middle" font-size="7" fill="white" font-family="sans-serif" letter-spacing="0.5">CERTIFICATE</text>
+          </svg>
+        </div>
+      </div>
+
+      <!-- Body -->
+      <div style="text-align:center;margin-top:30px;">
+        <div style="font-size:11px;letter-spacing:5px;color:rgba(0,229,255,0.6);font-family:sans-serif;text-transform:uppercase;margin-bottom:6px;">· Wings Fly Aviation Academy ·</div>
+        <svg width="500" height="8" style="display:block;margin:0 auto 6px;"><defs><linearGradient id="lg_n1" x1="0%" y1="0%" x2="100%" y2="0%"><stop offset="0%" stop-color="transparent"/><stop offset="50%" stop-color="#00e5ff"/><stop offset="100%" stop-color="transparent"/></linearGradient></defs><line x1="0" y1="4" x2="500" y2="4" stroke="url(#lg_n1)" stroke-width="1"/></svg>
+        <div style="font-size:85px;font-weight:900;font-family:'Oswald',sans-serif;letter-spacing:5px;line-height:1;background:linear-gradient(135deg,#00e5ff,#a0f0ff,#00e5ff);-webkit-background-clip:text;-webkit-text-fill-color:transparent;background-clip:text;">CERTIFICATE</div>
+        <div style="font-size:28px;font-weight:600;color:rgba(255,255,255,0.7);letter-spacing:2px;margin-top:4px;">of Appreciation</div>
+        <p style="font-size:17px;margin-top:30px;color:rgba(255,255,255,0.45);font-style:italic;font-family:'Cormorant Garamond',serif;letter-spacing:1px;">This certificate is proudly presented for honorable achievement to</p>
+        <div style="font-size:62px;margin:16px 0;color:#fff;font-family:'Rye',serif;font-weight:400;text-transform:uppercase;letter-spacing:2px;text-shadow:0 0 30px rgba(0,229,255,0.5),0 0 60px rgba(0,91,234,0.3);">
+          ${s.name || 'Student Name'}
+        </div>
+        <div style="display:flex;justify-content:center;gap:0;margin:12px 0;font-family:'Courier New',monospace;font-size:23px;font-weight:900;color:#fff;">
+          BATCH – ${s.batch || 'N/A'} &nbsp;✦&nbsp; STUDENT ID : ${s.studentId || '-'}
+        </div>
+        <svg width="450" height="8" style="display:block;margin:4px auto;"><line x1="0" y1="4" x2="450" y2="4" stroke="url(#lg_n1)" stroke-width="1"/></svg>
+        <div style="margin-top:22px;padding:0 80px;font-size:14px;color:rgba(255,255,255,0.45);font-weight:700;text-transform:uppercase;line-height:1.7;letter-spacing:0.5px;">
+          Certification on Training About The "${(s.course || 'COURSE')}"<br>At ${academyName.toUpperCase()}
+        </div>
+      </div>
+
+      <!-- Footer -->
+      <div style="position:absolute;bottom:50px;left:70px;z-index:20;">
+        <p style="margin:0;font-size:13px;color:rgba(0,229,255,0.5);font-weight:700;">wingsflyaviationacademy.com</p>
+      </div>
+      <div style="position:absolute;bottom:50px;right:70px;z-index:20;text-align:center;">
+        <div style="margin-bottom:2px;height:70px;display:flex;align-items:flex-end;justify-content:center;">
+          ${signatureImg ? `<img src="${signatureImg}" style="height:65px;width:auto;" onerror="this.style.display='none'">` : ''}
+        </div>
+        <div style="width:200px;height:2px;background:linear-gradient(90deg,#00e5ff,#005bea);margin:0 auto 5px;"></div>
+        <p style="margin:0;font-weight:800;font-size:14px;text-transform:uppercase;color:#fff;">CHAIRMAN</p>
+        <p style="margin:0;font-size:13px;color:rgba(0,229,255,0.7);font-weight:700;">FERDOUS AHMED</p>
+      </div>
+    </div>
+  </div>`;
+}
+
+function buildCertHtml_Cosmos(s, linearLogo, premiumLogo, signatureImg, nsdaLogo, academyName) {
+  return `
+  <div id="certContainer" style="
+    width:1056px; height:816px; padding:0; position:relative;
+    background:#060b1a; font-family:'Outfit',sans-serif; color:#fff;
+    overflow:hidden; box-sizing:border-box; border:12px solid #8a2be2;">
+
+    <!-- SVG Background -->
+    <svg style="position:absolute;inset:0;width:100%;height:100%;z-index:0;" viewBox="0 0 1056 816" preserveAspectRatio="none" xmlns="http://www.w3.org/2000/svg">
+      <defs>
+        <linearGradient id="cc1" x1="0%" y1="0%" x2="100%" y2="100%">
+          <stop offset="0%" style="stop-color:#8a2be2;stop-opacity:0.6"/>
+          <stop offset="100%" style="stop-color:#4400ff;stop-opacity:0.6"/>
+        </linearGradient>
+        <linearGradient id="cc2" x1="0%" y1="0%" x2="100%" y2="100%">
+          <stop offset="0%" style="stop-color:#00ffc8;stop-opacity:0.4"/>
+          <stop offset="100%" style="stop-color:#8a2be2;stop-opacity:0.4"/>
+        </linearGradient>
+        <pattern id="cgrid" width="55" height="55" patternUnits="userSpaceOnUse">
+          <path d="M 55 0 L 0 0 0 55" fill="none" stroke="rgba(138,43,226,0.06)" stroke-width="0.5"/>
+        </pattern>
+      </defs>
+      <rect width="1056" height="816" fill="url(#cgrid)"/>
+      <circle cx="0" cy="0" r="280" fill="rgba(138,43,226,0.18)"/>
+      <circle cx="1056" cy="816" r="250" fill="rgba(0,255,200,0.12)"/>
+      <circle cx="528" cy="408" r="320" fill="rgba(255,100,0,0.04)"/>
+      <path d="M0,0 L620,0 C330,8 95,290 0,630 Z" fill="url(#cc1)" opacity="0.22"/>
+      <path d="M0,0 L430,0 C215,8 55,200 0,430 Z" fill="url(#cc2)" opacity="0.28"/>
+      <path d="M1056,816 L530,816 C760,800 1050,540 1056,310 Z" fill="url(#cc1)" opacity="0.22"/>
+      <path d="M1056,816 L640,816 C820,800 1050,600 1056,430 Z" fill="url(#cc2)" opacity="0.28"/>
+    </svg>
+
+    <!-- Inner Frame -->
+    <div style="position:absolute;top:35px;left:35px;right:35px;bottom:35px;border:2px solid rgba(138,43,226,0.4);z-index:5;pointer-events:none;"></div>
+    <!-- Corner Accents -->
+    <svg style="position:absolute;top:28px;left:28px;z-index:6;width:40px;height:40px;" viewBox="0 0 40 40"><path d="M0,0 L25,0 M0,0 L0,25" stroke="#8a2be2" stroke-width="2" fill="none"/><circle cx="0" cy="0" r="3" fill="#8a2be2"/></svg>
+    <svg style="position:absolute;top:28px;right:28px;z-index:6;width:40px;height:40px;" viewBox="0 0 40 40"><path d="M40,0 L15,0 M40,0 L40,25" stroke="#00ffc8" stroke-width="2" fill="none"/><circle cx="40" cy="0" r="3" fill="#00ffc8"/></svg>
+    <svg style="position:absolute;bottom:28px;left:28px;z-index:6;width:40px;height:40px;" viewBox="0 0 40 40"><path d="M0,40 L25,40 M0,40 L0,15" stroke="#00ffc8" stroke-width="2" fill="none"/><circle cx="0" cy="40" r="3" fill="#00ffc8"/></svg>
+    <svg style="position:absolute;bottom:28px;right:28px;z-index:6;width:40px;height:40px;" viewBox="0 0 40 40"><path d="M40,40 L15,40 M40,40 L40,15" stroke="#8a2be2" stroke-width="2" fill="none"/><circle cx="40" cy="40" r="3" fill="#8a2be2"/></svg>
+
+    <!-- Content -->
+    <div style="position:relative;z-index:10;padding:50px 70px;height:100%;">
+      <!-- Header -->
+      <div style="display:flex;justify-content:space-between;align-items:flex-start;margin-bottom:20px;">
+        <div style="width:100px;height:100px;background:#120930;border-radius:50%;padding:5px;box-shadow:0 0 20px rgba(138,43,226,0.6),0 0 40px rgba(68,0,255,0.3);display:flex;align-items:center;justify-content:center;">
+          <img src="${nsdaLogo}" style="max-height:86px;max-width:86px;border-radius:50%;" onerror="this.style.display='none'">
+        </div>
+        <div style="padding-top:8px;text-align:center;">
+          <div style="font-size:10px;letter-spacing:5px;color:rgba(0,255,200,0.6);font-family:sans-serif;margin-bottom:8px;">· WINGS FLY AVIATION ACADEMY ·</div>
+          <img src="${linearLogo}" style="height:55px;width:auto;filter:brightness(0) invert(1);" onerror="this.style.display='none'">
+        </div>
+        <div style="position:relative;width:110px;height:110px;">
+          <svg viewBox="0 0 110 110" style="position:absolute;inset:0;width:100%;height:100%;">
+            <polygon points="55,5 67,38 102,38 74,59 84,92 55,71 26,92 36,59 8,38 43,38" fill="#8a2be2" opacity="0.9"/>
+            <polygon points="55,16 65,40 90,40 69,54 77,80 55,65 33,80 41,54 20,40 45,40" fill="#5500aa"/>
+            <text x="55" y="52" text-anchor="middle" font-size="8" fill="#00ffc8" font-family="sans-serif" letter-spacing="0.5" font-weight="700">EXCELLENCE</text>
+            <text x="55" y="64" text-anchor="middle" font-size="7" fill="#00ffc8" font-family="sans-serif" letter-spacing="0.5">CERTIFICATE</text>
+          </svg>
+        </div>
+      </div>
+
+      <!-- Body -->
+      <div style="text-align:center;margin-top:28px;">
+        <div style="font-size:11px;letter-spacing:5px;color:rgba(0,255,200,0.55);font-family:sans-serif;text-transform:uppercase;margin-bottom:6px;">· Wings Fly Aviation Academy ·</div>
+        <svg width="500" height="8" style="display:block;margin:0 auto 6px;"><defs><linearGradient id="lg_c1" x1="0%" y1="0%" x2="100%" y2="0%"><stop offset="0%" stop-color="transparent"/><stop offset="30%" stop-color="#8a2be2"/><stop offset="70%" stop-color="#00ffc8"/><stop offset="100%" stop-color="transparent"/></linearGradient></defs><line x1="0" y1="4" x2="500" y2="4" stroke="url(#lg_c1)" stroke-width="1"/></svg>
+        <div style="font-size:85px;font-weight:900;font-family:'Oswald',sans-serif;letter-spacing:5px;line-height:1;background:linear-gradient(135deg,#8a2be2 0%,#00ffc8 50%,#ff6400 100%);-webkit-background-clip:text;-webkit-text-fill-color:transparent;background-clip:text;">CERTIFICATE</div>
+        <div style="font-size:28px;font-weight:600;color:rgba(255,255,255,0.65);letter-spacing:2px;margin-top:4px;">✦ of Appreciation ✦</div>
+        <p style="font-size:17px;margin-top:28px;color:rgba(255,255,255,0.4);font-style:italic;font-family:'Cormorant Garamond',serif;letter-spacing:1px;">This certificate is proudly presented for honorable achievement to</p>
+        <div style="font-size:60px;margin:14px 0;color:#fff;font-family:'Rye',serif;font-weight:400;text-transform:uppercase;letter-spacing:2px;text-shadow:0 0 30px rgba(138,43,226,0.6),0 0 60px rgba(0,255,200,0.3);">
+          ${s.name || 'Student Name'}
+        </div>
+        <div style="display:flex;justify-content:center;gap:0;margin:10px 0;font-family:'Courier New',monospace;font-size:22px;font-weight:900;color:#fff;">
+          BATCH – ${s.batch || 'N/A'} &nbsp;✦&nbsp; STUDENT ID : ${s.studentId || '-'}
+        </div>
+        <svg width="450" height="8" style="display:block;margin:4px auto;"><line x1="0" y1="4" x2="450" y2="4" stroke="url(#lg_c1)" stroke-width="1"/></svg>
+        <div style="margin-top:20px;padding:0 80px;font-size:14px;color:rgba(255,255,255,0.4);font-weight:700;text-transform:uppercase;line-height:1.7;letter-spacing:0.5px;">
+          Certification on Training About The "${(s.course || 'COURSE')}"<br>At ${academyName.toUpperCase()}
+        </div>
+      </div>
+
+      <!-- Footer -->
+      <div style="position:absolute;bottom:50px;left:70px;z-index:20;">
+        <p style="margin:0;font-size:13px;color:rgba(0,255,200,0.45);font-weight:700;">wingsflyaviationacademy.com</p>
+      </div>
+      <div style="position:absolute;bottom:50px;right:70px;z-index:20;text-align:center;">
+        <div style="margin-bottom:2px;height:70px;display:flex;align-items:flex-end;justify-content:center;">
+          ${signatureImg ? `<img src="${signatureImg}" style="height:65px;width:auto;" onerror="this.style.display='none'">` : ''}
+        </div>
+        <div style="width:200px;height:2px;background:linear-gradient(90deg,#8a2be2,#00ffc8);margin:0 auto 5px;"></div>
+        <p style="margin:0;font-weight:800;font-size:14px;text-transform:uppercase;color:#fff;">CHAIRMAN</p>
+        <p style="margin:0;font-size:13px;color:rgba(0,255,200,0.65);font-weight:700;">FERDOUS AHMED</p>
+      </div>
+    </div>
+  </div>`;
+}
+
+// ===================================
+// ORIGINAL generateCertificate (updated with design switch)
+// ===================================
+
 function generateCertificate() {
   const btn = document.getElementById('btnCertificate');
   const originalText = btn.innerHTML;
@@ -4761,7 +5002,20 @@ function generateCertificate() {
   const signatureImg = (window.APP_LOGOS && window.APP_LOGOS.signature) ? window.APP_LOGOS.signature : '';
   const nsdaLogo = (window.APP_LOGOS && window.APP_LOGOS.nsda) ? window.APP_LOGOS.nsda : '';
 
-  const certHtml = `
+  // === DESIGN SWITCH: Choose based on settings ===
+  const selectedDesign = globalData.settings?.certDesign || 'navy';
+  let certHtml;
+  if (selectedDesign === 'cosmos') {
+    certHtml = buildCertHtml_Cosmos(s, linearLogo, premiumLogo, signatureImg, nsdaLogo, academyName);
+  } else if (selectedDesign === 'navy') {
+    certHtml = buildCertHtml_Navy(s, linearLogo, premiumLogo, signatureImg, nsdaLogo, academyName);
+  } else {
+    // fallback: original design
+    certHtml = buildCertHtml_Navy(s, linearLogo, premiumLogo, signatureImg, nsdaLogo, academyName);
+  }
+
+  /* ===== ORIGINAL DESIGN (kept as reference — not used when new design selected) =====
+  const certHtml_original = `
     <div id="certContainer" style="
       width: 1056px; 
       height: 816px; 
@@ -4938,7 +5192,7 @@ function generateCertificate() {
         </div>
       </div>
     </div>
-  `;
+  `; ===== END ORIGINAL DESIGN ===== */
 
   const opt = {
     margin: 0,
@@ -5787,6 +6041,10 @@ window.openEditStudentModal = openEditStudentModal;
 window.openCommentModal = openCommentModal;
 window.saveStudentComment = saveStudentComment;
 window.generateCertificate = generateCertificate;
+window.selectCertDesign = selectCertDesign;
+window.restoreCertDesignUI = restoreCertDesignUI;
+window.buildCertHtml_Navy = buildCertHtml_Navy;
+window.buildCertHtml_Cosmos = buildCertHtml_Cosmos;
 window.generateIdCard = generateIdCard;
 window.printBlankAttendanceSheet = printBlankAttendanceSheet;
 window.openStudentProfile = openStudentProfile;
