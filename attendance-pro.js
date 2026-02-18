@@ -60,33 +60,34 @@
 
   // ── Open Hub ────────────────────────────────────────
   function openAttendanceModal() {
+    // পুরনো modal সম্পূর্ণ destroy করো
+    const oldEl = document.getElementById('attendanceHubModal');
+    if (oldEl) {
+      try {
+        const inst = bootstrap.Modal.getInstance(oldEl);
+        if (inst) inst.dispose();
+      } catch(e) {}
+      oldEl.remove();
+    }
+    // backdrop ও body cleanup
+    document.querySelectorAll('.modal-backdrop').forEach(b => b.remove());
+    document.body.classList.remove('modal-open');
+    document.body.style.removeProperty('overflow');
+    document.body.style.removeProperty('padding-right');
+
+    // নতুন করে তৈরি করো
     buildHubModal();
-    // পুরনো hide state reset করো
+
     const modalEl = document.getElementById('attendanceHubModal');
-    if (modalEl) modalEl.style.display = '';
-    const modal = bootstrap.Modal.getOrCreateInstance(modalEl);
+    const modal = new bootstrap.Modal(modalEl, { backdrop: true, keyboard: true });
     modal.show();
-    switchAttTab('mark');
+    setTimeout(() => switchAttTab('mark'), 50);
   }
   window.openAttendanceModal = openAttendanceModal;
 
   // ── Hub Modal HTML ──────────────────────────────────
   function buildHubModal() {
-    if (document.getElementById('attendanceHubModal')) {
-      // refresh dropdowns
-      buildBatchOptions('attMarkBatch', 'Select Batch...');
-      buildBatchOptions('attMonBatch', 'Select Batch...');
-      buildBatchOptions('attYrBatch', 'Select Batch...');
-      buildBatchOptions('attCwBatch', 'All Batches');
-      buildCourseOptions('attCwCourse');
-      buildYearOptions('attMonYear');
-      buildYearOptions('attYrYear');
-      buildMonthOptions('attMonMonth');
-      // set today
-      const di = document.getElementById('attMarkDate');
-      if (di && !di.value) di.value = new Date().toISOString().split('T')[0];
-      return;
-    }
+    // সবসময় নতুন তৈরি হবে (openAttendanceModal এ পুরনো remove হয়ে যায়)
 
     const modal = document.createElement('div');
     modal.className = 'modal fade';
@@ -351,15 +352,10 @@
   function closeAttHub() {
     const modalEl = document.getElementById('attendanceHubModal');
     if (!modalEl) return;
-    // শুধু hide করো — remove করো না, window বন্ধ করো না
-    modalEl.style.display = 'none';
-    modalEl.classList.remove('show');
-    // backdrop সরাও
-    document.querySelectorAll('.modal-backdrop').forEach(b => b.remove());
-    // body scroll ঠিক করো
-    document.body.classList.remove('modal-open');
-    document.body.style.removeProperty('overflow');
-    document.body.style.removeProperty('padding-right');
+    try {
+      const inst = bootstrap.Modal.getInstance(modalEl);
+      if (inst) inst.hide();
+    } catch(e) {}
   }
   window.closeAttHub = closeAttHub;
   function switchAttTab(tab) {
