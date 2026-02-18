@@ -104,7 +104,7 @@
           <div class="small" style="color:rgba(255,255,255,0.4);font-size:0.75rem;">Wings Fly Aviation Academy</div>
         </div>
       </div>
-      <button type="button" class="btn-close btn-close-white" data-bs-dismiss="modal"></button>
+      <button type="button" class="btn-close btn-close-white" onclick="bootstrap.Modal.getOrCreateInstance(document.getElementById('attendanceHubModal')).hide()"></button>
     </div>
 
     <!-- Tab Strip -->
@@ -308,7 +308,7 @@
 
     <!-- Footer Actions -->
     <div class="att-action-row no-print">
-      <button class="att-btn att-btn-ghost" data-bs-dismiss="modal">
+      <button class="att-btn att-btn-ghost" onclick="bootstrap.Modal.getOrCreateInstance(document.getElementById('attendanceHubModal')).hide()">
         <i class="bi bi-x"></i>Close
       </button>
       <button class="att-btn att-btn-outline" onclick="exportAttCsv()">
@@ -911,7 +911,51 @@
 
   // ── PRINT current view ──────────────────────────────
   function printCurrentAttView() {
-    window.print();
+    // Active pane-এর content নিন
+    const activePane = document.querySelector('#attendanceHubModal .att-pane.active');
+    if (!activePane) { window.showErrorToast?.('কোনো content নেই'); return; }
+
+    const activeTabName = document.querySelector('.att-tab-btn.active')?.textContent?.trim() || 'Attendance';
+    const contentHtml = activePane.innerHTML;
+
+    const pw = window.open('', '_blank', 'width=900,height=700');
+    pw.document.write(`<!DOCTYPE html>
+<html><head>
+  <meta charset="UTF-8">
+  <title>Wings Fly — ${activeTabName}</title>
+  <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/css/bootstrap.min.css">
+  <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/bootstrap-icons@1.11.0/font/bootstrap-icons.css">
+  <style>
+    body { font-family: 'Arial', sans-serif; background: #fff; color: #000; padding: 20px; }
+    h1, h2, h3, h4, h5, h6 { color: #1a1a2e; }
+    .att-badge-p { background: #d4edda; color: #155724; padding: 2px 8px; border-radius: 10px; font-weight: bold; font-size: 0.8rem; }
+    .att-badge-a { background: #f8d7da; color: #721c24; padding: 2px 8px; border-radius: 10px; font-weight: bold; font-size: 0.8rem; }
+    table { width: 100%; border-collapse: collapse; }
+    th { background: #1a1a2e; color: #fff; padding: 8px 12px; text-align: left; font-size: 0.8rem; letter-spacing: 0.5px; }
+    td { padding: 8px 12px; border-bottom: 1px solid #eee; font-size: 0.85rem; }
+    tr:nth-child(even) td { background: #f9f9f9; }
+    .att-stat-card { display: inline-block; padding: 10px 20px; margin: 5px; border: 1px solid #ddd; border-radius: 8px; text-align: center; }
+    .att-stat-card .val { font-size: 1.3rem; font-weight: bold; }
+    .att-empty { text-align: center; padding: 40px; color: #666; }
+    .att-rate-bar, .att-rate-track, .att-rate-fill { display: none; }
+    .no-print, button, .att-filter-row { display: none !important; }
+    .att-mark-student-row { display: flex; justify-content: space-between; padding: 6px 10px; border-bottom: 1px solid #eee; }
+    @media print { @page { size: A4; margin: 0.5in; } body { padding: 0; } }
+    /* Header */
+    .print-header { text-align: center; margin-bottom: 20px; padding-bottom: 10px; border-bottom: 2px solid #1a1a2e; }
+    .print-header h2 { margin: 0; color: #1a1a2e; }
+    .print-header p { margin: 4px 0 0; color: #555; font-size: 0.85rem; }
+  </style>
+</head>
+<body>
+  <div class="print-header">
+    <h2>✈ Wings Fly Aviation Academy</h2>
+    <p>${activeTabName} — Printed on ${new Date().toLocaleDateString('en-BD')}</p>
+  </div>
+  ${contentHtml}
+  <script>window.onload = function(){ window.print(); setTimeout(()=>window.close(), 1000); }<\/script>
+</body></html>`);
+    pw.document.close();
   }
   window.printCurrentAttView = printCurrentAttView;
 
