@@ -3721,6 +3721,8 @@ function deleteTransaction(id) {
 // EDIT TRANSACTION
 // ===================================
 
+window.deleteTransaction = deleteTransaction;
+
 function editTransaction(id) {
   const transaction = globalData.finance.find(f => f.id === id);
   if (!transaction) return;
@@ -3858,9 +3860,7 @@ function renderAccountDetails() {
                 <td class="small text-muted">${f.description || ''}</td>
                 <td class="${amtClass} fw-bold">৳${formatNumber(amt)}</td>
                 <td class="no-print">
-                    <button class="btn btn-sm btn-outline-danger border-0" 
-                      onclick="if(confirm('Delete this transaction?')){var sid=String(${f.id});var tx=globalData.finance.find(function(x){return String(x.id)===sid;});if(tx&&typeof updateAccountBalance==='function')updateAccountBalance(tx.method,tx.amount,tx.type,false);globalData.finance=globalData.finance.filter(function(x){return String(x.id)!==sid;});saveToStorage();showSuccessToast('Deleted!');renderAccountDetails();updateGlobalStats();}" 
-                      title="Delete entry">
+                    <button class="btn btn-sm btn-outline-danger border-0" onclick="deleteTransaction('${f.id}')" title="Delete entry">
                         🗑️ DELETE
                     </button>
                 </td>
