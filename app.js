@@ -806,6 +806,10 @@ document.addEventListener('DOMContentLoaded', function () {
       if (!form) return;
 
       renderSettingsLists();
+      // Snapshot list refresh
+      setTimeout(function() {
+        if (typeof renderSnapshotList === 'function') renderSnapshotList();
+      }, 200);
     });
   }
 
@@ -2040,10 +2044,10 @@ function renderLedger(transactions) {
         <td class="${amtClass} fw-bold">৳${formatNumber(amt)}</td>
         <td class="text-end">
           <div class="btn-group">
-            <button class="btn btn-sm btn-outline-primary" onclick="event.stopPropagation(); _handleEditTx('${f.id}')" title="Edit record">
+            <button class="btn btn-sm btn-outline-primary edit-tx-btn" data-txid="${f.id}" title="Edit record">
               ✏️ Edit
             </button>
-            <button class="btn btn-sm btn-danger" onclick="event.stopPropagation(); _handleDeleteTx('${f.id}')" title="Delete record">
+            <button class="btn btn-sm btn-danger del-tx-btn" data-txid="${f.id}" title="Delete record">
               🗑️ Delete
             </button>
           </div>
@@ -4117,7 +4121,7 @@ function renderAccountDetails() {
                 <td class="small text-muted">${f.description || ''}</td>
                 <td class="${amtClass} fw-bold">৳${formatNumber(amt)}</td>
                 <td class="no-print">
-                    <button class="btn btn-sm btn-outline-danger border-0" onclick="event.stopPropagation(); _handleDeleteTx('${f.id}')" title="Delete entry">
+                    <button class="btn btn-sm btn-outline-danger border-0 del-tx-btn" data-txid="${f.id}" title="Delete entry">
                         🗑️ DELETE
                     </button>
                 </td>
@@ -8651,32 +8655,90 @@ window.editVisitor          = editVisitor;
 window.deleteVisitor        = deleteVisitor;
 
 // ── Delete & Edit Transaction Event Delegation ───────────────────────────────
-// ── Delete & Edit Transaction Handler ───────────────────────────────
-// Directly attach onclick to each button inside renderLedger (most reliable approach)
-function _handleDeleteTx(sid) {
-  const tx = (window.globalData.finance || []).find(f => String(f.id) === sid);
-  if (tx) {
-    if (typeof moveToTrash === 'function') moveToTrash('finance', tx);
-    if (typeof logActivity === 'function') logActivity('finance', 'DELETE',
-      'Transaction deleted: ' + (tx.type || '') + ' | ' + (tx.category || '') + ' - ৳' + (tx.amount || 0), tx);
-    if (typeof updateAccountBalance === 'function') updateAccountBalance(tx.method, tx.amount, tx.type, false);
-  }
-  window.globalData.finance = (window.globalData.finance || []).filter(f => String(f.id) !== sid);
-  if (typeof renderLedger === 'function') renderLedger(window.globalData.finance);
-  if (typeof updateGlobalStats === 'function') updateGlobalStats();
-  if (typeof showSuccessToast === 'function') showSuccessToast('Transaction deleted!');
-  if (typeof saveToStorage === 'function') saveToStorage();
-  const accModal = document.getElementById('accountDetailsModal');
-  if (accModal && typeof bootstrap !== 'undefined' && bootstrap.Modal.getInstance(accModal)) {
-    if (typeof renderAccountDetails === 'function') renderAccountDetails();
-  }
-}
-window._handleDeleteTx = _handleDeleteTx;
+// Uses ledgerTableBody directly to avoid document-level conflicts (GitHub Pages blocks confirm())
+function attachLedgerListeners() {
+  const tbody = document.getElementById('ledgerTableBody');
+  if (!tbody || tbody._listenersAttached) return;
+  tbody._listenersAttached = true;
 
-function _handleEditTx(txId) {
-  if (txId && typeof editTransaction === 'function') editTransaction(txId);
+  tbody.addEventListener('click', function(e) {
+    // Edit button
+    const editBtn = e.target.closest('.edit-tx-btn');
+    if (editBtn) {
+      e.stopImmediatePropagation();
+      const txId = editBtn.getAttribute('data-txid');
+      if (txId && typeof editTransaction === 'function') editTransaction(txId);
+      return;
+    }
+
+    // Delete button
+    const delBtn = e.target.closest('.del-tx-btn');
+    if (!delBtn) return;
+    e.stopImmediatePropagation();
+
+    const sid = String(delBtn.getAttribute('data-txid'));
+    const tx = (window.globalData.finance || []).find(f => String(f.id) === sid);
+
+    if (tx) {
+      if (typeof moveToTrash === 'function') moveToTrash('finance', tx);
+      if (typeof logActivity === 'function') logActivity('finance', 'DELETE',
+        'Transaction deleted: ' + (tx.type || '') + ' | ' + (tx.category || '') + ' - ৳' + (tx.amount || 0), tx);
+      if (typeof updateAccountBalance === 'function') updateAccountBalance(tx.method, tx.amount, tx.type, false);
+    }
+
+    window.globalData.finance = (window.globalData.finance || []).filter(f => String(f.id) !== sid);
+    if (typeof renderLedger === 'function') renderLedger(window.globalData.finance);
+    if (typeof updateGlobalStats === 'function') updateGlobalStats();
+    if (typeof showSuccessToast === 'function') showSuccessToast('Transaction deleted!');
+    if (typeof saveToStorage === 'function') saveToStorage();
+
+    const accModal = document.getElementById('accountDetailsModal');
+    if (accModal && bootstrap.Modal.getInstance(accModal)) {
+      if (typeof renderAccountDetails === 'function') renderAccountDetails();
+    }
+  });
 }
-window._handleEditTx = _handleEditTx;
+
+// Attach on DOM ready and also after every renderLedger call
+document.addEventListener('DOMContentLoaded', function() {
+  setTimeout(attachLedgerListeners, 500);
+});
+setTimeout(attachLedgerListeners, 2500);
+
+// Use event delegation on document level as fallback (always works)
+document.addEventListener('click', function(e) {
+  // Delete button fallback
+  const delBtn = e.target.closest('.del-tx-btn');
+  if (delBtn) {
+    e.stopImmediatePropagation();
+    const sid = String(delBtn.getAttribute('data-txid'));
+    const tx = (window.globalData.finance || []).find(f => String(f.id) === sid);
+    if (tx) {
+      if (typeof moveToTrash === 'function') moveToTrash('finance', tx);
+      if (typeof logActivity === 'function') logActivity('finance', 'DELETE',
+        'Transaction deleted: ' + (tx.type || '') + ' | ' + (tx.category || '') + ' - ৳' + (tx.amount || 0), tx);
+      if (typeof updateAccountBalance === 'function') updateAccountBalance(tx.method, tx.amount, tx.type, false);
+    }
+    window.globalData.finance = (window.globalData.finance || []).filter(f => String(f.id) !== sid);
+    if (typeof renderLedger === 'function') renderLedger(window.globalData.finance);
+    if (typeof updateGlobalStats === 'function') updateGlobalStats();
+    if (typeof showSuccessToast === 'function') showSuccessToast('Transaction deleted!');
+    if (typeof saveToStorage === 'function') saveToStorage();
+    const accModal = document.getElementById('accountDetailsModal');
+    if (accModal && typeof bootstrap !== 'undefined' && bootstrap.Modal.getInstance(accModal)) {
+      if (typeof renderAccountDetails === 'function') renderAccountDetails();
+    }
+    return;
+  }
+
+  // Edit button fallback
+  const editBtn = e.target.closest('.edit-tx-btn');
+  if (editBtn) {
+    const txId = editBtn.getAttribute('data-txid');
+    if (txId && typeof editTransaction === 'function') editTransaction(txId);
+    return;
+  }
+});
 
 
 // =====================================================
@@ -9056,3 +9118,134 @@ window.loadDeletedItems = function() {
   if (c1) c1.innerHTML = html;
   if (c2) c2.innerHTML = html;
 };
+
+// =====================================================
+// AUTO SNAPSHOT SYSTEM - Wings Fly Aviation Academy
+// প্রতি ১ ঘন্টায় auto snapshot, last ৭টা রাখে
+// =====================================================
+
+const SNAPSHOT_KEY = 'wingsfly_snapshots';
+const MAX_SNAPSHOTS = 7;
+const SNAPSHOT_INTERVAL_MS = 60 * 60 * 1000; // ১ ঘন্টা
+
+function takeSnapshot() {
+  try {
+    const data = localStorage.getItem('wingsfly_data');
+    if (!data) return;
+
+    const snapshots = getSnapshots();
+
+    const newSnap = {
+      id: Date.now(),
+      timestamp: new Date().toISOString(),
+      label: new Date().toLocaleString('en-BD', {
+        day: '2-digit', month: 'short', year: 'numeric',
+        hour: '2-digit', minute: '2-digit', hour12: true
+      }),
+      data: data
+    };
+
+    snapshots.unshift(newSnap); // newest first
+
+    // Last ৭টা রাখো
+    if (snapshots.length > MAX_SNAPSHOTS) {
+      snapshots.splice(MAX_SNAPSHOTS);
+    }
+
+    localStorage.setItem(SNAPSHOT_KEY, JSON.stringify(snapshots));
+    console.log('📸 Auto snapshot taken:', newSnap.label);
+
+    // UI refresh করো যদি Settings খোলা থাকে
+    if (typeof renderSnapshotList === 'function') renderSnapshotList();
+  } catch(e) {
+    console.warn('Snapshot error:', e);
+  }
+}
+
+function getSnapshots() {
+  try {
+    return JSON.parse(localStorage.getItem(SNAPSHOT_KEY)) || [];
+  } catch(e) { return []; }
+}
+
+function restoreSnapshot(id) {
+  const snapshots = getSnapshots();
+  const snap = snapshots.find(s => s.id === id);
+  if (!snap) return;
+
+  try {
+    localStorage.setItem('wingsfly_data', snap.data);
+    window.globalData = JSON.parse(snap.data);
+    if (typeof renderLedger === 'function') renderLedger(window.globalData.finance || []);
+    if (typeof updateGlobalStats === 'function') updateGlobalStats();
+    if (typeof showSuccessToast === 'function') showSuccessToast('✅ Snapshot restore সফল! ' + snap.label);
+    if (typeof renderSnapshotList === 'function') renderSnapshotList();
+  } catch(e) {
+    if (typeof showErrorToast === 'function') showErrorToast('Restore failed: ' + e.message);
+  }
+}
+
+function downloadSnapshot(id) {
+  const snapshots = getSnapshots();
+  const snap = snapshots.find(s => s.id === id);
+  if (!snap) return;
+
+  const blob = new Blob([snap.data], { type: 'application/json' });
+  const a = document.createElement('a');
+  a.href = URL.createObjectURL(blob);
+  a.download = 'WingsFly_Snapshot_' + new Date(snap.id).toISOString().slice(0,16).replace('T','_').replace(':','-') + '.json';
+  a.click();
+  URL.revokeObjectURL(a.href);
+}
+
+function deleteSnapshot(id) {
+  let snapshots = getSnapshots();
+  snapshots = snapshots.filter(s => s.id !== id);
+  localStorage.setItem(SNAPSHOT_KEY, JSON.stringify(snapshots));
+  if (typeof renderSnapshotList === 'function') renderSnapshotList();
+}
+
+function renderSnapshotList() {
+  const container = document.getElementById('snapshotListContainer');
+  if (!container) return;
+
+  const snapshots = getSnapshots();
+
+  if (snapshots.length === 0) {
+    container.innerHTML = '<div class="text-center py-3" style="color:#888;">এখনো কোনো snapshot নেই। পরবর্তী ঘন্টায় প্রথম snapshot নেওয়া হবে।</div>';
+    return;
+  }
+
+  container.innerHTML = snapshots.map((snap, i) => `
+    <div class="d-flex align-items-center gap-2 p-2 mb-2 rounded-3" style="background:rgba(0,217,255,0.06);border:1px solid rgba(0,217,255,0.15);">
+      <div style="min-width:20px;text-align:center;color:#00d9ff;font-weight:bold;font-size:0.8rem;">#${i+1}</div>
+      <div class="flex-grow-1" style="font-size:0.85rem;color:#c0e0ff;">📸 ${snap.label}</div>
+      <button class="btn btn-sm py-0 px-2" style="background:rgba(0,200,100,0.2);color:#00cc66;border:1px solid #00cc66;font-size:0.75rem;" onclick="restoreSnapshot(${snap.id})">↩️ Restore</button>
+      <button class="btn btn-sm py-0 px-2" style="background:rgba(0,150,255,0.2);color:#00aaff;border:1px solid #00aaff;font-size:0.75rem;" onclick="downloadSnapshot(${snap.id})">⬇️</button>
+      <button class="btn btn-sm py-0 px-2" style="background:rgba(255,50,50,0.15);color:#ff6666;border:1px solid #ff4444;font-size:0.75rem;" onclick="deleteSnapshot(${snap.id})">🗑️</button>
+    </div>
+  `).join('');
+}
+
+// Global expose
+window.takeSnapshot = takeSnapshot;
+window.restoreSnapshot = restoreSnapshot;
+window.downloadSnapshot = downloadSnapshot;
+window.deleteSnapshot = deleteSnapshot;
+window.renderSnapshotList = renderSnapshotList;
+
+// Page load হলে প্রথম snapshot নাও (যদি আজকের কোনো snapshot না থাকে)
+document.addEventListener('DOMContentLoaded', function() {
+  const snapshots = getSnapshots();
+  const today = new Date().toDateString();
+  const lastSnap = snapshots[0];
+  const lastSnapDate = lastSnap ? new Date(lastSnap.id).toDateString() : null;
+
+  // যদি আজকের কোনো recent snapshot না থাকে তাহলে নাও
+  if (!lastSnap || (Date.now() - lastSnap.id) > SNAPSHOT_INTERVAL_MS) {
+    setTimeout(takeSnapshot, 3000); // 3 সেকেন্ড পর (data load হওয়ার পরে)
+  }
+
+  // প্রতি ১ ঘন্টায় auto snapshot
+  setInterval(takeSnapshot, SNAPSHOT_INTERVAL_MS);
+});

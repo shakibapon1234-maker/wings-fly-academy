@@ -2332,6 +2332,23 @@
                                                 bar.</small>
                                         </div>
 
+                                        <!-- ===== AUTO SNAPSHOT SECTION ===== -->
+                                        <h6 class="settings-section-title mt-4">📸 Auto Snapshots</h6>
+                                        <div class="p-3 rounded-3 mb-2" style="background: rgba(0,217,255,0.06); border: 1.5px solid rgba(0,217,255,0.2);">
+                                            <div class="d-flex align-items-center justify-content-between mb-2">
+                                                <div>
+                                                    <span style="color:#00d9ff;font-size:0.85rem;font-weight:600;">প্রতি ১ ঘন্টায় auto snapshot</span>
+                                                    <span class="ms-2 badge" style="background:rgba(0,255,100,0.2);color:#00ff88;font-size:0.7rem;">Last 7 রাখা হয়</span>
+                                                </div>
+                                                <button class="btn btn-sm" onclick="takeSnapshot(); setTimeout(renderSnapshotList, 200);"
+                                                    style="background:rgba(0,217,255,0.2);color:#00d9ff;border:1px solid #00d9ff;font-size:0.75rem;">
+                                                    📸 এখনই নিন
+                                                </button>
+                                            </div>
+                                            <div id="snapshotListContainer">
+                                                <div class="text-center py-3" style="color:#888;font-size:0.85rem;">Loading...</div>
+                                            </div>
+                                        </div>
 
                                     </div>
 
