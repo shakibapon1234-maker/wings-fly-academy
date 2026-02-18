@@ -1786,9 +1786,12 @@ function renderLedger(transactions) {
   let totalDisplayed = 0;
 
   displayItems.forEach((f, idx) => {
-    // Assign missing IDs on the fly
-    if (!f.id) {
-      f.id = 'FIN-' + Date.now() + '-' + idx;
+    // Assign missing IDs on the fly and persist to globalData
+    if (f.id === undefined || f.id === null || f.id === '') {
+      f.id = 'FIN-' + Date.now() + idx;
+      // Also update in globalData.finance so the ID persists
+      const orig = globalData.finance.find(x => x === f);
+      if (orig) orig.id = f.id;
     }
     const amt = parseFloat(f.amount) || 0;
     const isPositive = (f.type === 'Income' || f.type === 'Loan Received' || f.type === 'Transfer In');
@@ -3854,9 +3857,12 @@ function renderAccountDetails() {
   }
 
   displayItems.forEach((f, idx) => {
-    // Assign missing IDs on the fly
-    if (!f.id) {
-      f.id = 'FIN-' + Date.now() + '-' + idx;
+    // Assign missing IDs on the fly and persist to globalData
+    if (f.id === undefined || f.id === null || f.id === '') {
+      f.id = 'FIN-' + Date.now() + idx;
+      // Also update in globalData.finance so the ID persists
+      const orig = globalData.finance.find(x => x === f);
+      if (orig) orig.id = f.id;
     }
     const amt = parseFloat(f.amount) || 0;
     const isPositive = (f.type === 'Income' || f.type === 'Loan Received' || f.type === 'Transfer In');
@@ -8456,7 +8462,7 @@ document.addEventListener('click', function(e) {
   const btn = e.target.closest('.del-tx-btn');
   if (!btn) return;
   const txId = btn.getAttribute('data-txid');
-  if (!txId) return;
+  if (!txId || txId === 'undefined' || txId === 'null') return;
   if (!confirm('Delete this transaction?')) return;
   const sid = String(txId);
   const tx = (window.globalData.finance || []).find(f => f.id !== undefined && String(f.id) === sid);
