@@ -8434,6 +8434,7 @@ document.addEventListener('click', function(e) {
   }
   window.globalData.finance = (window.globalData.finance || []).filter(f => String(f.id) !== sid);
   if (typeof saveToStorage === 'function') saveToStorage();
+  if (typeof window.saveToCloud === 'function') window.saveToCloud(true).catch(function(){});
   if (typeof showSuccessToast === 'function') showSuccessToast('Transaction deleted!');
   if (typeof renderLedger === 'function') renderLedger(window.globalData.finance);
   if (typeof updateGlobalStats === 'function') updateGlobalStats();
