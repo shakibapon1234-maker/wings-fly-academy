@@ -104,7 +104,7 @@
           <div class="small" style="color:rgba(255,255,255,0.4);font-size:0.75rem;">Wings Fly Aviation Academy</div>
         </div>
       </div>
-      <button type="button" class="btn-close btn-close-white" onclick="bootstrap.Modal.getOrCreateInstance(document.getElementById('attendanceHubModal')).hide()"></button>
+      <button type="button" class="btn-close btn-close-white" onclick="closeAttHub()"></button>
     </div>
 
     <!-- Tab Strip -->
@@ -308,7 +308,7 @@
 
     <!-- Footer Actions -->
     <div class="att-action-row no-print">
-      <button class="att-btn att-btn-ghost" onclick="bootstrap.Modal.getOrCreateInstance(document.getElementById('attendanceHubModal')).hide()">
+      <button class="att-btn att-btn-ghost" onclick="closeAttHub()">
         <i class="bi bi-x"></i>Close
       </button>
       <button class="att-btn att-btn-outline" onclick="exportAttCsv()">
@@ -344,7 +344,34 @@
     if (di) di.value = new Date().toISOString().split('T')[0];
   }
 
-  // ── Tab Switcher ────────────────────────────────────
+  // ── Safe close function ──────────────────────────────
+  function closeAttHub() {
+    try {
+      const modalEl = document.getElementById('attendanceHubModal');
+      if (!modalEl) return;
+      // Bootstrap দিয়ে hide করো
+      bootstrap.Modal.getOrCreateInstance(modalEl).hide();
+      // Backdrop ও body class manually clean করো
+      setTimeout(() => {
+        document.querySelectorAll('.modal-backdrop').forEach(b => b.remove());
+        document.body.classList.remove('modal-open');
+        document.body.style.removeProperty('overflow');
+        document.body.style.removeProperty('padding-right');
+      }, 350);
+    } catch(e) {
+      // শেষ চেষ্টা — manually hide
+      const modalEl = document.getElementById('attendanceHubModal');
+      if (modalEl) {
+        modalEl.classList.remove('show');
+        modalEl.style.display = 'none';
+        document.querySelectorAll('.modal-backdrop').forEach(b => b.remove());
+        document.body.classList.remove('modal-open');
+        document.body.style.removeProperty('overflow');
+        document.body.style.removeProperty('padding-right');
+      }
+    }
+  }
+  window.closeAttHub = closeAttHub;
   function switchAttTab(tab) {
     document.querySelectorAll('.att-tab-btn').forEach(b => b.classList.remove('active'));
     document.querySelectorAll('.att-pane').forEach(p => p.classList.remove('active'));
@@ -457,6 +484,9 @@
     gd().attendance[attKey] = result;
     window.saveToStorage?.();
     window.showSuccessToast?.(`✅ Attendance saved — ${batch} on ${date}`);
+
+    // Modal বন্ধ করো — পুরো page নয়
+    closeAttHub();
   }
   window.saveAttendance = saveAttendance;
 
