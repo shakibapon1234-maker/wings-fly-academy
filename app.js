@@ -1804,7 +1804,7 @@ function renderLedger(transactions) {
             <button class="btn btn-sm btn-outline-primary" onclick="editTransaction(${f.id})" title="Edit record">
               ✏️ Edit
             </button>
-            <button class="btn btn-sm btn-danger" onclick="deleteTransaction(${f.id})" title="Delete record">
+            <button class="btn btn-sm btn-danger del-tx-btn" data-txid="${f.id}" title="Delete record">
               🗑️ Delete
             </button>
           </div>
@@ -3860,7 +3860,7 @@ function renderAccountDetails() {
                 <td class="small text-muted">${f.description || ''}</td>
                 <td class="${amtClass} fw-bold">৳${formatNumber(amt)}</td>
                 <td class="no-print">
-                    <button class="btn btn-sm btn-outline-danger border-0" onclick="deleteTransaction('${f.id}')" title="Delete entry">
+                    <button class="btn btn-sm btn-outline-danger border-0 del-tx-btn" data-txid="${f.id}" title="Delete entry">
                         🗑️ DELETE
                     </button>
                 </td>
@@ -8420,3 +8420,37 @@ window.clearVisitorFilters  = clearVisitorFilters;
 window.editVisitor          = editVisitor;
 window.deleteVisitor        = deleteVisitor;
 
+// ── Delete Transaction Event Delegation ─────────────────────────────────────
+// Handles all .del-tx-btn clicks safely without inline onclick
+document.addEventListener('click', function(e) {
+  const btn = e.target.closest('.del-tx-btn');
+  if (!btn) return;
+  
+  const txId = btn.getAttribute('data-txid');
+  if (!txId) return;
+  
+  if (!confirm('Are you sure you want to delete this financial record?')) return;
+  
+  const sid = String(txId);
+  const txToDelete = (window.globalData && window.globalData.finance || [])
+    .find(function(f) { return String(f.id) === sid; });
+  
+  if (txToDelete && typeof updateAccountBalance === 'function') {
+    updateAccountBalance(txToDelete.method, txToDelete.amount, txToDelete.type, false);
+  }
+  
+  if (window.globalData && window.globalData.finance) {
+    window.globalData.finance = window.globalData.finance
+      .filter(function(f) { return String(f.id) !== sid; });
+  }
+  
+  if (typeof saveToStorage === 'function') saveToStorage();
+  if (typeof showSuccessToast === 'function') showSuccessToast('Transaction deleted!');
+  if (typeof updateGlobalStats === 'function') updateGlobalStats();
+  if (typeof renderLedger === 'function') renderLedger(window.globalData.finance);
+  
+  const accModal = document.getElementById('accountDetailsModal');
+  if (accModal && bootstrap.Modal.getInstance(accModal)) {
+    if (typeof renderAccountDetails === 'function') renderAccountDetails();
+  }
+});
