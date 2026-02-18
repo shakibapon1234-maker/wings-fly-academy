@@ -7585,6 +7585,7 @@ function populateAccountDropdown() {
   if (!dropdown) return;
 
   let optionsHTML = '<option value="">-- Select an Account --</option>';
+  optionsHTML += '<option value="all|all">🏛️ All Accounts</option>';
 
   // Add Cash
   optionsHTML += '<option value="cash|Cash">💵 Cash</option>';
@@ -7605,6 +7606,77 @@ function populateAccountDropdown() {
 /**
  * Perform unified search with dropdown selection
  */
+
+function showAllAccountsSearch(dateFrom, dateTo) {
+  const fmt = window.formatNumber || (n => Number(n).toLocaleString('en-IN'));
+  const allTx = (globalData.finance || []).filter(f => {
+    const matchFrom = !dateFrom || (f.date && f.date >= dateFrom);
+    const matchTo   = !dateTo   || (f.date && f.date <= dateTo);
+    return matchFrom && matchTo;
+  }).slice().reverse();
+
+  const cashBal   = parseFloat(globalData.cashBalance) || 0;
+  const bankBal   = (globalData.bankAccounts || []).reduce((a,b) => a+(parseFloat(b.balance)||0), 0);
+  const mobileBal = (globalData.mobileBanking || []).reduce((a,b) => a+(parseFloat(b.balance)||0), 0);
+  const totalBal  = cashBal + bankBal + mobileBal;
+
+  document.getElementById('unifiedSearchResults').classList.remove('d-none');
+  document.getElementById('noSearchResults').classList.add('d-none');
+  document.getElementById('searchTransactionHistory').classList.remove('d-none');
+
+  document.getElementById('searchAccountDetails').innerHTML = `
+    <div style="background:rgba(0,217,255,0.08);border:1px solid rgba(0,217,255,0.25);border-radius:14px;padding:20px;">
+      <div style="font-size:1.1rem;font-weight:700;color:#00d9ff;margin-bottom:12px;">🏛️ ALL ACCOUNTS SUMMARY</div>
+      <div style="display:flex;gap:16px;flex-wrap:wrap;">
+        <div style="background:rgba(0,255,136,0.1);border:1px solid rgba(0,255,136,0.3);border-radius:10px;padding:12px 20px;text-align:center;">
+          <div style="font-size:0.75rem;color:rgba(0,255,136,0.7);text-transform:uppercase;">Cash</div>
+          <div style="font-size:1.2rem;font-weight:700;color:#00ff88;">৳${fmt(cashBal)}</div>
+        </div>
+        <div style="background:rgba(0,217,255,0.1);border:1px solid rgba(0,217,255,0.3);border-radius:10px;padding:12px 20px;text-align:center;">
+          <div style="font-size:0.75rem;color:rgba(0,217,255,0.7);text-transform:uppercase;">Bank</div>
+          <div style="font-size:1.2rem;font-weight:700;color:#00d9ff;">৳${fmt(bankBal)}</div>
+        </div>
+        <div style="background:rgba(181,55,242,0.1);border:1px solid rgba(181,55,242,0.3);border-radius:10px;padding:12px 20px;text-align:center;">
+          <div style="font-size:0.75rem;color:rgba(181,55,242,0.7);text-transform:uppercase;">Mobile</div>
+          <div style="font-size:1.2rem;font-weight:700;color:#b537f2;">৳${fmt(mobileBal)}</div>
+        </div>
+        <div style="background:rgba(255,215,0,0.1);border:1px solid rgba(255,215,0,0.3);border-radius:10px;padding:12px 20px;text-align:center;">
+          <div style="font-size:0.75rem;color:rgba(255,215,0,0.7);text-transform:uppercase;">Total</div>
+          <div style="font-size:1.3rem;font-weight:800;color:#FFD700;">৳${fmt(totalBal)}</div>
+        </div>
+      </div>
+    </div>`;
+
+  let rows = '';
+  allTx.forEach(f => {
+    const amt = parseFloat(f.amount) || 0;
+    const isIncome = ['Income','Loan Received','Transfer In'].includes(f.type);
+    rows += `<tr>
+      <td style="padding:8px;font-size:0.82rem;">${f.date||'-'}</td>
+      <td style="padding:8px;"><span style="background:${isIncome?'rgba(0,255,136,0.15)':'rgba(255,59,92,0.15)'};color:${isIncome?'#00ff88':'#ff3b5c'};padding:2px 8px;border-radius:20px;font-size:0.75rem;font-weight:700;">${f.type||'-'}</span></td>
+      <td style="padding:8px;font-weight:600;color:#00d9ff;">${f.method||'Cash'}</td>
+      <td style="padding:8px;">${f.category||'-'}</td>
+      <td style="padding:8px;color:rgba(255,255,255,0.6);">${f.description||f.note||'-'}</td>
+      <td style="padding:8px;text-align:right;font-weight:700;color:${isIncome?'#00ff88':'#ff3b5c'};">৳${fmt(amt)}</td>
+    </tr>`;
+  });
+
+  document.getElementById('searchTransactionHistory').innerHTML = allTx.length === 0
+    ? '<div class="text-center py-4 text-muted">No transactions found.</div>'
+    : `<div style="overflow-x:auto;"><table style="width:100%;border-collapse:collapse;">
+        <thead><tr style="border-bottom:1px solid rgba(0,217,255,0.2);">
+          <th style="padding:10px;color:rgba(0,217,255,0.7);font-size:0.72rem;text-transform:uppercase;">Date</th>
+          <th style="padding:10px;color:rgba(0,217,255,0.7);font-size:0.72rem;text-transform:uppercase;">Type</th>
+          <th style="padding:10px;color:rgba(0,217,255,0.7);font-size:0.72rem;text-transform:uppercase;">Account</th>
+          <th style="padding:10px;color:rgba(0,217,255,0.7);font-size:0.72rem;text-transform:uppercase;">Category</th>
+          <th style="padding:10px;color:rgba(0,217,255,0.7);font-size:0.72rem;text-transform:uppercase;">Details</th>
+          <th style="padding:10px;color:rgba(0,217,255,0.7);font-size:0.72rem;text-transform:uppercase;text-align:right;">Amount</th>
+        </tr></thead>
+        <tbody>${rows}</tbody>
+      </table></div>`;
+}
+window.showAllAccountsSearch = showAllAccountsSearch;
+
 function performUnifiedSearch() {
   console.log('🔍 performUnifiedSearch called');
 
@@ -7614,16 +7686,13 @@ function performUnifiedSearch() {
 
   console.log('Search values:', { selectValue, dateFrom, dateTo });
 
-  // If no account selected, show alert
-  if (!selectValue) {
-    alert('⚠️ Please select an account first!');
-    console.log('❌ No account selected');
+  if (!selectValue) { alert('⚠️ Please select an account first!'); return; }
+  const [accountType, accountName] = selectValue.split('|');
+  if (accountType === 'all') {
+    currentSearchResults = { accountType: 'all', accountData: null, transactions: [] };
+    showAllAccountsSearch(dateFrom, dateTo);
     return;
   }
-
-  // Parse selected value (format: "type|name")
-  const [accountType, accountName] = selectValue.split('|');
-  console.log('Account:', { accountType, accountName });
 
   let accountData = null;
 
@@ -8029,85 +8098,43 @@ function printAllAccountsReport() {
   const dateFrom = document.getElementById('unifiedDateFrom').value;
   const dateTo   = document.getElementById('unifiedDateTo').value;
   const fmt = window.formatNumber || (n => Number(n).toLocaleString('en-IN'));
-
   const cashBal   = parseFloat(globalData.cashBalance) || 0;
   const bankBal   = (globalData.bankAccounts || []).reduce((a,b) => a+(parseFloat(b.balance)||0), 0);
-  const mobileBal = (globalData.mobileBanking  || []).reduce((a,b) => a+(parseFloat(b.balance)||0), 0);
-  const totalBal  = cashBal + bankBal + mobileBal;
-
+  const mobileBal = (globalData.mobileBanking || []).reduce((a,b) => a+(parseFloat(b.balance)||0), 0);
   const allTx = (globalData.finance || []).filter(f => {
-    const matchFrom = !dateFrom || (f.date && f.date >= dateFrom);
-    const matchTo   = !dateTo   || (f.date && f.date <= dateTo);
-    return matchFrom && matchTo;
+    return (!dateFrom || f.date >= dateFrom) && (!dateTo || f.date <= dateTo);
   }).slice().reverse();
-
-  let rows = '';
-  let totalIncome = 0, totalExpense = 0;
+  let rows = '', totalIn = 0, totalOut = 0;
   allTx.forEach(f => {
-    const amt = parseFloat(f.amount) || 0;
-    const isIncome = ['Income','Loan Received','Transfer In'].includes(f.type);
-    if (isIncome) totalIncome += amt; else totalExpense += amt;
-    rows += `<tr>
-      <td>${f.date||'-'}</td>
-      <td>${f.type||'-'}</td>
-      <td>${f.method||'Cash'}</td>
-      <td>${f.category||'-'}</td>
-      <td>${f.description||f.note||'-'}</td>
-      <td style="text-align:right;color:${isIncome?'green':'red'};font-weight:bold;">${isIncome?'+':'-'}৳${fmt(amt)}</td>
-    </tr>`;
+    const amt = parseFloat(f.amount)||0;
+    const isIn = ['Income','Loan Received','Transfer In'].includes(f.type);
+    if(isIn) totalIn+=amt; else totalOut+=amt;
+    rows += `<tr><td>${f.date||'-'}</td><td>${f.type||'-'}</td><td>${f.method||'Cash'}</td><td>${f.category||'-'}</td><td>${f.description||'-'}</td><td style="text-align:right;color:${isIn?'green':'red'}">${isIn?'+':'-'}৳${fmt(amt)}</td></tr>`;
   });
-
-  const pw = window.open('', '_blank');
-  pw.document.write(`<!DOCTYPE html><html><head>
-    <title>All Accounts Report</title>
-    <style>
-      body{font-family:Arial,sans-serif;padding:20px;color:#333}
-      h1{border-bottom:2px solid #333;padding-bottom:8px}
-      .summary-cards{display:flex;gap:16px;margin:16px 0;flex-wrap:wrap}
-      .card{border:1px solid #ccc;border-radius:8px;padding:12px 20px;text-align:center;min-width:120px}
-      .card .label{font-size:0.75rem;color:#666;text-transform:uppercase;letter-spacing:1px}
-      .card .val{font-size:1.2rem;font-weight:700;margin-top:4px}
-      table{width:100%;border-collapse:collapse;margin-top:16px}
-      th,td{border:1px solid #ddd;padding:8px 10px;text-align:left;font-size:0.85rem}
-      th{background:#333;color:#fff}
-      tr:nth-child(even){background:#f9f9f9}
-      .totals{margin-top:16px;background:#f0f0f0;padding:12px 16px;border-radius:8px}
-      @media print{button{display:none}}
-    </style>
+  const pw = window.open('','_blank');
+  pw.document.write(`<!DOCTYPE html><html><head><title>All Accounts</title>
+  <style>body{font-family:Arial;padding:20px}h2{border-bottom:2px solid #333;padding-bottom:8px}.cards{display:flex;gap:12px;margin:12px 0;flex-wrap:wrap}.card{border:1px solid #ccc;border-radius:8px;padding:10px 16px;text-align:center}.label{font-size:0.7rem;color:#666;text-transform:uppercase}.val{font-size:1.1rem;font-weight:700}table{width:100%;border-collapse:collapse;margin-top:12px}th,td{border:1px solid #ddd;padding:8px;font-size:0.82rem}th{background:#333;color:#fff}.totals{margin-top:12px;background:#f5f5f5;padding:10px;border-radius:6px}@media print{button{display:none}}</style>
   </head><body>
-    <h1>🏛️ All Accounts Report</h1>
-    <div>Date: ${new Date().toLocaleDateString()} ${dateFrom||dateTo ? '| Range: '+(dateFrom||'Start')+' → '+(dateTo||'Today') : ''}</div>
-    <div class="summary-cards">
-      <div class="card"><div class="label">Cash</div><div class="val">৳${fmt(cashBal)}</div></div>
-      <div class="card"><div class="label">Bank</div><div class="val">৳${fmt(bankBal)}</div></div>
-      <div class="card"><div class="label">Mobile</div><div class="val">৳${fmt(mobileBal)}</div></div>
-      <div class="card" style="background:#fffde7"><div class="label">Total Balance</div><div class="val">৳${fmt(totalBal)}</div></div>
-    </div>
-    <table>
-      <thead><tr><th>Date</th><th>Type</th><th>Account</th><th>Category</th><th>Details</th><th>Amount</th></tr></thead>
-      <tbody>${rows||'<tr><td colspan="6" style="text-align:center">No transactions</td></tr>'}</tbody>
-    </table>
-    <div class="totals">
-      Total Income: <strong style="color:green">৳${fmt(totalIncome)}</strong> &nbsp;|&nbsp;
-      Total Expense: <strong style="color:red">৳${fmt(totalExpense)}</strong> &nbsp;|&nbsp;
-      Net: <strong>৳${fmt(totalIncome - totalExpense)}</strong>
-    </div>
-    <br><button onclick="window.print()" style="padding:10px 24px;background:#333;color:#fff;border:none;border-radius:6px;cursor:pointer;font-size:1rem;">🖨️ Print</button>
+  <h2>🏛️ All Accounts Report</h2>
+  <div>Date: ${new Date().toLocaleDateString()}${dateFrom||dateTo?' | '+( dateFrom||'Start')+' → '+(dateTo||'Today'):''}</div>
+  <div class="cards">
+    <div class="card"><div class="label">Cash</div><div class="val">৳${fmt(cashBal)}</div></div>
+    <div class="card"><div class="label">Bank</div><div class="val">৳${fmt(bankBal)}</div></div>
+    <div class="card"><div class="label">Mobile</div><div class="val">৳${fmt(mobileBal)}</div></div>
+    <div class="card" style="background:#fffde7"><div class="label">Total</div><div class="val">৳${fmt(cashBal+bankBal+mobileBal)}</div></div>
+  </div>
+  <table><thead><tr><th>Date</th><th>Type</th><th>Account</th><th>Category</th><th>Details</th><th>Amount</th></tr></thead>
+  <tbody>${rows||'<tr><td colspan="6" style="text-align:center">No transactions</td></tr>'}</tbody></table>
+  <div class="totals">Income: <b style="color:green">৳${fmt(totalIn)}</b> | Expense: <b style="color:red">৳${fmt(totalOut)}</b> | Net: <b>৳${fmt(totalIn-totalOut)}</b></div>
+  <br><button onclick="window.print()" style="padding:10px 24px;background:#333;color:#fff;border:none;border-radius:6px;cursor:pointer">🖨️ Print</button>
   </body></html>`);
   pw.document.close();
 }
 window.printAllAccountsReport = printAllAccountsReport;
 
 function printAccountReport() {
-  // Handle All Accounts print
-  if (!currentSearchResults.accountData && currentSearchResults.accountType === 'all') {
-    printAllAccountsReport();
-    return;
-  }
-  if (!currentSearchResults.accountData) {
-    alert('No account selected!');
-    return;
-  }
+  if (currentSearchResults.accountType === 'all') { printAllAccountsReport(); return; }
+  if (!currentSearchResults.accountData) { alert('No account selected!'); return; }
 
   const { accountType, accountData, transactions } = currentSearchResults;
   const dateFrom = document.getElementById('unifiedDateFrom').value;
