@@ -3738,7 +3738,7 @@ window.handleAddInstallment = handleAddInstallment;
 
 
 function deleteStudent(rowIndex) {
-  if (!confirm('Are you sure you want to delete this student?')) return;
+  
 
   // Get student info before deleting
   const student = globalData.students[rowIndex];
@@ -3933,7 +3933,7 @@ async function handleTransferSubmit(e) {
 // ===================================
 
 function deleteTransaction(id) {
-  if (!confirm('Are you sure you want to delete this financial record?')) return;
+  
 
   // Handle both string and number IDs (localStorage/Supabase can change types)
   const sid = String(id);
@@ -8664,7 +8664,7 @@ document.addEventListener('click', function(e) {
   if (!btn) return;
   const txId = btn.getAttribute('data-txid');
   if (!txId) return;
-  if (!confirm('Delete this transaction?')) return;
+  
   const sid = String(txId);
   const tx = (window.globalData.finance || []).find(f => f.id !== undefined && String(f.id) === sid);
   
