@@ -321,7 +321,35 @@
       <button class="att-btn att-btn-outline" onclick="printCurrentAttView()">
         <i class="bi bi-printer"></i>Print
       </button>
-      <button class="att-btn att-btn-primary" onclick="saveAttendance()">
+      <button class="att-btn att-btn-primary" onclick="(function(){
+        var batch = document.getElementById('attMarkBatch')?.value;
+        var date = document.getElementById('attMarkDate')?.value;
+        if(!batch||!date){ alert('Batch ও Date বেছে নিন'); return; }
+        var gd = window.globalData;
+        if(!gd){ alert('Data error'); return; }
+        if(!gd.attendance) gd.attendance = {};
+        var key = batch+'_'+date;
+        var result = {};
+        document.querySelectorAll('.att-mark-student-row').forEach(function(row){
+          var aBtn = row.querySelector('.a-btn');
+          var sid = row.querySelector('.sid')?.textContent?.trim();
+          if(!sid||sid==='—') return;
+          var stu = (gd.students||[]).find(function(s){ return String(s.studentId)===sid; });
+          if(stu) result[stu.studentId] = aBtn?.classList.contains('active-a')?'Absent':'Present';
+        });
+        gd.attendance[key] = result;
+        if(typeof window.saveToStorage==='function') window.saveToStorage();
+        if(typeof window.showSuccessToast==='function') window.showSuccessToast('✅ Attendance saved — '+batch+' on '+date);
+        var modalEl = document.getElementById('attendanceHubModal');
+        if(modalEl){
+          modalEl.style.display='none';
+          modalEl.classList.remove('show');
+          document.querySelectorAll('.modal-backdrop').forEach(function(b){b.remove();});
+          document.body.classList.remove('modal-open');
+          document.body.style.removeProperty('overflow');
+          document.body.style.removeProperty('padding-right');
+        }
+      })()">
         <i class="bi bi-check-lg"></i>Save Attendance
       </button>
     </div>
@@ -453,14 +481,10 @@
     const attKey = `${batch}_${date}`;
     const result = {};
 
-    // Collect from new UI
     document.querySelectorAll('.att-mark-student-row').forEach(row => {
-      const pBtn = row.querySelector('.p-btn');
       const aBtn = row.querySelector('.a-btn');
-      // find student id from sid span
       const sid = row.querySelector('.sid')?.textContent?.trim();
       if (!sid || sid === '—') return;
-      // Find real student
       const stu = (gd().students || []).find(s => (s.studentId || '').toString() === sid || s.name === row.querySelector('.name')?.textContent?.trim());
       if (stu) {
         result[stu.studentId] = aBtn?.classList.contains('active-a') ? 'Absent' : 'Present';
@@ -470,11 +494,38 @@
     gd().attendance[attKey] = result;
     window.saveToStorage?.();
     window.showSuccessToast?.(`✅ Attendance saved — ${batch} on ${date}`);
-
-    // Modal বন্ধ করো — পুরো page নয়
     closeAttHub();
   }
   window.saveAttendance = saveAttendance;
+
+  // আলাদা নামে — যাতে কোনো override কাজ না করে
+  function attHubSave() {
+    const batch = (document.getElementById('attMarkBatch'))?.value;
+    const date  = (document.getElementById('attMarkDate'))?.value;
+    if (!batch || !date) {
+      window.showErrorToast?.('❌ Batch ও Date বেছে নিন');
+      return;
+    }
+    if (!gd().attendance) gd().attendance = {};
+    const attKey = `${batch}_${date}`;
+    const result = {};
+    document.querySelectorAll('.att-mark-student-row').forEach(row => {
+      const aBtn = row.querySelector('.a-btn');
+      const sid = row.querySelector('.sid')?.textContent?.trim();
+      if (!sid || sid === '—') return;
+      const stu = (gd().students || []).find(s =>
+        (s.studentId || '').toString() === sid ||
+        s.name === row.querySelector('.name')?.textContent?.trim()
+      );
+      if (stu) result[stu.studentId] = aBtn?.classList.contains('active-a') ? 'Absent' : 'Present';
+    });
+    gd().attendance[attKey] = result;
+    window.saveToStorage?.();
+    window.showSuccessToast?.(`✅ Attendance saved — ${batch} on ${date}`);
+    // Modal বন্ধ
+    closeAttHub();
+  }
+  window.attHubSave = attHubSave;
 
   // ── MONTHLY REPORT ──────────────────────────────────
   function renderMonthlyReport() {
