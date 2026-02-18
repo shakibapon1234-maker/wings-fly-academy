@@ -8451,6 +8451,11 @@ document.addEventListener('click', function(e) {
 const NOTICE_STORAGE_KEY = 'wingsfly_notice_board';
 let noticeCountdownInterval = null;
 
+function updateSidebarNoticeDot(hasActive) {
+  const dot = document.getElementById('sidebarNoticeActiveDot');
+  if (dot) dot.style.display = hasActive ? 'inline-block' : 'none';
+}
+
 // ----- Load & Display on page init -----
 function initNoticeBoard() {
   const notice = getActiveNotice();
@@ -8487,6 +8492,7 @@ function showNoticeBanner(notice) {
   banner.style.display = 'block';
   if (addBtn) addBtn.style.display = 'none';
 
+  updateSidebarNoticeDot(true);
   startCountdown(notice.expiresAt);
 }
 
@@ -8495,6 +8501,7 @@ function hideNoticeBanner() {
   const addBtn = document.getElementById('noticeBoardAddBtn');
   if (banner) banner.style.display = 'none';
   if (addBtn) addBtn.style.display = 'block';
+  updateSidebarNoticeDot(false);
   if (noticeCountdownInterval) {
     clearInterval(noticeCountdownInterval);
     noticeCountdownInterval = null;
@@ -8659,6 +8666,11 @@ function deleteNotice() {
 document.addEventListener('DOMContentLoaded', function() {
   setTimeout(initNoticeBoard, 800);
 });
+
+// Also run after login (switchTab calls this)
+function refreshNoticeBoardOnLogin() {
+  initNoticeBoard();
+}
 
 // Also expose globally
 window.initNoticeBoard = initNoticeBoard;
