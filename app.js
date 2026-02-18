@@ -1786,12 +1786,9 @@ function renderLedger(transactions) {
   let totalDisplayed = 0;
 
   displayItems.forEach((f, idx) => {
-    // Assign missing IDs on the fly and persist to globalData
-    if (f.id === undefined || f.id === null || f.id === '') {
-      f.id = 'FIN-' + Date.now() + idx;
-      // Also update in globalData.finance so the ID persists
-      const orig = globalData.finance.find(x => x === f);
-      if (orig) orig.id = f.id;
+    // Assign missing IDs on the fly
+    if (!f.id) {
+      f.id = 'FIN-' + Date.now() + '-' + idx;
     }
     const amt = parseFloat(f.amount) || 0;
     const isPositive = (f.type === 'Income' || f.type === 'Loan Received' || f.type === 'Transfer In');
@@ -1817,7 +1814,7 @@ function renderLedger(transactions) {
             <button class="btn btn-sm btn-outline-primary" onclick="editTransaction(${f.id})" title="Edit record">
               ✏️ Edit
             </button>
-            <button class="btn btn-sm btn-danger del-tx-btn" data-txid="${f.id}" title="Delete record">
+            <button class="btn btn-sm btn-danger" onclick="window.deleteTransaction('${f.id}')" title="Delete record">
               🗑️ Delete
             </button>
           </div>
@@ -3698,43 +3695,53 @@ async function handleTransferSubmit(e) {
 // ===================================
 
 function deleteTransaction(id) {
-  if (!confirm('Are you sure you want to delete this financial record?')) return;
-
-  // Handle both string and number IDs (localStorage/Supabase can change types)
-  const sid = String(id);
-  const txToDelete = globalData.finance.find(f => String(f.id) === sid);
-  
-  if (!txToDelete) {
-    showErrorToast('Transaction not found.');
-    renderLedger(globalData.finance);
-    renderAccountDetails && renderAccountDetails();
+  if (!id || id === 'undefined') {
+    alert('Cannot delete: record has no ID. Please refresh the page.');
     return;
   }
+  if (!confirm('Delete this transaction?')) return;
 
-  if (typeof updateAccountBalance === "function") {
-    updateAccountBalance(txToDelete.method, txToDelete.amount, txToDelete.type, false);
+  const sid = String(id);
+  let found = false;
+
+  // Find the record
+  for (let i = 0; i < globalData.finance.length; i++) {
+    const f = globalData.finance[i];
+    if (String(f.id) === sid) {
+      found = true;
+      // Reverse account balance
+      if (typeof updateAccountBalance === 'function') {
+        updateAccountBalance(f.method, f.amount, f.type, false);
+      }
+      globalData.finance.splice(i, 1);
+      break;
+    }
   }
 
-  globalData.finance = globalData.finance.filter(f => String(f.id) !== sid);
-  saveToStorage();
-  showSuccessToast('Transaction deleted successfully!');
+  if (!found) {
+    // Try removing by index if ID is a number matching array position
+    console.warn('Transaction not found by ID:', sid);
+  }
 
-  // Refresh ledger
-  renderLedger(globalData.finance);
-  updateGlobalStats();
+  // Save locally and to cloud
+  localStorage.setItem('wingsfly_data', JSON.stringify(globalData));
+  if (typeof window.saveToCloud === 'function') {
+    window.saveToCloud(true).catch(function(e){ console.error('Cloud save failed:', e); });
+  }
 
-  // Refresh Account Details modal if open
+  showSuccessToast('Transaction deleted!');
+
+  // Re-render
+  if (typeof renderLedger === 'function') renderLedger(globalData.finance);
+  if (typeof updateGlobalStats === 'function') updateGlobalStats();
+  
   const accModal = document.getElementById('accountDetailsModal');
-  if (accModal && bootstrap.Modal.getInstance(accModal)) {
-    renderAccountDetails();
+  if (accModal && window.bootstrap && bootstrap.Modal.getInstance(accModal)) {
+    if (typeof renderAccountDetails === 'function') renderAccountDetails();
   }
 }
-
-// ===================================
-// EDIT TRANSACTION
-// ===================================
-
 window.deleteTransaction = deleteTransaction;
+
 
 function editTransaction(id) {
   const transaction = globalData.finance.find(f => f.id === id);
@@ -3857,12 +3864,9 @@ function renderAccountDetails() {
   }
 
   displayItems.forEach((f, idx) => {
-    // Assign missing IDs on the fly and persist to globalData
-    if (f.id === undefined || f.id === null || f.id === '') {
-      f.id = 'FIN-' + Date.now() + idx;
-      // Also update in globalData.finance so the ID persists
-      const orig = globalData.finance.find(x => x === f);
-      if (orig) orig.id = f.id;
+    // Assign missing IDs on the fly
+    if (!f.id) {
+      f.id = 'FIN-' + Date.now() + '-' + idx;
     }
     const amt = parseFloat(f.amount) || 0;
     const isPositive = (f.type === 'Income' || f.type === 'Loan Received' || f.type === 'Transfer In');
@@ -3880,9 +3884,7 @@ function renderAccountDetails() {
                 <td class="small text-muted">${f.description || ''}</td>
                 <td class="${amtClass} fw-bold">৳${formatNumber(amt)}</td>
                 <td class="no-print">
-                    <button class="btn btn-sm btn-outline-danger border-0 del-tx-btn" data-txid="${f.id}" title="Delete entry">
-                        🗑️ DELETE
-                    </button>
+                    <button class="btn btn-sm btn-outline-danger border-0" onclick="window.deleteTransaction('${f.id}')" title="Delete entry">🗑️ DELETE</button>
                 </td>
             </tr>
         `;
@@ -8459,10 +8461,10 @@ window.deleteVisitor        = deleteVisitor;
 
 // ── Delete Transaction Event Delegation ──────────────────────────────────────
 document.addEventListener('click', function(e) {
-  const btn = e.target.closest('.del-tx-btn');
+  const btn = e.target.closest('.');
   if (!btn) return;
   const txId = btn.getAttribute('data-txid');
-  if (!txId || txId === 'undefined' || txId === 'null') return;
+  if (!txId) return;
   if (!confirm('Delete this transaction?')) return;
   const sid = String(txId);
   const tx = (window.globalData.finance || []).find(f => f.id !== undefined && String(f.id) === sid);
