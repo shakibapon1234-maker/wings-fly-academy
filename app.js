@@ -8420,35 +8420,23 @@ window.clearVisitorFilters  = clearVisitorFilters;
 window.editVisitor          = editVisitor;
 window.deleteVisitor        = deleteVisitor;
 
-// ── Delete Transaction Event Delegation ─────────────────────────────────────
-// Handles all .del-tx-btn clicks safely without inline onclick
+// ── Delete Transaction Event Delegation ──────────────────────────────────────
 document.addEventListener('click', function(e) {
   const btn = e.target.closest('.del-tx-btn');
   if (!btn) return;
-  
   const txId = btn.getAttribute('data-txid');
   if (!txId) return;
-  
-  if (!confirm('Are you sure you want to delete this financial record?')) return;
-  
+  if (!confirm('Delete this transaction?')) return;
   const sid = String(txId);
-  const txToDelete = (window.globalData && window.globalData.finance || [])
-    .find(function(f) { return String(f.id) === sid; });
-  
-  if (txToDelete && typeof updateAccountBalance === 'function') {
-    updateAccountBalance(txToDelete.method, txToDelete.amount, txToDelete.type, false);
+  const tx = (window.globalData.finance || []).find(f => String(f.id) === sid);
+  if (tx && typeof updateAccountBalance === 'function') {
+    updateAccountBalance(tx.method, tx.amount, tx.type, false);
   }
-  
-  if (window.globalData && window.globalData.finance) {
-    window.globalData.finance = window.globalData.finance
-      .filter(function(f) { return String(f.id) !== sid; });
-  }
-  
+  window.globalData.finance = (window.globalData.finance || []).filter(f => String(f.id) !== sid);
   if (typeof saveToStorage === 'function') saveToStorage();
   if (typeof showSuccessToast === 'function') showSuccessToast('Transaction deleted!');
-  if (typeof updateGlobalStats === 'function') updateGlobalStats();
   if (typeof renderLedger === 'function') renderLedger(window.globalData.finance);
-  
+  if (typeof updateGlobalStats === 'function') updateGlobalStats();
   const accModal = document.getElementById('accountDetailsModal');
   if (accModal && bootstrap.Modal.getInstance(accModal)) {
     if (typeof renderAccountDetails === 'function') renderAccountDetails();
