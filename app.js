@@ -2040,10 +2040,10 @@ function renderLedger(transactions) {
         <td class="${amtClass} fw-bold">৳${formatNumber(amt)}</td>
         <td class="text-end">
           <div class="btn-group">
-            <button class="btn btn-sm btn-outline-primary edit-tx-btn" data-txid="${f.id}" title="Edit record">
+            <button class="btn btn-sm btn-outline-primary" onclick="event.stopPropagation(); _handleEditTx('${f.id}')" title="Edit record">
               ✏️ Edit
             </button>
-            <button class="btn btn-sm btn-danger del-tx-btn" data-txid="${f.id}" title="Delete record">
+            <button class="btn btn-sm btn-danger" onclick="event.stopPropagation(); _handleDeleteTx('${f.id}')" title="Delete record">
               🗑️ Delete
             </button>
           </div>
@@ -4117,7 +4117,7 @@ function renderAccountDetails() {
                 <td class="small text-muted">${f.description || ''}</td>
                 <td class="${amtClass} fw-bold">৳${formatNumber(amt)}</td>
                 <td class="no-print">
-                    <button class="btn btn-sm btn-outline-danger border-0 del-tx-btn" data-txid="${f.id}" title="Delete entry">
+                    <button class="btn btn-sm btn-outline-danger border-0" onclick="event.stopPropagation(); _handleDeleteTx('${f.id}')" title="Delete entry">
                         🗑️ DELETE
                     </button>
                 </td>
@@ -8651,90 +8651,32 @@ window.editVisitor          = editVisitor;
 window.deleteVisitor        = deleteVisitor;
 
 // ── Delete & Edit Transaction Event Delegation ───────────────────────────────
-// Uses ledgerTableBody directly to avoid document-level conflicts (GitHub Pages blocks confirm())
-function attachLedgerListeners() {
-  const tbody = document.getElementById('ledgerTableBody');
-  if (!tbody || tbody._listenersAttached) return;
-  tbody._listenersAttached = true;
-
-  tbody.addEventListener('click', function(e) {
-    // Edit button
-    const editBtn = e.target.closest('.edit-tx-btn');
-    if (editBtn) {
-      e.stopImmediatePropagation();
-      const txId = editBtn.getAttribute('data-txid');
-      if (txId && typeof editTransaction === 'function') editTransaction(txId);
-      return;
-    }
-
-    // Delete button
-    const delBtn = e.target.closest('.del-tx-btn');
-    if (!delBtn) return;
-    e.stopImmediatePropagation();
-
-    const sid = String(delBtn.getAttribute('data-txid'));
-    const tx = (window.globalData.finance || []).find(f => String(f.id) === sid);
-
-    if (tx) {
-      if (typeof moveToTrash === 'function') moveToTrash('finance', tx);
-      if (typeof logActivity === 'function') logActivity('finance', 'DELETE',
-        'Transaction deleted: ' + (tx.type || '') + ' | ' + (tx.category || '') + ' - ৳' + (tx.amount || 0), tx);
-      if (typeof updateAccountBalance === 'function') updateAccountBalance(tx.method, tx.amount, tx.type, false);
-    }
-
-    window.globalData.finance = (window.globalData.finance || []).filter(f => String(f.id) !== sid);
-    if (typeof renderLedger === 'function') renderLedger(window.globalData.finance);
-    if (typeof updateGlobalStats === 'function') updateGlobalStats();
-    if (typeof showSuccessToast === 'function') showSuccessToast('Transaction deleted!');
-    if (typeof saveToStorage === 'function') saveToStorage();
-
-    const accModal = document.getElementById('accountDetailsModal');
-    if (accModal && bootstrap.Modal.getInstance(accModal)) {
-      if (typeof renderAccountDetails === 'function') renderAccountDetails();
-    }
-  });
+// ── Delete & Edit Transaction Handler ───────────────────────────────
+// Directly attach onclick to each button inside renderLedger (most reliable approach)
+function _handleDeleteTx(sid) {
+  const tx = (window.globalData.finance || []).find(f => String(f.id) === sid);
+  if (tx) {
+    if (typeof moveToTrash === 'function') moveToTrash('finance', tx);
+    if (typeof logActivity === 'function') logActivity('finance', 'DELETE',
+      'Transaction deleted: ' + (tx.type || '') + ' | ' + (tx.category || '') + ' - ৳' + (tx.amount || 0), tx);
+    if (typeof updateAccountBalance === 'function') updateAccountBalance(tx.method, tx.amount, tx.type, false);
+  }
+  window.globalData.finance = (window.globalData.finance || []).filter(f => String(f.id) !== sid);
+  if (typeof renderLedger === 'function') renderLedger(window.globalData.finance);
+  if (typeof updateGlobalStats === 'function') updateGlobalStats();
+  if (typeof showSuccessToast === 'function') showSuccessToast('Transaction deleted!');
+  if (typeof saveToStorage === 'function') saveToStorage();
+  const accModal = document.getElementById('accountDetailsModal');
+  if (accModal && typeof bootstrap !== 'undefined' && bootstrap.Modal.getInstance(accModal)) {
+    if (typeof renderAccountDetails === 'function') renderAccountDetails();
+  }
 }
+window._handleDeleteTx = _handleDeleteTx;
 
-// Attach on DOM ready and also after every renderLedger call
-document.addEventListener('DOMContentLoaded', function() {
-  setTimeout(attachLedgerListeners, 500);
-});
-setTimeout(attachLedgerListeners, 2500);
-
-// Use event delegation on document level as fallback (always works)
-document.addEventListener('click', function(e) {
-  // Delete button fallback
-  const delBtn = e.target.closest('.del-tx-btn');
-  if (delBtn) {
-    e.stopImmediatePropagation();
-    const sid = String(delBtn.getAttribute('data-txid'));
-    const tx = (window.globalData.finance || []).find(f => String(f.id) === sid);
-    if (tx) {
-      if (typeof moveToTrash === 'function') moveToTrash('finance', tx);
-      if (typeof logActivity === 'function') logActivity('finance', 'DELETE',
-        'Transaction deleted: ' + (tx.type || '') + ' | ' + (tx.category || '') + ' - ৳' + (tx.amount || 0), tx);
-      if (typeof updateAccountBalance === 'function') updateAccountBalance(tx.method, tx.amount, tx.type, false);
-    }
-    window.globalData.finance = (window.globalData.finance || []).filter(f => String(f.id) !== sid);
-    if (typeof renderLedger === 'function') renderLedger(window.globalData.finance);
-    if (typeof updateGlobalStats === 'function') updateGlobalStats();
-    if (typeof showSuccessToast === 'function') showSuccessToast('Transaction deleted!');
-    if (typeof saveToStorage === 'function') saveToStorage();
-    const accModal = document.getElementById('accountDetailsModal');
-    if (accModal && typeof bootstrap !== 'undefined' && bootstrap.Modal.getInstance(accModal)) {
-      if (typeof renderAccountDetails === 'function') renderAccountDetails();
-    }
-    return;
-  }
-
-  // Edit button fallback
-  const editBtn = e.target.closest('.edit-tx-btn');
-  if (editBtn) {
-    const txId = editBtn.getAttribute('data-txid');
-    if (txId && typeof editTransaction === 'function') editTransaction(txId);
-    return;
-  }
-});
+function _handleEditTx(txId) {
+  if (txId && typeof editTransaction === 'function') editTransaction(txId);
+}
+window._handleEditTx = _handleEditTx;
 
 
 // =====================================================
