@@ -4992,11 +4992,14 @@ function generateCertificate() {
     return;
   }
 
+  document.body.classList.add('printing-certificate');
   html2pdf().from(certHtml).set(opt).save().then(() => {
+    document.body.classList.remove('printing-certificate');
     btn.innerHTML = originalText;
     btn.disabled = false;
     showSuccessToast('Certificate downloaded successfully!');
   }).catch(err => {
+    document.body.classList.remove('printing-certificate');
     console.error(err);
     alert('Error generating PDF. Check console for details.');
     btn.innerHTML = originalText;
@@ -5149,12 +5152,15 @@ function generateIdCard() {
     return;
   }
 
+  document.body.classList.add('printing-certificate');
   html2pdf().from(cardHtml).set(opt).save().then(() => {
+    document.body.classList.remove('printing-certificate');
     console.log('Wings Fly: ID Card Downloaded');
     showSuccessToast('ID Card generated successfully!');
     btn.innerHTML = originalText;
     btn.disabled = false;
   }).catch(err => {
+    document.body.classList.remove('printing-certificate');
     console.error('Wings Fly: PDF Error:', err);
     alert('Error generating PDF: ' + err.message);
     btn.innerHTML = originalText;
