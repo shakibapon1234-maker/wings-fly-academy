@@ -4692,7 +4692,7 @@ function generateStudentId(batchName) {
 }
 
 function openAttendanceModal() {
-  const modal = new bootstrap.Modal(document.getElementById('attendanceModal'));
+  const modal = bootstrap.Modal.getOrCreateInstance(document.getElementById('attendanceModal'));
   const batchSelect = document.getElementById('attendanceBatchSelect');
   const dateInput = document.getElementById('attendanceDate');
 
@@ -4751,8 +4751,28 @@ function saveAttendance() {
 
   globalData.attendance[attendanceKey] = currentAttendance;
   saveToStorage();
-  bootstrap.Modal.getInstance(document.getElementById('attendanceModal')).hide();
-  showSuccessToast(`Attendance saved for ${batch} on ${date}`);
+
+  // Safe modal close
+  try {
+    const modalEl = document.getElementById('attendanceModal');
+    let m = bootstrap.Modal.getInstance(modalEl);
+    if (!m) m = bootstrap.Modal.getOrCreateInstance(modalEl);
+    m.hide();
+  } catch(e) {
+    // fallback manual close
+    const modalEl = document.getElementById('attendanceModal');
+    if (modalEl) {
+      modalEl.classList.remove('show');
+      modalEl.style.display = 'none';
+      document.body.classList.remove('modal-open');
+      document.body.style.removeProperty('overflow');
+      document.body.style.removeProperty('padding-right');
+      const backdrop = document.querySelector('.modal-backdrop');
+      if (backdrop) backdrop.remove();
+    }
+  }
+
+  showSuccessToast(`✅ Attendance saved for ${batch} on ${date}`);
 }
 
 function generateCertificate() {
