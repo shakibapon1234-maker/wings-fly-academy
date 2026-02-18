@@ -1814,7 +1814,7 @@ function renderLedger(transactions) {
             <button class="btn btn-sm btn-outline-primary" onclick="editTransaction(${f.id})" title="Edit record">
               ✏️ Edit
             </button>
-            <button class="btn btn-sm btn-danger" onclick="window.deleteTransaction('${f.id}')" title="Delete record">
+            <button class="btn btn-sm btn-danger del-tx-btn" data-txid="${f.id}" title="Delete record">
               🗑️ Delete
             </button>
           </div>
@@ -3695,53 +3695,43 @@ async function handleTransferSubmit(e) {
 // ===================================
 
 function deleteTransaction(id) {
-  if (!id || id === 'undefined') {
-    alert('Cannot delete: record has no ID. Please refresh the page.');
+  if (!confirm('Are you sure you want to delete this financial record?')) return;
+
+  // Handle both string and number IDs (localStorage/Supabase can change types)
+  const sid = String(id);
+  const txToDelete = globalData.finance.find(f => String(f.id) === sid);
+  
+  if (!txToDelete) {
+    showErrorToast('Transaction not found.');
+    renderLedger(globalData.finance);
+    renderAccountDetails && renderAccountDetails();
     return;
   }
-  if (!confirm('Delete this transaction?')) return;
 
-  const sid = String(id);
-  let found = false;
-
-  // Find the record
-  for (let i = 0; i < globalData.finance.length; i++) {
-    const f = globalData.finance[i];
-    if (String(f.id) === sid) {
-      found = true;
-      // Reverse account balance
-      if (typeof updateAccountBalance === 'function') {
-        updateAccountBalance(f.method, f.amount, f.type, false);
-      }
-      globalData.finance.splice(i, 1);
-      break;
-    }
+  if (typeof updateAccountBalance === "function") {
+    updateAccountBalance(txToDelete.method, txToDelete.amount, txToDelete.type, false);
   }
 
-  if (!found) {
-    // Try removing by index if ID is a number matching array position
-    console.warn('Transaction not found by ID:', sid);
-  }
+  globalData.finance = globalData.finance.filter(f => String(f.id) !== sid);
+  saveToStorage();
+  showSuccessToast('Transaction deleted successfully!');
 
-  // Save locally and to cloud
-  localStorage.setItem('wingsfly_data', JSON.stringify(globalData));
-  if (typeof window.saveToCloud === 'function') {
-    window.saveToCloud(true).catch(function(e){ console.error('Cloud save failed:', e); });
-  }
+  // Refresh ledger
+  renderLedger(globalData.finance);
+  updateGlobalStats();
 
-  showSuccessToast('Transaction deleted!');
-
-  // Re-render
-  if (typeof renderLedger === 'function') renderLedger(globalData.finance);
-  if (typeof updateGlobalStats === 'function') updateGlobalStats();
-  
+  // Refresh Account Details modal if open
   const accModal = document.getElementById('accountDetailsModal');
-  if (accModal && window.bootstrap && bootstrap.Modal.getInstance(accModal)) {
-    if (typeof renderAccountDetails === 'function') renderAccountDetails();
+  if (accModal && bootstrap.Modal.getInstance(accModal)) {
+    renderAccountDetails();
   }
 }
-window.deleteTransaction = deleteTransaction;
 
+// ===================================
+// EDIT TRANSACTION
+// ===================================
+
+window.deleteTransaction = deleteTransaction;
 
 function editTransaction(id) {
   const transaction = globalData.finance.find(f => f.id === id);
@@ -3884,7 +3874,9 @@ function renderAccountDetails() {
                 <td class="small text-muted">${f.description || ''}</td>
                 <td class="${amtClass} fw-bold">৳${formatNumber(amt)}</td>
                 <td class="no-print">
-                    <button class="btn btn-sm btn-outline-danger border-0" onclick="window.deleteTransaction('${f.id}')" title="Delete entry">🗑️ DELETE</button>
+                    <button class="btn btn-sm btn-outline-danger border-0 del-tx-btn" data-txid="${f.id}" title="Delete entry">
+                        🗑️ DELETE
+                    </button>
                 </td>
             </tr>
         `;
@@ -7593,6 +7585,7 @@ function populateAccountDropdown() {
   if (!dropdown) return;
 
   let optionsHTML = '<option value="">-- Select an Account --</option>';
+  optionsHTML += '<option value="all|all">🏛️ All Accounts</option>';
 
   // Add Cash
   optionsHTML += '<option value="cash|Cash">💵 Cash</option>';
@@ -7613,6 +7606,91 @@ function populateAccountDropdown() {
 /**
  * Perform unified search with dropdown selection
  */
+
+function showAllAccountsSearch(dateFrom, dateTo) {
+  const fmt = window.formatNumber || (n => Number(n).toLocaleString('en-IN'));
+  
+  // Collect all transactions across all accounts
+  const allTx = (globalData.finance || []).filter(f => {
+    if (!f.date) return true;
+    const matchFrom = !dateFrom || f.date >= dateFrom;
+    const matchTo   = !dateTo   || f.date <= dateTo;
+    return matchFrom && matchTo;
+  }).slice().reverse();
+
+  // Calculate totals
+  const cashBal = parseFloat(globalData.cashBalance) || 0;
+  const bankBal = (globalData.bankAccounts || []).reduce((a, b) => a + (parseFloat(b.balance)||0), 0);
+  const mobileBal = (globalData.mobileBanking || []).reduce((a, b) => a + (parseFloat(b.balance)||0), 0);
+  const totalBal = cashBal + bankBal + mobileBal;
+
+  document.getElementById('unifiedSearchResults').classList.remove('d-none');
+  document.getElementById('noSearchResults').classList.add('d-none');
+  document.getElementById('searchTransactionHistory').classList.remove('d-none');
+
+  // Show summary card
+  document.getElementById('searchAccountDetails').innerHTML = `
+    <div style="background:rgba(0,217,255,0.08);border:1px solid rgba(0,217,255,0.25);border-radius:14px;padding:20px;">
+      <div style="font-size:1.1rem;font-weight:700;color:#00d9ff;margin-bottom:12px;">🏛️ ALL ACCOUNTS SUMMARY</div>
+      <div style="display:flex;gap:16px;flex-wrap:wrap;">
+        <div style="background:rgba(0,255,136,0.1);border:1px solid rgba(0,255,136,0.3);border-radius:10px;padding:12px 20px;text-align:center;">
+          <div style="font-size:0.75rem;color:rgba(0,255,136,0.7);text-transform:uppercase;letter-spacing:1px;">Cash</div>
+          <div style="font-size:1.2rem;font-weight:700;color:#00ff88;">৳${fmt(cashBal)}</div>
+        </div>
+        <div style="background:rgba(0,217,255,0.1);border:1px solid rgba(0,217,255,0.3);border-radius:10px;padding:12px 20px;text-align:center;">
+          <div style="font-size:0.75rem;color:rgba(0,217,255,0.7);text-transform:uppercase;letter-spacing:1px;">Bank</div>
+          <div style="font-size:1.2rem;font-weight:700;color:#00d9ff;">৳${fmt(bankBal)}</div>
+        </div>
+        <div style="background:rgba(181,55,242,0.1);border:1px solid rgba(181,55,242,0.3);border-radius:10px;padding:12px 20px;text-align:center;">
+          <div style="font-size:0.75rem;color:rgba(181,55,242,0.7);text-transform:uppercase;letter-spacing:1px;">Mobile</div>
+          <div style="font-size:1.2rem;font-weight:700;color:#b537f2;">৳${fmt(mobileBal)}</div>
+        </div>
+        <div style="background:rgba(255,215,0,0.1);border:1px solid rgba(255,215,0,0.3);border-radius:10px;padding:12px 20px;text-align:center;">
+          <div style="font-size:0.75rem;color:rgba(255,215,0,0.7);text-transform:uppercase;letter-spacing:1px;">Total Balance</div>
+          <div style="font-size:1.3rem;font-weight:800;color:#FFD700;">৳${fmt(totalBal)}</div>
+        </div>
+      </div>
+    </div>`;
+
+  // Show all transactions table
+  if (allTx.length === 0) {
+    document.getElementById('searchTransactionHistory').innerHTML = '<div class="text-center py-4 text-muted">No transactions found.</div>';
+    return;
+  }
+
+  let rows = '';
+  allTx.forEach(f => {
+    const amt = parseFloat(f.amount) || 0;
+    const isIncome = f.type === 'Income' || f.type === 'Loan Received' || f.type === 'Transfer In';
+    rows += `<tr>
+      <td style="padding:8px 10px;font-size:0.82rem;color:rgba(255,255,255,0.6);">${f.date||'-'}</td>
+      <td style="padding:8px 10px;"><span style="background:${isIncome?'rgba(0,255,136,0.15)':'rgba(255,59,92,0.15)'};border:1px solid ${isIncome?'rgba(0,255,136,0.4)':'rgba(255,59,92,0.4)'};color:${isIncome?'#00ff88':'#ff3b5c'};padding:2px 8px;border-radius:20px;font-size:0.75rem;font-weight:700;">${f.type||'-'}</span></td>
+      <td style="padding:8px 10px;font-weight:600;color:#00d9ff;font-size:0.85rem;">${f.method||'Cash'}</td>
+      <td style="padding:8px 10px;font-size:0.82rem;">${f.category||'-'}</td>
+      <td style="padding:8px 10px;font-size:0.82rem;color:rgba(255,255,255,0.6);">${f.description||f.note||'-'}</td>
+      <td style="padding:8px 10px;text-align:right;font-weight:700;color:${isIncome?'#00ff88':'#ff3b5c'};">৳${fmt(amt)}</td>
+    </tr>`;
+  });
+
+  document.getElementById('searchTransactionHistory').innerHTML = `
+    <div style="overflow-x:auto;">
+      <table style="width:100%;border-collapse:collapse;font-family:var(--font-body,sans-serif);">
+        <thead>
+          <tr style="border-bottom:1px solid rgba(0,217,255,0.2);">
+            <th style="padding:10px;color:rgba(0,217,255,0.7);font-size:0.72rem;letter-spacing:1px;text-transform:uppercase;text-align:left;">Date</th>
+            <th style="padding:10px;color:rgba(0,217,255,0.7);font-size:0.72rem;letter-spacing:1px;text-transform:uppercase;text-align:left;">Type</th>
+            <th style="padding:10px;color:rgba(0,217,255,0.7);font-size:0.72rem;letter-spacing:1px;text-transform:uppercase;text-align:left;">Account</th>
+            <th style="padding:10px;color:rgba(0,217,255,0.7);font-size:0.72rem;letter-spacing:1px;text-transform:uppercase;text-align:left;">Category</th>
+            <th style="padding:10px;color:rgba(0,217,255,0.7);font-size:0.72rem;letter-spacing:1px;text-transform:uppercase;text-align:left;">Details</th>
+            <th style="padding:10px;color:rgba(0,217,255,0.7);font-size:0.72rem;letter-spacing:1px;text-transform:uppercase;text-align:right;">Amount</th>
+          </tr>
+        </thead>
+        <tbody>${rows}</tbody>
+      </table>
+    </div>`;
+}
+window.showAllAccountsSearch = showAllAccountsSearch;
+
 function performUnifiedSearch() {
   console.log('🔍 performUnifiedSearch called');
 
@@ -7625,17 +7703,20 @@ function performUnifiedSearch() {
   // If no account selected, show alert
   if (!selectValue) {
     alert('⚠️ Please select an account first!');
-    console.log('❌ No account selected');
     return;
   }
 
   // Parse selected value (format: "type|name")
   const [accountType, accountName] = selectValue.split('|');
-  console.log('Account:', { accountType, accountName });
+
+  // Handle "All Accounts" option
+  if (accountType === 'all') {
+    showAllAccountsSearch(dateFrom, dateTo);
+    return;
+  }
 
   let accountData = null;
 
-  // Get account data based on type
   if (accountType === 'cash') {
     accountData = {
       name: 'CASH',
@@ -8461,7 +8542,7 @@ window.deleteVisitor        = deleteVisitor;
 
 // ── Delete Transaction Event Delegation ──────────────────────────────────────
 document.addEventListener('click', function(e) {
-  const btn = e.target.closest('.');
+  const btn = e.target.closest('.del-tx-btn');
   if (!btn) return;
   const txId = btn.getAttribute('data-txid');
   if (!txId) return;
