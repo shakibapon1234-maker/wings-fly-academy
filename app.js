@@ -8680,3 +8680,307 @@ window.deleteNotice = deleteNotice;
 window.toggleCustomDuration = toggleCustomDuration;
 window.previewNotice = previewNotice;
 
+
+// ===================================
+// ACTIVITY LOG & RECYCLE BIN SYSTEM
+// ===================================
+
+// Ensure arrays exist in old data
+(function() {
+  if (!globalData.activityLog) globalData.activityLog = [];
+  if (!globalData.recycleBin) globalData.recycleBin = [];
+})();
+
+function logActivity(action, type, details, data) {
+  const entry = {
+    id: Date.now(),
+    timestamp: new Date().toISOString(),
+    action: action,
+    type: type,
+    details: details,
+    user: sessionStorage.getItem('username') || 'Admin',
+    data: data || null
+  };
+  if (!globalData.activityLog) globalData.activityLog = [];
+  globalData.activityLog.unshift(entry);
+  if (globalData.activityLog.length > 500) {
+    globalData.activityLog = globalData.activityLog.slice(0, 500);
+  }
+}
+window.logActivity = logActivity;
+
+function addToRecycleBin(type, item, relatedData) {
+  if (!globalData.recycleBin) globalData.recycleBin = [];
+  globalData.recycleBin.unshift({
+    id: Date.now(),
+    deletedAt: new Date().toISOString(),
+    deletedBy: sessionStorage.getItem('username') || 'Admin',
+    type: type,
+    item: JSON.parse(JSON.stringify(item)),
+    relatedData: relatedData || null
+  });
+  if (globalData.recycleBin.length > 200) {
+    globalData.recycleBin = globalData.recycleBin.slice(0, 200);
+  }
+}
+window.addToRecycleBin = addToRecycleBin;
+
+// ===================================
+// ACTIVITY LOG UI
+// ===================================
+function renderActivityLog() {
+  const container = document.getElementById('activityLogContainer');
+  if (!container) return;
+
+  const logs = globalData.activityLog || [];
+  const filterType = document.getElementById('logFilterType')?.value || 'all';
+  const searchTerm = document.getElementById('logSearch')?.value?.toLowerCase() || '';
+
+  const filtered = logs.filter(log => {
+    const matchType = filterType === 'all' || log.type === filterType || log.action === filterType;
+    const matchSearch = !searchTerm || 
+      log.details?.toLowerCase().includes(searchTerm) ||
+      log.type?.toLowerCase().includes(searchTerm) ||
+      log.user?.toLowerCase().includes(searchTerm);
+    return matchType && matchSearch;
+  });
+
+  const icons = {
+    'ADD': '➕', 'EDIT': '✏️', 'DELETE': '🗑️', 'LOGIN': '🔐',
+    'PAYMENT': '💰', 'SETTINGS': '⚙️', 'EXAM': '📝', 'EMPLOYEE': '👤', 'default': '📋'
+  };
+
+  const colors = {
+    'ADD': 'success', 'EDIT': 'info', 'DELETE': 'danger', 'LOGIN': 'warning',
+    'PAYMENT': 'primary', 'SETTINGS': 'secondary', 'default': 'light'
+  };
+
+  if (filtered.length === 0) {
+    container.innerHTML = `
+      <div class="text-center py-5 text-muted">
+        <div style="font-size:3rem;">📋</div>
+        <p class="mt-2">কোনো activity log নেই</p>
+      </div>`;
+    return;
+  }
+
+  container.innerHTML = filtered.slice(0, 100).map(log => {
+    const dt = new Date(log.timestamp);
+    const dateStr = dt.toLocaleDateString('bn-BD') + ' ' + dt.toLocaleTimeString('en-US', {hour:'2-digit', minute:'2-digit'});
+    const icon = icons[log.action] || icons['default'];
+    const color = colors[log.action] || colors['default'];
+    return `
+      <div class="d-flex align-items-start gap-3 py-2 border-bottom border-secondary">
+        <div class="text-${color} fs-5 mt-1">${icon}</div>
+        <div class="flex-grow-1">
+          <div class="d-flex justify-content-between align-items-center">
+            <span class="badge bg-${color} bg-opacity-25 text-${color} rounded-pill px-2">${log.action} • ${log.type}</span>
+            <small class="text-muted">${dateStr}</small>
+          </div>
+          <div class="mt-1 small" style="color:#ccc;">${log.details}</div>
+          <small class="text-muted">👤 ${log.user}</small>
+        </div>
+      </div>`;
+  }).join('');
+}
+window.renderActivityLog = renderActivityLog;
+
+// ===================================
+// RECYCLE BIN UI
+// ===================================
+function renderRecycleBin() {
+  const container = document.getElementById('recycleBinContainer');
+  if (!container) return;
+
+  const items = globalData.recycleBin || [];
+  const filterType = document.getElementById('binFilterType')?.value || 'all';
+
+  const filtered = items.filter(item => filterType === 'all' || item.type === filterType);
+
+  if (filtered.length === 0) {
+    container.innerHTML = `
+      <div class="text-center py-5 text-muted">
+        <div style="font-size:3rem;">🗑️</div>
+        <p class="mt-2">Recycle Bin খালি</p>
+      </div>`;
+    return;
+  }
+
+  container.innerHTML = filtered.map(item => {
+    const dt = new Date(item.deletedAt);
+    const dateStr = dt.toLocaleDateString('bn-BD') + ' ' + dt.toLocaleTimeString('en-US', {hour:'2-digit', minute:'2-digit'});
+
+    let preview = '';
+    if (item.type === 'Student') {
+      preview = `<strong>${item.item.name}</strong> | ${item.item.batch || ''} | ${item.item.phone || ''}`;
+    } else if (item.type === 'Employee') {
+      preview = `<strong>${item.item.name}</strong> | ${item.item.position || ''} | ${item.item.phone || ''}`;
+    } else if (item.type === 'Finance') {
+      preview = `<strong>${item.item.type}</strong> | ৳${item.item.amount} | ${item.item.category || ''} | ${item.item.date || ''}`;
+    } else if (item.type === 'Visitor') {
+      preview = `<strong>${item.item.name}</strong> | ${item.item.phone || ''} | ${item.item.purpose || ''}`;
+    } else {
+      preview = JSON.stringify(item.item).substring(0, 80) + '...';
+    }
+
+    return `
+      <div class="d-flex align-items-start gap-3 py-2 border-bottom border-secondary">
+        <div class="fs-4">🗑️</div>
+        <div class="flex-grow-1">
+          <div class="d-flex justify-content-between align-items-center">
+            <span class="badge bg-danger bg-opacity-25 text-danger rounded-pill px-2">${item.type}</span>
+            <small class="text-muted">Deleted: ${dateStr} by ${item.deletedBy}</small>
+          </div>
+          <div class="mt-1 small" style="color:#ccc;">${preview}</div>
+        </div>
+        <div class="d-flex gap-1 flex-shrink-0">
+          <button class="btn btn-sm btn-outline-success rounded-pill px-3" onclick="restoreFromBin(${item.id})">
+            ♻️ Restore
+          </button>
+          <button class="btn btn-sm btn-outline-danger rounded-pill px-3" onclick="permanentDelete(${item.id})">
+            ❌
+          </button>
+        </div>
+      </div>`;
+  }).join('');
+}
+window.renderRecycleBin = renderRecycleBin;
+
+function restoreFromBin(id) {
+  const idx = globalData.recycleBin.findIndex(x => x.id === id);
+  if (idx === -1) { showErrorToast('Item not found!'); return; }
+
+  const binItem = globalData.recycleBin[idx];
+
+  if (!confirm(`"${binItem.type}" টি restore করবেন?`)) return;
+
+  // Restore based on type
+  if (binItem.type === 'Student') {
+    if (!globalData.students) globalData.students = [];
+    globalData.students.push(binItem.item);
+    // Restore related finance if any
+    if (binItem.relatedData && binItem.relatedData.finance) {
+      if (!globalData.finance) globalData.finance = [];
+      globalData.finance = globalData.finance.concat(binItem.relatedData.finance);
+    }
+    logActivity('RESTORE', 'Student', `Restored student: ${binItem.item.name}`);
+  } else if (binItem.type === 'Employee') {
+    if (!globalData.employees) globalData.employees = [];
+    globalData.employees.push(binItem.item);
+    logActivity('RESTORE', 'Employee', `Restored employee: ${binItem.item.name}`);
+  } else if (binItem.type === 'Finance') {
+    if (!globalData.finance) globalData.finance = [];
+    globalData.finance.push(binItem.item);
+    logActivity('RESTORE', 'Finance', `Restored transaction: ${binItem.item.type} ৳${binItem.item.amount}`);
+  } else if (binItem.type === 'Visitor') {
+    if (!globalData.visitors) globalData.visitors = [];
+    globalData.visitors.push(binItem.item);
+    logActivity('RESTORE', 'Visitor', `Restored visitor: ${binItem.item.name}`);
+  }
+
+  globalData.recycleBin.splice(idx, 1);
+  saveToStorage();
+  renderRecycleBin();
+  showSuccessToast(`✅ ${binItem.type} restored!`);
+  updateGlobalStats();
+}
+window.restoreFromBin = restoreFromBin;
+
+function permanentDelete(id) {
+  const idx = globalData.recycleBin.findIndex(x => x.id === id);
+  if (idx === -1) return;
+  const item = globalData.recycleBin[idx];
+  if (!confirm(`স্থায়ীভাবে delete করবেন? এটি আর ফেরানো যাবে না!`)) return;
+  logActivity('PERMANENT_DELETE', item.type, `Permanently deleted ${item.type}: ${item.item?.name || item.id}`);
+  globalData.recycleBin.splice(idx, 1);
+  saveToStorage();
+  renderRecycleBin();
+  showSuccessToast('Permanently deleted!');
+}
+window.permanentDelete = permanentDelete;
+
+function clearActivityLog() {
+  if (!confirm('সব activity log মুছে দেবেন?')) return;
+  globalData.activityLog = [];
+  saveToStorage();
+  renderActivityLog();
+  showSuccessToast('Activity log cleared!');
+}
+window.clearActivityLog = clearActivityLog;
+
+function clearRecycleBin() {
+  if (!confirm('Recycle Bin সম্পূর্ণ খালি করবেন? সব data স্থায়ীভাবে মুছে যাবে!')) return;
+  globalData.recycleBin = [];
+  saveToStorage();
+  renderRecycleBin();
+  showSuccessToast('Recycle Bin emptied!');
+}
+window.clearRecycleBin = clearRecycleBin;
+
+
+// ===================================
+// PATCH: Add logging to delete functions
+// ===================================
+(function patchDeleteFunctions() {
+  // Patch deleteStudent
+  const _origDeleteStudent = window.deleteStudent;
+  window.deleteStudent = function(rowIndex) {
+    const student = globalData.students && globalData.students[rowIndex];
+    if (student) {
+      const relatedFinance = (globalData.finance || []).filter(f =>
+        f.person === student.name ||
+        (f.description && f.description.includes(student.name))
+      );
+      addToRecycleBin('Student', student, { finance: relatedFinance });
+      logActivity('DELETE', 'Student', `Deleted student: ${student.name} (${student.batch || 'N/A'}) | Phone: ${student.phone || 'N/A'}`);
+    }
+    if (typeof _origDeleteStudent === 'function') _origDeleteStudent(rowIndex);
+  };
+
+  // Patch deleteTransaction
+  const _origDeleteTx = window.deleteTransaction;
+  window.deleteTransaction = function(id) {
+    const tx = globalData.finance && globalData.finance.find(f => String(f.id) === String(id));
+    if (tx) {
+      addToRecycleBin('Finance', tx);
+      logActivity('DELETE', 'Finance', `Deleted ${tx.type}: ৳${tx.amount} | ${tx.category || ''} | Date: ${tx.date || ''}`);
+    }
+    if (typeof _origDeleteTx === 'function') _origDeleteTx(id);
+  };
+
+  // Patch deleteEmployee
+  const _origDeleteEmp = window.deleteEmployee;
+  window.deleteEmployee = async function(id) {
+    const emp = globalData.employees && globalData.employees.find(e => e.id === id);
+    if (emp) {
+      addToRecycleBin('Employee', emp);
+      logActivity('DELETE', 'Employee', `Deleted employee: ${emp.name} | ${emp.position || 'N/A'} | ${emp.phone || ''}`);
+    }
+    if (typeof _origDeleteEmp === 'function') await _origDeleteEmp(id);
+  };
+
+  // Patch deleteVisitor
+  const _origDeleteVisitor = window.deleteVisitor;
+  window.deleteVisitor = async function(index) {
+    const visitor = globalData.visitors && globalData.visitors[index];
+    if (visitor) {
+      addToRecycleBin('Visitor', visitor);
+      logActivity('DELETE', 'Visitor', `Deleted visitor: ${visitor.name} | ${visitor.phone || ''} | ${visitor.purpose || ''}`);
+    }
+    if (typeof _origDeleteVisitor === 'function') await _origDeleteVisitor(index);
+  };
+
+})();
+
+// Log login events
+const _origHandleLogin = window.handleLogin;
+window.handleLogin = async function(e) {
+  const result = _origHandleLogin ? await _origHandleLogin(e) : null;
+  setTimeout(() => {
+    const user = sessionStorage.getItem('username');
+    if (user) logActivity('LOGIN', 'System', `User logged in: ${user}`, null);
+    if (typeof saveToStorage === 'function') saveToStorage();
+  }, 500);
+  return result;
+};
+

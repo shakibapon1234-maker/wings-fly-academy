@@ -2278,7 +2278,7 @@
                                 <div class="nav flex-column nav-pills" role="tablist">
                                     <button class="nav-link active" data-bs-toggle="pill" data-bs-target="#tab-general"
                                         type="button">
-                                        <span>🏢</span> General & Balances
+                                        <span>🏢</span> General Settings
                                     </button>
                                     <button class="nav-link" data-bs-toggle="pill" data-bs-target="#tab-config"
                                         type="button">
@@ -2291,6 +2291,14 @@
                                     <button class="nav-link" data-bs-toggle="pill" data-bs-target="#tab-security"
                                         type="button">
                                         <span>🔒</span> Security & Access
+                                    </button>
+                                    <button class="nav-link" data-bs-toggle="pill" data-bs-target="#tab-activitylog"
+                                        type="button" onclick="renderActivityLog()">
+                                        <span>📋</span> Activity Log
+                                    </button>
+                                    <button class="nav-link" data-bs-toggle="pill" data-bs-target="#tab-recyclebin"
+                                        type="button" onclick="renderRecycleBin()">
+                                        <span>🗑️</span> Recycle Bin
                                     </button>
                                 </div>
                                 <div class="mt-auto pt-4 text-center">
@@ -2321,14 +2329,7 @@
                                                 bar.</small>
                                         </div>
 
-                                        <h6 class="settings-section-title mt-4">Initial Account Balances
-                                        </h6>
-                                        <p class="text-muted small mb-3">Set the starting amount for
-                                            each payment
-                                            method. These added to the calculated totals.</p>
-                                        <div id="startingBalancesList" class="row g-3">
-                                            <!-- Populated dynamically -->
-                                        </div>
+
                                     </div>
 
                                     <!-- Tab 2: Configurations -->
@@ -2574,9 +2575,54 @@
                                         </div>
                                     </div>
                                 </div>
+
+                                    <!-- Tab 5: Activity Log -->
+                                    <div class="tab-pane fade" id="tab-activitylog">
+                                        <div class="d-flex justify-content-between align-items-center mb-3">
+                                            <h6 class="settings-section-title mb-0">📋 Full Activity Log</h6>
+                                            <button type="button" class="btn btn-sm btn-outline-danger rounded-pill px-3" onclick="clearActivityLog()">🗑️ Clear All</button>
+                                        </div>
+                                        <div class="d-flex gap-2 mb-3 flex-wrap">
+                                            <select id="logFilterType" class="form-select form-select-sm premium-input-modern" style="max-width:160px;" onchange="renderActivityLog()">
+                                                <option value="all">All Actions</option>
+                                                <option value="ADD">➕ Add</option>
+                                                <option value="EDIT">✏️ Edit</option>
+                                                <option value="DELETE">🗑️ Delete</option>
+                                                <option value="LOGIN">🔐 Login</option>
+                                                <option value="PAYMENT">💰 Payment</option>
+                                                <option value="SETTINGS">⚙️ Settings</option>
+                                                <option value="RESTORE">♻️ Restore</option>
+                                            </select>
+                                            <input type="text" id="logSearch" class="form-control form-control-sm premium-input-modern" style="max-width:200px;" placeholder="🔍 Search..." oninput="renderActivityLog()">
+                                        </div>
+                                        <div id="activityLogContainer" style="max-height:480px; overflow-y:auto;">
+                                            <div class="text-center text-muted py-4">Tab টি click করলে log দেখা যাবে।</div>
+                                        </div>
+                                    </div>
+
+                                    <!-- Tab 6: Recycle Bin -->
+                                    <div class="tab-pane fade" id="tab-recyclebin">
+                                        <div class="d-flex justify-content-between align-items-center mb-3">
+                                            <h6 class="settings-section-title mb-0">🗑️ Recycle Bin</h6>
+                                            <button type="button" class="btn btn-sm btn-outline-danger rounded-pill px-3" onclick="clearRecycleBin()">🗑️ Empty Bin</button>
+                                        </div>
+                                        <p class="text-muted small mb-3">Deleted items — Restore করুন বা স্থায়ীভাবে মুছে দিন।</p>
+                                        <div class="mb-3">
+                                            <select id="binFilterType" class="form-select form-select-sm premium-input-modern" style="max-width:160px;" onchange="renderRecycleBin()">
+                                                <option value="all">All Types</option>
+                                                <option value="Student">Student</option>
+                                                <option value="Employee">Employee</option>
+                                                <option value="Finance">Finance</option>
+                                                <option value="Visitor">Visitor</option>
+                                            </select>
+                                        </div>
+                                        <div id="recycleBinContainer" style="max-height:480px; overflow-y:auto;">
+                                            <div class="text-center text-muted py-4">Tab টি click করলে Recycle Bin দেখা যাবে।</div>
+                                        </div>
+                                    </div>
+
                             </div>
-                        </div>
-                </div>
+                        </div>         </div>
             </div>
         </div>
     </div>
@@ -3672,19 +3718,9 @@
 
     <!-- Supabase JS Client for Multi-user Sync -->
     <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2/dist/umd/supabase.js"></script>
-    
-    <!-- Fix: window.supabase compatibility -->
     <script>
-        // Supabase v2 UMD exposes as window.supabase with createClient inside
-        // Some sync files expect window.supabase.createClient directly
-        if (typeof window.supabase === 'undefined' && typeof supabase !== 'undefined') {
-            window.supabase = supabase;
-        }
-        // Also expose createClient at top level if needed
-        if (window.supabase && window.supabase.createClient) {
-            window.createClient = window.supabase.createClient;
-        }
-        console.log('✅ Supabase library check:', typeof window.supabase);
+        if (typeof window.supabase === 'undefined' && typeof supabase !== 'undefined') window.supabase = supabase;
+        if (window.supabase && window.supabase.createClient) window.createClient = window.supabase.createClient;
     </script>
 
     <!-- Supabase Configuration (Update with your credentials) -->
