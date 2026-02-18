@@ -8650,49 +8650,66 @@ window.clearVisitorFilters  = clearVisitorFilters;
 window.editVisitor          = editVisitor;
 window.deleteVisitor        = deleteVisitor;
 
-// ── Delete Transaction Event Delegation ──────────────────────────────────────
-document.addEventListener('click', function(e) {
-  // Handle Edit button
-  const editBtn = e.target.closest('.edit-tx-btn');
-  if (editBtn) {
-    const txId = editBtn.getAttribute('data-txid');
-    if (txId) editTransaction(txId);
-    return;
-  }
+// ── Delete & Edit Transaction Event Delegation ───────────────────────────────
+// Uses ledgerTableBody directly to avoid document-level conflicts (GitHub Pages blocks confirm())
+function attachLedgerListeners() {
+  const tbody = document.getElementById('ledgerTableBody');
+  if (!tbody || tbody._listenersAttached) return;
+  tbody._listenersAttached = true;
 
-  const btn = e.target.closest('.del-tx-btn');
-  if (!btn) return;
-  const txId = btn.getAttribute('data-txid');
-  if (!txId) return;
-  
-  const sid = String(txId);
-  const tx = (window.globalData.finance || []).find(f => f.id !== undefined && String(f.id) === sid);
-  
-  // Move to trash + log before deleting
-  if (tx) {
-    if (typeof moveToTrash === 'function') moveToTrash('finance', tx);
-    if (typeof logActivity === 'function') logActivity('finance', 'DELETE',
-      'Transaction deleted: ' + (tx.type || '') + ' | ' + (tx.category || '') + ' - ৳' + (tx.amount || 0) + ' | ' + (tx.description || ''), tx);
-  }
-  
-  if (tx && typeof updateAccountBalance === 'function') {
-    updateAccountBalance(tx.method, tx.amount, tx.type, false);
-  }
-  window.globalData.finance = (window.globalData.finance || []).filter(f => f.id === undefined || String(f.id) !== sid);
-  
-  // Render immediately so user sees the change
-  if (typeof renderLedger === 'function') renderLedger(window.globalData.finance);
-  if (typeof updateGlobalStats === 'function') updateGlobalStats();
-  if (typeof showSuccessToast === 'function') showSuccessToast('Transaction deleted!');
-  
-  // Save & push AFTER UI update (async - won't block)
-  if (typeof saveToStorage === 'function') saveToStorage();
-  
-  const accModal = document.getElementById('accountDetailsModal');
-  if (accModal && bootstrap.Modal.getInstance(accModal)) {
-    if (typeof renderAccountDetails === 'function') renderAccountDetails();
-  }
-});
+  tbody.addEventListener('click', function(e) {
+    // Edit button
+    const editBtn = e.target.closest('.edit-tx-btn');
+    if (editBtn) {
+      e.stopImmediatePropagation();
+      const txId = editBtn.getAttribute('data-txid');
+      if (txId && typeof editTransaction === 'function') editTransaction(txId);
+      return;
+    }
+
+    // Delete button
+    const delBtn = e.target.closest('.del-tx-btn');
+    if (!delBtn) return;
+    e.stopImmediatePropagation();
+
+    const sid = String(delBtn.getAttribute('data-txid'));
+    const tx = (window.globalData.finance || []).find(f => String(f.id) === sid);
+
+    if (tx) {
+      if (typeof moveToTrash === 'function') moveToTrash('finance', tx);
+      if (typeof logActivity === 'function') logActivity('finance', 'DELETE',
+        'Transaction deleted: ' + (tx.type || '') + ' | ' + (tx.category || '') + ' - ৳' + (tx.amount || 0), tx);
+      if (typeof updateAccountBalance === 'function') updateAccountBalance(tx.method, tx.amount, tx.type, false);
+    }
+
+    window.globalData.finance = (window.globalData.finance || []).filter(f => String(f.id) !== sid);
+    if (typeof renderLedger === 'function') renderLedger(window.globalData.finance);
+    if (typeof updateGlobalStats === 'function') updateGlobalStats();
+    if (typeof showSuccessToast === 'function') showSuccessToast('Transaction deleted!');
+    if (typeof saveToStorage === 'function') saveToStorage();
+
+    const accModal = document.getElementById('accountDetailsModal');
+    if (accModal && bootstrap.Modal.getInstance(accModal)) {
+      if (typeof renderAccountDetails === 'function') renderAccountDetails();
+    }
+  });
+}
+
+// Attach on DOM ready and also after every renderLedger call
+document.addEventListener('DOMContentLoaded', attachLedgerListeners);
+setTimeout(attachLedgerListeners, 2000);
+
+// Patch renderLedger to re-attach after each render
+const _origRenderLedger = window.renderLedger;
+if (typeof _origRenderLedger === 'function') {
+  window.renderLedger = function(transactions) {
+    _origRenderLedger(transactions);
+    // Reset flag so listener re-attaches on new tbody content
+    const tbody = document.getElementById('ledgerTableBody');
+    if (tbody) tbody._listenersAttached = false;
+    attachLedgerListeners();
+  };
+}
 
 
 // =====================================================
