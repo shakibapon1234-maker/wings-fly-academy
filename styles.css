@@ -1845,6 +1845,14 @@ textarea.form-control {
   /* যখন কোনো specific print class নেই — সাধারণ Ctrl+P — কিছুই print হবে না */
   body:not(.printing-receipt):not(.printing-attendance):not(.printing-ledger) * {
     display: none !important;
+    background: white !important;
+    background-image: none !important;
+  }
+
+  body:not(.printing-receipt):not(.printing-attendance):not(.printing-ledger) {
+    background: white !important;
+    background-image: none !important;
+    background-color: white !important;
   }
 
   body:not(.printing-receipt):not(.printing-attendance):not(.printing-ledger)::before {
@@ -1854,6 +1862,11 @@ textarea.form-control {
     text-align: center;
     padding: 40px;
     color: #000;
+    background: white !important;
+  }
+
+  body:not(.printing-receipt):not(.printing-attendance):not(.printing-ledger)::after {
+    display: none !important;
   }
 
   .sidebar,
@@ -1869,6 +1882,7 @@ textarea.form-control {
 
   body {
     background: white !important;
+    background-image: none !important;
     color: black !important;
   }
 
@@ -2720,3 +2734,18 @@ tfoot th {
 .notice-preview-banner.preview-info    { background: linear-gradient(90deg, #1e3a5f, #3b82f6); }
 .notice-preview-banner.preview-success { background: linear-gradient(90deg, #14532d, #22c55e); }
 
+
+/* Print এ body gradient ও grid সম্পূর্ণ বন্ধ */
+@media print {
+  body::before,
+  body::after {
+    display: none !important;
+    background: none !important;
+    background-image: none !important;
+  }
+  html, body {
+    background: #ffffff !important;
+    background-image: none !important;
+    background-color: #ffffff !important;
+  }
+}
