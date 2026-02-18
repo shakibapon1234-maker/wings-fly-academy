@@ -8581,7 +8581,7 @@ function openNoticeModal() {
     };
   }
 
-  const modal = new bootstrap.Modal(document.getElementById('noticeBoardModal'));
+  const modal = bootstrap.Modal.getOrCreateInstance(document.getElementById('noticeBoardModal'));
   modal.show();
 }
 
@@ -8610,9 +8610,41 @@ function previewNotice() {
   if (previewArea) previewArea.style.display = 'block';
 }
 
+// Safe toast helper for notice system
+function noticeToast(msg, type) {
+  try {
+    if (type === 'error' && typeof showErrorToast === 'function') { showErrorToast(msg); return; }
+    if (typeof showSuccessToast === 'function') { showSuccessToast(msg); return; }
+  } catch(e) {}
+  // Fallback: simple alert-style
+  const div = document.createElement('div');
+  div.textContent = msg;
+  div.style.cssText = `position:fixed;top:20px;right:20px;z-index:99999;background:${type==='error'?'#dc2626':'#16a34a'};color:#fff;padding:12px 24px;border-radius:12px;font-weight:700;font-size:0.95rem;box-shadow:0 4px 20px rgba(0,0,0,0.4);`;
+  document.body.appendChild(div);
+  setTimeout(() => div.remove(), 3000);
+}
+
+// Safe modal close helper
+function closeNoticeModal() {
+  const modalEl = document.getElementById('noticeBoardModal');
+  if (!modalEl) return;
+  try {
+    let m = bootstrap.Modal.getInstance(modalEl);
+    if (!m) m = bootstrap.Modal.getOrCreateInstance(modalEl);
+    m.hide();
+  } catch(e) {
+    // fallback: hide manually
+    modalEl.classList.remove('show');
+    modalEl.style.display = 'none';
+    document.body.classList.remove('modal-open');
+    const backdrop = document.querySelector('.modal-backdrop');
+    if (backdrop) backdrop.remove();
+  }
+}
+
 function publishNotice() {
   const text = document.getElementById('noticeTextInput')?.value?.trim();
-  if (!text) { showErrorToast('নোটিসের বিষয়বস্তু লিখুন!'); return; }
+  if (!text) { noticeToast('নোটিসের বিষয়বস্তু লিখুন!', 'error'); return; }
 
   const type = document.getElementById('noticeTypeSelect')?.value || 'warning';
   const durSel = document.getElementById('noticeDurationSelect');
@@ -8623,7 +8655,7 @@ function publishNotice() {
     const h = parseInt(document.getElementById('customHours')?.value) || 0;
     const m = parseInt(document.getElementById('customMinutes')?.value) || 0;
     durationMinutes = d * 1440 + h * 60 + m;
-    if (durationMinutes < 1) { showErrorToast('কমপক্ষে ১ মিনিট সময় দিন!'); return; }
+    if (durationMinutes < 1) { noticeToast('কমপক্ষে ১ মিনিট সময় দিন!', 'error'); return; }
   } else {
     durationMinutes = parseInt(durSel?.value) || 720;
   }
@@ -8635,13 +8667,9 @@ function publishNotice() {
     expiresAt: Date.now() + durationMinutes * 60 * 1000
   };
 
-  localStorage.setItem(NOTICE_STORAGE_KEY, JSON.stringify(notice));
+  try { localStorage.setItem(NOTICE_STORAGE_KEY, JSON.stringify(notice)); } catch(e) {}
 
-  // Close modal
-  const modalEl = document.getElementById('noticeBoardModal');
-  const modal = bootstrap.Modal.getInstance(modalEl);
-  if (modal) modal.hide();
-
+  closeNoticeModal();
   showNoticeBanner(notice);
 
   const dLabel = durationMinutes >= 1440
@@ -8650,16 +8678,14 @@ function publishNotice() {
     ? `${Math.floor(durationMinutes/60)} ঘণ্টা`
     : `${durationMinutes} মিনিট`;
 
-  showSuccessToast(`✅ নোটিস প্রকাশিত! মেয়াদ: ${dLabel}`);
+  noticeToast(`✅ নোটিস প্রকাশিত! মেয়াদ: ${dLabel}`, 'success');
 }
 
 function deleteNotice() {
-  localStorage.removeItem(NOTICE_STORAGE_KEY);
+  try { localStorage.removeItem(NOTICE_STORAGE_KEY); } catch(e) {}
   hideNoticeBanner();
-  const modalEl = document.getElementById('noticeBoardModal');
-  const modal = bootstrap.Modal.getInstance(modalEl);
-  if (modal) modal.hide();
-  showSuccessToast('🗑️ নোটিস মুছে ফেলা হয়েছে');
+  closeNoticeModal();
+  noticeToast('🗑️ নোটিস মুছে ফেলা হয়েছে', 'success');
 }
 
 // Auto-init when DOM ready
