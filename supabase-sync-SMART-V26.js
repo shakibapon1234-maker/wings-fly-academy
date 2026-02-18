@@ -30,7 +30,7 @@
   const SUPABASE_KEY = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6Imd0b2xkcmx0eGpyd3NodWJwbGZwIiwicm9sZSI6ImFub24iLCJpYXQiOjE3NzEwOTk5MTksImV4cCI6MjA4NjY3NTkxOX0.7NTx3tzU1C5VaewNZZHTaJf2WJ_GtjhQPKOymkxRsUk';
   const TABLE_NAME = 'academy_data';
   const RECORD_ID = 'wingsfly_main';
-  const PULL_INTERVAL = 3000; // Pull every 3 seconds
+  const PULL_INTERVAL = 15000; // Pull every 15 seconds (increased to prevent delete race) // Pull every 3 seconds
   const PUSH_DEBOUNCE_DELAY = 1000; // Wait 1 second after last change before pushing
   const DEVICE_ID = generateDeviceId();
 
@@ -105,9 +105,9 @@
   async function pullFromCloud(silent = false) {
     if (!isInitialized && !initialize()) return false;
     if (isPulling) return false;
-    // Don't pull if we just pushed (prevents overwriting local deletes/edits)
-    if (Date.now() - lastPushTime < 8000) {
-      if (!silent) log('⏸️', 'Skipping pull - recent push in progress');
+    // Block pull for 15 seconds after any push to prevent delete/edit race condition
+    if (Date.now() - lastPushTime < 15000) {
+      if (!silent) log('⏸️', 'Pull blocked - recent push in progress');
       return false;
     }
     if (!isOnline) {
@@ -229,9 +229,8 @@
   // ==========================================
   function determineIfShouldUpdate(cloudTime, localTime, cloudVer, localVer, cloudDevice) {
     // Case 1: If this is our own push bouncing back, ignore
-    // Increased to 8s to prevent race condition after delete/edit
     const timeSinceOurPush = Date.now() - lastPushTime;
-    if (timeSinceOurPush < 8000 && cloudDevice === DEVICE_ID) {
+    if (timeSinceOurPush < 15000 && cloudDevice === DEVICE_ID) {
       return false;
     }
 
