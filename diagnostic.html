@@ -1,0 +1,659 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Wings Fly — System Diagnostic</title>
+<style>
+  @import url('https://fonts.googleapis.com/css2?family=JetBrains+Mono:wght@400;600;700&family=Rajdhani:wght@400;600;700&display=swap');
+
+  :root {
+    --bg: #080c18;
+    --surface: #0e1428;
+    --border: rgba(0,217,255,0.15);
+    --cyan: #00d9ff;
+    --green: #00ff88;
+    --red: #ff4466;
+    --yellow: #ffcc00;
+    --purple: #b537f2;
+    --text: #c0d0e0;
+    --mono: 'JetBrains Mono', monospace;
+    --heading: 'Rajdhani', sans-serif;
+  }
+
+  * { margin:0; padding:0; box-sizing:border-box; }
+
+  body {
+    background: var(--bg);
+    color: var(--text);
+    font-family: var(--mono);
+    font-size: 13px;
+    min-height: 100vh;
+    padding: 24px;
+  }
+
+  .header {
+    text-align: center;
+    margin-bottom: 32px;
+  }
+  .header h1 {
+    font-family: var(--heading);
+    font-size: 2rem;
+    font-weight: 700;
+    color: var(--cyan);
+    letter-spacing: 2px;
+    text-shadow: 0 0 20px rgba(0,217,255,0.4);
+  }
+  .header p {
+    color: #667;
+    margin-top: 6px;
+    font-size: 11px;
+    letter-spacing: 1px;
+  }
+
+  .run-btn {
+    display: block;
+    margin: 0 auto 28px;
+    padding: 12px 40px;
+    background: linear-gradient(135deg, var(--cyan), #0088aa);
+    color: #000;
+    font-family: var(--heading);
+    font-size: 1.1rem;
+    font-weight: 700;
+    letter-spacing: 2px;
+    border: none;
+    border-radius: 8px;
+    cursor: pointer;
+    transition: all 0.2s;
+    box-shadow: 0 0 20px rgba(0,217,255,0.3);
+  }
+  .run-btn:hover { transform: translateY(-2px); box-shadow: 0 0 30px rgba(0,217,255,0.5); }
+  .run-btn:active { transform: translateY(0); }
+
+  .summary-bar {
+    display: flex;
+    gap: 16px;
+    justify-content: center;
+    margin-bottom: 24px;
+    flex-wrap: wrap;
+  }
+  .summary-item {
+    padding: 10px 20px;
+    border-radius: 8px;
+    font-family: var(--heading);
+    font-size: 1rem;
+    font-weight: 700;
+    border: 1px solid;
+  }
+  .summary-pass { background: rgba(0,255,136,0.1); color: var(--green); border-color: rgba(0,255,136,0.3); }
+  .summary-fail { background: rgba(255,68,102,0.1); color: var(--red); border-color: rgba(255,68,102,0.3); }
+  .summary-warn { background: rgba(255,204,0,0.1); color: var(--yellow); border-color: rgba(255,204,0,0.3); }
+
+  .section {
+    background: var(--surface);
+    border: 1px solid var(--border);
+    border-radius: 12px;
+    margin-bottom: 16px;
+    overflow: hidden;
+  }
+  .section-header {
+    padding: 12px 18px;
+    background: rgba(0,217,255,0.05);
+    border-bottom: 1px solid var(--border);
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    cursor: pointer;
+    user-select: none;
+  }
+  .section-header:hover { background: rgba(0,217,255,0.08); }
+  .section-title {
+    font-family: var(--heading);
+    font-size: 1rem;
+    font-weight: 700;
+    color: var(--cyan);
+    letter-spacing: 1px;
+  }
+  .section-score {
+    font-size: 11px;
+    color: #667;
+  }
+  .section-body { padding: 0; }
+  .section-body.collapsed { display: none; }
+
+  .test-row {
+    display: grid;
+    grid-template-columns: 1fr 2fr auto;
+    gap: 12px;
+    align-items: center;
+    padding: 10px 18px;
+    border-bottom: 1px solid rgba(255,255,255,0.04);
+    transition: background 0.15s;
+  }
+  .test-row:last-child { border-bottom: none; }
+  .test-row:hover { background: rgba(255,255,255,0.02); }
+
+  .test-name { color: var(--cyan); font-weight: 600; }
+  .test-desc { color: #667; font-size: 11px; }
+  .badge {
+    padding: 3px 10px;
+    border-radius: 4px;
+    font-size: 11px;
+    font-weight: 700;
+    letter-spacing: 1px;
+    white-space: nowrap;
+  }
+  .pass { background: rgba(0,255,136,0.15); color: var(--green); border: 1px solid rgba(0,255,136,0.3); }
+  .fail { background: rgba(255,68,102,0.15); color: var(--red); border: 1px solid rgba(255,68,102,0.3); }
+  .warn { background: rgba(255,204,0,0.15); color: var(--yellow); border: 1px solid rgba(255,204,0,0.3); }
+  .skip { background: rgba(100,100,100,0.15); color: #667; border: 1px solid rgba(100,100,100,0.2); }
+  .running { background: rgba(0,217,255,0.1); color: var(--cyan); border: 1px solid rgba(0,217,255,0.3); animation: pulse 1s infinite; }
+
+  @keyframes pulse { 0%,100%{opacity:1} 50%{opacity:0.5} }
+
+  .error-detail {
+    grid-column: 1 / -1;
+    background: rgba(255,68,102,0.05);
+    border: 1px solid rgba(255,68,102,0.2);
+    border-radius: 6px;
+    padding: 8px 12px;
+    font-size: 11px;
+    color: var(--red);
+    margin-top: 4px;
+    display: none;
+  }
+  .error-detail.visible { display: block; }
+
+  .data-preview {
+    grid-column: 1 / -1;
+    background: rgba(0,0,0,0.3);
+    border-radius: 6px;
+    padding: 8px 12px;
+    font-size: 11px;
+    color: #8899aa;
+    margin-top: 4px;
+    display: none;
+    word-break: break-all;
+  }
+  .data-preview.visible { display: block; }
+
+  .log-area {
+    background: #050810;
+    border: 1px solid var(--border);
+    border-radius: 8px;
+    padding: 16px;
+    max-height: 200px;
+    overflow-y: auto;
+    font-size: 11px;
+    color: #556;
+    margin-top: 16px;
+  }
+  .log-line { margin-bottom: 4px; }
+  .log-ok { color: var(--green); }
+  .log-err { color: var(--red); }
+  .log-warn { color: var(--yellow); }
+  .log-info { color: var(--cyan); }
+
+  .app-url-bar {
+    display: flex;
+    gap: 8px;
+    margin-bottom: 20px;
+    align-items: center;
+  }
+  .app-url-bar input {
+    flex: 1;
+    background: var(--surface);
+    border: 1px solid var(--border);
+    border-radius: 6px;
+    padding: 8px 12px;
+    color: var(--cyan);
+    font-family: var(--mono);
+    font-size: 12px;
+    outline: none;
+  }
+  .app-url-bar input:focus { border-color: var(--cyan); }
+  .app-url-bar button {
+    padding: 8px 16px;
+    background: rgba(0,217,255,0.1);
+    border: 1px solid var(--cyan);
+    color: var(--cyan);
+    border-radius: 6px;
+    cursor: pointer;
+    font-family: var(--mono);
+    font-size: 12px;
+  }
+
+  #results { display: none; }
+</style>
+</head>
+<body>
+
+<div class="header">
+  <h1>⚡ WINGS FLY — SYSTEM DIAGNOSTIC</h1>
+  <p>সমস্ত function ও feature চেক করুন একটি ক্লিকে</p>
+</div>
+
+<div class="app-url-bar">
+  <input type="text" id="appUrl" value="https://shakibapon1234-maker.github.io/wings-fly-academy/" placeholder="আপনার app URL দিন...">
+  <button onclick="openApp()">🔗 App খুলুন</button>
+</div>
+
+<button class="run-btn" onclick="runAllTests()">▶ RUN ALL TESTS</button>
+
+<div id="results">
+  <div class="summary-bar" id="summaryBar"></div>
+  <div id="sectionsContainer"></div>
+  <div class="log-area" id="logArea"></div>
+</div>
+
+<script>
+const APP_KEY = 'wingsfly_data';
+const SNAPSHOT_KEY = 'wingsfly_snapshots';
+
+let logs = [];
+let passCount = 0, failCount = 0, warnCount = 0;
+
+function openApp() {
+  window.open(document.getElementById('appUrl').value, '_blank');
+}
+
+function log(type, msg) {
+  logs.push({ type, msg });
+  const el = document.getElementById('logArea');
+  const line = document.createElement('div');
+  line.className = `log-line log-${type}`;
+  line.textContent = `[${new Date().toLocaleTimeString()}] ${msg}`;
+  el.appendChild(line);
+  el.scrollTop = el.scrollHeight;
+}
+
+function getAppData() {
+  try {
+    const raw = localStorage.getItem(APP_KEY);
+    if (!raw) return null;
+    return JSON.parse(raw);
+  } catch(e) { return null; }
+}
+
+// ─── TEST DEFINITIONS ───────────────────────────────────────────────
+const TEST_SECTIONS = [
+  {
+    title: '💾 LocalStorage & Data',
+    tests: [
+      {
+        name: 'wingsfly_data exists',
+        desc: 'localStorage-এ main data আছে কিনা',
+        run: () => {
+          const raw = localStorage.getItem(APP_KEY);
+          if (!raw) return { status:'fail', detail:'localStorage-এ কোনো data নেই। App-এ login করে কিছু add করুন।' };
+          return { status:'pass', detail:`Data size: ${(raw.length/1024).toFixed(1)} KB` };
+        }
+      },
+      {
+        name: 'Data valid JSON',
+        desc: 'Data parse করা যাচ্ছে কিনা',
+        run: () => {
+          try {
+            const d = getAppData();
+            if (!d) return { status:'fail', detail:'Data null বা invalid JSON' };
+            return { status:'pass', detail:'JSON valid ✓' };
+          } catch(e) { return { status:'fail', detail:e.message }; }
+        }
+      },
+      {
+        name: 'students array',
+        desc: 'Students array আছে ও valid কিনা',
+        run: () => {
+          const d = getAppData();
+          if (!d) return { status:'skip' };
+          if (!Array.isArray(d.students)) return { status:'fail', detail:'students array নেই' };
+          return { status:'pass', detail:`${d.students.length} জন student পাওয়া গেছে` };
+        }
+      },
+      {
+        name: 'finance array',
+        desc: 'Finance transactions array valid কিনা',
+        run: () => {
+          const d = getAppData();
+          if (!d) return { status:'skip' };
+          if (!Array.isArray(d.finance)) return { status:'fail', detail:'finance array নেই' };
+          return { status:'pass', detail:`${d.finance.length}টি transaction পাওয়া গেছে` };
+        }
+      },
+      {
+        name: 'employees array',
+        desc: 'Employees array valid কিনা',
+        run: () => {
+          const d = getAppData();
+          if (!d) return { status:'skip' };
+          if (!Array.isArray(d.employees)) return { status:'warn', detail:'employees array নেই (যদি কেউ না থাকে তাহলে ঠিক আছে)' };
+          return { status:'pass', detail:`${d.employees.length} জন employee` };
+        }
+      },
+      {
+        name: 'settings object',
+        desc: 'Academy settings সঠিক আছে কিনা',
+        run: () => {
+          const d = getAppData();
+          if (!d) return { status:'skip' };
+          if (!d.settings || typeof d.settings !== 'object') return { status:'warn', detail:'settings object নেই' };
+          return { status:'pass', detail:`Academy: "${d.settings.academyName || '(not set)'}"` };
+        }
+      },
+      {
+        name: 'users array & admin',
+        desc: 'Admin user আছে কিনা',
+        run: () => {
+          const d = getAppData();
+          if (!d) return { status:'skip' };
+          if (!Array.isArray(d.users) || d.users.length === 0) return { status:'warn', detail:'users array খালি — default admin দিয়ে login করতে হবে' };
+          const admin = d.users.find(u => u.role === 'master' || u.username === 'admin');
+          if (!admin) return { status:'warn', detail:`${d.users.length} জন user আছে কিন্তু master admin নেই` };
+          return { status:'pass', detail:`Admin: "${admin.username}"` };
+        }
+      },
+    ]
+  },
+  {
+    title: '📸 Auto Snapshot System',
+    tests: [
+      {
+        name: 'Snapshot key exists',
+        desc: 'Auto snapshot system কাজ করছে কিনা',
+        run: () => {
+          const raw = localStorage.getItem(SNAPSHOT_KEY);
+          if (!raw) return { status:'warn', detail:'এখনো কোনো snapshot নেওয়া হয়নি। App open করলে ৩ সেকেন্ড পর প্রথম snapshot নেওয়া হবে।' };
+          const snaps = JSON.parse(raw);
+          return { status:'pass', detail:`${snaps.length}টি snapshot আছে` };
+        }
+      },
+      {
+        name: 'Snapshot count ≤ 7',
+        desc: 'সর্বোচ্চ ৭টার বেশি নেই কিনা',
+        run: () => {
+          const raw = localStorage.getItem(SNAPSHOT_KEY);
+          if (!raw) return { status:'skip' };
+          const snaps = JSON.parse(raw);
+          if (snaps.length > 7) return { status:'fail', detail:`${snaps.length}টি snapshot (৭টার বেশি!)` };
+          return { status:'pass', detail:`${snaps.length}/7 snapshots` };
+        }
+      },
+      {
+        name: 'Latest snapshot age',
+        desc: 'সর্বশেষ snapshot কতক্ষণ আগে নেওয়া',
+        run: () => {
+          const raw = localStorage.getItem(SNAPSHOT_KEY);
+          if (!raw) return { status:'skip' };
+          const snaps = JSON.parse(raw);
+          if (!snaps.length) return { status:'warn', detail:'কোনো snapshot নেই' };
+          const ageMin = Math.round((Date.now() - snaps[0].id) / 60000);
+          if (ageMin > 70) return { status:'warn', detail:`${ageMin} মিনিট আগে (১ ঘন্টার বেশি)` };
+          return { status:'pass', detail:`${ageMin} মিনিট আগে নেওয়া` };
+        }
+      },
+    ]
+  },
+  {
+    title: '🔧 Core Functions',
+    tests: [
+      {
+        name: 'renderLedger()',
+        desc: 'Finance ledger render function',
+        run: () => checkFn('renderLedger')
+      },
+      {
+        name: '_handleDeleteTx()',
+        desc: 'Finance transaction delete',
+        run: () => checkFn('_handleDeleteTx')
+      },
+      {
+        name: '_handleEditTx()',
+        desc: 'Finance transaction edit',
+        run: () => checkFn('_handleEditTx')
+      },
+      {
+        name: 'exportData()',
+        desc: 'Data backup/export',
+        run: () => checkFn('exportData')
+      },
+      {
+        name: 'importData()',
+        desc: 'Data restore/import',
+        run: () => checkFn('importData')
+      },
+      {
+        name: 'saveToStorage()',
+        desc: 'Data save function',
+        run: () => checkFn('saveToStorage')
+      },
+      {
+        name: 'showSuccessToast()',
+        desc: 'Success notification',
+        run: () => checkFn('showSuccessToast')
+      },
+      {
+        name: 'updateGlobalStats()',
+        desc: 'Dashboard stats update',
+        run: () => checkFn('updateGlobalStats')
+      },
+      {
+        name: 'takeSnapshot()',
+        desc: 'Manual snapshot',
+        run: () => checkFn('takeSnapshot')
+      },
+      {
+        name: 'restoreSnapshot()',
+        desc: 'Snapshot restore',
+        run: () => checkFn('restoreSnapshot')
+      },
+      {
+        name: 'deleteStudent()',
+        desc: 'Student delete function',
+        run: () => checkFn('deleteStudent')
+      },
+      {
+        name: 'handleStudentSubmit()',
+        desc: 'Student add/edit function',
+        run: () => checkFn('handleStudentSubmit')
+      },
+      {
+        name: 'renderAccountDetails()',
+        desc: 'Account details modal render',
+        run: () => checkFn('renderAccountDetails')
+      },
+    ]
+  },
+  {
+    title: '🌐 Supabase Cloud Sync',
+    tests: [
+      {
+        name: 'SUPABASE_CONFIG loaded',
+        desc: 'Supabase config file load হয়েছে কিনা',
+        run: () => {
+          if (typeof window.SUPABASE_CONFIG === 'undefined') return { status:'fail', detail:'supabase-config.js load হয়নি' };
+          return { status:'pass', detail:`URL: ${window.SUPABASE_CONFIG.url.substring(0,30)}...` };
+        }
+      },
+      {
+        name: 'Supabase client',
+        desc: 'Supabase JS client initialized কিনা',
+        run: () => {
+          if (typeof window.supabase === 'undefined' && typeof window.supabaseClient === 'undefined') {
+            return { status:'warn', detail:'Supabase client এই page-এ নেই (শুধু app.html-এ থাকে)' };
+          }
+          return { status:'pass', detail:'Supabase client ready' };
+        }
+      },
+    ]
+  },
+  {
+    title: '🎨 DOM Elements (App-এ run করতে হবে)',
+    tests: [
+      {
+        name: 'ledgerTableBody',
+        desc: 'Finance ledger table আছে কিনা',
+        run: () => checkEl('ledgerTableBody')
+      },
+      {
+        name: 'accountDetailsTableBody',
+        desc: 'Account details table',
+        run: () => checkEl('accountDetailsTableBody')
+      },
+      {
+        name: 'settingsForm',
+        desc: 'Settings form',
+        run: () => checkEl('settingsForm')
+      },
+      {
+        name: 'snapshotListContainer',
+        desc: 'Snapshot list container',
+        run: () => checkEl('snapshotListContainer')
+      },
+      {
+        name: 'searchInput',
+        desc: 'Search input field',
+        run: () => checkEl('searchInput')
+      },
+    ]
+  },
+  {
+    title: '📊 Data Integrity',
+    tests: [
+      {
+        name: 'Finance IDs unique',
+        desc: 'সব transaction-এর unique ID আছে কিনা',
+        run: () => {
+          const d = getAppData();
+          if (!d || !d.finance) return { status:'skip' };
+          const ids = d.finance.map(f => f.id).filter(Boolean);
+          const unique = new Set(ids);
+          if (unique.size < ids.length) return { status:'warn', detail:`${ids.length - unique.size}টি duplicate ID পাওয়া গেছে` };
+          const noId = d.finance.filter(f => !f.id).length;
+          if (noId > 0) return { status:'warn', detail:`${noId}টি transaction-এ ID নেই` };
+          return { status:'pass', detail:`সব ${ids.length}টি ID unique` };
+        }
+      },
+      {
+        name: 'Student IDs unique',
+        desc: 'সব student-এর unique ID আছে কিনা',
+        run: () => {
+          const d = getAppData();
+          if (!d || !d.students) return { status:'skip' };
+          const ids = d.students.map(s => s.id).filter(Boolean);
+          const unique = new Set(ids);
+          if (unique.size < ids.length) return { status:'warn', detail:`${ids.length - unique.size}টি duplicate ID` };
+          return { status:'pass', detail:`সব ${ids.length}টি ID unique` };
+        }
+      },
+      {
+        name: 'Finance amounts valid',
+        desc: 'সব amount সংখ্যা কিনা',
+        run: () => {
+          const d = getAppData();
+          if (!d || !d.finance) return { status:'skip' };
+          const bad = d.finance.filter(f => isNaN(parseFloat(f.amount)));
+          if (bad.length) return { status:'warn', detail:`${bad.length}টি transaction-এ invalid amount` };
+          return { status:'pass', detail:'সব amount valid' };
+        }
+      },
+      {
+        name: 'LocalStorage size',
+        desc: 'Storage size বেশি হচ্ছে না তো',
+        run: () => {
+          const raw = localStorage.getItem(APP_KEY) || '';
+          const kb = raw.length / 1024;
+          if (kb > 4500) return { status:'fail', detail:`${kb.toFixed(0)} KB — limit-এর কাছাকাছি! Backup নিন।` };
+          if (kb > 3000) return { status:'warn', detail:`${kb.toFixed(0)} KB — বেশি হচ্ছে` };
+          return { status:'pass', detail:`${kb.toFixed(1)} KB ব্যবহার হচ্ছে` };
+        }
+      },
+    ]
+  },
+];
+
+function checkFn(name) {
+  if (typeof window[name] === 'function') return { status:'pass', detail:`window.${name} ✓` };
+  return { status:'fail', detail:`window.${name} পাওয়া যায়নি — app.js সঠিকভাবে load হয়নি` };
+}
+
+function checkEl(id) {
+  const el = document.getElementById(id);
+  if (el) return { status:'pass', detail:`#${id} found` };
+  return { status:'warn', detail:`#${id} নেই — এই diagnostic tool App-এর ভেতরে run করুন` };
+}
+
+// ─── RENDER ─────────────────────────────────────────────────────────
+function runAllTests() {
+  passCount = 0; failCount = 0; warnCount = 0;
+  logs = [];
+  document.getElementById('logArea').innerHTML = '';
+  document.getElementById('results').style.display = 'block';
+  document.getElementById('sectionsContainer').innerHTML = '';
+  document.getElementById('summaryBar').innerHTML = '';
+
+  log('info', 'Diagnostic started...');
+
+  TEST_SECTIONS.forEach((section, si) => {
+    const sectionEl = document.createElement('div');
+    sectionEl.className = 'section';
+
+    let secPass = 0, secFail = 0, secWarn = 0;
+    const rows = [];
+
+    section.tests.forEach((test, ti) => {
+      let result;
+      try { result = test.run(); }
+      catch(e) { result = { status:'fail', detail:'Error: ' + e.message }; }
+
+      if (result.status === 'pass') { passCount++; secPass++; log('ok', `✓ ${test.name}`); }
+      else if (result.status === 'fail') { failCount++; secFail++; log('err', `✗ ${test.name}: ${result.detail||''}`); }
+      else if (result.status === 'warn') { warnCount++; secWarn++; log('warn', `⚠ ${test.name}: ${result.detail||''}`); }
+      else { log('info', `- ${test.name}: skipped`); }
+
+      rows.push({ test, result });
+    });
+
+    const total = secPass + secFail + secWarn;
+    const scoreColor = secFail > 0 ? '#ff4466' : secWarn > 0 ? '#ffcc00' : '#00ff88';
+
+    sectionEl.innerHTML = `
+      <div class="section-header" onclick="toggleSection(this)">
+        <span class="section-title">${section.title}</span>
+        <span class="section-score" style="color:${scoreColor}">
+          ${secPass}✓ ${secFail}✗ ${secWarn}⚠ / ${total}
+        </span>
+      </div>
+      <div class="section-body">
+        ${rows.map(({test, result}) => `
+          <div class="test-row">
+            <div>
+              <div class="test-name">${test.name}</div>
+            </div>
+            <div class="test-desc">${result.detail || test.desc}</div>
+            <div><span class="badge ${result.status}">${result.status.toUpperCase()}</span></div>
+          </div>
+        `).join('')}
+      </div>
+    `;
+
+    document.getElementById('sectionsContainer').appendChild(sectionEl);
+  });
+
+  // Summary bar
+  document.getElementById('summaryBar').innerHTML = `
+    <div class="summary-item summary-pass">✅ PASS: ${passCount}</div>
+    <div class="summary-item summary-fail">❌ FAIL: ${failCount}</div>
+    <div class="summary-item summary-warn">⚠️ WARN: ${warnCount}</div>
+  `;
+
+  const overall = failCount === 0 ? (warnCount === 0 ? '✅ সব ঠিক আছে!' : '⚠️ কিছু সতর্কতা আছে') : '❌ সমস্যা পাওয়া গেছে!';
+  log('info', `Done. ${overall} (${passCount} pass, ${failCount} fail, ${warnCount} warn)`);
+}
+
+function toggleSection(header) {
+  const body = header.nextElementSibling;
+  body.classList.toggle('collapsed');
+}
+</script>
+</body>
+</html>
