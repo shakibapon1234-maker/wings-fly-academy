@@ -4772,12 +4772,19 @@ function generateCertificate() {
     if (!pw) { alert('Popup blocked!\nPlease allow popups for this site, then try again.'); return; }
     pw.document.write(
       '<!DOCTYPE html><html><head><meta charset="UTF-8"><title>' + fname + '</title>' +
-      '<style>* {margin:0;padding:0;box-sizing:border-box;}' +
-      'html,body{width:1056px;height:816px;overflow:hidden;background:' + bgColor + ';}' +
+      '<style>' +
+      '* {margin:0;padding:0;box-sizing:border-box;-webkit-print-color-adjust:exact!important;print-color-adjust:exact!important;}' +
+      'html,body{width:1056px;height:816px;overflow:hidden;background:' + bgColor + '!important;' +
+        '-webkit-print-color-adjust:exact!important;print-color-adjust:exact!important;}' +
       '#_pb{position:fixed;top:12px;right:12px;z-index:9999;padding:12px 30px;' +
         'background:#FFD700;color:#000;border:none;border-radius:8px;' +
         'font-size:15px;font-weight:900;cursor:pointer;}' +
-      '@media print{@page{size:A4 landscape;margin:0;}html,body{width:297mm;height:210mm;}#_pb{display:none!important;}}' +
+      '@media print{' +
+        '@page{size:A4 landscape;margin:0;}' +
+        'html,body{width:297mm;height:210mm;background:' + bgColor + '!important;-webkit-print-color-adjust:exact!important;print-color-adjust:exact!important;}' +
+        '#_pb{display:none!important;}' +
+        'div,svg,path,rect,circle,text{-webkit-print-color-adjust:exact!important;print-color-adjust:exact!important;}' +
+      '}' +
       '</style></head><body>' +
       '<button id="_pb" onclick="window.print()">🖨️ Save as PDF</button>' +
       certHtml + '</body></html>'
