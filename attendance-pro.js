@@ -61,9 +61,12 @@
   // ── Open Hub ────────────────────────────────────────
   function openAttendanceModal() {
     buildHubModal();
-    const modal = bootstrap.Modal.getOrCreateInstance(document.getElementById('attendanceHubModal'));
+    // পুরনো hide state reset করো
+    const modalEl = document.getElementById('attendanceHubModal');
+    if (modalEl) modalEl.style.display = '';
+    const modal = bootstrap.Modal.getOrCreateInstance(modalEl);
     modal.show();
-    switchAttTab('mark'); // default tab
+    switchAttTab('mark');
   }
   window.openAttendanceModal = openAttendanceModal;
 
@@ -346,30 +349,17 @@
 
   // ── Safe close function ──────────────────────────────
   function closeAttHub() {
-    try {
-      const modalEl = document.getElementById('attendanceHubModal');
-      if (!modalEl) return;
-      // Bootstrap দিয়ে hide করো
-      bootstrap.Modal.getOrCreateInstance(modalEl).hide();
-      // Backdrop ও body class manually clean করো
-      setTimeout(() => {
-        document.querySelectorAll('.modal-backdrop').forEach(b => b.remove());
-        document.body.classList.remove('modal-open');
-        document.body.style.removeProperty('overflow');
-        document.body.style.removeProperty('padding-right');
-      }, 350);
-    } catch(e) {
-      // শেষ চেষ্টা — manually hide
-      const modalEl = document.getElementById('attendanceHubModal');
-      if (modalEl) {
-        modalEl.classList.remove('show');
-        modalEl.style.display = 'none';
-        document.querySelectorAll('.modal-backdrop').forEach(b => b.remove());
-        document.body.classList.remove('modal-open');
-        document.body.style.removeProperty('overflow');
-        document.body.style.removeProperty('padding-right');
-      }
-    }
+    const modalEl = document.getElementById('attendanceHubModal');
+    if (!modalEl) return;
+    // শুধু hide করো — remove করো না, window বন্ধ করো না
+    modalEl.style.display = 'none';
+    modalEl.classList.remove('show');
+    // backdrop সরাও
+    document.querySelectorAll('.modal-backdrop').forEach(b => b.remove());
+    // body scroll ঠিক করো
+    document.body.classList.remove('modal-open');
+    document.body.style.removeProperty('overflow');
+    document.body.style.removeProperty('padding-right');
   }
   window.closeAttHub = closeAttHub;
   function switchAttTab(tab) {
