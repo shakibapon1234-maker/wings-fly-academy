@@ -1785,7 +1785,11 @@ function renderLedger(transactions) {
   const displayItems = [...transactions].reverse();
   let totalDisplayed = 0;
 
-  displayItems.forEach(f => {
+  displayItems.forEach((f, idx) => {
+    // Assign missing IDs on the fly
+    if (!f.id) {
+      f.id = 'FIN-' + Date.now() + '-' + idx;
+    }
     const amt = parseFloat(f.amount) || 0;
     const isPositive = (f.type === 'Income' || f.type === 'Loan Received' || f.type === 'Transfer In');
     const amtClass = isPositive ? 'text-success' : 'text-danger';
@@ -3849,7 +3853,11 @@ function renderAccountDetails() {
     return;
   }
 
-  displayItems.forEach(f => {
+  displayItems.forEach((f, idx) => {
+    // Assign missing IDs on the fly
+    if (!f.id) {
+      f.id = 'FIN-' + Date.now() + '-' + idx;
+    }
     const amt = parseFloat(f.amount) || 0;
     const isPositive = (f.type === 'Income' || f.type === 'Loan Received' || f.type === 'Transfer In');
     const amtClass = isPositive ? 'text-success' : 'text-danger';
@@ -8451,11 +8459,11 @@ document.addEventListener('click', function(e) {
   if (!txId) return;
   if (!confirm('Delete this transaction?')) return;
   const sid = String(txId);
-  const tx = (window.globalData.finance || []).find(f => String(f.id) === sid);
+  const tx = (window.globalData.finance || []).find(f => f.id !== undefined && String(f.id) === sid);
   if (tx && typeof updateAccountBalance === 'function') {
     updateAccountBalance(tx.method, tx.amount, tx.type, false);
   }
-  window.globalData.finance = (window.globalData.finance || []).filter(f => String(f.id) !== sid);
+  window.globalData.finance = (window.globalData.finance || []).filter(f => f.id === undefined || String(f.id) !== sid);
   if (typeof saveToStorage === 'function') saveToStorage();
   if (typeof showSuccessToast === 'function') showSuccessToast('Transaction deleted!');
   if (typeof renderLedger === 'function') renderLedger(window.globalData.finance);
