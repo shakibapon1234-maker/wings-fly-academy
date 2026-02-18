@@ -1010,6 +1010,12 @@ function showDashboard(username) {
   document.getElementById('loginSection').classList.add('d-none');
   document.getElementById('dashboardSection').classList.remove('d-none');
 
+  // URL থেকে username, password ও অন্য sensitive params সরিয়ে দাও
+  try {
+    const cleanUrl = window.location.origin + window.location.pathname;
+    window.history.replaceState({}, document.title, cleanUrl);
+  } catch(e) {}
+
   const userEl = document.getElementById('sidebarUser') || document.getElementById('currentUser');
   if (userEl) userEl.innerText = username;
 

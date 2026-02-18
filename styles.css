@@ -1842,6 +1842,20 @@ textarea.form-control {
 
 @media print {
 
+  /* যখন কোনো specific print class নেই — সাধারণ Ctrl+P — কিছুই print হবে না */
+  body:not(.printing-receipt):not(.printing-attendance):not(.printing-ledger) * {
+    display: none !important;
+  }
+
+  body:not(.printing-receipt):not(.printing-attendance):not(.printing-ledger)::before {
+    content: "⚠️ সরাসরি Print করা যাবে না। রিসিট বা রিপোর্ট Print বাটন ব্যবহার করুন।";
+    display: block !important;
+    font-size: 18px;
+    text-align: center;
+    padding: 40px;
+    color: #000;
+  }
+
   .sidebar,
   .top-bar,
   .btn,
