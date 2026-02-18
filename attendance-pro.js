@@ -60,27 +60,28 @@
 
   // ── Open Hub ────────────────────────────────────────
   function openAttendanceModal() {
-    // পুরনো modal সম্পূর্ণ destroy করো
+    // পুরনো modal remove করো
     const oldEl = document.getElementById('attendanceHubModal');
-    if (oldEl) {
-      try {
-        const inst = bootstrap.Modal.getInstance(oldEl);
-        if (inst) inst.dispose();
-      } catch(e) {}
-      oldEl.remove();
-    }
-    // backdrop ও body cleanup
+    if (oldEl) oldEl.remove();
     document.querySelectorAll('.modal-backdrop').forEach(b => b.remove());
-    document.body.classList.remove('modal-open');
-    document.body.style.removeProperty('overflow');
-    document.body.style.removeProperty('padding-right');
 
-    // নতুন করে তৈরি করো
+    // নতুন modal তৈরি করো
     buildHubModal();
 
+    // Bootstrap ছাড়াই manually show করো
     const modalEl = document.getElementById('attendanceHubModal');
-    const modal = new bootstrap.Modal(modalEl, { backdrop: true, keyboard: true });
-    modal.show();
+    modalEl.style.cssText = 'display:block !important; opacity:1 !important; position:fixed; top:0; left:0; width:100%; height:100%; z-index:1055; overflow-y:auto;';
+    modalEl.classList.add('show');
+
+    // backdrop তৈরি করো
+    const backdrop = document.createElement('div');
+    backdrop.id = 'attHubBackdrop';
+    backdrop.style.cssText = 'position:fixed;top:0;left:0;width:100%;height:100%;background:rgba(0,0,0,0.6);z-index:1054;';
+    backdrop.onclick = closeAttHub;
+    document.body.appendChild(backdrop);
+    document.body.classList.add('modal-open');
+    document.body.style.overflow = 'hidden';
+
     setTimeout(() => switchAttTab('mark'), 50);
   }
   window.openAttendanceModal = openAttendanceModal;
@@ -340,15 +341,7 @@
         gd.attendance[key] = result;
         if(typeof window.saveToStorage==='function') window.saveToStorage();
         if(typeof window.showSuccessToast==='function') window.showSuccessToast('✅ Attendance saved — '+batch+' on '+date);
-        var modalEl = document.getElementById('attendanceHubModal');
-        if(modalEl){
-          modalEl.style.display='none';
-          modalEl.classList.remove('show');
-          document.querySelectorAll('.modal-backdrop').forEach(function(b){b.remove();});
-          document.body.classList.remove('modal-open');
-          document.body.style.removeProperty('overflow');
-          document.body.style.removeProperty('padding-right');
-        }
+        closeAttHub();
       })()">
         <i class="bi bi-check-lg"></i>Save Attendance
       </button>
@@ -379,11 +372,15 @@
   // ── Safe close function ──────────────────────────────
   function closeAttHub() {
     const modalEl = document.getElementById('attendanceHubModal');
-    if (!modalEl) return;
-    try {
-      const inst = bootstrap.Modal.getInstance(modalEl);
-      if (inst) inst.hide();
-    } catch(e) {}
+    if (modalEl) {
+      modalEl.style.display = 'none';
+      modalEl.classList.remove('show');
+    }
+    const backdrop = document.getElementById('attHubBackdrop');
+    if (backdrop) backdrop.remove();
+    document.body.classList.remove('modal-open');
+    document.body.style.removeProperty('overflow');
+    document.body.style.removeProperty('padding-right');
   }
   window.closeAttHub = closeAttHub;
   function switchAttTab(tab) {
