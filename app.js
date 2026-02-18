@@ -3687,24 +3687,43 @@ async function handleTransferSubmit(e) {
 function deleteTransaction(id) {
   if (!confirm('Are you sure you want to delete this financial record?')) return;
 
-  const txToDelete = globalData.finance.find(f => f.id === id);
-  if (txToDelete && typeof updateAccountBalance === "function") updateAccountBalance(txToDelete.method, txToDelete.amount, txToDelete.type, false);
-  globalData.finance = globalData.finance.filter(f => f.id !== id);
+  // Convert id to both types for safe comparison (handles string/number mismatch)
+  const idNum = Number(id);
+  const idStr = String(id);
+
+  const txToDelete = globalData.finance.find(f => f.id == id || Number(f.id) === idNum || String(f.id) === idStr);
+  if (!txToDelete) {
+    showErrorToast('Transaction not found. Please refresh and try again.');
+    return;
+  }
+
+  if (typeof updateAccountBalance === "function") {
+    updateAccountBalance(txToDelete.method, txToDelete.amount, txToDelete.type, false);
+  }
+
+  globalData.finance = globalData.finance.filter(f => f.id != id && Number(f.id) !== idNum);
   saveToStorage();
 
   showSuccessToast('Transaction deleted successfully!');
 
-  // Refresh based on active tab
+  // Refresh ledger if open
   const activeTab = localStorage.getItem('wingsfly_active_tab');
   if (activeTab === 'ledger') {
     renderLedger(globalData.finance);
   }
-  // Always update stats regardless of tab
+
   updateGlobalStats();
 
-  // Also refresh Account Details if open
-  if (bootstrap.Modal.getInstance(document.getElementById('accountDetailsModal'))) {
+  // Refresh Account Details modal if open
+  const accModal = document.getElementById('accountDetailsModal');
+  if (accModal && bootstrap.Modal.getInstance(accModal)) {
     renderAccountDetails();
+  }
+
+  // Refresh finance modal if open
+  const finModal = document.getElementById('financeModal');
+  if (finModal && bootstrap.Modal.getInstance(finModal)) {
+    renderLedger(globalData.finance);
   }
 }
 
@@ -6078,7 +6097,7 @@ window.openEditEmployeeModal = openEditEmployeeModal;
 
 async function deleteEmployee(id) {
   if (confirm('Are you sure you want to remove this employee?')) {
-    globalData.employees = globalData.employees.filter(e => e.id !== id);
+    globalData.employees = globalData.employees.filter(e => String(e.id) !== String(id));
 
     // CRITICAL: Update timestamp and force immediate sync
     const currentTime = new Date().toISOString();
