@@ -8696,20 +8696,45 @@ function attachLedgerListeners() {
 }
 
 // Attach on DOM ready and also after every renderLedger call
-document.addEventListener('DOMContentLoaded', attachLedgerListeners);
-setTimeout(attachLedgerListeners, 2000);
+document.addEventListener('DOMContentLoaded', function() {
+  setTimeout(attachLedgerListeners, 500);
+});
+setTimeout(attachLedgerListeners, 2500);
 
-// Patch renderLedger to re-attach after each render
-const _origRenderLedger = window.renderLedger;
-if (typeof _origRenderLedger === 'function') {
-  window.renderLedger = function(transactions) {
-    _origRenderLedger(transactions);
-    // Reset flag so listener re-attaches on new tbody content
-    const tbody = document.getElementById('ledgerTableBody');
-    if (tbody) tbody._listenersAttached = false;
-    attachLedgerListeners();
-  };
-}
+// Use event delegation on document level as fallback (always works)
+document.addEventListener('click', function(e) {
+  // Delete button fallback
+  const delBtn = e.target.closest('.del-tx-btn');
+  if (delBtn) {
+    e.stopImmediatePropagation();
+    const sid = String(delBtn.getAttribute('data-txid'));
+    const tx = (window.globalData.finance || []).find(f => String(f.id) === sid);
+    if (tx) {
+      if (typeof moveToTrash === 'function') moveToTrash('finance', tx);
+      if (typeof logActivity === 'function') logActivity('finance', 'DELETE',
+        'Transaction deleted: ' + (tx.type || '') + ' | ' + (tx.category || '') + ' - ৳' + (tx.amount || 0), tx);
+      if (typeof updateAccountBalance === 'function') updateAccountBalance(tx.method, tx.amount, tx.type, false);
+    }
+    window.globalData.finance = (window.globalData.finance || []).filter(f => String(f.id) !== sid);
+    if (typeof renderLedger === 'function') renderLedger(window.globalData.finance);
+    if (typeof updateGlobalStats === 'function') updateGlobalStats();
+    if (typeof showSuccessToast === 'function') showSuccessToast('Transaction deleted!');
+    if (typeof saveToStorage === 'function') saveToStorage();
+    const accModal = document.getElementById('accountDetailsModal');
+    if (accModal && typeof bootstrap !== 'undefined' && bootstrap.Modal.getInstance(accModal)) {
+      if (typeof renderAccountDetails === 'function') renderAccountDetails();
+    }
+    return;
+  }
+
+  // Edit button fallback
+  const editBtn = e.target.closest('.edit-tx-btn');
+  if (editBtn) {
+    const txId = editBtn.getAttribute('data-txid');
+    if (txId && typeof editTransaction === 'function') editTransaction(txId);
+    return;
+  }
+});
 
 
 // =====================================================
