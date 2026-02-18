@@ -4563,21 +4563,21 @@ function openStudentProfile(rowIndex) {
       <div class="col-md-8">
         <div class="row g-3 mb-4">
           <div class="col-sm-4">
-            <div class="p-3 bg-primary-subtle rounded text-center border border-primary-subtle">
-              <small class="text-primary fw-bold">Total Fee</small>
-              <h4 class="m-0 fw-bold text-primary">৳${formatNumber(student.totalPayment)}</h4>
+            <div class="p-3 rounded text-center" style="background:linear-gradient(135deg,#1e3a5f,#1d4ed8);border:2px solid #3b82f6;">
+              <small class="fw-bold d-block mb-1" style="color:#93c5fd;letter-spacing:1px;font-size:0.75rem;">TOTAL FEE</small>
+              <h4 class="m-0 fw-bold" style="color:#ffffff;">৳${formatNumber(student.totalPayment)}</h4>
             </div>
           </div>
           <div class="col-sm-4">
-            <div class="p-3 bg-success-subtle rounded text-center border border-success-subtle">
-              <small class="text-success fw-bold">Paid</small>
-              <h4 class="m-0 fw-bold text-success">৳${formatNumber(student.paid)}</h4>
+            <div class="p-3 rounded text-center" style="background:linear-gradient(135deg,#14532d,#16a34a);border:2px solid #22c55e;">
+              <small class="fw-bold d-block mb-1" style="color:#bbf7d0;letter-spacing:1px;font-size:0.75rem;">PAID</small>
+              <h4 class="m-0 fw-bold" style="color:#ffffff;">৳${formatNumber(student.paid)}</h4>
             </div>
           </div>
           <div class="col-sm-4">
-            <div class="p-3 bg-danger-subtle rounded text-center border border-danger-subtle">
-              <small class="text-danger fw-bold">Due</small>
-              <h4 class="m-0 fw-bold text-danger">৳${formatNumber(student.due)}</h4>
+            <div class="p-3 rounded text-center" style="background:linear-gradient(135deg,#7f1d1d,#dc2626);border:2px solid #f87171;">
+              <small class="fw-bold d-block mb-1" style="color:#fecaca;letter-spacing:1px;font-size:0.75rem;">DUE</small>
+              <h4 class="m-0 fw-bold" style="color:#ffffff;">৳${formatNumber(student.due)}</h4>
             </div>
           </div>
         </div>
@@ -8434,7 +8434,6 @@ document.addEventListener('click', function(e) {
   }
   window.globalData.finance = (window.globalData.finance || []).filter(f => String(f.id) !== sid);
   if (typeof saveToStorage === 'function') saveToStorage();
-  if (typeof window.saveToCloud === 'function') window.saveToCloud(true).catch(function(){});
   if (typeof showSuccessToast === 'function') showSuccessToast('Transaction deleted!');
   if (typeof renderLedger === 'function') renderLedger(window.globalData.finance);
   if (typeof updateGlobalStats === 'function') updateGlobalStats();
