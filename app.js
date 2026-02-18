@@ -4734,9 +4734,9 @@ function loadAttendanceList() {
   `).join('');
 }
 
-function saveAttendance() {
-  const batch = document.getElementById('attendanceBatchSelect').value;
-  const date = document.getElementById('attendanceDate').value;
+function saveAttendanceLegacy() {
+  const batch = document.getElementById('attendanceBatchSelect')?.value;
+  const date = document.getElementById('attendanceDate')?.value;
   if (!batch || !date) return;
 
   if (!globalData.attendance) globalData.attendance = {};
@@ -4755,22 +4755,12 @@ function saveAttendance() {
   // Safe modal close
   try {
     const modalEl = document.getElementById('attendanceModal');
-    let m = bootstrap.Modal.getInstance(modalEl);
-    if (!m) m = bootstrap.Modal.getOrCreateInstance(modalEl);
-    m.hide();
-  } catch(e) {
-    // fallback manual close
-    const modalEl = document.getElementById('attendanceModal');
     if (modalEl) {
-      modalEl.classList.remove('show');
-      modalEl.style.display = 'none';
-      document.body.classList.remove('modal-open');
-      document.body.style.removeProperty('overflow');
-      document.body.style.removeProperty('padding-right');
-      const backdrop = document.querySelector('.modal-backdrop');
-      if (backdrop) backdrop.remove();
+      let m = bootstrap.Modal.getInstance(modalEl);
+      if (!m) m = bootstrap.Modal.getOrCreateInstance(modalEl);
+      m.hide();
     }
-  }
+  } catch(e) {}
 
   showSuccessToast(`✅ Attendance saved for ${batch} on ${date}`);
 }
@@ -5601,7 +5591,8 @@ window.showExpenseBreakdown = showExpenseBreakdown;
 window.generateStudentId = generateStudentId;
 window.openAttendanceModal = openAttendanceModal;
 window.loadAttendanceList = loadAttendanceList;
-window.saveAttendance = saveAttendance;
+window.saveAttendanceLegacy = saveAttendanceLegacy;
+// saveAttendance is handled by attendance-pro.js — do not override here
 function printBlankAttendanceSheet() {
   const batch = document.getElementById('attendanceBatchSelect').value;
   if (!batch) {
