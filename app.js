@@ -36,6 +36,238 @@ window.paymentMethodChart = null;
 
 console.log('📦 Global Data Initialized.');
 
+// ===================================
+// ACTIVITY HISTORY & TRASH SYSTEM
+// ===================================
+
+// Log an activity to history
+function logActivity(type, action, description, data = null) {
+  try {
+    if (!window.globalData.activityHistory) window.globalData.activityHistory = [];
+    
+    const entry = {
+      id: Date.now() + Math.random().toString(36).substr(2, 5),
+      type: type,       // 'student', 'finance', 'employee', 'settings', 'login'
+      action: action,   // 'ADD', 'EDIT', 'DELETE', 'LOGIN', 'LOGOUT', 'SETTING_CHANGE'
+      description: description,
+      timestamp: new Date().toISOString(),
+      user: sessionStorage.getItem('username') || 'Admin',
+      data: data        // snapshot of the item (for restore)
+    };
+    
+    window.globalData.activityHistory.unshift(entry); // newest first
+    
+    // Keep max 500 entries
+    if (window.globalData.activityHistory.length > 500) {
+      window.globalData.activityHistory = window.globalData.activityHistory.slice(0, 500);
+    }
+    
+    localStorage.setItem('wingsfly_data', JSON.stringify(window.globalData));
+  } catch(e) {
+    console.warn('History log error:', e);
+  }
+}
+window.logActivity = logActivity;
+
+// Move item to trash (soft delete)
+function moveToTrash(type, item) {
+  try {
+    if (!window.globalData.deletedItems) window.globalData.deletedItems = [];
+    
+    const trashEntry = {
+      id: Date.now() + Math.random().toString(36).substr(2, 5),
+      type: type,
+      item: JSON.parse(JSON.stringify(item)), // deep copy
+      deletedAt: new Date().toISOString(),
+      deletedBy: sessionStorage.getItem('username') || 'Admin'
+    };
+    
+    window.globalData.deletedItems.unshift(trashEntry);
+    
+    // Keep max 200 deleted items
+    if (window.globalData.deletedItems.length > 200) {
+      window.globalData.deletedItems = window.globalData.deletedItems.slice(0, 200);
+    }
+    
+    localStorage.setItem('wingsfly_data', JSON.stringify(window.globalData));
+  } catch(e) {
+    console.warn('Trash error:', e);
+  }
+}
+window.moveToTrash = moveToTrash;
+
+// Load and render Activity History tab
+function loadActivityHistory() {
+  const container = document.getElementById('activityHistoryList');
+  if (!container) return;
+  
+  const history = window.globalData.activityHistory || [];
+  const filterVal = document.getElementById('historyFilter')?.value || 'all';
+  
+  const filtered = filterVal === 'all' ? history : history.filter(h => h.type === filterVal);
+  
+  if (filtered.length === 0) {
+    container.innerHTML = '<div class="text-center text-muted py-5"><div style="font-size:3rem">📋</div><p>কোনো Activity নেই।</p></div>';
+    return;
+  }
+  
+  const icons = { student: '🎓', finance: '💰', employee: '👤', settings: '⚙️', login: '🔐', default: '📝' };
+  const colors = { ADD: '#00ff88', EDIT: '#00d9ff', DELETE: '#ff4444', LOGIN: '#b537f2', LOGOUT: '#ffaa00', default: '#ffffff' };
+  const actionBadge = { ADD: 'success', EDIT: 'info', DELETE: 'danger', LOGIN: 'primary', LOGOUT: 'warning', SETTING_CHANGE: 'secondary' };
+  
+  container.innerHTML = filtered.map(h => {
+    const d = new Date(h.timestamp);
+    const timeStr = d.toLocaleString('en-BD', { day:'2-digit', month:'short', year:'numeric', hour:'2-digit', minute:'2-digit' });
+    const icon = icons[h.type] || icons.default;
+    const badge = actionBadge[h.action] || 'secondary';
+    
+    return `
+    <div class="d-flex align-items-start gap-3 p-3 mb-2 rounded-3" style="background: rgba(0,217,255,0.05); border: 1px solid rgba(0,217,255,0.15);">
+      <div style="font-size:1.5rem; min-width:36px; text-align:center;">${icon}</div>
+      <div class="flex-grow-1">
+        <div class="d-flex align-items-center gap-2 mb-1">
+          <span class="badge bg-${badge} text-uppercase" style="font-size:0.65rem;">${h.action}</span>
+          <span class="text-muted small">${h.type}</span>
+          <span class="ms-auto text-muted" style="font-size:0.75rem;">⏱ ${timeStr}</span>
+        </div>
+        <div style="color:#ffffff; font-size:0.9rem;">${h.description}</div>
+        <div class="text-muted" style="font-size:0.75rem;">👤 ${h.user || 'Admin'}</div>
+      </div>
+    </div>`;
+  }).join('');
+}
+window.loadActivityHistory = loadActivityHistory;
+
+// Clear activity history
+function clearActivityHistory() {
+  if (!confirm('সব Activity History মুছে ফেলবেন?')) return;
+  window.globalData.activityHistory = [];
+  saveToStorage(true);
+  loadActivityHistory();
+  showSuccessToast('Activity History cleared!');
+}
+window.clearActivityHistory = clearActivityHistory;
+
+// Load and render Deleted Items (Trash) tab
+function loadDeletedItems() {
+  const container = document.getElementById('deletedItemsList');
+  if (!container) return;
+  
+  const deleted = window.globalData.deletedItems || [];
+  const filterVal = document.getElementById('trashFilter')?.value || 'all';
+  
+  const filtered = filterVal === 'all' ? deleted : deleted.filter(d => d.type === filterVal);
+  
+  if (filtered.length === 0) {
+    container.innerHTML = '<div class="text-center text-muted py-5"><div style="font-size:3rem">🗑️</div><p>Trash খালি। কোনো deleted item নেই।</p></div>';
+    return;
+  }
+  
+  const icons = { student: '🎓', finance: '💰', employee: '👤' };
+  
+  container.innerHTML = filtered.map((d, idx) => {
+    const date = new Date(d.deletedAt);
+    const dateStr = date.toLocaleString('en-BD', { day:'2-digit', month:'short', year:'numeric', hour:'2-digit', minute:'2-digit' });
+    const icon = icons[d.type] || '📄';
+    
+    // Build display name
+    let name = '';
+    if (d.type === 'student') name = d.item.name || d.item.studentName || 'Unknown Student';
+    else if (d.type === 'finance') name = (d.item.description || d.item.category || 'Transaction') + ' - ৳' + (d.item.amount || 0);
+    else if (d.type === 'employee') name = d.item.name || 'Unknown Employee';
+    else name = JSON.stringify(d.item).substring(0, 60) + '...';
+    
+    return `
+    <div class="d-flex align-items-start gap-3 p-3 mb-2 rounded-3" style="background: rgba(255,68,68,0.05); border: 1px solid rgba(255,68,68,0.2);">
+      <div style="font-size:1.5rem; min-width:36px; text-align:center;">${icon}</div>
+      <div class="flex-grow-1">
+        <div class="d-flex align-items-center gap-2 mb-1">
+          <span class="badge bg-secondary text-uppercase" style="font-size:0.65rem;">${d.type}</span>
+          <span class="ms-auto text-muted" style="font-size:0.75rem;">🗑️ ${dateStr}</span>
+        </div>
+        <div style="color:#ffffff; font-size:0.9rem; font-weight:500;">${name}</div>
+        <div class="text-muted" style="font-size:0.75rem;">Deleted by: ${d.deletedBy || 'Admin'}</div>
+      </div>
+      <div class="d-flex flex-column gap-1">
+        <button class="btn btn-sm btn-success" onclick="restoreDeletedItem('${d.id}')" title="Restore">
+          ↩️ Restore
+        </button>
+        <button class="btn btn-sm btn-outline-danger" onclick="permanentDelete('${d.id}')" title="Delete Forever">
+          ❌
+        </button>
+      </div>
+    </div>`;
+  }).join('');
+}
+window.loadDeletedItems = loadDeletedItems;
+
+// Restore a deleted item
+function restoreDeletedItem(trashId) {
+  if (!confirm('এই item টি restore করবেন?')) return;
+  
+  const deleted = window.globalData.deletedItems || [];
+  const idx = deleted.findIndex(d => d.id === trashId);
+  if (idx === -1) { alert('Item পাওয়া যায়নি!'); return; }
+  
+  const trashEntry = deleted[idx];
+  const item = trashEntry.item;
+  const type = trashEntry.type;
+  
+  if (type === 'student') {
+    if (!window.globalData.students) window.globalData.students = [];
+    window.globalData.students.push(item);
+    logActivity('student', 'ADD', `Restored student: ${item.name || 'Unknown'}`, item);
+    if (typeof render === 'function') render(window.globalData.students);
+    
+  } else if (type === 'finance') {
+    if (!window.globalData.finance) window.globalData.finance = [];
+    window.globalData.finance.push(item);
+    logActivity('finance', 'ADD', `Restored transaction: ${item.description || item.category || ''}`, item);
+    if (typeof renderLedger === 'function') renderLedger(window.globalData.finance);
+    
+  } else if (type === 'employee') {
+    if (!window.globalData.employees) window.globalData.employees = [];
+    window.globalData.employees.push(item);
+    logActivity('employee', 'ADD', `Restored employee: ${item.name || 'Unknown'}`, item);
+  }
+  
+  // Remove from trash
+  window.globalData.deletedItems.splice(idx, 1);
+  saveToStorage();
+  loadDeletedItems();
+  
+  showSuccessToast(`✅ ${type} successfully restored!`);
+  if (typeof updateGlobalStats === 'function') updateGlobalStats();
+}
+window.restoreDeletedItem = restoreDeletedItem;
+
+// Permanently delete from trash
+function permanentDelete(trashId) {
+  if (!confirm('এই item টি চিরতরে মুছে ফেলবেন? এটি আর ফিরিয়ে আনা যাবে না।')) return;
+  
+  const deleted = window.globalData.deletedItems || [];
+  const idx = deleted.findIndex(d => d.id === trashId);
+  if (idx === -1) return;
+  
+  window.globalData.deletedItems.splice(idx, 1);
+  saveToStorage(true);
+  loadDeletedItems();
+  showSuccessToast('Item permanently deleted.');
+}
+window.permanentDelete = permanentDelete;
+
+// Empty entire trash
+function emptyTrash() {
+  if (!confirm('সব Deleted Items চিরতরে মুছে ফেলবেন?')) return;
+  window.globalData.deletedItems = [];
+  saveToStorage(true);
+  loadDeletedItems();
+  showSuccessToast('Trash emptied!');
+}
+window.emptyTrash = emptyTrash;
+
+
+
 // Version check handled globally to avoid redeclaration errors
 console.log('🚀 Wings Fly Aviation - Core Logic Loading...');
 
@@ -1002,6 +1234,7 @@ async function handleLogin(e) {
 }
 
 function showDashboard(username) {
+  if (typeof logActivity === 'function') logActivity('login', 'LOGIN', 'User logged in: ' + username);
   document.getElementById('loginSection').classList.add('d-none');
   document.getElementById('dashboardSection').classList.remove('d-none');
 
@@ -1019,6 +1252,7 @@ function showDashboard(username) {
 }
 
 function logout() {
+  if (typeof logActivity === 'function') logActivity('login', 'LOGOUT', 'User logged out: ' + (sessionStorage.getItem('username') || 'Admin'));
   sessionStorage.removeItem('isLoggedIn');
   sessionStorage.removeItem('username');
 
@@ -3512,6 +3746,11 @@ function deleteStudent(rowIndex) {
     alert("Error: Student not found.");
     return;
   }
+  
+  // Move to trash before deleting
+  if (typeof moveToTrash === 'function') moveToTrash('student', student);
+  if (typeof logActivity === 'function') logActivity('student', 'DELETE', 
+    'Student deleted: ' + (student.name || 'Unknown') + ' | Batch: ' + (student.batch || '-') + ' | Course: ' + (student.course || '-'), student);
 
   // CRITICAL: Reverse all account balances from this student's payments
   // Find all finance transactions related to this student
@@ -3625,6 +3864,8 @@ async function handleFinanceSubmit(e) {
   form.querySelector('input[name="date"]').value = today;
 
   showSuccessToast('Transaction added successfully!');
+    if (typeof logActivity === 'function') logActivity('finance', 'ADD', 
+      (formData.type || 'Transaction') + ': ' + (formData.category || '') + ' - ৳' + (formData.amount || 0) + ' | ' + (formData.description || ''));
   updateGlobalStats(); if (typeof renderFinanceTable === "function") renderFinanceTable();
 }
 
@@ -4000,6 +4241,7 @@ function updateDetailCategoryDropdown() {
 // ===================================
 
 function handleSettingsSubmit(e) {
+  if (typeof logActivity === 'function') logActivity('settings', 'SETTING_CHANGE', 'Settings updated by ' + (sessionStorage.getItem('username') || 'Admin'));
   e.preventDefault();
   const form = document.getElementById('settingsForm');
   const formData = {};
@@ -6127,6 +6369,13 @@ function openEditEmployeeModal(id) {
 window.openEditEmployeeModal = openEditEmployeeModal;
 
 async function deleteEmployee(id) {
+  // Log before delete
+  const empToDelete = (window.globalData.employees || []).find(e => e.id == id);
+  if (empToDelete) {
+    if (typeof moveToTrash === 'function') moveToTrash('employee', empToDelete);
+    if (typeof logActivity === 'function') logActivity('employee', 'DELETE', 
+      'Employee deleted: ' + (empToDelete.name || 'Unknown') + ' | Role: ' + (empToDelete.role || '-'), empToDelete);
+  }
   if (confirm('Are you sure you want to remove this employee?')) {
     globalData.employees = globalData.employees.filter(e => String(e.id) !== String(id));
 
@@ -8403,6 +8652,14 @@ document.addEventListener('click', function(e) {
   if (!confirm('Delete this transaction?')) return;
   const sid = String(txId);
   const tx = (window.globalData.finance || []).find(f => f.id !== undefined && String(f.id) === sid);
+  
+  // Move to trash + log before deleting
+  if (tx) {
+    if (typeof moveToTrash === 'function') moveToTrash('finance', tx);
+    if (typeof logActivity === 'function') logActivity('finance', 'DELETE',
+      'Transaction deleted: ' + (tx.type || '') + ' | ' + (tx.category || '') + ' - ৳' + (tx.amount || 0) + ' | ' + (tx.description || ''), tx);
+  }
+  
   if (tx && typeof updateAccountBalance === 'function') {
     updateAccountBalance(tx.method, tx.amount, tx.type, false);
   }
@@ -8681,306 +8938,117 @@ window.toggleCustomDuration = toggleCustomDuration;
 window.previewNotice = previewNotice;
 
 
-// ===================================
-// ACTIVITY LOG & RECYCLE BIN SYSTEM
-// ===================================
-
-// Ensure arrays exist in old data
-(function() {
-  if (!globalData.activityLog) globalData.activityLog = [];
-  if (!globalData.recycleBin) globalData.recycleBin = [];
-})();
-
-function logActivity(action, type, details, data) {
-  const entry = {
-    id: Date.now(),
-    timestamp: new Date().toISOString(),
-    action: action,
-    type: type,
-    details: details,
-    user: sessionStorage.getItem('username') || 'Admin',
-    data: data || null
-  };
-  if (!globalData.activityLog) globalData.activityLog = [];
-  globalData.activityLog.unshift(entry);
-  if (globalData.activityLog.length > 500) {
-    globalData.activityLog = globalData.activityLog.slice(0, 500);
-  }
-}
-window.logActivity = logActivity;
-
-function addToRecycleBin(type, item, relatedData) {
-  if (!globalData.recycleBin) globalData.recycleBin = [];
-  globalData.recycleBin.unshift({
-    id: Date.now(),
-    deletedAt: new Date().toISOString(),
-    deletedBy: sessionStorage.getItem('username') || 'Admin',
-    type: type,
-    item: JSON.parse(JSON.stringify(item)),
-    relatedData: relatedData || null
-  });
-  if (globalData.recycleBin.length > 200) {
-    globalData.recycleBin = globalData.recycleBin.slice(0, 200);
-  }
-}
-window.addToRecycleBin = addToRecycleBin;
 
 // ===================================
-// ACTIVITY LOG UI
+// SETTINGS TAB FUNCTION ALIASES
+// (HTML uses renderActivityLog / renderRecycleBin)
 // ===================================
 function renderActivityLog() {
-  const container = document.getElementById('activityLogContainer');
-  if (!container) return;
-
-  const logs = globalData.activityLog || [];
-  const filterType = document.getElementById('logFilterType')?.value || 'all';
-  const searchTerm = document.getElementById('logSearch')?.value?.toLowerCase() || '';
-
-  const filtered = logs.filter(log => {
-    const matchType = filterType === 'all' || log.type === filterType || log.action === filterType;
-    const matchSearch = !searchTerm || 
-      log.details?.toLowerCase().includes(searchTerm) ||
-      log.type?.toLowerCase().includes(searchTerm) ||
-      log.user?.toLowerCase().includes(searchTerm);
-    return matchType && matchSearch;
-  });
-
-  const icons = {
-    'ADD': '➕', 'EDIT': '✏️', 'DELETE': '🗑️', 'LOGIN': '🔐',
-    'PAYMENT': '💰', 'SETTINGS': '⚙️', 'EXAM': '📝', 'EMPLOYEE': '👤', 'default': '📋'
-  };
-
-  const colors = {
-    'ADD': 'success', 'EDIT': 'info', 'DELETE': 'danger', 'LOGIN': 'warning',
-    'PAYMENT': 'primary', 'SETTINGS': 'secondary', 'default': 'light'
-  };
-
-  if (filtered.length === 0) {
-    container.innerHTML = `
-      <div class="text-center py-5 text-muted">
-        <div style="font-size:3rem;">📋</div>
-        <p class="mt-2">কোনো activity log নেই</p>
-      </div>`;
-    return;
-  }
-
-  container.innerHTML = filtered.slice(0, 100).map(log => {
-    const dt = new Date(log.timestamp);
-    const dateStr = dt.toLocaleDateString('bn-BD') + ' ' + dt.toLocaleTimeString('en-US', {hour:'2-digit', minute:'2-digit'});
-    const icon = icons[log.action] || icons['default'];
-    const color = colors[log.action] || colors['default'];
-    return `
-      <div class="d-flex align-items-start gap-3 py-2 border-bottom border-secondary">
-        <div class="text-${color} fs-5 mt-1">${icon}</div>
-        <div class="flex-grow-1">
-          <div class="d-flex justify-content-between align-items-center">
-            <span class="badge bg-${color} bg-opacity-25 text-${color} rounded-pill px-2">${log.action} • ${log.type}</span>
-            <small class="text-muted">${dateStr}</small>
-          </div>
-          <div class="mt-1 small" style="color:#ccc;">${log.details}</div>
-          <small class="text-muted">👤 ${log.user}</small>
-        </div>
-      </div>`;
-  }).join('');
+  if (typeof loadActivityHistory === 'function') loadActivityHistory();
+}
+function renderRecycleBin() {
+  if (typeof loadDeletedItems === 'function') loadDeletedItems();
+}
+function clearRecycleBin() {
+  if (typeof emptyTrash === 'function') emptyTrash();
 }
 window.renderActivityLog = renderActivityLog;
-
-// ===================================
-// RECYCLE BIN UI
-// ===================================
-function renderRecycleBin() {
-  const container = document.getElementById('recycleBinContainer');
-  if (!container) return;
-
-  const items = globalData.recycleBin || [];
-  const filterType = document.getElementById('binFilterType')?.value || 'all';
-
-  const filtered = items.filter(item => filterType === 'all' || item.type === filterType);
-
-  if (filtered.length === 0) {
-    container.innerHTML = `
-      <div class="text-center py-5 text-muted">
-        <div style="font-size:3rem;">🗑️</div>
-        <p class="mt-2">Recycle Bin খালি</p>
-      </div>`;
-    return;
-  }
-
-  container.innerHTML = filtered.map(item => {
-    const dt = new Date(item.deletedAt);
-    const dateStr = dt.toLocaleDateString('bn-BD') + ' ' + dt.toLocaleTimeString('en-US', {hour:'2-digit', minute:'2-digit'});
-
-    let preview = '';
-    if (item.type === 'Student') {
-      preview = `<strong>${item.item.name}</strong> | ${item.item.batch || ''} | ${item.item.phone || ''}`;
-    } else if (item.type === 'Employee') {
-      preview = `<strong>${item.item.name}</strong> | ${item.item.position || ''} | ${item.item.phone || ''}`;
-    } else if (item.type === 'Finance') {
-      preview = `<strong>${item.item.type}</strong> | ৳${item.item.amount} | ${item.item.category || ''} | ${item.item.date || ''}`;
-    } else if (item.type === 'Visitor') {
-      preview = `<strong>${item.item.name}</strong> | ${item.item.phone || ''} | ${item.item.purpose || ''}`;
-    } else {
-      preview = JSON.stringify(item.item).substring(0, 80) + '...';
-    }
-
-    return `
-      <div class="d-flex align-items-start gap-3 py-2 border-bottom border-secondary">
-        <div class="fs-4">🗑️</div>
-        <div class="flex-grow-1">
-          <div class="d-flex justify-content-between align-items-center">
-            <span class="badge bg-danger bg-opacity-25 text-danger rounded-pill px-2">${item.type}</span>
-            <small class="text-muted">Deleted: ${dateStr} by ${item.deletedBy}</small>
-          </div>
-          <div class="mt-1 small" style="color:#ccc;">${preview}</div>
-        </div>
-        <div class="d-flex gap-1 flex-shrink-0">
-          <button class="btn btn-sm btn-outline-success rounded-pill px-3" onclick="restoreFromBin(${item.id})">
-            ♻️ Restore
-          </button>
-          <button class="btn btn-sm btn-outline-danger rounded-pill px-3" onclick="permanentDelete(${item.id})">
-            ❌
-          </button>
-        </div>
-      </div>`;
-  }).join('');
-}
 window.renderRecycleBin = renderRecycleBin;
-
-function restoreFromBin(id) {
-  const idx = globalData.recycleBin.findIndex(x => x.id === id);
-  if (idx === -1) { showErrorToast('Item not found!'); return; }
-
-  const binItem = globalData.recycleBin[idx];
-
-  if (!confirm(`"${binItem.type}" টি restore করবেন?`)) return;
-
-  // Restore based on type
-  if (binItem.type === 'Student') {
-    if (!globalData.students) globalData.students = [];
-    globalData.students.push(binItem.item);
-    // Restore related finance if any
-    if (binItem.relatedData && binItem.relatedData.finance) {
-      if (!globalData.finance) globalData.finance = [];
-      globalData.finance = globalData.finance.concat(binItem.relatedData.finance);
-    }
-    logActivity('RESTORE', 'Student', `Restored student: ${binItem.item.name}`);
-  } else if (binItem.type === 'Employee') {
-    if (!globalData.employees) globalData.employees = [];
-    globalData.employees.push(binItem.item);
-    logActivity('RESTORE', 'Employee', `Restored employee: ${binItem.item.name}`);
-  } else if (binItem.type === 'Finance') {
-    if (!globalData.finance) globalData.finance = [];
-    globalData.finance.push(binItem.item);
-    logActivity('RESTORE', 'Finance', `Restored transaction: ${binItem.item.type} ৳${binItem.item.amount}`);
-  } else if (binItem.type === 'Visitor') {
-    if (!globalData.visitors) globalData.visitors = [];
-    globalData.visitors.push(binItem.item);
-    logActivity('RESTORE', 'Visitor', `Restored visitor: ${binItem.item.name}`);
-  }
-
-  globalData.recycleBin.splice(idx, 1);
-  saveToStorage();
-  renderRecycleBin();
-  showSuccessToast(`✅ ${binItem.type} restored!`);
-  updateGlobalStats();
-}
-window.restoreFromBin = restoreFromBin;
-
-function permanentDelete(id) {
-  const idx = globalData.recycleBin.findIndex(x => x.id === id);
-  if (idx === -1) return;
-  const item = globalData.recycleBin[idx];
-  if (!confirm(`স্থায়ীভাবে delete করবেন? এটি আর ফেরানো যাবে না!`)) return;
-  logActivity('PERMANENT_DELETE', item.type, `Permanently deleted ${item.type}: ${item.item?.name || item.id}`);
-  globalData.recycleBin.splice(idx, 1);
-  saveToStorage();
-  renderRecycleBin();
-  showSuccessToast('Permanently deleted!');
-}
-window.permanentDelete = permanentDelete;
-
-function clearActivityLog() {
-  if (!confirm('সব activity log মুছে দেবেন?')) return;
-  globalData.activityLog = [];
-  saveToStorage();
-  renderActivityLog();
-  showSuccessToast('Activity log cleared!');
-}
-window.clearActivityLog = clearActivityLog;
-
-function clearRecycleBin() {
-  if (!confirm('Recycle Bin সম্পূর্ণ খালি করবেন? সব data স্থায়ীভাবে মুছে যাবে!')) return;
-  globalData.recycleBin = [];
-  saveToStorage();
-  renderRecycleBin();
-  showSuccessToast('Recycle Bin emptied!');
-}
 window.clearRecycleBin = clearRecycleBin;
 
-
-// ===================================
-// PATCH: Add logging to delete functions
-// ===================================
-(function patchDeleteFunctions() {
-  // Patch deleteStudent
-  const _origDeleteStudent = window.deleteStudent;
-  window.deleteStudent = function(rowIndex) {
-    const student = globalData.students && globalData.students[rowIndex];
-    if (student) {
-      const relatedFinance = (globalData.finance || []).filter(f =>
-        f.person === student.name ||
-        (f.description && f.description.includes(student.name))
-      );
-      addToRecycleBin('Student', student, { finance: relatedFinance });
-      logActivity('DELETE', 'Student', `Deleted student: ${student.name} (${student.batch || 'N/A'}) | Phone: ${student.phone || 'N/A'}`);
-    }
-    if (typeof _origDeleteStudent === 'function') _origDeleteStudent(rowIndex);
-  };
-
-  // Patch deleteTransaction
-  const _origDeleteTx = window.deleteTransaction;
-  window.deleteTransaction = function(id) {
-    const tx = globalData.finance && globalData.finance.find(f => String(f.id) === String(id));
-    if (tx) {
-      addToRecycleBin('Finance', tx);
-      logActivity('DELETE', 'Finance', `Deleted ${tx.type}: ৳${tx.amount} | ${tx.category || ''} | Date: ${tx.date || ''}`);
-    }
-    if (typeof _origDeleteTx === 'function') _origDeleteTx(id);
-  };
-
-  // Patch deleteEmployee
-  const _origDeleteEmp = window.deleteEmployee;
-  window.deleteEmployee = async function(id) {
-    const emp = globalData.employees && globalData.employees.find(e => e.id === id);
-    if (emp) {
-      addToRecycleBin('Employee', emp);
-      logActivity('DELETE', 'Employee', `Deleted employee: ${emp.name} | ${emp.position || 'N/A'} | ${emp.phone || ''}`);
-    }
-    if (typeof _origDeleteEmp === 'function') await _origDeleteEmp(id);
-  };
-
-  // Patch deleteVisitor
-  const _origDeleteVisitor = window.deleteVisitor;
-  window.deleteVisitor = async function(index) {
-    const visitor = globalData.visitors && globalData.visitors[index];
-    if (visitor) {
-      addToRecycleBin('Visitor', visitor);
-      logActivity('DELETE', 'Visitor', `Deleted visitor: ${visitor.name} | ${visitor.phone || ''} | ${visitor.purpose || ''}`);
-    }
-    if (typeof _origDeleteVisitor === 'function') await _origDeleteVisitor(index);
-  };
-
-})();
-
-// Log login events
-const _origHandleLogin = window.handleLogin;
-window.handleLogin = async function(e) {
-  const result = _origHandleLogin ? await _origHandleLogin(e) : null;
-  setTimeout(() => {
-    const user = sessionStorage.getItem('username');
-    if (user) logActivity('LOGIN', 'System', `User logged in: ${user}`, null);
-    if (typeof saveToStorage === 'function') saveToStorage();
-  }, 500);
-  return result;
+// Map HTML element IDs to our functions
+// activityHistoryList -> recycleBinContainer (alias)
+// logFilterType -> historyFilter (alias)
+// binFilterType -> trashFilter (alias)
+const _origLoadActivityHistory = window.loadActivityHistory;
+window.loadActivityHistory = function() {
+  // Support both container IDs
+  const h1 = document.getElementById('activityHistoryList');
+  const h2 = document.getElementById('activityLogContainer');
+  
+  const history = (window.globalData && window.globalData.activityHistory) || [];
+  const filterEl = document.getElementById('historyFilter') || document.getElementById('logFilterType');
+  const filterVal = filterEl ? filterEl.value : 'all';
+  const searchEl = document.getElementById('logSearch');
+  const searchVal = searchEl ? searchEl.value.toLowerCase() : '';
+  
+  const filtered = history.filter(h => {
+    const typeOk = filterVal === 'all' || h.type === filterVal;
+    const searchOk = !searchVal || h.description.toLowerCase().includes(searchVal) || (h.user||'').toLowerCase().includes(searchVal);
+    return typeOk && searchOk;
+  });
+  
+  const icons = { student: '🎓', finance: '💰', employee: '👤', settings: '⚙️', login: '🔐' };
+  const actionBadge = { ADD: 'success', EDIT: 'info', DELETE: 'danger', LOGIN: 'primary', LOGOUT: 'warning', SETTING_CHANGE: 'secondary' };
+  
+  const html = filtered.length === 0 
+    ? '<div class="text-center text-muted py-5"><div style="font-size:3rem">📋</div><p>কোনো Activity নেই।</p></div>'
+    : filtered.map(h => {
+        const d = new Date(h.timestamp);
+        const timeStr = d.toLocaleString('en-BD', { day:'2-digit', month:'short', year:'numeric', hour:'2-digit', minute:'2-digit' });
+        const icon = icons[h.type] || '📝';
+        const badge = actionBadge[h.action] || 'secondary';
+        return `<div class="d-flex align-items-start gap-3 p-3 mb-2 rounded-3" style="background:rgba(0,217,255,0.05);border:1px solid rgba(0,217,255,0.15);">
+          <div style="font-size:1.5rem;min-width:36px;text-align:center;">${icon}</div>
+          <div class="flex-grow-1">
+            <div class="d-flex align-items-center gap-2 mb-1">
+              <span class="badge bg-${badge} text-uppercase" style="font-size:0.65rem;">${h.action}</span>
+              <span class="text-muted small">${h.type}</span>
+              <span class="ms-auto text-muted" style="font-size:0.75rem;">⏱ ${timeStr}</span>
+            </div>
+            <div style="color:#fff;font-size:0.9rem;">${h.description}</div>
+            <div class="text-muted" style="font-size:0.75rem;">👤 ${h.user || 'Admin'}</div>
+          </div>
+        </div>`;
+      }).join('');
+  
+  if (h1) h1.innerHTML = html;
+  if (h2) h2.innerHTML = html;
 };
 
+const _origLoadDeletedItems = window.loadDeletedItems;
+window.loadDeletedItems = function() {
+  const c1 = document.getElementById('deletedItemsList');
+  const c2 = document.getElementById('recycleBinContainer');
+  
+  const deleted = (window.globalData && window.globalData.deletedItems) || [];
+  const filterEl = document.getElementById('trashFilter') || document.getElementById('binFilterType');
+  const filterVal = filterEl ? filterEl.value : 'all';
+  
+  const filtered = filterVal === 'all' ? deleted : deleted.filter(d => d.type === filterVal || d.type === filterVal.toLowerCase());
+  
+  const icons = { student: '🎓', finance: '💰', employee: '👤', visitor: '🙋', Student: '🎓', Finance: '💰', Employee: '👤', Visitor: '🙋' };
+  
+  const html = filtered.length === 0
+    ? '<div class="text-center text-muted py-5"><div style="font-size:3rem">🗑️</div><p>Trash খালি।</p></div>'
+    : filtered.map(d => {
+        const date = new Date(d.deletedAt);
+        const dateStr = date.toLocaleString('en-BD', { day:'2-digit', month:'short', year:'numeric', hour:'2-digit', minute:'2-digit' });
+        const icon = icons[d.type] || '📄';
+        let name = '';
+        const t = (d.type||'').toLowerCase();
+        if (t === 'student') name = d.item.name || 'Unknown Student';
+        else if (t === 'finance') name = (d.item.description || d.item.category || 'Transaction') + ' — ৳' + (d.item.amount || 0);
+        else if (t === 'employee') name = d.item.name || 'Unknown Employee';
+        else name = JSON.stringify(d.item).substring(0, 60);
+        
+        return `<div class="d-flex align-items-start gap-3 p-3 mb-2 rounded-3" style="background:rgba(255,68,68,0.05);border:1px solid rgba(255,68,68,0.2);">
+          <div style="font-size:1.5rem;min-width:36px;text-align:center;">${icon}</div>
+          <div class="flex-grow-1">
+            <div class="d-flex align-items-center gap-2 mb-1">
+              <span class="badge bg-secondary" style="font-size:0.65rem;">${d.type}</span>
+              <span class="ms-auto text-muted" style="font-size:0.75rem;">🗑️ ${dateStr}</span>
+            </div>
+            <div style="color:#fff;font-size:0.9rem;font-weight:500;">${name}</div>
+            <div class="text-muted" style="font-size:0.75rem;">Deleted by: ${d.deletedBy || 'Admin'}</div>
+          </div>
+          <div class="d-flex flex-column gap-1">
+            <button class="btn btn-sm btn-success" onclick="restoreDeletedItem('${d.id}')">↩️ Restore</button>
+            <button class="btn btn-sm btn-outline-danger" onclick="permanentDelete('${d.id}')">❌ Remove</button>
+          </div>
+        </div>`;
+      }).join('');
+  
+  if (c1) c1.innerHTML = html;
+  if (c2) c2.innerHTML = html;
+};
