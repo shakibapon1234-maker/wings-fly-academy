@@ -3671,7 +3671,21 @@
     <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
 
     <!-- Supabase JS Client for Multi-user Sync -->
-    <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
+    <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2/dist/umd/supabase.js"></script>
+    
+    <!-- Fix: window.supabase compatibility -->
+    <script>
+        // Supabase v2 UMD exposes as window.supabase with createClient inside
+        // Some sync files expect window.supabase.createClient directly
+        if (typeof window.supabase === 'undefined' && typeof supabase !== 'undefined') {
+            window.supabase = supabase;
+        }
+        // Also expose createClient at top level if needed
+        if (window.supabase && window.supabase.createClient) {
+            window.createClient = window.supabase.createClient;
+        }
+        console.log('✅ Supabase library check:', typeof window.supabase);
+    </script>
 
     <!-- Supabase Configuration (Update with your credentials) -->
     <script src="supabase-config.js"></script>
