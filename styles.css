@@ -2444,175 +2444,265 @@ tfoot th {
   transform: scale(1.05);
 }
 
-/* ===================================
-   STUDENT PROFILE - DARK NEON CARDS
-   NO WHITE BACKGROUNDS
-   =================================== */
+/* ============================================
+   NOTICE BOARD SYSTEM - Wings Fly Aviation
+   ============================================ */
 
-/* Student Profile Stats Cards - Dark Gradients with Neon Borders */
-#studentModal .card-body > .row > div[class*="col"]:has(.text-muted.small) {
-  background: transparent !important;
+/* Main Banner */
+#noticeBoardBanner {
+  position: relative;
+  z-index: 100;
+  animation: noticeSlideDown 0.5s cubic-bezier(0.34, 1.56, 0.64, 1) both;
 }
 
-/* Total Fee Card - Cyan Blue Neon */
-#studentModal .bg-info.bg-opacity-10,
-.student-stat-total,
-.fee-card-total {
-  background: linear-gradient(135deg, 
-    rgba(0, 60, 100, 0.5) 0%, 
-    rgba(0, 40, 80, 0.7) 50%, 
-    rgba(10, 14, 39, 0.9) 100%) !important;
-  border: 3px solid #00d9ff !important;
-  border-radius: 15px !important;
-  padding: 25px !important;
-  box-shadow: 
-    0 0 30px rgba(0, 217, 255, 0.5),
-    inset 0 0 30px rgba(0, 217, 255, 0.1) !important;
-  position: relative !important;
-  overflow: hidden !important;
+@keyframes noticeSlideDown {
+  from { transform: translateY(-100%); opacity: 0; }
+  to   { transform: translateY(0);    opacity: 1; }
 }
 
-/* Paid Card - Green Neon */
-#studentModal .bg-success.bg-opacity-10,
-.student-stat-paid,
-.fee-card-paid {
-  background: linear-gradient(135deg, 
-    rgba(0, 80, 40, 0.5) 0%, 
-    rgba(0, 60, 30, 0.7) 50%, 
-    rgba(10, 14, 39, 0.9) 100%) !important;
-  border: 3px solid #00ff88 !important;
-  border-radius: 15px !important;
-  padding: 25px !important;
-  box-shadow: 
-    0 0 30px rgba(0, 255, 136, 0.5),
-    inset 0 0 30px rgba(0, 255, 136, 0.1) !important;
-  position: relative !important;
-  overflow: hidden !important;
+.notice-banner-inner {
+  display: flex;
+  align-items: center;
+  gap: 0;
+  min-height: 48px;
+  overflow: hidden;
+  border-bottom: 2px solid rgba(255,255,255,0.15);
 }
 
-/* Due Card - Pink/Red Neon */
-#studentModal .bg-danger.bg-opacity-10,
-.student-stat-due,
-.fee-card-due {
-  background: linear-gradient(135deg, 
-    rgba(100, 0, 40, 0.5) 0%, 
-    rgba(80, 0, 30, 0.7) 50%, 
-    rgba(10, 14, 39, 0.9) 100%) !important;
-  border: 3px solid #ff2366 !important;
-  border-radius: 15px !important;
-  padding: 25px !important;
-  box-shadow: 
-    0 0 30px rgba(255, 35, 102, 0.5),
-    inset 0 0 30px rgba(255, 35, 102, 0.1) !important;
-  position: relative !important;
-  overflow: hidden !important;
+/* Type variants */
+#noticeBoardBanner.notice-warning .notice-banner-inner {
+  background: linear-gradient(90deg, #b45309, #d97706, #f59e0b, #d97706, #b45309);
+  background-size: 200% 100%;
+  animation: noticeSlideDown 0.5s ease both, noticeBgShift 4s linear infinite;
+}
+#noticeBoardBanner.notice-danger .notice-banner-inner {
+  background: linear-gradient(90deg, #7f1d1d, #dc2626, #ef4444, #dc2626, #7f1d1d);
+  background-size: 200% 100%;
+  animation: noticeSlideDown 0.5s ease both, noticeBgShift 4s linear infinite;
+}
+#noticeBoardBanner.notice-info .notice-banner-inner {
+  background: linear-gradient(90deg, #1e3a5f, #1d4ed8, #3b82f6, #1d4ed8, #1e3a5f);
+  background-size: 200% 100%;
+  animation: noticeSlideDown 0.5s ease both, noticeBgShift 4s linear infinite;
+}
+#noticeBoardBanner.notice-success .notice-banner-inner {
+  background: linear-gradient(90deg, #14532d, #16a34a, #22c55e, #16a34a, #14532d);
+  background-size: 200% 100%;
+  animation: noticeSlideDown 0.5s ease both, noticeBgShift 4s linear infinite;
 }
 
-/* Shimmer animation for stat cards */
-.student-stat-total::before,
-.student-stat-paid::before,
-.student-stat-due::before,
-.fee-card-total::before,
-.fee-card-paid::before,
-.fee-card-due::before,
-#studentModal .bg-info.bg-opacity-10::before,
-#studentModal .bg-success.bg-opacity-10::before,
-#studentModal .bg-danger.bg-opacity-10::before {
-  content: '' !important;
-  position: absolute !important;
-  top: -50% !important;
-  left: -50% !important;
-  width: 200% !important;
-  height: 200% !important;
-  background: linear-gradient(45deg, transparent, rgba(255, 255, 255, 0.1), transparent) !important;
-  animation: cardShimmer 3s infinite !important;
-  pointer-events: none !important;
-  z-index: 0 !important;
+@keyframes noticeBgShift {
+  0%   { background-position: 0% 50%; }
+  100% { background-position: 200% 50%; }
 }
 
-@keyframes cardShimmer {
-  0% { transform: translateX(-100%) translateY(-100%) rotate(45deg); }
-  100% { transform: translateX(100%) translateY(100%) rotate(45deg); }
+/* Left label */
+.notice-banner-left {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  padding: 0 16px;
+  background: rgba(0,0,0,0.3);
+  height: 100%;
+  min-height: 48px;
+  white-space: nowrap;
+  border-right: 2px solid rgba(255,255,255,0.2);
 }
 
-/* Teacher's Remarks - Cyan Neon (Option 3) */
-#studentModal .bg-warning.bg-opacity-10,
-#studentModal .bg-light.border,
-.teacher-remarks,
-.remarks-card {
-  background: linear-gradient(135deg, 
-    rgba(0, 70, 90, 0.5) 0%, 
-    rgba(0, 55, 75, 0.7) 50%, 
-    rgba(10, 14, 39, 0.9) 100%) !important;
-  border: 3px solid #5eead4 !important;
-  border-radius: 15px !important;
-  padding: 25px !important;
-  box-shadow: 
-    0 0 35px rgba(94, 234, 212, 0.6),
-    inset 0 0 35px rgba(94, 234, 212, 0.2) !important;
-  position: relative !important;
-  overflow: hidden !important;
-  color: #ccfbf1 !important;
+.notice-label {
+  font-weight: 800;
+  font-size: 0.75rem;
+  letter-spacing: 3px;
+  text-transform: uppercase;
+  color: #fff;
 }
 
-/* Teacher's Remarks title */
-#studentModal .bg-warning.bg-opacity-10 .text-uppercase,
-#studentModal .bg-warning.bg-opacity-10 .fw-bold,
-#studentModal .bg-light.border .text-uppercase,
-.teacher-remarks .text-uppercase,
-.teacher-remarks .fw-bold,
-.remarks-card .text-uppercase {
-  color: #5eead4 !important;
-  text-shadow: 0 0 20px rgba(94, 234, 212, 1) !important;
+/* Pulse icon */
+.notice-icon-pulse {
+  color: #fff;
+  font-size: 1rem;
+  animation: noticePulse 1s ease-in-out infinite;
+  display: inline-flex;
 }
 
-/* Teacher's Remarks shimmer */
-#studentModal .bg-warning.bg-opacity-10::before,
-#studentModal .bg-light.border::before,
-.teacher-remarks::before,
-.remarks-card::before {
-  content: '' !important;
-  position: absolute !important;
-  top: -50% !important;
-  left: -50% !important;
-  width: 200% !important;
-  height: 200% !important;
-  background: linear-gradient(45deg, transparent, rgba(94, 234, 212, 0.15), transparent) !important;
-  animation: cardShimmer 4s infinite !important;
-  pointer-events: none !important;
-  z-index: 0 !important;
+@keyframes noticePulse {
+  0%, 100% { transform: scale(1); opacity: 1; }
+  50%       { transform: scale(1.25); opacity: 0.7; }
 }
 
-/* Override any remaining light backgrounds in student modal */
-#studentModal .bg-light,
-#studentModal .bg-white,
-#studentModal [class*="bg-light"]:not(.bg-warning),
-#studentModal [class*="bg-white"] {
-  background: linear-gradient(135deg, rgba(21, 26, 53, 0.9), rgba(31, 21, 69, 0.9)) !important;
-  color: #ffffff !important;
+/* Scrolling text */
+.notice-banner-text-wrap {
+  flex: 1;
+  overflow: hidden;
+  height: 48px;
+  display: flex;
+  align-items: center;
+  padding: 0 12px;
 }
 
-/* Stat labels with neon glow */
-#studentModal .text-info {
-  color: #00d9ff !important;
-  text-shadow: 0 0 10px rgba(0, 217, 255, 0.8) !important;
+.notice-scroll-text {
+  display: inline-block;
+  white-space: nowrap;
+  color: #ffffff;
+  font-weight: 700;
+  font-size: 0.95rem;
+  letter-spacing: 0.5px;
+  text-shadow: 0 1px 4px rgba(0,0,0,0.4);
+  animation: noticeTicker 25s linear infinite;
 }
 
-#studentModal .text-success {
-  color: #00ff88 !important;
-  text-shadow: 0 0 10px rgba(0, 255, 136, 0.8) !important;
+@keyframes noticeTicker {
+  0%   { transform: translateX(100vw); }
+  100% { transform: translateX(-100%); }
 }
 
-#studentModal .text-danger {
-  color: #ff2366 !important;
-  text-shadow: 0 0 10px rgba(255, 35, 102, 0.8) !important;
+/* Right side */
+.notice-banner-right {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  padding: 0 14px;
+  background: rgba(0,0,0,0.3);
+  height: 100%;
+  min-height: 48px;
+  border-left: 2px solid rgba(255,255,255,0.2);
+  white-space: nowrap;
 }
 
-/* Make sure all text is visible */
-#studentModal .card-body,
-#studentModal .card-body *,
-#studentModal .bg-opacity-10,
-#studentModal .bg-opacity-10 * {
-  position: relative !important;
-  z-index: 1 !important;
+.notice-countdown-badge {
+  background: rgba(0,0,0,0.4);
+  color: #fff;
+  font-size: 0.75rem;
+  font-weight: 700;
+  padding: 4px 10px;
+  border-radius: 20px;
+  border: 1px solid rgba(255,255,255,0.3);
+  letter-spacing: 0.5px;
+  display: flex;
+  align-items: center;
 }
+
+.notice-manage-btn {
+  background: rgba(255,255,255,0.15);
+  border: 1px solid rgba(255,255,255,0.3);
+  color: #fff;
+  border-radius: 8px;
+  width: 32px;
+  height: 32px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  cursor: pointer;
+  transition: all 0.2s;
+  font-size: 0.85rem;
+}
+
+.notice-manage-btn:hover {
+  background: rgba(255,255,255,0.35);
+}
+
+/* Add floating button */
+#noticeBoardAddBtn {
+  padding: 6px 16px 4px;
+  background: rgba(21, 26, 53, 0.6);
+  border-bottom: 1px solid rgba(0, 217, 255, 0.15);
+}
+
+.notice-add-floating-btn {
+  background: transparent;
+  border: 1px dashed rgba(0, 217, 255, 0.4);
+  color: rgba(0, 217, 255, 0.7);
+  border-radius: 20px;
+  padding: 3px 14px;
+  font-size: 0.78rem;
+  cursor: pointer;
+  transition: all 0.2s;
+  font-weight: 600;
+}
+
+.notice-add-floating-btn:hover {
+  background: rgba(0, 217, 255, 0.1);
+  color: #00fff5;
+  border-color: #00d9ff;
+}
+
+/* ---- Modal Styles ---- */
+.notice-modal-content {
+  background: linear-gradient(135deg, #0d1225, #1a0f35) !important;
+  border: 2px solid rgba(0, 217, 255, 0.4) !important;
+  border-radius: 20px !important;
+  color: #fff !important;
+}
+
+.notice-modal-header {
+  background: linear-gradient(90deg, rgba(0,217,255,0.15), rgba(181,55,242,0.15));
+  border-bottom: 1px solid rgba(0,217,255,0.2) !important;
+  padding: 20px 24px !important;
+}
+
+.notice-modal-icon {
+  width: 48px;
+  height: 48px;
+  background: linear-gradient(135deg, #00d9ff, #b537f2);
+  border-radius: 14px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  color: #fff;
+}
+
+/* Status card */
+.notice-status-card {
+  background: rgba(255, 193, 7, 0.1);
+  border: 1px solid rgba(255, 193, 7, 0.4);
+  border-radius: 14px;
+  padding: 16px 20px;
+}
+
+.notice-status-title {
+  font-weight: 700;
+  font-size: 0.85rem;
+  letter-spacing: 0.5px;
+  color: #fbbf24;
+}
+
+.notice-status-text {
+  color: #fff;
+  font-size: 0.95rem;
+  font-weight: 600;
+}
+
+.notice-status-expire {
+  color: #94a3b8;
+  font-size: 0.8rem;
+}
+
+/* Textarea */
+.notice-textarea {
+  resize: vertical;
+  min-height: 90px;
+  font-size: 0.95rem;
+  line-height: 1.6;
+}
+
+/* Preview */
+.notice-preview-area {
+  border: 1px dashed rgba(0,217,255,0.3);
+  border-radius: 12px;
+  padding: 14px;
+  background: rgba(0,217,255,0.04);
+}
+
+.notice-preview-banner {
+  border-radius: 8px;
+  padding: 10px 16px;
+  font-weight: 700;
+  font-size: 0.9rem;
+  color: #fff;
+  background: linear-gradient(90deg, #b45309, #f59e0b);
+}
+
+.notice-preview-banner.preview-danger  { background: linear-gradient(90deg, #7f1d1d, #ef4444); }
+.notice-preview-banner.preview-info    { background: linear-gradient(90deg, #1e3a5f, #3b82f6); }
+.notice-preview-banner.preview-success { background: linear-gradient(90deg, #14532d, #22c55e); }
+

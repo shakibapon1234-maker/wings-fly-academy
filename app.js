@@ -8442,3 +8442,229 @@ document.addEventListener('click', function(e) {
     if (typeof renderAccountDetails === 'function') renderAccountDetails();
   }
 });
+
+
+// =====================================================
+// NOTICE BOARD SYSTEM - Wings Fly Aviation Academy
+// =====================================================
+
+const NOTICE_STORAGE_KEY = 'wingsfly_notice_board';
+let noticeCountdownInterval = null;
+
+// ----- Load & Display on page init -----
+function initNoticeBoard() {
+  const notice = getActiveNotice();
+  if (notice) {
+    showNoticeBanner(notice);
+  } else {
+    hideNoticeBanner();
+  }
+}
+
+function getActiveNotice() {
+  try {
+    const raw = localStorage.getItem(NOTICE_STORAGE_KEY);
+    if (!raw) return null;
+    const notice = JSON.parse(raw);
+    if (!notice || !notice.expiresAt) return null;
+    if (Date.now() > notice.expiresAt) {
+      localStorage.removeItem(NOTICE_STORAGE_KEY);
+      return null;
+    }
+    return notice;
+  } catch(e) { return null; }
+}
+
+function showNoticeBanner(notice) {
+  const banner = document.getElementById('noticeBoardBanner');
+  const addBtn = document.getElementById('noticeBoardAddBtn');
+  const textEl = document.getElementById('noticeBannerText');
+  if (!banner || !textEl) return;
+
+  textEl.textContent = notice.text;
+  banner.className = '';
+  banner.className = 'notice-' + (notice.type || 'warning');
+  banner.style.display = 'block';
+  if (addBtn) addBtn.style.display = 'none';
+
+  startCountdown(notice.expiresAt);
+}
+
+function hideNoticeBanner() {
+  const banner = document.getElementById('noticeBoardBanner');
+  const addBtn = document.getElementById('noticeBoardAddBtn');
+  if (banner) banner.style.display = 'none';
+  if (addBtn) addBtn.style.display = 'block';
+  if (noticeCountdownInterval) {
+    clearInterval(noticeCountdownInterval);
+    noticeCountdownInterval = null;
+  }
+}
+
+function startCountdown(expiresAt) {
+  if (noticeCountdownInterval) clearInterval(noticeCountdownInterval);
+
+  function updateCountdown() {
+    const remaining = expiresAt - Date.now();
+    if (remaining <= 0) {
+      clearInterval(noticeCountdownInterval);
+      localStorage.removeItem(NOTICE_STORAGE_KEY);
+      hideNoticeBanner();
+      return;
+    }
+    const d = Math.floor(remaining / 86400000);
+    const h = Math.floor((remaining % 86400000) / 3600000);
+    const m = Math.floor((remaining % 3600000) / 60000);
+    const s = Math.floor((remaining % 60000) / 1000);
+
+    let label = '';
+    if (d > 0) label = `${d}দ ${h}ঘ ${m}মি`;
+    else if (h > 0) label = `${h}ঘ ${m}মি ${s}সে`;
+    else label = `${m}মি ${s}সে`;
+
+    const el = document.getElementById('noticeTimeLeft');
+    if (el) el.textContent = label;
+  }
+
+  updateCountdown();
+  noticeCountdownInterval = setInterval(updateCountdown, 1000);
+}
+
+// ----- Modal -----
+function openNoticeModal() {
+  // Show current notice status
+  const notice = getActiveNotice();
+  const statusCard = document.getElementById('currentNoticeStatus');
+  const noActiveMsg = document.getElementById('noActiveNoticeMsg');
+
+  if (notice) {
+    if (statusCard) statusCard.style.display = 'block';
+    if (noActiveMsg) noActiveMsg.style.display = 'none';
+    const textEl = document.getElementById('currentNoticeText');
+    const expEl = document.getElementById('currentNoticeExpire');
+    if (textEl) textEl.textContent = notice.text;
+    if (expEl) {
+      const remaining = notice.expiresAt - Date.now();
+      const d = Math.floor(remaining / 86400000);
+      const h = Math.floor((remaining % 86400000) / 3600000);
+      const m = Math.floor((remaining % 3600000) / 60000);
+      let label = '';
+      if (d > 0) label = `${d} দিন ${h} ঘণ্টা বাকি`;
+      else if (h > 0) label = `${h} ঘণ্টা ${m} মিনিট বাকি`;
+      else label = `${m} মিনিট বাকি`;
+      expEl.textContent = `⏳ মেয়াদ: ${label}`;
+    }
+  } else {
+    if (statusCard) statusCard.style.display = 'none';
+    if (noActiveMsg) noActiveMsg.style.display = 'block';
+  }
+
+  // Reset form
+  const textInput = document.getElementById('noticeTextInput');
+  if (textInput) textInput.value = '';
+  const charCount = document.getElementById('noticeCharCount');
+  if (charCount) charCount.textContent = '0';
+  const preview = document.getElementById('noticePreviewArea');
+  if (preview) preview.style.display = 'none';
+
+  // Char counter
+  if (textInput) {
+    textInput.oninput = function() {
+      if (charCount) charCount.textContent = this.value.length;
+    };
+  }
+
+  const modal = new bootstrap.Modal(document.getElementById('noticeBoardModal'));
+  modal.show();
+}
+
+function toggleCustomDuration() {
+  const sel = document.getElementById('noticeDurationSelect');
+  const row = document.getElementById('customDurationRow');
+  if (!sel || !row) return;
+  row.style.display = sel.value === 'custom' ? 'flex' : 'none';
+}
+
+function previewNotice() {
+  const text = document.getElementById('noticeTextInput')?.value?.trim();
+  if (!text) { showErrorToast('নোটিসের বিষয়বস্তু লিখুন!'); return; }
+  const type = document.getElementById('noticeTypeSelect')?.value || 'warning';
+  const previewBanner = document.getElementById('noticePreviewBanner');
+  const previewText = document.getElementById('noticePreviewText');
+  const previewArea = document.getElementById('noticePreviewArea');
+
+  if (previewBanner) {
+    previewBanner.className = 'notice-preview-banner';
+    if (type === 'danger') previewBanner.classList.add('preview-danger');
+    else if (type === 'info') previewBanner.classList.add('preview-info');
+    else if (type === 'success') previewBanner.classList.add('preview-success');
+  }
+  if (previewText) previewText.textContent = text;
+  if (previewArea) previewArea.style.display = 'block';
+}
+
+function publishNotice() {
+  const text = document.getElementById('noticeTextInput')?.value?.trim();
+  if (!text) { showErrorToast('নোটিসের বিষয়বস্তু লিখুন!'); return; }
+
+  const type = document.getElementById('noticeTypeSelect')?.value || 'warning';
+  const durSel = document.getElementById('noticeDurationSelect');
+  let durationMinutes = 720;
+
+  if (durSel?.value === 'custom') {
+    const d = parseInt(document.getElementById('customDays')?.value) || 0;
+    const h = parseInt(document.getElementById('customHours')?.value) || 0;
+    const m = parseInt(document.getElementById('customMinutes')?.value) || 0;
+    durationMinutes = d * 1440 + h * 60 + m;
+    if (durationMinutes < 1) { showErrorToast('কমপক্ষে ১ মিনিট সময় দিন!'); return; }
+  } else {
+    durationMinutes = parseInt(durSel?.value) || 720;
+  }
+
+  const notice = {
+    text: text,
+    type: type,
+    createdAt: Date.now(),
+    expiresAt: Date.now() + durationMinutes * 60 * 1000
+  };
+
+  localStorage.setItem(NOTICE_STORAGE_KEY, JSON.stringify(notice));
+
+  // Close modal
+  const modalEl = document.getElementById('noticeBoardModal');
+  const modal = bootstrap.Modal.getInstance(modalEl);
+  if (modal) modal.hide();
+
+  showNoticeBanner(notice);
+
+  const dLabel = durationMinutes >= 1440
+    ? `${Math.floor(durationMinutes/1440)} দিন`
+    : durationMinutes >= 60
+    ? `${Math.floor(durationMinutes/60)} ঘণ্টা`
+    : `${durationMinutes} মিনিট`;
+
+  showSuccessToast(`✅ নোটিস প্রকাশিত! মেয়াদ: ${dLabel}`);
+}
+
+function deleteNotice() {
+  localStorage.removeItem(NOTICE_STORAGE_KEY);
+  hideNoticeBanner();
+  const modalEl = document.getElementById('noticeBoardModal');
+  const modal = bootstrap.Modal.getInstance(modalEl);
+  if (modal) modal.hide();
+  showSuccessToast('🗑️ নোটিস মুছে ফেলা হয়েছে');
+}
+
+// Auto-init when DOM ready
+document.addEventListener('DOMContentLoaded', function() {
+  setTimeout(initNoticeBoard, 800);
+});
+
+// Also expose globally
+window.initNoticeBoard = initNoticeBoard;
+window.openNoticeModal = openNoticeModal;
+window.publishNotice = publishNotice;
+window.deleteNotice = deleteNotice;
+window.toggleCustomDuration = toggleCustomDuration;
+window.previewNotice = previewNotice;
+
