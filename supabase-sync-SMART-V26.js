@@ -105,6 +105,11 @@
   async function pullFromCloud(silent = false) {
     if (!isInitialized && !initialize()) return false;
     if (isPulling) return false;
+    // Don't pull if we just pushed (prevents overwriting local deletes/edits)
+    if (Date.now() - lastPushTime < 8000) {
+      if (!silent) log('⏸️', 'Skipping pull - recent push in progress');
+      return false;
+    }
     if (!isOnline) {
       if (!silent) log('📵', 'Offline - cannot pull');
       return false;
@@ -224,8 +229,9 @@
   // ==========================================
   function determineIfShouldUpdate(cloudTime, localTime, cloudVer, localVer, cloudDevice) {
     // Case 1: If this is our own push bouncing back, ignore
+    // Increased to 8s to prevent race condition after delete/edit
     const timeSinceOurPush = Date.now() - lastPushTime;
-    if (timeSinceOurPush < 3000 && cloudDevice === DEVICE_ID) {
+    if (timeSinceOurPush < 8000 && cloudDevice === DEVICE_ID) {
       return false;
     }
 

@@ -2040,7 +2040,7 @@ function renderLedger(transactions) {
         <td class="${amtClass} fw-bold">৳${formatNumber(amt)}</td>
         <td class="text-end">
           <div class="btn-group">
-            <button class="btn btn-sm btn-outline-primary" onclick="editTransaction(${f.id})" title="Edit record">
+            <button class="btn btn-sm btn-outline-primary edit-tx-btn" data-txid="${f.id}" title="Edit record">
               ✏️ Edit
             </button>
             <button class="btn btn-sm btn-danger del-tx-btn" data-txid="${f.id}" title="Delete record">
@@ -3808,6 +3808,8 @@ function deleteStudent(rowIndex) {
   if (typeof updateGrandTotal === 'function') updateGrandTotal();
 }
 
+window.deleteStudent = deleteStudent;
+
 // ===================================
 // ADD FINANCE TRANSACTION
 // ===================================
@@ -3949,12 +3951,14 @@ function deleteTransaction(id) {
   }
 
   globalData.finance = globalData.finance.filter(f => String(f.id) !== sid);
-  saveToStorage();
-  showSuccessToast('Transaction deleted successfully!');
-
-  // Refresh ledger
+  
+  // Render FIRST so user sees the change immediately (before async cloud push)
   renderLedger(globalData.finance);
   updateGlobalStats();
+  showSuccessToast('Transaction deleted successfully!');
+
+  // Then save & push to cloud (async, won't revert UI)
+  saveToStorage();
 
   // Refresh Account Details modal if open
   const accModal = document.getElementById('accountDetailsModal');
@@ -3970,7 +3974,8 @@ function deleteTransaction(id) {
 window.deleteTransaction = deleteTransaction;
 
 function editTransaction(id) {
-  const transaction = globalData.finance.find(f => f.id === id);
+  const sid = String(id);
+  const transaction = globalData.finance.find(f => String(f.id) === sid);
   if (!transaction) return;
 
   const form = document.getElementById('editTransactionForm');
@@ -3986,6 +3991,8 @@ function editTransaction(id) {
   modal.show();
 }
 
+window.editTransaction = editTransaction;
+
 async function handleEditTransactionSubmit(e) {
   e.preventDefault();
   const form = document.getElementById('editTransactionForm');
@@ -3999,8 +4006,8 @@ async function handleEditTransactionSubmit(e) {
     return;
   }
 
-  const id = parseInt(formData.transactionId);
-  const index = globalData.finance.findIndex(f => f.id === id);
+  const id = formData.transactionId; // keep as string/original
+  const index = globalData.finance.findIndex(f => String(f.id) === String(id));
 
   if (index !== -1) {
     globalData.finance[index] = {
@@ -8645,6 +8652,14 @@ window.deleteVisitor        = deleteVisitor;
 
 // ── Delete Transaction Event Delegation ──────────────────────────────────────
 document.addEventListener('click', function(e) {
+  // Handle Edit button
+  const editBtn = e.target.closest('.edit-tx-btn');
+  if (editBtn) {
+    const txId = editBtn.getAttribute('data-txid');
+    if (txId) editTransaction(txId);
+    return;
+  }
+
   const btn = e.target.closest('.del-tx-btn');
   if (!btn) return;
   const txId = btn.getAttribute('data-txid');
@@ -8664,10 +8679,15 @@ document.addEventListener('click', function(e) {
     updateAccountBalance(tx.method, tx.amount, tx.type, false);
   }
   window.globalData.finance = (window.globalData.finance || []).filter(f => f.id === undefined || String(f.id) !== sid);
-  if (typeof saveToStorage === 'function') saveToStorage();
-  if (typeof showSuccessToast === 'function') showSuccessToast('Transaction deleted!');
+  
+  // Render immediately so user sees the change
   if (typeof renderLedger === 'function') renderLedger(window.globalData.finance);
   if (typeof updateGlobalStats === 'function') updateGlobalStats();
+  if (typeof showSuccessToast === 'function') showSuccessToast('Transaction deleted!');
+  
+  // Save & push AFTER UI update (async - won't block)
+  if (typeof saveToStorage === 'function') saveToStorage();
+  
   const accModal = document.getElementById('accountDetailsModal');
   if (accModal && bootstrap.Modal.getInstance(accModal)) {
     if (typeof renderAccountDetails === 'function') renderAccountDetails();
