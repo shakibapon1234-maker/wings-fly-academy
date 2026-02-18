@@ -4975,34 +4975,44 @@ function generateCertificate() {
     </div>
   `;
 
-  const opt = {
-    margin: 0,
-    filename: `Certificate_${s.name.replace(/[^a-z0-9]/gi, '_')}.pdf`,
-    image: { type: 'jpeg', quality: 0.98 },
-    html2canvas: { scale: 1.5, useCORS: true, logging: true },
-    jsPDF: { unit: 'px', format: [1056, 816], orientation: 'landscape' }
-  };
+  // Open print window
+  const pw = window.open('', '_blank', 'width=1120,height=900');
+  pw.document.write(`<!DOCTYPE html><html><head>
+    <title>Certificate - ${s.name}</title>
+    <link href="https://fonts.googleapis.com/css2?family=Outfit:wght@400;700;900&family=Oswald:wght@700;900&family=Rye&display=swap" rel="stylesheet">
+    <style>
+      * { margin: 0; padding: 0; box-sizing: border-box; }
+      body { background: #ccc; display: flex; flex-direction: column; align-items: center; padding: 20px; font-family: sans-serif; }
+      #certWrap { background: white; }
+      button.save-btn {
+        margin: 16px 0;
+        padding: 12px 32px;
+        background: #FFD700;
+        color: #000;
+        border: none;
+        border-radius: 8px;
+        font-size: 1rem;
+        font-weight: 700;
+        cursor: pointer;
+      }
+      @media print {
+        body { background: white; padding: 0; }
+        button.save-btn { display: none; }
+        #certWrap { width: 297mm; height: 210mm; }
+        * { -webkit-print-color-adjust: exact !important; print-color-adjust: exact !important; }
+      }
+      @page { size: A4 landscape; margin: 0; }
+    </style>
+  </head><body>
+    <button class="save-btn" onclick="window.print()">🖨️ Save as PDF</button>
+    <div id="certWrap">${certHtml}</div>
+    <button class="save-btn" onclick="window.print()">🖨️ Save as PDF</button>
+  </body></html>`);
+  pw.document.close();
 
-  if (typeof html2pdf === 'undefined') {
-    alert('PDF Library (html2pdf) is not loaded. Please ensure you are connected to the internet.');
-    btn.innerHTML = originalText;
-    btn.disabled = false;
-    return;
-  }
-
-  document.body.classList.add('printing-certificate');
-  html2pdf().from(certHtml).set(opt).save().then(() => {
-    document.body.classList.remove('printing-certificate');
-    btn.innerHTML = originalText;
-    btn.disabled = false;
-    showSuccessToast('Certificate downloaded successfully!');
-  }).catch(err => {
-    document.body.classList.remove('printing-certificate');
-    console.error(err);
-    alert('Error generating PDF. Check console for details.');
-    btn.innerHTML = originalText;
-    btn.disabled = false;
-  });
+  btn.innerHTML = originalText;
+  btn.disabled = false;
+  showSuccessToast('Certificate window opened! Click "Save as PDF" button.');
 }
 
 function generateIdCard() {

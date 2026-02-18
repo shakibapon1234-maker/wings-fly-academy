@@ -454,7 +454,86 @@ window.handleAddResult = handleAddResult;
 // ৯. Print & Export (stub — existing functions সাথে compatible)
 // ─────────────────────────────────────────────────────────────
 function printExamResults() {
-  window.print();
+  const list = window.globalData?.examRegistrations || [];
+  const fmt = window.formatNumber || (n => Number(n).toLocaleString('en-IN'));
+
+  // Apply current filters
+  const q       = (document.getElementById('examResultSearchInput')?.value || '').toLowerCase().trim();
+  const batch   = document.getElementById('examBatchFilter')?.value || '';
+  const session = document.getElementById('examSessionFilter')?.value || '';
+  const subject = document.getElementById('examSubjectFilter')?.value || '';
+  const dateFrom = document.getElementById('examDateFrom')?.value || '';
+  const dateTo   = document.getElementById('examDateTo')?.value || '';
+
+  const filtered = list.filter(r => {
+    const matchQ  = !q || (r.studentName||'').toLowerCase().includes(q) || (r.regId||'').toLowerCase().includes(q);
+    const matchB  = !batch   || r.batch   === batch;
+    const matchSe = !session || r.session === session;
+    const matchSu = !subject || r.subject === subject;
+    const matchD  = (!dateFrom || (r.date||'') >= dateFrom) && (!dateTo || (r.date||'') <= dateTo);
+    return matchQ && matchB && matchSe && matchSu && matchD;
+  });
+
+  if (filtered.length === 0) {
+    alert('No exam results to print!');
+    return;
+  }
+
+  let rows = '';
+  filtered.forEach((r, i) => {
+    const total = parseFloat(r.totalMarks) || 0;
+    const obtained = parseFloat(r.obtainedMarks) || 0;
+    const pct = total > 0 ? ((obtained/total)*100).toFixed(1) : '-';
+    rows += `<tr style="background:${i%2===0?'#fff':'#f7f9fc'}">
+      <td>${r.regId||'-'}</td>
+      <td style="font-weight:600">${r.studentName||'-'}</td>
+      <td>${r.batch||'-'}</td>
+      <td>${r.session||'-'}</td>
+      <td>${r.subject||'-'}</td>
+      <td>${r.date||'-'}</td>
+      <td style="text-align:right">${obtained}</td>
+      <td style="text-align:right">${total}</td>
+      <td style="text-align:right;font-weight:700">${pct}%</td>
+      <td style="font-weight:700;color:${r.grade==='A+'||r.grade==='A'?'green':'#c0001a'}">${r.grade||'-'}</td>
+      <td style="font-weight:700;color:${r.status==='Pass'?'green':'#c0001a'}">${r.status||'-'}</td>
+    </tr>`;
+  });
+
+  const pw = window.open('','_blank');
+  pw.document.write(`<!DOCTYPE html><html><head>
+    <title>Exam Results Report</title>
+    <style>
+      body{font-family:'Segoe UI',Arial,sans-serif;padding:20px;color:#333}
+      h2{border-bottom:2px solid #1a3a5c;padding-bottom:8px;color:#1a3a5c}
+      table{width:100%;border-collapse:collapse;font-size:11px;margin-top:12px}
+      th{background:#1a3a5c;color:#fff;padding:8px 6px;text-align:left}
+      td{border:1px solid #dde;padding:6px;font-size:11px}
+      .info{background:#f0f4f8;padding:10px;border-radius:6px;margin:10px 0;font-size:12px}
+      @media print{button{display:none}}
+    </style>
+  </head><body>
+    <h2>📋 Exam Results Report</h2>
+    <div class="info">
+      Total Records: <strong>${filtered.length}</strong>
+      ${batch?' | Batch: <strong>'+batch+'</strong>':''}
+      ${session?' | Session: <strong>'+session+'</strong>':''}
+      ${subject?' | Subject: <strong>'+subject+'</strong>':''}
+      ${dateFrom||dateTo?' | Date: <strong>'+(dateFrom||'Start')+' → '+(dateTo||'Today')+'</strong>':''}
+      &nbsp;|&nbsp; Printed: <strong>${new Date().toLocaleDateString()}</strong>
+    </div>
+    <table>
+      <thead><tr>
+        <th>Reg ID</th><th>Student Name</th><th>Batch</th><th>Session</th>
+        <th>Subject</th><th>Date</th><th style="text-align:right">Obtained</th>
+        <th style="text-align:right">Total</th><th style="text-align:right">%</th>
+        <th>Grade</th><th>Status</th>
+      </tr></thead>
+      <tbody>${rows}</tbody>
+    </table>
+    <br>
+    <button onclick="window.print()" style="padding:10px 24px;background:#1a3a5c;color:#fff;border:none;border-radius:6px;cursor:pointer;font-size:1rem;">🖨️ Print</button>
+  </body></html>`);
+  pw.document.close();
 }
 window.printExamResults = printExamResults;
 
