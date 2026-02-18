@@ -1841,38 +1841,12 @@ textarea.form-control {
    =================================== */
 
 @media print {
-
-  /* যখন কোনো specific print class নেই — সাধারণ Ctrl+P — কিছুই print হবে না */
-  body:not(.printing-receipt):not(.printing-attendance):not(.printing-ledger):not(.printing-certificate) * {
-    display: none !important;
-    background: white !important;
-    background-image: none !important;
-  }
-
-  body:not(.printing-receipt):not(.printing-attendance):not(.printing-ledger):not(.printing-certificate) {
-    background: white !important;
-    background-image: none !important;
-    background-color: white !important;
-  }
-
-  body:not(.printing-receipt):not(.printing-attendance):not(.printing-ledger):not(.printing-certificate)::before {
-    content: "⚠️ সরাসরি Print করা যাবে না। রিসিট বা রিপোর্ট Print বাটন ব্যবহার করুন।";
-    display: block !important;
-    font-size: 18px;
-    text-align: center;
-    padding: 40px;
-    color: #000;
-    background: white !important;
-  }
-
-  body:not(.printing-receipt):not(.printing-attendance):not(.printing-ledger):not(.printing-certificate)::after {
-    display: none !important;
-  }
-
+  /* Background gradient ও grid সরাও */
   .sidebar,
   .top-bar,
-  .btn,
-  .dropdown {
+  .dropdown,
+  .notice-banner,
+  .nav-item-link {
     display: none !important;
   }
 
