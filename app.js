@@ -9104,13 +9104,15 @@ window.previewNotice = previewNotice;
 // (HTML uses renderActivityLog / renderRecycleBin)
 // ===================================
 function renderActivityLog() {
-  if (typeof loadActivityHistory === 'function') loadActivityHistory();
+  try { const raw = localStorage.getItem("wingsfly_data"); if (raw) window.globalData = JSON.parse(raw); } catch(e) {}
+  if (typeof loadActivityHistory === "function") loadActivityHistory();
 }
 function renderRecycleBin() {
-  if (typeof loadDeletedItems === 'function') loadDeletedItems();
+  try { const raw = localStorage.getItem("wingsfly_data"); if (raw) window.globalData = JSON.parse(raw); } catch(e) {}
+  if (typeof loadDeletedItems === "function") loadDeletedItems();
 }
 function clearRecycleBin() {
-  if (typeof emptyTrash === 'function') emptyTrash();
+  if (typeof emptyTrash === "function") emptyTrash();
 }
 window.renderActivityLog = renderActivityLog;
 window.renderRecycleBin = renderRecycleBin;
@@ -9330,16 +9332,33 @@ window.renderSnapshotList = renderSnapshotList;
 
 // Page load হলে প্রথম snapshot নাও (যদি আজকের কোনো snapshot না থাকে)
 document.addEventListener('DOMContentLoaded', function() {
-  const snapshots = getSnapshots();
-  const today = new Date().toDateString();
-  const lastSnap = snapshots[0];
-  const lastSnapDate = lastSnap ? new Date(lastSnap.id).toDateString() : null;
+  // প্রথম snapshot (3 সেকেন্ড পর, data load হওয়ার পরে)
+  setTimeout(function() {
+    takeSnapshot();
+  }, 3000);
 
-  // যদি আজকের কোনো recent snapshot না থাকে তাহলে নাও
-  if (!lastSnap || (Date.now() - lastSnap.id) > SNAPSHOT_INTERVAL_MS) {
-    setTimeout(takeSnapshot, 3000); // 3 সেকেন্ড পর (data load হওয়ার পরে)
+  // প্রতি ৫ মিনিটে check করো, কিন্তু ১ ঘন্টার বেশি পুরনো হলেই নতুন snapshot নাও
+  setInterval(function() {
+    const snapshots = getSnapshots();
+    const lastSnap = snapshots[0];
+    if (!lastSnap || (Date.now() - lastSnap.id) > SNAPSHOT_INTERVAL_MS) {
+      takeSnapshot();
+    }
+  }, 5 * 60 * 1000);
+
+  // ===============================================
+  // SETTINGS MODAL: খোলার সময় সব data refresh করো
+  // ===============================================
+  const settingsModalEl = document.getElementById('settingsModal');
+  if (settingsModalEl) {
+    settingsModalEl.addEventListener('shown.bs.modal', function() {
+      // Fresh data load করো localStorage থেকে
+      try {
+        const raw = localStorage.getItem('wingsfly_data');
+        if (raw) window.globalData = JSON.parse(raw);
+      } catch(e) {}
+      // Snapshot list render করো
+      if (typeof renderSnapshotList === 'function') renderSnapshotList();
+    });
   }
-
-  // প্রতি ১ ঘন্টায় auto snapshot
-  setInterval(takeSnapshot, SNAPSHOT_INTERVAL_MS);
 });
