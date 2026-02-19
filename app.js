@@ -96,6 +96,8 @@ function moveToTrash(type, item) {
     }
     
     localStorage.setItem('wingsfly_data', JSON.stringify(window.globalData));
+    // FIX: cloud pull এ deletedItems হারিয়ে না যায় তাই backup রাখো
+    localStorage.setItem('wingsfly_deleted_backup', JSON.stringify(window.globalData.deletedItems));
   } catch(e) {
     console.warn('Trash error:', e);
   }
@@ -3989,18 +3991,11 @@ function deleteTransaction(id) {
   updateGlobalStats();
   showSuccessToast('Transaction deleted successfully!');
 
-  // Then save & push to cloud with DELETE reason so Data Loss Prevention knows it's intentional
+  // FIX: Delete reason পাঠাও যাতে Data Loss Prevention bypass হয়
+  const _dc = parseInt(localStorage.getItem('wings_total_deleted') || '0') + 1;
+  localStorage.setItem('wings_total_deleted', _dc.toString());
+  localStorage.setItem('wingsfly_data', JSON.stringify(window.globalData));
   if (typeof window.scheduleSyncPush === 'function') {
-    // Save locally first
-    if (!window.globalData.deletedItems) window.globalData.deletedItems = [];
-    if (!window.globalData.activityHistory) window.globalData.activityHistory = [];
-    localStorage.setItem('wingsfly_deleted_backup', JSON.stringify(window.globalData.deletedItems));
-    localStorage.setItem('wingsfly_activity_backup', JSON.stringify(window.globalData.activityHistory));
-    localStorage.setItem('wingsfly_data', JSON.stringify(window.globalData));
-    // Track delete count
-    const _dc = parseInt(localStorage.getItem('wings_total_deleted') || '0') + 1;
-    localStorage.setItem('wings_total_deleted', _dc.toString());
-    // Push with 'Delete' in reason so cloud knows it's intentional
     window.scheduleSyncPush('Delete Transaction: ' + (txToDelete.description || txToDelete.category || String(id)));
   } else {
     saveToStorage();
@@ -9144,26 +9139,24 @@ window.previewNotice = previewNotice;
 // ===================================
 function renderActivityLog() {
   try {
-    // FIX: activity_backup থেকে নাও — cloud pull এ হারায় না
-    var backupRaw = localStorage.getItem('wingsfly_activity_backup');
-    var backup = backupRaw ? JSON.parse(backupRaw) : [];
-    var current = (window.globalData && window.globalData.activityHistory) || [];
-    // বেশি entries যেটায় সেটা রাখো
     if (!window.globalData) window.globalData = {};
-    window.globalData.activityHistory = backup.length >= current.length ? backup : current;
-  } catch(e) { console.warn('[renderActivityLog] error:', e); }
+    // backup থেকে নাও — cloud pull এ হারায় না
+    var bk = localStorage.getItem('wingsfly_activity_backup');
+    var bkData = bk ? JSON.parse(bk) : [];
+    var cur = window.globalData.activityHistory || [];
+    window.globalData.activityHistory = bkData.length >= cur.length ? bkData : cur;
+  } catch(e) { console.warn('renderActivityLog:', e); }
   if (typeof loadActivityHistory === 'function') loadActivityHistory();
 }
 function renderRecycleBin() {
   try {
-    // FIX: deleted_backup থেকে নাও — cloud pull এ হারায় না
-    var backupRaw = localStorage.getItem('wingsfly_deleted_backup');
-    var backup = backupRaw ? JSON.parse(backupRaw) : [];
-    var current = (window.globalData && window.globalData.deletedItems) || [];
-    // বেশি entries যেটায় সেটা রাখো
     if (!window.globalData) window.globalData = {};
-    window.globalData.deletedItems = backup.length >= current.length ? backup : current;
-  } catch(e) { console.warn('[renderRecycleBin] error:', e); }
+    // backup থেকে নাও — cloud pull এ হারায় না
+    var bk = localStorage.getItem('wingsfly_deleted_backup');
+    var bkData = bk ? JSON.parse(bk) : [];
+    var cur = window.globalData.deletedItems || [];
+    window.globalData.deletedItems = bkData.length >= cur.length ? bkData : cur;
+  } catch(e) { console.warn('renderRecycleBin:', e); }
   if (typeof loadDeletedItems === 'function') loadDeletedItems();
 }
 function clearRecycleBin() {
@@ -9172,12 +9165,12 @@ function clearRecycleBin() {
 window.renderActivityLog = renderActivityLog;
 window.renderRecycleBin = renderRecycleBin;
 window.clearRecycleBin = clearRecycleBin;
-// FIX: index.html এ clearActivityLog() call হয় — এই alias ছাড়া FAIL দেখায়
 window.clearActivityLog = function() {
   if (!confirm('সব Activity History মুছে ফেলবেন?')) return;
   if (!window.globalData) return;
   window.globalData.activityHistory = [];
-  localStorage.setItem('wingsfly_activity_backup', JSON.stringify([]));
+  localStorage.setItem('wingsfly_activity_backup', '[]');
+  localStorage.setItem('wingsfly_data', JSON.stringify(window.globalData));
   if (typeof saveToStorage === 'function') saveToStorage(true);
   if (typeof window.loadActivityHistory === 'function') window.loadActivityHistory();
   if (typeof showSuccessToast === 'function') showSuccessToast('Activity History cleared!');
@@ -9199,17 +9192,13 @@ window.loadActivityHistory = function() {
   const searchEl = document.getElementById('logSearch');
   const searchVal = searchEl ? searchEl.value.toLowerCase() : '';
   
-  // FIX: logFilterType-এর values ADD/EDIT/DELETE = h.action field
-  // historyFilter-এর values student/finance/employee = h.type field
   const isActionFilter = filterEl && filterEl.id === 'logFilterType';
   const filtered = history.filter(h => {
     const typeOk = filterVal === 'all' ||
-      (isActionFilter
-        ? (h.action || '').toUpperCase() === filterVal.toUpperCase()
-        : h.type === filterVal);
+      (isActionFilter ? (h.action||'').toUpperCase() === filterVal.toUpperCase() : h.type === filterVal);
     const searchOk = !searchVal ||
-      (h.description || '').toLowerCase().includes(searchVal) ||
-      (h.user || '').toLowerCase().includes(searchVal);
+      (h.description||'').toLowerCase().includes(searchVal) ||
+      (h.user||'').toLowerCase().includes(searchVal);
     return typeOk && searchOk;
   });
   
