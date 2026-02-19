@@ -2947,6 +2947,49 @@
                                         <h6 class="settings-section-title mb-1">🔍 Sync Diagnostic & Function Test</h6>
                                         <p class="text-muted small mb-3">Data ও Sync সব ঠিক আছে কিনা পরীক্ষা করুন। সমস্যা হলে এখানেই ধরা পড়বে।</p>
 
+                                        <!-- AUTO-HEAL STATUS -->
+                                        <div class="card border-0 shadow-sm mb-3" style="border-left:4px solid #10b981!important;">
+                                            <div class="card-body p-3">
+                                                <div class="d-flex align-items-center justify-content-between mb-2">
+                                                    <div>
+                                                        <div class="fw-bold" style="font-size:0.9rem;">🛡️ Auto-Heal Engine</div>
+                                                        <div class="text-muted small">Background-এ নিজে নিজে সমস্যা খুঁজে fix করে</div>
+                                                    </div>
+                                                    <button type="button" class="btn btn-sm btn-success px-3" onclick="window.autoHeal?.runNow()">⚡ এখনই Run করুন</button>
+                                                </div>
+                                                <div class="row g-2 mb-2">
+                                                    <div class="col-6">
+                                                        <div class="p-2 rounded text-center" style="background:#f0fdf4;border:1px solid #bbf7d0;">
+                                                            <div class="text-muted small">মোট Check</div>
+                                                            <div class="fw-bold text-success" id="heal-stats-total-runs">0</div>
+                                                        </div>
+                                                    </div>
+                                                    <div class="col-6">
+                                                        <div class="p-2 rounded text-center" style="background:#eff6ff;border:1px solid #bfdbfe;">
+                                                            <div class="text-muted small">Auto Fix হয়েছে</div>
+                                                            <div class="fw-bold text-primary" id="heal-stats-total-fixes">0</div>
+                                                        </div>
+                                                    </div>
+                                                    <div class="col-6">
+                                                        <div class="p-2 rounded" style="background:#f8f9fa;font-size:0.78rem;">
+                                                            <span class="text-muted">শেষ check: </span>
+                                                            <span id="heal-stats-last-run">—</span>
+                                                        </div>
+                                                    </div>
+                                                    <div class="col-6">
+                                                        <div class="p-2 rounded" style="background:#f8f9fa;font-size:0.78rem;">
+                                                            <span class="text-muted">শেষ fix: </span>
+                                                            <span id="heal-stats-last-fix">—</span>
+                                                        </div>
+                                                    </div>
+                                                </div>
+                                                <div class="small fw-bold text-muted mb-1">🔧 Auto-Heal Log (সর্বশেষ ২০টি)</div>
+                                                <div id="heal-log-container" style="max-height:150px;overflow-y:auto;">
+                                                    <div class="text-muted small p-2">Engine চালু হলে এখানে log দেখাবে...</div>
+                                                </div>
+                                            </div>
+                                        </div>
+
                                         <!-- Diagnostic Tool (inline iframe) -->
                                         <div class="card border-0 shadow-sm mb-3">
                                             <div class="card-body p-3">
@@ -4225,6 +4268,7 @@
     <script src="quick-fix.js"></script>
     <script src="print-fix.js"></script>
     <script src="symbol-fix.js"></script>
+    <script src="auto-heal.js"></script>
 
     <!-- =============================================== -->
     <!-- INLINE DIAGNOSTIC & TEST SYSTEM               -->

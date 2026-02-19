@@ -1,0 +1,385 @@
+/**
+ * ============================================
+ * WINGS FLY — AUTO-HEAL ENGINE v1.0
+ * ============================================
+ * Background-এ চলে, সমস্যা detect করে নিজে fix করে।
+ * কোনো command ছাড়াই কাজ করে।
+ *
+ * যা করে:
+ *  1. প্রতি 60 সেকেন্ডে health check
+ *  2. Cloud vs Local data mismatch → auto push/pull
+ *  3. Student due calculation wrong → auto recalculate
+ *  4. Network ফিরলে → pending sync retry
+ *  5. Version mismatch → auto resolve
+ *  6. ব্যবহারকারীকে toast দিয়ে জানায় কী fix হলো
+ */
+
+(function () {
+  'use strict';
+
+  const HEAL_INTERVAL   = 60 * 1000;  // প্রতি ৬০ সেকেন্ডে check
+  const SUPABASE_URL    = 'https://gtoldrltxjrwshubplfp.supabase.co';
+  const SUPABASE_KEY    = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6Imd0b2xkcmx0eGpyd3NodWJwbGZwIiwicm9sZSI6ImFub24iLCJpYXQiOjE3NzEwOTk5MTksImV4cCI6MjA4NjY3NTkxOX0.7NTx3tzU1C5VaewNZZHTaJf2WJ_GtjhQPKOymkxRsUk';
+  const API_URL         = `${SUPABASE_URL}/rest/v1/academy_data?id=eq.wingsfly_main&select=*`;
+  const HEADERS         = { 'apikey': SUPABASE_KEY, 'Authorization': 'Bearer ' + SUPABASE_KEY };
+
+  // Stats — Settings-এ দেখানোর জন্য
+  const healStats = {
+    totalRuns      : 0,
+    totalFixes     : 0,
+    lastRun        : null,
+    lastFix        : null,
+    log            : [],   // max 50 entries
+  };
+  window.healStats = healStats;
+
+  // ============================================
+  // LOGGING
+  // ============================================
+  function hLog(type, msg) {
+    const entry = { time: new Date().toLocaleTimeString('bn-BD'), type, msg };
+    healStats.log.unshift(entry);
+    if (healStats.log.length > 50) healStats.log.pop();
+
+    const icon = { info:'ℹ️', fix:'🔧', warn:'⚠️', ok:'✅', err:'❌' }[type] || '•';
+    console.log(`[AutoHeal] ${icon} ${msg}`);
+
+    // Settings-এ heal log থাকলে update করো
+    refreshHealLogUI();
+  }
+
+  function refreshHealLogUI() {
+    const container = document.getElementById('heal-log-container');
+    if (!container) return;
+    container.innerHTML = healStats.log.slice(0, 20).map(e => {
+      const colors = { fix:'#d1fae5', warn:'#fef3c7', err:'#fee2e2', ok:'#d1fae5', info:'#eff6ff' };
+      const textColors = { fix:'#065f46', warn:'#92400e', err:'#991b1b', ok:'#065f46', info:'#1e40af' };
+      return `<div style="
+        background:${colors[e.type]||'#f9fafb'};
+        color:${textColors[e.type]||'#374151'};
+        padding:5px 10px;
+        border-radius:6px;
+        margin-bottom:4px;
+        font-size:0.78rem;
+        font-family:monospace;
+      "><span style="opacity:0.6">[${e.time}]</span> ${e.msg}</div>`;
+    }).join('');
+  }
+
+  // ============================================
+  // TOAST (অ্যাপের নিজের toast use করবে)
+  // ============================================
+  function healToast(msg, type = 'info') {
+    if (type === 'fix' && typeof window.showSuccessToast === 'function') {
+      window.showSuccessToast('🔧 Auto-Heal: ' + msg);
+    } else if (type === 'warn' && typeof window.showErrorToast === 'function') {
+      window.showErrorToast('⚠️ Auto-Heal: ' + msg);
+    } else {
+      console.log('[AutoHeal Toast]', msg);
+    }
+  }
+
+  // ============================================
+  // HEAL 1: Student Due Recalculation
+  // সমস্যা: due = totalPayment - paid হওয়া উচিত
+  // কিন্তু কখনো mismatch হয়
+  // ============================================
+  function healStudentDues() {
+    const data = window.globalData;
+    if (!data || !data.students) return 0;
+
+    let fixed = 0;
+    data.students.forEach(s => {
+      const total  = parseFloat(s.totalPayment) || 0;
+      const paid   = parseFloat(s.paid) || 0;
+      const correctDue = Math.max(0, total - paid);
+      const currentDue = parseFloat(s.due) || 0;
+
+      if (Math.abs(correctDue - currentDue) > 0.5) {
+        hLog('fix', `Student "${s.name}" due fix: ৳${currentDue} → ৳${correctDue}`);
+        s.due = correctDue;
+        fixed++;
+      }
+    });
+
+    if (fixed > 0) {
+      localStorage.setItem('wingsfly_data', JSON.stringify(data));
+      healToast(`${fixed} জন student-এর due auto-fix হয়েছে`, 'fix');
+    }
+    return fixed;
+  }
+
+  // ============================================
+  // HEAL 2: Duplicate Finance Entry Detection
+  // একই amount + date + type = সম্ভাব্য duplicate
+  // ============================================
+  function healDuplicateFinance() {
+    const data = window.globalData;
+    if (!data || !data.finance) return 0;
+
+    const seen = new Set();
+    const cleaned = [];
+    let removed = 0;
+
+    data.finance.forEach(f => {
+      // Key = type + amount + date + person (5 মিনিটের মধ্যে একই entry = duplicate)
+      const roundedTime = f.timestamp
+        ? Math.floor(new Date(f.timestamp).getTime() / 300000) // 5min bucket
+        : f.date;
+      const key = `${f.type}|${f.amount}|${f.date}|${f.person || ''}|${roundedTime}`;
+
+      if (seen.has(key)) {
+        hLog('fix', `Duplicate finance entry removed: ${f.type} ৳${f.amount} (${f.date})`);
+        removed++;
+      } else {
+        seen.add(key);
+        cleaned.push(f);
+      }
+    });
+
+    if (removed > 0) {
+      data.finance = cleaned;
+      localStorage.setItem('wingsfly_data', JSON.stringify(data));
+      healToast(`${removed}টি duplicate transaction auto-remove হয়েছে`, 'fix');
+    }
+    return removed;
+  }
+
+  // ============================================
+  // HEAL 3: Cash Balance Integrity
+  // cashBalance কখনো undefined/NaN হলে fix করো
+  // ============================================
+  function healCashBalance() {
+    const data = window.globalData;
+    if (!data) return 0;
+
+    let fixed = 0;
+    if (isNaN(parseFloat(data.cashBalance)) || data.cashBalance === undefined || data.cashBalance === null) {
+      hLog('fix', `Cash balance was invalid (${data.cashBalance}) → 0 সেট করা হয়েছে`);
+      data.cashBalance = 0;
+      localStorage.setItem('wingsfly_data', JSON.stringify(data));
+      healToast('Cash balance invalid ছিল, 0 সেট করা হয়েছে', 'warn');
+      fixed++;
+    }
+
+    // Bank/Mobile account balance NaN হলে fix
+    (data.bankAccounts || []).forEach(acc => {
+      if (isNaN(parseFloat(acc.balance))) {
+        hLog('fix', `Bank "${acc.name}" balance invalid → 0`);
+        acc.balance = 0;
+        fixed++;
+      }
+    });
+    (data.mobileBanking || []).forEach(acc => {
+      if (isNaN(parseFloat(acc.balance))) {
+        hLog('fix', `Mobile "${acc.name}" balance invalid → 0`);
+        acc.balance = 0;
+        fixed++;
+      }
+    });
+
+    if (fixed > 0) {
+      localStorage.setItem('wingsfly_data', JSON.stringify(data));
+    }
+    return fixed;
+  }
+
+  // ============================================
+  // HEAL 4: Cloud vs Local Sync Mismatch
+  // Local-এ বেশি data থাকলে cloud-এ push করো
+  // Cloud-এ বেশি data থাকলে pull করো
+  // ============================================
+  async function healSyncMismatch() {
+    if (!navigator.onLine) {
+      hLog('info', 'Offline — sync check skip');
+      return 0;
+    }
+
+    let fixed = 0;
+
+    try {
+      const res = await fetch(API_URL, { headers: HEADERS, signal: AbortSignal.timeout(8000) });
+      if (!res.ok) {
+        hLog('warn', `Cloud check failed: HTTP ${res.status}`);
+        return 0;
+      }
+
+      const arr   = await res.json();
+      const cloud = arr[0];
+
+      if (!cloud) {
+        // Cloud-এ কোনো data নেই — push করো
+        hLog('fix', 'Cloud-এ data নেই — local data push করা হচ্ছে');
+        if (typeof window.saveToCloud === 'function') await window.saveToCloud();
+        healToast('Cloud empty ছিল — data push করা হয়েছে', 'fix');
+        fixed++;
+        return fixed;
+      }
+
+      const localStudents = (window.globalData?.students || []).length;
+      const localFinance  = (window.globalData?.finance  || []).length;
+      const cloudStudents = (cloud.students || []).length;
+      const cloudFinance  = (cloud.finance  || []).length;
+      const localVer      = parseInt(localStorage.getItem('wings_local_version')) || 0;
+      const cloudVer      = parseInt(cloud.version) || 0;
+
+      // Case A: Local-এ বেশি data → push to cloud
+      if (localStudents > cloudStudents || localFinance > cloudFinance) {
+        hLog('fix', `Local বেশি data আছে (students: ${localStudents} vs ${cloudStudents}) — cloud push করা হচ্ছে`);
+        if (typeof window.saveToCloud === 'function') await window.saveToCloud();
+        healToast(`Cloud sync: ${localStudents} students push করা হয়েছে`, 'fix');
+        fixed++;
+      }
+
+      // Case B: Cloud-এ বেশি data → safe pull (local data কমবে না)
+      else if (cloudStudents > localStudents || cloudFinance > localFinance) {
+        hLog('fix', `Cloud-এ বেশি data (students: ${cloudStudents} vs ${localStudents}) — pull করা হচ্ছে`);
+        if (typeof window.loadFromCloud === 'function') {
+          await window.loadFromCloud(true);
+          if (typeof window.renderFullUI === 'function') window.renderFullUI();
+        }
+        healToast(`Cloud থেকে latest data pull করা হয়েছে`, 'fix');
+        fixed++;
+      }
+
+      // Case C: Version mismatch কিন্তু count same — re-push নিজের version বাড়াতে
+      else if (localVer < cloudVer) {
+        hLog('info', `Version: Local v${localVer} < Cloud v${cloudVer} — updating local version`);
+        localStorage.setItem('wings_local_version', cloudVer.toString());
+        fixed++;
+      }
+
+    } catch (e) {
+      hLog('err', 'Sync heal error: ' + e.message);
+    }
+
+    return fixed;
+  }
+
+  // ============================================
+  // HEAL 5: UI Refresh যদি dashboard 0 দেখায়
+  // ============================================
+  function healUIRefresh() {
+    const dashStudentEl = document.getElementById('dashTotalStudents');
+    if (!dashStudentEl) return 0;
+
+    const displayed = parseInt(dashStudentEl.innerText) || 0;
+    const actual    = (window.globalData?.students || []).length;
+
+    if (actual > 0 && displayed === 0) {
+      hLog('fix', `Dashboard 0 দেখাচ্ছিল কিন্তু actual student ${actual} — UI refresh করা হচ্ছে`);
+      if (typeof window.updateGlobalStats === 'function') window.updateGlobalStats();
+      if (typeof window.renderFullUI === 'function') window.renderFullUI();
+      return 1;
+    }
+    return 0;
+  }
+
+  // ============================================
+  // HEAL 6: Network ফিরলে pending sync
+  // ============================================
+  let pendingSyncOnReconnect = false;
+
+  window.addEventListener('offline', () => {
+    pendingSyncOnReconnect = true;
+    hLog('warn', 'Network offline — reconnect হলে auto-sync হবে');
+  });
+
+  window.addEventListener('online', async () => {
+    hLog('info', 'Network ফিরেছে — pending sync শুরু হচ্ছে...');
+    await new Promise(r => setTimeout(r, 2000)); // 2 সেকেন্ড wait
+    if (pendingSyncOnReconnect) {
+      pendingSyncOnReconnect = false;
+      if (typeof window.saveToCloud === 'function') {
+        await window.saveToCloud();
+        hLog('fix', 'Reconnect-এর পর pending data push সম্পন্ন');
+        healToast('Network ফিরেছে — data sync সম্পন্ন ✓', 'fix');
+      }
+    }
+  });
+
+  // ============================================
+  // MAIN HEAL CYCLE
+  // ============================================
+  async function runHealCycle() {
+    // Login না হলে skip
+    if (sessionStorage.getItem('isLoggedIn') !== 'true') return;
+    if (!window.globalData) return;
+
+    healStats.totalRuns++;
+    healStats.lastRun = new Date().toLocaleTimeString('bn-BD');
+    hLog('info', `Heal cycle #${healStats.totalRuns} শুরু...`);
+
+    let totalFixed = 0;
+
+    // 1. Due fix (fast, local only)
+    totalFixed += healStudentDues();
+
+    // 2. Cash balance fix (fast, local only)
+    totalFixed += healCashBalance();
+
+    // 3. Duplicate finance remove (fast, local only)
+    totalFixed += healDuplicateFinance();
+
+    // 4. UI refresh fix (fast, local only)
+    totalFixed += healUIRefresh();
+
+    // 5. Cloud sync fix (async, network)
+    totalFixed += await healSyncMismatch();
+
+    // Update UI stats
+    if (totalFixed > 0) {
+      healStats.totalFixes += totalFixed;
+      healStats.lastFix = new Date().toLocaleTimeString('bn-BD');
+      hLog('fix', `Heal cycle সম্পন্ন — ${totalFixed}টি সমস্যা auto-fix হয়েছে ✓`);
+    } else {
+      hLog('ok', `Heal cycle সম্পন্ন — কোনো সমস্যা নেই ✓`);
+    }
+
+    // Settings-এ stats update
+    updateHealStatsUI();
+  }
+
+  function updateHealStatsUI() {
+    const el = document.getElementById('heal-stats-total-runs');
+    if (el) el.textContent = healStats.totalRuns;
+    const el2 = document.getElementById('heal-stats-total-fixes');
+    if (el2) el2.textContent = healStats.totalFixes;
+    const el3 = document.getElementById('heal-stats-last-run');
+    if (el3) el3.textContent = healStats.lastRun || '—';
+    const el4 = document.getElementById('heal-stats-last-fix');
+    if (el4) el4.textContent = healStats.lastFix || 'কোনো fix দরকার হয়নি';
+  }
+
+  // ============================================
+  // START
+  // ============================================
+  function start() {
+    hLog('info', '🛡️ Auto-Heal Engine চালু হয়েছে (প্রতি 60s)');
+
+    // প্রথমবার 10 সেকেন্ড পরে run করো (app load হতে দাও)
+    setTimeout(() => {
+      runHealCycle();
+    }, 10000);
+
+    // তারপর প্রতি 60 সেকেন্ডে
+    setInterval(() => {
+      runHealCycle();
+    }, HEAL_INTERVAL);
+  }
+
+  // Public API
+  window.autoHeal = {
+    runNow  : runHealCycle,
+    getStats: () => healStats,
+    getLogs : () => healStats.log,
+  };
+
+  // DOM ready হলে start করো
+  if (document.readyState === 'loading') {
+    document.addEventListener('DOMContentLoaded', start);
+  } else {
+    start();
+  }
+
+})();
