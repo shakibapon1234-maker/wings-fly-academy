@@ -4586,7 +4586,7 @@
       } catch(e) { check('Cloud (Supabase) reachable', false, 'সংযোগ হচ্ছে না: '+e.message); }
 
       // Test 7: Key functions exist
-      const fns = ['updateGlobalStats','saveToStorage','renderDashboard','updateAccountBalance'];
+      const fns = ['updateGlobalStats','saveToStorage','renderDashboard','updateAccountBalance','renderActivityLog','renderRecycleBin','clearActivityLog','clearRecycleBin'];
       fns.forEach(fn => {
         check(`function: ${fn}()`, typeof window[fn]==='function', typeof window[fn]==='function' ? 'defined ✓' : 'MISSING — ভুল হবে!');
       });
