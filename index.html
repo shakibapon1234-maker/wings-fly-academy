@@ -588,6 +588,21 @@
   .modal-header, nav, .sidebar, header, .att-tab-btn { display: none !important; }
 }
 </style>
+
+<style>
+/* ── Settings Modal: tab content top space fix ── */
+#settingsModal .modal-body { padding: 0 !important; }
+#settingsModal .tab-content { margin-top: 0 !important; padding-top: 0 !important; }
+#settingsModal .tab-pane    { margin-top: 0 !important; }
+#settingsModal .modal-content { min-height: 500px; max-height: 88vh; display: flex; flex-direction: column; }
+#settingsModal .modal-body  { flex: 1; overflow: hidden; min-height: 0; }
+#settingsModal form.h-100   { display: flex; flex-direction: row; overflow: hidden; height: 100%; }
+#settingsModal .settings-nav { overflow-y: auto; height: 100%; }
+#settingsModal .flex-grow-1.overflow-auto { height: 100%; }
+/* Remove any pseudo-element or before-after empty space */
+#settingsModal .tab-pane::before,
+#settingsModal .tab-pane::after { display: none !important; content: none !important; }
+</style>
 </head>
 
 <body>
@@ -2562,19 +2577,19 @@
     <!-- Settings Modal (Redesigned) -->
     <div class="modal fade" id="settingsModal" tabindex="-1">
         <div class="modal-dialog modal-xl modal-dialog-centered modal-dialog-scrollable">
-            <div class="modal-content custom-modal" style="min-height:600px; height:85vh; display:flex; flex-direction:column;">
+            <div class="modal-content custom-modal" style="min-height:500px;">
                 <div class="modal-header border-bottom">
                     <h5 class="modal-title fw-bold">
                         <span class="me-2 header-icon-circle bg-primary-light">âš™ï¸</span>System Settings
                     </h5>
                     <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
                 </div>
-                <div class="modal-body p-0" style="flex:1;overflow:hidden;display:flex;">
-                    <form id="settingsForm" onsubmit="handleSettingsSubmit(event)" style="flex:1;display:flex;overflow:hidden;">
-                        <div class="d-flex flex-column flex-lg-row" style="flex:1;overflow:hidden;">
+                <div class="modal-body p-0">
+                    <form id="settingsForm" onsubmit="handleSettingsSubmit(event)" class="h-100">
+                        <div class="d-flex h-100 flex-column flex-lg-row">
                             <!-- Sidebar Navigation -->
                             <div class="border-end p-3 settings-nav"
-                                style="min-width: 260px; background: var(--bg-card); overflow-y:auto;">
+                                style="min-width: 260px; background: var(--bg-card);">
                                 <div class="nav flex-column nav-pills" role="tablist">
                                     <button class="nav-link active" data-bs-toggle="pill" data-bs-target="#tab-general"
                                         type="button">
@@ -2613,8 +2628,8 @@
                             </div>
 
                             <!-- Main Content Area -->
-                            <div class="flex-grow-1 overflow-auto" style="background: var(--bg-app); height:100%;">
-                                <div class="tab-content" style="height:100%;">
+                            <div class="flex-grow-1 overflow-auto" style="background: var(--bg-app);">
+                                <div class="tab-content">
                                     <!-- Tab 1: General Settings -->
                                     <div class="tab-pane fade show active p-4" id="tab-general">
                                         <h6 class="settings-section-title">Academy Information</h6>
