@@ -9133,10 +9133,10 @@ function renderActivityLog() {
     var raw = localStorage.getItem('wingsfly_data');
     if (raw) {
       var parsed = JSON.parse(raw);
-      // Merge: cloud pull থেকে আসা data হারিয়ে না যায়
-      if (!window.globalData) window.globalData = parsed;
-      else {
-        // activityHistory: বেশি entries যেটায় সেটা রাখো
+      if (!window.globalData) {
+        window.globalData = parsed;
+      } else {
+        // FIX: বেশি entries যেটায় সেটা রাখো (cloud pull data হারাবে না)
         var lh = parsed.activityHistory || [];
         var wh = window.globalData.activityHistory || [];
         window.globalData.activityHistory = lh.length >= wh.length ? lh : wh;
@@ -9144,7 +9144,7 @@ function renderActivityLog() {
     }
     if (!window.globalData) window.globalData = {};
     if (!window.globalData.activityHistory) window.globalData.activityHistory = [];
-  } catch(e) { console.warn('renderActivityLog data load err:', e); }
+  } catch(e) { console.warn('[renderActivityLog] data load error:', e); }
   if (typeof loadActivityHistory === 'function') loadActivityHistory();
 }
 function renderRecycleBin() {
@@ -9152,9 +9152,10 @@ function renderRecycleBin() {
     var raw = localStorage.getItem('wingsfly_data');
     if (raw) {
       var parsed = JSON.parse(raw);
-      if (!window.globalData) window.globalData = parsed;
-      else {
-        // deletedItems: বেশি entries যেটায় সেটা রাখো
+      if (!window.globalData) {
+        window.globalData = parsed;
+      } else {
+        // FIX: বেশি entries যেটায় সেটা রাখো
         var ld = parsed.deletedItems || [];
         var wd = window.globalData.deletedItems || [];
         window.globalData.deletedItems = ld.length >= wd.length ? ld : wd;
@@ -9162,7 +9163,7 @@ function renderRecycleBin() {
     }
     if (!window.globalData) window.globalData = {};
     if (!window.globalData.deletedItems) window.globalData.deletedItems = [];
-  } catch(e) { console.warn('renderRecycleBin data load err:', e); }
+  } catch(e) { console.warn('[renderRecycleBin] data load error:', e); }
   if (typeof loadDeletedItems === 'function') loadDeletedItems();
 }
 function clearRecycleBin() {
@@ -9171,9 +9172,14 @@ function clearRecycleBin() {
 window.renderActivityLog = renderActivityLog;
 window.renderRecycleBin = renderRecycleBin;
 window.clearRecycleBin = clearRecycleBin;
-// Alias: index.html calls clearActivityLog, app.js has clearActivityHistory
+// FIX: index.html calls clearActivityLog — alias to clearActivityHistory
 window.clearActivityLog = function() {
-  if (typeof clearActivityHistory === 'function') clearActivityHistory();
+  if (!confirm('সব Activity History মুছে ফেলবেন?')) return;
+  if (!window.globalData) return;
+  window.globalData.activityHistory = [];
+  if (typeof saveToStorage === 'function') saveToStorage(true);
+  if (typeof window.loadActivityHistory === 'function') window.loadActivityHistory();
+  if (typeof showSuccessToast === 'function') showSuccessToast('Activity History cleared!');
 };
 
 // Map HTML element IDs to our functions
@@ -9192,14 +9198,17 @@ window.loadActivityHistory = function() {
   const searchEl = document.getElementById('logSearch');
   const searchVal = searchEl ? searchEl.value.toLowerCase() : '';
   
-  // logFilterType filters by h.action (ADD/EDIT/DELETE/LOGIN etc.)
-  // historyFilter filters by h.type (student/finance/employee etc.)
+  // FIX: logFilterType dropdown-এ values হলো ADD/EDIT/DELETE (action field)
+  // historyFilter dropdown-এ values হলো student/finance/employee (type field)
   const isActionFilter = filterEl && filterEl.id === 'logFilterType';
   const filtered = history.filter(h => {
     const typeOk = filterVal === 'all' ||
-      (isActionFilter ? (h.action||'').toUpperCase() === filterVal.toUpperCase()
-                      : h.type === filterVal);
-    const searchOk = !searchVal || (h.description||'').toLowerCase().includes(searchVal) || (h.user||'').toLowerCase().includes(searchVal);
+      (isActionFilter
+        ? (h.action || '').toUpperCase() === filterVal.toUpperCase()
+        : h.type === filterVal);
+    const searchOk = !searchVal ||
+      (h.description || '').toLowerCase().includes(searchVal) ||
+      (h.user || '').toLowerCase().includes(searchVal);
     return typeOk && searchOk;
   });
   
