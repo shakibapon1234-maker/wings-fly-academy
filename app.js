@@ -9104,15 +9104,15 @@ window.previewNotice = previewNotice;
 // (HTML uses renderActivityLog / renderRecycleBin)
 // ===================================
 function renderActivityLog() {
-  try { const raw = localStorage.getItem("wingsfly_data"); if (raw) window.globalData = JSON.parse(raw); } catch(e) {}
-  if (typeof loadActivityHistory === "function") loadActivityHistory();
+  try { const raw = localStorage.getItem('wingsfly_data'); if (raw) window.globalData = JSON.parse(raw); } catch(e) {}
+  if (typeof loadActivityHistory === 'function') loadActivityHistory();
 }
 function renderRecycleBin() {
-  try { const raw = localStorage.getItem("wingsfly_data"); if (raw) window.globalData = JSON.parse(raw); } catch(e) {}
-  if (typeof loadDeletedItems === "function") loadDeletedItems();
+  try { const raw = localStorage.getItem('wingsfly_data'); if (raw) window.globalData = JSON.parse(raw); } catch(e) {}
+  if (typeof loadDeletedItems === 'function') loadDeletedItems();
 }
 function clearRecycleBin() {
-  if (typeof emptyTrash === "function") emptyTrash();
+  if (typeof emptyTrash === 'function') emptyTrash();
 }
 window.renderActivityLog = renderActivityLog;
 window.renderRecycleBin = renderRecycleBin;
@@ -9337,28 +9337,25 @@ document.addEventListener('DOMContentLoaded', function() {
     takeSnapshot();
   }, 3000);
 
-  // প্রতি ৫ মিনিটে check করো, কিন্তু ১ ঘন্টার বেশি পুরনো হলেই নতুন snapshot নাও
+  // প্রতি ৫ মিনিটে check করো, ১ ঘন্টা পার হলে নতুন snapshot নাও
   setInterval(function() {
-    const snapshots = getSnapshots();
-    const lastSnap = snapshots[0];
+    var snapshots = getSnapshots();
+    var lastSnap = snapshots[0];
     if (!lastSnap || (Date.now() - lastSnap.id) > SNAPSHOT_INTERVAL_MS) {
       takeSnapshot();
     }
   }, 5 * 60 * 1000);
 
-  // ===============================================
-  // SETTINGS MODAL: খোলার সময় সব data refresh করো
-  // ===============================================
-  const settingsModalEl = document.getElementById('settingsModal');
+  // Settings modal খোলার সময় fresh data + snapshot render
+  var settingsModalEl = document.getElementById('settingsModal');
   if (settingsModalEl) {
     settingsModalEl.addEventListener('shown.bs.modal', function() {
-      // Fresh data load করো localStorage থেকে
-      try {
-        const raw = localStorage.getItem('wingsfly_data');
-        if (raw) window.globalData = JSON.parse(raw);
-      } catch(e) {}
-      // Snapshot list render করো
+      // Modal খুললে সবসময় fresh data নাও
+      try { var raw = localStorage.getItem('wingsfly_data'); if (raw) window.globalData = JSON.parse(raw); } catch(e) {}
+      // সব settings tabs refresh করো
       if (typeof renderSnapshotList === 'function') renderSnapshotList();
+      if (typeof renderActivityLog === 'function') renderActivityLog();
+      if (typeof renderRecycleBin === 'function') renderRecycleBin();
     });
   }
 });
