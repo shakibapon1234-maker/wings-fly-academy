@@ -588,21 +588,6 @@
   .modal-header, nav, .sidebar, header, .att-tab-btn { display: none !important; }
 }
 </style>
-
-<style>
-/* ── Settings Modal: tab content top space fix ── */
-#settingsModal .modal-body { padding: 0 !important; }
-#settingsModal .tab-content { margin-top: 0 !important; padding-top: 0 !important; }
-#settingsModal .tab-pane    { margin-top: 0 !important; }
-#settingsModal .modal-content { min-height: 500px; max-height: 88vh; display: flex; flex-direction: column; }
-#settingsModal .modal-body  { flex: 1; overflow: hidden; min-height: 0; }
-#settingsModal form.h-100   { display: flex; flex-direction: row; overflow: hidden; height: 100%; }
-#settingsModal .settings-nav { overflow-y: auto; height: 100%; }
-#settingsModal .flex-grow-1.overflow-auto { height: 100%; }
-/* Remove any pseudo-element or before-after empty space */
-#settingsModal .tab-pane::before,
-#settingsModal .tab-pane::after { display: none !important; content: none !important; }
-</style>
 </head>
 
 <body>
@@ -2577,7 +2562,7 @@
     <!-- Settings Modal (Redesigned) -->
     <div class="modal fade" id="settingsModal" tabindex="-1">
         <div class="modal-dialog modal-xl modal-dialog-centered modal-dialog-scrollable">
-            <div class="modal-content custom-modal" style="min-height:500px;">
+            <div class="modal-content custom-modal" style="min-height: 500px;">
                 <div class="modal-header border-bottom">
                     <h5 class="modal-title fw-bold">
                         <span class="me-2 header-icon-circle bg-primary-light">âš™ï¸</span>System Settings
@@ -2591,32 +2576,25 @@
                             <div class="border-end p-3 settings-nav"
                                 style="min-width: 260px; background: var(--bg-card);">
                                 <div class="nav flex-column nav-pills" role="tablist">
-                                    <button class="nav-link active" data-bs-toggle="pill" data-bs-target="#tab-general"
-                                        type="button">
+                                    <button class="nav-link active" type="button" onclick="switchSettingsTab('tab-general', this)">
                                         <span>🏢</span> General Settings
                                     </button>
-                                    <button class="nav-link" data-bs-toggle="pill" data-bs-target="#tab-config"
-                                        type="button">
+                                    <button class="nav-link" type="button" onclick="switchSettingsTab('tab-config', this)">
                                         <span>🏷️</span> Categories & Courses
                                     </button>
-                                    <button class="nav-link" data-bs-toggle="pill" data-bs-target="#tab-data"
-                                        type="button">
+                                    <button class="nav-link" type="button" onclick="switchSettingsTab('tab-data', this)">
                                         <span>💾</span> Data Management
                                     </button>
-                                    <button class="nav-link" data-bs-toggle="pill" data-bs-target="#tab-security"
-                                        type="button">
+                                    <button class="nav-link" type="button" onclick="switchSettingsTab('tab-security', this)">
                                         <span>🔒</span> Security & Access
                                     </button>
-                                    <button class="nav-link" data-bs-toggle="pill" data-bs-target="#tab-activitylog"
-                                        type="button" onclick="renderActivityLog()">
+                                    <button class="nav-link" type="button" onclick="switchSettingsTab('tab-activitylog', this); renderActivityLog()">
                                         <span>📋</span> Activity Log
                                     </button>
-                                    <button class="nav-link" data-bs-toggle="pill" data-bs-target="#tab-recyclebin"
-                                        type="button" onclick="renderRecycleBin()">
+                                    <button class="nav-link" type="button" onclick="switchSettingsTab('tab-recyclebin', this); renderRecycleBin()">
                                         <span>🗑️</span> Recycle Bin
                                     </button>
-                                    <button class="nav-link" data-bs-toggle="pill" data-bs-target="#tab-diagnostic"
-                                        type="button" onclick="runDiagnosticInline()">
+                                    <button class="nav-link" type="button" onclick="switchSettingsTab('tab-diagnostic', this)">
                                         <span>🔍</span> Sync Diagnostic
                                     </button>
                                 </div>
@@ -2629,9 +2607,9 @@
 
                             <!-- Main Content Area -->
                             <div class="flex-grow-1 overflow-auto" style="background: var(--bg-app);">
-                                <div class="tab-content">
+                                <div id="settingsTabContent">
                                     <!-- Tab 1: General Settings -->
-                                    <div class="tab-pane fade show active p-4" id="tab-general">
+                                    <div class="settings-tab-pane active" id="tab-general" style="display:block; padding:24px;">
                                         <h6 class="settings-section-title">Academy Information</h6>
                                         <div class="mb-4">
                                             <label class="form-label fw-semibold">Academy Name</label>
@@ -2669,7 +2647,7 @@
                                     </div>
 
                                     <!-- Tab 2: Configurations -->
-                                    <div class="tab-pane fade p-4" id="tab-config">
+                                    <div class="settings-tab-pane" id="tab-config" style="display:none; padding:24px;">
                                         <div class="row g-4">
                                             <!-- Income Categories -->
                                             <div class="col-md-6">
@@ -2745,7 +2723,7 @@
                                     </div>
 
                                     <!-- Tab 3: Data Management -->
-                                    <div class="tab-pane fade p-4" id="tab-data">
+                                    <div class="settings-tab-pane" id="tab-data" style="display:none; padding:24px;">
                                         <div class="row justify-content-center">
                                             <div class="col-md-8">
                                                 <!-- Backup & Restore -->
@@ -2855,7 +2833,7 @@
                                     </div>
 
                                     <!-- Tab 4: Security & Access -->
-                                    <div class="tab-pane fade p-4" id="tab-security">
+                                    <div class="settings-tab-pane" id="tab-security" style="display:none; padding:24px;">
                                         <div class="row justify-content-center">
                                             <div class="col-md-8">
                                                 <div class="card border-0 shadow-sm mb-4">
@@ -2913,7 +2891,7 @@
                                 </div>
 
                                     <!-- Tab 5: Activity Log -->
-                                    <div class="tab-pane fade p-4" id="tab-activitylog">
+                                    <div class="settings-tab-pane" id="tab-activitylog" style="display:none; padding:24px;">
                                         <div class="d-flex justify-content-between align-items-center mb-3">
                                             <h6 class="settings-section-title mb-0">📋 Full Activity Log</h6>
                                             <button type="button" class="btn btn-sm btn-outline-danger rounded-pill px-3" onclick="clearActivityLog()">🗑️ Clear All</button>
@@ -2937,7 +2915,7 @@
                                     </div>
 
                                     <!-- Tab 6: Recycle Bin -->
-                                    <div class="tab-pane fade p-4" id="tab-recyclebin">
+                                    <div class="settings-tab-pane" id="tab-recyclebin" style="display:none; padding:24px;">
                                         <div class="d-flex justify-content-between align-items-center mb-3">
                                             <h6 class="settings-section-title mb-0">🗑️ Recycle Bin</h6>
                                             <button type="button" class="btn btn-sm btn-outline-danger rounded-pill px-3" onclick="clearRecycleBin()">🗑️ Empty Bin</button>
@@ -2952,13 +2930,13 @@
                                                 <option value="Visitor">Visitor</option>
                                             </select>
                                         </div>
-                                        <div id="recycleBinContainer" style="max-height:480px; overflow-y:auto;">
+                                        <div id="recycleBinContainer" style="max-height:350px; overflow-y:auto;">
                                             <div class="text-center text-muted py-4">Tab টি click করলে Recycle Bin দেখা যাবে।</div>
                                         </div>
                                     </div>
 
                                     <!-- Tab: Sync Diagnostic & Function Test -->
-                                    <div class="tab-pane fade p-0 h-100" id="tab-diagnostic">
+                                    <div class="settings-tab-pane" id="tab-diagnostic" style="display:none; padding:0;">
                                       <style>
                                         /* ── Dark Glassmorphism theme for Diagnostic tab ── */
                                         .diag-wrap {
@@ -3203,18 +3181,16 @@
                                         </div>
 
                                       </div><!-- /diag-wrap -->
-                                    </div>
+                                    </div><!-- /tab-diagnostic -->
 
-                            </div>
-                        </div>         </div>
-            </div>
-        </div>
-    </div>
-    </form>
-    </div>
-    </div>
-    </div>
-    </div>
+                                </div><!-- /tab-content -->
+                            </div><!-- /flex-grow-1 content area -->
+                        </div><!-- /d-flex row -->
+                    </form>
+                </div><!-- /modal-body -->
+            </div><!-- /modal-content -->
+        </div><!-- /modal-dialog -->
+    </div><!-- /settingsModal -->
 
     <!-- Edit Transaction Modal -->
     <div class="modal fade" id="editTransactionModal" tabindex="-1">
@@ -4626,6 +4602,46 @@
     }
     window.runFunctionTests = runFunctionTests;
     </script>
+
+
+<style>
+/* Settings tab custom switching */
+#settingsTabContent { position: relative; }
+.settings-tab-pane { width: 100%; }
+#settingsModal .nav-link {
+  border-radius: 8px;
+  margin-bottom: 4px;
+  text-align: left;
+  width: 100%;
+  padding: 10px 14px;
+  border: none;
+  cursor: pointer;
+  transition: all 0.2s;
+}
+#settingsModal .nav-link.active {
+  background: linear-gradient(90deg, rgba(0,217,255,0.3), rgba(181,55,242,0.2)) !important;
+  color: #00fff5 !important;
+}
+</style>
+
+<script>
+function switchSettingsTab(tabId, btn) {
+  // Hide all tab panes
+  document.querySelectorAll('.settings-tab-pane').forEach(function(p) {
+    p.style.display = 'none';
+  });
+  // Deactivate all nav buttons
+  document.querySelectorAll('#settingsModal .nav-link').forEach(function(b) {
+    b.classList.remove('active');
+  });
+  // Show selected tab
+  var tab = document.getElementById(tabId);
+  if (tab) tab.style.display = 'block';
+  // Activate button
+  if (btn) btn.classList.add('active');
+}
+window.switchSettingsTab = switchSettingsTab;
+</script>
 
 </body>
 
