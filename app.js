@@ -31,7 +31,7 @@ if (typeof window.globalData === 'undefined') {
   };
 }
 
-// Ensure deletedItems ও activityHistory সবসময় exist করে
+// সবসময় নিশ্চিত করো এই দুটো array আছে
 if (!window.globalData.deletedItems) window.globalData.deletedItems = [];
 if (!window.globalData.activityHistory) window.globalData.activityHistory = [];
 
@@ -9242,13 +9242,12 @@ const SNAPSHOT_INTERVAL_MS = 60 * 60 * 1000; // ১ ঘন্টা
 
 function takeSnapshot() {
   try {
-    // localStorage থেকে নাও, না থাকলে window.globalData থেকে নাও
     let data = localStorage.getItem('wingsfly_data');
     if (!data && window.globalData) {
       data = JSON.stringify(window.globalData);
       localStorage.setItem('wingsfly_data', data);
     }
-    if (!data) { console.warn('takeSnapshot: no data found'); return; }
+    if (!data) { console.warn('Snapshot: no data'); return; }
 
     const snapshots = getSnapshots();
 
@@ -9353,10 +9352,14 @@ window.renderSnapshotList = renderSnapshotList;
 
 // Page load হলে প্রথম snapshot নাও (যদি আজকের কোনো snapshot না থাকে)
 document.addEventListener('DOMContentLoaded', function() {
-  // ৩ সেকেন্ড পর প্রথম snapshot
-  setTimeout(function() { takeSnapshot(); }, 3000);
+  // ৩ সেকেন্ড পর প্রথম snapshot নাও
+  setTimeout(function() {
+    if (!window.globalData.deletedItems) window.globalData.deletedItems = [];
+    if (!window.globalData.activityHistory) window.globalData.activityHistory = [];
+    takeSnapshot();
+  }, 3000);
 
-  // প্রতি ৫ মিনিটে check - ১ ঘন্টার বেশি পুরনো হলে নতুন নাও
+  // প্রতি ৫ মিনিটে check করো, ১ ঘন্টার বেশি হলে নতুন নাও
   setInterval(function() {
     var snaps = getSnapshots();
     var last = snaps[0];
@@ -9365,7 +9368,7 @@ document.addEventListener('DOMContentLoaded', function() {
     }
   }, 5 * 60 * 1000);
 
-  // Settings Modal খোলার সময় সব refresh
+  // Settings Modal খোলার সময় সব refresh করো
   var settingsEl = document.getElementById('settingsModal');
   if (settingsEl) {
     settingsEl.addEventListener('shown.bs.modal', function() {
@@ -9381,3 +9384,87 @@ document.addEventListener('DOMContentLoaded', function() {
     });
   }
 });
+
+
+// ================================================================
+// AUTO-HEAL ENGINE
+// ================================================================
+(function() {
+  var stats = { totalRuns: 0, totalFixes: 0, lastRun: null, lastFix: null };
+
+  function healLog(msg, type) {
+    var container = document.getElementById('heal-log-container');
+    if (!container) return;
+    var colors = { ok:'#00ff88', warn:'#ffcc00', err:'#ff4466', info:'#00d4ff' };
+    var time = new Date().toLocaleTimeString();
+    var icon = {ok:'✅',warn:'⚠️',err:'❌',info:'ℹ️'}[type] || 'ℹ️';
+    var placeholder = container.querySelector('span');
+    if (placeholder) placeholder.remove();
+    var div = document.createElement('div');
+    div.style.cssText = 'color:' + (colors[type]||'#c8d8f0') + ';margin:2px 0;font-size:0.78rem;';
+    div.textContent = '[' + time + '] ' + icon + ' ' + msg;
+    container.appendChild(div);
+    container.scrollTop = container.scrollHeight;
+  }
+
+  function updateUI() {
+    var e;
+    e = document.getElementById('heal-stats-total-runs'); if(e) e.textContent = stats.totalRuns;
+    e = document.getElementById('heal-stats-total-fixes'); if(e) e.textContent = stats.totalFixes;
+    e = document.getElementById('heal-stats-last-run'); if(e) e.textContent = stats.lastRun ? new Date(stats.lastRun).toLocaleTimeString() : '—';
+    e = document.getElementById('heal-stats-last-fix'); if(e) e.textContent = stats.lastFix ? new Date(stats.lastFix).toLocaleTimeString() : '—';
+  }
+
+  function runHeal() {
+    stats.totalRuns++;
+    stats.lastRun = Date.now();
+    updateUI();
+    var fixed = 0;
+    var data;
+    try {
+      var raw = localStorage.getItem('wingsfly_data');
+      data = raw ? JSON.parse(raw) : window.globalData;
+      if (!data) { healLog('Data পাওয়া যায়নি!', 'err'); return; }
+    } catch(e) { healLog('Parse error: ' + e.message, 'err'); return; }
+
+    healLog('Check শুরু হচ্ছে...', 'info');
+
+    if (!Array.isArray(data.deletedItems)) { data.deletedItems = []; fixed++; healLog('Recycle Bin array তৈরি করা হয়েছে', 'warn'); }
+    else { healLog('Recycle Bin: ' + data.deletedItems.length + ' আইটেম ✓', 'ok'); }
+
+    if (!Array.isArray(data.activityHistory)) { data.activityHistory = []; fixed++; healLog('Activity Log array তৈরি করা হয়েছে', 'warn'); }
+    else { healLog('Activity Log: ' + data.activityHistory.length + ' এন্ট্রি ✓', 'ok'); }
+
+    if (!Array.isArray(data.students)) { data.students = []; fixed++; healLog('Students array fix করা হয়েছে', 'warn'); }
+    else { healLog('Students: ' + data.students.length + ' টি ✓', 'ok'); }
+
+    if (!Array.isArray(data.finance)) { data.finance = []; fixed++; healLog('Finance array fix করা হয়েছে', 'warn'); }
+    else { healLog('Finance: ' + data.finance.length + ' টি ✓', 'ok'); }
+
+    if (typeof data.cashBalance !== 'number' || isNaN(data.cashBalance)) { data.cashBalance = 0; fixed++; healLog('Cash Balance ঠিক করা হয়েছে', 'warn'); }
+    else { healLog('Cash Balance: ৳' + data.cashBalance + ' ✓', 'ok'); }
+
+    if (fixed > 0) {
+      stats.totalFixes += fixed;
+      stats.lastFix = Date.now();
+      window.globalData = data;
+      localStorage.setItem('wingsfly_data', JSON.stringify(data));
+      healLog(fixed + ' টি সমস্যা fix করা হয়েছে!', 'warn');
+    } else {
+      healLog('সব ঠিক আছে 🎉', 'ok');
+    }
+    updateUI();
+  }
+
+  window.autoHeal = {
+    runNow: function() { runHeal(); },
+    getStats: function() { return stats; }
+  };
+
+  document.addEventListener('DOMContentLoaded', function() {
+    setTimeout(function() {
+      healLog('Auto-Heal Engine চালু হয়েছে (প্রতি 60s)', 'info');
+      setInterval(runHeal, 60000);
+    }, 2000);
+  });
+})();
