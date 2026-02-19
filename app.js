@@ -3977,6 +3977,14 @@ function deleteTransaction(id) {
 
 window.deleteTransaction = deleteTransaction;
 
+// Alias for delete button in finance table
+function _handleDeleteTx(id) {
+  if (!id) return;
+  if (!confirm('এই transaction টি delete করতে চান?')) return;
+  deleteTransaction(id);
+}
+window._handleDeleteTx = _handleDeleteTx;
+
 function editTransaction(id) {
   const sid = String(id);
   const transaction = globalData.finance.find(f => String(f.id) === sid);
