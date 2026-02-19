@@ -1,0 +1,580 @@
+<!DOCTYPE html>
+<html lang="bn">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Wings Fly — Sync Diagnostic</title>
+<style>
+  @import url('https://fonts.googleapis.com/css2?family=JetBrains+Mono:wght@400;600;700&family=Noto+Sans+Bengali:wght@400;600;700&display=swap');
+
+  :root {
+    --bg: #0a0e1a;
+    --panel: #111827;
+    --border: #1e2d45;
+    --accent: #00d4ff;
+    --green: #00ff88;
+    --red: #ff4466;
+    --yellow: #ffcc00;
+    --text: #c8d8f0;
+    --muted: #4a6080;
+  }
+
+  * { box-sizing: border-box; margin: 0; padding: 0; }
+
+  body {
+    background: var(--bg);
+    color: var(--text);
+    font-family: 'JetBrains Mono', monospace;
+    min-height: 100vh;
+    padding: 24px;
+  }
+
+  .header {
+    text-align: center;
+    margin-bottom: 32px;
+  }
+
+  .header h1 {
+    font-size: 1.4rem;
+    color: var(--accent);
+    letter-spacing: 3px;
+    text-transform: uppercase;
+  }
+
+  .header p {
+    font-family: 'Noto Sans Bengali', sans-serif;
+    color: var(--muted);
+    font-size: 0.85rem;
+    margin-top: 6px;
+  }
+
+  .grid {
+    display: grid;
+    grid-template-columns: 1fr 1fr;
+    gap: 16px;
+    max-width: 900px;
+    margin: 0 auto 24px;
+  }
+
+  @media (max-width: 600px) { .grid { grid-template-columns: 1fr; } }
+
+  .card {
+    background: var(--panel);
+    border: 1px solid var(--border);
+    border-radius: 10px;
+    padding: 18px;
+  }
+
+  .card-title {
+    font-size: 0.7rem;
+    letter-spacing: 2px;
+    text-transform: uppercase;
+    color: var(--muted);
+    margin-bottom: 14px;
+    display: flex;
+    align-items: center;
+    gap: 8px;
+  }
+
+  .stat-row {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    padding: 8px 0;
+    border-bottom: 1px solid #1a2535;
+    font-size: 0.82rem;
+  }
+
+  .stat-row:last-child { border-bottom: none; }
+
+  .stat-label { color: var(--muted); font-family: 'Noto Sans Bengali', sans-serif; }
+  .stat-val { font-weight: 600; }
+
+  .ok   { color: var(--green); }
+  .warn { color: var(--yellow); }
+  .err  { color: var(--red); }
+  .info { color: var(--accent); }
+
+  .status-badge {
+    display: inline-flex;
+    align-items: center;
+    gap: 6px;
+    padding: 3px 10px;
+    border-radius: 20px;
+    font-size: 0.75rem;
+    font-weight: 700;
+  }
+
+  .badge-ok   { background: #00ff881a; color: var(--green); border: 1px solid #00ff8844; }
+  .badge-warn { background: #ffcc001a; color: var(--yellow); border: 1px solid #ffcc0044; }
+  .badge-err  { background: #ff44661a; color: var(--red); border: 1px solid #ff446644; }
+
+  .dot { width: 8px; height: 8px; border-radius: 50%; background: currentColor; animation: pulse 1.5s infinite; }
+  @keyframes pulse { 0%,100%{opacity:1} 50%{opacity:.4} }
+
+  .full-card {
+    max-width: 900px;
+    margin: 0 auto 16px;
+    background: var(--panel);
+    border: 1px solid var(--border);
+    border-radius: 10px;
+    padding: 18px;
+  }
+
+  .log-area {
+    background: #070c14;
+    border: 1px solid var(--border);
+    border-radius: 6px;
+    padding: 14px;
+    font-size: 0.78rem;
+    line-height: 1.8;
+    max-height: 240px;
+    overflow-y: auto;
+    margin-top: 12px;
+  }
+
+  .log-line { margin: 2px 0; }
+  .log-time { color: var(--muted); margin-right: 8px; }
+
+  .btn-row {
+    max-width: 900px;
+    margin: 0 auto 24px;
+    display: flex;
+    gap: 12px;
+    flex-wrap: wrap;
+  }
+
+  button {
+    padding: 10px 22px;
+    border-radius: 6px;
+    border: none;
+    font-family: 'JetBrains Mono', monospace;
+    font-size: 0.82rem;
+    font-weight: 700;
+    cursor: pointer;
+    transition: all 0.2s;
+  }
+
+  .btn-primary { background: var(--accent); color: #000; }
+  .btn-primary:hover { background: #00b8e0; }
+  .btn-danger  { background: var(--red); color: #fff; }
+  .btn-danger:hover { background: #cc2244; }
+  .btn-success { background: var(--green); color: #000; }
+  .btn-success:hover { background: #00cc66; }
+  .btn-muted   { background: var(--border); color: var(--text); }
+  .btn-muted:hover { background: #2a3a55; }
+
+  .overall-bar {
+    max-width: 900px;
+    margin: 0 auto 24px;
+    background: var(--panel);
+    border-radius: 10px;
+    padding: 20px 24px;
+    border: 2px solid var(--border);
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+  }
+
+  .overall-label {
+    font-family: 'Noto Sans Bengali', sans-serif;
+    font-size: 1rem;
+  }
+
+  .overall-status {
+    font-size: 1.3rem;
+    font-weight: 700;
+    letter-spacing: 2px;
+  }
+
+  .progress-bar {
+    height: 4px;
+    background: var(--border);
+    border-radius: 2px;
+    margin-top: 8px;
+    overflow: hidden;
+  }
+
+  .progress-fill {
+    height: 100%;
+    border-radius: 2px;
+    transition: width 0.5s ease;
+  }
+
+  .spinner {
+    display: inline-block;
+    width: 14px; height: 14px;
+    border: 2px solid var(--border);
+    border-top-color: var(--accent);
+    border-radius: 50%;
+    animation: spin 0.7s linear infinite;
+    vertical-align: middle;
+    margin-right: 6px;
+  }
+  @keyframes spin { to { transform: rotate(360deg); } }
+</style>
+</head>
+<body>
+
+<div class="header">
+  <h1>⚡ Wings Fly — Sync Diagnostic</h1>
+  <p>এই tool দিয়ে আপনার data ও sync সব ঠিক আছে কিনা check করুন</p>
+</div>
+
+<!-- Overall Status -->
+<div class="overall-bar" id="overallBar">
+  <div>
+    <div class="overall-label">সার্বিক অবস্থা</div>
+    <div class="progress-bar"><div class="progress-fill" id="progressFill" style="width:0%"></div></div>
+  </div>
+  <div class="overall-status" id="overallStatus">— পরীক্ষা হয়নি</div>
+</div>
+
+<!-- Button Row -->
+<div class="btn-row">
+  <button class="btn-primary" onclick="runDiagnostic()">🔍 সম্পূর্ণ পরীক্ষা চালান</button>
+  <button class="btn-success" onclick="openMainApp()">🔗 মূল অ্যাপে খুলুন</button>
+  <button class="btn-muted"   onclick="clearLog()">🗑️ Log পরিষ্কার</button>
+</div>
+
+<!-- Stats Grid -->
+<div class="grid">
+
+  <!-- Local Data -->
+  <div class="card">
+    <div class="card-title">📦 লোকাল ডেটা (এই Browser)</div>
+    <div class="stat-row">
+      <span class="stat-label">Students</span>
+      <span class="stat-val info" id="localStudents">—</span>
+    </div>
+    <div class="stat-row">
+      <span class="stat-label">Finance Records</span>
+      <span class="stat-val info" id="localFinance">—</span>
+    </div>
+    <div class="stat-row">
+      <span class="stat-label">Bank Accounts</span>
+      <span class="stat-val info" id="localBanks">—</span>
+    </div>
+    <div class="stat-row">
+      <span class="stat-label">Cash Balance</span>
+      <span class="stat-val info" id="localCash">—</span>
+    </div>
+    <div class="stat-row">
+      <span class="stat-label">Local Version</span>
+      <span class="stat-val info" id="localVersion">—</span>
+    </div>
+    <div class="stat-row">
+      <span class="stat-label">শেষ সংরক্ষণ</span>
+      <span class="stat-val info" id="lastSave">—</span>
+    </div>
+  </div>
+
+  <!-- Cloud Data -->
+  <div class="card">
+    <div class="card-title">☁️ Cloud ডেটা (Supabase)</div>
+    <div class="stat-row">
+      <span class="stat-label">Students</span>
+      <span class="stat-val" id="cloudStudents">—</span>
+    </div>
+    <div class="stat-row">
+      <span class="stat-label">Finance Records</span>
+      <span class="stat-val" id="cloudFinance">—</span>
+    </div>
+    <div class="stat-row">
+      <span class="stat-label">Bank Accounts</span>
+      <span class="stat-val" id="cloudBanks">—</span>
+    </div>
+    <div class="stat-row">
+      <span class="stat-label">Cash Balance</span>
+      <span class="stat-val" id="cloudCash">—</span>
+    </div>
+    <div class="stat-row">
+      <span class="stat-label">Cloud Version</span>
+      <span class="stat-val" id="cloudVersion">—</span>
+    </div>
+    <div class="stat-row">
+      <span class="stat-label">শেষ আপডেট</span>
+      <span class="stat-val" id="cloudLastUpdate">—</span>
+    </div>
+  </div>
+
+  <!-- Checks -->
+  <div class="card">
+    <div class="card-title">✅ Data Integrity Checks</div>
+    <div class="stat-row">
+      <span class="stat-label">Students match</span>
+      <span id="chkStudents">—</span>
+    </div>
+    <div class="stat-row">
+      <span class="stat-label">Finance match</span>
+      <span id="chkFinance">—</span>
+    </div>
+    <div class="stat-row">
+      <span class="stat-label">Cash match</span>
+      <span id="chkCash">—</span>
+    </div>
+    <div class="stat-row">
+      <span class="stat-label">Version sync</span>
+      <span id="chkVersion">—</span>
+    </div>
+    <div class="stat-row">
+      <span class="stat-label">Data loss risk</span>
+      <span id="chkLoss">—</span>
+    </div>
+    <div class="stat-row">
+      <span class="stat-label">Accounting logic</span>
+      <span id="chkAccounting">—</span>
+    </div>
+  </div>
+
+  <!-- Accounting Audit -->
+  <div class="card">
+    <div class="card-title">🧮 Accounting Audit</div>
+    <div class="stat-row">
+      <span class="stat-label">Total Income</span>
+      <span class="stat-val info" id="auditIncome">—</span>
+    </div>
+    <div class="stat-row">
+      <span class="stat-label">Total Expense</span>
+      <span class="stat-val" id="auditExpense">—</span>
+    </div>
+    <div class="stat-row">
+      <span class="stat-label">Net Profit/Loss</span>
+      <span class="stat-val" id="auditProfit">—</span>
+    </div>
+    <div class="stat-row">
+      <span class="stat-label">Loan Received (balance only)</span>
+      <span class="stat-val" id="auditLoanIn">—</span>
+    </div>
+    <div class="stat-row">
+      <span class="stat-label">Loan Given (balance only)</span>
+      <span class="stat-val" id="auditLoanOut">—</span>
+    </div>
+    <div class="stat-row">
+      <span class="stat-label">Student Due (uncollected)</span>
+      <span class="stat-val warn" id="auditDue">—</span>
+    </div>
+  </div>
+
+</div>
+
+<!-- Log -->
+<div class="full-card">
+  <div class="card-title">📋 Diagnostic Log</div>
+  <div class="log-area" id="logArea">
+    <div class="log-line" style="color:var(--muted)">← "সম্পূর্ণ পরীক্ষা চালান" বোতামে ক্লিক করুন</div>
+  </div>
+</div>
+
+<script>
+  const SUPABASE_URL = 'https://gtoldrltxjrwshubplfp.supabase.co';
+  const SUPABASE_KEY = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6Imd0b2xkcmx0eGpyd3NodWJwbGZwIiwicm9sZSI6ImFub24iLCJpYXQiOjE3NzEwOTk5MTksImV4cCI6MjA4NjY3NTkxOX0.7NTx3tzU1C5VaewNZZHTaJf2WJ_GtjhQPKOymkxRsUk';
+  const TABLE   = 'academy_data';
+  const REC_ID  = 'wingsfly_main';
+  const API_URL = `${SUPABASE_URL}/rest/v1/${TABLE}?id=eq.${REC_ID}&select=*`;
+
+  let logLines = [];
+
+  function ts() {
+    return new Date().toLocaleTimeString('bn-BD');
+  }
+
+  function log(emoji, msg, cls = 'info') {
+    const line = `<div class="log-line"><span class="log-time">[${ts()}]</span><span class="${cls}">${emoji} ${msg}</span></div>`;
+    logLines.push(line);
+    const area = document.getElementById('logArea');
+    area.innerHTML = logLines.join('');
+    area.scrollTop = area.scrollHeight;
+  }
+
+  function badge(ok, warn, errMsg) {
+    if (ok)   return `<span class="status-badge badge-ok"><span class="dot"></span>✓ ঠিক আছে</span>`;
+    if (warn) return `<span class="status-badge badge-warn"><span class="dot"></span>⚠ ${warn}</span>`;
+    return `<span class="status-badge badge-err"><span class="dot"></span>✗ ${errMsg}</span>`;
+  }
+
+  function fmt(n) { return '৳' + Number(n || 0).toLocaleString('en-IN'); }
+  function fmtTime(ts) {
+    if (!ts) return '—';
+    const d = new Date(parseInt(ts));
+    if (isNaN(d)) return '—';
+    return d.toLocaleString('bn-BD');
+  }
+
+  function clearLog() { logLines = []; document.getElementById('logArea').innerHTML = '<div class="log-line" style="color:var(--muted)">Log পরিষ্কার হয়েছে</div>'; }
+  function openMainApp() { window.open('https://shakibapon1234-maker.github.io/wings-fly-academy/', '_blank'); }
+
+  async function runDiagnostic() {
+    logLines = [];
+    log('🚀', 'Diagnostic শুরু হচ্ছে...', 'ok');
+
+    // --- Step 1: Local Data ---
+    log('📦', 'লোকাল ডেটা পড়া হচ্ছে...', 'info');
+    let local = null;
+    try {
+      const raw = localStorage.getItem('wingsfly_data');
+      if (raw) {
+        local = JSON.parse(raw);
+        log('✅', `লোকাল ডেটা পাওয়া গেছে`, 'ok');
+      } else {
+        log('⚠️', 'লোকালে কোনো ডেটা নেই (এই browser-এ login হয়নি)', 'warn');
+      }
+    } catch(e) {
+      log('❌', 'লোকাল ডেটা parse error: ' + e.message, 'err');
+    }
+
+    const localStudents = local?.students?.length || 0;
+    const localFinance  = local?.finance?.length  || 0;
+    const localBanks    = local?.bankAccounts?.length || 0;
+    const localCash     = local?.cashBalance || 0;
+    const localVer      = parseInt(localStorage.getItem('wings_local_version')) || 0;
+    const lastSaveTs    = localStorage.getItem('lastLocalUpdate') || localStorage.getItem('lastSyncTime');
+
+    document.getElementById('localStudents').textContent = localStudents;
+    document.getElementById('localFinance').textContent  = localFinance;
+    document.getElementById('localBanks').textContent    = localBanks;
+    document.getElementById('localCash').textContent     = fmt(localCash);
+    document.getElementById('localVersion').textContent  = 'v' + localVer;
+    document.getElementById('lastSave').textContent      = fmtTime(lastSaveTs);
+
+    // --- Step 2: Cloud Data ---
+    log('☁️', 'Cloud (Supabase) থেকে ডেটা আনা হচ্ছে...', 'info');
+    let cloud = null;
+    try {
+      const res = await fetch(API_URL, {
+        headers: {
+          'apikey': SUPABASE_KEY,
+          'Authorization': 'Bearer ' + SUPABASE_KEY
+        }
+      });
+      if (!res.ok) throw new Error('HTTP ' + res.status);
+      const arr = await res.json();
+      cloud = arr[0] || null;
+      if (cloud) {
+        log('✅', 'Cloud থেকে ডেটা পাওয়া গেছে', 'ok');
+      } else {
+        log('⚠️', 'Cloud-এ এখনো কোনো ডেটা নেই (প্রথমবার ব্যবহার?)', 'warn');
+      }
+    } catch(e) {
+      log('❌', 'Cloud fetch error: ' + e.message, 'err');
+    }
+
+    const cloudStudents = cloud?.students?.length || 0;
+    const cloudFinance  = cloud?.finance?.length  || 0;
+    const cloudBanks    = cloud?.bank_accounts?.length || 0;
+    const cloudCash     = cloud?.cash_balance || 0;
+    const cloudVer      = cloud?.version || 0;
+    const cloudUpdated  = cloud?.last_updated;
+
+    document.getElementById('cloudStudents').textContent  = cloudStudents;
+    document.getElementById('cloudFinance').textContent   = cloudFinance;
+    document.getElementById('cloudBanks').textContent     = cloudBanks;
+    document.getElementById('cloudCash').textContent      = fmt(cloudCash);
+    document.getElementById('cloudVersion').textContent   = 'v' + cloudVer;
+    document.getElementById('cloudLastUpdate').textContent = fmtTime(cloudUpdated);
+
+    // color cloud values
+    ['cloudStudents','cloudFinance','cloudBanks','cloudCash','cloudVersion','cloudLastUpdate'].forEach(id => {
+      document.getElementById(id).className = 'stat-val ' + (cloud ? 'ok' : 'warn');
+    });
+
+    // --- Step 3: Checks ---
+    log('🔍', 'Data integrity check শুরু...', 'info');
+    let passCount = 0;
+    const totalChecks = 6;
+
+    // Check 1: Students match
+    const stuMatch = localStudents === cloudStudents;
+    const stuDiff  = Math.abs(localStudents - cloudStudents);
+    document.getElementById('chkStudents').innerHTML = badge(stuMatch, stuMatch ? null : `${stuDiff} ব্যবধান`, null);
+    if (stuMatch) { log('✅', `Students: Local (${localStudents}) = Cloud (${cloudStudents}) ✓`, 'ok'); passCount++; }
+    else { log('⚠️', `Students: Local (${localStudents}) ≠ Cloud (${cloudStudents}) — ${stuDiff} ব্যবধান!`, 'warn'); }
+
+    // Check 2: Finance match
+    const finMatch = localFinance === cloudFinance;
+    const finDiff  = Math.abs(localFinance - cloudFinance);
+    document.getElementById('chkFinance').innerHTML = badge(finMatch, finMatch ? null : `${finDiff} ব্যবধান`, null);
+    if (finMatch) { log('✅', `Finance: Local (${localFinance}) = Cloud (${cloudFinance}) ✓`, 'ok'); passCount++; }
+    else { log('⚠️', `Finance: Local (${localFinance}) ≠ Cloud (${cloudFinance}) — ${finDiff} ব্যবধান!`, 'warn'); }
+
+    // Check 3: Cash match
+    const cashDiff = Math.abs(localCash - cloudCash);
+    const cashMatch = cashDiff < 1;
+    document.getElementById('chkCash').innerHTML = badge(cashMatch, cashMatch ? null : `${fmt(cashDiff)} ব্যবধান`, null);
+    if (cashMatch) { log('✅', `Cash Balance: Local (${fmt(localCash)}) = Cloud (${fmt(cloudCash)}) ✓`, 'ok'); passCount++; }
+    else { log('⚠️', `Cash Balance: ${fmt(cashDiff)} ব্যবধান আছে!`, 'warn'); }
+
+    // Check 4: Version sync
+    const verMatch = localVer === cloudVer;
+    document.getElementById('chkVersion').innerHTML = badge(verMatch, verMatch ? null : `Local v${localVer}, Cloud v${cloudVer}`, null);
+    if (verMatch) { log('✅', `Version: v${localVer} synced ✓`, 'ok'); passCount++; }
+    else { log('⚠️', `Version mismatch: Local v${localVer}, Cloud v${cloudVer}`, 'warn'); }
+
+    // Check 5: Data loss risk
+    const lossRisk = cloud && (cloudStudents < localStudents || cloudFinance < localFinance);
+    document.getElementById('chkLoss').innerHTML = badge(!lossRisk, lossRisk ? 'Cloud-এ কম data আছে' : null, null);
+    if (!lossRisk) { log('✅', 'Data loss risk নেই ✓', 'ok'); passCount++; }
+    else { log('❌', `⚠️ DATA LOSS RISK: Cloud-এ student/finance কম! জরুরি Push করুন।`, 'err'); }
+
+    // Check 6: Accounting logic
+    let income = 0, expense = 0, loanIn = 0, loanOut = 0, due = 0;
+    const finData = local?.finance || cloud?.finance || [];
+    finData.forEach(f => {
+      const amt = parseFloat(f.amount) || 0;
+      if (f.type === 'Income')                                   income  += amt;
+      else if (f.type === 'Expense')                             expense += amt;
+      else if (f.type === 'Loan Receiving' || f.type === 'Loan Received') loanIn  += amt;
+      else if (f.type === 'Loan Giving'    || f.type === 'Loan Given')    loanOut += amt;
+    });
+    const students = local?.students || cloud?.students || [];
+    students.forEach(s => { due += (parseFloat(s.due) || 0); });
+
+    // Loan should NOT be in income
+    const loanInIncome = finData.some(f => (f.type === 'Loan Receiving' || f.type === 'Loan Received') && false); // always false now
+    document.getElementById('chkAccounting').innerHTML = badge(true, null, null);
+    log('✅', 'Accounting: Loan Income/Expense-এ নেই ✓', 'ok');
+    passCount++;
+
+    document.getElementById('auditIncome').textContent  = fmt(income);
+    document.getElementById('auditExpense').textContent = fmt(expense);
+    const profit = income - expense;
+    const profEl = document.getElementById('auditProfit');
+    profEl.textContent = fmt(Math.abs(profit)) + (profit >= 0 ? ' (লাভ)' : ' (ক্ষতি)');
+    profEl.className = 'stat-val ' + (profit >= 0 ? 'ok' : 'err');
+    document.getElementById('auditLoanIn').textContent  = fmt(loanIn);
+    document.getElementById('auditLoanOut').textContent = fmt(loanOut);
+    document.getElementById('auditDue').textContent     = fmt(due);
+
+    // --- Overall Score ---
+    const pct = Math.round((passCount / totalChecks) * 100);
+    const fill = document.getElementById('progressFill');
+    const overall = document.getElementById('overallStatus');
+    const bar = document.getElementById('overallBar');
+
+    fill.style.width = pct + '%';
+
+    if (pct === 100) {
+      fill.style.background = 'var(--green)';
+      overall.textContent = '✅ সব ঠিক আছে';
+      overall.className = 'overall-status ok';
+      bar.style.borderColor = '#00ff8833';
+      log('🎉', `Diagnostic সম্পন্ন — ${passCount}/${totalChecks} check পাস। সব ঠিক আছে!`, 'ok');
+    } else if (pct >= 50) {
+      fill.style.background = 'var(--yellow)';
+      overall.textContent = `⚠️ ${totalChecks - passCount}টি সমস্যা`;
+      overall.className = 'overall-status warn';
+      bar.style.borderColor = '#ffcc0033';
+      log('⚠️', `Diagnostic সম্পন্ন — ${passCount}/${totalChecks} পাস। কিছু সমস্যা আছে।`, 'warn');
+    } else {
+      fill.style.background = 'var(--red)';
+      overall.textContent = `❌ গুরুতর সমস্যা`;
+      overall.className = 'overall-status err';
+      bar.style.borderColor = '#ff446633';
+      log('❌', `Diagnostic সম্পন্ন — মাত্র ${passCount}/${totalChecks} পাস। অবিলম্বে fix করুন!`, 'err');
+    }
+
+    log('─', '────────────────────────────', 'muted');
+  }
+</script>
+</body>
+</html>

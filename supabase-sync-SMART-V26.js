@@ -102,11 +102,12 @@
   // ==========================================
   // SMART PULL WITH CONFLICT RESOLUTION
   // ==========================================
-  async function pullFromCloud(silent = false) {
+  async function pullFromCloud(silent = false, force = false) {
     if (!isInitialized && !initialize()) return false;
     if (isPulling) return false;
     // Block pull for 15 seconds after any push to prevent delete/edit race condition
-    if (Date.now() - lastPushTime < 15000) {
+    // But FORCE pull (on login) bypasses this block
+    if (!force && Date.now() - lastPushTime < 15000) {
       if (!silent) log('⏸️', 'Pull blocked - recent push in progress');
       return false;
     }
@@ -162,15 +163,38 @@
           log('📥', `From: ${cloudDevice.substr(0, 15)}`);
         }
 
+        // ✅ DATA LOSS PREVENTION: Cloud data must have at least as many
+        // students & finance records as local, otherwise keep local data.
+        const localStudents = (window.globalData && window.globalData.students) || [];
+        const cloudStudents = data.students || [];
+        const localFinance  = (window.globalData && window.globalData.finance)   || [];
+        const cloudFinance  = data.finance  || [];
+
+        if (cloudStudents.length < localStudents.length || cloudFinance.length < localFinance.length) {
+          log('🛡️', `Data loss prevention triggered!`);
+          log('🛡️', `Cloud students: ${cloudStudents.length} vs Local: ${localStudents.length}`);
+          log('🛡️', `Cloud finance : ${cloudFinance.length}  vs Local: ${localFinance.length}`);
+          log('🛡️', `Keeping local data & pushing to cloud...`);
+
+          // Update version to match cloud so sync stays consistent
+          localVersion = cloudVersion;
+          localStorage.setItem('wings_local_version', localVersion.toString());
+          isPulling = false;
+
+          // Push local (the richer) data to cloud to fix the mismatch
+          setTimeout(() => pushToCloud('Data-loss-prevention push'), 1000);
+          return true;
+        }
+
         // Temporarily disable monitoring
         const wasMonitoring = isMonitoringEnabled;
         isMonitoringEnabled = false;
 
         // Update global data
         window.globalData = {
-          students: data.students || [],
+          students: cloudStudents,
           employees: data.employees || [],
-          finance: data.finance || [],
+          finance: cloudFinance,
           settings: data.settings || {},
           incomeCategories: data.income_categories || [],
           expenseCategories: data.expense_categories || [],
@@ -585,7 +609,7 @@
 
   // Backward compatibility
   window.saveToCloud = () => pushToCloud('Legacy saveToCloud');
-  window.loadFromCloud = () => pullFromCloud(false);
+  window.loadFromCloud = (force = false) => pullFromCloud(false, force);
   window.manualSync = window.wingsSync.fullSync;
 
   // ==========================================

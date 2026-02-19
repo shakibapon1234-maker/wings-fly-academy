@@ -401,17 +401,25 @@ window.deleteStudentPhoto = deleteStudentPhoto;
 function updateAccountBalance(method, amount, type, isAddition = true) {
   if (!window.globalData) return;
 
+  const amt = parseFloat(amount) || 0;
+  const multiplier = isAddition ? 1 : -1;
+
+  // Types that ADD to balance (money coming IN to the account)
+  // Note: Loan Receiving = money received as loan (adds to balance, but NOT income)
+  const moneyInTypes  = ['Income', 'Transfer In',  'Loan Receiving', 'Loan Received'];
+  // Types that SUBTRACT from balance (money going OUT of the account)
+  // Note: Loan Giving = money given as loan (removes from balance, but NOT expense)
+  const moneyOutTypes = ['Expense', 'Transfer Out', 'Loan Giving',   'Loan Given'];
+
   // Handle Cash
   if (method === 'Cash') {
     if (typeof globalData.cashBalance === 'undefined') {
       globalData.cashBalance = 0;
     }
-    const amt = parseFloat(amount) || 0;
-    const multiplier = isAddition ? 1 : -1;
 
-    if (type === 'Income') {
+    if (moneyInTypes.includes(type)) {
       globalData.cashBalance += amt * multiplier;
-    } else if (type === 'Expense') {
+    } else if (moneyOutTypes.includes(type)) {
       globalData.cashBalance -= amt * multiplier;
     }
 
@@ -422,22 +430,17 @@ function updateAccountBalance(method, amount, type, isAddition = true) {
     return;
   }
 
-  // Check in bank accounts first
+  // Check in bank accounts first, then mobile banking
   let account = (window.globalData.bankAccounts || []).find(acc => acc.name === method);
-
-  // If not found, check in mobile banking
   if (!account) {
     account = (window.globalData.mobileBanking || []).find(acc => acc.name === method);
   }
 
   if (!account) return;
 
-  const amt = parseFloat(amount) || 0;
-  const multiplier = isAddition ? 1 : -1;
-
-  if (type === 'Income' || type === 'Transfer In' || type === 'Loan Received') {
+  if (moneyInTypes.includes(type)) {
     account.balance = (parseFloat(account.balance) || 0) + (amt * multiplier);
-  } else if (type === 'Expense' || type === 'Transfer Out' || type === 'Loan Given' || type === 'Rent' || type === 'Utilities' || type === 'Salary') {
+  } else if (moneyOutTypes.includes(type)) {
     account.balance = (parseFloat(account.balance) || 0) - (amt * multiplier);
   }
 
@@ -751,32 +754,9 @@ document.addEventListener('DOMContentLoaded', function () {
     const username = sessionStorage.getItem('username') || 'Admin';
     showDashboard(username);
 
-    // CRITICAL: Attempt Initial Cloud Sync IMMEDIATELY
-    console.log('🔄 Initializing cloud sync on login...');
-    setTimeout(async () => {
-      if (typeof window.loadFromCloud === 'function') {
-        try {
-          console.log('💥 Pulling latest data from cloud on startup...');
-          const success = await window.loadFromCloud(true);
-          if (success) {
-            console.log('✅ Initial cloud sync successful');
-            // Start auto-sync and real-time listener
-            if (typeof window.startAutoSync === 'function') {
-              window.startAutoSync(10);
-              console.log('🔄 Auto-sync started (30s interval)');
-            }
-            if (typeof window.startRealtimeSync === 'function') {
-              window.startRealtimeSync();
-              console.log('🎧 Real-time listener started');
-            }
-          } else {
-            console.warn('⚠️ Initial sync failed, will retry via auto-sync');
-          }
-        } catch (error) {
-          console.error('❌ Initial sync error:', error);
-        }
-      }
-    }, 1500); // Small delay to let Supabase initialize
+    // Cloud sync is handled automatically by supabase-sync-SMART-V26.js
+    // No duplicate sync call needed here.
+    console.log('🔄 Cloud sync handled by Smart Sync V26 system.');
   }
 
 
@@ -1251,7 +1231,22 @@ function showDashboard(username) {
   const userEl = document.getElementById('sidebarUser') || document.getElementById('currentUser');
   if (userEl) userEl.innerText = username;
 
-  loadDashboard();
+  // ✅ FIX: নতুন PC/login-এ cloud থেকে latest data pull করে তারপর dashboard render করো
+  // এতে করে পুরানো local data দিয়ে dashboard দেখানো বন্ধ হবে
+  if (typeof window.loadFromCloud === 'function') {
+    console.log('🔄 Login: pulling fresh data from cloud before rendering dashboard...');
+    window.loadFromCloud(true).then(() => {  // force=true: 15s block bypass করবে
+      console.log('✅ Login sync complete — loading dashboard');
+      loadDashboard();
+    }).catch(() => {
+      // Cloud pull fail হলেও local data দিয়ে dashboard দেখাও
+      console.warn('⚠️ Cloud pull failed — loading from local data');
+      loadDashboard();
+    });
+  } else {
+    loadDashboard();
+  }
+
   checkDailyBackup();
 }
 
@@ -2609,6 +2604,14 @@ function updateStudentCount() {
 // ===================================
 // CALCULATE GLOBAL STATISTICS
 // ===================================
+
+// ===================================
+// RENDER DASHBOARD (wrapper)
+// ===================================
+function renderDashboard() {
+  updateGlobalStats();
+}
+window.renderDashboard = renderDashboard;
 
 function updateGlobalStats() {
   let income = 0;
