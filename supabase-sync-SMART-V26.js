@@ -363,8 +363,7 @@
         last_updated: timestamp.toString(),
         last_device: DEVICE_ID,
         last_action: reason,
-        deleted_count: (window.globalData.deletedItems || []).length +
-                       (parseInt(localStorage.getItem('wings_total_deleted')) || 0)
+        // deleted_count removed — column does not exist in Supabase table
       };
 
       const { error } = await supabaseClient
