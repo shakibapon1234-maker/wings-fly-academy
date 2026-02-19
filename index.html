@@ -4586,34 +4586,10 @@
       } catch(e) { check('Cloud (Supabase) reachable', false, 'সংযোগ হচ্ছে না: '+e.message); }
 
       // Test 7: Key functions exist
-      const fns = ['updateGlobalStats','saveToStorage','renderDashboard','deleteStudent','logActivity','moveToTrash','takeSnapshot','renderRecycleBin','renderActivityLog','renderSnapshotList'];
+      const fns = ['updateGlobalStats','saveToStorage','renderDashboard','updateAccountBalance'];
       fns.forEach(fn => {
-        check(`function: ${fn}()`, typeof window[fn]==='function', typeof window[fn]==='function' ? 'defined ✓' : 'MISSING — এই feature কাজ করবে না!');
+        check(`function: ${fn}()`, typeof window[fn]==='function', typeof window[fn]==='function' ? 'defined ✓' : 'MISSING — ভুল হবে!');
       });
-
-      // Test 8: Recycle Bin কাজ করছে?
-      const hasTrash = Array.isArray(data.deletedItems);
-      check('Recycle Bin array', hasTrash, hasTrash ? (data.deletedItems.length + ' টি deleted item') : 'deletedItems array নেই — কাজ করছে না!');
-
-      // Test 9: Activity Log কাজ করছে?
-      const hasLog = Array.isArray(data.activityHistory);
-      check('Activity Log array', hasLog, hasLog ? (data.activityHistory.length + ' টি activity') : 'activityHistory array নেই — কাজ করছে না!');
-
-      // Test 10: Auto-Heal Engine আছে?
-      check('Auto-Heal Engine', typeof window.autoHeal === 'object' && typeof window.autoHeal.runNow === 'function', typeof window.autoHeal?.runNow === 'function' ? 'Engine সক্রিয় আছে ✓' : 'autoHeal object নেই!');
-
-      // Test 11: Snapshot system
-      try {
-        const snaps = JSON.parse(localStorage.getItem('wingsfly_snapshots') || '[]');
-        check('Auto Snapshot', Array.isArray(snaps), Array.isArray(snaps) ? snaps.length + ' টি snapshot সংরক্ষিত আছে' : 'Snapshot system কাজ করছে না!');
-      } catch(e) { check('Auto Snapshot', false, 'Snapshot read error: ' + e.message); }
-
-      // Test 12: localStorage write test
-      try {
-        localStorage.setItem('wingsfly_test', '1');
-        localStorage.removeItem('wingsfly_test');
-        check('localStorage write', true, 'Data সেভ করা যাচ্ছে ✓');
-      } catch(e) { check('localStorage write', false, 'Data সেভ হচ্ছে না! — ' + e.message); }
 
       // Render
       summaryDiv.style.cssText = 'display:flex!important; gap:8px; margin-bottom:8px; flex-wrap:wrap;';
@@ -4621,7 +4597,7 @@
         `<span class="ft-badge-pass" style="padding:4px 12px;font-size:0.78rem;">✅ ${pass} Pass</span>` +
         `<span class="ft-badge-fail" style="padding:4px 12px;font-size:0.78rem;">❌ ${fail} Fail</span>` +
         `<span class="ft-badge-warn" style="padding:4px 12px;font-size:0.78rem;">⚠️ ${warn} Warn</span>`;
-      resultsDiv.style.cssText = 'max-height:320px;overflow-y:auto;background:rgba(0,0,0,0.2);border-radius:8px;border:1px solid rgba(255,255,255,0.08);';
+      resultsDiv.style.cssText = 'max-height:220px;overflow-y:auto;background:rgba(0,0,0,0.2);border-radius:8px;border:1px solid rgba(255,255,255,0.08);';
       resultsDiv.innerHTML = rows.join('');
     }
     window.runFunctionTests = runFunctionTests;

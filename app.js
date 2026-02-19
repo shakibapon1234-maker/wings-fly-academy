@@ -25,9 +25,15 @@ if (typeof window.globalData === 'undefined') {
     users: [],
     examRegistrations: [],
     visitors: [],
-    employeeRoles: []
+    employeeRoles: [],
+    deletedItems: [],
+    activityHistory: []
   };
 }
+
+// Ensure deletedItems ও activityHistory সবসময় exist করে
+if (!window.globalData.deletedItems) window.globalData.deletedItems = [];
+if (!window.globalData.activityHistory) window.globalData.activityHistory = [];
 
 // Global Chart instances to prevent initialization errors
 window.financeChartInstance = null;
@@ -890,6 +896,8 @@ function loadFromStorage() {
       if (typeof globalData !== 'undefined') globalData = window.globalData;
 
       if (!window.globalData.employees) window.globalData.employees = [];
+      if (!window.globalData.deletedItems) window.globalData.deletedItems = [];
+      if (!window.globalData.activityHistory) window.globalData.activityHistory = [];
       ensureStudentIds();
 
       if (!window.globalData.employees) window.globalData.employees = [];
@@ -9104,11 +9112,19 @@ window.previewNotice = previewNotice;
 // (HTML uses renderActivityLog / renderRecycleBin)
 // ===================================
 function renderActivityLog() {
-  try { var raw = localStorage.getItem('wingsfly_data'); if (raw) window.globalData = JSON.parse(raw); } catch(e) {}
+  try {
+    var raw = localStorage.getItem('wingsfly_data');
+    if (raw) window.globalData = JSON.parse(raw);
+    if (!window.globalData.activityHistory) window.globalData.activityHistory = [];
+  } catch(e) {}
   if (typeof loadActivityHistory === 'function') loadActivityHistory();
 }
 function renderRecycleBin() {
-  try { var raw = localStorage.getItem('wingsfly_data'); if (raw) window.globalData = JSON.parse(raw); } catch(e) {}
+  try {
+    var raw = localStorage.getItem('wingsfly_data');
+    if (raw) window.globalData = JSON.parse(raw);
+    if (!window.globalData.deletedItems) window.globalData.deletedItems = [];
+  } catch(e) {}
   if (typeof loadDeletedItems === 'function') loadDeletedItems();
 }
 function clearRecycleBin() {
@@ -9226,8 +9242,13 @@ const SNAPSHOT_INTERVAL_MS = 60 * 60 * 1000; // ১ ঘন্টা
 
 function takeSnapshot() {
   try {
-    const data = localStorage.getItem('wingsfly_data');
-    if (!data) return;
+    // localStorage থেকে নাও, না থাকলে window.globalData থেকে নাও
+    let data = localStorage.getItem('wingsfly_data');
+    if (!data && window.globalData) {
+      data = JSON.stringify(window.globalData);
+      localStorage.setItem('wingsfly_data', data);
+    }
+    if (!data) { console.warn('takeSnapshot: no data found'); return; }
 
     const snapshots = getSnapshots();
 
@@ -9348,161 +9369,15 @@ document.addEventListener('DOMContentLoaded', function() {
   var settingsEl = document.getElementById('settingsModal');
   if (settingsEl) {
     settingsEl.addEventListener('shown.bs.modal', function() {
-      try { var raw = localStorage.getItem('wingsfly_data'); if (raw) window.globalData = JSON.parse(raw); } catch(e) {}
+      try {
+        var raw = localStorage.getItem('wingsfly_data');
+        if (raw) window.globalData = JSON.parse(raw);
+        if (!window.globalData.deletedItems) window.globalData.deletedItems = [];
+        if (!window.globalData.activityHistory) window.globalData.activityHistory = [];
+      } catch(e) {}
       if (typeof renderSnapshotList === 'function') renderSnapshotList();
       if (typeof renderActivityLog === 'function') renderActivityLog();
       if (typeof renderRecycleBin === 'function') renderRecycleBin();
     });
   }
 });
-
-
-// =====================================================
-// AUTO-HEAL ENGINE — Wings Fly Aviation Academy
-// Background-এ নিজে নিজে সমস্যা খুঁজে fix করে
-// =====================================================
-(function() {
-  var stats = {
-    totalRuns: 0,
-    totalFixes: 0,
-    lastRun: null,
-    lastFix: null
-  };
-
-  function healLog(msg, type) {
-    type = type || 'info';
-    var container = document.getElementById('heal-log-container');
-    if (!container) return;
-    var colors = { ok:'#00ff88', warn:'#ffcc00', err:'#ff4466', info:'#00d4ff' };
-    var time = new Date().toLocaleTimeString('en-BD', {hour:'2-digit', minute:'2-digit', second:'2-digit'});
-    var icon = type === 'ok' ? '✅' : type === 'warn' ? '⚠️' : type === 'err' ? '❌' : 'ℹ️';
-    var div = document.createElement('div');
-    div.style.cssText = 'color:' + (colors[type]||'#c8d8f0') + ';margin:2px 0;font-size:0.78rem;';
-    div.textContent = '[' + time + '] ' + icon + ' ' + msg;
-    // placeholder সরাও
-    var placeholder = container.querySelector('span');
-    if (placeholder) placeholder.remove();
-    container.appendChild(div);
-    container.scrollTop = container.scrollHeight;
-  }
-
-  function updateStats() {
-    var el;
-    el = document.getElementById('heal-stats-total-runs');
-    if (el) el.textContent = stats.totalRuns;
-    el = document.getElementById('heal-stats-total-fixes');
-    if (el) el.textContent = stats.totalFixes;
-    el = document.getElementById('heal-stats-last-run');
-    if (el) el.textContent = stats.lastRun ? new Date(stats.lastRun).toLocaleTimeString('en-BD', {hour:'2-digit',minute:'2-digit'}) : '—';
-    el = document.getElementById('heal-stats-last-fix');
-    if (el) el.textContent = stats.lastFix ? new Date(stats.lastFix).toLocaleTimeString('en-BD', {hour:'2-digit',minute:'2-digit'}) : '—';
-  }
-
-  function runHeal() {
-    stats.totalRuns++;
-    stats.lastRun = Date.now();
-    updateStats();
-    healLog('Auto-Heal Engine চালু হয়েছে (প্রতি 60s)', 'info');
-
-    var fixed = 0;
-    var data = null;
-    try {
-      var raw = localStorage.getItem('wingsfly_data');
-      if (!raw) { healLog('localStorage-এ data নেই!', 'err'); updateStats(); return; }
-      data = JSON.parse(raw);
-    } catch(e) {
-      healLog('Data parse error: ' + e.message, 'err');
-      updateStats();
-      return;
-    }
-
-    // Check 1: students array
-    if (!data.students || !Array.isArray(data.students)) {
-      data.students = [];
-      fixed++;
-      healLog('Students array ঠিক করা হয়েছে', 'warn');
-    } else {
-      healLog('Students: ' + data.students.length + ' টি — ঠিক আছে', 'ok');
-    }
-
-    // Check 2: finance array
-    if (!data.finance || !Array.isArray(data.finance)) {
-      data.finance = [];
-      fixed++;
-      healLog('Finance array ঠিক করা হয়েছে', 'warn');
-    } else {
-      healLog('Finance: ' + data.finance.length + ' টি — ঠিক আছে', 'ok');
-    }
-
-    // Check 3: activityHistory
-    if (!data.activityHistory || !Array.isArray(data.activityHistory)) {
-      data.activityHistory = [];
-      fixed++;
-      healLog('Activity History array তৈরি করা হয়েছে', 'warn');
-    } else {
-      healLog('Activity History: ' + data.activityHistory.length + ' এন্ট্রি — ঠিক আছে', 'ok');
-    }
-
-    // Check 4: deletedItems
-    if (!data.deletedItems || !Array.isArray(data.deletedItems)) {
-      data.deletedItems = [];
-      fixed++;
-      healLog('Deleted Items array তৈরি করা হয়েছে', 'warn');
-    } else {
-      healLog('Recycle Bin: ' + data.deletedItems.length + ' আইটেম — ঠিক আছে', 'ok');
-    }
-
-    // Check 5: cashBalance
-    if (typeof data.cashBalance !== 'number' || isNaN(data.cashBalance)) {
-      data.cashBalance = 0;
-      fixed++;
-      healLog('Cash Balance ঠিক করা হয়েছে (0 তে রিসেট)', 'warn');
-    } else {
-      healLog('Cash Balance: ৳' + data.cashBalance + ' — ঠিক আছে', 'ok');
-    }
-
-    // Check 6: settings
-    if (!data.settings || typeof data.settings !== 'object') {
-      data.settings = { academyName: 'Wings Fly Aviation Academy' };
-      fixed++;
-      healLog('Settings object ঠিক করা হয়েছে', 'warn');
-    } else {
-      healLog('Settings — ঠিক আছে', 'ok');
-    }
-
-    if (fixed > 0) {
-      stats.totalFixes += fixed;
-      stats.lastFix = Date.now();
-      localStorage.setItem('wingsfly_data', JSON.stringify(data));
-      window.globalData = data;
-      healLog(fixed + ' টি সমস্যা auto-fix করা হয়েছে ✨', 'warn');
-    } else {
-      healLog('সব ঠিক আছে — কোনো fix দরকার নেই 🎉', 'ok');
-    }
-    updateStats();
-  }
-
-  // প্রতি ৬০ সেকেন্ডে auto-run
-  var healInterval = null;
-
-  function startHeal() {
-    if (healInterval) clearInterval(healInterval);
-    healLog('Auto-Heal Engine চালু হয়েছে (প্রতি 60s)', 'info');
-    healInterval = setInterval(runHeal, 60 * 1000);
-  }
-
-  // Public API
-  window.autoHeal = {
-    runNow: function() {
-      runHeal();
-    },
-    start: startHeal,
-    getStats: function() { return stats; }
-  };
-
-  // Page load হলে শুরু করো
-  document.addEventListener('DOMContentLoaded', function() {
-    setTimeout(startHeal, 2000);
-  });
-})();
-
