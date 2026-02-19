@@ -2562,19 +2562,19 @@
     <!-- Settings Modal (Redesigned) -->
     <div class="modal fade" id="settingsModal" tabindex="-1">
         <div class="modal-dialog modal-xl modal-dialog-centered modal-dialog-scrollable">
-            <div class="modal-content custom-modal" style="min-height: 500px;">
+            <div class="modal-content custom-modal" style="min-height:600px; height:85vh; display:flex; flex-direction:column;">
                 <div class="modal-header border-bottom">
                     <h5 class="modal-title fw-bold">
                         <span class="me-2 header-icon-circle bg-primary-light">âš™ï¸</span>System Settings
                     </h5>
                     <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
                 </div>
-                <div class="modal-body p-0">
-                    <form id="settingsForm" onsubmit="handleSettingsSubmit(event)" class="h-100">
-                        <div class="d-flex h-100 flex-column flex-lg-row">
+                <div class="modal-body p-0" style="flex:1;overflow:hidden;display:flex;">
+                    <form id="settingsForm" onsubmit="handleSettingsSubmit(event)" style="flex:1;display:flex;overflow:hidden;">
+                        <div class="d-flex flex-column flex-lg-row" style="flex:1;overflow:hidden;">
                             <!-- Sidebar Navigation -->
                             <div class="border-end p-3 settings-nav"
-                                style="min-width: 260px; background: var(--bg-card);">
+                                style="min-width: 260px; background: var(--bg-card); overflow-y:auto;">
                                 <div class="nav flex-column nav-pills" role="tablist">
                                     <button class="nav-link active" data-bs-toggle="pill" data-bs-target="#tab-general"
                                         type="button">
@@ -2613,10 +2613,10 @@
                             </div>
 
                             <!-- Main Content Area -->
-                            <div class="flex-grow-1 p-4 overflow-auto" style="background: var(--bg-app);">
-                                <div class="tab-content">
+                            <div class="flex-grow-1 overflow-auto" style="background: var(--bg-app); height:100%;">
+                                <div class="tab-content" style="height:100%;">
                                     <!-- Tab 1: General Settings -->
-                                    <div class="tab-pane fade show active" id="tab-general">
+                                    <div class="tab-pane fade show active p-4" id="tab-general">
                                         <h6 class="settings-section-title">Academy Information</h6>
                                         <div class="mb-4">
                                             <label class="form-label fw-semibold">Academy Name</label>
@@ -2654,7 +2654,7 @@
                                     </div>
 
                                     <!-- Tab 2: Configurations -->
-                                    <div class="tab-pane fade" id="tab-config">
+                                    <div class="tab-pane fade p-4" id="tab-config">
                                         <div class="row g-4">
                                             <!-- Income Categories -->
                                             <div class="col-md-6">
@@ -2730,7 +2730,7 @@
                                     </div>
 
                                     <!-- Tab 3: Data Management -->
-                                    <div class="tab-pane fade" id="tab-data">
+                                    <div class="tab-pane fade p-4" id="tab-data">
                                         <div class="row justify-content-center">
                                             <div class="col-md-8">
                                                 <!-- Backup & Restore -->
@@ -2840,7 +2840,7 @@
                                     </div>
 
                                     <!-- Tab 4: Security & Access -->
-                                    <div class="tab-pane fade" id="tab-security">
+                                    <div class="tab-pane fade p-4" id="tab-security">
                                         <div class="row justify-content-center">
                                             <div class="col-md-8">
                                                 <div class="card border-0 shadow-sm mb-4">
@@ -2898,7 +2898,7 @@
                                 </div>
 
                                     <!-- Tab 5: Activity Log -->
-                                    <div class="tab-pane fade" id="tab-activitylog">
+                                    <div class="tab-pane fade p-4" id="tab-activitylog">
                                         <div class="d-flex justify-content-between align-items-center mb-3">
                                             <h6 class="settings-section-title mb-0">📋 Full Activity Log</h6>
                                             <button type="button" class="btn btn-sm btn-outline-danger rounded-pill px-3" onclick="clearActivityLog()">🗑️ Clear All</button>
@@ -2922,7 +2922,7 @@
                                     </div>
 
                                     <!-- Tab 6: Recycle Bin -->
-                                    <div class="tab-pane fade" id="tab-recyclebin">
+                                    <div class="tab-pane fade p-4" id="tab-recyclebin">
                                         <div class="d-flex justify-content-between align-items-center mb-3">
                                             <h6 class="settings-section-title mb-0">🗑️ Recycle Bin</h6>
                                             <button type="button" class="btn btn-sm btn-outline-danger rounded-pill px-3" onclick="clearRecycleBin()">🗑️ Empty Bin</button>
@@ -2943,14 +2943,15 @@
                                     </div>
 
                                     <!-- Tab: Sync Diagnostic & Function Test -->
-                                    <div class="tab-pane fade" id="tab-diagnostic">
+                                    <div class="tab-pane fade p-0 h-100" id="tab-diagnostic">
                                       <style>
                                         /* ── Dark Glassmorphism theme for Diagnostic tab ── */
                                         .diag-wrap {
                                           background: linear-gradient(135deg,#0d1b2e 0%,#0a1628 60%,#0d1f35 100%);
-                                          border-radius: 14px;
-                                          padding: 18px;
+                                          border-radius: 0;
+                                          padding: 20px;
                                           min-height: 100%;
+                                          height: 100%;
                                         }
                                         .diag-title {
                                           color: #00d4ff;
