@@ -833,6 +833,14 @@ document.addEventListener('DOMContentLoaded', function () {
 
 async function saveToStorage(skipCloudSync = false) {
   try {
+    // Arrays নিশ্চিত করো
+    if (!window.globalData.deletedItems) window.globalData.deletedItems = [];
+    if (!window.globalData.activityHistory) window.globalData.activityHistory = [];
+    
+    // Backup রাখো যাতে cloud pull এ হারিয়ে না যায়
+    localStorage.setItem('wingsfly_deleted_backup', JSON.stringify(window.globalData.deletedItems));
+    localStorage.setItem('wingsfly_activity_backup', JSON.stringify(window.globalData.activityHistory));
+    
     const currentTime = Date.now().toString();
     localStorage.setItem('wingsfly_data', JSON.stringify(window.globalData));
     localStorage.setItem('lastLocalUpdate', currentTime);
@@ -3766,6 +3774,10 @@ function deleteStudent(rowIndex) {
   if (typeof moveToTrash === 'function') moveToTrash('student', student);
   if (typeof logActivity === 'function') logActivity('student', 'DELETE', 
     'Student deleted: ' + (student.name || 'Unknown') + ' | Batch: ' + (student.batch || '-') + ' | Course: ' + (student.course || '-'), student);
+  
+  // Delete count track করো (sync এর জন্য)
+  const _delCount = parseInt(localStorage.getItem('wings_total_deleted') || '0') + 1;
+  localStorage.setItem('wings_total_deleted', _delCount.toString());
 
   // CRITICAL: Reverse all account balances from this student's payments
   // Find all finance transactions related to this student
@@ -3810,7 +3822,12 @@ function deleteStudent(rowIndex) {
     return;
   }
 
-  saveToStorage();
+  // ✅ Sync এ 'Delete' word পাঠাও যাতে cloud এ delete বোঝা যায়
+  if (typeof window.scheduleSyncPush === 'function') {
+    window.scheduleSyncPush('Delete Student: ' + (student.name || 'Unknown'));
+  } else {
+    saveToStorage();
+  }
 
   showSuccessToast('Student deleted successfully! (Payments reversed)');
   render(globalData.students);

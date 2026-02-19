@@ -163,32 +163,61 @@
           log('📥', `From: ${cloudDevice.substr(0, 15)}`);
         }
 
-        // ✅ DATA LOSS PREVENTION: Cloud data must have at least as many
-        // students & finance records as local, otherwise keep local data.
+        // ✅ DATA LOSS PREVENTION (IMPROVED)
+        // Delete করলে count কমে - এটা data loss না, intentional
+        // last_action দেখে বুঝি এটা delete নাকি সত্যিকারের loss
         const localStudents = (window.globalData && window.globalData.students) || [];
         const cloudStudents = data.students || [];
         const localFinance  = (window.globalData && window.globalData.finance)   || [];
         const cloudFinance  = data.finance  || [];
+        const cloudLastAction = data.last_action || '';
+        const cloudLastDevice = data.last_device || '';
 
-        if (cloudStudents.length < localStudents.length || cloudFinance.length < localFinance.length) {
-          log('🛡️', `Data loss prevention triggered!`);
-          log('🛡️', `Cloud students: ${cloudStudents.length} vs Local: ${localStudents.length}`);
-          log('🛡️', `Cloud finance : ${cloudFinance.length}  vs Local: ${localFinance.length}`);
-          log('🛡️', `Keeping local data & pushing to cloud...`);
+        // Cloud এ কম data আছে কিনা
+        const cloudHasFewerStudents = cloudStudents.length < localStudents.length;
+        const cloudHasFewerFinance  = cloudFinance.length  < localFinance.length;
 
-          // Update version to match cloud so sync stays consistent
-          localVersion = cloudVersion;
-          localStorage.setItem('wings_local_version', localVersion.toString());
-          isPulling = false;
+        if (cloudHasFewerStudents || cloudHasFewerFinance) {
+          // এই device এর push হলে ignore (নিজের echo)
+          const isOwnPush = cloudLastDevice === DEVICE_ID;
+          // Delete action হলে এটা intentional
+          const isDeleteAction = cloudLastAction.toLowerCase().includes('delete') || 
+                                  cloudLastAction.toLowerCase().includes('trash') ||
+                                  cloudLastAction.toLowerCase().includes('remove');
 
-          // Push local (the richer) data to cloud to fix the mismatch
-          setTimeout(() => pushToCloud('Data-loss-prevention push'), 1000);
-          return true;
+          if (isOwnPush || isDeleteAction) {
+            // ✅ Intentional delete - cloud এর data accept করো
+            log('🗑️', `Intentional delete detected (action: ${cloudLastAction}) - accepting cloud data`);
+            log('🗑️', `Students: Cloud ${cloudStudents.length} / Local ${localStudents.length}`);
+            // Continue to update globalData below (no return)
+          } else {
+            // ❌ Possible data loss - local রাখো এবং push করো
+            log('🛡️', `Data loss prevention triggered!`);
+            log('🛡️', `Cloud students: ${cloudStudents.length} vs Local: ${localStudents.length}`);
+            log('🛡️', `Cloud finance : ${cloudFinance.length}  vs Local: ${localFinance.length}`);
+            log('🛡️', `Keeping local data & pushing to cloud...`);
+
+            localVersion = cloudVersion;
+            localStorage.setItem('wings_local_version', localVersion.toString());
+            isPulling = false;
+            setTimeout(() => pushToCloud('Data-loss-prevention push'), 1000);
+            return true;
+          }
         }
 
         // Temporarily disable monitoring
         const wasMonitoring = isMonitoringEnabled;
         isMonitoringEnabled = false;
+
+        // ✅ PRESERVE LOCAL-ONLY DATA (deletedItems & activityHistory)
+        // এগুলো cloud এ store হয় না, তাই pull এ হারিয়ে যায়
+        // Local backup থেকে restore করো
+        const _savedDeleted  = localStorage.getItem('wingsfly_deleted_backup');
+        const _savedActivity = localStorage.getItem('wingsfly_activity_backup');
+        const _preservedDeleted  = _savedDeleted  ? JSON.parse(_savedDeleted)  : 
+                                   (window.globalData && window.globalData.deletedItems) || [];
+        const _preservedActivity = _savedActivity ? JSON.parse(_savedActivity) :
+                                   (window.globalData && window.globalData.activityHistory) || [];
 
         // Update global data
         window.globalData = {
@@ -208,7 +237,9 @@
           users: data.users || [],
           examRegistrations: data.exam_registrations || [],
           visitors: data.visitors || [],
-          employeeRoles: data.employee_roles || []
+          employeeRoles: data.employee_roles || [],
+          deletedItems: _preservedDeleted,
+          activityHistory: _preservedActivity
         };
 
         // Save to localStorage
@@ -331,7 +362,9 @@
         version: localVersion,
         last_updated: timestamp.toString(),
         last_device: DEVICE_ID,
-        last_action: reason
+        last_action: reason,
+        deleted_count: (window.globalData.deletedItems || []).length +
+                       (parseInt(localStorage.getItem('wings_total_deleted')) || 0)
       };
 
       const { error } = await supabaseClient
@@ -609,8 +642,9 @@
 
   // Backward compatibility
   window.saveToCloud = () => pushToCloud('Legacy saveToCloud');
-  window.loadFromCloud = (force = false) => pullFromCloud(false, force);
-  window.manualSync = window.wingsSync.fullSync;
+  window.loadFromCloud    = (force = false) => pullFromCloud(false, force);
+  window.manualSync       = window.wingsSync.fullSync;
+  window.scheduleSyncPush = schedulePush; // delete/add action এর reason পাঠানোর জন্য
 
   // ==========================================
   // AUTO-START SYSTEM
