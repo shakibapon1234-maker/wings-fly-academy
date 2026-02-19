@@ -3989,8 +3989,22 @@ function deleteTransaction(id) {
   updateGlobalStats();
   showSuccessToast('Transaction deleted successfully!');
 
-  // Then save & push to cloud (async, won't revert UI)
-  saveToStorage();
+  // Then save & push to cloud with DELETE reason so Data Loss Prevention knows it's intentional
+  if (typeof window.scheduleSyncPush === 'function') {
+    // Save locally first
+    if (!window.globalData.deletedItems) window.globalData.deletedItems = [];
+    if (!window.globalData.activityHistory) window.globalData.activityHistory = [];
+    localStorage.setItem('wingsfly_deleted_backup', JSON.stringify(window.globalData.deletedItems));
+    localStorage.setItem('wingsfly_activity_backup', JSON.stringify(window.globalData.activityHistory));
+    localStorage.setItem('wingsfly_data', JSON.stringify(window.globalData));
+    // Track delete count
+    const _dc = parseInt(localStorage.getItem('wings_total_deleted') || '0') + 1;
+    localStorage.setItem('wings_total_deleted', _dc.toString());
+    // Push with 'Delete' in reason so cloud knows it's intentional
+    window.scheduleSyncPush('Delete Transaction: ' + (txToDelete.description || txToDelete.category || String(id)));
+  } else {
+    saveToStorage();
+  }
 
   // Refresh Account Details modal if open
   const accModal = document.getElementById('accountDetailsModal');
@@ -9130,40 +9144,26 @@ window.previewNotice = previewNotice;
 // ===================================
 function renderActivityLog() {
   try {
-    var raw = localStorage.getItem('wingsfly_data');
-    if (raw) {
-      var parsed = JSON.parse(raw);
-      if (!window.globalData) {
-        window.globalData = parsed;
-      } else {
-        // FIX: বেশি entries যেটায় সেটা রাখো (cloud pull data হারাবে না)
-        var lh = parsed.activityHistory || [];
-        var wh = window.globalData.activityHistory || [];
-        window.globalData.activityHistory = lh.length >= wh.length ? lh : wh;
-      }
-    }
+    // FIX: activity_backup থেকে নাও — cloud pull এ হারায় না
+    var backupRaw = localStorage.getItem('wingsfly_activity_backup');
+    var backup = backupRaw ? JSON.parse(backupRaw) : [];
+    var current = (window.globalData && window.globalData.activityHistory) || [];
+    // বেশি entries যেটায় সেটা রাখো
     if (!window.globalData) window.globalData = {};
-    if (!window.globalData.activityHistory) window.globalData.activityHistory = [];
-  } catch(e) { console.warn('[renderActivityLog] data load error:', e); }
+    window.globalData.activityHistory = backup.length >= current.length ? backup : current;
+  } catch(e) { console.warn('[renderActivityLog] error:', e); }
   if (typeof loadActivityHistory === 'function') loadActivityHistory();
 }
 function renderRecycleBin() {
   try {
-    var raw = localStorage.getItem('wingsfly_data');
-    if (raw) {
-      var parsed = JSON.parse(raw);
-      if (!window.globalData) {
-        window.globalData = parsed;
-      } else {
-        // FIX: বেশি entries যেটায় সেটা রাখো
-        var ld = parsed.deletedItems || [];
-        var wd = window.globalData.deletedItems || [];
-        window.globalData.deletedItems = ld.length >= wd.length ? ld : wd;
-      }
-    }
+    // FIX: deleted_backup থেকে নাও — cloud pull এ হারায় না
+    var backupRaw = localStorage.getItem('wingsfly_deleted_backup');
+    var backup = backupRaw ? JSON.parse(backupRaw) : [];
+    var current = (window.globalData && window.globalData.deletedItems) || [];
+    // বেশি entries যেটায় সেটা রাখো
     if (!window.globalData) window.globalData = {};
-    if (!window.globalData.deletedItems) window.globalData.deletedItems = [];
-  } catch(e) { console.warn('[renderRecycleBin] data load error:', e); }
+    window.globalData.deletedItems = backup.length >= current.length ? backup : current;
+  } catch(e) { console.warn('[renderRecycleBin] error:', e); }
   if (typeof loadDeletedItems === 'function') loadDeletedItems();
 }
 function clearRecycleBin() {
@@ -9172,11 +9172,12 @@ function clearRecycleBin() {
 window.renderActivityLog = renderActivityLog;
 window.renderRecycleBin = renderRecycleBin;
 window.clearRecycleBin = clearRecycleBin;
-// FIX: index.html calls clearActivityLog — alias to clearActivityHistory
+// FIX: index.html এ clearActivityLog() call হয় — এই alias ছাড়া FAIL দেখায়
 window.clearActivityLog = function() {
   if (!confirm('সব Activity History মুছে ফেলবেন?')) return;
   if (!window.globalData) return;
   window.globalData.activityHistory = [];
+  localStorage.setItem('wingsfly_activity_backup', JSON.stringify([]));
   if (typeof saveToStorage === 'function') saveToStorage(true);
   if (typeof window.loadActivityHistory === 'function') window.loadActivityHistory();
   if (typeof showSuccessToast === 'function') showSuccessToast('Activity History cleared!');
@@ -9198,8 +9199,8 @@ window.loadActivityHistory = function() {
   const searchEl = document.getElementById('logSearch');
   const searchVal = searchEl ? searchEl.value.toLowerCase() : '';
   
-  // FIX: logFilterType dropdown-এ values হলো ADD/EDIT/DELETE (action field)
-  // historyFilter dropdown-এ values হলো student/finance/employee (type field)
+  // FIX: logFilterType-এর values ADD/EDIT/DELETE = h.action field
+  // historyFilter-এর values student/finance/employee = h.type field
   const isActionFilter = filterEl && filterEl.id === 'logFilterType';
   const filtered = history.filter(h => {
     const typeOk = filterVal === 'all' ||
