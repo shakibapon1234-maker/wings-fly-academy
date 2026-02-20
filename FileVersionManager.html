@@ -1,0 +1,803 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>File Version Manager</title>
+<link href="https://fonts.googleapis.com/css2?family=JetBrains+Mono:wght@400;700&family=Syne:wght@400;700;800&display=swap" rel="stylesheet">
+<style>
+  :root {
+    --bg: #0a0e1a;
+    --surface: #111827;
+    --surface2: #1a2236;
+    --border: #1e2d45;
+    --accent: #00d4ff;
+    --accent2: #7c3aed;
+    --gold: #f59e0b;
+    --green: #10b981;
+    --red: #ef4444;
+    --text: #e2e8f0;
+    --muted: #64748b;
+    --font-mono: 'JetBrains Mono', monospace;
+    --font-display: 'Syne', sans-serif;
+  }
+
+  * { margin: 0; padding: 0; box-sizing: border-box; }
+
+  body {
+    background: var(--bg);
+    color: var(--text);
+    font-family: var(--font-display);
+    min-height: 100vh;
+    overflow-x: hidden;
+  }
+
+  /* Animated bg grid */
+  body::before {
+    content: '';
+    position: fixed;
+    inset: 0;
+    background-image:
+      linear-gradient(rgba(0,212,255,0.03) 1px, transparent 1px),
+      linear-gradient(90deg, rgba(0,212,255,0.03) 1px, transparent 1px);
+    background-size: 40px 40px;
+    pointer-events: none;
+    z-index: 0;
+  }
+
+  .app {
+    position: relative;
+    z-index: 1;
+    max-width: 960px;
+    margin: 0 auto;
+    padding: 30px 20px;
+  }
+
+  /* Header */
+  .header {
+    display: flex;
+    align-items: center;
+    gap: 16px;
+    margin-bottom: 36px;
+  }
+  .header-icon {
+    width: 48px; height: 48px;
+    background: linear-gradient(135deg, var(--accent), var(--accent2));
+    border-radius: 14px;
+    display: flex; align-items: center; justify-content: center;
+    font-size: 22px;
+    box-shadow: 0 0 20px rgba(0,212,255,0.3);
+  }
+  .header-text h1 {
+    font-size: 1.6rem;
+    font-weight: 800;
+    background: linear-gradient(90deg, var(--accent), #a78bfa);
+    -webkit-background-clip: text; -webkit-text-fill-color: transparent;
+    background-clip: text;
+  }
+  .header-text p {
+    font-size: 0.78rem;
+    color: var(--muted);
+    font-family: var(--font-mono);
+    margin-top: 2px;
+  }
+
+  /* Drop Zone */
+  .drop-zone {
+    border: 2px dashed var(--border);
+    border-radius: 16px;
+    padding: 36px 24px;
+    text-align: center;
+    cursor: pointer;
+    transition: all 0.3s;
+    background: rgba(0,212,255,0.02);
+    margin-bottom: 24px;
+    position: relative;
+    overflow: hidden;
+  }
+  .drop-zone::before {
+    content: '';
+    position: absolute;
+    inset: 0;
+    background: radial-gradient(ellipse at center, rgba(0,212,255,0.05) 0%, transparent 70%);
+    opacity: 0;
+    transition: opacity 0.3s;
+  }
+  .drop-zone:hover, .drop-zone.dragover {
+    border-color: var(--accent);
+    background: rgba(0,212,255,0.05);
+  }
+  .drop-zone:hover::before, .drop-zone.dragover::before { opacity: 1; }
+  .drop-zone input { display: none; }
+  .drop-icon { font-size: 36px; margin-bottom: 10px; }
+  .drop-title {
+    font-size: 1rem; font-weight: 700;
+    color: var(--text); margin-bottom: 4px;
+  }
+  .drop-sub {
+    font-size: 0.75rem;
+    color: var(--muted);
+    font-family: var(--font-mono);
+  }
+  .drop-btn {
+    display: inline-block;
+    margin-top: 14px;
+    padding: 8px 20px;
+    background: linear-gradient(135deg, var(--accent), var(--accent2));
+    color: white; border: none; border-radius: 8px;
+    font-family: var(--font-display);
+    font-weight: 700; font-size: 0.82rem;
+    cursor: pointer;
+    transition: opacity 0.2s, transform 0.2s;
+    box-shadow: 0 4px 15px rgba(0,212,255,0.2);
+  }
+  .drop-btn:hover { opacity: 0.85; transform: translateY(-1px); }
+
+  /* File list header */
+  .section-title {
+    font-size: 0.72rem;
+    font-family: var(--font-mono);
+    color: var(--muted);
+    text-transform: uppercase;
+    letter-spacing: 2px;
+    margin-bottom: 12px;
+    display: flex;
+    align-items: center;
+    gap: 8px;
+  }
+  .section-title::after {
+    content: '';
+    flex: 1;
+    height: 1px;
+    background: var(--border);
+  }
+
+  /* File cards */
+  .file-card {
+    background: var(--surface);
+    border: 1px solid var(--border);
+    border-radius: 14px;
+    margin-bottom: 16px;
+    overflow: hidden;
+    transition: border-color 0.2s;
+  }
+  .file-card:hover { border-color: rgba(0,212,255,0.3); }
+
+  .file-header {
+    display: flex;
+    align-items: center;
+    gap: 12px;
+    padding: 14px 18px;
+    cursor: pointer;
+    user-select: none;
+  }
+  .file-ext {
+    min-width: 44px; height: 44px;
+    background: linear-gradient(135deg, var(--surface2), var(--border));
+    border-radius: 10px;
+    display: flex; align-items: center; justify-content: center;
+    font-family: var(--font-mono);
+    font-size: 0.65rem;
+    font-weight: 700;
+    color: var(--accent);
+    text-transform: uppercase;
+    letter-spacing: 0.5px;
+    border: 1px solid var(--border);
+  }
+  .file-info { flex: 1; min-width: 0; }
+  .file-name {
+    font-weight: 700;
+    font-size: 0.9rem;
+    color: var(--text);
+    white-space: nowrap;
+    overflow: hidden;
+    text-overflow: ellipsis;
+  }
+  .file-meta {
+    font-family: var(--font-mono);
+    font-size: 0.68rem;
+    color: var(--muted);
+    margin-top: 2px;
+  }
+  .file-actions {
+    display: flex;
+    gap: 6px;
+    align-items: center;
+  }
+
+  .badge {
+    padding: 3px 10px;
+    border-radius: 20px;
+    font-size: 0.65rem;
+    font-weight: 700;
+    font-family: var(--font-mono);
+  }
+  .badge-version {
+    background: rgba(0,212,255,0.1);
+    color: var(--accent);
+    border: 1px solid rgba(0,212,255,0.2);
+  }
+  .badge-count {
+    background: rgba(124,58,237,0.1);
+    color: #a78bfa;
+    border: 1px solid rgba(124,58,237,0.2);
+  }
+
+  .btn-sm {
+    padding: 5px 12px;
+    border-radius: 7px;
+    font-size: 0.72rem;
+    font-weight: 700;
+    cursor: pointer;
+    border: 1px solid;
+    transition: all 0.2s;
+    font-family: var(--font-display);
+  }
+  .btn-save {
+    background: rgba(0,212,255,0.1);
+    color: var(--accent);
+    border-color: rgba(0,212,255,0.3);
+  }
+  .btn-save:hover {
+    background: rgba(0,212,255,0.2);
+    box-shadow: 0 0 12px rgba(0,212,255,0.2);
+  }
+  .btn-delete {
+    background: rgba(239,68,68,0.1);
+    color: var(--red);
+    border-color: rgba(239,68,68,0.3);
+  }
+  .btn-delete:hover { background: rgba(239,68,68,0.2); }
+  .btn-expand {
+    background: transparent;
+    color: var(--muted);
+    border-color: var(--border);
+    width: 30px; height: 30px;
+    padding: 0;
+    display: flex; align-items: center; justify-content: center;
+    font-size: 0.7rem;
+    transition: transform 0.2s, color 0.2s;
+  }
+  .btn-expand.open { transform: rotate(180deg); color: var(--accent); }
+
+  /* Version history panel */
+  .version-panel {
+    border-top: 1px solid var(--border);
+    background: rgba(0,0,0,0.2);
+    display: none;
+    padding: 0;
+  }
+  .version-panel.open { display: block; }
+
+  .version-item {
+    display: flex;
+    align-items: center;
+    gap: 12px;
+    padding: 11px 18px;
+    border-bottom: 1px solid rgba(255,255,255,0.04);
+    transition: background 0.15s;
+  }
+  .version-item:last-child { border-bottom: none; }
+  .version-item:hover { background: rgba(255,255,255,0.03); }
+
+  .version-dot {
+    width: 8px; height: 8px;
+    border-radius: 50%;
+    flex-shrink: 0;
+  }
+  .v-current { background: var(--green); box-shadow: 0 0 6px var(--green); }
+  .v-old { background: var(--muted); }
+
+  .version-info { flex: 1; }
+  .version-label {
+    font-family: var(--font-mono);
+    font-size: 0.72rem;
+    color: var(--text);
+    font-weight: 700;
+  }
+  .version-time {
+    font-family: var(--font-mono);
+    font-size: 0.65rem;
+    color: var(--muted);
+    margin-top: 1px;
+  }
+  .version-size {
+    font-family: var(--font-mono);
+    font-size: 0.65rem;
+    color: var(--muted);
+    margin-right: 8px;
+  }
+
+  .btn-restore {
+    padding: 4px 12px;
+    border-radius: 6px;
+    font-size: 0.68rem;
+    font-weight: 700;
+    cursor: pointer;
+    border: 1px solid rgba(16,185,129,0.3);
+    background: rgba(16,185,129,0.1);
+    color: var(--green);
+    transition: all 0.2s;
+    font-family: var(--font-display);
+  }
+  .btn-restore:hover {
+    background: rgba(16,185,129,0.2);
+    box-shadow: 0 0 10px rgba(16,185,129,0.2);
+  }
+  .btn-restore:disabled {
+    opacity: 0.4; cursor: default;
+    box-shadow: none;
+  }
+  .btn-del-ver {
+    padding: 4px 8px;
+    border-radius: 6px;
+    font-size: 0.65rem;
+    cursor: pointer;
+    border: 1px solid rgba(239,68,68,0.2);
+    background: transparent;
+    color: var(--red);
+    transition: all 0.2s;
+    opacity: 0.6;
+  }
+  .btn-del-ver:hover { opacity: 1; background: rgba(239,68,68,0.1); }
+
+  /* Save label input */
+  .save-label-row {
+    display: flex;
+    gap: 8px;
+    padding: 12px 18px;
+    border-top: 1px solid var(--border);
+    background: rgba(0,212,255,0.02);
+  }
+  .label-input {
+    flex: 1;
+    background: var(--surface2);
+    border: 1px solid var(--border);
+    border-radius: 7px;
+    padding: 6px 12px;
+    color: var(--text);
+    font-family: var(--font-mono);
+    font-size: 0.75rem;
+    outline: none;
+    transition: border-color 0.2s;
+  }
+  .label-input:focus { border-color: var(--accent); }
+  .label-input::placeholder { color: var(--muted); }
+
+  /* Toast */
+  .toast {
+    position: fixed;
+    bottom: 28px; right: 28px;
+    background: var(--surface2);
+    border: 1px solid var(--border);
+    border-radius: 12px;
+    padding: 12px 18px;
+    font-size: 0.82rem;
+    font-weight: 700;
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    box-shadow: 0 10px 40px rgba(0,0,0,0.5);
+    z-index: 9999;
+    transform: translateY(80px);
+    opacity: 0;
+    transition: all 0.3s;
+    max-width: 340px;
+  }
+  .toast.show { transform: translateY(0); opacity: 1; }
+  .toast.success { border-color: rgba(16,185,129,0.4); color: var(--green); }
+  .toast.error { border-color: rgba(239,68,68,0.4); color: var(--red); }
+  .toast.info { border-color: rgba(0,212,255,0.4); color: var(--accent); }
+
+  /* Empty state */
+  .empty-state {
+    text-align: center;
+    padding: 40px 20px;
+    color: var(--muted);
+  }
+  .empty-state .empty-icon { font-size: 48px; margin-bottom: 12px; opacity: 0.4; }
+  .empty-state p { font-size: 0.82rem; font-family: var(--font-mono); }
+
+  /* Stats bar */
+  .stats-bar {
+    display: flex;
+    gap: 12px;
+    margin-bottom: 24px;
+    flex-wrap: wrap;
+  }
+  .stat-pill {
+    background: var(--surface);
+    border: 1px solid var(--border);
+    border-radius: 10px;
+    padding: 8px 14px;
+    display: flex;
+    align-items: center;
+    gap: 8px;
+  }
+  .stat-pill .s-val {
+    font-weight: 800;
+    font-size: 1.1rem;
+    color: var(--accent);
+  }
+  .stat-pill .s-lbl {
+    font-size: 0.7rem;
+    color: var(--muted);
+    font-family: var(--font-mono);
+  }
+
+  /* Max versions note */
+  .max-note {
+    font-size: 0.65rem;
+    color: var(--gold);
+    font-family: var(--font-mono);
+    padding: 6px 18px;
+    border-top: 1px solid var(--border);
+    background: rgba(245,158,11,0.04);
+    display: flex;
+    align-items: center;
+    gap: 6px;
+  }
+
+  @keyframes pulse {
+    0%,100% { opacity: 1; }
+    50% { opacity: 0.5; }
+  }
+  .live-dot {
+    width: 6px; height: 6px;
+    background: var(--green);
+    border-radius: 50%;
+    animation: pulse 2s infinite;
+  }
+</style>
+</head>
+<body>
+<div class="app">
+  <!-- Header -->
+  <div class="header">
+    <div class="header-icon">📁</div>
+    <div class="header-text">
+      <h1>File Version Manager</h1>
+      <p>// local file history — no server needed</p>
+    </div>
+    <div style="margin-left:auto;display:flex;align-items:center;gap:6px;">
+      <div class="live-dot"></div>
+      <span style="font-size:0.7rem;color:var(--muted);font-family:var(--font-mono);">RUNNING LOCAL</span>
+    </div>
+  </div>
+
+  <!-- Stats -->
+  <div class="stats-bar" id="statsBar" style="display:none;">
+    <div class="stat-pill">
+      <span class="s-val" id="statFiles">0</span>
+      <span class="s-lbl">tracked files</span>
+    </div>
+    <div class="stat-pill">
+      <span class="s-val" id="statVersions">0</span>
+      <span class="s-lbl">total versions</span>
+    </div>
+    <div class="stat-pill">
+      <span class="s-val" id="statSize">0 KB</span>
+      <span class="s-lbl">storage used</span>
+    </div>
+  </div>
+
+  <!-- Drop Zone -->
+  <div class="drop-zone" id="dropZone">
+    <input type="file" id="fileInput" multiple>
+    <div class="drop-icon">⬆️</div>
+    <div class="drop-title">ফাইল এখানে ড্রপ করুন</div>
+    <div class="drop-sub">অথবা নিচের বাটনে ক্লিক করুন — যেকোনো ফাইল (.js, .html, .css, .json ...)</div>
+    <button class="drop-btn" onclick="document.getElementById('fileInput').click()">📂 ফাইল বেছে নিন</button>
+  </div>
+
+  <!-- File List -->
+  <div class="section-title" id="listTitle" style="display:none;">
+    tracked files
+  </div>
+  <div id="fileList">
+    <div class="empty-state" id="emptyState">
+      <div class="empty-icon">🗂️</div>
+      <p>এখনো কোনো ফাইল নেই। উপরে ফাইল drop করুন বা বেছে নিন।</p>
+    </div>
+  </div>
+</div>
+
+<!-- Toast -->
+<div class="toast" id="toast"></div>
+
+<script>
+const MAX_VERSIONS = 10;
+const STORAGE_KEY = 'fvm_data';
+
+// Load data from localStorage
+function loadData() {
+  try { return JSON.parse(localStorage.getItem(STORAGE_KEY) || '{}'); }
+  catch(e) { return {}; }
+}
+function saveData(data) {
+  localStorage.setItem(STORAGE_KEY, JSON.stringify(data));
+}
+
+// Toast
+let toastTimer;
+function showToast(msg, type='info') {
+  const t = document.getElementById('toast');
+  const icons = { success:'✅', error:'❌', info:'ℹ️' };
+  t.innerHTML = `<span>${icons[type]||'ℹ️'}</span><span>${msg}</span>`;
+  t.className = `toast ${type} show`;
+  clearTimeout(toastTimer);
+  toastTimer = setTimeout(() => t.className = 'toast', 2800);
+}
+
+// Format bytes
+function fmtSize(bytes) {
+  if (bytes < 1024) return bytes + ' B';
+  if (bytes < 1024*1024) return (bytes/1024).toFixed(1) + ' KB';
+  return (bytes/(1024*1024)).toFixed(1) + ' MB';
+}
+
+// Format date
+function fmtDate(ts) {
+  const d = new Date(ts);
+  return d.toLocaleDateString('en-GB', {day:'2-digit',month:'short',year:'numeric'}) +
+    ' ' + d.toLocaleTimeString('en-GB', {hour:'2-digit',minute:'2-digit'});
+}
+
+// Get file extension
+function getExt(name) {
+  const parts = name.split('.');
+  return parts.length > 1 ? parts.pop().toLowerCase() : 'file';
+}
+
+// Read file as text or base64
+function readFile(file) {
+  return new Promise((resolve) => {
+    const reader = new FileReader();
+    // Try text first for text files
+    const textExts = ['js','html','css','json','txt','md','ts','jsx','tsx','php','py','xml','csv','svg'];
+    const ext = getExt(file.name);
+    if (textExts.includes(ext)) {
+      reader.onload = e => resolve({ content: e.target.result, binary: false });
+      reader.readAsText(file);
+    } else {
+      reader.onload = e => resolve({ content: e.target.result, binary: true });
+      reader.readAsDataURL(file);
+    }
+  });
+}
+
+// Add or update file version
+async function addFileVersion(file, label='') {
+  const data = loadData();
+  const key = file.name;
+  const { content, binary } = await readFile(file);
+
+  if (!data[key]) {
+    data[key] = { name: file.name, ext: getExt(file.name), versions: [] };
+  }
+
+  const version = {
+    id: Date.now(),
+    ts: Date.now(),
+    label: label || 'Version ' + (data[key].versions.length + 1),
+    size: file.size,
+    content: content,
+    binary: binary
+  };
+
+  // Add to front
+  data[key].versions.unshift(version);
+
+  // Keep max versions
+  if (data[key].versions.length > MAX_VERSIONS) {
+    data[key].versions = data[key].versions.slice(0, MAX_VERSIONS);
+  }
+
+  saveData(data);
+  renderAll();
+  showToast(`"${file.name}" — নতুন version সেভ হয়েছে ✓`, 'success');
+}
+
+// Restore version (download)
+function restoreVersion(fileName, versionId) {
+  const data = loadData();
+  const fileData = data[fileName];
+  if (!fileData) return;
+  const ver = fileData.versions.find(v => v.id === versionId);
+  if (!ver) return;
+
+  let blob;
+  if (ver.binary) {
+    // base64 dataURL to blob
+    const arr = ver.content.split(',');
+    const mime = arr[0].match(/:(.*?);/)[1];
+    const bstr = atob(arr[1]);
+    let n = bstr.length;
+    const u8 = new Uint8Array(n);
+    while(n--) u8[n] = bstr.charCodeAt(n);
+    blob = new Blob([u8], {type: mime});
+  } else {
+    blob = new Blob([ver.content], { type: 'text/plain' });
+  }
+
+  const url = URL.createObjectURL(blob);
+  const a = document.createElement('a');
+  a.href = url;
+  a.download = fileName;
+  document.body.appendChild(a);
+  a.click();
+  document.body.removeChild(a);
+  URL.revokeObjectURL(url);
+  showToast(`"${fileName}" — "${ver.label}" restore করা হয়েছে`, 'success');
+}
+
+// Delete a single version
+function deleteVersion(fileName, versionId) {
+  const data = loadData();
+  if (!data[fileName]) return;
+  data[fileName].versions = data[fileName].versions.filter(v => v.id !== versionId);
+  if (data[fileName].versions.length === 0) delete data[fileName];
+  saveData(data);
+  renderAll();
+  showToast('Version মুছে ফেলা হয়েছে', 'info');
+}
+
+// Delete all versions of a file
+function deleteFile(fileName) {
+  if (!confirm(`"${fileName}" এর সব versions মুছে ফেলবেন?`)) return;
+  const data = loadData();
+  delete data[fileName];
+  saveData(data);
+  renderAll();
+  showToast(`"${fileName}" মুছে ফেলা হয়েছে`, 'error');
+}
+
+// Toggle version panel
+function togglePanel(fileName) {
+  const panel = document.getElementById('panel-' + btoa(fileName).replace(/=/g,''));
+  const btn = document.getElementById('expbtn-' + btoa(fileName).replace(/=/g,''));
+  if (!panel || !btn) return;
+  const isOpen = panel.classList.contains('open');
+  panel.classList.toggle('open', !isOpen);
+  btn.classList.toggle('open', !isOpen);
+}
+
+// Save new version for existing tracked file
+function saveNewVersion(fileName) {
+  const labelInput = document.getElementById('lbl-' + btoa(fileName).replace(/=/g,''));
+  const label = labelInput ? labelInput.value.trim() : '';
+  // Create file input to pick the updated file
+  const fi = document.createElement('input');
+  fi.type = 'file';
+  fi.accept = '*';
+  fi.onchange = async (e) => {
+    const f = e.target.files[0];
+    if (!f) return;
+    if (f.name !== fileName) {
+      showToast(`ফাইলের নাম "${fileName}" হওয়া উচিত!`, 'error');
+      return;
+    }
+    await addFileVersion(f, label);
+    if (labelInput) labelInput.value = '';
+  };
+  fi.click();
+}
+
+// Render everything
+function renderAll() {
+  const data = loadData();
+  const keys = Object.keys(data);
+  const fileList = document.getElementById('fileList');
+  const emptyState = document.getElementById('emptyState');
+  const statsBar = document.getElementById('statsBar');
+  const listTitle = document.getElementById('listTitle');
+
+  // Update stats
+  let totalVersions = 0;
+  let totalSize = 0;
+  keys.forEach(k => {
+    totalVersions += data[k].versions.length;
+    data[k].versions.forEach(v => totalSize += v.size || 0);
+  });
+  document.getElementById('statFiles').textContent = keys.length;
+  document.getElementById('statVersions').textContent = totalVersions;
+  document.getElementById('statSize').textContent = fmtSize(totalSize);
+  statsBar.style.display = keys.length ? 'flex' : 'none';
+  listTitle.style.display = keys.length ? 'flex' : 'none';
+
+  if (keys.length === 0) {
+    fileList.innerHTML = '';
+    fileList.appendChild(document.getElementById('emptyState') || createEmptyState());
+    emptyState && (emptyState.style.display = 'block');
+    return;
+  }
+  emptyState && (emptyState.style.display = 'none');
+
+  // Remember open panels
+  const openPanels = new Set();
+  document.querySelectorAll('.version-panel.open').forEach(p => openPanels.add(p.id));
+
+  fileList.innerHTML = '';
+
+  keys.forEach(fileName => {
+    const fd = data[fileName];
+    const versions = fd.versions;
+    const latest = versions[0];
+    const safeId = btoa(fileName).replace(/=/g,'');
+    const panelId = 'panel-' + safeId;
+    const wasOpen = openPanels.has(panelId);
+
+    const card = document.createElement('div');
+    card.className = 'file-card';
+
+    // Version rows HTML
+    let verRows = versions.map((v, i) => `
+      <div class="version-item">
+        <div class="version-dot ${i===0?'v-current':'v-old'}"></div>
+        <div class="version-info">
+          <div class="version-label">${v.label}</div>
+          <div class="version-time">${fmtDate(v.ts)}</div>
+        </div>
+        <span class="version-size">${fmtSize(v.size||0)}</span>
+        <button class="btn-restore" onclick="restoreVersion('${fileName}',${v.id})" ${i===0?'':''}
+          title="${i===0?'সর্বশেষ version — restore করুন':'এই version এ ফিরে যান'}">
+          ${i===0?'⬇️ Download':'⏪ Restore'}
+        </button>
+        <button class="btn-del-ver" onclick="deleteVersion('${fileName}',${v.id})" title="এই version মুছুন">✕</button>
+      </div>
+    `).join('');
+
+    const maxReached = versions.length >= MAX_VERSIONS;
+
+    card.innerHTML = `
+      <div class="file-header" onclick="togglePanel('${fileName}')">
+        <div class="file-ext">.${fd.ext}</div>
+        <div class="file-info">
+          <div class="file-name">${fileName}</div>
+          <div class="file-meta">Last saved: ${fmtDate(latest.ts)} &nbsp;·&nbsp; ${fmtSize(latest.size||0)}</div>
+        </div>
+        <div class="file-actions" onclick="event.stopPropagation()">
+          <span class="badge badge-count">${versions.length}/${MAX_VERSIONS} versions</span>
+          <button class="btn-sm btn-save" onclick="saveNewVersion('${fileName}')" title="নতুন version সেভ করুন">+ Save</button>
+          <button class="btn-sm btn-delete" onclick="deleteFile('${fileName}')" title="সব versions মুছুন">🗑</button>
+          <button class="btn-expand ${wasOpen?'open':''}" id="expbtn-${safeId}">▼</button>
+        </div>
+      </div>
+      <div class="version-panel ${wasOpen?'open':''}" id="${panelId}">
+        <div class="save-label-row">
+          <input class="label-input" id="lbl-${safeId}" placeholder="Version label লিখুন (optional) — যেমন: 'certificate fix'" />
+          <button class="btn-sm btn-save" onclick="saveNewVersion('${fileName}')">+ New Version</button>
+        </div>
+        ${verRows}
+        ${maxReached ? `<div class="max-note">⚠️ Maximum ${MAX_VERSIONS} versions রাখা হচ্ছে — পুরনো versions automatically মুছে যাবে</div>` : ''}
+      </div>
+    `;
+
+    fileList.appendChild(card);
+  });
+}
+
+// Handle file drop
+const dropZone = document.getElementById('dropZone');
+const fileInput = document.getElementById('fileInput');
+
+dropZone.addEventListener('dragover', e => { e.preventDefault(); dropZone.classList.add('dragover'); });
+dropZone.addEventListener('dragleave', () => dropZone.classList.remove('dragover'));
+dropZone.addEventListener('drop', async e => {
+  e.preventDefault();
+  dropZone.classList.remove('dragover');
+  const files = Array.from(e.dataTransfer.files);
+  for (const f of files) await addFileVersion(f);
+});
+
+fileInput.addEventListener('change', async e => {
+  const files = Array.from(e.target.files);
+  for (const f of files) await addFileVersion(f);
+  fileInput.value = '';
+});
+
+// Init
+renderAll();
+</script>
+</body>
+</html>
