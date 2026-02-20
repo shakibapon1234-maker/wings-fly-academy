@@ -69,8 +69,6 @@ function logActivity(type, action, description, data = null) {
     }
     
     localStorage.setItem('wingsfly_data', JSON.stringify(window.globalData));
-    // ✅ FIX: Activity backup রাখো যাতে cloud pull এ হারিয়ে না যায়
-    localStorage.setItem('wingsfly_activity_backup', JSON.stringify(window.globalData.activityHistory));
   } catch(e) {
     console.warn('History log error:', e);
   }
@@ -96,23 +94,6 @@ function moveToTrash(type, item) {
     if (window.globalData.deletedItems.length > 200) {
       window.globalData.deletedItems = window.globalData.deletedItems.slice(0, 200);
     }
-
-    // ✅ FIX: existing backup এর সাথে merge করো — কোনো item যেন না হারায়
-    try {
-      const bkRaw = localStorage.getItem('wingsfly_deleted_backup');
-      const bkData = bkRaw ? JSON.parse(bkRaw) : [];
-      const seenIds = {};
-      const merged = [];
-      [...window.globalData.deletedItems, ...bkData].forEach(itm => {
-        if (itm && itm.id && !seenIds[itm.id]) {
-          seenIds[itm.id] = true;
-          merged.push(itm);
-        }
-      });
-      merged.sort((a, b) => new Date(b.deletedAt || 0) - new Date(a.deletedAt || 0));
-      if (merged.length > 200) merged.length = 200;
-      window.globalData.deletedItems = merged;
-    } catch(mergeErr) { /* ignore */ }
     
     localStorage.setItem('wingsfly_data', JSON.stringify(window.globalData));
     // FIX: cloud pull এ deletedItems হারিয়ে না যায় তাই backup রাখো
@@ -260,8 +241,6 @@ function restoreDeletedItem(trashId) {
   
   // Remove from trash
   window.globalData.deletedItems.splice(idx, 1);
-  // ✅ FIX: backup sync করো
-  localStorage.setItem('wingsfly_deleted_backup', JSON.stringify(window.globalData.deletedItems));
   saveToStorage();
   loadDeletedItems();
   
@@ -279,8 +258,6 @@ function permanentDelete(trashId) {
   if (idx === -1) return;
   
   window.globalData.deletedItems.splice(idx, 1);
-  // ✅ FIX: backup sync
-  localStorage.setItem('wingsfly_deleted_backup', JSON.stringify(window.globalData.deletedItems));
   saveToStorage(true);
   loadDeletedItems();
   showSuccessToast('Item permanently deleted.');
@@ -291,8 +268,6 @@ window.permanentDelete = permanentDelete;
 function emptyTrash() {
   if (!confirm('সব Deleted Items চিরতরে মুছে ফেলবেন?')) return;
   window.globalData.deletedItems = [];
-  // ✅ FIX: backup sync
-  localStorage.setItem('wingsfly_deleted_backup', JSON.stringify([]));
   saveToStorage(true);
   loadDeletedItems();
   showSuccessToast('Trash emptied!');
@@ -4004,11 +3979,6 @@ function deleteTransaction(id) {
     renderAccountDetails && renderAccountDetails();
     return;
   }
-
-  // ✅ FIX: Recycle Bin ও Activity Log এ পাঠাও
-  if (typeof moveToTrash === 'function') moveToTrash('finance', txToDelete);
-  if (typeof logActivity === 'function') logActivity('finance', 'DELETE',
-    'Transaction deleted: ' + (txToDelete.type || '') + ' | ' + (txToDelete.category || txToDelete.description || '') + ' - ৳' + (txToDelete.amount || 0), txToDelete);
 
   if (typeof updateAccountBalance === "function") {
     updateAccountBalance(txToDelete.method, txToDelete.amount, txToDelete.type, false);
@@ -9183,28 +9153,9 @@ function renderRecycleBin() {
     if (!window.globalData) window.globalData = {};
     // backup থেকে নাও — cloud pull এ হারায় না
     var bk = localStorage.getItem('wingsfly_deleted_backup');
-    var bkData = [];
-    try { bkData = bk ? JSON.parse(bk) : []; } catch(e) { bkData = []; }
+    var bkData = bk ? JSON.parse(bk) : [];
     var cur = window.globalData.deletedItems || [];
-
-    // ✅ FIX: ID-based smart merge — দুটো array এর সব unique item রাখো
-    var seenIds = {};
-    var merged = [];
-    var allItems = cur.concat(bkData);
-    for (var i = 0; i < allItems.length; i++) {
-      var itm = allItems[i];
-      if (itm && itm.id && !seenIds[itm.id]) {
-        seenIds[itm.id] = true;
-        merged.push(itm);
-      }
-    }
-    merged.sort(function(a, b) {
-      return new Date(b.deletedAt || 0) - new Date(a.deletedAt || 0);
-    });
-    window.globalData.deletedItems = merged;
-    if (merged.length > 0) {
-      localStorage.setItem('wingsfly_deleted_backup', JSON.stringify(merged));
-    }
+    window.globalData.deletedItems = bkData.length >= cur.length ? bkData : cur;
   } catch(e) { console.warn('renderRecycleBin:', e); }
   if (typeof loadDeletedItems === 'function') loadDeletedItems();
 }
@@ -9283,28 +9234,7 @@ const _origLoadDeletedItems = window.loadDeletedItems;
 window.loadDeletedItems = function() {
   const c1 = document.getElementById('deletedItemsList');
   const c2 = document.getElementById('recycleBinContainer');
-
-  // ✅ FIX: render করার আগে backup থেকে merge করো
-  try {
-    if (!window.globalData) window.globalData = {};
-    const bkRaw = localStorage.getItem('wingsfly_deleted_backup');
-    const bkData = bkRaw ? JSON.parse(bkRaw) : [];
-    const cur = window.globalData.deletedItems || [];
-    const seenIds = {};
-    const merged = [];
-    [...cur, ...bkData].forEach(itm => {
-      if (itm && itm.id && !seenIds[itm.id]) {
-        seenIds[itm.id] = true;
-        merged.push(itm);
-      }
-    });
-    merged.sort((a, b) => new Date(b.deletedAt || 0) - new Date(a.deletedAt || 0));
-    window.globalData.deletedItems = merged;
-    if (merged.length > 0) {
-      localStorage.setItem('wingsfly_deleted_backup', JSON.stringify(merged));
-    }
-  } catch(e) { console.warn('loadDeletedItems merge error:', e); }
-
+  
   const deleted = (window.globalData && window.globalData.deletedItems) || [];
   const filterEl = document.getElementById('trashFilter') || document.getElementById('binFilterType');
   const filterVal = filterEl ? filterEl.value : 'all';
@@ -9389,6 +9319,16 @@ function takeSnapshot() {
     localStorage.setItem(_KEY, JSON.stringify(snapshots));
     console.log('📸 Snapshot taken:', newSnap.label);
 
+    // ✅ CLOUD SYNC: snapshot নেওয়ার পরে cloud এ push করো
+    // scheduleSyncPush ব্যবহার করো যাতে existing push queue নষ্ট না হয়
+    setTimeout(function() {
+      if (typeof window.scheduleSyncPush === 'function') {
+        window.scheduleSyncPush('Auto-Snapshot');
+      } else if (typeof window.saveToCloud === 'function') {
+        window.saveToCloud();
+      }
+    }, 1000);
+
     if (typeof renderSnapshotList === 'function') renderSnapshotList();
   } catch(e) {
     console.warn('Snapshot error:', e);
@@ -9435,6 +9375,14 @@ function deleteSnapshot(id) {
   var snapshots = getSnapshots();
   snapshots = snapshots.filter(function(s) { return s.id !== id; });
   localStorage.setItem('wingsfly_snapshots', JSON.stringify(snapshots));
+  // ✅ CLOUD SYNC: delete করার পরেও cloud update করো
+  setTimeout(function() {
+    if (typeof window.scheduleSyncPush === 'function') {
+      window.scheduleSyncPush('Snapshot-Delete');
+    } else if (typeof window.saveToCloud === 'function') {
+      window.saveToCloud();
+    }
+  }, 500);
   if (typeof renderSnapshotList === 'function') renderSnapshotList();
 }
 
@@ -9499,7 +9447,16 @@ document.addEventListener('DOMContentLoaded', function() {
         if (!window.globalData.deletedItems) window.globalData.deletedItems = [];
         if (!window.globalData.activityHistory) window.globalData.activityHistory = [];
       } catch(e) {}
-      if (typeof renderSnapshotList === 'function') renderSnapshotList();
+      // ✅ SNAPSHOT: Settings খোলার সময় cloud থেকে pull করো তারপর render
+      if (typeof window.loadFromCloud === 'function') {
+        window.loadFromCloud().then(function() {
+          if (typeof renderSnapshotList === 'function') renderSnapshotList();
+        }).catch(function() {
+          if (typeof renderSnapshotList === 'function') renderSnapshotList();
+        });
+      } else {
+        if (typeof renderSnapshotList === 'function') renderSnapshotList();
+      }
       if (typeof renderActivityLog === 'function') renderActivityLog();
       if (typeof renderRecycleBin === 'function') renderRecycleBin();
     });

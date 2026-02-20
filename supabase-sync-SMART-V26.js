@@ -219,6 +219,24 @@
         const _preservedActivity = _savedActivity ? JSON.parse(_savedActivity) :
                                    (window.globalData && window.globalData.activityHistory) || [];
 
+        // ✅ SNAPSHOT SYNC: Cloud থেকে snapshots restore করো
+        // Cloud এর snapshots আর local এর snapshots merge করো (ID দিয়ে deduplicate)
+        const _cloudSnapshots = data.snapshots || [];
+        const _localSnapshotsRaw = localStorage.getItem('wingsfly_snapshots');
+        const _localSnapshots = _localSnapshotsRaw ? JSON.parse(_localSnapshotsRaw) : [];
+        const _snapSeen = {};
+        const _mergedSnapshots = [];
+        [..._localSnapshots, ..._cloudSnapshots].forEach(s => {
+          if (s && s.id && !_snapSeen[s.id]) {
+            _snapSeen[s.id] = true;
+            _mergedSnapshots.push(s);
+          }
+        });
+        // newest first, max 7
+        _mergedSnapshots.sort((a, b) => b.id - a.id);
+        if (_mergedSnapshots.length > 7) _mergedSnapshots.splice(7);
+        localStorage.setItem('wingsfly_snapshots', JSON.stringify(_mergedSnapshots));
+
         // Update global data
         window.globalData = {
           students: cloudStudents,
@@ -364,13 +382,32 @@
         last_device: DEVICE_ID,
         last_action: reason,
         // deleted_count removed — column does not exist in Supabase table
+        // ✅ SNAPSHOT SYNC: localStorage থেকে snapshots নিয়ে cloud এ push করো
+        snapshots: (function() {
+          try {
+            return JSON.parse(localStorage.getItem('wingsfly_snapshots') || '[]');
+          } catch(e) { return []; }
+        })(),
       };
 
       const { error } = await supabaseClient
         .from(TABLE_NAME)
         .upsert(payload, { onConflict: 'id' });
 
-      if (error) throw error;
+      // ✅ SNAPSHOT FALLBACK: snapshots column না থাকলে without snapshots retry করো
+      if (error) {
+        if (error.message && error.message.includes('snapshots')) {
+          log('⚠️', 'snapshots column নেই — without snapshots retry করছে...');
+          const payloadWithoutSnapshots = { ...payload };
+          delete payloadWithoutSnapshots.snapshots;
+          const { error: error2 } = await supabaseClient
+            .from(TABLE_NAME)
+            .upsert(payloadWithoutSnapshots, { onConflict: 'id' });
+          if (error2) throw error2;
+        } else {
+          throw error;
+        }
+      }
 
       // Save version and timestamp locally
       localStorage.setItem('lastSyncTime', timestamp.toString());
