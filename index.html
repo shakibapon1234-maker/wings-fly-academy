@@ -2,19 +2,9 @@
 <html lang="en">
 
 <head>
-    <!-- PWA + Mobile Fix: no-cache removed to allow offline caching -->
-    <meta charset="utf-8">
-    <!-- Mobile desktop view: minimum-scale=1 allows pinch-zoom and desktop layout -->
-    <meta name="viewport" content="width=1200, initial-scale=0.5, minimum-scale=0.1, maximum-scale=5.0, user-scalable=yes">
-
-    <!-- PWA Meta Tags -->
-    <meta name="theme-color" content="#0a0e27">
-    <meta name="mobile-web-app-capable" content="yes">
-    <meta name="apple-mobile-web-app-capable" content="yes">
-    <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
-    <meta name="apple-mobile-web-app-title" content="Wings Fly">
-    <link rel="manifest" href="manifest.json">
-    <link rel="apple-touch-icon" href="icon-192.png">
+    <meta http-equiv="Cache-Control" content="no-cache, no-store, must-revalidate">
+    <meta http-equiv="Pragma" content="no-cache">
+    <meta http-equiv="Expires" content="0">
     <style>
         /* ===================================
            COMPREHENSIVE WHITE REMOVAL
@@ -273,6 +263,7 @@
     </style>
     <base target="_top">
     <meta charset="utf-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1">
     <title>Wings Fly Dashboard v3.0 - Aviation Academy Management</title>
     <meta name="description" content="Wings Fly Aviation Academy - Student and Finance Management Dashboard">
 
@@ -885,7 +876,7 @@
                                         <small class="opacity-75">নোটিস তৈরি করুন ও মেয়াদ নির্ধারণ করুন</small>
                                     </div>
                                 </div>
-                                <button type="button" class="btn-close btn-close-white" data-bs-dismiss="modal"></button>
+                                <button type="button" class="btn-close btn-close-white" data-bs-dismiss="modal" aria-label="Close"></button>
                             </div>
                             <div class="modal-body p-4">
 
@@ -2225,7 +2216,7 @@
                                 class="bi bi-person-plus-fill"></i></span>New Student
                         Registration
                     </h5>
-                    <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
+                    <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
                 </div>
                 <div class="modal-body p-4">
                     <form id="studentForm" onsubmit="handleStudentSubmit(event)">
@@ -2428,7 +2419,7 @@
                     <h5 class="modal-title fw-bold">
                         <span class="me-2 header-icon-circle bg-success-light">💳</span>Payment History & Installments
                     </h5>
-                    <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
+                    <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
                 </div>
                 <div class="modal-body p-4">
                     <div class="row g-3 mb-4">
@@ -2507,7 +2498,7 @@
                     <h5 class="modal-title fw-bold">
                         <span class="me-2">💰</span>Add Transaction
                     </h5>
-                    <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
+                    <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
                 </div>
                 <div class="modal-body">
                     <form id="financeForm" onsubmit="handleFinanceSubmit(event)">
@@ -2576,7 +2567,7 @@
                     <h5 class="modal-title fw-bold">
                         <span class="me-2 header-icon-circle bg-primary-light">âš™ï¸</span>System Settings
                     </h5>
-                    <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
+                    <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
                 </div>
                 <div class="modal-body p-0">
                     <form id="settingsForm" onsubmit="handleSettingsSubmit(event)" class="h-100">
@@ -3209,7 +3200,7 @@
                     <h5 class="modal-title fw-bold">
                         <span class="me-2">âœï¸</span>Edit Transaction
                     </h5>
-                    <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
+                    <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
                 </div>
                 <div class="modal-body">
                     <form id="editTransactionForm" onsubmit="handleEditTransactionSubmit(event)">
@@ -3266,7 +3257,7 @@
                         <span class="me-2 text-white-50"><i class="bi bi-bar-chart-fill"></i></span> Account Details
                         (Income & Expense)
                     </h5>
-                    <button type="button" class="btn-close btn-close-white" data-bs-dismiss="modal"></button>
+                    <button type="button" class="btn-close btn-close-white" data-bs-dismiss="modal" aria-label="Close"></button>
                 </div>
                 <div class="modal-body">
                     <!-- Filters Row -->
@@ -3356,7 +3347,7 @@
                     <h5 class="modal-title fw-bold">
                         <span class="me-2">📊</span>Batch Wise Profit/Loss Report
                     </h5>
-                    <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
+                    <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
                 </div>
                 <div class="modal-body">
                     <!-- Report Controls -->
@@ -3507,7 +3498,7 @@
                             <div class="small text-muted" id="monthlyAttHeaderInfo">Batch, Year ও Month বেছে নিন</div>
                         </div>
                     </div>
-                    <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
+                    <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
                 </div>
                 <div class="px-4 py-3 no-print"
                     style="background:rgba(255,255,255,0.03); border-bottom:1px solid rgba(255,255,255,0.08);">
@@ -3612,7 +3603,7 @@
             <div class="modal-content custom-modal">
                 <div class="modal-header">
                     <h5 class="modal-title fw-bold">📊 Expense Breakdown</h5>
-                    <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
+                    <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
                 </div>
                 <div class="modal-body">
                     <div id="breakdownList" class="list-group list-group-flush">
@@ -3634,7 +3625,7 @@
                     <h5 class="modal-title fw-bold" id="visitorModalTitle">
                         <span class="me-2 header-icon-circle bg-primary-light">👤</span>Visitor Information
                     </h5>
-                    <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
+                    <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
                 </div>
                 <div class="modal-body p-4">
                     <form id="visitorForm" onsubmit="handleVisitorSubmit(event)">
@@ -3684,7 +3675,7 @@
             <div class="modal-content custom-modal">
                 <div class="modal-header">
                     <h5 class="modal-title fw-bold">📋 Student Attendance</h5>
-                    <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
+                    <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
                 </div>
                 <div class="modal-body">
                     <div class="row g-3 mb-4">
@@ -3743,7 +3734,7 @@
                     <h5 class="modal-title fw-bold text-primary">
                         <span class="me-2 header-icon-circle bg-primary-light">📝</span>Exam Registration
                     </h5>
-                    <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
+                    <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
                 </div>
                 <div class="modal-body p-4">
                     <form id="examRegistrationForm" onsubmit="handleExamRegistration(event)">
@@ -3846,7 +3837,7 @@
             <div class="modal-content custom-modal">
                 <div class="modal-header">
                     <h5 class="modal-title fw-bold">🏆 Add Exam Result</h5>
-                    <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
+                    <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
                 </div>
                 <div class="modal-body">
                     <form id="addResultForm" onsubmit="handleAddResult(event)">
@@ -3887,7 +3878,7 @@
             <div class="modal-content custom-modal">
                 <div class="modal-header border-0 pb-0">
                     <h5 class="modal-title fw-bold" id="commentModalTitle">Student Notes</h5>
-                    <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
+                    <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
                 </div>
                 <div class="modal-body p-4">
                     <div class="mb-3">
@@ -3915,7 +3906,7 @@
                     <h5 class="modal-title fw-bold">
                         <span class="me-2 header-icon-circle bg-primary-light">🪪</span>Student ID Card
                     </h5>
-                    <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
+                    <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
                 </div>
                 <div class="modal-body p-4 bg-light text-center">
                     <!-- ID Card Preview Area -->
@@ -4021,7 +4012,7 @@
                     <h5 class="modal-title fw-bold">
                         <span class="me-2 header-icon-circle bg-primary-light">👔</span>Add New Employee
                     </h5>
-                    <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
+                    <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
                 </div>
                 <div class="modal-body p-4">
                     <form id="employeeForm" onsubmit="handleEmployeeSubmit(event)">
@@ -4097,7 +4088,7 @@
                     <h5 class="modal-title text-white fw-bold">
                         <span class="me-2" style="font-size: 1.5rem;">💵</span>Update Cash Balance
                     </h5>
-                    <button type="button" class="btn-close btn-close-white" data-bs-dismiss="modal"></button>
+                    <button type="button" class="btn-close btn-close-white" data-bs-dismiss="modal" aria-label="Close"></button>
                 </div>
                 <div class="modal-body p-4">
                     <form id="cashForm" onsubmit="handleCashSubmit(event)">
@@ -4135,7 +4126,7 @@
                     <h5 class="modal-title fw-bold">
                         <span class="me-2 header-icon-circle bg-primary-light">🏦</span>Add New Bank Account
                     </h5>
-                    <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
+                    <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
                 </div>
                 <div class="modal-body p-4">
                     <form id="accountForm" onsubmit="handleAccountSubmit(event)">
@@ -4188,7 +4179,7 @@
                     <h5 class="modal-title fw-bold">
                         <span class="me-2 header-icon-circle bg-primary-light">💸</span>Internal Balance Transfer
                     </h5>
-                    <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
+                    <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
                 </div>
                 <div class="modal-body p-4">
                     <form id="transferForm" onsubmit="handleTransferSubmit(event)">
@@ -4246,7 +4237,7 @@
                         <span class="me-2 header-icon-circle bg-warning-subtle text-warning">⚠️</span>All Student
                         Reminders
                     </h5>
-                    <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
+                    <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
                 </div>
                 <div class="modal-body p-4">
                     <div id="allRemindersList" class="table-responsive">
@@ -4314,7 +4305,7 @@
                     <h5 class="modal-title text-white fw-bold">
                         <span class="me-2">📱</span>Add Mobile Banking
                     </h5>
-                    <button type="button" class="btn-close btn-close-white" data-bs-dismiss="modal"></button>
+                    <button type="button" class="btn-close btn-close-white" data-bs-dismiss="modal" aria-label="Close"></button>
                 </div>
                 <div class="modal-body p-4">
                     <form id="mobileForm" onsubmit="handleMobileSubmit(event)">
@@ -5384,6 +5375,21 @@ window.switchSettingsTab = switchSettingsTab;
         if (active && active.id === 'tab-activitylog') { injectActivityToolbar(); renderActivityLog(); }
         if (active && active.id === 'tab-recyclebin')  { renderRecycleBin(); }
       });
+
+      // aria-hidden warning fix: modal বন্ধ হওয়ার আগে focus সরিয়ে দাও
+      modal.addEventListener('hide.bs.modal', function() {
+        if (document.activeElement && modal.contains(document.activeElement)) {
+          document.activeElement.blur();
+        }
+      });
+
+      // modal সম্পূর্ণ বন্ধ হলে trigger button-এ focus ফিরিয়ে দাও
+      modal.addEventListener('hidden.bs.modal', function() {
+        var trigger = document.querySelector('[data-bs-target="#settingsModal"]');
+        if (trigger) {
+          setTimeout(function() { trigger.focus(); }, 50);
+        }
+      });
     }
   }
 
@@ -5411,6 +5417,24 @@ window.switchSettingsTab = switchSettingsTab;
 
   console.log('[WF-TabsFix] ✅ Activity Log & Recycle Bin loaded.');
 })();
+</script>
+
+<!-- ================================================================ -->
+<!-- GLOBAL ARIA-HIDDEN FIX: সব modal-এ focus warning ঠিক করে       -->
+<!-- ================================================================ -->
+<script>
+document.addEventListener('DOMContentLoaded', function() {
+  // সব Bootstrap modal-এ hide হওয়ার আগে focus সরিয়ে দাও
+  document.querySelectorAll('.modal').forEach(function(modal) {
+    modal.addEventListener('hide.bs.modal', function() {
+      if (document.activeElement && modal.contains(document.activeElement)) {
+        document.activeElement.blur();
+        document.body.focus(); // body-তে focus নিয়ে যাও
+      }
+    });
+  });
+  console.log('✅ Aria-hidden focus fix applied to all modals');
+});
 </script>
 
 <!-- PWA Service Worker Registration -->
