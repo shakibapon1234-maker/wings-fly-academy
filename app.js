@@ -1936,9 +1936,51 @@ function render(students) {
     }
 
     // === STUDENT PHOTO OR INITIAL ===
+    // photo field stores a key like "photo_WF-18001" in IndexedDB (not a direct URL)
     let studentAvatar = '';
-    if (s.photo) {
-      // If photo exists, show it
+    const avatarInitial = (s.name || 'S').charAt(0).toUpperCase();
+    const avatarFallback = `
+      <div class="bg-primary-subtle text-primary rounded-circle d-flex align-items-center justify-content-center fw-bold" 
+           style="width: 38px; height: 38px; font-size: 0.9rem;">
+        ${avatarInitial}
+      </div>
+    `;
+    if (s.photo && s.photo.startsWith('photo_')) {
+      // Photo key stored in IndexedDB — use unique img id to load async
+      const imgId = `student-avatar-${s.studentId || Math.random().toString(36).substr(2,6)}`;
+      studentAvatar = `
+        <img id="${imgId}"
+             alt="${s.name}" 
+             class="rounded-circle" 
+             style="width: 38px; height: 38px; object-fit: cover; border: 2px solid #00d9ff; display: none;"
+             onerror="this.style.display='none'; this.nextElementSibling.style.display='flex';">
+        <div id="${imgId}-fallback" class="bg-primary-subtle text-primary rounded-circle d-flex align-items-center justify-content-center fw-bold" 
+             style="width: 38px; height: 38px; font-size: 0.9rem;">
+          ${avatarInitial}
+        </div>
+      `;
+      // Load from IndexedDB after render
+      setTimeout(() => {
+        if (typeof initPhotoDB === 'function') {
+          initPhotoDB().then(db => {
+            const tx = db.transaction(['student_photos'], 'readonly');
+            const req = tx.objectStore('student_photos').get(s.photo);
+            req.onsuccess = () => {
+              if (req.result) {
+                const imgEl = document.getElementById(imgId);
+                const fallbackEl = document.getElementById(imgId + '-fallback');
+                if (imgEl) {
+                  imgEl.src = req.result;
+                  imgEl.style.display = 'block';
+                  if (fallbackEl) fallbackEl.style.display = 'none';
+                }
+              }
+            };
+          }).catch(() => {});
+        }
+      }, 0);
+    } else if (s.photo && (s.photo.startsWith('data:') || s.photo.startsWith('http'))) {
+      // Direct base64 or URL (legacy support)
       studentAvatar = `
         <img src="${s.photo}" 
              alt="${s.name}" 
@@ -1947,17 +1989,12 @@ function render(students) {
              onerror="this.style.display='none'; this.nextElementSibling.style.display='flex';">
         <div class="bg-primary-subtle text-primary rounded-circle align-items-center justify-content-center fw-bold" 
              style="width: 38px; height: 38px; font-size: 0.9rem; display: none;">
-          ${(s.name || 'S').charAt(0).toUpperCase()}
+          ${avatarInitial}
         </div>
       `;
     } else {
-      // If no photo, show initial letter
-      studentAvatar = `
-        <div class="bg-primary-subtle text-primary rounded-circle d-flex align-items-center justify-content-center fw-bold" 
-             style="width: 38px; height: 38px; font-size: 0.9rem;">
-          ${(s.name || 'S').charAt(0).toUpperCase()}
-        </div>
-      `;
+      // No photo — show initial letter
+      studentAvatar = avatarFallback;
     }
 
     const row = `
