@@ -9577,53 +9577,114 @@ function generateCertificate() {
   var course = (student.course || 'PROFESSIONAL VISA PROCESSING & AIR TICKETING RESERVATION COURSE (GDS)').toUpperCase();
   var today = new Date().toLocaleDateString('en-GB', {day:'2-digit', month:'long', year:'numeric'});
 
-  var css = '*{margin:0;padding:0;box-sizing:border-box;}' +
-    'html,body{width:100%;min-height:100vh;background:#1a1a2e;}' +
-    /* Print bar at top - hidden when printing */
-    '.print-bar{position:fixed;top:0;left:0;right:0;z-index:9999;background:linear-gradient(135deg,#0d1f45,#1a3060);padding:12px 30px;display:flex;align-items:center;justify-content:space-between;box-shadow:0 2px 10px rgba(0,0,0,0.5);}' +
+  // A4 landscape = 297mm x 210mm = 1122px x 794px at 96dpi
+  var css =
+    '*{margin:0;padding:0;box-sizing:border-box;}' +
+
+    /* ── SCREEN styles ── */
+    'html{background:#1a1a2e;}' +
+    'body{background:#1a1a2e;min-height:100vh;display:flex;flex-direction:column;align-items:center;}' +
+
+    /* Print bar */
+    '.print-bar{width:100%;background:linear-gradient(135deg,#0d1f45,#1a3060);padding:12px 30px;display:flex;align-items:center;justify-content:space-between;box-shadow:0 2px 10px rgba(0,0,0,0.5);flex-shrink:0;}' +
     '.print-bar span{color:#e8c96e;font-family:Arial,sans-serif;font-size:14px;font-weight:700;letter-spacing:1px;}' +
-    '.print-btn{background:linear-gradient(135deg,#e8c96e,#c9a84c);color:#0d1f45;border:none;padding:10px 30px;border-radius:25px;font-size:15px;font-weight:800;cursor:pointer;letter-spacing:1px;transition:all 0.2s;}' +
-    '.print-btn:hover{transform:scale(1.05);box-shadow:0 4px 15px rgba(232,201,110,0.4);}' +
-    /* Certificate wrapper - centered below print bar */
-    'body{padding-top:65px;display:flex;justify-content:center;align-items:flex-start;}' +
-    '.cert-outer{transform-origin:top center;margin:20px auto 40px auto;}' +
-    '.cert-wrap{width:1122px;height:794px;background:#f0f4f8;position:relative;overflow:hidden;print-color-adjust:exact;-webkit-print-color-adjust:exact;}' +
-    /* All background shapes - force color in print */
-    '.bg-navy{position:absolute;top:0;left:0;width:480px;height:260px;background:linear-gradient(140deg,#0d1f45 0%,#1a3060 55%,#1e4080 100%)!important;clip-path:polygon(0 0,100% 0,75% 100%,0 100%);print-color-adjust:exact;-webkit-print-color-adjust:exact;}' +
-    '.bg-teal{position:absolute;top:0;left:0;width:480px;height:260px;background:linear-gradient(140deg,transparent 40%,#0aa8c0 40%,#0bbdd4 55%,transparent 56%)!important;clip-path:polygon(0 0,100% 0,75% 100%,0 100%);opacity:0.6;print-color-adjust:exact;-webkit-print-color-adjust:exact;}' +
-    '.bg-tr{position:absolute;top:0;right:0;width:300px;height:200px;background:linear-gradient(210deg,#0bbdd4 0%,#0aa8c0 40%,transparent 75%)!important;border-radius:0 0 0 100%;print-color-adjust:exact;-webkit-print-color-adjust:exact;}' +
-    '.bg-tr2{position:absolute;top:0;right:0;width:220px;height:140px;background:linear-gradient(225deg,#0d1f45 0%,#1a3060 60%,transparent 100%)!important;border-radius:0 0 0 80%;print-color-adjust:exact;-webkit-print-color-adjust:exact;}' +
-    '.bg-bl{position:absolute;bottom:0;left:0;width:340px;height:160px;background:linear-gradient(40deg,#0bbdd4 0%,#0aa8c0 45%,transparent 80%)!important;border-radius:0 80% 0 0;print-color-adjust:exact;-webkit-print-color-adjust:exact;}' +
-    '.bg-bl2{position:absolute;bottom:0;left:0;width:220px;height:110px;background:linear-gradient(45deg,#0d1f45 0%,#1a3060 60%,transparent 100%)!important;border-radius:0 100% 0 0;print-color-adjust:exact;-webkit-print-color-adjust:exact;}' +
-    '.bg-br{position:absolute;bottom:0;right:0;width:280px;height:140px;background:linear-gradient(315deg,#0d1f45 0%,#1a3060 55%,transparent 100%)!important;border-radius:80% 0 0 0;print-color-adjust:exact;-webkit-print-color-adjust:exact;}' +
-    '.gold-line-top{position:absolute;top:72px;left:0;right:0;height:1.5px;background:linear-gradient(90deg,transparent,#c9a84c 20%,#e8c96e 50%,#c9a84c 80%,transparent)!important;z-index:6;print-color-adjust:exact;-webkit-print-color-adjust:exact;}' +
-    '.gold-line-bot{position:absolute;bottom:72px;left:0;right:0;height:1.5px;background:linear-gradient(90deg,transparent,#c9a84c 20%,#e8c96e 50%,#c9a84c 80%,transparent)!important;z-index:6;print-color-adjust:exact;-webkit-print-color-adjust:exact;}' +
+    '.print-btn{background:linear-gradient(135deg,#e8c96e,#c9a84c);color:#0d1f45;border:none;padding:10px 30px;border-radius:25px;font-size:15px;font-weight:800;cursor:pointer;letter-spacing:1px;}' +
+    '.print-btn:hover{opacity:0.9;}' +
+
+    /* Outer wrapper just for screen centering */
+    '.cert-outer{margin:24px auto;transform-origin:top center;}' +
+
+    /* The certificate itself — fixed A4 landscape size */
+    '.cert-wrap{' +
+    '  width:1122px;height:794px;' +
+    '  background:#f0f4f8;' +
+    '  position:relative;overflow:hidden;' +
+    '  print-color-adjust:exact;-webkit-print-color-adjust:exact;' +
+    '}' +
+
+    /* Background shapes */
+    '.bg-navy{position:absolute;top:0;left:0;width:480px;height:260px;background:linear-gradient(140deg,#0d1f45,#1a3060 55%,#1e4080);clip-path:polygon(0 0,100% 0,75% 100%,0 100%);}' +
+    '.bg-teal{position:absolute;top:0;left:0;width:480px;height:260px;background:linear-gradient(140deg,transparent 40%,#0aa8c0 40%,#0bbdd4 55%,transparent 56%);clip-path:polygon(0 0,100% 0,75% 100%,0 100%);opacity:0.6;}' +
+    '.bg-tr{position:absolute;top:0;right:0;width:300px;height:200px;background:linear-gradient(210deg,#0bbdd4,#0aa8c0 40%,transparent 75%);border-radius:0 0 0 100%;}' +
+    '.bg-tr2{position:absolute;top:0;right:0;width:220px;height:140px;background:linear-gradient(225deg,#0d1f45,#1a3060 60%,transparent);border-radius:0 0 0 80%;}' +
+    '.bg-bl{position:absolute;bottom:0;left:0;width:340px;height:160px;background:linear-gradient(40deg,#0bbdd4,#0aa8c0 45%,transparent 80%);border-radius:0 80% 0 0;}' +
+    '.bg-bl2{position:absolute;bottom:0;left:0;width:220px;height:110px;background:linear-gradient(45deg,#0d1f45,#1a3060 60%,transparent);border-radius:0 100% 0 0;}' +
+    '.bg-br{position:absolute;bottom:0;right:0;width:280px;height:140px;background:linear-gradient(315deg,#0d1f45,#1a3060 55%,transparent);border-radius:80% 0 0 0;}' +
+    '.gold-line-top{position:absolute;top:72px;left:0;right:0;height:1.5px;background:linear-gradient(90deg,transparent,#c9a84c 20%,#e8c96e 50%,#c9a84c 80%,transparent);z-index:6;}' +
+    '.gold-line-bot{position:absolute;bottom:72px;left:0;right:0;height:1.5px;background:linear-gradient(90deg,transparent,#c9a84c 20%,#e8c96e 50%,#c9a84c 80%,transparent);z-index:6;}' +
     '.watermark{position:absolute;top:50%;left:50%;transform:translate(-50%,-50%);font-size:140px;font-weight:900;color:rgba(10,168,192,0.06);font-family:Georgia,serif;letter-spacing:10px;white-space:nowrap;z-index:1;}' +
-    '.logo-wrap{position:absolute;top:10px;left:12px;z-index:10;padding:3px;background:linear-gradient(135deg,#ff6b6b,#ffd700,#00d4ff,#c9a84c,#ff6b6b)!important;border-radius:8px;print-color-adjust:exact;-webkit-print-color-adjust:exact;}' +
+    '.logo-wrap{position:absolute;top:10px;left:12px;z-index:10;padding:3px;background:linear-gradient(135deg,#ff6b6b,#ffd700,#00d4ff,#c9a84c,#ff6b6b);border-radius:8px;}' +
     '.logo{width:180px;display:block;border-radius:5px;background:white;padding:3px;}' +
     '.medal{position:absolute;top:6px;right:14px;width:130px;z-index:10;}' +
+
+    /* Content */
     '.content{position:absolute;top:0;left:0;right:0;bottom:0;display:flex;flex-direction:column;align-items:center;justify-content:center;padding:10px 90px 80px 90px;text-align:center;z-index:5;}' +
-    '.cert-title{font-family:Georgia,serif;font-size:62px;font-weight:900;color:#0d1f45!important;letter-spacing:8px;text-transform:uppercase;line-height:1;}' +
-    '.cert-sub{font-family:Georgia,serif;font-size:22px;font-style:italic;color:#8a7040!important;letter-spacing:3px;margin-bottom:6px;}' +
-    '.gold-ornament{color:#c9a84c!important;font-size:18px;letter-spacing:6px;margin:2px 0 6px 0;}' +
-    '.ptext{font-family:Arial,sans-serif;font-size:12.5px;color:#444!important;font-weight:600;margin:5px 0;letter-spacing:1px;text-transform:uppercase;}' +
-    '.sname{font-family:Georgia,serif;font-size:44px;font-weight:900;color:#0d1f45!important;letter-spacing:4px;text-transform:uppercase;margin:6px 0 8px 0;}' +
-    '.bid{font-family:Arial,sans-serif;font-size:17px;font-weight:700;color:#1a3060!important;letter-spacing:3px;text-transform:uppercase;margin:4px 0;white-space:nowrap;}' +
-    '.div2{width:65%;height:1px;background:linear-gradient(90deg,transparent,#aaa,transparent)!important;margin:8px auto;print-color-adjust:exact;-webkit-print-color-adjust:exact;}' +
-    '.ctext{font-family:Arial,sans-serif;font-size:11.5px;color:#444!important;letter-spacing:1.5px;text-transform:uppercase;line-height:1.8;font-weight:600;margin:2px 0;max-width:680px;}' +
-    '.idate{font-family:Georgia,serif;font-size:13px;color:#8a7040!important;font-style:italic;margin-top:6px;}' +
+    '.cert-title{font-family:Georgia,serif;font-size:62px;font-weight:900;color:#0d1f45;letter-spacing:8px;text-transform:uppercase;line-height:1;}' +
+    '.cert-sub{font-family:Georgia,serif;font-size:22px;font-style:italic;color:#8a7040;letter-spacing:3px;margin-bottom:6px;}' +
+    '.gold-ornament{color:#c9a84c;font-size:18px;letter-spacing:6px;margin:2px 0 6px 0;}' +
+    '.ptext{font-family:Arial,sans-serif;font-size:12.5px;color:#444;font-weight:600;margin:5px 0;letter-spacing:1px;text-transform:uppercase;}' +
+    '.sname{font-family:Georgia,serif;font-size:44px;font-weight:900;color:#0d1f45;letter-spacing:4px;text-transform:uppercase;margin:6px 0 8px 0;}' +
+    '.bid{font-family:Arial,sans-serif;font-size:17px;font-weight:700;color:#1a3060;letter-spacing:3px;text-transform:uppercase;margin:4px 0;white-space:nowrap;}' +
+    '.div2{width:65%;height:1px;background:linear-gradient(90deg,transparent,#aaa,transparent);margin:8px auto;}' +
+    '.ctext{font-family:Arial,sans-serif;font-size:11.5px;color:#444;letter-spacing:1.5px;text-transform:uppercase;line-height:1.8;font-weight:600;margin:2px 0;max-width:680px;}' +
+    '.idate{font-family:Georgia,serif;font-size:13px;color:#8a7040;font-style:italic;margin-top:6px;}' +
     '.sig-row{position:absolute;bottom:10px;left:0;right:0;display:flex;justify-content:space-between;align-items:flex-end;padding:0 65px;z-index:10;}' +
     '.sig-block{display:flex;flex-direction:column;align-items:center;width:220px;}' +
-    '.sig-role{font-family:Arial,sans-serif;font-size:10.5px;font-weight:700;text-transform:uppercase;letter-spacing:1.5px;color:#0d1f45!important;margin-top:4px;}' +
-    '.sig-name{font-family:Georgia,serif;font-size:14px;font-style:italic;font-weight:700;color:#8a5a00!important;}' +
-    /* Print styles */
+    '.sig-role{font-family:Arial,sans-serif;font-size:10.5px;font-weight:700;text-transform:uppercase;letter-spacing:1.5px;color:#0d1f45;margin-top:4px;}' +
+    '.sig-name{font-family:Georgia,serif;font-size:14px;font-style:italic;font-weight:700;color:#8a5a00;}' +
+
+    /* ── PRINT styles ── */
     '@media print{' +
+    /* Hide screen-only elements */
     '.print-bar{display:none!important;}' +
-    'html,body{background:#fff!important;padding-top:0!important;margin:0!important;}' +
-    'body{display:block!important;}' +
-    '.cert-outer{margin:0!important;transform:none!important;}' +
-    '.cert-wrap{print-color-adjust:exact!important;-webkit-print-color-adjust:exact!important;}' +
+    'html,body{' +
+    '  background:white!important;' +
+    '  width:297mm;height:210mm;' +
+    '  margin:0!important;padding:0!important;' +
+    '  display:block!important;' +
+    '  overflow:hidden!important;' +
+    '}' +
+    /* Reset outer wrapper */
+    '.cert-outer{' +
+    '  margin:0!important;' +
+    '  transform:none!important;' +
+    '  width:297mm!important;' +
+    '  height:210mm!important;' +
+    '  overflow:hidden!important;' +
+    '}' +
+    /* Certificate fills exactly one A4 landscape page */
+    '.cert-wrap{' +
+    '  width:297mm!important;' +
+    '  height:210mm!important;' +
+    '  overflow:hidden!important;' +
+    '  page-break-after:avoid!important;' +
+    '  page-break-inside:avoid!important;' +
+    '  print-color-adjust:exact!important;' +
+    '  -webkit-print-color-adjust:exact!important;' +
+    '}' +
+    /* Force all backgrounds to print */
     '*{print-color-adjust:exact!important;-webkit-print-color-adjust:exact!important;}' +
+    /* Recalculate positions for mm units — scale from 1122px to 297mm */
+    '.bg-navy{width:127mm!important;height:69mm!important;}' +
+    '.bg-teal{width:127mm!important;height:69mm!important;}' +
+    '.bg-tr{width:79mm!important;height:53mm!important;}' +
+    '.bg-tr2{width:58mm!important;height:37mm!important;}' +
+    '.bg-bl{width:90mm!important;height:42mm!important;}' +
+    '.bg-bl2{width:58mm!important;height:29mm!important;}' +
+    '.bg-br{width:74mm!important;height:37mm!important;}' +
+    '.gold-line-top{top:19mm!important;}' +
+    '.gold-line-bot{bottom:19mm!important;}' +
+    '.watermark{font-size:37mm!important;}' +
+    '.logo-wrap{top:3mm!important;left:3mm!important;}' +
+    '.logo{width:47mm!important;}' +
+    '.medal{top:2mm!important;right:4mm!important;width:34mm!important;}' +
+    '.content{padding:3mm 24mm 21mm 24mm!important;}' +
+    '.cert-title{font-size:16mm!important;}' +
+    '.cert-sub{font-size:6mm!important;}' +
+    '.sname{font-size:11mm!important;}' +
+    '.bid{font-size:4.5mm!important;}' +
+    '.sig-row{bottom:3mm!important;padding:0 17mm!important;}' +
+    '.sig-block{width:58mm!important;}' +
     '@page{size:A4 landscape;margin:0;}' +
     '}';
 
