@@ -588,17 +588,104 @@
   .modal-header, nav, .sidebar, header, .att-tab-btn { display: none !important; }
 }
 
-/* ── Sidebar Logo Activity Spin ── */
+/* ══════════════════════════════════════
+   ANIMATED GRADIENT BORDER — Buttons
+══════════════════════════════════════ */
+@keyframes gradBorderMove {
+  0%   { background-position: 0% 50%; }
+  50%  { background-position: 100% 50%; }
+  100% { background-position: 0% 50%; }
+}
+
+.btn-primary, .btn-success, .btn-danger, .btn-warning, .btn-info {
+  position: relative;
+  z-index: 0;
+}
+.btn-primary::before,
+.btn-success::before,
+.btn-danger::before,
+.btn-warning::before,
+.btn-info::before {
+  content: '';
+  position: absolute;
+  inset: -2px;
+  border-radius: inherit;
+  z-index: -1;
+  background: linear-gradient(270deg, #00d9ff, #b537f2, #00ff88, #ff8c00, #00d9ff);
+  background-size: 400% 400%;
+  animation: gradBorderMove 4s ease infinite;
+  opacity: 0;
+  transition: opacity 0.3s;
+}
+.btn-primary:hover::before,
+.btn-success:hover::before,
+.btn-danger:hover::before,
+.btn-warning:hover::before,
+.btn-info:hover::before {
+  opacity: 1;
+}
+
+/* ══════════════════════════════════════
+   ANIMATED PROGRESS BARS
+══════════════════════════════════════ */
+@keyframes progressShine {
+  0%   { background-position: -200% center; }
+  100% { background-position: 200% center; }
+}
+@keyframes progressGlow {
+  0%, 100% { box-shadow: 0 0 6px rgba(0,217,255,0.4), 0 0 12px rgba(0,217,255,0.2); }
+  50%       { box-shadow: 0 0 12px rgba(0,217,255,0.7), 0 0 24px rgba(0,217,255,0.4); }
+}
+
+.progress-bar {
+  background: linear-gradient(
+    90deg,
+    rgba(0,217,255,0.6) 0%,
+    #00d9ff 30%,
+    #b537f2 60%,
+    rgba(0,255,136,0.8) 80%,
+    rgba(0,217,255,0.6) 100%
+  ) !important;
+  background-size: 200% auto !important;
+  animation: progressShine 2.5s linear infinite, progressGlow 2s ease-in-out infinite !important;
+  border-radius: 12px !important;
+  transition: width 1s cubic-bezier(0.4, 0, 0.2, 1) !important;
+}
+
+/* Login Particle Canvas */
+#loginParticleCanvas {
+  position: fixed;
+  inset: 0;
+  width: 100%;
+  height: 100%;
+  z-index: 0;
+  pointer-events: none;
+  display: none;
+}
+#loginSection { position: relative; }
+#loginSection .login-card { position: relative; z-index: 1; }
+
+/* Ripple Effect */
+.btn { position: relative; overflow: hidden; }
+.ripple-wave {
+  position: absolute;
+  border-radius: 50%;
+  background: rgba(255,255,255,0.25);
+  transform: scale(0);
+  animation: rippleWaveAnim 0.55s linear;
+  pointer-events: none;
+}
+@keyframes rippleWaveAnim {
+  to { transform: scale(5); opacity: 0; }
+}
+
+/* Sidebar Logo Activity Spin */
 @keyframes sidebarLogoSpin {
   from { transform: rotate(0deg); }
   to   { transform: rotate(360deg); }
 }
-#sidebarLogoImg {
-  border-radius: 50%;
-}
-#sidebarLogoImg.is-active {
-  animation: sidebarLogoSpin 2s linear infinite;
-}
+#sidebarLogoImg { border-radius: 50%; }
+#sidebarLogoImg.is-active { animation: sidebarLogoSpin 2s linear infinite; }
 </style>
 </head>
 
@@ -606,6 +693,7 @@
     <div id="printArea"></div>
     <!-- Login Section -->
     <div id="loginSection">
+        <canvas id="loginParticleCanvas"></canvas>
         <div class="login-card card">
             <div class="login-header">
                 <div class="logo-circle overflow-hidden p-0">
@@ -5234,31 +5322,126 @@ window.switchSettingsTab = switchSettingsTab;
 </script>
 
 <script>
-// ── Logo Activity Spin ──
+// ════════════════════════════════════════
+// 1. LOGIN PAGE — PARTICLE BACKGROUND
+// ════════════════════════════════════════
+(function() {
+  var canvas = document.getElementById('loginParticleCanvas');
+  if (!canvas) return;
+  var ctx = canvas.getContext('2d');
+  var particles = [];
+  var animFrame;
+
+  function resize() {
+    canvas.width  = window.innerWidth;
+    canvas.height = window.innerHeight;
+  }
+
+  function spawnParticles() {
+    particles = [];
+    var count = Math.floor((canvas.width * canvas.height) / 12000);
+    count = Math.max(40, Math.min(count, 100));
+    for (var i = 0; i < count; i++) {
+      particles.push({
+        x:     Math.random() * canvas.width,
+        y:     Math.random() * canvas.height,
+        r:     Math.random() * 1.6 + 0.3,
+        dx:    (Math.random() - 0.5) * 0.35,
+        dy:    (Math.random() - 0.5) * 0.35,
+        alpha: Math.random() * 0.5 + 0.15
+      });
+    }
+  }
+
+  function drawParticles() {
+    ctx.clearRect(0, 0, canvas.width, canvas.height);
+    particles.forEach(function(p) {
+      ctx.beginPath();
+      ctx.arc(p.x, p.y, p.r, 0, Math.PI * 2);
+      ctx.fillStyle = 'rgba(0,217,255,' + p.alpha + ')';
+      ctx.fill();
+      p.x += p.dx;
+      p.y += p.dy;
+      if (p.x < 0 || p.x > canvas.width)  p.dx *= -1;
+      if (p.y < 0 || p.y > canvas.height) p.dy *= -1;
+    });
+    animFrame = requestAnimationFrame(drawParticles);
+  }
+
+  function startParticles() {
+    canvas.style.display = 'block';
+    resize();
+    spawnParticles();
+    if (animFrame) cancelAnimationFrame(animFrame);
+    drawParticles();
+  }
+
+  function stopParticles() {
+    canvas.style.display = 'none';
+    if (animFrame) cancelAnimationFrame(animFrame);
+  }
+
+  window.addEventListener('resize', function() {
+    if (canvas.style.display !== 'none') { resize(); spawnParticles(); }
+  });
+
+  // LoginSection দেখা/লুকানো watch করি
+  var loginSection = document.getElementById('loginSection');
+  if (loginSection) {
+    var observer = new MutationObserver(function() {
+      var hidden = loginSection.classList.contains('d-none');
+      if (hidden) stopParticles(); else startParticles();
+    });
+    observer.observe(loginSection, { attributes: true, attributeFilter: ['class'] });
+    // Page load-এ যদি login দেখা যায়
+    if (!loginSection.classList.contains('d-none')) startParticles();
+  }
+})();
+
+// ════════════════════════════════════════
+// 2. RIPPLE EFFECT — সব .btn button-এ
+// ════════════════════════════════════════
+(function() {
+  document.addEventListener('mousedown', function(e) {
+    var btn = e.target.closest('.btn');
+    if (!btn) return;
+    var rect   = btn.getBoundingClientRect();
+    var size   = Math.max(btn.offsetWidth, btn.offsetHeight);
+    var wave   = document.createElement('span');
+    wave.className = 'ripple-wave';
+    wave.style.cssText = [
+      'width:'  + size + 'px',
+      'height:' + size + 'px',
+      'left:'   + (e.clientX - rect.left - size / 2) + 'px',
+      'top:'    + (e.clientY - rect.top  - size / 2) + 'px'
+    ].join(';');
+    btn.appendChild(wave);
+    wave.addEventListener('animationend', function() { wave.remove(); });
+  });
+})();
+
+// ════════════════════════════════════════
+// 3. SIDEBAR LOGO — ACTIVITY SPIN
+// ════════════════════════════════════════
 (function() {
   var logo = null;
   var idleTimer = null;
-  var IDLE_DELAY = 1500; // ১.৫ সেকেন্ড কিছু না করলে থামবে
+  var IDLE_DELAY = 1500;
 
   function startSpin() {
     if (!logo) logo = document.getElementById('sidebarLogoImg');
     if (!logo) return;
     logo.classList.add('is-active');
     clearTimeout(idleTimer);
-    idleTimer = setTimeout(stopSpin, IDLE_DELAY);
+    idleTimer = setTimeout(function() {
+      logo.classList.remove('is-active');
+    }, IDLE_DELAY);
   }
 
-  function stopSpin() {
-    if (!logo) return;
-    logo.classList.remove('is-active');
-  }
-
-  // Mouse move, click, scroll, keypress — যেকোনো activity-তে spin
   ['mousemove', 'mousedown', 'keydown', 'scroll', 'touchmove'].forEach(function(evt) {
     document.addEventListener(evt, startSpin, { passive: true });
   });
 })();
 </script>
 </body>
-
 </html>
