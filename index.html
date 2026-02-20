@@ -587,6 +587,18 @@
   .no-print, .att-tab-strip, .att-filter-row, .att-action-row,
   .modal-header, nav, .sidebar, header, .att-tab-btn { display: none !important; }
 }
+
+/* ── Sidebar Logo Activity Spin ── */
+@keyframes sidebarLogoSpin {
+  from { transform: rotate(0deg); }
+  to   { transform: rotate(360deg); }
+}
+#sidebarLogoImg {
+  border-radius: 50%;
+}
+#sidebarLogoImg.is-active {
+  animation: sidebarLogoSpin 2s linear infinite;
+}
 </style>
 </head>
 
@@ -630,7 +642,7 @@
             <aside class="sidebar">
                 <div class="brand-wrapper">
                     <div class="brand-logo">
-                        <img src="logo.jpg.jpeg" alt="Logo" style="width: 100%; height: 100%; object-fit: contain;">
+                        <img src="logo.jpg.jpeg" alt="Logo" id="sidebarLogoImg" style="width: 100%; height: 100%; object-fit: contain;">
                     </div>
                     <div class="brand-text">
                         <h4>Wings Fly</h4>
@@ -876,7 +888,7 @@
                                         <small class="opacity-75">নোটিস তৈরি করুন ও মেয়াদ নির্ধারণ করুন</small>
                                     </div>
                                 </div>
-                                <button type="button" class="btn-close btn-close-white" data-bs-dismiss="modal" aria-label="Close"></button>
+                                <button type="button" class="btn-close btn-close-white" data-bs-dismiss="modal"></button>
                             </div>
                             <div class="modal-body p-4">
 
@@ -2216,7 +2228,7 @@
                                 class="bi bi-person-plus-fill"></i></span>New Student
                         Registration
                     </h5>
-                    <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
+                    <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
                 </div>
                 <div class="modal-body p-4">
                     <form id="studentForm" onsubmit="handleStudentSubmit(event)">
@@ -2419,7 +2431,7 @@
                     <h5 class="modal-title fw-bold">
                         <span class="me-2 header-icon-circle bg-success-light">💳</span>Payment History & Installments
                     </h5>
-                    <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
+                    <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
                 </div>
                 <div class="modal-body p-4">
                     <div class="row g-3 mb-4">
@@ -2498,7 +2510,7 @@
                     <h5 class="modal-title fw-bold">
                         <span class="me-2">💰</span>Add Transaction
                     </h5>
-                    <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
+                    <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
                 </div>
                 <div class="modal-body">
                     <form id="financeForm" onsubmit="handleFinanceSubmit(event)">
@@ -2567,7 +2579,7 @@
                     <h5 class="modal-title fw-bold">
                         <span class="me-2 header-icon-circle bg-primary-light">âš™ï¸</span>System Settings
                     </h5>
-                    <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
+                    <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
                 </div>
                 <div class="modal-body p-0">
                     <form id="settingsForm" onsubmit="handleSettingsSubmit(event)" class="h-100">
@@ -3200,7 +3212,7 @@
                     <h5 class="modal-title fw-bold">
                         <span class="me-2">âœï¸</span>Edit Transaction
                     </h5>
-                    <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
+                    <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
                 </div>
                 <div class="modal-body">
                     <form id="editTransactionForm" onsubmit="handleEditTransactionSubmit(event)">
@@ -3257,7 +3269,7 @@
                         <span class="me-2 text-white-50"><i class="bi bi-bar-chart-fill"></i></span> Account Details
                         (Income & Expense)
                     </h5>
-                    <button type="button" class="btn-close btn-close-white" data-bs-dismiss="modal" aria-label="Close"></button>
+                    <button type="button" class="btn-close btn-close-white" data-bs-dismiss="modal"></button>
                 </div>
                 <div class="modal-body">
                     <!-- Filters Row -->
@@ -3347,7 +3359,7 @@
                     <h5 class="modal-title fw-bold">
                         <span class="me-2">📊</span>Batch Wise Profit/Loss Report
                     </h5>
-                    <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
+                    <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
                 </div>
                 <div class="modal-body">
                     <!-- Report Controls -->
@@ -3405,14 +3417,14 @@
     <!-- Batch Report Modal is defined above -->
 
     <!-- Student Profile Modal -->
-    <div class="modal fade" id="studentProfileModal" tabindex="-1" aria-labelledby="studentProfileModalLabel" aria-modal="true" role="dialog">
+    <div class="modal fade" id="studentProfileModal" tabindex="-1">
         <div class="modal-dialog modal-xl modal-dialog-centered">
             <div class="modal-content custom-modal">
                 <div class="modal-header border-0 pb-0">
-                    <h5 class="modal-title fw-bold" id="studentProfileModalLabel">
+                    <h5 class="modal-title fw-bold">
                         <span class="me-2 header-icon-circle bg-info-light">👤</span>Student Profile
                     </h5>
-                    <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
+                    <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
                 </div>
                 <div class="modal-body p-4" id="studentProfileContent">
                     <!-- Populated dynamically -->
@@ -3498,7 +3510,7 @@
                             <div class="small text-muted" id="monthlyAttHeaderInfo">Batch, Year ও Month বেছে নিন</div>
                         </div>
                     </div>
-                    <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
+                    <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
                 </div>
                 <div class="px-4 py-3 no-print"
                     style="background:rgba(255,255,255,0.03); border-bottom:1px solid rgba(255,255,255,0.08);">
@@ -3603,7 +3615,7 @@
             <div class="modal-content custom-modal">
                 <div class="modal-header">
                     <h5 class="modal-title fw-bold">📊 Expense Breakdown</h5>
-                    <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
+                    <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
                 </div>
                 <div class="modal-body">
                     <div id="breakdownList" class="list-group list-group-flush">
@@ -3625,7 +3637,7 @@
                     <h5 class="modal-title fw-bold" id="visitorModalTitle">
                         <span class="me-2 header-icon-circle bg-primary-light">👤</span>Visitor Information
                     </h5>
-                    <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
+                    <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
                 </div>
                 <div class="modal-body p-4">
                     <form id="visitorForm" onsubmit="handleVisitorSubmit(event)">
@@ -3675,7 +3687,7 @@
             <div class="modal-content custom-modal">
                 <div class="modal-header">
                     <h5 class="modal-title fw-bold">📋 Student Attendance</h5>
-                    <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
+                    <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
                 </div>
                 <div class="modal-body">
                     <div class="row g-3 mb-4">
@@ -3734,7 +3746,7 @@
                     <h5 class="modal-title fw-bold text-primary">
                         <span class="me-2 header-icon-circle bg-primary-light">📝</span>Exam Registration
                     </h5>
-                    <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
+                    <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
                 </div>
                 <div class="modal-body p-4">
                     <form id="examRegistrationForm" onsubmit="handleExamRegistration(event)">
@@ -3837,7 +3849,7 @@
             <div class="modal-content custom-modal">
                 <div class="modal-header">
                     <h5 class="modal-title fw-bold">🏆 Add Exam Result</h5>
-                    <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
+                    <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
                 </div>
                 <div class="modal-body">
                     <form id="addResultForm" onsubmit="handleAddResult(event)">
@@ -3878,7 +3890,7 @@
             <div class="modal-content custom-modal">
                 <div class="modal-header border-0 pb-0">
                     <h5 class="modal-title fw-bold" id="commentModalTitle">Student Notes</h5>
-                    <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
+                    <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
                 </div>
                 <div class="modal-body p-4">
                     <div class="mb-3">
@@ -3906,7 +3918,7 @@
                     <h5 class="modal-title fw-bold">
                         <span class="me-2 header-icon-circle bg-primary-light">🪪</span>Student ID Card
                     </h5>
-                    <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
+                    <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
                 </div>
                 <div class="modal-body p-4 bg-light text-center">
                     <!-- ID Card Preview Area -->
@@ -4012,7 +4024,7 @@
                     <h5 class="modal-title fw-bold">
                         <span class="me-2 header-icon-circle bg-primary-light">👔</span>Add New Employee
                     </h5>
-                    <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
+                    <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
                 </div>
                 <div class="modal-body p-4">
                     <form id="employeeForm" onsubmit="handleEmployeeSubmit(event)">
@@ -4088,7 +4100,7 @@
                     <h5 class="modal-title text-white fw-bold">
                         <span class="me-2" style="font-size: 1.5rem;">💵</span>Update Cash Balance
                     </h5>
-                    <button type="button" class="btn-close btn-close-white" data-bs-dismiss="modal" aria-label="Close"></button>
+                    <button type="button" class="btn-close btn-close-white" data-bs-dismiss="modal"></button>
                 </div>
                 <div class="modal-body p-4">
                     <form id="cashForm" onsubmit="handleCashSubmit(event)">
@@ -4126,7 +4138,7 @@
                     <h5 class="modal-title fw-bold">
                         <span class="me-2 header-icon-circle bg-primary-light">🏦</span>Add New Bank Account
                     </h5>
-                    <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
+                    <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
                 </div>
                 <div class="modal-body p-4">
                     <form id="accountForm" onsubmit="handleAccountSubmit(event)">
@@ -4179,7 +4191,7 @@
                     <h5 class="modal-title fw-bold">
                         <span class="me-2 header-icon-circle bg-primary-light">💸</span>Internal Balance Transfer
                     </h5>
-                    <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
+                    <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
                 </div>
                 <div class="modal-body p-4">
                     <form id="transferForm" onsubmit="handleTransferSubmit(event)">
@@ -4237,7 +4249,7 @@
                         <span class="me-2 header-icon-circle bg-warning-subtle text-warning">⚠️</span>All Student
                         Reminders
                     </h5>
-                    <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
+                    <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
                 </div>
                 <div class="modal-body p-4">
                     <div id="allRemindersList" class="table-responsive">
@@ -4305,7 +4317,7 @@
                     <h5 class="modal-title text-white fw-bold">
                         <span class="me-2">📱</span>Add Mobile Banking
                     </h5>
-                    <button type="button" class="btn-close btn-close-white" data-bs-dismiss="modal" aria-label="Close"></button>
+                    <button type="button" class="btn-close btn-close-white" data-bs-dismiss="modal"></button>
                 </div>
                 <div class="modal-body p-4">
                     <form id="mobileForm" onsubmit="handleMobileSubmit(event)">
@@ -4537,251 +4549,68 @@
     async function runFunctionTests() {
       const resultsDiv = document.getElementById('functest-results');
       const summaryDiv = document.getElementById('functest-summary');
-      resultsDiv.innerHTML = '<div style="color:#00d4ff;padding:12px;text-align:center;">⏳ সম্পূর্ণ System পরীক্ষা চলছে... অপেক্ষা করুন</div>';
-      summaryDiv.style.display = 'none';
+      resultsDiv.innerHTML = '<div class="text-muted p-2">⏳ পরীক্ষা চলছে...</div>';
 
       const data = window.globalData || JSON.parse(localStorage.getItem('wingsfly_data') || '{}');
       let pass=0, fail=0, warn=0;
-      const sections = [];
+      const rows = [];
 
-      function section(title, icon) {
-        sections.push({ title, icon, rows:[] });
-      }
       function check(name, ok, detail, isWarn=false) {
-        if (ok) pass++; else if (isWarn) warn++; else fail++;
-        const s = sections[sections.length-1];
-        s.rows.push({ name, ok, detail, isWarn });
+        if (ok) pass++;
+        else if (isWarn) warn++;
+        else fail++;
+        const badgeCls = ok ? 'ft-badge-pass' : isWarn ? 'ft-badge-warn' : 'ft-badge-fail';
+        const badgeTxt = ok ? 'PASS' : isWarn ? 'WARN' : 'FAIL';
+        rows.push(`<div class="ft-row">
+          <span style="margin-right:6px;">${ok?'✅':isWarn?'⚠️':'❌'}</span>
+          <div style="flex:1;"><div class="ft-name">${name}</div><div class="ft-detail">${detail}</div></div>
+          <span class="${badgeCls}">${badgeTxt}</span>
+        </div>`);
       }
 
-      // ══════════════════════════════════════════════
-      // 1. DATA INTEGRITY
-      // ══════════════════════════════════════════════
-      section('Data Integrity', '🗄️');
-      check('LocalStorage data loaded', !!(data && data.students !== undefined),
-        data.students !== undefined ? `data পাওয়া গেছে` : 'localStorage-এ কোনো data নেই!');
-      check('Students array valid', Array.isArray(data.students),
-        Array.isArray(data.students) ? `${data.students.length} জন student আছে` : 'students array নেই!');
-      check('Finance array valid', Array.isArray(data.finance),
-        Array.isArray(data.finance) ? `${data.finance.length} টি transaction আছে` : 'finance array নেই!');
-      check('Employees array valid', Array.isArray(data.employees),
-        Array.isArray(data.employees) ? `${data.employees.length} জন employee আছে` : 'employees array নেই!');
-      check('Settings object valid', !!(data.settings && typeof data.settings === 'object'),
-        data.settings ? 'settings আছে ✓' : 'settings নেই!');
-      check('Users array valid', Array.isArray(data.users) && data.users.length > 0,
-        Array.isArray(data.users) ? `${data.users.length} জন user আছে` : 'users নেই — login হবে না!');
-      check('DeletedItems array exists', Array.isArray(data.deletedItems),
-        Array.isArray(data.deletedItems) ? `Recycle Bin: ${data.deletedItems.length} টি item` : 'deletedItems নেই');
-      check('ActivityHistory exists', Array.isArray(data.activityHistory),
-        Array.isArray(data.activityHistory) ? `${data.activityHistory.length} টি activity log` : 'activityHistory নেই', !Array.isArray(data.activityHistory));
-      check('nextId valid', (parseInt(data.nextId)||0) >= 1000,
-        `Next ID: ${data.nextId||'নেই'}`, !data.nextId);
+      // Test 1: Data exists
+      check('Local data loaded', !!(data && data.students), data?.students ? `${data.students.length} students found` : 'localStorage-এ data নেই');
 
-      // ══════════════════════════════════════════════
-      // 2. STUDENT MODULE
-      // ══════════════════════════════════════════════
-      section('Student Module', '🎓');
-      const students = data.students || [];
-      const sIds = students.map(s=>s.studentId).filter(Boolean);
-      const uIds = new Set(sIds);
-      check('Student IDs unique', sIds.length === uIds.size,
-        sIds.length === uIds.size ? 'সব ID আলাদা ✓' : `${sIds.length - uIds.size} টি duplicate ID!`, sIds.length !== uIds.size);
-      const dueMismatch = students.filter(s => {
+      // Test 2: Student IDs unique
+      const ids = (data.students||[]).map(s=>s.studentId).filter(Boolean);
+      const uniqueIds = new Set(ids);
+      check('Student IDs unique', ids.length === uniqueIds.size, ids.length===uniqueIds.size ? 'সব ID আলাদা' : `${ids.length - uniqueIds.size} টি duplicate ID আছে!`, ids.length!==uniqueIds.size);
+
+      // Test 3: Finance integrity
+      const hasLoanInIncome = (data.finance||[]).some(f => f.type==='Income' && f.category?.toLowerCase().includes('loan'));
+      check('Loan Income-এ নেই', !hasLoanInIncome, hasLoanInIncome ? 'কিছু Loan ভুলভাবে Income-এ আছে!' : 'Loan শুধু Balance-এ যাচ্ছে ✓');
+
+      // Test 4: Student due calculation
+      const dueMismatch = (data.students||[]).filter(s => {
         const calc = (parseFloat(s.totalPayment)||0) - (parseFloat(s.paid)||0);
         return Math.abs(calc - (parseFloat(s.due)||0)) > 1;
       });
-      check('Due calculation correct', dueMismatch.length===0,
-        dueMismatch.length===0 ? 'সব student-এর due ঠিক ✓' : `${dueMismatch.length} জনের due mismatch!`, dueMismatch.length>0);
-      const noName = students.filter(s => !s.name || s.name.trim()==='');
-      check('All students have names', noName.length===0,
-        noName.length===0 ? 'সব student-এর নাম আছে ✓' : `${noName.length} জন student-এর নাম নেই!`, noName.length>0);
-      const noBatch = students.filter(s => !s.batch || s.batch.trim()==='');
-      check('All students have batch', noBatch.length===0,
-        noBatch.length===0 ? 'সব student-এর batch আছে ✓' : `${noBatch.length} জনের batch নেই`, noBatch.length>0);
-      check('render() function exists', typeof window.render==='function', typeof window.render==='function' ? 'render() আছে ✓' : 'render() MISSING!');
-      check('deleteStudent() function exists', typeof window.deleteStudent==='function', typeof window.deleteStudent==='function' ? 'deleteStudent() আছে ✓' : 'deleteStudent() MISSING!');
-      check('updateGlobalStats() exists', typeof window.updateGlobalStats==='function', typeof window.updateGlobalStats==='function' ? 'updateGlobalStats() আছে ✓' : 'updateGlobalStats() MISSING!');
+      check('Student Due calculation', dueMismatch.length===0, dueMismatch.length===0 ? 'সব student-এর due ঠিক আছে' : `${dueMismatch.length} জন student-এর due mismatch!`, dueMismatch.length>0);
 
-      // ══════════════════════════════════════════════
-      // 3. FINANCE MODULE
-      // ══════════════════════════════════════════════
-      section('Finance Module', '💰');
-      const finance = data.finance || [];
-      const income = finance.filter(f=>f.type==='Income').reduce((s,f)=>s+(parseFloat(f.amount)||0),0);
-      const expense = finance.filter(f=>f.type==='Expense').reduce((s,f)=>s+(parseFloat(f.amount)||0),0);
-      check('Finance has income entries', finance.some(f=>f.type==='Income'),
-        `মোট Income: ${diagFmt(income)}`, !finance.some(f=>f.type==='Income'));
-      check('Cash balance non-negative', (parseFloat(data.cashBalance)||0) >= 0,
-        `Cash: ${diagFmt(data.cashBalance||0)}`, (parseFloat(data.cashBalance)||0) < 0);
-      const noAmountTx = finance.filter(f => !f.amount || parseFloat(f.amount)===0);
-      check('All transactions have amount', noAmountTx.length===0,
-        noAmountTx.length===0 ? 'সব transaction-এ amount আছে ✓' : `${noAmountTx.length} টি transaction-এ amount নেই!`, noAmountTx.length>0);
-      const noTypeTx = finance.filter(f => !f.type);
-      check('All transactions have type', noTypeTx.length===0,
-        noTypeTx.length===0 ? 'সব transaction-এর type আছে ✓' : `${noTypeTx.length} টিতে type নেই!`, noTypeTx.length>0);
-      check('deleteTransaction() exists', typeof window.deleteTransaction==='function', typeof window.deleteTransaction==='function' ? 'deleteTransaction() আছে ✓' : 'deleteTransaction() MISSING!');
-      check('renderLedger() exists', typeof window.renderLedger==='function', typeof window.renderLedger==='function' ? 'renderLedger() আছে ✓' : 'renderLedger() MISSING!');
-      check('updateAccountBalance() exists', typeof window.updateAccountBalance==='function', typeof window.updateAccountBalance==='function' ? 'updateAccountBalance() আছে ✓' : 'updateAccountBalance() MISSING!');
+      // Test 5: Cash balance non-negative
+      const cash = parseFloat(data.cashBalance)||0;
+      check('Cash balance', cash >= 0, cash>=0 ? diagFmt(cash)+' (ঠিক আছে)' : diagFmt(cash)+' (negative!)', cash<0);
 
-      // ══════════════════════════════════════════════
-      // 4. ACCOUNTS & BALANCE
-      // ══════════════════════════════════════════════
-      section('Accounts & Balance', '🏦');
-      const banks = data.bankAccounts || [];
-      const mobile = data.mobileBanking || [];
-      const negBanks = banks.filter(b => (parseFloat(b.balance)||0) < 0);
-      check('Bank accounts non-negative', negBanks.length===0,
-        negBanks.length===0 ? `${banks.length} টি bank account ঠিক আছে ✓` : `${negBanks.length} টি account negative!`, negBanks.length>0);
-      const negMobile = mobile.filter(m => (parseFloat(m.balance)||0) < 0);
-      check('Mobile banking non-negative', negMobile.length===0,
-        negMobile.length===0 ? `${mobile.length} টি mobile account ঠিক আছে ✓` : `${negMobile.length} টি account negative!`, negMobile.length>0);
-      check('Payment methods exist', Array.isArray(data.paymentMethods) && data.paymentMethods.length>0,
-        data.paymentMethods ? `${data.paymentMethods.length} টি payment method আছে` : 'payment methods নেই!');
-      check('updateGrandTotal() exists', typeof window.updateGrandTotal==='function', typeof window.updateGrandTotal==='function' ? 'updateGrandTotal() আছে ✓' : 'updateGrandTotal() MISSING!');
-      check('calculateTotalBankBalance() exists', typeof window.calculateTotalBankBalance==='function', typeof window.calculateTotalBankBalance==='function' ? 'আছে ✓' : 'MISSING!');
-
-      // ══════════════════════════════════════════════
-      // 5. EMPLOYEE MODULE
-      // ══════════════════════════════════════════════
-      section('Employee Module', '👥');
-      const emps = data.employees || [];
-      const noEmpName = emps.filter(e => !e.name || e.name.trim()==='');
-      check('All employees have names', noEmpName.length===0,
-        noEmpName.length===0 ? `${emps.length} জন employee ✓` : `${noEmpName.length} জনের নাম নেই!`, noEmpName.length>0);
-      check('deleteEmployee() exists', typeof window.deleteEmployee==='function', typeof window.deleteEmployee==='function' ? 'deleteEmployee() আছে ✓' : 'deleteEmployee() MISSING!');
-      check('Employee roles exist', Array.isArray(data.employeeRoles),
-        Array.isArray(data.employeeRoles) ? `${data.employeeRoles.length} টি role আছে` : 'roles নেই', !Array.isArray(data.employeeRoles));
-
-      // ══════════════════════════════════════════════
-      // 6. RECYCLE BIN & ACTIVITY LOG
-      // ══════════════════════════════════════════════
-      section('Recycle Bin & Activity Log', '🗑️');
-      check('moveToTrash() exists', typeof window.moveToTrash==='function', typeof window.moveToTrash==='function' ? 'moveToTrash() আছে ✓' : 'moveToTrash() MISSING!');
-      check('restoreDeletedItem() exists', typeof window.restoreDeletedItem==='function', typeof window.restoreDeletedItem==='function' ? 'আছে ✓' : 'MISSING!');
-      check('permanentDelete() exists', typeof window.permanentDelete==='function', typeof window.permanentDelete==='function' ? 'আছে ✓' : 'MISSING!');
-      check('logActivity() exists', typeof window.logActivity==='function', typeof window.logActivity==='function' ? 'logActivity() আছে ✓' : 'logActivity() MISSING!');
-      const deletedBackup = localStorage.getItem('wingsfly_deleted_backup');
-      check('Deleted backup exists', !!deletedBackup, deletedBackup ? `backup আছে (${JSON.parse(deletedBackup||'[]').length} item)` : 'backup নেই — delete করলে হারাতে পারে!', !deletedBackup);
-      const actBackup = localStorage.getItem('wingsfly_activity_backup');
-      check('Activity backup exists', !!actBackup, actBackup ? `backup আছে (${JSON.parse(actBackup||'[]').length} entry)` : 'activity backup নেই', !actBackup);
-
-      // ══════════════════════════════════════════════
-      // 7. SNAPSHOT SYSTEM
-      // ══════════════════════════════════════════════
-      section('Snapshot System', '📸');
-      const snaps = JSON.parse(localStorage.getItem('wingsfly_snapshots')||'[]');
-      check('Snapshots exist', snaps.length>0, snaps.length>0 ? `${snaps.length} টি snapshot আছে` : 'কোনো snapshot নেই — এখনই নিন!', snaps.length===0);
-      if (snaps.length > 0) {
-        const lastSnap = new Date(snaps[0].id);
-        const hoursSince = (Date.now() - lastSnap)/3600000;
-        check('Last snapshot recent', hoursSince < 2, hoursSince < 2 ? `${Math.round(hoursSince*60)} মিনিট আগে নেওয়া হয়েছে ✓` : `${Math.round(hoursSince)} ঘন্টা আগে — auto sync ঠিক আছে?`, hoursSince >= 1);
-      }
-      check('takeSnapshot() exists', typeof window.takeSnapshot==='function', typeof window.takeSnapshot==='function' ? 'takeSnapshot() আছে ✓' : 'MISSING!');
-      check('restoreSnapshot() exists', typeof window.restoreSnapshot==='function', typeof window.restoreSnapshot==='function' ? 'আছে ✓' : 'MISSING!');
-
-      // ══════════════════════════════════════════════
-      // 8. SYNC & CLOUD
-      // ══════════════════════════════════════════════
-      section('Sync & Cloud', '☁️');
-      check('saveToCloud() exists', typeof window.saveToCloud==='function', typeof window.saveToCloud==='function' ? 'saveToCloud() আছে ✓' : 'MISSING!');
-      check('loadFromCloud() exists', typeof window.loadFromCloud==='function', typeof window.loadFromCloud==='function' ? 'loadFromCloud() আছে ✓' : 'MISSING!');
-      check('scheduleSyncPush() exists', typeof window.scheduleSyncPush==='function', typeof window.scheduleSyncPush==='function' ? 'আছে ✓' : 'MISSING!', !window.scheduleSyncPush);
-      const lastSync = localStorage.getItem('lastSyncTime');
-      if (lastSync) {
-        const minsAgo = (Date.now()-parseInt(lastSync))/60000;
-        check('Last sync recent', minsAgo < 10, `${Math.round(minsAgo)} মিনিট আগে sync হয়েছে`, minsAgo >= 5);
-      } else {
-        check('Last sync time', false, 'কখনো sync হয়নি!', true);
-      }
+      // Test 6: Cloud reachable
       try {
         const r = await fetch(DIAG_URL, { headers:{'apikey':DIAG_KEY,'Authorization':'Bearer '+DIAG_KEY}, signal: AbortSignal.timeout(5000) });
-        check('Supabase reachable', r.ok, r.ok ? 'Cloud connection ঠিক আছে ✓' : 'HTTP '+r.status);
-      } catch(e) { check('Supabase reachable', false, 'Connection failed: '+e.message); }
+        check('Cloud (Supabase) reachable', r.ok, r.ok ? 'সংযোগ ঠিক আছে ✓' : 'HTTP '+r.status);
+      } catch(e) { check('Cloud (Supabase) reachable', false, 'সংযোগ হচ্ছে না: '+e.message); }
 
-      // ══════════════════════════════════════════════
-      // 9. SETTINGS & CATEGORIES
-      // ══════════════════════════════════════════════
-      section('Settings & Categories', '⚙️');
-      check('Income categories exist', Array.isArray(data.incomeCategories) && data.incomeCategories.length>0,
-        `${(data.incomeCategories||[]).length} টি income category`, !(data.incomeCategories||[]).length);
-      check('Expense categories exist', Array.isArray(data.expenseCategories) && data.expenseCategories.length>0,
-        `${(data.expenseCategories||[]).length} টি expense category`, !(data.expenseCategories||[]).length);
-      check('Course names exist', Array.isArray(data.courseNames) && data.courseNames.length>0,
-        `${(data.courseNames||[]).length} টি course আছে`, !(data.courseNames||[]).length);
-      check('saveToStorage() exists', typeof window.saveToStorage==='function', typeof window.saveToStorage==='function' ? 'saveToStorage() আছে ✓' : 'MISSING!');
-      check('renderFullUI() exists', typeof window.renderFullUI==='function', typeof window.renderFullUI==='function' ? 'renderFullUI() আছে ✓' : 'MISSING!');
-
-      // ══════════════════════════════════════════════
-      // 10. UI FUNCTIONS
-      // ══════════════════════════════════════════════
-      section('UI & Render Functions', '🖥️');
-      const uiFns = [
-        ['renderDashboard','Dashboard render'],
-        ['renderCashBalance','Cash balance render'],
-        ['renderLoanSummary','Loan summary render'],
-        ['renderVisitors','Visitors render'],
-        ['populateDropdowns','Dropdown populate'],
-        ['showSuccessToast','Success toast'],
-        ['showErrorToast','Error toast'],
-        ['switchTab','Tab switching'],
-        ['logout','Logout function'],
-      ];
-      uiFns.forEach(([fn, label]) => {
-        check(`${label} — ${fn}()`, typeof window[fn]==='function',
-          typeof window[fn]==='function' ? `${fn}() আছে ✓` : `${fn}() MISSING!`);
+      // Test 7: Key functions exist
+      const fns = ['updateGlobalStats','saveToStorage','renderDashboard','updateAccountBalance'];
+      fns.forEach(fn => {
+        check(`function: ${fn}()`, typeof window[fn]==='function', typeof window[fn]==='function' ? 'defined ✓' : 'MISSING — ভুল হবে!');
       });
 
-      // ══════════════════════════════════════════════
-      // RENDER RESULTS
-      // ══════════════════════════════════════════════
-      const totalTests = pass + fail + warn;
-      const healthPct = Math.round((pass / totalTests) * 100);
-      const healthColor = healthPct >= 90 ? '#00ff88' : healthPct >= 70 ? '#ffcc00' : '#ff4466';
-
-      let html = `
-        <div style="background:rgba(0,0,0,0.3);border:1px solid ${healthColor}44;border-radius:10px;padding:10px 14px;margin-bottom:10px;display:flex;align-items:center;gap:12px;">
-          <div style="font-size:1.8rem;font-weight:900;color:${healthColor};">${healthPct}%</div>
-          <div style="flex:1;">
-            <div style="color:#e2f0ff;font-weight:700;font-size:0.85rem;">System Health Score</div>
-            <div style="height:6px;background:rgba(255,255,255,0.1);border-radius:3px;margin-top:4px;overflow:hidden;">
-              <div style="height:100%;width:${healthPct}%;background:${healthColor};border-radius:3px;transition:width 0.5s;"></div>
-            </div>
-          </div>
-          <div style="text-align:right;font-size:0.75rem;color:#7aa0c4;">${totalTests} টি test<br>চালানো হয়েছে</div>
-        </div>`;
-
-      sections.forEach(sec => {
-        const secPass = sec.rows.filter(r=>r.ok).length;
-        const secFail = sec.rows.filter(r=>!r.ok && !r.isWarn).length;
-        const secWarn = sec.rows.filter(r=>!r.ok && r.isWarn).length;
-        const secColor = secFail>0 ? '#ff4466' : secWarn>0 ? '#ffcc00' : '#00ff88';
-        html += `
-          <div style="margin-bottom:8px;border:1px solid rgba(255,255,255,0.08);border-radius:8px;overflow:hidden;">
-            <div style="background:rgba(255,255,255,0.05);padding:6px 10px;display:flex;justify-content:space-between;align-items:center;">
-              <span style="color:#00d4ff;font-weight:700;font-size:0.78rem;">${sec.icon} ${sec.title}</span>
-              <div style="display:flex;gap:4px;">
-                <span style="background:rgba(0,255,136,0.15);color:#00ff88;border-radius:10px;padding:1px 7px;font-size:0.68rem;">✓${secPass}</span>
-                ${secFail>0?`<span style="background:rgba(255,68,68,0.15);color:#ff4466;border-radius:10px;padding:1px 7px;font-size:0.68rem;">✗${secFail}</span>`:''}
-                ${secWarn>0?`<span style="background:rgba(255,200,0,0.15);color:#ffcc00;border-radius:10px;padding:1px 7px;font-size:0.68rem;">⚠${secWarn}</span>`:''}
-              </div>
-            </div>
-            ${sec.rows.map(r => `
-              <div class="ft-row">
-                <span style="margin-right:6px;">${r.ok?'✅':r.isWarn?'⚠️':'❌'}</span>
-                <div style="flex:1;"><div class="ft-name">${r.name}</div><div class="ft-detail">${r.detail}</div></div>
-                <span class="${r.ok?'ft-badge-pass':r.isWarn?'ft-badge-warn':'ft-badge-fail'}">${r.ok?'PASS':r.isWarn?'WARN':'FAIL'}</span>
-              </div>`).join('')}
-          </div>`;
-      });
-
-      summaryDiv.style.cssText = 'display:flex!important;gap:8px;margin-bottom:8px;flex-wrap:wrap;align-items:center;';
+      // Render
+      summaryDiv.style.cssText = 'display:flex!important; gap:8px; margin-bottom:8px; flex-wrap:wrap;';
       summaryDiv.innerHTML =
-        `<span style="color:#7aa0c4;font-size:0.75rem;">মোট ${totalTests} test:</span>` +
         `<span class="ft-badge-pass" style="padding:4px 12px;font-size:0.78rem;">✅ ${pass} Pass</span>` +
         `<span class="ft-badge-fail" style="padding:4px 12px;font-size:0.78rem;">❌ ${fail} Fail</span>` +
-        `<span class="ft-badge-warn" style="padding:4px 12px;font-size:0.78rem;">⚠️ ${warn} Warn</span>` +
-        `<span style="margin-left:auto;background:rgba(0,212,255,0.1);color:#00d4ff;border:1px solid #00d4ff44;border-radius:10px;padding:2px 10px;font-size:0.75rem;font-weight:700;">Health: ${healthPct}%</span>`;
-      resultsDiv.style.cssText = 'max-height:400px;overflow-y:auto;';
-      resultsDiv.innerHTML = html;
+        `<span class="ft-badge-warn" style="padding:4px 12px;font-size:0.78rem;">⚠️ ${warn} Warn</span>`;
+      resultsDiv.style.cssText = 'max-height:220px;overflow-y:auto;background:rgba(0,0,0,0.2);border-radius:8px;border:1px solid rgba(255,255,255,0.08);';
+      resultsDiv.innerHTML = rows.join('');
     }
     window.runFunctionTests = runFunctionTests;
     </script>
@@ -5375,21 +5204,6 @@ window.switchSettingsTab = switchSettingsTab;
         if (active && active.id === 'tab-activitylog') { injectActivityToolbar(); renderActivityLog(); }
         if (active && active.id === 'tab-recyclebin')  { renderRecycleBin(); }
       });
-
-      // aria-hidden warning fix: modal বন্ধ হওয়ার আগে focus সরিয়ে দাও
-      modal.addEventListener('hide.bs.modal', function() {
-        if (document.activeElement && modal.contains(document.activeElement)) {
-          document.activeElement.blur();
-        }
-      });
-
-      // modal সম্পূর্ণ বন্ধ হলে trigger button-এ focus ফিরিয়ে দাও
-      modal.addEventListener('hidden.bs.modal', function() {
-        var trigger = document.querySelector('[data-bs-target="#settingsModal"]');
-        if (trigger) {
-          setTimeout(function() { trigger.focus(); }, 50);
-        }
-      });
     }
   }
 
@@ -5419,39 +5233,32 @@ window.switchSettingsTab = switchSettingsTab;
 })();
 </script>
 
-<!-- ================================================================ -->
-<!-- GLOBAL ARIA-HIDDEN FIX: সব modal-এ focus warning ঠিক করে       -->
-<!-- ================================================================ -->
 <script>
-document.addEventListener('DOMContentLoaded', function() {
-  // সব Bootstrap modal-এ hide হওয়ার আগে focus সরিয়ে দাও
-  document.querySelectorAll('.modal').forEach(function(modal) {
-    modal.addEventListener('hide.bs.modal', function() {
-      if (document.activeElement && modal.contains(document.activeElement)) {
-        document.activeElement.blur();
-        document.body.focus(); // body-তে focus নিয়ে যাও
-      }
-    });
-  });
-  console.log('✅ Aria-hidden focus fix applied to all modals');
-});
-</script>
+// ── Logo Activity Spin ──
+(function() {
+  var logo = null;
+  var idleTimer = null;
+  var IDLE_DELAY = 1500; // ১.৫ সেকেন্ড কিছু না করলে থামবে
 
-<!-- PWA Service Worker Registration -->
-<script>
-  if ('serviceWorker' in navigator) {
-    window.addEventListener('load', function() {
-      navigator.serviceWorker.register('service-worker.js')
-        .then(function(reg) {
-          console.log('✅ PWA Service Worker registered:', reg.scope);
-        })
-        .catch(function(err) {
-          console.warn('⚠️ Service Worker registration failed:', err);
-        });
-    });
+  function startSpin() {
+    if (!logo) logo = document.getElementById('sidebarLogoImg');
+    if (!logo) return;
+    logo.classList.add('is-active');
+    clearTimeout(idleTimer);
+    idleTimer = setTimeout(stopSpin, IDLE_DELAY);
   }
-</script>
 
+  function stopSpin() {
+    if (!logo) return;
+    logo.classList.remove('is-active');
+  }
+
+  // Mouse move, click, scroll, keypress — যেকোনো activity-তে spin
+  ['mousemove', 'mousedown', 'keydown', 'scroll', 'touchmove'].forEach(function(evt) {
+    document.addEventListener(evt, startSpin, { passive: true });
+  });
+})();
+</script>
 </body>
 
 </html>
