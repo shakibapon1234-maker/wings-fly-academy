@@ -2,9 +2,19 @@
 <html lang="en">
 
 <head>
-    <meta http-equiv="Cache-Control" content="no-cache, no-store, must-revalidate">
-    <meta http-equiv="Pragma" content="no-cache">
-    <meta http-equiv="Expires" content="0">
+    <!-- PWA + Mobile Fix: no-cache removed to allow offline caching -->
+    <meta charset="utf-8">
+    <!-- Mobile desktop view: minimum-scale=1 allows pinch-zoom and desktop layout -->
+    <meta name="viewport" content="width=1200, initial-scale=0.5, minimum-scale=0.1, maximum-scale=5.0, user-scalable=yes">
+
+    <!-- PWA Meta Tags -->
+    <meta name="theme-color" content="#0a0e27">
+    <meta name="mobile-web-app-capable" content="yes">
+    <meta name="apple-mobile-web-app-capable" content="yes">
+    <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
+    <meta name="apple-mobile-web-app-title" content="Wings Fly">
+    <link rel="manifest" href="manifest.json">
+    <link rel="apple-touch-icon" href="icon-192.png">
     <style>
         /* ===================================
            COMPREHENSIVE WHITE REMOVAL
@@ -263,7 +273,6 @@
     </style>
     <base target="_top">
     <meta charset="utf-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1">
     <title>Wings Fly Dashboard v3.0 - Aviation Academy Management</title>
     <meta name="description" content="Wings Fly Aviation Academy - Student and Finance Management Dashboard">
 
@@ -2634,7 +2643,7 @@
                                                     <span style="color:#00d9ff;font-size:0.85rem;font-weight:600;">প্রতি ১ ঘন্টায় auto snapshot</span>
                                                     <span class="ms-2 badge" style="background:rgba(0,255,100,0.2);color:#00ff88;font-size:0.7rem;">Last 7 রাখা হয়</span>
                                                 </div>
-                                                <button class="btn btn-sm" type="button" onclick="var result=takeSnapshot(true); setTimeout(renderSnapshotList, 200); if(result===false && typeof showErrorToast==='function') showErrorToast('❌ Snapshot সেভ হয়নি!');"
+                                                <button class="btn btn-sm" type="button" onclick="takeSnapshot(); setTimeout(renderSnapshotList, 200);"
                                                     style="background:rgba(0,217,255,0.2);color:#00d9ff;border:1px solid #00d9ff;font-size:0.75rem;">
                                                     📸 এখনই নিন
                                                 </button>
@@ -4888,7 +4897,6 @@ window.switchSettingsTab = switchSettingsTab;
   setTimeout(ensureFunctions, 2000);
 })();
 </script>
-<<<<<<< HEAD
 
 <!-- ============================================================
      WINGS FLY — ACTIVITY LOG & RECYCLE BIN FIX + REDESIGN
@@ -5404,8 +5412,22 @@ window.switchSettingsTab = switchSettingsTab;
   console.log('[WF-TabsFix] ✅ Activity Log & Recycle Bin loaded.');
 })();
 </script>
-=======
->>>>>>> 66f78e97cc99c49dac158bb57b6ea482c9c88e66
+
+<!-- PWA Service Worker Registration -->
+<script>
+  if ('serviceWorker' in navigator) {
+    window.addEventListener('load', function() {
+      navigator.serviceWorker.register('service-worker.js')
+        .then(function(reg) {
+          console.log('✅ PWA Service Worker registered:', reg.scope);
+        })
+        .catch(function(err) {
+          console.warn('⚠️ Service Worker registration failed:', err);
+        });
+    });
+  }
+</script>
+
 </body>
 
 </html>
