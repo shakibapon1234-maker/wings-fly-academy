@@ -69,6 +69,8 @@ function logActivity(type, action, description, data = null) {
     }
     
     localStorage.setItem('wingsfly_data', JSON.stringify(window.globalData));
+    // ✅ FIX: Activity backup রাখো যাতে cloud pull এ হারিয়ে না যায়
+    localStorage.setItem('wingsfly_activity_backup', JSON.stringify(window.globalData.activityHistory));
   } catch(e) {
     console.warn('History log error:', e);
   }
@@ -94,7 +96,7 @@ function moveToTrash(type, item) {
     if (window.globalData.deletedItems.length > 200) {
       window.globalData.deletedItems = window.globalData.deletedItems.slice(0, 200);
     }
-    
+
     // ✅ FIX: existing backup এর সাথে merge করো — কোনো item যেন না হারায়
     try {
       const bkRaw = localStorage.getItem('wingsfly_deleted_backup');
@@ -110,8 +112,8 @@ function moveToTrash(type, item) {
       merged.sort((a, b) => new Date(b.deletedAt || 0) - new Date(a.deletedAt || 0));
       if (merged.length > 200) merged.length = 200;
       window.globalData.deletedItems = merged;
-    } catch(mergeErr) { /* ignore merge errors */ }
-
+    } catch(mergeErr) { /* ignore */ }
+    
     localStorage.setItem('wingsfly_data', JSON.stringify(window.globalData));
     // FIX: cloud pull এ deletedItems হারিয়ে না যায় তাই backup রাখো
     localStorage.setItem('wingsfly_deleted_backup', JSON.stringify(window.globalData.deletedItems));
@@ -277,7 +279,7 @@ function permanentDelete(trashId) {
   if (idx === -1) return;
   
   window.globalData.deletedItems.splice(idx, 1);
-  // ✅ FIX: backup sync করো
+  // ✅ FIX: backup sync
   localStorage.setItem('wingsfly_deleted_backup', JSON.stringify(window.globalData.deletedItems));
   saveToStorage(true);
   loadDeletedItems();
@@ -289,7 +291,7 @@ window.permanentDelete = permanentDelete;
 function emptyTrash() {
   if (!confirm('সব Deleted Items চিরতরে মুছে ফেলবেন?')) return;
   window.globalData.deletedItems = [];
-  // ✅ FIX: backup sync করো
+  // ✅ FIX: backup sync
   localStorage.setItem('wingsfly_deleted_backup', JSON.stringify([]));
   saveToStorage(true);
   loadDeletedItems();
@@ -4002,6 +4004,11 @@ function deleteTransaction(id) {
     renderAccountDetails && renderAccountDetails();
     return;
   }
+
+  // ✅ FIX: Recycle Bin ও Activity Log এ পাঠাও
+  if (typeof moveToTrash === 'function') moveToTrash('finance', txToDelete);
+  if (typeof logActivity === 'function') logActivity('finance', 'DELETE',
+    'Transaction deleted: ' + (txToDelete.type || '') + ' | ' + (txToDelete.category || txToDelete.description || '') + ' - ৳' + (txToDelete.amount || 0), txToDelete);
 
   if (typeof updateAccountBalance === "function") {
     updateAccountBalance(txToDelete.method, txToDelete.amount, txToDelete.type, false);
@@ -9180,9 +9187,9 @@ function renderRecycleBin() {
     try { bkData = bk ? JSON.parse(bk) : []; } catch(e) { bkData = []; }
     var cur = window.globalData.deletedItems || [];
 
-    // ID-based smart merge: দুটো array এর সব unique item রাখো
-    var merged = [];
+    // ✅ FIX: ID-based smart merge — দুটো array এর সব unique item রাখো
     var seenIds = {};
+    var merged = [];
     var allItems = cur.concat(bkData);
     for (var i = 0; i < allItems.length; i++) {
       var itm = allItems[i];
@@ -9191,13 +9198,10 @@ function renderRecycleBin() {
         merged.push(itm);
       }
     }
-    // deletedAt অনুযায়ী sort (newest first)
     merged.sort(function(a, b) {
       return new Date(b.deletedAt || 0) - new Date(a.deletedAt || 0);
     });
-
     window.globalData.deletedItems = merged;
-    // backup আপডেট করো
     if (merged.length > 0) {
       localStorage.setItem('wingsfly_deleted_backup', JSON.stringify(merged));
     }
@@ -9280,7 +9284,7 @@ window.loadDeletedItems = function() {
   const c1 = document.getElementById('deletedItemsList');
   const c2 = document.getElementById('recycleBinContainer');
 
-  // ✅ FIX: backup থেকে merge করো — cloud pull এ deletedItems হারিয়ে যেতে পারে
+  // ✅ FIX: render করার আগে backup থেকে merge করো
   try {
     if (!window.globalData) window.globalData = {};
     const bkRaw = localStorage.getItem('wingsfly_deleted_backup');
