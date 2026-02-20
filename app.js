@@ -9577,11 +9577,66 @@ function generateCertificate() {
   var course = (student.course || 'PROFESSIONAL VISA PROCESSING & AIR TICKETING RESERVATION COURSE (GDS)').toUpperCase();
   var today = new Date().toLocaleDateString('en-GB', {day:'2-digit', month:'long', year:'numeric'});
 
-  var css = '*{margin:0;padding:0;box-sizing:border-box;}html,body{width:100%;height:100%;background:#fff;}body{display:flex;justify-content:center;align-items:center;min-height:100vh;}.cert-wrap{width:1122px;height:794px;background:#f0f4f8;position:relative;overflow:hidden;}.bg-navy{position:absolute;top:0;left:0;width:480px;height:260px;background:linear-gradient(140deg,#0d1f45 0%,#1a3060 55%,#1e4080 100%);clip-path:polygon(0 0,100% 0,75% 100%,0 100%);}.bg-teal{position:absolute;top:0;left:0;width:480px;height:260px;background:linear-gradient(140deg,transparent 40%,#0aa8c0 40%,#0bbdd4 55%,transparent 56%);clip-path:polygon(0 0,100% 0,75% 100%,0 100%);opacity:0.6;}.bg-tr{position:absolute;top:0;right:0;width:300px;height:200px;background:linear-gradient(210deg,#0bbdd4 0%,#0aa8c0 40%,transparent 75%);border-radius:0 0 0 100%;}.bg-tr2{position:absolute;top:0;right:0;width:220px;height:140px;background:linear-gradient(225deg,#0d1f45 0%,#1a3060 60%,transparent 100%);border-radius:0 0 0 80%;}.bg-bl{position:absolute;bottom:0;left:0;width:340px;height:160px;background:linear-gradient(40deg,#0bbdd4 0%,#0aa8c0 45%,transparent 80%);border-radius:0 80% 0 0;}.bg-bl2{position:absolute;bottom:0;left:0;width:220px;height:110px;background:linear-gradient(45deg,#0d1f45 0%,#1a3060 60%,transparent 100%);border-radius:0 100% 0 0;}.bg-br{position:absolute;bottom:0;right:0;width:280px;height:140px;background:linear-gradient(315deg,#0d1f45 0%,#1a3060 55%,transparent 100%);border-radius:80% 0 0 0;}.gold-line-top{position:absolute;top:72px;left:0;right:0;height:1.5px;background:linear-gradient(90deg,transparent,#c9a84c 20%,#e8c96e 50%,#c9a84c 80%,transparent);z-index:6;}.gold-line-bot{position:absolute;bottom:72px;left:0;right:0;height:1.5px;background:linear-gradient(90deg,transparent,#c9a84c 20%,#e8c96e 50%,#c9a84c 80%,transparent);z-index:6;}.watermark{position:absolute;top:50%;left:50%;transform:translate(-50%,-50%);font-size:140px;font-weight:900;color:rgba(10,168,192,0.06);font-family:Georgia,serif;letter-spacing:10px;white-space:nowrap;z-index:1;}.logo-wrap{position:absolute;top:10px;left:12px;z-index:10;padding:3px;background:linear-gradient(135deg,#ff6b6b,#ffd700,#00d4ff,#c9a84c,#ff6b6b);border-radius:8px;}.logo{width:180px;display:block;border-radius:5px;background:white;padding:3px;}.medal{position:absolute;top:6px;right:14px;width:130px;z-index:10;}.content{position:absolute;top:0;left:0;right:0;bottom:0;display:flex;flex-direction:column;align-items:center;justify-content:center;padding:10px 90px 80px 90px;text-align:center;z-index:5;}.cert-title{font-family:Georgia,serif;font-size:62px;font-weight:900;color:#0d1f45;letter-spacing:8px;text-transform:uppercase;line-height:1;}.cert-sub{font-family:Georgia,serif;font-size:22px;font-style:italic;color:#8a7040;letter-spacing:3px;margin-bottom:6px;}.gold-ornament{color:#c9a84c;font-size:18px;letter-spacing:6px;margin:2px 0 6px 0;}.ptext{font-family:Arial,sans-serif;font-size:12.5px;color:#444;font-weight:600;margin:5px 0;letter-spacing:1px;text-transform:uppercase;}.sname{font-family:Georgia,serif;font-size:44px;font-weight:900;color:#0d1f45;letter-spacing:4px;text-transform:uppercase;margin:6px 0 8px 0;}.bid{font-family:Arial,sans-serif;font-size:17px;font-weight:700;color:#1a3060;letter-spacing:3px;text-transform:uppercase;margin:4px 0;white-space:nowrap;}.div2{width:65%;height:1px;background:linear-gradient(90deg,transparent,#aaa,transparent);margin:8px auto;}.ctext{font-family:Arial,sans-serif;font-size:11.5px;color:#444;letter-spacing:1.5px;text-transform:uppercase;line-height:1.8;font-weight:600;margin:2px 0;max-width:680px;}.idate{font-family:Georgia,serif;font-size:13px;color:#8a7040;font-style:italic;margin-top:6px;}.sig-row{position:absolute;bottom:10px;left:0;right:0;display:flex;justify-content:space-between;align-items:flex-end;padding:0 65px;z-index:10;}.sig-block{display:flex;flex-direction:column;align-items:center;width:220px;}.sig-role{font-family:Arial,sans-serif;font-size:10.5px;font-weight:700;text-transform:uppercase;letter-spacing:1.5px;color:#0d1f45;margin-top:4px;}.sig-name{font-family:Georgia,serif;font-size:14px;font-style:italic;font-weight:700;color:#8a5a00;}@media print{html,body{margin:0;}@page{size:A4 landscape;margin:0;}}';
+  var css = '*{margin:0;padding:0;box-sizing:border-box;}' +
+    'html,body{width:100%;min-height:100vh;background:#1a1a2e;}' +
+    /* Print bar at top - hidden when printing */
+    '.print-bar{position:fixed;top:0;left:0;right:0;z-index:9999;background:linear-gradient(135deg,#0d1f45,#1a3060);padding:12px 30px;display:flex;align-items:center;justify-content:space-between;box-shadow:0 2px 10px rgba(0,0,0,0.5);}' +
+    '.print-bar span{color:#e8c96e;font-family:Arial,sans-serif;font-size:14px;font-weight:700;letter-spacing:1px;}' +
+    '.print-btn{background:linear-gradient(135deg,#e8c96e,#c9a84c);color:#0d1f45;border:none;padding:10px 30px;border-radius:25px;font-size:15px;font-weight:800;cursor:pointer;letter-spacing:1px;transition:all 0.2s;}' +
+    '.print-btn:hover{transform:scale(1.05);box-shadow:0 4px 15px rgba(232,201,110,0.4);}' +
+    /* Certificate wrapper - centered below print bar */
+    'body{padding-top:65px;display:flex;justify-content:center;align-items:flex-start;}' +
+    '.cert-outer{transform-origin:top center;margin:20px auto 40px auto;}' +
+    '.cert-wrap{width:1122px;height:794px;background:#f0f4f8;position:relative;overflow:hidden;print-color-adjust:exact;-webkit-print-color-adjust:exact;}' +
+    /* All background shapes - force color in print */
+    '.bg-navy{position:absolute;top:0;left:0;width:480px;height:260px;background:linear-gradient(140deg,#0d1f45 0%,#1a3060 55%,#1e4080 100%)!important;clip-path:polygon(0 0,100% 0,75% 100%,0 100%);print-color-adjust:exact;-webkit-print-color-adjust:exact;}' +
+    '.bg-teal{position:absolute;top:0;left:0;width:480px;height:260px;background:linear-gradient(140deg,transparent 40%,#0aa8c0 40%,#0bbdd4 55%,transparent 56%)!important;clip-path:polygon(0 0,100% 0,75% 100%,0 100%);opacity:0.6;print-color-adjust:exact;-webkit-print-color-adjust:exact;}' +
+    '.bg-tr{position:absolute;top:0;right:0;width:300px;height:200px;background:linear-gradient(210deg,#0bbdd4 0%,#0aa8c0 40%,transparent 75%)!important;border-radius:0 0 0 100%;print-color-adjust:exact;-webkit-print-color-adjust:exact;}' +
+    '.bg-tr2{position:absolute;top:0;right:0;width:220px;height:140px;background:linear-gradient(225deg,#0d1f45 0%,#1a3060 60%,transparent 100%)!important;border-radius:0 0 0 80%;print-color-adjust:exact;-webkit-print-color-adjust:exact;}' +
+    '.bg-bl{position:absolute;bottom:0;left:0;width:340px;height:160px;background:linear-gradient(40deg,#0bbdd4 0%,#0aa8c0 45%,transparent 80%)!important;border-radius:0 80% 0 0;print-color-adjust:exact;-webkit-print-color-adjust:exact;}' +
+    '.bg-bl2{position:absolute;bottom:0;left:0;width:220px;height:110px;background:linear-gradient(45deg,#0d1f45 0%,#1a3060 60%,transparent 100%)!important;border-radius:0 100% 0 0;print-color-adjust:exact;-webkit-print-color-adjust:exact;}' +
+    '.bg-br{position:absolute;bottom:0;right:0;width:280px;height:140px;background:linear-gradient(315deg,#0d1f45 0%,#1a3060 55%,transparent 100%)!important;border-radius:80% 0 0 0;print-color-adjust:exact;-webkit-print-color-adjust:exact;}' +
+    '.gold-line-top{position:absolute;top:72px;left:0;right:0;height:1.5px;background:linear-gradient(90deg,transparent,#c9a84c 20%,#e8c96e 50%,#c9a84c 80%,transparent)!important;z-index:6;print-color-adjust:exact;-webkit-print-color-adjust:exact;}' +
+    '.gold-line-bot{position:absolute;bottom:72px;left:0;right:0;height:1.5px;background:linear-gradient(90deg,transparent,#c9a84c 20%,#e8c96e 50%,#c9a84c 80%,transparent)!important;z-index:6;print-color-adjust:exact;-webkit-print-color-adjust:exact;}' +
+    '.watermark{position:absolute;top:50%;left:50%;transform:translate(-50%,-50%);font-size:140px;font-weight:900;color:rgba(10,168,192,0.06);font-family:Georgia,serif;letter-spacing:10px;white-space:nowrap;z-index:1;}' +
+    '.logo-wrap{position:absolute;top:10px;left:12px;z-index:10;padding:3px;background:linear-gradient(135deg,#ff6b6b,#ffd700,#00d4ff,#c9a84c,#ff6b6b)!important;border-radius:8px;print-color-adjust:exact;-webkit-print-color-adjust:exact;}' +
+    '.logo{width:180px;display:block;border-radius:5px;background:white;padding:3px;}' +
+    '.medal{position:absolute;top:6px;right:14px;width:130px;z-index:10;}' +
+    '.content{position:absolute;top:0;left:0;right:0;bottom:0;display:flex;flex-direction:column;align-items:center;justify-content:center;padding:10px 90px 80px 90px;text-align:center;z-index:5;}' +
+    '.cert-title{font-family:Georgia,serif;font-size:62px;font-weight:900;color:#0d1f45!important;letter-spacing:8px;text-transform:uppercase;line-height:1;}' +
+    '.cert-sub{font-family:Georgia,serif;font-size:22px;font-style:italic;color:#8a7040!important;letter-spacing:3px;margin-bottom:6px;}' +
+    '.gold-ornament{color:#c9a84c!important;font-size:18px;letter-spacing:6px;margin:2px 0 6px 0;}' +
+    '.ptext{font-family:Arial,sans-serif;font-size:12.5px;color:#444!important;font-weight:600;margin:5px 0;letter-spacing:1px;text-transform:uppercase;}' +
+    '.sname{font-family:Georgia,serif;font-size:44px;font-weight:900;color:#0d1f45!important;letter-spacing:4px;text-transform:uppercase;margin:6px 0 8px 0;}' +
+    '.bid{font-family:Arial,sans-serif;font-size:17px;font-weight:700;color:#1a3060!important;letter-spacing:3px;text-transform:uppercase;margin:4px 0;white-space:nowrap;}' +
+    '.div2{width:65%;height:1px;background:linear-gradient(90deg,transparent,#aaa,transparent)!important;margin:8px auto;print-color-adjust:exact;-webkit-print-color-adjust:exact;}' +
+    '.ctext{font-family:Arial,sans-serif;font-size:11.5px;color:#444!important;letter-spacing:1.5px;text-transform:uppercase;line-height:1.8;font-weight:600;margin:2px 0;max-width:680px;}' +
+    '.idate{font-family:Georgia,serif;font-size:13px;color:#8a7040!important;font-style:italic;margin-top:6px;}' +
+    '.sig-row{position:absolute;bottom:10px;left:0;right:0;display:flex;justify-content:space-between;align-items:flex-end;padding:0 65px;z-index:10;}' +
+    '.sig-block{display:flex;flex-direction:column;align-items:center;width:220px;}' +
+    '.sig-role{font-family:Arial,sans-serif;font-size:10.5px;font-weight:700;text-transform:uppercase;letter-spacing:1.5px;color:#0d1f45!important;margin-top:4px;}' +
+    '.sig-name{font-family:Georgia,serif;font-size:14px;font-style:italic;font-weight:700;color:#8a5a00!important;}' +
+    /* Print styles */
+    '@media print{' +
+    '.print-bar{display:none!important;}' +
+    'html,body{background:#fff!important;padding-top:0!important;margin:0!important;}' +
+    'body{display:block!important;}' +
+    '.cert-outer{margin:0!important;transform:none!important;}' +
+    '.cert-wrap{print-color-adjust:exact!important;-webkit-print-color-adjust:exact!important;}' +
+    '*{print-color-adjust:exact!important;-webkit-print-color-adjust:exact!important;}' +
+    '@page{size:A4 landscape;margin:0;}' +
+    '}';
 
   var medalSVG = '<svg class="medal" viewBox="0 0 130 165" xmlns="http://www.w3.org/2000/svg"><defs><linearGradient id="rR" x1="0%" y1="0%" x2="100%" y2="100%"><stop offset="0%" stop-color="#ff6b6b"/><stop offset="25%" stop-color="#ffd700"/><stop offset="50%" stop-color="#00d4ff"/><stop offset="75%" stop-color="#c9a84c"/><stop offset="100%" stop-color="#ff6b6b"/></linearGradient><linearGradient id="rG" x1="0%" y1="0%" x2="100%" y2="100%"><stop offset="0%" stop-color="#e8c96e"/><stop offset="50%" stop-color="#fff0a0"/><stop offset="100%" stop-color="#c9a84c"/></linearGradient><radialGradient id="g1" cx="35%" cy="30%"><stop offset="0%" stop-color="#ffe87a"/><stop offset="55%" stop-color="#ffd700"/><stop offset="100%" stop-color="#996600"/></radialGradient><radialGradient id="g2" cx="35%" cy="30%"><stop offset="0%" stop-color="#fff5b0"/><stop offset="100%" stop-color="#cc8800"/></radialGradient><radialGradient id="g3" cx="35%" cy="30%"><stop offset="0%" stop-color="#ffe040"/><stop offset="100%" stop-color="#aa6600"/></radialGradient></defs><polygon points="42,82 54,82 46,158 32,158" fill="#1565c0"/><polygon points="42,82 54,82 54,108 42,132" fill="#1976d2"/><polygon points="76,82 88,82 98,158 84,158" fill="#1565c0"/><polygon points="76,82 88,82 76,108 88,132" fill="#1976d2"/><circle cx="65" cy="58" r="53" fill="none" stroke="url(#rR)" stroke-width="4.5"/><circle cx="65" cy="58" r="47" fill="none" stroke="url(#rG)" stroke-width="1.5" stroke-dasharray="5 3"/><circle cx="65" cy="58" r="44" fill="url(#g1)"/><circle cx="65" cy="58" r="38" fill="url(#g2)" stroke="#b8860b" stroke-width="1.2"/><circle cx="65" cy="58" r="32" fill="url(#g3)"/><polygon points="65,26 71.5,44 92,44 76,56 82.5,76 65,64 47.5,76 54,56 38,44 58.5,44" fill="#fff8dc" stroke="#cc9900" stroke-width="0.8"/></svg>';
 
   var html = '<!DOCTYPE html><html><head><meta charset="UTF-8"><title>Certificate - ' + student.name + '</title><style>' + css + '</style></head><body>' +
+    /* Print bar - only visible on screen, hidden when printing */
+    '<div class="print-bar">' +
+    '<span>🎓 Wings Fly Academy — Certificate Preview</span>' +
+    '<button class="print-btn" onclick="doPrint()">🖨️ Print / Save as PDF</button>' +
+    '</div>' +
+    /* Certificate - wrapped in cert-outer for screen scaling */
+    '<div class="cert-outer">' +
     '<div class="cert-wrap">' +
     '<div class="bg-navy"></div><div class="bg-teal"></div><div class="bg-tr"></div><div class="bg-tr2"></div><div class="bg-bl"></div><div class="bg-bl2"></div><div class="bg-br"></div>' +
     '<div class="gold-line-top"></div><div class="gold-line-bot"></div>' +
@@ -9602,12 +9657,31 @@ function generateCertificate() {
     '<div class="sig-row">' +
     '<div class="sig-block"><canvas id="certCanvasShakib"></canvas><div class="sig-role">Course Co-ordinator</div><div class="sig-name">Shakib Ibna Mustafa</div></div>' +
     '<div class="sig-block"><canvas id="certCanvasFerdous"></canvas><div class="sig-role">Chairman</div><div class="sig-name">Ferdous Ahmed</div></div>' +
-    '</div></div>' +
+    '</div>' +
+    '</div>' + /* end cert-wrap */
+    '</div>' + /* end cert-outer */
     '<script>' +
+    /* Signature background removal */
     'function removeBg(src,id,h){var i=new Image();i.onload=function(){var c=document.getElementById(id);var r=i.naturalWidth/i.naturalHeight;c.width=Math.round(h*r);c.height=h;var x=c.getContext("2d");x.drawImage(i,0,0,c.width,c.height);var d=x.getImageData(0,0,c.width,c.height);for(var j=0;j<d.data.length;j+=4){if(d.data[j]>210&&d.data[j+1]>210&&d.data[j+2]>210)d.data[j+3]=0;}x.putImageData(d,0,0);};i.src=src;}' +
     'removeBg("' + SIGN_SHAKIB + '","certCanvasShakib",54);' +
     'removeBg("' + SIGN_FERDOUS + '","certCanvasFerdous",72);' +
-    'setTimeout(function(){window.print();setTimeout(function(){window.close();},1500);},800);' +
+    /* Manual print function - waits for signatures to load */
+    'function doPrint(){' +
+    '  setTimeout(function(){window.print();},400);' +
+    '}' +
+    /* Scale certificate to fit screen on load */
+    'function scaleCert(){' +
+    '  var outer=document.querySelector(".cert-outer");' +
+    '  var cert=document.querySelector(".cert-wrap");' +
+    '  if(!outer||!cert)return;' +
+    '  var avail=window.innerWidth-40;' +
+    '  var scale=Math.min(1,avail/1122);' +
+    '  cert.style.transform="scale("+scale+")";' +
+    '  cert.style.transformOrigin="top center";' +
+    '  outer.style.height=(794*scale+20)+"px";' +
+    '}' +
+    'window.addEventListener("resize",scaleCert);' +
+    'scaleCert();' +
     '<\/script></body></html>';
 
   var pw = window.open('', '_blank', 'width=1280,height=860');
