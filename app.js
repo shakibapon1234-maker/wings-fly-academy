@@ -731,7 +731,7 @@ window.globalData = {
   employeeRoles: ['Instructor', 'Admin', 'Staff', 'Manager']
 };
 
-let currentStudentForProfile = null;
+window.currentStudentForProfile = null;
 
 // Demo Login Credentials
 const DEMO_CREDENTIALS = {
@@ -4996,6 +4996,7 @@ function openStudentProfile(rowIndex) {
   }
   modal.show();
   currentStudentForProfile = student;
+  window.currentStudentForProfile = student;
   console.log('✅ Student profile opened successfully');
 }
 
