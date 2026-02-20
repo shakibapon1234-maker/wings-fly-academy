@@ -2634,7 +2634,7 @@
                                                     <span style="color:#00d9ff;font-size:0.85rem;font-weight:600;">প্রতি ১ ঘন্টায় auto snapshot</span>
                                                     <span class="ms-2 badge" style="background:rgba(0,255,100,0.2);color:#00ff88;font-size:0.7rem;">Last 7 রাখা হয়</span>
                                                 </div>
-                                                <button class="btn btn-sm" type="button" onclick="takeSnapshot(); setTimeout(renderSnapshotList, 200);"
+                                                <button class="btn btn-sm" type="button" onclick="var result=takeSnapshot(true); setTimeout(renderSnapshotList, 200); if(result===false && typeof showErrorToast==='function') showErrorToast('❌ Snapshot সেভ হয়নি!');"
                                                     style="background:rgba(0,217,255,0.2);color:#00d9ff;border:1px solid #00d9ff;font-size:0.75rem;">
                                                     📸 এখনই নিন
                                                 </button>

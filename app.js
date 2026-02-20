@@ -9329,7 +9329,7 @@ var SNAPSHOT_KEY = 'wingsfly_snapshots';
 var MAX_SNAPSHOTS = 7;
 var SNAPSHOT_INTERVAL_MS = 60 * 60 * 1000;
 
-function takeSnapshot() {
+function takeSnapshot(forceManual) {
   try {
     var _KEY = 'wingsfly_snapshots';
     var _MAX = 7;
@@ -9337,13 +9337,23 @@ function takeSnapshot() {
     var data = localStorage.getItem('wingsfly_data');
     if (!data && window.globalData) {
       data = JSON.stringify(window.globalData);
-      localStorage.setItem('wingsfly_data', data);
+      try { localStorage.setItem('wingsfly_data', data); } catch(e) {}
     }
-    if (!data) { console.warn('Snapshot: no data found'); return; }
+    if (!data) { console.warn('Snapshot: no data found'); return false; }
 
     var existingRaw = localStorage.getItem(_KEY);
     var snapshots = [];
     try { snapshots = JSON.parse(existingRaw) || []; } catch(e) { snapshots = []; }
+
+    // Duplicate prevention: যদি ৫ মিনিটের মধ্যে snapshot নেওয়া হয়েছে এবং manual না হলে skip করো
+    if (!forceManual && snapshots.length > 0) {
+      var lastTime = snapshots[0].id;
+      if ((Date.now() - lastTime) < 5 * 60 * 1000) {
+        console.log('📸 Snapshot skipped (too recent)');
+        if (typeof renderSnapshotList === 'function') renderSnapshotList();
+        return true;
+      }
+    }
 
     var newSnap = {
       id: Date.now(),
@@ -9358,12 +9368,33 @@ function takeSnapshot() {
     snapshots.unshift(newSnap);
     if (snapshots.length > _MAX) { snapshots.splice(_MAX); }
 
-    localStorage.setItem(_KEY, JSON.stringify(snapshots));
-    console.log('📸 Snapshot taken:', newSnap.label);
+    // LocalStorage quota সমস্যা handle করো
+    var saved = false;
+    while (snapshots.length > 0 && !saved) {
+      try {
+        localStorage.setItem(_KEY, JSON.stringify(snapshots));
+        saved = true;
+        console.log('📸 Snapshot taken:', newSnap.label, '| Total:', snapshots.length);
+      } catch(quotaErr) {
+        // Space কম হলে পুরনো snapshot বাদ দাও
+        snapshots.pop();
+        console.warn('📸 Storage full, removing oldest snapshot. Remaining:', snapshots.length);
+      }
+    }
+
+    if (!saved) {
+      console.error('📸 Snapshot FAILED: localStorage সম্পূর্ণ পূর্ণ!');
+      if (typeof showErrorToast === 'function') {
+        showErrorToast('❌ Snapshot সেভ হয়নি! Browser storage পূর্ণ। পুরনো data মুছুন।');
+      }
+      return false;
+    }
 
     if (typeof renderSnapshotList === 'function') renderSnapshotList();
+    return true;
   } catch(e) {
     console.warn('Snapshot error:', e);
+    return false;
   }
 }
 
@@ -9443,13 +9474,21 @@ window.renderSnapshotList = renderSnapshotList;
 document.addEventListener('DOMContentLoaded', function() {
   var ONE_HOUR = 60 * 60 * 1000;
 
-  // ৩ সেকেন্ড পর প্রথম snapshot
+  // ৩ সেকেন্ড পর প্রথম snapshot (শুধু যদি শেষ snapshot ৫ মিনিটের বেশি আগে হয়)
   setTimeout(function() {
     if (window.globalData) {
       if (!window.globalData.deletedItems) window.globalData.deletedItems = [];
       if (!window.globalData.activityHistory) window.globalData.activityHistory = [];
     }
-    takeSnapshot();
+    var existing = [];
+    try { existing = JSON.parse(localStorage.getItem('wingsfly_snapshots')) || []; } catch(e) {}
+    var lastTime = existing.length > 0 ? existing[0].id : 0;
+    if ((Date.now() - lastTime) > 5 * 60 * 1000) {
+      takeSnapshot(); // page load-এ শুধু নতুন snapshot নাও যদি পুরনোটা ৫+ মিনিট আগের
+    } else {
+      console.log('📸 Recent snapshot exists, skipping page-load snapshot');
+      if (typeof renderSnapshotList === 'function') renderSnapshotList();
+    }
   }, 3000);
 
   // প্রতি ৫ মিনিটে check, ১ ঘন্টা পার হলে নতুন নাও
