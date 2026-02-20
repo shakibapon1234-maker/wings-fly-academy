@@ -4990,6 +4990,10 @@ function openStudentProfile(rowIndex) {
   `;
 
   console.log('🎉 Opening modal...');
+  // Blur any focused element before showing modal to prevent aria-hidden warning
+  if (document.activeElement && document.activeElement !== document.body) {
+    document.activeElement.blur();
+  }
   modal.show();
   currentStudentForProfile = student;
   console.log('✅ Student profile opened successfully');

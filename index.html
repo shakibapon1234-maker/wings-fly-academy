@@ -3405,14 +3405,14 @@
     <!-- Batch Report Modal is defined above -->
 
     <!-- Student Profile Modal -->
-    <div class="modal fade" id="studentProfileModal" tabindex="-1">
+    <div class="modal fade" id="studentProfileModal" tabindex="-1" aria-labelledby="studentProfileModalLabel" aria-modal="true" role="dialog">
         <div class="modal-dialog modal-xl modal-dialog-centered">
             <div class="modal-content custom-modal">
                 <div class="modal-header border-0 pb-0">
-                    <h5 class="modal-title fw-bold">
+                    <h5 class="modal-title fw-bold" id="studentProfileModalLabel">
                         <span class="me-2 header-icon-circle bg-info-light">👤</span>Student Profile
                     </h5>
-                    <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
+                    <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
                 </div>
                 <div class="modal-body p-4" id="studentProfileContent">
                     <!-- Populated dynamically -->
