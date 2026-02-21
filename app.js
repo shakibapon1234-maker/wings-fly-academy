@@ -1444,6 +1444,7 @@ function switchTab(tab, refreshStats = true) {
     if (typeof renderCashBalance === 'function') renderCashBalance();
     if (typeof renderMobileBankingList === 'function') renderMobileBankingList();
     if (typeof updateGrandTotal === 'function') updateGrandTotal();
+    if (typeof populateAccountDropdown === 'function') populateAccountDropdown(); // ← Search dropdown populate
   }
 
   if (refreshStats) {
@@ -5926,7 +5927,6 @@ function generateStudentId(batchName) {
         <tr style="height:38px;">
           <td style="border:1px solid #ccc;text-align:center;font-size:12px;color:#555;">${i+1}</td>
           <td style="border:1px solid #ccc;padding:4px 10px;font-weight:600;">${s.name}</td>
-          <td style="border:1px solid #ccc;padding:4px 8px;font-size:11px;color:#1a4d6e;">${s.course||'-'}</td>
           <td style="border:1px solid #ccc;text-align:center;font-size:11px;color:#2c7da0;">${s.studentId||''}</td>
           <td style="border:1px solid #ccc;"></td>
         </tr>`).join('');
@@ -5936,9 +5936,8 @@ function generateStudentId(batchName) {
             <tr style="background:#1a4d6e;">
               <th style="border:1px solid #ccc;color:#fff;padding:8px;width:40px;text-align:center;">#</th>
               <th style="border:1px solid #ccc;color:#fff;padding:8px;text-align:left;">Student Name</th>
-              <th style="border:1px solid #ccc;color:#fff;padding:8px;text-align:left;min-width:130px;">Course</th>
               <th style="border:1px solid #ccc;color:#fff;padding:8px;text-align:center;width:90px;">ID</th>
-              <th style="border:1px solid #ccc;color:#fff;padding:8px;text-align:center;min-width:180px;">Signature</th>
+              <th style="border:1px solid #ccc;color:#fff;padding:8px;text-align:center;min-width:200px;">Signature</th>
             </tr>
           </thead>
           <tbody>${rows}</tbody>
@@ -5952,15 +5951,13 @@ function generateStudentId(batchName) {
           `<td style="border:1px solid #dde;height:28px;"></td>`).join('');
         return `<tr><td style="border:1px solid #bcd;text-align:center;font-size:11px;color:#555;">${i+1}</td>
           <td style="border:1px solid #bcd;padding:3px 8px;font-weight:600;font-size:12px;">${s.name}</td>
-          <td style="border:1px solid #bcd;padding:3px 6px;font-size:11px;color:#1a4d6e;">${s.course||'-'}</td>
           ${cells}</tr>`;
       }).join('');
       tableContent = `
         <table style="width:100%;border-collapse:collapse;font-size:11px;">
           <thead>
             <tr><th style="border:1px solid #bcd;background:#1a4d6e;color:#fff;width:35px;text-align:center;">#</th>
-            <th style="border:1px solid #bcd;background:#1a4d6e;color:#fff;text-align:left;padding:6px;min-width:150px;">Name</th>
-            <th style="border:1px solid #bcd;background:#1a4d6e;color:#fff;text-align:left;padding:6px;min-width:120px;">Course</th>
+            <th style="border:1px solid #bcd;background:#1a4d6e;color:#fff;text-align:left;padding:6px;min-width:160px;">Name</th>
             ${colH}</tr>
           </thead>
           <tbody>${rows}</tbody>
@@ -5975,7 +5972,6 @@ function generateStudentId(batchName) {
         return `<tr>
           <td style="border:1px solid #000;text-align:center;font-size:${isPortrait ? 10 : 12}px;">${i+1}</td>
           <td style="border:1px solid #000;padding:3px 8px;font-weight:600;font-size:${isPortrait ? 11 : 13}px;font-style:italic;color:#1a4d6e;">${s.name}</td>
-          <td style="border:1px solid #000;padding:3px 6px;font-size:${isPortrait ? 9 : 11}px;color:#2c7da0;">${s.course||'-'}</td>
           ${cells}
         </tr>`;
       }).join('');
@@ -5985,7 +5981,6 @@ function generateStudentId(batchName) {
             <tr>
               <th style="border:1px solid #000;background:#f0f8ff;width:40px;text-align:center;font-size:${isPortrait ? 9 : 11}px;color:#1a4d6e;">SL</th>
               <th style="border:1px solid #000;background:#f0f8ff;text-align:left;padding:5px 8px;font-size:${isPortrait ? 9 : 11}px;color:#1a4d6e;">Student Name</th>
-              <th style="border:1px solid #000;background:#f0f8ff;text-align:left;padding:5px 8px;font-size:${isPortrait ? 9 : 11}px;color:#1a4d6e;min-width:${isPortrait ? 90 : 120}px;">Course</th>
               ${colH}
             </tr>
           </thead>
@@ -7988,6 +7983,12 @@ window.showAllAccountsSearch = showAllAccountsSearch;
 
 function performUnifiedSearch() {
   console.log('🔍 performUnifiedSearch called');
+
+  // Safety: dropdown populate না হলে এখনই করো
+  const dropdown = document.getElementById('unifiedAccountSelect');
+  if (dropdown && dropdown.options.length <= 1) {
+    if (typeof populateAccountDropdown === 'function') populateAccountDropdown();
+  }
 
   const selectValue = document.getElementById('unifiedAccountSelect').value;
   const dateFrom = document.getElementById('unifiedDateFrom').value;
