@@ -1249,6 +1249,9 @@ function showDashboard(username) {
   const userEl = document.getElementById('sidebarUser') || document.getElementById('currentUser');
   if (userEl) userEl.innerText = username;
 
+  // ✅ FIX: নতুন login-এ সবসময় dashboard এ যাবে — আগের tab restore হবে না
+  localStorage.setItem('wingsfly_active_tab', 'dashboard');
+
   // ✅ FIX: নতুন PC/login-এ cloud থেকে latest data pull করে তারপর dashboard render করো
   // এতে করে পুরানো local data দিয়ে dashboard দেখানো বন্ধ হবে
   if (typeof window.loadFromCloud === 'function') {
@@ -8983,12 +8986,38 @@ function initNoticeBoard() {
 
 function getActiveNotice() {
   try {
+    // ✅ FIX: localStorage ও globalData দুটো জায়গা থেকে check করো
+    // যদি localStorage এ না থাকে কিন্তু globalData.settings এ থাকে (cloud pull এর পর)
+    // তাহলে সেখান থেকে restore করো
+    let notice = null;
+
+    // 1. localStorage থেকে চেষ্টা করো
     const raw = localStorage.getItem(NOTICE_STORAGE_KEY);
-    if (!raw) return null;
-    const notice = JSON.parse(raw);
+    if (raw) {
+      try { notice = JSON.parse(raw); } catch(e) { notice = null; }
+    }
+
+    // 2. যদি localStorage এ না পাওয়া গেলে globalData থেকে চেষ্টা করো
+    if (!notice || !notice.expiresAt) {
+      const gdNotice = window.globalData?.settings?.activeNotice;
+      if (gdNotice && gdNotice.expiresAt) {
+        notice = gdNotice;
+        // localStorage এও save করো যাতে পরবর্তী call এ পাওয়া যায়
+        try { localStorage.setItem(NOTICE_STORAGE_KEY, JSON.stringify(notice)); } catch(e) {}
+      }
+    }
+
     if (!notice || !notice.expiresAt) return null;
+
+    // Expired কিনা check করো
     if (Date.now() > notice.expiresAt) {
       localStorage.removeItem(NOTICE_STORAGE_KEY);
+      // globalData থেকেও সরাও যদি expired হয়
+      try {
+        if (window.globalData?.settings?.activeNotice) {
+          delete window.globalData.settings.activeNotice;
+        }
+      } catch(e) {}
       return null;
     }
     return notice;
