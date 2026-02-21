@@ -659,6 +659,7 @@
   window.loadFromCloud    = (force = false) => pullFromCloud(false, force);
   window.manualSync       = window.wingsSync.fullSync;
   window.scheduleSyncPush = schedulePush; // delete/add action এর reason পাঠানোর জন্য
+  window.immediateSyncPush = (reason = 'Immediate push') => pushToCloud(reason); // Auto Function Test alias
 
   // ==========================================
   // AUTO-START SYSTEM
