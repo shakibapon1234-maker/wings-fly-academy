@@ -199,18 +199,15 @@
     if (!gd) { fail('globalData নেই', '❌ app.js লোড হয়নি বা init হয়নি'); return; }
     pass('globalData exists');
 
-    // ── Auto-heal: missing arrays কে init করো test-এর আগে ──
     const requiredArrays = ['students', 'finance', 'employees', 'bankAccounts', 'mobileBanking',
                             'incomeCategories', 'expenseCategories', 'courseNames', 'users',
                             'examRegistrations', 'visitors'];
 
-    // Supabase থেকে data আসলে কিছু field null হতে পারে — safe init
     requiredArrays.forEach(key => {
       if (!Array.isArray(gd[key])) {
-        // null/undefined হলে warn (fail নয়) — app নিজেই handle করে
         if (gd[key] === undefined || gd[key] === null) {
           warn(`globalData.${key} missing`, `Cloud data-তে এই field নেই — app auto-init করবে`);
-          gd[key] = []; // safe fix করো যাতে বাকি tests ভাঙে না
+          gd[key] = [];
         } else {
           fail(`globalData.${key} array নয়`, `type: ${typeof gd[key]} — structure broken`);
         }
@@ -515,16 +512,15 @@
     }
 
     // --- 7e: Supabase WRITE test (separate test record) ---
+    // শুধু actual column names ব্যবহার করো যেগুলো table-এ আছে
     const testRecordId = 'wingsfly_test_probe';
     const testPayload = {
       id: testRecordId,
       version: 1,
-      device_id: 'test_suite_v3',
-      updated_at: Date.now(),
+      last_updated: Date.now().toString(),
+      last_device: 'test_suite_v3',
       students: [],
-      finance: [],
-      test_tag: TEST_TAG,
-      test_ts: Date.now()
+      finance: []
     };
 
     try {
@@ -540,11 +536,11 @@
 
         // --- 7f: Verify written data ---
         try {
-          const verRes = await fetchSupa(`/rest/v1/academy_data?id=eq.${testRecordId}&select=id,version,test_tag`);
+          const verRes = await fetchSupa(`/rest/v1/academy_data?id=eq.${testRecordId}&select=id,version,last_device`);
           if (verRes.ok) {
             const verArr = await verRes.json();
             const rec = verArr[0];
-            if (rec && rec.test_tag === TEST_TAG) { pass('Supabase READ-BACK OK', 'লেখা data সঠিকভাবে পড়া গেছে'); }
+            if (rec && rec.last_device === 'test_suite_v3') { pass('Supabase READ-BACK OK', 'লেখা data সঠিকভাবে পড়া গেছে'); }
             else { fail('Supabase read-back mismatch', 'লেখা data পড়া গেলেও content মিলছে না'); }
           }
         } catch(e2) { warn('Supabase read-back error', e2.message); }
