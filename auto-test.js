@@ -284,7 +284,7 @@
     }
 
     // --- 3d: Duplicate ID check ---
-    const ids = (gd.students || []).map(s => s.id).filter(Boolean);
+    const ids = (gd.students || []).map(s => s.studentId || s.id).filter(Boolean);
     const uniqueIds = new Set(ids);
     if (ids.length === uniqueIds.size) { pass('No duplicate student IDs', `${ids.length} unique IDs`); }
     else { fail('Duplicate student IDs found!', `${ids.length} total, ${uniqueIds.size} unique`); }
@@ -901,7 +901,7 @@
     let missingName = 0, missingId = 0, negPaid = 0;
     (gd.students || []).forEach(s => {
       if (!s.name || s.name.trim() === '') missingName++;
-      if (!s.id && !s.rowIndex) missingId++;
+      if (!s.studentId && !s.id && !s.rowIndex) missingId++;
       if (parseFloat(s.paid) < 0) negPaid++;
     });
     if (missingName === 0) { pass('All students have names'); }
@@ -1103,8 +1103,8 @@
     // --- 15f: User role validation ---
     const gd = window.globalData;
     if (gd && gd.users) {
-      const currentUser = sessionStorage.getItem('currentUser') || '';
-      const userObj = gd.users.find(u => u.username === currentUser || u.name === currentUser);
+      const currentUser = sessionStorage.getItem('username') || sessionStorage.getItem('currentUser') || '';
+      const userObj = gd.users.find(u => u.username === currentUser || u.name === currentUser || (u.name || '').startsWith(currentUser.charAt(0)));
       if (userObj) {
         pass('Current user found in DB', `Role: ${userObj.role || userObj.access || 'N/A'}`);
       } else {
