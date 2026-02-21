@@ -1255,17 +1255,7 @@ function showDashboard(username) {
     console.log('🔄 Login: pulling fresh data from cloud before rendering dashboard...');
     window.loadFromCloud(true).then(() => {  // force=true: 15s block bypass করবে
       console.log('✅ Login sync complete — loading dashboard');
-      // Cloud থেকে notice এলে localStorage-এ sync করো
-      if (window.globalData && window.globalData.noticeBoard) {
-        const nb = window.globalData.noticeBoard;
-        if (nb.expiresAt && Date.now() < nb.expiresAt) {
-          localStorage.setItem('wingsfly_notice_board', JSON.stringify(nb));
-        } else {
-          localStorage.removeItem('wingsfly_notice_board');
-        }
-      }
       loadDashboard();
-      setTimeout(function() { if (typeof initNoticeBoard === 'function') initNoticeBoard(); }, 500);
     }).catch(() => {
       // Cloud pull fail হলেও local data দিয়ে dashboard দেখাও
       console.warn('⚠️ Cloud pull failed — loading from local data');
@@ -3995,6 +3985,20 @@ function deleteTransaction(id) {
   }
 
   globalData.finance = globalData.finance.filter(f => String(f.id) !== sid);
+
+  // ✅ FIX: Student Installment হলে student.installments থেকেও সরাও
+  if (txToDelete.category === 'Student Installment' && txToDelete.person) {
+    const student = globalData.students.find(s => s.name === txToDelete.person);
+    if (student && student.installments && student.installments.length > 0) {
+      const matchIdx = student.installments.findIndex(inst =>
+        parseFloat(inst.amount) === parseFloat(txToDelete.amount) &&
+        (inst.date === txToDelete.date || !inst.date)
+      );
+      if (matchIdx !== -1) student.installments.splice(matchIdx, 1);
+      student.paid = Math.max(0, (parseFloat(student.paid) || 0) - parseFloat(txToDelete.amount));
+      student.due  = Math.max(0, (parseFloat(student.totalPayment) || 0) - student.paid);
+    }
+  }
   
   // Render FIRST so user sees the change immediately (before async cloud push)
   renderLedger(globalData.finance);
