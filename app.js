@@ -1259,29 +1259,48 @@ function showDashboard(username) {
     window.loadFromCloud(true).then(() => {  // force=true: 15s block bypass করবে
       console.log('✅ Login sync complete — loading dashboard');
       loadDashboard();
+      // ✅ Cloud pull হয়ে গেলে data ready — snapshot নাও
+      setTimeout(function() {
+        if (window.globalData && window.globalData.students) {
+          var snaps = getSnapshots();
+          var last = snaps[0];
+          if (!last || (Date.now() - last.id) > 30 * 60 * 1000) {
+            console.log('📸 Login snapshot নেওয়া হচ্ছে (cloud pull এর পরে)...');
+            takeSnapshot();
+          }
+        }
+      }, 3000);
     }).catch(() => {
       // Cloud pull fail হলেও local data দিয়ে dashboard দেখাও
       console.warn('⚠️ Cloud pull failed — loading from local data');
       loadDashboard();
+      // ✅ Local data দিয়েও snapshot নাও
+      setTimeout(function() {
+        if (window.globalData && window.globalData.students) {
+          var snaps = getSnapshots();
+          var last = snaps[0];
+          if (!last || (Date.now() - last.id) > 30 * 60 * 1000) {
+            console.log('📸 Login snapshot নেওয়া হচ্ছে (local data থেকে)...');
+            takeSnapshot();
+          }
+        }
+      }, 3000);
     });
   } else {
     loadDashboard();
+    // ✅ loadFromCloud না থাকলেও snapshot নাও
+    setTimeout(function() {
+      if (window.globalData && window.globalData.students) {
+        var snaps = getSnapshots();
+        var last = snaps[0];
+        if (!last || (Date.now() - last.id) > 30 * 60 * 1000) {
+          takeSnapshot();
+        }
+      }
+    }, 3000);
   }
 
   checkDailyBackup();
-
-  // ✅ Login এর পরে ৫ সেকেন্ড পরে snapshot নাও (data load হয়ে যাবে)
-  setTimeout(function() {
-    if (typeof takeSnapshot === 'function' && window.globalData && window.globalData.students) {
-      var snaps = typeof getSnapshots === 'function' ? getSnapshots() : [];
-      var last = snaps[0];
-      // আজকের কোনো snapshot না থাকলে নাও
-      if (!last || (Date.now() - last.id) > 30 * 60 * 1000) {
-        console.log('📸 Login snapshot নেওয়া হচ্ছে...');
-        takeSnapshot();
-      }
-    }
-  }, 5000);
 }
 
 function logout() {
@@ -9549,28 +9568,17 @@ window.renderSnapshotList = renderSnapshotList;
 document.addEventListener('DOMContentLoaded', function() {
   var ONE_HOUR = 60 * 60 * 1000;
 
-  // ৩ সেকেন্ড পর প্রথম snapshot
-  // ৩ সেকেন্ড পর প্রথম snapshot — শুধু login থাকলে
-  setTimeout(function() {
-    // Login না থাকলে snapshot নেওয়ার দরকার নেই
-    if (sessionStorage.getItem('isLoggedIn') !== 'true') {
-      console.log('📸 Snapshot skip — not logged in yet');
-      return;
-    }
-    if (window.globalData) {
-      if (!window.globalData.deletedItems) window.globalData.deletedItems = [];
-      if (!window.globalData.activityHistory) window.globalData.activityHistory = [];
-    }
-    takeSnapshot();
-  }, 3000);
+  // ❌ পুরনো bug: 3 সেকেন্ড পরে snapshot নিত — কিন্তু তখন login হয়নি
+  // ✅ Fix: login হলে event দিয়ে snapshot নেওয়া হবে (নিচে দেখুন)
 
-  // প্রতি ৫ মিনিটে check, ১ ঘন্টা পার হলে নতুন নাও
+  // প্রতি ৫ মিনিটে check, ১ ঘন্টা পার হলে নতুন নাও — কিন্তু শুধু login থাকলে
   setInterval(function() {
-    // Login না থাকলে snapshot নেওয়ার দরকার নেই
     if (sessionStorage.getItem('isLoggedIn') !== 'true') return;
+    if (!window.globalData || !window.globalData.students) return;
     var snaps = getSnapshots();
     var last = snaps[0];
     if (!last || (Date.now() - last.id) > ONE_HOUR) {
+      console.log('📸 Auto-snapshot: ১ ঘন্টা পার হয়েছে — নতুন snapshot নেওয়া হচ্ছে');
       takeSnapshot();
     }
   }, 5 * 60 * 1000);
