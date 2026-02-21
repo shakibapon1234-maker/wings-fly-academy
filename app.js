@@ -7111,15 +7111,19 @@ function populateBatchFilter() {
 
   console.log('✅ Batch filter populated successfully');
 
-  // Populate Subject/Course filter
+  // ── Subject / Course Filter ──────────────────────────────
   const subjectSelect = document.getElementById('subjectFilterSelect');
   if (subjectSelect) {
-    const subjects = [...new Set(globalData.students.map(s => s.course))].filter(c => c).sort();
+    // Merge courseNames list + courses already used in student records
+    const fromStudents = globalData.students.map(s => s.course).filter(c => c);
+    const fromSettings = (globalData.courseNames || []).filter(c => c);
+    const allSubjects = [...new Set([...fromSettings, ...fromStudents])].sort();
+
     subjectSelect.innerHTML = '<option value="">All Subjects</option>';
-    subjects.forEach(c => {
+    allSubjects.forEach(c => {
       subjectSelect.innerHTML += `<option value="${c}">${c}</option>`;
     });
-    console.log('✅ Subject filter populated successfully');
+    console.log('✅ Subject filter populated with', allSubjects.length, 'courses');
   }
 }
 
@@ -7161,9 +7165,8 @@ function applyAdvancedSearch() {
 
 function clearAdvancedSearch() {
   document.getElementById('batchFilterSelect').value = '';
-  if (document.getElementById('subjectFilterSelect')) {
-    document.getElementById('subjectFilterSelect').value = '';
-  }
+  const subjectSel = document.getElementById('subjectFilterSelect');
+  if (subjectSel) subjectSel.value = '';
   document.getElementById('advSearchStartDate').value = '';
   document.getElementById('advSearchEndDate').value = '';
   document.getElementById('advSearchSummary').classList.add('d-none');
