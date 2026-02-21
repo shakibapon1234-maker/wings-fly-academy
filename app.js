@@ -9220,9 +9220,9 @@ function publishNotice() {
     if (!window.globalData.settings) window.globalData.settings = {};
     window.globalData.settings.activeNotice = notice;
     localStorage.setItem('wingsfly_data', JSON.stringify(window.globalData));
-    // Cloud push
-    if (typeof window.immediateSyncPush === 'function') {
-      window.immediateSyncPush('Notice Published: ' + text.substr(0, 40));
+    // ✅ FIX: debounce এড়িয়ে সরাসরি immediate push — refresh দিলেও notice cloud এ থাকবে
+    if (typeof window.wingsSync?.pushNow === 'function') {
+      window.wingsSync.pushNow('Notice Published: ' + text.substr(0, 40));
     } else if (typeof window.scheduleSyncPush === 'function') {
       window.scheduleSyncPush('Notice Published: ' + text.substr(0, 40));
     }
@@ -9248,8 +9248,8 @@ function deleteNotice() {
     if (window.globalData?.settings) {
       delete window.globalData.settings.activeNotice;
       localStorage.setItem('wingsfly_data', JSON.stringify(window.globalData));
-      if (typeof window.immediateSyncPush === 'function') {
-        window.immediateSyncPush('Notice Deleted');
+      if (typeof window.wingsSync?.pushNow === 'function') {
+        window.wingsSync.pushNow('Notice Deleted');
       } else if (typeof window.scheduleSyncPush === 'function') {
         window.scheduleSyncPush('Notice Deleted');
       }
