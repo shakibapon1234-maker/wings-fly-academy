@@ -1255,7 +1255,17 @@ function showDashboard(username) {
     console.log('🔄 Login: pulling fresh data from cloud before rendering dashboard...');
     window.loadFromCloud(true).then(() => {  // force=true: 15s block bypass করবে
       console.log('✅ Login sync complete — loading dashboard');
+      // Cloud থেকে notice এলে localStorage-এ sync করো
+      if (window.globalData && window.globalData.noticeBoard) {
+        const nb = window.globalData.noticeBoard;
+        if (nb.expiresAt && Date.now() < nb.expiresAt) {
+          localStorage.setItem('wingsfly_notice_board', JSON.stringify(nb));
+        } else {
+          localStorage.removeItem('wingsfly_notice_board');
+        }
+      }
       loadDashboard();
+      setTimeout(function() { if (typeof initNoticeBoard === 'function') initNoticeBoard(); }, 500);
     }).catch(() => {
       // Cloud pull fail হলেও local data দিয়ে dashboard দেখাও
       console.warn('⚠️ Cloud pull failed — loading from local data');
@@ -1272,7 +1282,6 @@ function logout() {
   if (typeof logActivity === 'function') logActivity('login', 'LOGOUT', 'User logged out: ' + (sessionStorage.getItem('username') || 'Admin'));
   sessionStorage.removeItem('isLoggedIn');
   sessionStorage.removeItem('username');
-  localStorage.setItem('wingsfly_active_tab', 'dashboard'); // লগইনের পরে সবসময় Dashboard-এ যাবে
 
   document.getElementById('dashboardSection').classList.add('d-none');
   document.getElementById('loginSection').classList.remove('d-none');
