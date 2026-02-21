@@ -8953,8 +8953,8 @@ document.addEventListener('click', function(e) {
 // NOTICE BOARD SYSTEM - Wings Fly Aviation Academy
 // =====================================================
 
-const NOTICE_STORAGE_KEY = 'wingsfly_notice_board';
-let noticeCountdownInterval = null;
+var NOTICE_STORAGE_KEY = 'wingsfly_notice_board';
+var noticeCountdownInterval = null;
 
 // =====================================================
 // NOTICE BOARD - CORE STORAGE (sync-safe)
