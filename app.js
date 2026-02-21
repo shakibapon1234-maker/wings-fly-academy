@@ -3720,22 +3720,26 @@ function handleAddInstallment() {
   // 1. Update Student Data
   if (!student.installments) student.installments = [];
 
+  // Generate a unique ID that links installment ↔ finance entry
+  const sharedId = Date.now() + '_' + Math.random().toString(36).substr(2, 6);
+
   // Ensure we don't duplicate migrated payments if we add new ones
   // (We'll keep the underlying installments array clean, the helper handles display)
-  student.installments.push({ amount, date: today, method });
+  student.installments.push({ amount, date: today, method, financeId: sharedId });
 
   student.paid = (parseFloat(student.paid) || 0) + amount;
   student.due = Math.max(0, (parseFloat(student.totalPayment) || 0) - student.paid);
 
-  // 2. Add to Finance Ledger
+  // 2. Add to Finance Ledger (same sharedId so cross-delete works)
   const financeEntry = {
-    id: Date.now(),
+    id: sharedId,
     type: 'Income',
     method: method,
     date: today,
     category: 'Student Installment',
     person: student.name,
     amount: amount,
+    studentId: student.id || null,
     description: `Installment payment for student: ${student.name} | Batch: ${student.batch}`,
     timestamp: new Date().toISOString()
   };
@@ -3780,30 +3784,49 @@ function deleteInstallment(rowIndex, instIndex) {
 
   // 1. Student installments array থেকে সরাও
   if (!inst.isMigrated) {
-    // Normal installment — directly from student.installments
-    student.installments = (student.installments || []).filter((_, i) => {
-      // instIndex match করে সেটা বাদ দাও
-      return i !== instIndex;
-    });
+    if (inst.financeId) {
+      // financeId দিয়ে exact match করে সরাও (most reliable)
+      student.installments = (student.installments || []).filter(i => i.financeId !== inst.financeId);
+    } else {
+      // পুরনো data — index দিয়ে সরাও (instIndex is the index in the combined list)
+      // need to map back to real installments array index
+      // isMigrated entries are synthetic (index 0 if present), so real installments start after
+      const hasMigrated = installments[0] && installments[0].isMigrated;
+      const realIndex = hasMigrated ? instIndex - 1 : instIndex;
+      if (realIndex >= 0) {
+        student.installments = (student.installments || []).filter((_, i) => i !== realIndex);
+      }
+    }
   } else {
-    // Migrated (initial payment) — paid field থেকে বাদ দাও
-    // এটা student.payment field এ আছে, installments এ নেই
-    // তাই শুধু paid/due adjust করব
+    // Migrated (initial payment) — এটা student.paid এ ছিল, installments এ নেই
+    // শুধু paid/due adjust করব (নিচে হচ্ছে)
+    // finance ledger থেকেও সরাতে হবে — নিচে হচ্ছে
   }
 
   // 2. Student paid/due update করো
   student.paid = Math.max(0, (parseFloat(student.paid) || 0) - amount);
   student.due = Math.max(0, (parseFloat(student.totalPayment) || 0) - student.paid);
 
-  // 3. Finance ledger থেকেও সরাও (matching entry)
-  const beforeCount = (globalData.finance || []).length;
-  globalData.finance = (globalData.finance || []).filter(f => {
-    const sameAmount = parseFloat(f.amount) === amount;
-    const samePerson = f.person === student.name || (f.description && f.description.includes(student.name));
-    const sameMethod = !f.method || f.method === method;
-    const sameDate = !inst.date || f.date === inst.date;
-    return !(sameAmount && samePerson && sameDate);
-  });
+  // 3. Finance ledger থেকেও সরাও
+  if (inst.financeId) {
+    // financeId দিয়ে exact delete — সবচেয়ে নির্ভরযোগ্য
+    globalData.finance = (globalData.finance || []).filter(f => String(f.id) !== String(inst.financeId));
+  } else {
+    // পুরনো data — fuzzy match (amount + person + date)
+    let removed = false;
+    globalData.finance = (globalData.finance || []).filter(f => {
+      if (removed) return true; // শুধু প্রথম match টা সরাও
+      const sameAmount = parseFloat(f.amount) === amount;
+      const samePerson = f.person === student.name || (f.description && f.description.includes(student.name));
+      const sameDate = !inst.date || inst.date === 'Opening' || f.date === inst.date;
+      const isStudentPayment = f.category === 'Student Installment' || f.category === 'Student Payment' || (f.description && f.description.includes(student.name));
+      if (sameAmount && samePerson && sameDate && isStudentPayment) {
+        removed = true;
+        return false;
+      }
+      return true;
+    });
+  }
 
   // 4. Account balance reverse করো
   if (method === 'Cash') {
@@ -4060,6 +4083,53 @@ function deleteTransaction(id) {
   }
 
   globalData.finance = globalData.finance.filter(f => String(f.id) !== sid);
+
+  // ✅ SYNC FIX: যদি এটা Student Installment হয়, তাহলে student এর data ও update করো
+  if (
+    txToDelete.category === 'Student Installment' ||
+    txToDelete.category === 'Student Payment' ||
+    (txToDelete.description && txToDelete.description.toLowerCase().includes('installment'))
+  ) {
+    const amount = parseFloat(txToDelete.amount) || 0;
+    const personName = txToDelete.person || '';
+
+    // Student খুঁজে বের করো (name বা studentId দিয়ে)
+    const student = globalData.students.find(s =>
+      (txToDelete.studentId && s.id && String(s.id) === String(txToDelete.studentId)) ||
+      (personName && s.name && s.name.toLowerCase() === personName.toLowerCase())
+    );
+
+    if (student) {
+      // installments array থেকে সরাও (financeId দিয়ে exact match, নাহলে fuzzy)
+      if (student.installments && student.installments.length > 0) {
+        const beforeLen = student.installments.length;
+        // প্রথমে financeId দিয়ে চেষ্টা
+        student.installments = student.installments.filter(i => String(i.financeId) !== sid);
+        // যদি কিছু না সরে, তাহলে amount + date দিয়ে একটাই সরাও
+        if (student.installments.length === beforeLen) {
+          let removed = false;
+          student.installments = student.installments.filter(i => {
+            if (removed) return true;
+            if (
+              parseFloat(i.amount) === amount &&
+              (!txToDelete.date || i.date === txToDelete.date)
+            ) {
+              removed = true;
+              return false;
+            }
+            return true;
+          });
+        }
+      }
+
+      // paid / due recalculate করো
+      student.paid = Math.max(0, (parseFloat(student.paid) || 0) - amount);
+      student.due = Math.max(0, (parseFloat(student.totalPayment) || 0) - student.paid);
+
+      // Student list refresh করো
+      if (typeof render === 'function') render(globalData.students);
+    }
+  }
   
   // Render FIRST so user sees the change immediately (before async cloud push)
   renderLedger(globalData.finance);
