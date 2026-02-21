@@ -282,6 +282,35 @@
         if (!silent) {
           log('ℹ️', 'Local data is current ✓');
         }
+
+        // ✅ NOTICE FIX: shouldUpdate=false হলেও notice সবসময় check করো
+        // কারণ: notice শুধু settings এ থাকে, version same হলেও notice আলাদা PC থেকে আসতে পারে
+        try {
+          const cloudNotice = data.settings?.activeNotice;
+          const localNotice = window.globalData?.settings?.activeNotice;
+          const cloudNoticeStr = JSON.stringify(cloudNotice || null);
+          const localNoticeStr = JSON.stringify(localNotice || null);
+
+          if (cloudNoticeStr !== localNoticeStr) {
+            log('📢', 'Notice mismatch detected — syncing notice');
+            if (!window.globalData) window.globalData = {};
+            if (!window.globalData.settings) window.globalData.settings = {};
+
+            if (cloudNotice && cloudNotice.expiresAt && Date.now() < cloudNotice.expiresAt) {
+              // Cloud এ active notice আছে — apply করো
+              window.globalData.settings.activeNotice = cloudNotice;
+              localStorage.setItem('wingsfly_notice_board', JSON.stringify(cloudNotice));
+              if (typeof window.showNoticeBanner === 'function') window.showNoticeBanner(cloudNotice);
+              log('📢', 'Notice applied from cloud (version-same path)');
+            } else if (!cloudNotice && localNotice) {
+              // Cloud এ notice নেই — local থেকেও সরাও
+              delete window.globalData.settings.activeNotice;
+              localStorage.removeItem('wingsfly_notice_board');
+              if (typeof window.hideNoticeBanner === 'function') window.hideNoticeBanner();
+              log('📢', 'Notice cleared (not in cloud)');
+            }
+          }
+        } catch(e) { log('⚠️', 'Notice sync (same-version) error: ' + e.message); }
       }
 
       isPulling = false;
@@ -659,7 +688,6 @@
   window.loadFromCloud    = (force = false) => pullFromCloud(false, force);
   window.manualSync       = window.wingsSync.fullSync;
   window.scheduleSyncPush = schedulePush; // delete/add action এর reason পাঠানোর জন্য
-  window.immediateSyncPush = (reason = 'Immediate push') => pushToCloud(reason); // Auto Function Test alias
 
   // ==========================================
   // AUTO-START SYSTEM

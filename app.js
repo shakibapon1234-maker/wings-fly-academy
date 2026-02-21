@@ -1259,45 +1259,13 @@ function showDashboard(username) {
     window.loadFromCloud(true).then(() => {  // force=true: 15s block bypass করবে
       console.log('✅ Login sync complete — loading dashboard');
       loadDashboard();
-      // ✅ Cloud pull হয়ে গেলে data ready — snapshot নাও
-      setTimeout(function() {
-        if (window.globalData && window.globalData.students) {
-          var snaps = getSnapshots();
-          var last = snaps[0];
-          if (!last || (Date.now() - last.id) > 30 * 60 * 1000) {
-            console.log('📸 Login snapshot নেওয়া হচ্ছে (cloud pull এর পরে)...');
-            takeSnapshot();
-          }
-        }
-      }, 3000);
     }).catch(() => {
       // Cloud pull fail হলেও local data দিয়ে dashboard দেখাও
       console.warn('⚠️ Cloud pull failed — loading from local data');
       loadDashboard();
-      // ✅ Local data দিয়েও snapshot নাও
-      setTimeout(function() {
-        if (window.globalData && window.globalData.students) {
-          var snaps = getSnapshots();
-          var last = snaps[0];
-          if (!last || (Date.now() - last.id) > 30 * 60 * 1000) {
-            console.log('📸 Login snapshot নেওয়া হচ্ছে (local data থেকে)...');
-            takeSnapshot();
-          }
-        }
-      }, 3000);
     });
   } else {
     loadDashboard();
-    // ✅ loadFromCloud না থাকলেও snapshot নাও
-    setTimeout(function() {
-      if (window.globalData && window.globalData.students) {
-        var snaps = getSnapshots();
-        var last = snaps[0];
-        if (!last || (Date.now() - last.id) > 30 * 60 * 1000) {
-          takeSnapshot();
-        }
-      }
-    }, 3000);
   }
 
   checkDailyBackup();
@@ -9010,14 +8978,29 @@ function _noticeSave(notice) {
     } else {
       localStorage.removeItem(NOTICE_STORAGE_KEY);
     }
-    // wingsfly_data save → monitor trigger → cloud push
+    // wingsfly_data save
     localStorage.setItem('wingsfly_data', JSON.stringify(window.globalData));
-    // Immediate cloud push (bypass debounce)
-    if (typeof window.wingsSync?.pushNow === 'function') {
-      window.wingsSync.pushNow(notice ? 'Notice Published' : 'Notice Deleted');
-    } else if (typeof window.scheduleSyncPush === 'function') {
-      window.scheduleSyncPush(notice ? 'Notice Published' : 'Notice Deleted');
-    }
+
+    // ✅ NOTICE FIX: Retry push — cloud এ নিশ্চিত করতে ৩ বার চেষ্টা করো
+    var _noticeLabel = notice ? 'Notice Published' : 'Notice Deleted';
+    var _pushNotice = function(attempt) {
+      if (attempt > 3) return;
+      if (typeof window.wingsSync === 'object' && typeof window.wingsSync.pushNow === 'function') {
+        Promise.resolve(window.wingsSync.pushNow(_noticeLabel)).then(function(ok) {
+          if (!ok && attempt < 3) {
+            setTimeout(function() { _pushNotice(attempt + 1); }, 2000);
+          } else {
+            console.log('\u{1F4E2} Notice cloud push OK (attempt ' + attempt + ')');
+          }
+        }).catch(function() {
+          if (attempt < 3) setTimeout(function() { _pushNotice(attempt + 1); }, 2000);
+        });
+      } else if (typeof window.scheduleSyncPush === 'function') {
+        window.scheduleSyncPush(_noticeLabel);
+      }
+    };
+    _pushNotice(1);
+    setTimeout(function() { _pushNotice(2); }, 2000);
   } catch(e) { console.warn('Notice save error:', e); }
 }
 
@@ -9060,11 +9043,19 @@ function updateSidebarNoticeDot(hasActive) {
 
 // ----- Load & Display on page init -----
 function initNoticeBoard() {
+  // ✅ NOTICE FIX: Cloud pull এর পরে init করো যাতে cloud এর notice পাওয়া যায়
+  // Priority 1: globalData (cloud থেকে এসেছে)
+  // Priority 2: localStorage cache
   const notice = _noticeRead();
   if (notice) {
     showNoticeBanner(notice);
   } else {
     hideNoticeBanner();
+    // ✅ Extra check: globalData load না হলে 2 সেকেন্ড পরে আবার চেষ্টা করো
+    setTimeout(function() {
+      const retryNotice = _noticeRead();
+      if (retryNotice) showNoticeBanner(retryNotice);
+    }, 2000);
   }
 }
 
@@ -9568,17 +9559,20 @@ window.renderSnapshotList = renderSnapshotList;
 document.addEventListener('DOMContentLoaded', function() {
   var ONE_HOUR = 60 * 60 * 1000;
 
-  // ❌ পুরনো bug: 3 সেকেন্ড পরে snapshot নিত — কিন্তু তখন login হয়নি
-  // ✅ Fix: login হলে event দিয়ে snapshot নেওয়া হবে (নিচে দেখুন)
+  // ৩ সেকেন্ড পর প্রথম snapshot
+  setTimeout(function() {
+    if (window.globalData) {
+      if (!window.globalData.deletedItems) window.globalData.deletedItems = [];
+      if (!window.globalData.activityHistory) window.globalData.activityHistory = [];
+    }
+    takeSnapshot();
+  }, 3000);
 
-  // প্রতি ৫ মিনিটে check, ১ ঘন্টা পার হলে নতুন নাও — কিন্তু শুধু login থাকলে
+  // প্রতি ৫ মিনিটে check, ১ ঘন্টা পার হলে নতুন নাও
   setInterval(function() {
-    if (sessionStorage.getItem('isLoggedIn') !== 'true') return;
-    if (!window.globalData || !window.globalData.students) return;
     var snaps = getSnapshots();
     var last = snaps[0];
     if (!last || (Date.now() - last.id) > ONE_HOUR) {
-      console.log('📸 Auto-snapshot: ১ ঘন্টা পার হয়েছে — নতুন snapshot নেওয়া হচ্ছে');
       takeSnapshot();
     }
   }, 5 * 60 * 1000);
