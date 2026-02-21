@@ -686,6 +686,63 @@
 }
 #sidebarLogoImg { border-radius: 50%; }
 #sidebarLogoImg.is-active { animation: sidebarLogoSpin 2s linear infinite; }
+<<<<<<< HEAD
+=======
+
+/* ══════════════════════════════════════
+   NOTICE BOARD — Type Colors
+══════════════════════════════════════ */
+#noticeBoardBanner {
+  transition: background 0.3s ease;
+}
+/* Warning — হলুদ */
+#noticeBoardBanner.notice-warning {
+  background: linear-gradient(90deg, #92400e, #b45309, #78350f) !important;
+  border-left: 4px solid #fbbf24 !important;
+  box-shadow: 0 2px 16px rgba(251,191,36,0.25) !important;
+}
+#noticeBoardBanner.notice-warning .notice-label,
+#noticeBoardBanner.notice-warning .notice-scroll-text,
+#noticeBoardBanner.notice-warning .notice-countdown-badge {
+  color: #fde68a !important;
+}
+#noticeBoardBanner.notice-warning .notice-icon-pulse::before {
+  background: #fbbf24 !important;
+}
+/* Danger — লাল */
+#noticeBoardBanner.notice-danger {
+  background: linear-gradient(90deg, #7f1d1d, #991b1b, #7f1d1d) !important;
+  border-left: 4px solid #ef4444 !important;
+  box-shadow: 0 2px 16px rgba(239,68,68,0.3) !important;
+}
+#noticeBoardBanner.notice-danger .notice-label,
+#noticeBoardBanner.notice-danger .notice-scroll-text,
+#noticeBoardBanner.notice-danger .notice-countdown-badge {
+  color: #fecaca !important;
+}
+/* Info — নীল */
+#noticeBoardBanner.notice-info {
+  background: linear-gradient(90deg, #1e3a5f, #1d4ed8, #1e3a5f) !important;
+  border-left: 4px solid #60a5fa !important;
+  box-shadow: 0 2px 16px rgba(96,165,250,0.25) !important;
+}
+#noticeBoardBanner.notice-info .notice-label,
+#noticeBoardBanner.notice-info .notice-scroll-text,
+#noticeBoardBanner.notice-info .notice-countdown-badge {
+  color: #bfdbfe !important;
+}
+/* Success — সবুজ */
+#noticeBoardBanner.notice-success {
+  background: linear-gradient(90deg, #064e3b, #065f46, #064e3b) !important;
+  border-left: 4px solid #34d399 !important;
+  box-shadow: 0 2px 16px rgba(52,211,153,0.25) !important;
+}
+#noticeBoardBanner.notice-success .notice-label,
+#noticeBoardBanner.notice-success .notice-scroll-text,
+#noticeBoardBanner.notice-success .notice-countdown-badge {
+  color: #a7f3d0 !important;
+}
+>>>>>>> c7cb71984407ec23818bd947e2eed02e73c2b236
 </style>
 </head>
 

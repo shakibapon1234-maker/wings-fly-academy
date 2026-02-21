@@ -315,6 +315,33 @@
     }).join('');
   }
 
+<<<<<<< HEAD
+=======
+  // ── Function Test results clear ──
+  function clearTestResults() {
+    var rd = document.getElementById('functest-results');
+    var rs = document.getElementById('functest-summary');
+    if (rd) rd.innerHTML = '';
+    if (rs) { rs.innerHTML = ''; rs.style.cssText = 'display:none;'; }
+  }
+
+  // ── Diagnostic results clear ──
+  function clearDiagResults() {
+    var overall = document.getElementById('diag-overall');
+    var grid    = document.getElementById('diag-grid');
+    var log     = document.getElementById('diag-log');
+    var prog    = document.getElementById('diag-progress');
+    var lbl     = document.getElementById('diag-overall-label');
+    var bdg     = document.getElementById('diag-overall-badge');
+    if (overall) overall.style.display = 'none';
+    if (grid)    grid.style.display    = 'none';
+    if (log)     { log.style.display   = 'none'; log.innerHTML = ''; }
+    if (prog)    prog.style.width      = '0%';
+    if (lbl)     lbl.textContent       = '—';
+    if (bdg)     bdg.textContent       = '';
+  }
+
+>>>>>>> c7cb71984407ec23818bd947e2eed02e73c2b236
   // ── PUBLIC API ──
   window.runFunctionTests = function() {
     var rd = document.getElementById('functest-results');
@@ -322,6 +349,7 @@
     setTimeout(function() { renderResults(runAllTests()); }, 100);
   };
 
+<<<<<<< HEAD
   // Auto-run on load
   if (document.readyState === 'loading') {
     document.addEventListener('DOMContentLoaded', function() { setTimeout(function(){ renderResults(runAllTests()); }, 800); });
@@ -329,4 +357,20 @@
     setTimeout(function() { renderResults(runAllTests()); }, 800);
   }
 
+=======
+  // Page load-এ দুটোই clear করো (auto-run নয়)
+  function clearAll() { clearTestResults(); clearDiagResults(); }
+
+  if (document.readyState === 'loading') {
+    document.addEventListener('DOMContentLoaded', clearAll);
+  } else {
+    clearAll();
+  }
+
+  // Settings modal বন্ধ হলে দুটোই clear করো
+  document.addEventListener('hidden.bs.modal', function(e) {
+    if (e.target && e.target.id === 'settingsModal') clearAll();
+  });
+
+>>>>>>> c7cb71984407ec23818bd947e2eed02e73c2b236
 })();
