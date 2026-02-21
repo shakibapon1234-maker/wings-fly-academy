@@ -8956,6 +8956,71 @@ document.addEventListener('click', function(e) {
 const NOTICE_STORAGE_KEY = 'wingsfly_notice_board';
 let noticeCountdownInterval = null;
 
+// =====================================================
+// NOTICE BOARD - CORE STORAGE (sync-safe)
+// Notice সবসময় globalData.settings.activeNotice এ থাকবে
+// localStorage শুধু cache হিসেবে ব্যবহার হবে
+// =====================================================
+
+function _noticeSave(notice) {
+  // globalData এ রাখো (primary source of truth)
+  try {
+    if (!window.globalData) window.globalData = {};
+    if (!window.globalData.settings) window.globalData.settings = {};
+    if (notice) {
+      window.globalData.settings.activeNotice = notice;
+    } else {
+      delete window.globalData.settings.activeNotice;
+    }
+    // localStorage cache update
+    if (notice) {
+      localStorage.setItem(NOTICE_STORAGE_KEY, JSON.stringify(notice));
+    } else {
+      localStorage.removeItem(NOTICE_STORAGE_KEY);
+    }
+    // wingsfly_data save → monitor trigger → cloud push
+    localStorage.setItem('wingsfly_data', JSON.stringify(window.globalData));
+    // Immediate cloud push (bypass debounce)
+    if (typeof window.wingsSync?.pushNow === 'function') {
+      window.wingsSync.pushNow(notice ? 'Notice Published' : 'Notice Deleted');
+    } else if (typeof window.scheduleSyncPush === 'function') {
+      window.scheduleSyncPush(notice ? 'Notice Published' : 'Notice Deleted');
+    }
+  } catch(e) { console.warn('Notice save error:', e); }
+}
+
+function _noticeRead() {
+  // Priority: globalData > localStorage
+  try {
+    const gd = window.globalData?.settings?.activeNotice;
+    if (gd && gd.expiresAt) {
+      if (Date.now() < gd.expiresAt) {
+        // Sync to localStorage
+        localStorage.setItem(NOTICE_STORAGE_KEY, JSON.stringify(gd));
+        return gd;
+      } else {
+        // Expired — clean up both places
+        _noticeSave(null);
+        return null;
+      }
+    }
+    // Fallback: localStorage
+    const raw = localStorage.getItem(NOTICE_STORAGE_KEY);
+    if (!raw) return null;
+    const n = JSON.parse(raw);
+    if (!n || !n.expiresAt) return null;
+    if (Date.now() > n.expiresAt) {
+      localStorage.removeItem(NOTICE_STORAGE_KEY);
+      return null;
+    }
+    // Restore to globalData from localStorage
+    if (window.globalData?.settings) {
+      window.globalData.settings.activeNotice = n;
+    }
+    return n;
+  } catch(e) { return null; }
+}
+
 function updateSidebarNoticeDot(hasActive) {
   const dot = document.getElementById('sidebarNoticeActiveDot');
   if (dot) dot.style.display = hasActive ? 'inline-block' : 'none';
@@ -8963,20 +9028,7 @@ function updateSidebarNoticeDot(hasActive) {
 
 // ----- Load & Display on page init -----
 function initNoticeBoard() {
-  // ✅ globalData.settings থেকে cloud-synced notice check করো
-  try {
-    const cloudNotice = window.globalData?.settings?.activeNotice;
-    if (cloudNotice && cloudNotice.expiresAt && Date.now() < cloudNotice.expiresAt) {
-      // localStorage এও save করো
-      localStorage.setItem(NOTICE_STORAGE_KEY, JSON.stringify(cloudNotice));
-    } else if (cloudNotice && cloudNotice.expiresAt && Date.now() >= cloudNotice.expiresAt) {
-      // Expired — দুই জায়গা থেকেই সরাও
-      delete window.globalData.settings.activeNotice;
-      localStorage.removeItem(NOTICE_STORAGE_KEY);
-    }
-  } catch(e) {}
-
-  const notice = getActiveNotice();
+  const notice = _noticeRead();
   if (notice) {
     showNoticeBanner(notice);
   } else {
@@ -8985,43 +9037,7 @@ function initNoticeBoard() {
 }
 
 function getActiveNotice() {
-  try {
-    // ✅ FIX: localStorage ও globalData দুটো জায়গা থেকে check করো
-    // যদি localStorage এ না থাকে কিন্তু globalData.settings এ থাকে (cloud pull এর পর)
-    // তাহলে সেখান থেকে restore করো
-    let notice = null;
-
-    // 1. localStorage থেকে চেষ্টা করো
-    const raw = localStorage.getItem(NOTICE_STORAGE_KEY);
-    if (raw) {
-      try { notice = JSON.parse(raw); } catch(e) { notice = null; }
-    }
-
-    // 2. যদি localStorage এ না পাওয়া গেলে globalData থেকে চেষ্টা করো
-    if (!notice || !notice.expiresAt) {
-      const gdNotice = window.globalData?.settings?.activeNotice;
-      if (gdNotice && gdNotice.expiresAt) {
-        notice = gdNotice;
-        // localStorage এও save করো যাতে পরবর্তী call এ পাওয়া যায়
-        try { localStorage.setItem(NOTICE_STORAGE_KEY, JSON.stringify(notice)); } catch(e) {}
-      }
-    }
-
-    if (!notice || !notice.expiresAt) return null;
-
-    // Expired কিনা check করো
-    if (Date.now() > notice.expiresAt) {
-      localStorage.removeItem(NOTICE_STORAGE_KEY);
-      // globalData থেকেও সরাও যদি expired হয়
-      try {
-        if (window.globalData?.settings?.activeNotice) {
-          delete window.globalData.settings.activeNotice;
-        }
-      } catch(e) {}
-      return null;
-    }
-    return notice;
-  } catch(e) { return null; }
+  return _noticeRead();
 }
 
 function showNoticeBanner(notice) {
@@ -9211,22 +9227,8 @@ function publishNotice() {
     expiresAt: Date.now() + durationMinutes * 60 * 1000
   };
 
-  // ✅ 1. localStorage এ save করো (instant local display)
-  try { localStorage.setItem(NOTICE_STORAGE_KEY, JSON.stringify(notice)); } catch(e) {}
-
-  // ✅ 2. globalData.settings এ রাখো → Supabase এ যাবে
-  try {
-    if (!window.globalData) window.globalData = {};
-    if (!window.globalData.settings) window.globalData.settings = {};
-    window.globalData.settings.activeNotice = notice;
-    localStorage.setItem('wingsfly_data', JSON.stringify(window.globalData));
-    // ✅ FIX: debounce এড়িয়ে সরাসরি immediate push — refresh দিলেও notice cloud এ থাকবে
-    if (typeof window.wingsSync?.pushNow === 'function') {
-      window.wingsSync.pushNow('Notice Published: ' + text.substr(0, 40));
-    } else if (typeof window.scheduleSyncPush === 'function') {
-      window.scheduleSyncPush('Notice Published: ' + text.substr(0, 40));
-    }
-  } catch(e) { console.warn('Notice sync error:', e); }
+  // Save + immediate cloud push
+  _noticeSave(notice);
 
   closeNoticeModal();
   showNoticeBanner(notice);
@@ -9239,23 +9241,8 @@ function publishNotice() {
 
   noticeToast(`✅ নোটিস প্রকাশিত! মেয়াদ: ${dLabel}`, 'success');
 }
-
 function deleteNotice() {
-  try { localStorage.removeItem(NOTICE_STORAGE_KEY); } catch(e) {}
-
-  // ✅ globalData.settings থেকেও সরাও → Supabase sync
-  try {
-    if (window.globalData?.settings) {
-      delete window.globalData.settings.activeNotice;
-      localStorage.setItem('wingsfly_data', JSON.stringify(window.globalData));
-      if (typeof window.wingsSync?.pushNow === 'function') {
-        window.wingsSync.pushNow('Notice Deleted');
-      } else if (typeof window.scheduleSyncPush === 'function') {
-        window.scheduleSyncPush('Notice Deleted');
-      }
-    }
-  } catch(e) { console.warn('Notice delete sync error:', e); }
-
+  _noticeSave(null);
   hideNoticeBanner();
   closeNoticeModal();
   noticeToast('🗑️ নোটিস মুছে ফেলা হয়েছে', 'success');
