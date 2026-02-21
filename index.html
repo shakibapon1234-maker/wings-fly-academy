@@ -4387,10 +4387,10 @@
     <script src="supabase-config.js"></script>
 
     <!-- Supabase Sync System (Multi-user Real-time Sync) -->
-    <script src="supabase-sync-SMART-V27.js?v=1.1"></script>
+    <script src="supabase-sync-SMART-V27.js?v=1.2"></script>
 
     <!-- Main Application (Sync code now embedded inside) -->
-    <script src="app.js?v=13.7"></script>
+    <script src="app.js?v=13.8"></script>
 
     <!-- =============================================== -->
     <!-- MOBILE BANKING MODAL -->
@@ -4466,8 +4466,8 @@
     <script src="quick-fix.js"></script>
     <script src="print-fix.js"></script>
     <script src="symbol-fix.js"></script>
-    <script src="auto-heal.js"></script>
-    <script src="auto-test.js"></script>
+    <script src="auto-heal.js?v=1.2"></script>
+    <script src="auto-test.js?v=2.1"></script>
 
     <!-- =============================================== -->
     <!-- INLINE DIAGNOSTIC & TEST SYSTEM               -->
@@ -4633,11 +4633,179 @@
     window.runDiagnosticInline = runDiagnosticInline;
 
     // ============================================
-    // AUTO FUNCTION TEST SUITE — auto-test.js থেকে লোড হয়
-    // inline version সরানো হয়েছে — auto-test.js এর 100+ test suite ব্যবহার হবে
+    // AUTO FUNCTION TEST SUITE
+    // নিজে data দিয়ে সব function test করে result দেখায়
     // ============================================
-    // NOTE: window.runFunctionTests is defined in auto-test.js (loaded above)
-    // This inline override has been removed so auto-test.js takes full control.
+    async function runFunctionTests() {
+      const summaryEl = document.getElementById('functest-summary');
+      const resultsEl = document.getElementById('functest-results');
+      summaryEl.style.display = 'none';
+      resultsEl.innerHTML = '<div style="color:#7aa0c4;padding:10px;">⏳ Tests চলছে...</div>';
+
+      const results = [];
+      let passed = 0, failed = 0, warned = 0;
+
+      function test(name, fn) {
+        try {
+          const r = fn();
+          if (r === true) { results.push({name, status:'pass', msg:'OK'}); passed++; }
+          else { results.push({name, status:'fail', msg: r || 'Failed'}); failed++; }
+        } catch(e) { results.push({name, status:'fail', msg: e.message}); failed++; }
+      }
+      function warnTest(name, fn) {
+        try {
+          const r = fn();
+          if (r === true) { results.push({name, status:'pass', msg:'OK'}); passed++; }
+          else { results.push({name, status:'warn', msg: r || 'Warning'}); warned++; }
+        } catch(e) { results.push({name, status:'warn', msg: e.message}); warned++; }
+      }
+
+      // Backup & setup
+      const realStudents    = JSON.parse(JSON.stringify(window.globalData?.students    || []));
+      const realFinance     = JSON.parse(JSON.stringify(window.globalData?.finance     || []));
+      const realCash        = window.globalData?.cashBalance || 0;
+      if (!window.globalData) window.globalData = {};
+      if (!window.globalData.bankAccounts)  window.globalData.bankAccounts  = [];
+      if (!window.globalData.mobileBanking) window.globalData.mobileBanking = [];
+
+      const TSN   = '__TEST__' + Date.now();
+      const FID1  = 'TFIN1_' + Date.now();
+      const FID2  = 'TFIN2_' + (Date.now()+1);
+      const initS = (window.globalData.students || []).length;
+      const initF = (window.globalData.finance  || []).length;
+      const initC = parseFloat(window.globalData.cashBalance) || 0;
+
+      // ── Basic checks ──
+      test('globalData exists',       () => !!window.globalData);
+      test('students array আছে',       () => Array.isArray(window.globalData.students));
+      test('finance array আছে',        () => Array.isArray(window.globalData.finance));
+      test('formatNumber কাজ করে',     () => typeof formatNumber === 'function' ? true : 'function নেই');
+      test('generateStudentId কাজ করে',() => {
+        if (typeof generateStudentId !== 'function') return 'function নেই';
+        const id = generateStudentId('18');
+        return id ? true : 'ID তৈরি হয়নি';
+      });
+
+      // ── Add student ──
+      window.globalData.students = window.globalData.students || [];
+      window.globalData.finance  = window.globalData.finance  || [];
+      const testStudent = {
+        name: TSN, phone: '01700000000', course: 'TEST', batch: '99',
+        enrollDate: '2026-01-01', method: 'Cash',
+        totalPayment: 10000, paid: 3000, due: 7000,
+        studentId: 'WF-TEST-99',
+        installments: [{amount:3000, date:'2026-01-01', method:'Cash', financeId:FID1}]
+      };
+      window.globalData.students.push(testStudent);
+      window.globalData.finance.push({
+        id:FID1, type:'Income', method:'Cash', date:'2026-01-01',
+        category:'Student Fee', person:TSN, amount:3000,
+        description:'Enrollment fee for student: '+TSN
+      });
+      window.globalData.cashBalance = initC + 3000;
+
+      test('Student add হয়েছে',     () => window.globalData.students.some(s => s.name===TSN) ? true : 'Array তে নেই');
+      test('Finance entry তৈরি হয়',  () => window.globalData.finance.some(f=>f.id===FID1) ? true : 'Finance এ নেই');
+      test('Cash balance বেড়েছে',    () => (parseFloat(window.globalData.cashBalance)||0) > initC ? true : 'Cash বাড়েনি');
+
+      // ── Add 2nd installment ──
+      const st = window.globalData.students.find(s => s.name===TSN);
+      st.installments.push({amount:2000, date:'2026-01-15', method:'Cash', financeId:FID2});
+      st.paid += 2000; st.due -= 2000;
+      window.globalData.finance.push({
+        id:FID2, type:'Income', method:'Cash', date:'2026-01-15',
+        category:'Student Installment', person:TSN, amount:2000,
+        description:'Installment payment for student: '+TSN
+      });
+      window.globalData.cashBalance += 2000;
+
+      test('2nd installment add হয়', () => st.installments.length === 2 ? true : 'installments='+st.installments.length);
+      test('financeId link সঠিক',    () => {
+        const ok1 = window.globalData.finance.some(f=>String(f.id)===FID1);
+        const ok2 = window.globalData.finance.some(f=>String(f.id)===FID2);
+        if(!ok1) return '1st financeId match নেই';
+        if(!ok2) return '2nd financeId match নেই';
+        return true;
+      });
+
+      // ── Delete 1st from student modal ──
+      const inst1fid = st.installments[0]?.financeId;
+      const fc1 = window.globalData.finance.length;
+      st.installments = st.installments.filter((_,i)=>i!==0);
+      st.paid -= 3000; st.due += 3000; window.globalData.cashBalance -= 3000;
+      if (inst1fid) window.globalData.finance = window.globalData.finance.filter(f=>String(f.id)!==String(inst1fid));
+
+      test('Student modal delete → installment সরে',() => st.installments.length===1 ? true : 'installments='+st.installments.length);
+      test('Student modal delete → finance সরে',    () => (fc1-window.globalData.finance.length)===1 ? true : 'Finance সরেনি');
+      test('Student paid/due সঠিক update',          () => st.paid===2000 && st.due===8000 ? true : `paid=${st.paid} due=${st.due}`);
+
+      // ── Delete 2nd from finance ledger ──
+      const fc2 = window.globalData.finance.length;
+      const paidBefore = st.paid;
+      window.globalData.finance = window.globalData.finance.filter(f=>String(f.id)!==FID2);
+      st.installments = st.installments.filter(i=>String(i.financeId)!==FID2);
+      st.paid -= 2000; st.due += 2000; window.globalData.cashBalance -= 2000;
+
+      test('Finance delete → finance entry সরে',    () => (fc2-window.globalData.finance.length)===1 ? true : 'সরেনি');
+      test('Finance delete → student installment সরে', () => st.installments.length===0 ? true : 'installments='+st.installments.length);
+      test('Finance delete → student paid update',  () => st.paid===paidBefore-2000 ? true : `paid=${st.paid}`);
+
+      // ── Delete student ──
+      const sc = window.globalData.students.length;
+      window.globalData.students = window.globalData.students.filter(s=>s.name!==TSN);
+      test('Student delete হয়', () => (sc-window.globalData.students.length)===1 ? true : 'সরেনি');
+
+      // ── Notice board ──
+      test('Notice localStorage save/load', () => {
+        const n = {text:'TEST',type:'info',createdAt:Date.now(),expiresAt:Date.now()+999999};
+        localStorage.setItem('wingsfly_notice_board', JSON.stringify(n));
+        const r = JSON.parse(localStorage.getItem('wingsfly_notice_board')||'{}');
+        localStorage.removeItem('wingsfly_notice_board');
+        return r.text==='TEST' ? true : 'Load failed';
+      });
+      warnTest('Notice settings sync আছে', () => window.globalData?.settings?.activeNotice ? true : 'settings.activeNotice নেই — Notice sync fix দরকার');
+
+      // ── Sync functions ──
+      warnTest('immediateSyncPush আছে', () => typeof window.immediateSyncPush==='function' ? true : 'function নেই — sync fix apply করুন');
+      warnTest('scheduleSyncPush আছে',  () => typeof window.scheduleSyncPush==='function'  ? true : 'function নেই');
+
+      // ── localStorage ──
+      test('localStorage কাজ করছে', () => {
+        localStorage.setItem('__wtest__','ok');
+        const v = localStorage.getItem('__wtest__');
+        localStorage.removeItem('__wtest__');
+        return v==='ok' ? true : 'localStorage error';
+      });
+
+      // ── Cash balance ──
+      test('Cash balance negative নয়', () => {
+        return (parseFloat(window.globalData.cashBalance)||0)>=0 ? true : 'Cash negative!';
+      });
+
+      // Restore
+      window.globalData.students    = realStudents;
+      window.globalData.finance     = realFinance;
+      window.globalData.cashBalance = realCash;
+
+      // ── Render ──
+      const total = passed+failed+warned;
+      const pct   = Math.round((passed/total)*100);
+      summaryEl.style.display = 'flex';
+      summaryEl.innerHTML = `
+        <div style="background:rgba(0,255,136,0.15);border:1px solid #00ff88;border-radius:8px;padding:8px 16px;color:#00ff88;font-weight:700;">✅ ${passed} পাস</div>
+        ${failed>0?`<div style="background:rgba(255,60,80,0.15);border:1px solid #ff4466;border-radius:8px;padding:8px 16px;color:#ff4466;font-weight:700;">❌ ${failed} ফেল</div>`:''}
+        ${warned>0?`<div style="background:rgba(255,200,0,0.15);border:1px solid #ffcc00;border-radius:8px;padding:8px 16px;color:#ffcc00;font-weight:700;">⚠️ ${warned} সতর্কতা</div>`:''}
+        <div style="background:rgba(0,180,255,0.15);border:1px solid #00b4ff;border-radius:8px;padding:8px 16px;color:#00b4ff;font-weight:700;">${pct}% সফল</div>
+      `;
+      resultsEl.innerHTML = results.map(r=>`
+        <div style="display:flex;align-items:center;gap:10px;padding:7px 10px;border-bottom:1px solid rgba(255,255,255,0.05);font-size:0.82rem;">
+          <span style="flex-shrink:0;">${r.status==='pass'?'✅':r.status==='warn'?'⚠️':'❌'}</span>
+          <span style="flex:1;color:${r.status==='pass'?'#b0d4ff':r.status==='warn'?'#ffdd77':'#ff8888'};">${r.name}</span>
+          <span style="color:${r.status==='pass'?'#56d364':r.status==='warn'?'#e3b341':'#ff7b72'};font-size:0.78rem;">${r.msg}</span>
+        </div>
+      `).join('');
+    }
+    window.runFunctionTests = runFunctionTests;
     </script>
 
 

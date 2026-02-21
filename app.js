@@ -7866,8 +7866,10 @@ function recalculateCashBalanceFromTransactions() {
 // Expose to global
 window.recalculateCashBalanceFromTransactions = recalculateCashBalanceFromTransactions;
 
-// Expose togglePersonField globally
-window.togglePersonField = togglePersonField;
+// Expose togglePersonField globally (safe guard)
+if (typeof togglePersonField === 'function') {
+  window.togglePersonField = togglePersonField;
+}
 
 // ===================================
 // UNIFIED ACCOUNT SEARCH SYSTEM
@@ -8963,84 +8965,43 @@ var noticeCountdownInterval = null;
 // =====================================================
 
 function _noticeSave(notice) {
-  // ✅ NOTICE FIX v4: Race condition সমাধান
-  // সমস্যা: push async, তার আগেই pull হলে পুরনো notice restore হয়
-  // Fix: সব save → সাথে সাথে push → push শেষ হলে notice verify করো
+  // globalData এ রাখো (primary source of truth)
   try {
     if (!window.globalData) window.globalData = {};
     if (!window.globalData.settings) window.globalData.settings = {};
-
-    // Step 1: globalData update
     if (notice) {
       window.globalData.settings.activeNotice = notice;
     } else {
       delete window.globalData.settings.activeNotice;
     }
-
-    // Step 2: notice_board আগে save করো (pull এলেও এটা থাকবে)
+    // localStorage cache update
     if (notice) {
       localStorage.setItem(NOTICE_STORAGE_KEY, JSON.stringify(notice));
     } else {
       localStorage.removeItem(NOTICE_STORAGE_KEY);
     }
-
-    // Step 3: wingsfly_data save
+    // wingsfly_data save → monitor trigger → cloud push
     localStorage.setItem('wingsfly_data', JSON.stringify(window.globalData));
-
-    // Step 4: ✅ Pull block করো — notice push শেষ হওয়ার আগে pull যেন না আসে
-    window._noticePushPending = true;
-    window._noticePushData = notice ? JSON.stringify(notice) : null;
-
-    // Step 5: Push করো
-    var _pushLabel = notice ? 'Notice Published' : 'Notice Deleted';
-    var _pushDone = function() {
-      // Push শেষ — verify করো localStorage ঠিক আছে কিনা
-      window._noticePushPending = false;
-      var current = localStorage.getItem(NOTICE_STORAGE_KEY);
-      var expected = window._noticePushData;
-      if (current !== expected) {
-        // Mismatch! আবার save করো
-        if (expected) {
-          localStorage.setItem(NOTICE_STORAGE_KEY, expected);
-        } else {
-          localStorage.removeItem(NOTICE_STORAGE_KEY);
-        }
-        console.log('📢 Notice localStorage re-synced after push');
-      }
-    };
-
-    if (typeof window.wingsSync === 'object' && typeof window.wingsSync.pushNow === 'function') {
-      Promise.resolve(window.wingsSync.pushNow(_pushLabel))
-        .then(_pushDone)
-        .catch(function() {
-          window._noticePushPending = false;
-          // Retry once
-          setTimeout(function() {
-            Promise.resolve(window.wingsSync.pushNow(_pushLabel)).then(_pushDone).catch(function(){});
-          }, 3000);
-        });
+    // Immediate cloud push (bypass debounce)
+    if (typeof window.wingsSync?.pushNow === 'function') {
+      window.wingsSync.pushNow(notice ? 'Notice Published' : 'Notice Deleted');
     } else if (typeof window.scheduleSyncPush === 'function') {
-      window.scheduleSyncPush(_pushLabel);
-      setTimeout(_pushDone, 5000);
+      window.scheduleSyncPush(notice ? 'Notice Published' : 'Notice Deleted');
     }
   } catch(e) { console.warn('Notice save error:', e); }
 }
 
 function _noticeRead() {
-  // ✅ NOTICE FIX v4: push pending থাকলে globalData কে trust করো
+  // Priority: globalData > localStorage
   try {
-    // Push pending থাকলে globalData সবচেয়ে fresh — এটাই return করো
-    if (window._noticePushPending && window._noticePushData) {
-      try { return JSON.parse(window._noticePushData); } catch(e) {}
-    }
-
     const gd = window.globalData?.settings?.activeNotice;
     if (gd && gd.expiresAt) {
       if (Date.now() < gd.expiresAt) {
-        // globalData → localStorage sync করো
+        // Sync to localStorage
         localStorage.setItem(NOTICE_STORAGE_KEY, JSON.stringify(gd));
         return gd;
       } else {
+        // Expired — clean up both places
         _noticeSave(null);
         return null;
       }
@@ -9054,6 +9015,7 @@ function _noticeRead() {
       localStorage.removeItem(NOTICE_STORAGE_KEY);
       return null;
     }
+    // Restore to globalData from localStorage
     if (window.globalData?.settings) {
       window.globalData.settings.activeNotice = n;
     }
