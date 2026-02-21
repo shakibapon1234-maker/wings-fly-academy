@@ -272,12 +272,13 @@
     // --- 3e: Due calculation ---
     let badDue = 0;
     (gd.students || []).filter(s => !String(s.name || '').includes(TEST_TAG)).forEach(s => {
-      const calcDue = (parseFloat(s.fee) || 0) - (parseFloat(s.paid) || 0);
+      // ✅ FIX: app.js এ due = totalPayment - paid (s.fee নয়)
+      const calcDue = Math.max(0, (parseFloat(s.totalPayment) || 0) - (parseFloat(s.paid) || 0));
       const storedDue = parseFloat(s.due) || 0;
       if (Math.abs(calcDue - storedDue) > 1) badDue++;
     });
     if (badDue === 0) { pass('Student due calculations correct'); }
-    else { warn(`${badDue} students have incorrect due amount`, 'fee − paid ≠ due'); }
+    else { warn(`${badDue} students have incorrect due amount`, 'totalPayment − paid ≠ due'); }
 
     // --- 3f: Delete (in-memory cleanup) ---
     const r3 = safeCall(() => {
@@ -494,30 +495,16 @@
     const testPayload = {
       id: testRecordId,
       version: 1,
-      last_device: 'test_suite_v3',
-      last_updated: Date.now().toString(),
-      last_action: 'auto-test-probe',
+      device_id: 'test_suite_v3',
+      updated_at: Date.now(),
       students: [],
       finance: [],
-      employees: [],
-      settings: {},
-      income_categories: [],
-      expense_categories: [],
-      payment_methods: [],
-      cash_balance: 0,
-      bank_accounts: [],
-      mobile_banking: [],
-      course_names: [],
-      attendance: {},
-      next_id: 1,
-      users: [],
-      exam_registrations: [],
-      visitors: [],
-      employee_roles: []
+      test_tag: TEST_TAG,
+      test_ts: Date.now()
     };
 
     try {
-      // Upsert test record — Supabase JS client এর মতো করে
+      // Upsert test record
       const writeRes = await fetchSupa(`/rest/v1/academy_data`, {
         method: 'POST',
         headers: { 'Prefer': 'resolution=merge-duplicates,return=minimal' },
@@ -529,11 +516,11 @@
 
         // --- 7f: Verify written data ---
         try {
-          const verRes = await fetchSupa(`/rest/v1/academy_data?id=eq.${testRecordId}&select=id,version,last_device`);
+          const verRes = await fetchSupa(`/rest/v1/academy_data?id=eq.${testRecordId}&select=id,version,test_tag`);
           if (verRes.ok) {
             const verArr = await verRes.json();
             const rec = verArr[0];
-            if (rec && rec.last_device === 'test_suite_v3') { pass('Supabase READ-BACK OK', 'লেখা data সঠিকভাবে পড়া গেছে'); }
+            if (rec && rec.test_tag === TEST_TAG) { pass('Supabase READ-BACK OK', 'লেখা data সঠিকভাবে পড়া গেছে'); }
             else { fail('Supabase read-back mismatch', 'লেখা data পড়া গেলেও content মিলছে না'); }
           }
         } catch(e2) { warn('Supabase read-back error', e2.message); }
@@ -773,6 +760,7 @@
 
   // ─── Expose ───────────────────────────────────────────────
   window.runFunctionTests = runFunctionTests;
+  window.runAutoTests     = runFunctionTests; // ✅ alias for console use
 
   // Auto-indicate version in console
   console.log(`%c🧬 Wings Fly Test Suite v${SUITE_VERSION} loaded (Deep E2E)`, 'color:#00d4ff');
