@@ -632,11 +632,25 @@ body::after {
   filter: drop-shadow(0 0 10px var(--nav-color, #00d9ff));
 }
 
+/* Text */
 .nav-text {
   flex: 1;
   font-weight: 600;
   letter-spacing: 0.5px;
   position: relative; z-index: 1;
+  transition: color 0.25s ease, text-shadow 0.25s ease;
+}
+
+/* Hover — text color + glow */
+.nav-item-link:hover .nav-text {
+  color: var(--nav-color, #00d9ff);
+  text-shadow: 0 0 12px var(--nav-color, rgba(0,217,255,0.6));
+}
+
+/* Active — text white + subtle glow */
+.nav-item-link.av-sidebar-active .nav-text {
+  color: #fff;
+  text-shadow: 0 0 10px var(--nav-color, rgba(0,217,255,0.4));
 }
 
 /* ── Per-button colors ── */
