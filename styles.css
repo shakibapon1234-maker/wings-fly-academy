@@ -2056,17 +2056,18 @@ textarea.form-control {
 /* Student name — শুধু name link-এ color, avatar অক্ষত থাকবে */
 .table td:nth-child(3) a.hover-primary,
 .table tbody tr td:nth-child(3) a.hover-primary {
-  color: #ffd54f !important;
+  color: #00d9ff !important;
   font-weight: 700 !important;
   font-size: 1rem !important;
-  text-shadow: none !important;
+  text-shadow: 0 0 8px rgba(0, 217, 255, 0.5) !important;
   letter-spacing: 0.2px !important;
   text-decoration: none !important;
 }
 
 /* Hover */
 .table tbody tr:hover td:nth-child(3) a.hover-primary {
-  color: #ffe082 !important;
+  color: #00fff5 !important;
+  text-shadow: 0 0 12px rgba(0, 255, 245, 0.7) !important;
 }
 
 /* Cell styling আগের মতো */
