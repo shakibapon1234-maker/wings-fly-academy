@@ -849,155 +849,83 @@ body::after {
    METRIC CARDS - Enhanced Neon Style
    =================================== */
 
-/* ============================================================
-   AVIATION METRIC CARD — Running Light Border + Neon Pulse
-   ============================================================ */
-
-/* Wrapper trick: card sits inside a pseudo-border container */
 .aviation-metric-card {
   background: linear-gradient(135deg,
-      rgba(10, 14, 39, 0.97) 0%,
-      rgba(18, 12, 48, 0.97) 100%);
+      rgba(21, 26, 53, 0.95) 0%,
+      rgba(31, 21, 69, 0.95) 100%);
   padding: 2rem;
-  border-radius: 16px;
-  border: none;
-  transition: all 0.35s cubic-bezier(0.4, 0, 0.2, 1);
+  border-radius: 15px;
+  border: 2px solid;
+  transition: all var(--transition-normal);
   position: relative;
   overflow: hidden;
-  backdrop-filter: blur(14px);
-  z-index: 0;
+  backdrop-filter: blur(10px);
 }
 
-/* ── Running light border using conic-gradient ── */
 .aviation-metric-card::before {
   content: '';
   position: absolute;
-  inset: -2px;
-  border-radius: 18px;
-  z-index: -1;
-  background: conic-gradient(
-    from var(--card-angle, 0deg),
-    transparent 0%,
-    transparent 60%,
-    var(--card-light, #00d9ff) 75%,
-    transparent 90%,
-    transparent 100%
-  );
-  animation: cardLightSpin 3s linear infinite;
+  top: -50%;
+  right: -50%;
+  width: 200%;
+  height: 200%;
+  background: linear-gradient(45deg,
+      transparent,
+      rgba(255, 255, 255, 0.03),
+      transparent);
+  transform: rotate(45deg);
+  animation: shimmer 4s infinite;
 }
 
-@property --card-angle {
-  syntax: '<angle>';
-  initial-value: 0deg;
-  inherits: false;
+@keyframes shimmer {
+  0% {
+    transform: translateX(-100%) translateY(-100%) rotate(45deg);
+  }
+
+  100% {
+    transform: translateX(100%) translateY(100%) rotate(45deg);
+  }
 }
 
-@keyframes cardLightSpin {
-  0%   { --card-angle: 0deg; }
-  100% { --card-angle: 360deg; }
-}
-
-/* ── Inner background fill (hides ::before bleed) ── */
-.aviation-metric-card::after {
-  content: '';
-  position: absolute;
-  inset: 2px;
-  border-radius: 14px;
-  background: linear-gradient(135deg,
-      rgba(10, 14, 39, 0.98) 0%,
-      rgba(18, 12, 48, 0.98) 100%);
-  z-index: -1;
-}
-
-/* ── Pulse glow — always on ── */
-/* Card 1: Blue (Total Students) */
-.row.g-4 .col-md-6:nth-child(1) .aviation-metric-card {
-  --card-light: #00d9ff;
-  box-shadow:
-    0 0 15px rgba(0, 217, 255, 0.25),
-    0 0 35px rgba(0, 217, 255, 0.1);
-  animation: pulseBlue 3s ease-in-out infinite;
-}
-
-@keyframes pulseBlue {
-  0%, 100% { box-shadow: 0 0 15px rgba(0,217,255,0.25), 0 0 35px rgba(0,217,255,0.10); }
-  50%       { box-shadow: 0 0 28px rgba(0,217,255,0.55), 0 0 60px rgba(0,217,255,0.25); }
-}
-
-/* Card 2: Green (Total Income) */
-.row.g-4 .col-md-6:nth-child(2) .aviation-metric-card {
-  --card-light: #00ff88;
-  box-shadow:
-    0 0 15px rgba(0, 255, 136, 0.25),
-    0 0 35px rgba(0, 255, 136, 0.1);
-  animation: pulseGreen 3s ease-in-out infinite;
-  animation-delay: 0.75s;
-}
-
-@keyframes pulseGreen {
-  0%, 100% { box-shadow: 0 0 15px rgba(0,255,136,0.25), 0 0 35px rgba(0,255,136,0.10); }
-  50%       { box-shadow: 0 0 28px rgba(0,255,136,0.55), 0 0 60px rgba(0,255,136,0.25); }
-}
-
-/* Card 3: Orange/Red (Total Expense) */
-.row.g-4 .col-md-6:nth-child(3) .aviation-metric-card {
-  --card-light: #ff6b35;
-  box-shadow:
-    0 0 15px rgba(255, 107, 53, 0.25),
-    0 0 35px rgba(255, 107, 53, 0.1);
-  animation: pulseOrange 3s ease-in-out infinite;
-  animation-delay: 1.5s;
-}
-
-@keyframes pulseOrange {
-  0%, 100% { box-shadow: 0 0 15px rgba(255,107,53,0.25), 0 0 35px rgba(255,107,53,0.10); }
-  50%       { box-shadow: 0 0 28px rgba(255,107,53,0.55), 0 0 60px rgba(255,107,53,0.25); }
-}
-
-/* Card 4: Purple (Net Profit) */
-.row.g-4 .col-md-6:nth-child(4) .aviation-metric-card {
-  --card-light: #b537f2;
-  box-shadow:
-    0 0 15px rgba(181, 55, 242, 0.25),
-    0 0 35px rgba(181, 55, 242, 0.1);
-  animation: pulsePurple 3s ease-in-out infinite;
-  animation-delay: 2.25s;
-}
-
-@keyframes pulsePurple {
-  0%, 100% { box-shadow: 0 0 15px rgba(181,55,242,0.25), 0 0 35px rgba(181,55,242,0.10); }
-  50%       { box-shadow: 0 0 28px rgba(181,55,242,0.55), 0 0 60px rgba(181,55,242,0.25); }
-}
-
-/* ── Hover: lift + intense glow ── */
 .aviation-metric-card:hover {
-  transform: translateY(-10px) scale(1.025);
-  animation-play-state: paused;
+  transform: translateY(-8px) scale(1.02);
 }
 
-.row.g-4 .col-md-6:nth-child(1) .aviation-metric-card:hover {
-  box-shadow: 0 0 40px rgba(0,217,255,0.7), 0 0 80px rgba(0,217,255,0.35), 0 20px 40px rgba(0,0,0,0.5);
-}
-.row.g-4 .col-md-6:nth-child(2) .aviation-metric-card:hover {
-  box-shadow: 0 0 40px rgba(0,255,136,0.7), 0 0 80px rgba(0,255,136,0.35), 0 20px 40px rgba(0,0,0,0.5);
-}
-.row.g-4 .col-md-6:nth-child(3) .aviation-metric-card:hover {
-  box-shadow: 0 0 40px rgba(255,107,53,0.7), 0 0 80px rgba(255,107,53,0.35), 0 20px 40px rgba(0,0,0,0.5);
-}
-.row.g-4 .col-md-6:nth-child(4) .aviation-metric-card:hover {
-  box-shadow: 0 0 40px rgba(181,55,242,0.7), 0 0 80px rgba(181,55,242,0.35), 0 20px 40px rgba(0,0,0,0.5);
+.metric-card-blue {
+  border-color: var(--neon-blue);
+  box-shadow: var(--glow-blue);
 }
 
-/* ── Hover এ running light দ্রুত হয় ── */
-.aviation-metric-card:hover::before {
-  animation-duration: 1.2s;
+.metric-card-blue:hover {
+  box-shadow: 0 0 40px rgba(0, 217, 255, 1), 0 0 80px rgba(0, 217, 255, 0.5);
 }
 
-/* Legacy color classes (অন্য জায়গায় ব্যবহার হলে) */
-.metric-card-blue  { --card-light: #00d9ff; }
-.metric-card-green { --card-light: #00ff88; }
-.metric-card-orange{ --card-light: #ff6b35; }
-.metric-card-purple{ --card-light: #b537f2; }
+.metric-card-green {
+  border-color: var(--neon-green);
+  box-shadow: var(--glow-green);
+}
+
+.metric-card-green:hover {
+  box-shadow: 0 0 40px rgba(0, 255, 136, 1), 0 0 80px rgba(0, 255, 136, 0.5);
+}
+
+.metric-card-orange {
+  border-color: var(--neon-orange);
+  box-shadow: var(--glow-orange);
+}
+
+.metric-card-orange:hover {
+  box-shadow: 0 0 40px rgba(255, 107, 53, 1), 0 0 80px rgba(255, 107, 53, 0.5);
+}
+
+.metric-card-purple {
+  border-color: var(--neon-purple);
+  box-shadow: var(--glow-purple);
+}
+
+.metric-card-purple:hover {
+  box-shadow: 0 0 40px rgba(181, 55, 242, 1), 0 0 80px rgba(181, 55, 242, 0.5);
+}
 
 .av-card-header {
   display: flex;
@@ -1113,40 +1041,145 @@ body::after {
    SECTION CARDS - Enhanced
    =================================== */
 
+/* ============================================================
+   SECTION CARD — Animated Running Border + Glow
+   ============================================================ */
 .section-card {
   background: linear-gradient(135deg,
-      rgba(21, 26, 53, 0.95) 0%,
-      rgba(31, 21, 69, 0.95) 100%);
-  border: 2px solid var(--neon-blue);
-  border-radius: 15px;
+      rgba(8, 12, 35, 0.98) 0%,
+      rgba(15, 9, 42, 0.98) 100%);
+  border: none;
+  border-radius: 18px;
   padding: 2rem;
   margin-bottom: 2rem;
-  box-shadow: var(--glow-blue);
-  transition: all var(--transition-normal);
-  backdrop-filter: blur(10px);
+  transition: all 0.4s cubic-bezier(0.4, 0, 0.2, 1);
+  backdrop-filter: blur(16px);
+  position: relative;
+  z-index: 0;
+  overflow: hidden;
+}
+
+/* Running border — conic gradient spin */
+.section-card::before {
+  content: '';
+  position: absolute;
+  inset: -2px;
+  border-radius: 20px;
+  z-index: -1;
+  background: conic-gradient(
+    from var(--sc-angle, 0deg),
+    #00d9ff 0%,
+    #7b2ff7 20%,
+    transparent 35%,
+    transparent 65%,
+    #7b2ff7 80%,
+    #00d9ff 100%
+  );
+  animation: scSpin 6s linear infinite;
+}
+
+@property --sc-angle {
+  syntax: '<angle>';
+  initial-value: 0deg;
+  inherits: false;
+}
+
+@keyframes scSpin {
+  0%   { --sc-angle: 0deg; }
+  100% { --sc-angle: 360deg; }
+}
+
+/* Inner fill */
+.section-card::after {
+  content: '';
+  position: absolute;
+  inset: 2px;
+  border-radius: 16px;
+  background: linear-gradient(135deg,
+      rgba(8, 12, 35, 0.99) 0%,
+      rgba(15, 9, 42, 0.99) 100%);
+  z-index: -1;
+}
+
+/* Ambient glow */
+.section-card {
+  box-shadow:
+    0 0 20px rgba(0, 217, 255, 0.12),
+    0 0 50px rgba(123, 47, 247, 0.08),
+    0 8px 32px rgba(0, 0, 0, 0.4);
+  animation: scPulse 4s ease-in-out infinite;
+}
+
+@keyframes scPulse {
+  0%, 100% {
+    box-shadow: 0 0 20px rgba(0,217,255,0.12), 0 0 50px rgba(123,47,247,0.08), 0 8px 32px rgba(0,0,0,0.4);
+  }
+  50% {
+    box-shadow: 0 0 35px rgba(0,217,255,0.28), 0 0 70px rgba(123,47,247,0.18), 0 8px 32px rgba(0,0,0,0.4);
+  }
 }
 
 .section-card:hover {
-  box-shadow: 0 0 40px rgba(0, 217, 255, 0.8), 0 0 80px rgba(0, 217, 255, 0.4);
-  transform: translateY(-3px);
+  transform: translateY(-5px);
+  animation-play-state: paused;
+  box-shadow:
+    0 0 50px rgba(0, 217, 255, 0.45),
+    0 0 100px rgba(123, 47, 247, 0.25),
+    0 20px 50px rgba(0, 0, 0, 0.5);
 }
 
+/* Hover — border spins faster */
+.section-card:hover::before {
+  animation-duration: 2s;
+}
+
+/* ── Section Header ── */
 .section-header {
   display: flex;
   align-items: center;
   justify-content: space-between;
   margin-bottom: 1.5rem;
   padding-bottom: 1rem;
-  border-bottom: 2px solid rgba(0, 217, 255, 0.3);
+  border-bottom: 1px solid;
+  border-image: linear-gradient(90deg, #00d9ff, #7b2ff7, transparent) 1;
+  position: relative;
+}
+
+/* Header shimmer line */
+.section-header::after {
+  content: '';
+  position: absolute;
+  bottom: -1px;
+  left: 0;
+  width: 40%;
+  height: 2px;
+  background: linear-gradient(90deg, #00d9ff, #7b2ff7, transparent);
+  border-radius: 2px;
+  animation: headerShimmer 3s ease-in-out infinite;
+}
+
+@keyframes headerShimmer {
+  0%   { left: 0; opacity: 1; width: 40%; }
+  50%  { left: 60%; opacity: 0.8; width: 40%; }
+  100% { left: 0; opacity: 1; width: 40%; }
 }
 
 .section-title {
   font-family: 'Orbitron', sans-serif;
   font-size: 1.35rem;
   font-weight: 800;
-  color: var(--neon-cyan);
-  text-shadow: var(--glow-blue);
+  background: linear-gradient(90deg, #00d9ff, #7b2ff7);
+  -webkit-background-clip: text;
+  -webkit-text-fill-color: transparent;
+  background-clip: text;
+  filter: drop-shadow(0 0 8px rgba(0, 217, 255, 0.5));
   margin: 0;
+  animation: titleGlow 3s ease-in-out infinite;
+}
+
+@keyframes titleGlow {
+  0%, 100% { filter: drop-shadow(0 0 8px rgba(0,217,255,0.4)); }
+  50%       { filter: drop-shadow(0 0 18px rgba(0,217,255,0.8)) drop-shadow(0 0 8px rgba(123,47,247,0.5)); }
 }
 
 .section-actions .btn {
@@ -1592,19 +1625,30 @@ textarea.form-control {
 
 .chart-center-number {
   font-family: 'Orbitron', sans-serif;
-  font-size: 2.5rem;
+  font-size: 2.8rem;
   font-weight: 900;
-  color: var(--neon-cyan);
-  text-shadow: var(--glow-blue);
+  background: linear-gradient(135deg, #00d9ff, #7b2ff7);
+  -webkit-background-clip: text;
+  -webkit-text-fill-color: transparent;
+  background-clip: text;
+  filter: drop-shadow(0 0 12px rgba(0, 217, 255, 0.7));
   line-height: 1;
+  animation: centerNumPulse 2.5s ease-in-out infinite;
+}
+
+@keyframes centerNumPulse {
+  0%, 100% { filter: drop-shadow(0 0 10px rgba(0,217,255,0.6)); }
+  50%       { filter: drop-shadow(0 0 22px rgba(0,217,255,1)) drop-shadow(0 0 10px rgba(123,47,247,0.6)); }
 }
 
 .chart-center-label {
-  font-size: 0.9rem;
-  color: var(--text-muted);
-  margin-top: 0.5rem;
+  font-size: 0.78rem;
+  font-weight: 800;
+  letter-spacing: 3px;
   text-transform: uppercase;
-  letter-spacing: 1px;
+  color: rgba(255,255,255,0.6);
+  margin-top: 6px;
+  text-shadow: 0 0 8px rgba(0,217,255,0.4);
 }
 
 /* ===================================
@@ -2794,4 +2838,102 @@ tfoot th {
     background-image: none !important;
     background-color: #ffffff !important;
   }
+}
+
+/* ============================================================
+   ANALYTICS — Date Button + Chart Divider Upgrade
+   ============================================================ */
+
+.av-btn-pill {
+  display: inline-flex;
+  align-items: center;
+  gap: 8px;
+  padding: 8px 18px;
+  border-radius: 50px;
+  border: 1px solid rgba(0, 217, 255, 0.4);
+  background: rgba(0, 217, 255, 0.07);
+  color: rgba(255,255,255,0.85);
+  font-size: 0.82rem;
+  font-weight: 700;
+  letter-spacing: 0.5px;
+  cursor: pointer;
+  transition: all 0.3s ease;
+  backdrop-filter: blur(8px);
+  box-shadow: 0 0 12px rgba(0,217,255,0.15), inset 0 1px 0 rgba(255,255,255,0.06);
+  position: relative;
+  overflow: hidden;
+}
+
+.av-btn-pill::before {
+  content: '';
+  position: absolute;
+  inset: 0;
+  border-radius: 50px;
+  background: linear-gradient(90deg, transparent, rgba(0,217,255,0.12), transparent);
+  transform: translateX(-100%);
+  animation: pillShimmer 2.5s ease-in-out infinite;
+}
+
+@keyframes pillShimmer {
+  0%   { transform: translateX(-100%); }
+  60%, 100% { transform: translateX(100%); }
+}
+
+.av-btn-pill:hover {
+  border-color: rgba(0, 217, 255, 0.8);
+  background: rgba(0, 217, 255, 0.14);
+  box-shadow: 0 0 20px rgba(0,217,255,0.4);
+  color: #00d9ff;
+  transform: translateY(-2px);
+}
+
+/* ── Revenue chart label ── */
+.analytics-chart-label {
+  font-size: 0.82rem;
+  font-weight: 700;
+  letter-spacing: 1.5px;
+  text-transform: uppercase;
+  color: rgba(255,255,255,0.5);
+  margin-bottom: 1.2rem;
+  display: flex;
+  align-items: center;
+  gap: 8px;
+}
+
+.analytics-chart-label::before {
+  content: '';
+  display: inline-block;
+  width: 28px;
+  height: 3px;
+  border-radius: 2px;
+  background: linear-gradient(90deg, #00d9ff, #7b2ff7);
+  box-shadow: 0 0 8px rgba(0,217,255,0.6);
+}
+
+/* ── Doughnut divider ── */
+.border-av-border {
+  border-color: rgba(0, 217, 255, 0.15) !important;
+  position: relative;
+}
+
+.border-av-border::before {
+  content: '';
+  position: absolute;
+  left: -1px;
+  top: 10%;
+  height: 80%;
+  width: 1px;
+  background: linear-gradient(180deg,
+    transparent,
+    rgba(0,217,255,0.6) 20%,
+    rgba(123,47,247,0.6) 80%,
+    transparent
+  );
+  box-shadow: 0 0 8px rgba(0,217,255,0.4);
+  animation: dividerPulse 3s ease-in-out infinite;
+}
+
+@keyframes dividerPulse {
+  0%, 100% { opacity: 0.5; }
+  50%       { opacity: 1; box-shadow: 0 0 16px rgba(0,217,255,0.7); }
 }
