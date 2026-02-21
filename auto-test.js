@@ -95,17 +95,39 @@
   function appendResult(r) {
     const el = document.getElementById('functest-results');
     if (!el) return;
-    const colors = { pass: '#00ff88', fail: '#ff4466', warn: '#ffcc00', skip: '#888' };
-    const icons  = { pass: '✅', fail: '❌', warn: '⚠️', skip: '⏭' };
-    const bg = r.s === 'fail' ? 'rgba(255,68,102,0.06)' : r.s === 'warn' ? 'rgba(255,200,0,0.06)' : 'transparent';
-    el.innerHTML += `
-      <div style="display:flex;align-items:flex-start;gap:8px;padding:5px 4px;border-bottom:1px solid rgba(255,255,255,0.05);background:${bg};border-radius:4px;margin-bottom:2px;">
-        <span style="font-size:0.85rem;min-width:18px;">${icons[r.s]}</span>
-        <div style="flex:1;min-width:0;">
-          <span style="color:${colors[r.s]};font-size:0.8rem;font-weight:600;">${r.name}</span>
-          ${r.detail ? `<span style="color:#7aa0c4;font-size:0.72rem;margin-left:6px;">${r.detail}</span>` : ''}
-        </div>
-      </div>`;
+    const icons = { pass: '✅', fail: '❌', warn: '⚠️', skip: '⏭' };
+
+    if (r.s === 'fail') {
+      el.innerHTML += `
+        <div style="display:flex;align-items:flex-start;gap:10px;padding:10px 12px;
+          background:#3a0010;border:2px solid #ff2244;border-radius:8px;margin-bottom:6px;">
+          <span style="font-size:1.1rem;min-width:22px;">❌</span>
+          <div style="flex:1;">
+            <div style="color:#ff4466;font-size:0.95rem;font-weight:800;">${r.name}</div>
+            ${r.detail ? `<div style="color:#ffaaaa;font-size:0.82rem;margin-top:3px;">👉 ${r.detail}</div>` : ''}
+          </div>
+        </div>`;
+    } else if (r.s === 'warn') {
+      el.innerHTML += `
+        <div style="display:flex;align-items:flex-start;gap:8px;padding:7px 10px;
+          background:rgba(255,200,0,0.1);border:1px solid rgba(255,200,0,0.4);border-radius:6px;margin-bottom:4px;">
+          <span style="font-size:0.9rem;min-width:18px;">⚠️</span>
+          <div style="flex:1;">
+            <span style="color:#ffcc00;font-size:0.82rem;font-weight:600;">${r.name}</span>
+            ${r.detail ? `<span style="color:#c8a000;font-size:0.73rem;margin-left:6px;">${r.detail}</span>` : ''}
+          </div>
+        </div>`;
+    } else {
+      el.innerHTML += `
+        <div style="display:flex;align-items:flex-start;gap:8px;padding:5px 4px;
+          border-bottom:1px solid rgba(255,255,255,0.05);border-radius:4px;margin-bottom:2px;">
+          <span style="font-size:0.85rem;min-width:18px;">${icons[r.s]}</span>
+          <div style="flex:1;">
+            <span style="color:#00ff88;font-size:0.8rem;font-weight:600;">${r.name}</span>
+            ${r.detail ? `<span style="color:#7aa0c4;font-size:0.72rem;margin-left:6px;">${r.detail}</span>` : ''}
+          </div>
+        </div>`;
+    }
     el.scrollTop = el.scrollHeight;
   }
 
@@ -736,6 +758,29 @@
     const failed = results.filter(r => r.s === 'fail').length;
     const warned = results.filter(r => r.s === 'warn').length;
     const total  = results.length;
+
+    // ✅ FAIL SUMMARY BOX — সবার উপরে লাল বক্সে দেখাবে
+    if (failed > 0 && resultsEl) {
+      const failedList = results.filter(r => r.s === 'fail');
+      const failBox = document.createElement('div');
+      failBox.style.cssText = 'background:#3a0010;border:2px solid #ff2244;border-radius:10px;padding:14px 16px;margin:10px 0 16px;';
+      failBox.innerHTML = `
+        <div style="color:#ff2244;font-size:1rem;font-weight:900;margin-bottom:10px;">
+          🚨 ${failed}টি FAIL — এখনই ঠিক করুন:
+        </div>
+        ${failedList.map((r, i) => `
+          <div style="display:flex;gap:8px;padding:7px 0;border-bottom:1px solid rgba(255,34,68,0.2);">
+            <span style="color:#ff4466;font-weight:800;min-width:22px;">${i + 1}.</span>
+            <div>
+              <div style="color:#ff6680;font-size:0.9rem;font-weight:700;">${r.name}</div>
+              ${r.detail ? `<div style="color:#ffaaaa;font-size:0.78rem;margin-top:2px;">👉 ${r.detail}</div>` : ''}
+            </div>
+          </div>`).join('')}
+      `;
+      // results area এর ২য় child এর আগে insert (১ম child = header)
+      const secondChild = resultsEl.children[1];
+      resultsEl.insertBefore(failBox, secondChild || null);
+    }
 
     // Re-render all results (they were already appended live, just update summary)
     renderSummary(total, passed, failed, warned);
