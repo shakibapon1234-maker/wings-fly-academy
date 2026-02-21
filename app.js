@@ -5,7 +5,6 @@
 
 const APP_VERSION = "5.0-SYNC-PRO"; // Redefined safely here
 console.log(`🚀 Wings Fly Aviation - System Version: ${APP_VERSION}`);
-window.APP_VERSION = APP_VERSION; // ← auto-test.js এর জন্য
 
 // Initialize Global Data immediately to prevent ReferenceErrors
 if (typeof window.globalData === 'undefined') {
@@ -1270,6 +1269,19 @@ function showDashboard(username) {
   }
 
   checkDailyBackup();
+
+  // ✅ Login এর পরে ৫ সেকেন্ড পরে snapshot নাও (data load হয়ে যাবে)
+  setTimeout(function() {
+    if (typeof takeSnapshot === 'function' && window.globalData && window.globalData.students) {
+      var snaps = typeof getSnapshots === 'function' ? getSnapshots() : [];
+      var last = snaps[0];
+      // আজকের কোনো snapshot না থাকলে নাও
+      if (!last || (Date.now() - last.id) > 30 * 60 * 1000) {
+        console.log('📸 Login snapshot নেওয়া হচ্ছে...');
+        takeSnapshot();
+      }
+    }
+  }, 5000);
 }
 
 function logout() {
@@ -9538,7 +9550,13 @@ document.addEventListener('DOMContentLoaded', function() {
   var ONE_HOUR = 60 * 60 * 1000;
 
   // ৩ সেকেন্ড পর প্রথম snapshot
+  // ৩ সেকেন্ড পর প্রথম snapshot — শুধু login থাকলে
   setTimeout(function() {
+    // Login না থাকলে snapshot নেওয়ার দরকার নেই
+    if (sessionStorage.getItem('isLoggedIn') !== 'true') {
+      console.log('📸 Snapshot skip — not logged in yet');
+      return;
+    }
     if (window.globalData) {
       if (!window.globalData.deletedItems) window.globalData.deletedItems = [];
       if (!window.globalData.activityHistory) window.globalData.activityHistory = [];
@@ -9548,6 +9566,8 @@ document.addEventListener('DOMContentLoaded', function() {
 
   // প্রতি ৫ মিনিটে check, ১ ঘন্টা পার হলে নতুন নাও
   setInterval(function() {
+    // Login না থাকলে snapshot নেওয়ার দরকার নেই
+    if (sessionStorage.getItem('isLoggedIn') !== 'true') return;
     var snaps = getSnapshots();
     var last = snaps[0];
     if (!last || (Date.now() - last.id) > ONE_HOUR) {
