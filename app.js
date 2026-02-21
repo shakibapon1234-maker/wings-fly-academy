@@ -7110,18 +7110,31 @@ function populateBatchFilter() {
   });
 
   console.log('✅ Batch filter populated successfully');
+
+  // Populate Subject/Course filter
+  const subjectSelect = document.getElementById('subjectFilterSelect');
+  if (subjectSelect) {
+    const subjects = [...new Set(globalData.students.map(s => s.course))].filter(c => c).sort();
+    subjectSelect.innerHTML = '<option value="">All Subjects</option>';
+    subjects.forEach(c => {
+      subjectSelect.innerHTML += `<option value="${c}">${c}</option>`;
+    });
+    console.log('✅ Subject filter populated successfully');
+  }
 }
 
 function applyAdvancedSearch() {
   const batch = document.getElementById('batchFilterSelect')?.value;
+  const subject = document.getElementById('subjectFilterSelect')?.value;
   const startDate = document.getElementById('advSearchStartDate')?.value;
   const endDate = document.getElementById('advSearchEndDate')?.value;
 
   const filtered = globalData.students.filter(s => {
     const matchBatch = !batch || s.batch?.toString() === batch;
+    const matchSubject = !subject || s.course === subject;
     const matchStart = !startDate || s.enrollDate >= startDate;
     const matchEnd = !endDate || s.enrollDate <= endDate;
-    return matchBatch && matchStart && matchEnd;
+    return matchBatch && matchSubject && matchStart && matchEnd;
   });
 
   // Calculate totals
@@ -7136,7 +7149,7 @@ function applyAdvancedSearch() {
 
   // Show/hide summary
   const summary = document.getElementById('advSearchSummary');
-  if (batch || startDate || endDate) {
+  if (batch || subject || startDate || endDate) {
     summary.classList.remove('d-none');
   } else {
     summary.classList.add('d-none');
@@ -7148,6 +7161,9 @@ function applyAdvancedSearch() {
 
 function clearAdvancedSearch() {
   document.getElementById('batchFilterSelect').value = '';
+  if (document.getElementById('subjectFilterSelect')) {
+    document.getElementById('subjectFilterSelect').value = '';
+  }
   document.getElementById('advSearchStartDate').value = '';
   document.getElementById('advSearchEndDate').value = '';
   document.getElementById('advSearchSummary').classList.add('d-none');
