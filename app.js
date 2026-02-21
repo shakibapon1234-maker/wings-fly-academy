@@ -3825,7 +3825,14 @@ function deleteStudent(rowIndex) {
     return;
   }
 
-  // ✅ Sync এ 'Delete' word পাঠাও যাতে cloud এ delete বোঝা যায়
+  // ✅ FIX V27: আগে localStorage এ save — তারপর cloud push
+  // এটা না করলে রিফ্রেশে localStorage থেকে পুরোনো data ফিরে আসে
+  localStorage.setItem('wingsfly_data', JSON.stringify(window.globalData));
+  localStorage.setItem('wingsfly_deleted_backup', JSON.stringify(window.globalData.deletedItems || []));
+  localStorage.setItem('wingsfly_activity_backup', JSON.stringify(window.globalData.activityHistory || []));
+  console.log('💾 [DELETE] Saved to localStorage immediately');
+
+  // Cloud push
   if (typeof window.scheduleSyncPush === 'function') {
     window.scheduleSyncPush('Delete Student: ' + (student.name || 'Unknown'));
   } else {
