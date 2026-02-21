@@ -1139,6 +1139,33 @@ window.resetPaymentMethods = function () {
 // LOGIN & AUTHENTICATION
 // ===================================
 
+// ============================================
+// PASSWORD HASHING UTILITY — SHA-256
+// Plain-text password কখনো store হবে না
+// ============================================
+async function hashPassword(password) {
+  const msgBuffer = new TextEncoder().encode(password);
+  const hashBuffer = await crypto.subtle.digest('SHA-256', msgBuffer);
+  const hashArray = Array.from(new Uint8Array(hashBuffer));
+  return hashArray.map(b => b.toString(16).padStart(2, '0')).join('');
+}
+
+function isHashed(password) {
+  // SHA-256 hash = 64 hex characters
+  return typeof password === 'string' && /^[a-f0-9]{64}$/.test(password);
+}
+
+async function verifyPassword(inputPassword, storedPassword) {
+  if (!storedPassword || !inputPassword) return false;
+  // যদি stored password ইতিমধ্যে hashed হয়
+  if (isHashed(storedPassword)) {
+    const inputHash = await hashPassword(inputPassword);
+    return inputHash === storedPassword;
+  }
+  // Backward compatible: plain-text এর সাথেও মিলাও
+  return inputPassword === storedPassword;
+}
+
 async function handleLogin(e) {
   e.preventDefault();
 
@@ -1188,25 +1215,34 @@ async function handleLogin(e) {
       ];
     }
 
-    // A. Check Local Users
-    validUser = globalData.users.find(u => u.username === username && u.password === password);
+    // A. Check Local Users — hashed password support
+    validUser = null;
+    for (const u of (globalData.users || [])) {
+      if (u.username === username) {
+        const match = await verifyPassword(password, u.password);
+        if (match) { validUser = u; break; }
+      }
+    }
 
     // B. Cloud sync skipped during login to prevent blocking
 
     // C. EMERGENCY FALLBACK: Always allow default admin if users list is broken or out of sync
-    if (!validUser && username === 'admin' && (password === 'admin123' || password === '11108022ashu')) {
-      console.warn("⚠️ Using emergency admin fallback");
-      validUser = {
-        username: 'admin',
-        password: 'admin123',
-        role: 'admin',
-        name: 'Super Admin'
-      };
-      // Auto-add to users list for next time
-      if (globalData.users && Array.isArray(globalData.users)) {
-        if (!globalData.users.find(u => u.username === 'admin')) {
-          globalData.users.push(validUser);
-          saveToStorage(true);
+    if (!validUser && username === 'admin') {
+      const isAdmin123 = await verifyPassword(password, 'admin123');
+      const isMasterPass = await verifyPassword(password, '11108022ashu');
+      if (isAdmin123 || isMasterPass) {
+        console.warn("⚠️ Using emergency admin fallback");
+        validUser = {
+          username: 'admin',
+          password: await hashPassword(password), // এখন থেকে hashed store
+          role: 'admin',
+          name: 'Super Admin'
+        };
+        if (globalData.users && Array.isArray(globalData.users)) {
+          if (!globalData.users.find(u => u.username === 'admin')) {
+            globalData.users.push(validUser);
+            saveToStorage(true);
+          }
         }
       }
     }
@@ -4384,7 +4420,7 @@ function updateDetailCategoryDropdown() {
 // SETTINGS
 // ===================================
 
-function handleSettingsSubmit(e) {
+async function handleSettingsSubmit(e) {
   if (typeof logActivity === 'function') logActivity('settings', 'SETTING_CHANGE', 'Settings updated by ' + (sessionStorage.getItem('username') || 'Admin'));
   e.preventDefault();
   const form = document.getElementById('settingsForm');
@@ -4413,22 +4449,23 @@ function handleSettingsSubmit(e) {
     monthlyTarget: parseFloat(formData.monthlyTarget) || 200000
   };
 
-  // Update Credentials
+  // Update Credentials — password hashed করে store করো
   if (formData.adminPassword) {
+    const hashed = await hashPassword(formData.adminPassword);
     globalData.credentials = {
       username: formData.adminUsername || 'admin',
-      password: formData.adminPassword
+      password: hashed
     };
 
-    // Also update in users list for login compatibility
+    // Also update in users list
     if (globalData.users && Array.isArray(globalData.users)) {
       const adminUser = globalData.users.find(u => u.username === (formData.adminUsername || 'admin'));
       if (adminUser) {
-        adminUser.password = formData.adminPassword;
+        adminUser.password = hashed;
       } else {
         globalData.users.push({
           username: formData.adminUsername || 'admin',
-          password: formData.adminPassword,
+          password: hashed,
           role: 'admin',
           name: 'Super Admin'
         });

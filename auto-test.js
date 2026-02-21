@@ -1067,10 +1067,11 @@
     else { fail('Session not active!', 'User logged out হয়ে গেছে'); }
 
     // --- 15b: Password not stored in plain text in localStorage ---
-    const raw = localStorage.getItem('wingsfly_data') || '';
-    const hasPlainPass = /"password"\s*:\s*"[^"]{4,}"/.test(raw);
-    if (!hasPlainPass) { pass('No plain-text passwords in localStorage'); }
-    else { warn('Possible plain-text password in localStorage!', 'Security risk — hash করুন'); }
+    const rawLS = localStorage.getItem('wingsfly_data') || '';
+    const passMatches = [...rawLS.matchAll(/"password"\s*:\s*"([^"]+)"/g)];
+    const hasPlainPass = passMatches.some(m => !/^[a-f0-9]{64}$/.test(m[1]));
+    if (!hasPlainPass) { pass('Passwords hashed in localStorage ✓', 'SHA-256 — secure'); }
+    else { warn('Plain-text password in localStorage!', 'Security risk — hash করুন'); }
 
     // --- 15c: API key not exposed in globalData ---
     const gdStr = JSON.stringify(window.globalData || {});
