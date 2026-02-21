@@ -315,8 +315,6 @@
     }).join('');
   }
 
-<<<<<<< HEAD
-=======
   // ── Function Test results clear ──
   function clearTestResults() {
     var rd = document.getElementById('functest-results');
@@ -341,7 +339,6 @@
     if (bdg)     bdg.textContent       = '';
   }
 
->>>>>>> c7cb71984407ec23818bd947e2eed02e73c2b236
   // ── PUBLIC API ──
   window.runFunctionTests = function() {
     var rd = document.getElementById('functest-results');
@@ -349,15 +346,6 @@
     setTimeout(function() { renderResults(runAllTests()); }, 100);
   };
 
-<<<<<<< HEAD
-  // Auto-run on load
-  if (document.readyState === 'loading') {
-    document.addEventListener('DOMContentLoaded', function() { setTimeout(function(){ renderResults(runAllTests()); }, 800); });
-  } else {
-    setTimeout(function() { renderResults(runAllTests()); }, 800);
-  }
-
-=======
   // Page load-এ দুটোই clear করো (auto-run নয়)
   function clearAll() { clearTestResults(); clearDiagResults(); }
 
@@ -372,5 +360,4 @@
     if (e.target && e.target.id === 'settingsModal') clearAll();
   });
 
->>>>>>> c7cb71984407ec23818bd947e2eed02e73c2b236
 })();

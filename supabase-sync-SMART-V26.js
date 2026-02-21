@@ -238,22 +238,12 @@
           examRegistrations: data.exam_registrations || [],
           visitors: data.visitors || [],
           employeeRoles: data.employee_roles || [],
-          noticeBoard: data.notice_board || null,
           deletedItems: _preservedDeleted,
           activityHistory: _preservedActivity
         };
 
         // Save to localStorage
         localStorage.setItem('wingsfly_data', JSON.stringify(window.globalData));
-
-        // Notice cloud থেকে এলে localStorage-এও sync করো
-        if (data.notice_board && data.notice_board.expiresAt && Date.now() < data.notice_board.expiresAt) {
-          localStorage.setItem('wingsfly_notice_board', JSON.stringify(data.notice_board));
-          if (typeof window.initNoticeBoard === 'function') window.initNoticeBoard();
-        } else if (!data.notice_board) {
-          localStorage.removeItem('wingsfly_notice_board');
-          if (typeof window.initNoticeBoard === 'function') window.initNoticeBoard();
-        }
         localStorage.setItem('lastSyncTime', cloudTimestamp.toString());
         localStorage.setItem('wings_local_version', cloudVersion.toString());
         
@@ -369,7 +359,6 @@
         exam_registrations: window.globalData.examRegistrations || [],
         visitors: window.globalData.visitors || [],
         employee_roles: window.globalData.employeeRoles || [],
-        notice_board: window.globalData.noticeBoard || null,
         version: localVersion,
         last_updated: timestamp.toString(),
         last_device: DEVICE_ID,

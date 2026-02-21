@@ -1272,6 +1272,7 @@ function logout() {
   if (typeof logActivity === 'function') logActivity('login', 'LOGOUT', 'User logged out: ' + (sessionStorage.getItem('username') || 'Admin'));
   sessionStorage.removeItem('isLoggedIn');
   sessionStorage.removeItem('username');
+  localStorage.setItem('wingsfly_active_tab', 'dashboard'); // লগইনের পরে সবসময় Dashboard-এ যাবে
 
   document.getElementById('dashboardSection').classList.add('d-none');
   document.getElementById('loginSection').classList.remove('d-none');
@@ -3985,20 +3986,6 @@ function deleteTransaction(id) {
   }
 
   globalData.finance = globalData.finance.filter(f => String(f.id) !== sid);
-
-  // ✅ FIX: Student Installment হলে student.installments থেকেও সরাও
-  if (txToDelete.category === 'Student Installment' && txToDelete.person) {
-    const student = globalData.students.find(s => s.name === txToDelete.person);
-    if (student && student.installments && student.installments.length > 0) {
-      const matchIdx = student.installments.findIndex(inst =>
-        parseFloat(inst.amount) === parseFloat(txToDelete.amount) &&
-        (inst.date === txToDelete.date || !inst.date)
-      );
-      if (matchIdx !== -1) student.installments.splice(matchIdx, 1);
-      student.paid = Math.max(0, (parseFloat(student.paid) || 0) - parseFloat(txToDelete.amount));
-      student.due  = Math.max(0, (parseFloat(student.totalPayment) || 0) - student.paid);
-    }
-  }
   
   // Render FIRST so user sees the change immediately (before async cloud push)
   renderLedger(globalData.finance);

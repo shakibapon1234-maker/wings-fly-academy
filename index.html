@@ -686,63 +686,6 @@
 }
 #sidebarLogoImg { border-radius: 50%; }
 #sidebarLogoImg.is-active { animation: sidebarLogoSpin 2s linear infinite; }
-<<<<<<< HEAD
-=======
-
-/* ══════════════════════════════════════
-   NOTICE BOARD — Type Colors
-══════════════════════════════════════ */
-#noticeBoardBanner {
-  transition: background 0.3s ease;
-}
-/* Warning — হলুদ */
-#noticeBoardBanner.notice-warning {
-  background: linear-gradient(90deg, #92400e, #b45309, #78350f) !important;
-  border-left: 4px solid #fbbf24 !important;
-  box-shadow: 0 2px 16px rgba(251,191,36,0.25) !important;
-}
-#noticeBoardBanner.notice-warning .notice-label,
-#noticeBoardBanner.notice-warning .notice-scroll-text,
-#noticeBoardBanner.notice-warning .notice-countdown-badge {
-  color: #fde68a !important;
-}
-#noticeBoardBanner.notice-warning .notice-icon-pulse::before {
-  background: #fbbf24 !important;
-}
-/* Danger — লাল */
-#noticeBoardBanner.notice-danger {
-  background: linear-gradient(90deg, #7f1d1d, #991b1b, #7f1d1d) !important;
-  border-left: 4px solid #ef4444 !important;
-  box-shadow: 0 2px 16px rgba(239,68,68,0.3) !important;
-}
-#noticeBoardBanner.notice-danger .notice-label,
-#noticeBoardBanner.notice-danger .notice-scroll-text,
-#noticeBoardBanner.notice-danger .notice-countdown-badge {
-  color: #fecaca !important;
-}
-/* Info — নীল */
-#noticeBoardBanner.notice-info {
-  background: linear-gradient(90deg, #1e3a5f, #1d4ed8, #1e3a5f) !important;
-  border-left: 4px solid #60a5fa !important;
-  box-shadow: 0 2px 16px rgba(96,165,250,0.25) !important;
-}
-#noticeBoardBanner.notice-info .notice-label,
-#noticeBoardBanner.notice-info .notice-scroll-text,
-#noticeBoardBanner.notice-info .notice-countdown-badge {
-  color: #bfdbfe !important;
-}
-/* Success — সবুজ */
-#noticeBoardBanner.notice-success {
-  background: linear-gradient(90deg, #064e3b, #065f46, #064e3b) !important;
-  border-left: 4px solid #34d399 !important;
-  box-shadow: 0 2px 16px rgba(52,211,153,0.25) !important;
-}
-#noticeBoardBanner.notice-success .notice-label,
-#noticeBoardBanner.notice-success .notice-scroll-text,
-#noticeBoardBanner.notice-success .notice-countdown-badge {
-  color: #a7f3d0 !important;
-}
->>>>>>> c7cb71984407ec23818bd947e2eed02e73c2b236
 </style>
 </head>
 
@@ -4690,75 +4633,8 @@
     window.runDiagnosticInline = runDiagnosticInline;
 
     // ============================================
-    // FUNCTION TEST (test.html logic inline)
-    // ============================================
-    async function runFunctionTests() {
-      const resultsDiv = document.getElementById('functest-results');
-      const summaryDiv = document.getElementById('functest-summary');
-      resultsDiv.innerHTML = '<div class="text-muted p-2">⏳ পরীক্ষা চলছে...</div>';
-
-      const data = window.globalData || JSON.parse(localStorage.getItem('wingsfly_data') || '{}');
-      let pass=0, fail=0, warn=0;
-      const rows = [];
-
-      function check(name, ok, detail, isWarn=false) {
-        if (ok) pass++;
-        else if (isWarn) warn++;
-        else fail++;
-        const badgeCls = ok ? 'ft-badge-pass' : isWarn ? 'ft-badge-warn' : 'ft-badge-fail';
-        const badgeTxt = ok ? 'PASS' : isWarn ? 'WARN' : 'FAIL';
-        rows.push(`<div class="ft-row">
-          <span style="margin-right:6px;">${ok?'✅':isWarn?'⚠️':'❌'}</span>
-          <div style="flex:1;"><div class="ft-name">${name}</div><div class="ft-detail">${detail}</div></div>
-          <span class="${badgeCls}">${badgeTxt}</span>
-        </div>`);
-      }
-
-      // Test 1: Data exists
-      check('Local data loaded', !!(data && data.students), data?.students ? `${data.students.length} students found` : 'localStorage-এ data নেই');
-
-      // Test 2: Student IDs unique
-      const ids = (data.students||[]).map(s=>s.studentId).filter(Boolean);
-      const uniqueIds = new Set(ids);
-      check('Student IDs unique', ids.length === uniqueIds.size, ids.length===uniqueIds.size ? 'সব ID আলাদা' : `${ids.length - uniqueIds.size} টি duplicate ID আছে!`, ids.length!==uniqueIds.size);
-
-      // Test 3: Finance integrity
-      const hasLoanInIncome = (data.finance||[]).some(f => f.type==='Income' && f.category?.toLowerCase().includes('loan'));
-      check('Loan Income-এ নেই', !hasLoanInIncome, hasLoanInIncome ? 'কিছু Loan ভুলভাবে Income-এ আছে!' : 'Loan শুধু Balance-এ যাচ্ছে ✓');
-
-      // Test 4: Student due calculation
-      const dueMismatch = (data.students||[]).filter(s => {
-        const calc = (parseFloat(s.totalPayment)||0) - (parseFloat(s.paid)||0);
-        return Math.abs(calc - (parseFloat(s.due)||0)) > 1;
-      });
-      check('Student Due calculation', dueMismatch.length===0, dueMismatch.length===0 ? 'সব student-এর due ঠিক আছে' : `${dueMismatch.length} জন student-এর due mismatch!`, dueMismatch.length>0);
-
-      // Test 5: Cash balance non-negative
-      const cash = parseFloat(data.cashBalance)||0;
-      check('Cash balance', cash >= 0, cash>=0 ? diagFmt(cash)+' (ঠিক আছে)' : diagFmt(cash)+' (negative!)', cash<0);
-
-      // Test 6: Cloud reachable
-      try {
-        const r = await fetch(DIAG_URL, { headers:{'apikey':DIAG_KEY,'Authorization':'Bearer '+DIAG_KEY}, signal: AbortSignal.timeout(5000) });
-        check('Cloud (Supabase) reachable', r.ok, r.ok ? 'সংযোগ ঠিক আছে ✓' : 'HTTP '+r.status);
-      } catch(e) { check('Cloud (Supabase) reachable', false, 'সংযোগ হচ্ছে না: '+e.message); }
-
-      // Test 7: Key functions exist
-      const fns = ['updateGlobalStats','saveToStorage','renderDashboard','updateAccountBalance'];
-      fns.forEach(fn => {
-        check(`function: ${fn}()`, typeof window[fn]==='function', typeof window[fn]==='function' ? 'defined ✓' : 'MISSING — ভুল হবে!');
-      });
-
-      // Render
-      summaryDiv.style.cssText = 'display:flex!important; gap:8px; margin-bottom:8px; flex-wrap:wrap;';
-      summaryDiv.innerHTML =
-        `<span class="ft-badge-pass" style="padding:4px 12px;font-size:0.78rem;">✅ ${pass} Pass</span>` +
-        `<span class="ft-badge-fail" style="padding:4px 12px;font-size:0.78rem;">❌ ${fail} Fail</span>` +
-        `<span class="ft-badge-warn" style="padding:4px 12px;font-size:0.78rem;">⚠️ ${warn} Warn</span>`;
-      resultsDiv.style.cssText = 'max-height:220px;overflow-y:auto;background:rgba(0,0,0,0.2);border-radius:8px;border:1px solid rgba(255,255,255,0.08);';
-      resultsDiv.innerHTML = rows.join('');
-    }
-    window.runFunctionTests = runFunctionTests;
+    // FUNCTION TEST → auto-test.js দ্বারা handle হচ্ছে
+    // (পুরনো function সরানো হয়েছে — auto-test.js override হওয়া বন্ধ)
     </script>
 
 
