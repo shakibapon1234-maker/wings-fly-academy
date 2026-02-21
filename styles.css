@@ -2466,31 +2466,73 @@ tfoot th {
   display: flex;
   align-items: center;
   gap: 0;
-  min-height: 48px;
+  min-height: 54px;
   overflow: hidden;
-  border-bottom: 2px solid rgba(255,255,255,0.15);
+  border-bottom: 3px solid rgba(255,255,255,0.2);
+  border-top: 3px solid rgba(255,255,255,0.2);
+  position: relative;
 }
 
-/* Type variants */
+/* Shimmer overlay for all types */
+.notice-banner-inner::after {
+  content: '';
+  position: absolute;
+  top: 0; left: -100%;
+  width: 60%;
+  height: 100%;
+  background: linear-gradient(90deg, transparent, rgba(255,255,255,0.08), transparent);
+  animation: noticeShimmer 3s linear infinite;
+  pointer-events: none;
+}
+
+@keyframes noticeShimmer {
+  0%   { left: -60%; }
+  100% { left: 160%; }
+}
+
+/* ── WARNING (গাঢ় লাল — DUE card এর মতো) ── */
 #noticeBoardBanner.notice-warning .notice-banner-inner {
-  background: linear-gradient(90deg, #b45309, #d97706, #f59e0b, #d97706, #b45309);
+  background: linear-gradient(90deg, #7f1d1d, #b91c1c, #dc2626, #b91c1c, #7f1d1d);
   background-size: 200% 100%;
-  animation: noticeSlideDown 0.5s ease both, noticeBgShift 4s linear infinite;
+  border-top: 3px solid #f87171;
+  border-bottom: 3px solid #f87171;
+  box-shadow: 0 0 18px rgba(220, 38, 38, 0.5), inset 0 1px 0 rgba(255,255,255,0.1);
+  animation: noticeSlideDown 0.5s ease both, noticeBgShift 5s linear infinite;
 }
+
+/* ── DANGER (উজ্জ্বল লাল + glow) ── */
 #noticeBoardBanner.notice-danger .notice-banner-inner {
-  background: linear-gradient(90deg, #7f1d1d, #dc2626, #ef4444, #dc2626, #7f1d1d);
+  background: linear-gradient(90deg, #6b0000, #b91c1c, #ef4444, #b91c1c, #6b0000);
   background-size: 200% 100%;
-  animation: noticeSlideDown 0.5s ease both, noticeBgShift 4s linear infinite;
+  border-top: 3px solid #fca5a5;
+  border-bottom: 3px solid #fca5a5;
+  box-shadow: 0 0 24px rgba(239, 68, 68, 0.65), inset 0 1px 0 rgba(255,255,255,0.12);
+  animation: noticeSlideDown 0.5s ease both, noticeBgShift 3s linear infinite, noticeDangerPulse 2s ease-in-out infinite;
 }
+
+@keyframes noticeDangerPulse {
+  0%, 100% { box-shadow: 0 0 20px rgba(239, 68, 68, 0.6); }
+  50%       { box-shadow: 0 0 36px rgba(239, 68, 68, 0.9), 0 0 8px rgba(255,100,100,0.4); }
+}
+
+/* ── INFO (নীল) ── */
 #noticeBoardBanner.notice-info .notice-banner-inner {
   background: linear-gradient(90deg, #1e3a5f, #1d4ed8, #3b82f6, #1d4ed8, #1e3a5f);
   background-size: 200% 100%;
-  animation: noticeSlideDown 0.5s ease both, noticeBgShift 4s linear infinite;
+  border-top: 3px solid #93c5fd;
+  border-bottom: 3px solid #93c5fd;
+  box-shadow: 0 0 18px rgba(59, 130, 246, 0.5), inset 0 1px 0 rgba(255,255,255,0.1);
+  animation: noticeSlideDown 0.5s ease both, noticeBgShift 5s linear infinite;
 }
+
+/* ── SUCCESS (সবুজ) ── */
 #noticeBoardBanner.notice-success .notice-banner-inner {
   background: linear-gradient(90deg, #14532d, #16a34a, #22c55e, #16a34a, #14532d);
   background-size: 200% 100%;
-  animation: noticeSlideDown 0.5s ease both, noticeBgShift 4s linear infinite;
+  border-top: 3px solid #86efac;
+  border-bottom: 3px solid #86efac;
+  box-shadow: 0 0 18px rgba(34, 197, 94, 0.5), inset 0 1px 0 rgba(255,255,255,0.1);
+  animation: noticeSlideDown 0.5s ease both, noticeBgShift 5s linear infinite;
 }
 
 @keyframes noticeBgShift {
@@ -2503,20 +2545,22 @@ tfoot th {
   display: flex;
   align-items: center;
   gap: 8px;
-  padding: 0 16px;
-  background: rgba(0,0,0,0.3);
+  padding: 0 18px;
+  background: rgba(0,0,0,0.4);
   height: 100%;
-  min-height: 48px;
+  min-height: 54px;
   white-space: nowrap;
-  border-right: 2px solid rgba(255,255,255,0.2);
+  border-right: 2px solid rgba(255,255,255,0.25);
+  backdrop-filter: blur(4px);
 }
 
 .notice-label {
-  font-weight: 800;
-  font-size: 0.75rem;
-  letter-spacing: 3px;
+  font-weight: 900;
+  font-size: 0.72rem;
+  letter-spacing: 3.5px;
   text-transform: uppercase;
   color: #fff;
+  text-shadow: 0 0 10px rgba(255,255,255,0.5);
 }
 
 /* Pulse icon */
@@ -2563,25 +2607,28 @@ tfoot th {
   display: flex;
   align-items: center;
   gap: 10px;
-  padding: 0 14px;
-  background: rgba(0,0,0,0.3);
+  padding: 0 16px;
+  background: rgba(0,0,0,0.4);
   height: 100%;
-  min-height: 48px;
-  border-left: 2px solid rgba(255,255,255,0.2);
+  min-height: 54px;
+  border-left: 2px solid rgba(255,255,255,0.25);
   white-space: nowrap;
+  backdrop-filter: blur(4px);
 }
 
 .notice-countdown-badge {
-  background: rgba(0,0,0,0.4);
+  background: rgba(0,0,0,0.5);
   color: #fff;
-  font-size: 0.75rem;
-  font-weight: 700;
-  padding: 4px 10px;
+  font-size: 0.73rem;
+  font-weight: 800;
+  padding: 5px 12px;
   border-radius: 20px;
-  border: 1px solid rgba(255,255,255,0.3);
-  letter-spacing: 0.5px;
+  border: 1px solid rgba(255,255,255,0.35);
+  letter-spacing: 0.8px;
   display: flex;
   align-items: center;
+  text-shadow: 0 0 8px rgba(255,255,255,0.4);
+  box-shadow: inset 0 1px 0 rgba(255,255,255,0.1);
 }
 
 .notice-manage-btn {
