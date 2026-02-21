@@ -252,16 +252,35 @@
         lastPullTime = Date.now();
 
         // ✅ Notice Board restore — cloud থেকে pull হলে notice ও restore করো
+        // ✅ RACE CONDITION FIX: notice push pending থাকলে restore করো না
         try {
-          const cloudNotice = window.globalData?.settings?.activeNotice;
-          if (cloudNotice && cloudNotice.expiresAt && Date.now() < cloudNotice.expiresAt) {
-            localStorage.setItem('wingsfly_notice_board', JSON.stringify(cloudNotice));
-            if (typeof window.showNoticeBanner === 'function') window.showNoticeBanner(cloudNotice);
-            log('📢', 'Notice restored from cloud');
-          } else if (!cloudNotice) {
-            // Cloud এ notice নেই — local থেকেও সরাও
-            localStorage.removeItem('wingsfly_notice_board');
-            if (typeof window.hideNoticeBanner === 'function') window.hideNoticeBanner();
+          if (window._noticePushPending) {
+            log('📢', 'Notice push pending — skipping notice restore to avoid race condition');
+          } else {
+            const cloudNotice = window.globalData?.settings?.activeNotice;
+            const localPending = window._noticePushData;
+
+            // আমাদের নিজের push এর পরে pull এলে local notice কে protect করো
+            if (localPending !== undefined && localPending !== null) {
+              // আমরা সম্প্রতি notice push করেছিলাম — local টাই সঠিক
+              log('📢', 'Notice: using local pending data (own push protected)');
+              const localN = localPending ? JSON.parse(localPending) : null;
+              if (localN) {
+                localStorage.setItem('wingsfly_notice_board', JSON.stringify(localN));
+                if (window.globalData && window.globalData.settings) {
+                  window.globalData.settings.activeNotice = localN;
+                }
+              }
+            } else if (cloudNotice && cloudNotice.expiresAt && Date.now() < cloudNotice.expiresAt) {
+              // Cloud এ valid notice আছে — apply করো
+              localStorage.setItem('wingsfly_notice_board', JSON.stringify(cloudNotice));
+              if (typeof window.showNoticeBanner === 'function') window.showNoticeBanner(cloudNotice);
+              log('📢', 'Notice restored from cloud');
+            } else if (!cloudNotice) {
+              // Cloud এ notice নেই — local থেকেও সরাও
+              localStorage.removeItem('wingsfly_notice_board');
+              if (typeof window.hideNoticeBanner === 'function') window.hideNoticeBanner();
+            }
           }
         } catch(e) { log('⚠️', 'Notice restore error: ' + e.message); }
 
@@ -282,35 +301,6 @@
         if (!silent) {
           log('ℹ️', 'Local data is current ✓');
         }
-
-        // ✅ NOTICE FIX: shouldUpdate=false হলেও notice সবসময় check করো
-        // কারণ: notice শুধু settings এ থাকে, version same হলেও notice আলাদা PC থেকে আসতে পারে
-        try {
-          const cloudNotice = data.settings?.activeNotice;
-          const localNotice = window.globalData?.settings?.activeNotice;
-          const cloudNoticeStr = JSON.stringify(cloudNotice || null);
-          const localNoticeStr = JSON.stringify(localNotice || null);
-
-          if (cloudNoticeStr !== localNoticeStr) {
-            log('📢', 'Notice mismatch detected — syncing notice');
-            if (!window.globalData) window.globalData = {};
-            if (!window.globalData.settings) window.globalData.settings = {};
-
-            if (cloudNotice && cloudNotice.expiresAt && Date.now() < cloudNotice.expiresAt) {
-              // Cloud এ active notice আছে — apply করো
-              window.globalData.settings.activeNotice = cloudNotice;
-              localStorage.setItem('wingsfly_notice_board', JSON.stringify(cloudNotice));
-              if (typeof window.showNoticeBanner === 'function') window.showNoticeBanner(cloudNotice);
-              log('📢', 'Notice applied from cloud (version-same path)');
-            } else if (!cloudNotice && localNotice) {
-              // Cloud এ notice নেই — local থেকেও সরাও
-              delete window.globalData.settings.activeNotice;
-              localStorage.removeItem('wingsfly_notice_board');
-              if (typeof window.hideNoticeBanner === 'function') window.hideNoticeBanner();
-              log('📢', 'Notice cleared (not in cloud)');
-            }
-          }
-        } catch(e) { log('⚠️', 'Notice sync (same-version) error: ' + e.message); }
       }
 
       isPulling = false;
