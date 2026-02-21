@@ -2053,48 +2053,25 @@ textarea.form-control {
    BETTER VISIBILITY IN TABLES
    =================================== */
 
-/* Student name columns - উজ্জ্বল gradient text, সহজে পড়া যায় */
-.table td:nth-child(3),
-.table tbody tr td:nth-child(3),
-table td:nth-child(3) {
-  background: linear-gradient(135deg, #ffe259, #ffa751) !important;
-  -webkit-background-clip: text !important;
-  -webkit-text-fill-color: transparent !important;
-  background-clip: text !important;
+/* Student name — শুধু name link-এ color, avatar অক্ষত থাকবে */
+.table td:nth-child(3) a.hover-primary,
+.table tbody tr td:nth-child(3) a.hover-primary {
+  color: #ffd54f !important;
   font-weight: 700 !important;
   font-size: 1rem !important;
   text-shadow: none !important;
-  letter-spacing: 0.3px !important;
-  font-family: 'Inter', sans-serif !important;
+  letter-spacing: 0.2px !important;
+  text-decoration: none !important;
 }
 
 /* Hover */
-.table tbody tr:hover td:nth-child(3) {
-  background: linear-gradient(135deg, #fff176, #ffb300) !important;
-  -webkit-background-clip: text !important;
-  -webkit-text-fill-color: transparent !important;
-  background-clip: text !important;
-  transform: none !important;
+.table tbody tr:hover td:nth-child(3) a.hover-primary {
+  color: #ffe082 !important;
 }
 
-/* Alternative selectors */
-td[class*="name"],
-td[data-label*="name"],
-td[data-label*="Name"],
-.student-name,
-.name-cell {
-  background: linear-gradient(135deg, #ffe259, #ffa751) !important;
-  -webkit-background-clip: text !important;
-  -webkit-text-fill-color: transparent !important;
-  background-clip: text !important;
-  font-weight: 700 !important;
-  font-size: 1rem !important;
-  text-shadow: none !important;
-}
-
-/* Cell background — wrapper span দিয়ে করলে ভালো হতো কিন্তু
-   এখানে padding/border শুধু, background gradient text-এ আলাদা */
+/* Cell styling আগের মতো */
 .table td:nth-child(3) {
+  background: rgba(0, 20, 40, 0.6) !important;
   border: 1px solid rgba(0, 255, 255, 0.2) !important;
   padding: 1rem 1.2rem !important;
 }
