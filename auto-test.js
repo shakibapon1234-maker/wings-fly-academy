@@ -53,10 +53,16 @@
   }
 
   function fetchSupa(path, opts = {}) {
+    const { headers: extraHeaders, ...restOpts } = opts;
     return Promise.race([
       fetch(`${SUPABASE_URL}${path}`, {
-        headers: { 'apikey': SUPABASE_KEY, 'Authorization': 'Bearer ' + SUPABASE_KEY, 'Content-Type': 'application/json', ...opts.headers },
-        ...opts
+        ...restOpts,
+        headers: {
+          'apikey': SUPABASE_KEY,
+          'Authorization': 'Bearer ' + SUPABASE_KEY,
+          'Content-Type': 'application/json',
+          ...(extraHeaders || {})
+        }
       }),
       timeout(TIMEOUT_MS)
     ]);
@@ -749,7 +755,6 @@
     if (failed > 0 || warned > 0) {
       const resultsContainer = document.getElementById('functest-results');
       if (resultsContainer) {
-        // Error summary box বানাও
         let topHtml = '';
         if (failed > 0) {
           const failItems = results.filter(r => r.s === 'fail');
@@ -776,8 +781,6 @@
           topHtml += '</div>';
         }
         topHtml += '<div style="color:#4a6080;font-size:0.7rem;text-align:center;padding:2px 0 6px;border-bottom:1px solid rgba(255,255,255,0.08);margin-bottom:4px;">── সব results ──</div>';
-
-        // Insert করো সবার উপরে (header-এর পরে)
         const headerDiv = resultsContainer.querySelector('div');
         if (headerDiv) {
           headerDiv.insertAdjacentHTML('afterend', topHtml);
