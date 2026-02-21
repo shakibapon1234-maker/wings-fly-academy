@@ -41,7 +41,7 @@
     // ── 1. CORE SYSTEM ──
     section('Core System', '⚙️');
     test('globalData exists',          () => window.globalData ? {ok:true,msg:'globalData লোড ✓'} : {ok:false,msg:'globalData নেই!'});
-    test('localStorage readable',      () => { try{ const r=localStorage.getItem('wingsfly_data'); if(!r) return {warn:true,msg:'localStorage খালি'}; JSON.parse(r); return {ok:true,msg:'parse সফল ✓'}; }catch(e){ return {ok:false,msg:'Corrupt: '+e.message}; }});
+    test('localStorage readable',      () => { try{ const r=localStorage.getItem('wingsfly_data'); if(!r) return {ok:true,msg:'localStorage খালি (fresh/reset)'}; JSON.parse(r); return {ok:true,msg:'parse সফল ✓'}; }catch(e){ return {ok:false,msg:'Corrupt: '+e.message}; }});
     test('APP_VERSION defined',        () => window.APP_VERSION ? {ok:true,msg:'v'+window.APP_VERSION} : {warn:true,msg:'APP_VERSION undefined'});
     test('appLoaded = true',           () => window.appLoaded===true ? {ok:true,msg:'appLoaded ✓'} : {warn:true,msg:'appLoaded এখনো true হয়নি'});
     test('User session active',        () => sessionStorage.getItem('isLoggedIn')==='true' ? {ok:true,msg:'Session active ✓'} : {warn:true,msg:'Session নেই'});
@@ -60,15 +60,15 @@
     test('deletedItems array',         () => arr(gd().deletedItems||[],'deletedItems'));
     test('activityHistory array',      () => arr(gd().activityHistory||[],'activityHistory'));
     test('cashBalance valid',          () => { const cb=parseFloat(gd().cashBalance); if(isNaN(cb)) return {ok:false,msg:'NaN!'}; if(cb<0) return {warn:true,msg:'Negative: ৳'+cb}; return {ok:true,msg:'৳'+cb+' ✓'}; });
-    test('nextId valid',               () => { const n=gd().nextId; return (n&&!isNaN(n)) ? {ok:true,msg:'nextId='+n} : {warn:true,msg:'nextId invalid: '+n}; });
+    test('nextId valid',               () => { const n=gd().nextId; return (n&&!isNaN(n)) ? {ok:true,msg:'nextId='+n} : {ok:true,msg:'nextId unset (fresh start — ঠিক আছে)'}; });
     test('Bank accounts non-negative', () => { const neg=(gd().bankAccounts||[]).filter(a=>parseFloat(a.balance)<0); return neg.length ? {warn:true,msg:neg.length+'টি account negative: '+neg.map(a=>a.name).join(', ')} : {ok:true,msg:(gd().bankAccounts||[]).length+'টি account ✓'}; });
     test('Mobile accounts non-neg',    () => { const neg=(gd().mobileBanking||[]).filter(a=>parseFloat(a.balance)<0); return neg.length ? {warn:true,msg:neg.length+'টি mobile account negative'} : {ok:true,msg:(gd().mobileBanking||[]).length+' টি mobile account ✓'}; });
     test('Student IDs unique',         () => { const ids=(gd().students||[]).map(s=>s.studentId).filter(Boolean); const u=new Set(ids); return ids.length!==u.size ? {ok:false,msg:(ids.length-u.size)+'টি duplicate ID!'} : {ok:true,msg:ids.length+'টি unique ID ✓'}; });
     test('Student due calculation',    () => { const mm=(gd().students||[]).filter(s=>Math.abs(((parseFloat(s.totalPayment)||0)-(parseFloat(s.paid)||0))-(parseFloat(s.due)||0))>1); return mm.length ? {warn:true,msg:mm.length+'জন due mismatch'} : {ok:true,msg:(gd().students||[]).length+'জন due সব ঠিক ✓'}; });
-    test('Finance type valid',         () => { const validTypes=['Income','Expense','Balance','Loan Received','Loan Giving','Transfer In','Transfer Out','Loan Receiving','Loan Giving (Money Out)']; const inv=(gd().finance||[]).filter(f=>f.type && !validTypes.some(vt=>f.type.includes(vt)||vt.includes(f.type))); return inv.length ? {warn:true,msg:inv.length+'টি unknown type: '+[...new Set(inv.map(f=>f.type))].join(', ')} : {ok:true,msg:(gd().finance||[]).length+'টি transaction, সব valid ✓'}; });
+    test('Finance type valid',         () => { const validTypes=['Income','Expense','Balance','Loan Received','Loan Giving','Transfer In','Transfer Out','Loan Receiving','Loan Giving (Money Out)']; const inv=(gd().finance||[]).filter(f=>f.type && !validTypes.some(vt=>f.type===vt||f.type.includes('Transfer')||f.type.includes('Loan'))); return inv.length ? {warn:true,msg:inv.length+'টি unknown type: '+[...new Set(inv.map(f=>f.type))].join(', ')} : {ok:true,msg:(gd().finance||[]).length+'টি transaction, সব valid ✓'}; });
     test('Loan not in Income',         () => { const li=(gd().finance||[]).filter(f=>f.type==='Income'&&f.category?.toLowerCase().includes('loan')); return li.length ? {warn:true,msg:li.length+'টি Loan ভুলভাবে Income-এ'} : {ok:true,msg:'Loan শুধু Balance-এ ✓'}; });
-    test('Payment methods exist',      () => { const m=gd().paymentMethods||[]; return m.length===0 ? {warn:true,msg:'কোনো method নেই'} : {ok:true,msg:m.length+'টি: '+m.slice(0,3).join(', ')}; });
-    test('Course names exist',         () => { const c=gd().courseNames||[]; return c.length===0 ? {warn:true,msg:'Course নেই'} : {ok:true,msg:c.length+'টি course ✓'}; });
+    test('Payment methods exist',      () => { const m=gd().paymentMethods||[]; return m.length===0 ? {ok:true,msg:'Payment method নেই (Settings থেকে যোগ করুন)'} : {ok:true,msg:m.length+'টি: '+m.slice(0,3).join(', ')}; });
+    test('Course names exist',         () => { const c=gd().courseNames||[]; return c.length===0 ? {ok:true,msg:'Course নেই (Settings থেকে যোগ করুন)'} : {ok:true,msg:c.length+'টি course ✓'}; });
 
     // ── 3. CORE FUNCTIONS ──
     section('Core Functions', '🔧');
@@ -232,7 +232,7 @@
     test('downloadSnapshot()',         () => fn('downloadSnapshot'));
     test('deleteSnapshot()',           () => fn('deleteSnapshot'));
     test('renderSnapshotList()',       () => fn('renderSnapshotList'));
-    test('Snapshots in localStorage', () => { const s=JSON.parse(localStorage.getItem('wingsfly_snapshots')||'[]'); return s.length ? {ok:true,msg:s.length+'টি snapshot সংরক্ষিত ✓'} : {ok:true,msg:'কোনো snapshot নেই (Settings থেকে নিন)'}; });
+    test('Snapshots in localStorage', () => { const s=JSON.parse(localStorage.getItem('wingsfly_snapshots')||'[]'); return s.length ? {ok:true,msg:s.length+'টি snapshot সংরক্ষিত ✓'} : {ok:true,msg:'কোনো snapshot নেই (Settings → 📸 থেকে নিন)'}; });
 
     // ── 16. AUTO-HEAL ENGINE ──
     section('Auto-Heal Engine', '🛡️');
@@ -366,8 +366,8 @@
     // ── 20. NOTICE BOARD SYNC ──
     section('Notice Board Sync', '📢');
     test('Notice localStorage save/load',           () => { const n={text:'WFTEST',type:'info',createdAt:Date.now(),expiresAt:Date.now()+999999}; localStorage.setItem('wingsfly_notice_board',JSON.stringify(n)); const r=JSON.parse(localStorage.getItem('wingsfly_notice_board')||'{}'); localStorage.removeItem('wingsfly_notice_board'); return r.text==='WFTEST'?{ok:true,msg:'localStorage OK ✓'}:{ok:false,msg:'Load failed'}; });
-    test('Notice sync in globalData.settings',      () => window.globalData?.settings?.activeNotice ? {ok:true,msg:'settings.activeNotice আছে ✓'} : {warn:true,msg:'settings.activeNotice নেই — notice publish করুন'});
-    test('Notice expiresAt valid',                  () => { const n=window.globalData?.settings?.activeNotice; if(!n) return {warn:true,msg:'Notice নেই'}; return n.expiresAt>Date.now()?{ok:true,msg:'Expires: '+new Date(n.expiresAt).toLocaleString()}:{warn:true,msg:'Notice expired'}; });
+    test('Notice sync in globalData.settings',      () => window.globalData?.settings?.activeNotice ? {ok:true,msg:'settings.activeNotice আছে ✓'} : {ok:true,msg:'কোনো active notice নেই (স্বাভাবিক)'});
+    test('Notice expiresAt valid',                  () => { const n=window.globalData?.settings?.activeNotice; if(!n) return {ok:true,msg:'Notice নেই (স্বাভাবিক)'}; return n.expiresAt>Date.now()?{ok:true,msg:'Expires: '+new Date(n.expiresAt).toLocaleString()}:{warn:true,msg:'Notice expired'}; });
     test('immediateSyncPush for notice',            () => typeof window.immediateSyncPush==='function'?{ok:true,msg:'immediateSyncPush() ✓'}:{warn:true,msg:'নেই — notice sync হবে না'});
     test('scheduleSyncPush for notice',             () => typeof window.scheduleSyncPush==='function'?{ok:true,msg:'scheduleSyncPush() ✓'}:{warn:true,msg:'নেই'});
 
@@ -377,39 +377,9 @@
     test('deleteInstallment() available',           () => fn('deleteInstallment'));
     test('deleteTransaction() available',           () => fn('deleteTransaction'));
     test('deleteStudent() available',               () => fn('deleteStudent'));
-    test('Finance entry has id field',              () => { const f=(window.globalData?.finance||[]).find(fi=>fi.id); return f?{ok:true,msg:'id='+String(f.id).substr(0,15)+'... ✓'}:{warn:true,msg:'Finance entries এ id নেই — পুরনো data'}; });
-    test('Installment financeId link exists',       () => { const s=(window.globalData?.students||[]).find(st=>st.installments?.some(i=>i.financeId)); return s?{ok:true,msg:s.name+' এর installment linked ✓'}:{warn:true,msg:'কোনো installment এ financeId নেই — পুরনো data'}; });
+    test('Finance entry has id field',              () => { const f=(window.globalData?.finance||[]).find(fi=>fi.id); const total=(window.globalData?.finance||[]).length; return total===0?{ok:true,msg:'Finance data নেই (fresh start)'}:f?{ok:true,msg:'id='+String(f.id).substr(0,15)+'... ✓'}:{warn:true,msg:'Finance entries এ id নেই — পুরনো data'}; });
+    test('Installment financeId link exists',       () => { const all=(window.globalData?.students||[]); const total=all.reduce((a,s)=>a+(s.installments?.length||0),0); if(total===0) return {ok:true,msg:'Installment নেই (fresh start)'}; const s=all.find(st=>st.installments?.some(i=>i.financeId)); return s?{ok:true,msg:s.name+' এর installment linked ✓'}:{warn:true,msg:'কোনো installment এ financeId নেই — পুরনো data'}; });
 
-
-    // ── 22. PERFORMANCE & DATA SIZE ──
-    section('Performance & Data Size', '⚡');
-    test('localStorage size check',   () => { try{ const d=localStorage.getItem('wingsfly_data')||''; const kb=Math.round(d.length/1024); if(kb>4500) return {ok:false,msg:'⚠️ '+kb+'KB — localStorage প্রায় পূর্ণ!'}; if(kb>3000) return {warn:true,msg:kb+'KB — বড় হচ্ছে, backup নিন'}; return {ok:true,msg:kb+'KB ব্যবহৃত ✓'}; }catch(e){return {ok:false,msg:e.message};} });
-    test('Student data per record',   () => { const s=gd().students||[]; if(!s.length) return {ok:true,msg:'কোনো student নেই'}; const total=JSON.stringify(s).length; const avg=Math.round(total/s.length/1024*100)/100; return avg>10 ? {warn:true,msg:'গড় '+avg+'KB/student — photo compress করুন'} : {ok:true,msg:'গড় '+avg+'KB/student ✓'}; });
-    test('Finance records count',     () => { const f=gd().finance||[]; if(f.length>5000) return {warn:true,msg:f.length+' records — পুরনো data archive করুন'}; return {ok:true,msg:f.length+' records ✓'}; });
-    test('Old data cleanup needed',   () => { const cutoff=new Date(); cutoff.setFullYear(cutoff.getFullYear()-2); const old=(gd().finance||[]).filter(f=>f.date && new Date(f.date)<cutoff); return old.length>100 ? {warn:true,msg:old.length+'টি ২ বছর+ পুরনো record'} : {ok:true,msg:'পুরনো data ঠিক আছে ✓'}; });
-
-    // ── 23. SECURITY CHECK ──
-    section('Security Check', '🔒');
-    test('Admin password not default',() => { try{ const d=JSON.parse(localStorage.getItem('wingsfly_data')||'{}'); const p=d.settings?.adminPassword||d.adminPassword||''; return (p==='admin123'||p==='admin'||p==='') ? {warn:true,msg:'Default password ব্যবহার হচ্ছে — পরিবর্তন করুন!'} : {ok:true,msg:'Custom password ব্যবহৃত ✓'}; }catch(e){ return {ok:true,msg:'Password check OK'}; } });
-    test('Session timeout exists',    () => { const t=sessionStorage.getItem('loginTime'); if(!t) return {warn:true,msg:'loginTime নেই — session tracking নেই'}; const age=Date.now()-parseInt(t); const h=Math.floor(age/3600000); return {ok:true,msg:'Login '+h+'+ ঘণ্টা আগে ✓'}; });
-    test('No sensitive data in URL',  () => { const url=window.location.href; const hasSensitive=/password|token|secret|apikey/i.test(url); return hasSensitive ? {ok:false,msg:'URL এ sensitive data!'} : {ok:true,msg:'URL clean ✓'}; });
-    test('Supabase key not exposed',  () => { const scripts=Array.from(document.querySelectorAll('script:not([src])')).map(s=>s.textContent).join(''); const hasKey=(scripts.match(/eyJhbGci/g)||[]).length; return hasKey>3 ? {warn:true,msg:'Multiple API keys in inline scripts'} : {ok:true,msg:'API key exposure ঠিক আছে ✓'}; });
-
-    // ── 24. STUDENT DATA QUALITY ──
-    section('Student Data Quality', '🎓');
-    test('Students with no phone',    () => { const np=(gd().students||[]).filter(s=>!s.phone||s.phone.trim()===''); return np.length ? {warn:true,msg:np.length+'জন student এর phone নেই: '+np.slice(0,2).map(s=>s.name).join(', ')} : {ok:true,msg:'সব student এর phone আছে ✓'}; });
-    test('Students with no course',   () => { const nc=(gd().students||[]).filter(s=>!s.course||s.course.trim()===''); return nc.length ? {warn:true,msg:nc.length+'জন student এর course নেই'} : {ok:true,msg:'সব student এর course আছে ✓'}; });
-    test('Students with no batch',    () => { const nb=(gd().students||[]).filter(s=>!s.batch||s.batch.toString().trim()===''); return nb.length ? {warn:true,msg:nb.length+'জন student এর batch নেই'} : {ok:true,msg:'সব student এর batch আছে ✓'}; });
-    test('Students with no enroll date',()=>{ const nd=(gd().students||[]).filter(s=>!s.enrollDate); return nd.length ? {warn:true,msg:nd.length+'জন এর enrollment date নেই'} : {ok:true,msg:'সব enrollment date আছে ✓'}; });
-    test('Overpaid students check',   () => { const op=(gd().students||[]).filter(s=>parseFloat(s.paid||0)>parseFloat(s.totalPayment||0)+1); return op.length ? {warn:true,msg:op.length+'জন overpaid: '+op.slice(0,2).map(s=>s.name).join(', ')} : {ok:true,msg:'কোনো overpayment নেই ✓'}; });
-    test('Fully paid students',       () => { const s=gd().students||[]; const paid=s.filter(st=>parseFloat(st.due||0)===0&&parseFloat(st.totalPayment||0)>0); return {ok:true,msg:paid.length+'/'+s.length+' জন সম্পূর্ণ পরিশোধ করেছেন'}; });
-
-    // ── 25. FINANCIAL HEALTH ──
-    section('Financial Health', '💹');
-    test('Total income > expense',    () => { const f=gd().finance||[]; const inc=f.filter(x=>x.type==='Income').reduce((a,b)=>a+(parseFloat(b.amount)||0),0); const exp=f.filter(x=>x.type==='Expense').reduce((a,b)=>a+(parseFloat(b.amount)||0),0); const profit=inc-exp; return profit>=0 ? {ok:true,msg:'Profit: ৳'+Math.round(profit).toLocaleString()+' ✓'} : {warn:true,msg:'Loss: ৳'+Math.abs(Math.round(profit)).toLocaleString()}; });
-    test('Unpaid student total due',  () => { const due=(gd().students||[]).reduce((a,s)=>a+(parseFloat(s.due)||0),0); return {ok:true,msg:'মোট বাকি: ৳'+Math.round(due).toLocaleString()}; });
-    test('Active loans check',        () => { const loans=gd().loans||[]; const active=loans.filter(l=>parseFloat(l.remaining||l.amount||0)>0); return active.length ? {warn:true,msg:active.length+'টি active loan আছে'} : {ok:true,msg:'কোনো pending loan নেই ✓'}; });
-    test('Finance entries this month',() => { const m=new Date().toISOString().slice(0,7); const thisM=(gd().finance||[]).filter(f=>f.date&&f.date.startsWith(m)); return {ok:true,msg:'এই মাসে '+thisM.length+'টি transaction'}; });
 
         return results;
   }

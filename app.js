@@ -5,7 +5,7 @@
 
 const APP_VERSION = "5.0-SYNC-PRO"; // Redefined safely here
 console.log(`🚀 Wings Fly Aviation - System Version: ${APP_VERSION}`);
-window.APP_VERSION = APP_VERSION; // ← Test suite এর জন্য expose করা হয়েছে
+window.APP_VERSION = APP_VERSION; // ← auto-test.js এর জন্য
 
 // Initialize Global Data immediately to prevent ReferenceErrors
 if (typeof window.globalData === 'undefined') {
