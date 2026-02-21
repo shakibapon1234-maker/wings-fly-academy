@@ -5,6 +5,7 @@
 
 const APP_VERSION = "5.0-SYNC-PRO"; // Redefined safely here
 console.log(`🚀 Wings Fly Aviation - System Version: ${APP_VERSION}`);
+window.APP_VERSION = APP_VERSION; // ← Test suite এর জন্য expose করা হয়েছে
 
 // Initialize Global Data immediately to prevent ReferenceErrors
 if (typeof window.globalData === 'undefined') {
@@ -1444,7 +1445,6 @@ function switchTab(tab, refreshStats = true) {
     if (typeof renderCashBalance === 'function') renderCashBalance();
     if (typeof renderMobileBankingList === 'function') renderMobileBankingList();
     if (typeof updateGrandTotal === 'function') updateGrandTotal();
-    if (typeof populateAccountDropdown === 'function') populateAccountDropdown(); // ← Search dropdown populate
   }
 
   if (refreshStats) {
@@ -7983,12 +7983,6 @@ window.showAllAccountsSearch = showAllAccountsSearch;
 
 function performUnifiedSearch() {
   console.log('🔍 performUnifiedSearch called');
-
-  // Safety: dropdown populate না হলে এখনই করো
-  const dropdown = document.getElementById('unifiedAccountSelect');
-  if (dropdown && dropdown.options.length <= 1) {
-    if (typeof populateAccountDropdown === 'function') populateAccountDropdown();
-  }
 
   const selectValue = document.getElementById('unifiedAccountSelect').value;
   const dateFrom = document.getElementById('unifiedDateFrom').value;
