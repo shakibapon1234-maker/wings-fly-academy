@@ -674,9 +674,10 @@
   };
 
   // Backward compatibility
-  window.saveToCloud = () => pushToCloud('Legacy saveToCloud');
+  window.saveToCloud      = () => pushToCloud('Legacy saveToCloud');
   window.loadFromCloud    = (force = false) => pullFromCloud(false, force);
   window.manualSync       = window.wingsSync.fullSync;
+  window.manualCloudSync  = window.wingsSync.fullSync; // ✅ V28 FIX: auto-test critical check
   window.scheduleSyncPush = schedulePush; // delete/add action এর reason পাঠানোর জন্য
 
   // ==========================================
