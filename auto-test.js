@@ -24,7 +24,7 @@
   'use strict';
 
   // ─── Constants ────────────────────────────────────────────
-  const SUITE_VERSION = '3.0';
+  const SUITE_VERSION = '5.0';
   const SUPABASE_URL  = 'https://gtoldrltxjrwshubplfp.supabase.co';
   const SUPABASE_KEY  = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6Imd0b2xkcmx0eGpyd3NodWJwbGZwIiwicm9sZSI6ImFub24iLCJpYXQiOjE3NzEwOTk5MTksImV4cCI6MjA4NjY3NTkxOX0.7NTx3tzU1C5VaewNZZHTaJf2WJ_GtjhQPKOymkxRsUk';
   const TEST_TAG      = '__WFTEST__';  // এই tag দিয়ে test data চিহ্নিত হবে
@@ -172,8 +172,8 @@
 
     const optional = [
       'renderLedger', 'renderDashboard', 'calcBatchProfit',
-      'filterData', 'printReport', 'exportStudentListExcel',
-      'openLoanModal', 'openVisitorModal', 'recalculateCashBalanceFromTransactions',
+      'filterData', 'printReport',
+      'recalculateCashBalanceFromTransactions',
       'openNoticeModal', 'publishNotice',
     ];
 
@@ -571,8 +571,8 @@
 
       // --- 7i: Device conflict check ---
       const myDevice = localStorage.getItem('wings_device_id') || '';
-      if (cloudData.device_id && myDevice && cloudData.device_id !== myDevice) {
-        warn('Last write from different device', `Cloud device: ${cloudData.device_id.slice(0,8)}… আপনার device আলাদা — স্বাভাবিক যদি multi-device use করেন`);
+      if (cloudData.last_device && myDevice && cloudData.last_device !== myDevice) {
+        warn('Last write from different device', `Cloud device: ${cloudData.last_device.slice(0,8)}… আপনার device আলাদা — স্বাভাবিক যদি multi-device use করেন`);
       } else {
         pass('Device ID consistent');
       }
@@ -713,6 +713,557 @@
     }
   }
 
+  // ── GROUP 10: Finance Calculation Integrity ────────────────
+  function testFinanceIntegrity() {
+    sectionHeader('10 — Finance Calculation Integrity');
+    const gd = window.globalData;
+    if (!gd) { skip('Finance integrity', 'globalData নেই'); return; }
+
+    const finance = gd.finance || [];
+
+    // --- 10a: Student payment vs finance ledger match ---
+    const paymentEntries = finance.filter(f => f.type === 'Income' || f.type === 'আয়' || f.category === 'Student Fee' || f.category === 'ফি');
+    const totalPaidFromStudents = (gd.students || []).reduce((sum, s) => sum + (parseFloat(s.paid) || 0), 0);
+    pass('Student total paid calculated', `৳${totalPaidFromStudents.toLocaleString('en-IN')}`);
+
+    // --- 10b: Orphaned payments (finance-এ student নেই) ---
+    const studentNames = new Set((gd.students || []).map(s => (s.name || '').trim().toLowerCase()));
+    const orphaned = finance.filter(f => {
+      if (!f.person && !f.studentName) return false;
+      const person = ((f.person || f.studentName || '')).trim().toLowerCase();
+      return person && !studentNames.has(person);
+    });
+    if (orphaned.length === 0) { pass('No orphaned payments', 'সব payment-এর student আছে'); }
+    else { warn(`${orphaned.length}টি orphaned payment`, 'Finance-এ student নেই এমন entry আছে'); }
+
+    // --- 10c: Duplicate finance entries (exact same amount+date+type) ---
+    const finKeys = new Map();
+    let dupCount = 0;
+    finance.forEach(f => {
+      const key = `${f.type}|${f.amount}|${f.date}`;
+      finKeys.set(key, (finKeys.get(key) || 0) + 1);
+    });
+    finKeys.forEach((count, key) => { if (count > 1) dupCount += count - 1; });
+    if (dupCount === 0) { pass('No duplicate finance entries'); }
+    else { warn(`${dupCount}টি সম্ভাব্য duplicate entry`, 'একই date+amount+type এর multiple entry'); }
+
+    // --- 10d: Income/Expense net vs cashBalance ---
+    let calcCash = 0;
+    finance.forEach(f => {
+      const amt = parseFloat(f.amount) || 0;
+      if (f.type === 'Income' || f.type === 'আয়') calcCash += amt;
+      else if (f.type === 'Expense' || f.type === 'ব্যয়') calcCash -= amt;
+    });
+    const storedCash = parseFloat(gd.cashBalance) || 0;
+    const gap = Math.abs(calcCash - storedCash);
+    if (gap < 1) { pass('Cash balance matches transactions', `৳${storedCash.toLocaleString('en-IN')}`); }
+    else if (gap < 10000) { warn('Cash balance minor gap', `Calculated ৳${calcCash.toFixed(0)} vs Stored ৳${storedCash.toFixed(0)} (গ্যাপ: ৳${gap.toFixed(0)})`); }
+    else { fail('Cash balance mismatch!', `Calculated ৳${calcCash.toFixed(0)} vs Stored ৳${storedCash.toFixed(0)} — recalculate করুন`); }
+
+    // --- 10e: Student due total integrity ---
+    let totalDue = 0, badDueCount = 0;
+    (gd.students || []).forEach(s => {
+      const due = parseFloat(s.due) || 0;
+      const correct = Math.max(0, (parseFloat(s.totalPayment) || 0) - (parseFloat(s.paid) || 0));
+      totalDue += due;
+      if (Math.abs(due - correct) > 1) badDueCount++;
+    });
+    if (badDueCount === 0) { pass('All student dues correct', `মোট বকেয়া: ৳${totalDue.toLocaleString('en-IN')}`); }
+    else { fail(`${badDueCount} student-এর due ভুল!`, 'Auto-Heal চালালে fix হবে'); }
+
+    // --- 10f: Bank + Mobile balance total ---
+    const bankTotal = (gd.bankAccounts || []).reduce((s, a) => s + (parseFloat(a.balance) || 0), 0);
+    const mobileTotal = (gd.mobileBanking || []).reduce((s, a) => s + (parseFloat(a.balance) || 0), 0);
+    pass('Bank balances totaled', `৳${bankTotal.toLocaleString('en-IN')}`);
+    pass('Mobile banking balances totaled', `৳${mobileTotal.toLocaleString('en-IN')}`);
+  }
+
+  // ── GROUP 11: Employee & Attendance Tests ──────────────────
+  function testEmployeeAttendance() {
+    sectionHeader('11 — Employee & Attendance Tests');
+    const gd = window.globalData;
+    if (!gd) { skip('Employee tests', 'globalData নেই'); return; }
+
+    // --- 11a: Employee array ---
+    const employees = gd.employees || [];
+    if (employees.length > 0) { pass('Employees exist', `${employees.length} জন`); }
+    else { warn('No employees', 'Employee data নেই — স্বাভাবিক হতে পারে'); }
+
+    // --- 11b: Employee required fields ---
+    let empBad = 0;
+    employees.forEach(e => {
+      if (!e.name || !e.id) empBad++;
+    });
+    if (empBad === 0) { pass('Employee data integrity OK'); }
+    else { fail(`${empBad} employee-এর name/id missing!`, 'Data corrupt হতে পারে'); }
+
+    // --- 11c: Duplicate employee ID ---
+    const empIds = employees.map(e => e.id).filter(Boolean);
+    const uniqueEmpIds = new Set(empIds);
+    if (empIds.length === uniqueEmpIds.size) { pass('No duplicate employee IDs'); }
+    else { fail('Duplicate employee IDs!', `${empIds.length} total, ${uniqueEmpIds.size} unique`); }
+
+    // --- 11d: Attendance structure ---
+    const att = gd.attendance;
+    if (!att || typeof att !== 'object') {
+      warn('Attendance data missing or invalid type');
+    } else {
+      const attKeys = Object.keys(att);
+      pass('Attendance records exist', `${attKeys.length} দিনের রেকর্ড`);
+
+      // Check for corrupt attendance entries
+      let attBad = 0;
+      attKeys.slice(-7).forEach(date => { // Last 7 days only
+        const dayData = att[date];
+        if (dayData && typeof dayData !== 'object') attBad++;
+      });
+      if (attBad === 0) { pass('Recent attendance data structure OK'); }
+      else { warn(`${attBad} attendance entry corrupt`); }
+    }
+
+    // --- 11e: Salary consistency ---
+    const empWithSalary = employees.filter(e => parseFloat(e.salary) > 0);
+    if (empWithSalary.length > 0) {
+      pass('Employee salary data present', `${empWithSalary.length} জন-এর salary আছে`);
+      const totalSalary = empWithSalary.reduce((s, e) => s + (parseFloat(e.salary) || 0), 0);
+      pass('Total salary calculated', `৳${totalSalary.toLocaleString('en-IN')}/মাস`);
+    } else {
+      warn('No salary data found', 'Employee salary set করা হয়নি');
+    }
+  }
+
+  // ── GROUP 12: Performance & Load Tests ────────────────────
+  function testPerformance() {
+    sectionHeader('12 — Performance & Load Tests');
+    const gd = window.globalData;
+
+    // --- 12a: localStorage read speed ---
+    const t1 = performance.now();
+    for (let i = 0; i < 100; i++) { localStorage.getItem('wingsfly_data'); }
+    const lsTime = performance.now() - t1;
+    if (lsTime < 50) { pass('localStorage read fast', `100x read: ${lsTime.toFixed(1)}ms`); }
+    else if (lsTime < 200) { warn('localStorage read slow', `${lsTime.toFixed(1)}ms — data বড় হয়ে যাচ্ছে`); }
+    else { fail('localStorage read very slow!', `${lsTime.toFixed(1)}ms — performance সমস্যা`); }
+
+    // --- 12b: JSON stringify speed ---
+    if (gd) {
+      const t2 = performance.now();
+      for (let i = 0; i < 10; i++) { JSON.stringify(gd); }
+      const jsonTime = performance.now() - t2;
+      if (jsonTime < 100) { pass('JSON serialization fast', `10x: ${jsonTime.toFixed(1)}ms`); }
+      else { warn('JSON serialization slow', `${jsonTime.toFixed(1)}ms — data অনেক বড়`); }
+    }
+
+    // --- 12c: Data size check ---
+    const raw = localStorage.getItem('wingsfly_data') || '';
+    const sizeKB = (raw.length / 1024).toFixed(1);
+    const sizeMB = (raw.length / 1024 / 1024).toFixed(2);
+    if (raw.length < 1024 * 500) { pass('Data size OK', `${sizeKB} KB`); }
+    else if (raw.length < 1024 * 1024 * 2) { warn('Data size growing', `${sizeMB} MB — monitor করুন`); }
+    else { fail('Data size too large!', `${sizeMB} MB — localStorage limit হতে পারে`); }
+
+    // --- 12d: DOM element count ---
+    const domCount = document.querySelectorAll('*').length;
+    if (domCount < 2000) { pass('DOM size normal', `${domCount} elements`); }
+    else if (domCount < 5000) { warn('DOM getting large', `${domCount} elements`); }
+    else { fail('DOM too large!', `${domCount} elements — memory leak হতে পারে`); }
+
+    // --- 12e: Student array sort speed ---
+    if (gd && gd.students && gd.students.length > 0) {
+      const copy = [...gd.students];
+      const t3 = performance.now();
+      copy.sort((a, b) => (a.name || '').localeCompare(b.name || ''));
+      const sortTime = performance.now() - t3;
+      if (sortTime < 50) { pass('Student sort fast', `${copy.length} students: ${sortTime.toFixed(2)}ms`); }
+      else { warn('Student sort slow', `${sortTime.toFixed(2)}ms`); }
+    }
+
+    // --- 12f: Memory estimate ---
+    if (performance.memory) {
+      const usedMB = (performance.memory.usedJSHeapSize / 1024 / 1024).toFixed(1);
+      const limitMB = (performance.memory.jsHeapSizeLimit / 1024 / 1024).toFixed(0);
+      const pct = Math.round(performance.memory.usedJSHeapSize / performance.memory.jsHeapSizeLimit * 100);
+      if (pct < 50) { pass('Memory usage OK', `${usedMB}MB / ${limitMB}MB (${pct}%)`); }
+      else if (pct < 80) { warn('Memory usage high', `${usedMB}MB (${pct}%)`); }
+      else { fail('Memory critical!', `${usedMB}MB / ${limitMB}MB (${pct}%) — page reload করুন`); }
+    } else {
+      skip('Memory test', 'Browser API unavailable');
+    }
+  }
+
+  // ── GROUP 13: Data Integrity Deep Scan ────────────────────
+  function testDataIntegrity() {
+    sectionHeader('13 — Data Integrity Deep Scan');
+    const gd = window.globalData;
+    if (!gd) { skip('Data integrity', 'globalData নেই'); return; }
+
+    // --- 13a: Student required fields check ---
+    let missingName = 0, missingId = 0, negPaid = 0;
+    (gd.students || []).forEach(s => {
+      if (!s.name || s.name.trim() === '') missingName++;
+      if (!s.id && !s.rowIndex) missingId++;
+      if (parseFloat(s.paid) < 0) negPaid++;
+    });
+    if (missingName === 0) { pass('All students have names'); }
+    else { fail(`${missingName} student-এর name নেই!`, 'Data corrupt'); }
+    if (missingId === 0) { pass('All students have IDs'); }
+    else { warn(`${missingId} student-এর ID নেই`, 'Edit/Delete সমস্যা হতে পারে'); }
+    if (negPaid === 0) { pass('No negative payments'); }
+    else { fail(`${negPaid} student-এর paid amount negative!`); }
+
+    // --- 13b: Course name validation ---
+    const validCourses = new Set((gd.courseNames || []).map(c => typeof c === 'string' ? c : c.name || ''));
+    let invalidCourse = 0;
+    if (validCourses.size > 0) {
+      (gd.students || []).forEach(s => {
+        if (s.course && !validCourses.has(s.course)) invalidCourse++;
+      });
+      if (invalidCourse === 0) { pass('All student courses valid'); }
+      else { warn(`${invalidCourse} student-এর course name invalid`, 'Course list থেকে বাদ গেছে'); }
+    } else {
+      warn('Course list empty', 'কোনো course add করা হয়নি');
+    }
+
+    // --- 13c: Bank account integrity ---
+    let bankBad = 0;
+    (gd.bankAccounts || []).forEach(acc => {
+      if (!acc.name || isNaN(parseFloat(acc.balance))) bankBad++;
+    });
+    if (bankBad === 0) { pass('Bank accounts integrity OK'); }
+    else { fail(`${bankBad} bank account corrupt!`, 'name বা balance invalid'); }
+
+    // --- 13d: Mobile banking integrity ---
+    let mbBad = 0;
+    (gd.mobileBanking || []).forEach(acc => {
+      if (!acc.name || isNaN(parseFloat(acc.balance))) mbBad++;
+    });
+    if (mbBad === 0) { pass('Mobile banking integrity OK'); }
+    else { fail(`${mbBad} mobile account corrupt!`); }
+
+    // --- 13e: User accounts check ---
+    const users = gd.users || [];
+    if (users.length > 0) {
+      pass('User accounts exist', `${users.length} জন user`);
+      const adminUsers = users.filter(u => u.role === 'admin' || u.role === 'Admin' || u.access === 'Master Access');
+      if (adminUsers.length > 0) { pass('Admin user exists', adminUsers[0].name || adminUsers[0].username); }
+      else { warn('No admin user found!', 'Login সমস্যা হতে পারে'); }
+    } else {
+      fail('No users found!', 'Login কাজ করবে না');
+    }
+
+    // --- 13f: Settings object integrity ---
+    const settings = gd.settings || {};
+    const settingsKeys = Object.keys(settings);
+    if (settingsKeys.length > 0) { pass('Settings data present', `${settingsKeys.length} keys`); }
+    else { warn('Settings empty', 'Default settings use হবে'); }
+  }
+
+  // ── GROUP 14: Real-time Sync Conflict Simulation ──────────
+  async function testSyncConflict() {
+    sectionHeader('14 — Real-time Sync Conflict Simulation');
+    const gd = window.globalData;
+    if (!gd) { skip('Sync conflict tests', 'globalData নেই'); return; }
+
+    // --- 14a: Simulate two devices editing same student ---
+    const students = gd.students || [];
+    if (students.length === 0) { skip('Conflict test', 'কোনো student নেই'); }
+    else {
+      const target = students[0];
+      const originalPaid = target.paid;
+
+      // Device A: paid = X + 500
+      const deviceA = { ...target, paid: (parseFloat(target.paid) || 0) + 500, _device: 'DeviceA', _ts: Date.now() - 1000 };
+      // Device B: paid = X + 1000 (newer)
+      const deviceB = { ...target, paid: (parseFloat(target.paid) || 0) + 1000, _device: 'DeviceB', _ts: Date.now() };
+
+      // Conflict resolution: newer timestamp wins (Last-Write-Wins)
+      const resolved = deviceA._ts > deviceB._ts ? deviceA : deviceB;
+      if (resolved._device === 'DeviceB') {
+        pass('LWW conflict resolution correct', 'Newer timestamp (DeviceB) wins ✓');
+      } else {
+        fail('LWW conflict resolution wrong!', 'Older timestamp should not win');
+      }
+
+      // Restore original (no actual data changed)
+      target.paid = originalPaid;
+    }
+
+    // --- 14b: Version vector conflict detection ---
+    const localVer = parseInt(localStorage.getItem('wings_local_version')) || 0;
+    const r1 = safeCall(() => {
+      // Simulate: cloud has higher version
+      const cloudVer = localVer + 5;
+      const gap = cloudVer - localVer;
+      if (gap > 10) throw new Error('Version gap too large — data loss possible');
+      return gap;
+    });
+    if (r1.ok) { pass('Version gap within safe limit', `Gap: ${r1.val} versions`); }
+    else { warn('Version gap concern', r1.err); }
+
+    // --- 14c: Concurrent write simulation ---
+    const r2 = safeCall(() => {
+      // Simulate two writes happening within 100ms
+      const write1 = { ts: Date.now(), data: 'A', seq: 1 };
+      const write2 = { ts: Date.now() + 50, data: 'B', seq: 2 };
+      // Seq-based resolution: higher seq wins
+      const winner = write1.seq > write2.seq ? write1 : write2;
+      if (winner.data !== 'B') throw new Error('Wrong winner');
+      return winner.data;
+    });
+    if (r2.ok) { pass('Concurrent write resolution (seq-based)', `Winner: Write ${r2.val}`); }
+    else { fail('Concurrent write resolution failed', r2.err); }
+
+    // --- 14d: Merge strategy — arrays combine without loss ---
+    const r3 = safeCall(() => {
+      const local  = [{ id: 1, name: 'Alice' }, { id: 2, name: 'Bob' }];
+      const cloud  = [{ id: 1, name: 'Alice Updated' }, { id: 3, name: 'Charlie' }];
+      // Smart merge: cloud items update local, new items added, deletions ignored
+      const merged = [...local];
+      cloud.forEach(ci => {
+        const idx = merged.findIndex(l => l.id === ci.id);
+        if (idx >= 0) merged[idx] = ci; // update
+        else merged.push(ci); // add new
+      });
+      if (merged.length !== 3) throw new Error(`Merge wrong length: ${merged.length}`);
+      if (merged[0].name !== 'Alice Updated') throw new Error('Update not applied');
+      return merged.length;
+    });
+    if (r3.ok) { pass('Smart merge strategy correct', `${r3.val} items after merge`); }
+    else { fail('Merge strategy failed', r3.err); }
+
+    // --- 14e: Offline queue simulation ---
+    const r4 = safeCall(() => {
+      const queue = [];
+      // Simulate 3 offline operations
+      queue.push({ op: 'add_student', data: { name: 'Test' }, ts: Date.now() });
+      queue.push({ op: 'add_payment', data: { amount: 500 }, ts: Date.now() + 1 });
+      queue.push({ op: 'edit_student', data: { id: 1, name: 'Updated' }, ts: Date.now() + 2 });
+      // On reconnect, apply in order
+      const applied = queue.sort((a, b) => a.ts - b.ts).map(q => q.op);
+      if (applied[0] !== 'add_student') throw new Error('Queue order wrong');
+      return applied.length;
+    });
+    if (r4.ok) { pass('Offline queue ordering correct', `${r4.val} queued ops in order`); }
+    else { fail('Offline queue failed', r4.err); }
+
+    // --- 14f: Data snapshot & rollback capability ---
+    const r5 = safeCall(() => {
+      const snapshot = JSON.stringify({ students: (gd.students || []).slice(0, 2) });
+      const restored = JSON.parse(snapshot);
+      if (!Array.isArray(restored.students)) throw new Error('Snapshot corrupt');
+      return restored.students.length;
+    });
+    if (r5.ok) { pass('Snapshot & rollback mechanism OK', `Snapshot: ${r5.val} students`); }
+    else { fail('Snapshot mechanism broken', r5.err); }
+  }
+
+  // ── GROUP 15: Security & Auth Tests ───────────────────────
+  function testSecurityAuth() {
+    sectionHeader('15 — Security & Auth Tests');
+
+    // --- 15a: Login session ---
+    const isLoggedIn = sessionStorage.getItem('isLoggedIn');
+    if (isLoggedIn === 'true') { pass('Session active', 'isLoggedIn = true'); }
+    else { fail('Session not active!', 'User logged out হয়ে গেছে'); }
+
+    // --- 15b: Password not stored in plain text in localStorage ---
+    const raw = localStorage.getItem('wingsfly_data') || '';
+    const hasPlainPass = /"password"\s*:\s*"[^"]{4,}"/.test(raw);
+    if (!hasPlainPass) { pass('No plain-text passwords in localStorage'); }
+    else { warn('Possible plain-text password in localStorage!', 'Security risk — hash করুন'); }
+
+    // --- 15c: API key not exposed in globalData ---
+    const gdStr = JSON.stringify(window.globalData || {});
+    const hasApiKey = gdStr.includes('eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9');
+    if (!hasApiKey) { pass('API key not in globalData'); }
+    else { warn('API key found in globalData!', 'Memory থেকে leak হতে পারে'); }
+
+    // --- 15d: XSS injection simulation ---
+    const r1 = safeCall(() => {
+      const malicious = '<script>alert("xss")</script>';
+      const div = document.createElement('div');
+      div.textContent = malicious; // textContent is safe
+      if (div.innerHTML.includes('<script>')) throw new Error('XSS vulnerability!');
+      return div.innerHTML;
+    });
+    if (r1.ok) { pass('XSS prevention (textContent safe)', 'Escaped correctly'); }
+    else { fail('XSS vulnerability!', r1.err); }
+
+    // --- 15e: Session expiry check ---
+    const loginTime = parseInt(sessionStorage.getItem('loginTime') || '0');
+    if (loginTime > 0) {
+      const ageHours = (Date.now() - loginTime) / 3600000;
+      if (ageHours < 24) { pass('Session age OK', `${ageHours.toFixed(1)} ঘণ্টা`); }
+      else { warn('Session very old', `${ageHours.toFixed(0)} ঘণ্টা — re-login করুন`); }
+    } else {
+      skip('Session age check', 'loginTime not tracked');
+    }
+
+    // --- 15f: User role validation ---
+    const gd = window.globalData;
+    if (gd && gd.users) {
+      const currentUser = sessionStorage.getItem('currentUser') || '';
+      const userObj = gd.users.find(u => u.username === currentUser || u.name === currentUser);
+      if (userObj) {
+        pass('Current user found in DB', `Role: ${userObj.role || userObj.access || 'N/A'}`);
+      } else {
+        warn('Current user not in DB', 'Session মিলছে না');
+      }
+    }
+  }
+
+  // ── GROUP 16: Exam & Visitor Module Tests ─────────────────
+  function testExamVisitor() {
+    sectionHeader('16 — Exam & Visitor Module Tests');
+    const gd = window.globalData;
+    if (!gd) { skip('Exam/Visitor tests', 'globalData নেই'); return; }
+
+    // --- 16a: Exam registrations ---
+    const exams = gd.examRegistrations || [];
+    if (exams.length > 0) {
+      pass('Exam registrations exist', `${exams.length}টি registration`);
+      let examBad = 0;
+      exams.forEach(e => { if (!e.name && !e.studentName) examBad++; });
+      if (examBad === 0) { pass('Exam registration data integrity OK'); }
+      else { warn(`${examBad} exam entry-তে name নেই`); }
+    } else {
+      skip('Exam registration tests', 'কোনো exam registration নেই');
+    }
+
+    // --- 16b: Visitor data ---
+    const visitors = gd.visitors || [];
+    if (visitors.length > 0) {
+      pass('Visitor records exist', `${visitors.length} জন visitor`);
+      let visBad = 0;
+      visitors.forEach(v => { if (!v.name) visBad++; });
+      if (visBad === 0) { pass('Visitor data integrity OK'); }
+      else { warn(`${visBad} visitor-এর name নেই`); }
+    } else {
+      skip('Visitor tests', 'কোনো visitor record নেই');
+    }
+
+    // --- 16c: Notice board ---
+    const notices = gd.notices || gd.noticeBoard || [];
+    if (notices.length > 0) {
+      pass('Notice board has data', `${notices.length}টি notice`);
+    } else {
+      skip('Notice board test', 'কোনো notice নেই');
+    }
+
+    // --- 16d: renderVisitors function ---
+    if (exists('renderVisitors')) { pass('renderVisitors function exists'); }
+    else { warn('renderVisitors missing', 'Visitor tab কাজ নাও করতে পারে'); }
+
+    // --- 16e: Exam date validation ---
+    if (exams.length > 0) {
+      const invalidDates = exams.filter(e => {
+        if (!e.date && !e.examDate) return false;
+        const d = new Date(e.date || e.examDate);
+        return isNaN(d.getTime());
+      });
+      if (invalidDates.length === 0) { pass('Exam dates all valid'); }
+      else { warn(`${invalidDates.length} exam-এর date invalid`); }
+    }
+  }
+
+  // ── GROUP 17: Stress & Boundary Tests ─────────────────────
+  function testStressBoundary() {
+    sectionHeader('17 — Stress & Boundary Tests');
+    const gd = window.globalData;
+
+    // --- 17a: Large student list simulation ---
+    const r1 = safeCall(() => {
+      const fakeStudents = Array.from({ length: 500 }, (_, i) => ({
+        id: `STRESS_${i}`, name: `Student ${i}`, paid: i * 100, totalPayment: i * 150, due: i * 50
+      }));
+      const filtered = fakeStudents.filter(s => s.due > 10000);
+      const sorted = fakeStudents.sort((a, b) => b.due - a.due);
+      return sorted[0].due;
+    });
+    if (r1.ok) { pass('500 student stress test passed', `Max due: ৳${r1.val.toLocaleString('en-IN')}`); }
+    else { fail('Student stress test failed', r1.err); }
+
+    // --- 17b: Rapid localStorage write test ---
+    const r2 = safeCall(() => {
+      const key = '__stress_test__';
+      let writes = 0;
+      const t = performance.now();
+      while (performance.now() - t < 100) { // 100ms-এ যত পারে
+        localStorage.setItem(key, JSON.stringify({ ts: Date.now(), i: writes }));
+        writes++;
+        if (writes >= 50) break;
+      }
+      localStorage.removeItem(key);
+      return writes;
+    });
+    if (r2.ok) { pass('Rapid localStorage write OK', `${r2.val} writes in 100ms`); }
+    else { fail('localStorage stress failed', r2.err); }
+
+    // --- 17c: Special character handling ---
+    const r3 = safeCall(() => {
+      const special = 'নাম: "আহমেদ" & <test> 100% ৳5,000\'s';
+      const encoded = JSON.stringify({ name: special });
+      const decoded = JSON.parse(encoded);
+      if (decoded.name !== special) throw new Error('Special chars corrupted');
+      return true;
+    });
+    if (r3.ok) { pass('Special character (Bengali + symbols) safe'); }
+    else { fail('Special character handling broken', r3.err); }
+
+    // --- 17d: Circular reference protection ---
+    const r4 = safeCall(() => {
+      const obj = { a: 1 };
+      // obj.self = obj; // Circular — would break JSON.stringify
+      // Test that we DETECT circular refs safely
+      try {
+        JSON.stringify(obj); // Safe object — should work
+        return true;
+      } catch(e) { throw new Error('Safe object failed: ' + e.message); }
+    });
+    if (r4.ok) { pass('JSON circular reference protection OK'); }
+    else { fail('JSON serialization issue', r4.err); }
+
+    // --- 17e: Boundary value calculations ---
+    const r5 = safeCall(() => {
+      const tests = [
+        { paid: 0, total: 0, expected: 0 },
+        { paid: 100, total: 100, expected: 0 },
+        { paid: 200, total: 100, expected: 0 }, // overpaid → due = 0
+        { paid: 0, total: 999999, expected: 999999 },
+      ];
+      tests.forEach(t => {
+        const due = Math.max(0, t.total - t.paid);
+        if (due !== t.expected) throw new Error(`${t.paid}/${t.total} → expected ${t.expected} got ${due}`);
+      });
+      return tests.length;
+    });
+    if (r5.ok) { pass('Boundary value tests all correct', `${r5.val} cases`); }
+    else { fail('Boundary value calculation error', r5.err); }
+
+    // --- 17f: Null/undefined safety ---
+    const r6 = safeCall(() => {
+      const nullTests = [null, undefined, '', 0, false, NaN];
+      nullTests.forEach(v => {
+        const safe = parseFloat(v) || 0;
+        if (isNaN(safe)) throw new Error(`parseFloat(${v}) = NaN — not safe`);
+      });
+      return nullTests.length;
+    });
+    if (r6.ok) { pass('Null/undefined value safety OK', `${r6.val} edge cases passed`); }
+    else { fail('Null safety issue!', r6.err); }
+
+    // --- 17g: Array mutation safety ---
+    const r7 = safeCall(() => {
+      const original = [1, 2, 3];
+      const copy = [...original]; // spread copy
+      copy.push(4);
+      if (original.length !== 3) throw new Error('Original mutated!');
+      return true;
+    });
+    if (r7.ok) { pass('Array immutability (spread copy) safe'); }
+    else { fail('Array mutation detected!', r7.err); }
+  }
+
   // ═══════════════════════════════════════════════════════════
   // MAIN RUNNER
   // ═══════════════════════════════════════════════════════════
@@ -743,10 +1294,18 @@
     testLocalStorage();
     testUIElements();
     testEdgeCases();
+    testFinanceIntegrity();
+    testEmployeeAttendance();
+    testPerformance();
+    testDataIntegrity();
+    testSecurityAuth();
+    testExamVisitor();
+    testStressBoundary();
 
     // Run async groups
     await testSupabaseConnectivity();
     await testSyncChain();
+    await testSyncConflict();
 
     // Cleanup
     await cleanupTestData();

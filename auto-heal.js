@@ -1,17 +1,23 @@
 /**
  * ============================================
- * WINGS FLY — AUTO-HEAL ENGINE v1.0
+ * WINGS FLY — AUTO-HEAL ENGINE v3.0
  * ============================================
  * Background-এ চলে, সমস্যা detect করে নিজে fix করে।
  * কোনো command ছাড়াই কাজ করে।
  *
- * যা করে:
- *  1. প্রতি 60 সেকেন্ডে health check
- *  2. Cloud vs Local data mismatch → auto push/pull
- *  3. Student due calculation wrong → auto recalculate
- *  4. Network ফিরলে → pending sync retry
- *  5. Version mismatch → auto resolve
- *  6. ব্যবহারকারীকে toast দিয়ে জানায় কী fix হলো
+ * HEAL MODULES (12টি):
+ *  1.  Student due recalculation
+ *  2.  Duplicate finance entry removal
+ *  3.  Cash balance integrity
+ *  4.  Cloud vs Local sync mismatch
+ *  5.  UI dashboard refresh
+ *  6.  Network reconnect sync
+ *  7.  Student duplicate detection
+ *  8.  Employee/Bank data corruption fix
+ *  9.  Orphaned payment detection
+ * 10.  Finance total recalculation
+ * 11.  Missing array field init (exam, visitors, etc.)
+ * 12.  Student overpayment detection & alert
  */
 
 (function () {
@@ -185,8 +191,193 @@
   }
 
   // ============================================
-  // HEAL 4: Cloud vs Local Sync Mismatch
-  // Local-এ বেশি data থাকলে cloud-এ push করো
+  // HEAL 7: Student Duplicate Detection
+  // একই name + phone = duplicate student
+  // ============================================
+  function healStudentDuplicates() {
+    const data = window.globalData;
+    if (!data || !data.students) return 0;
+
+    const seen = new Map();
+    const toKeep = [];
+    let removed = 0;
+
+    data.students.forEach(s => {
+      const key = `${(s.name || '').trim().toLowerCase()}|${(s.phone || '').trim()}`;
+      if (seen.has(key) && key !== '|') {
+        hLog('fix', `Duplicate student removed: "${s.name}" (${s.phone})`);
+        removed++;
+      } else {
+        seen.set(key, true);
+        toKeep.push(s);
+      }
+    });
+
+    if (removed > 0) {
+      data.students = toKeep;
+      localStorage.setItem('wingsfly_data', JSON.stringify(data));
+      healToast(`${removed}জন duplicate student auto-remove হয়েছে`, 'fix');
+    }
+    return removed;
+  }
+
+  // ============================================
+  // HEAL 8: Employee & Bank Data Corruption Fix
+  // ============================================
+  function healEmployeeBankData() {
+    const data = window.globalData;
+    if (!data) return 0;
+    let fixed = 0;
+
+    // Employee fix
+    (data.employees || []).forEach(e => {
+      if (isNaN(parseFloat(e.salary))) {
+        hLog('fix', `Employee "${e.name}" salary invalid → 0`);
+        e.salary = 0; fixed++;
+      }
+      if (!e.id) {
+        e.id = 'EMP_' + Date.now() + '_' + Math.random().toString(36).slice(2, 6);
+        hLog('fix', `Employee "${e.name}" missing ID → auto-generated`);
+        fixed++;
+      }
+    });
+
+    // Bank account fix
+    (data.bankAccounts || []).forEach(acc => {
+      if (!acc.name) { acc.name = 'Unnamed Account'; hLog('fix', 'Bank account missing name → fixed'); fixed++; }
+      if (isNaN(parseFloat(acc.balance))) { acc.balance = 0; hLog('fix', `Bank "${acc.name}" balance invalid → 0`); fixed++; }
+    });
+
+    // Mobile banking fix
+    (data.mobileBanking || []).forEach(acc => {
+      if (!acc.name) { acc.name = 'Unnamed Mobile Account'; hLog('fix', 'Mobile account missing name → fixed'); fixed++; }
+      if (isNaN(parseFloat(acc.balance))) { acc.balance = 0; hLog('fix', `Mobile "${acc.name}" balance invalid → 0`); fixed++; }
+    });
+
+    // Missing array fields fix
+    ['examRegistrations', 'visitors', 'bankAccounts', 'mobileBanking', 'employees'].forEach(key => {
+      if (!Array.isArray(data[key])) {
+        hLog('fix', `data.${key} missing array → init করা হয়েছে`);
+        data[key] = []; fixed++;
+      }
+    });
+
+    if (fixed > 0) {
+      localStorage.setItem('wingsfly_data', JSON.stringify(data));
+      healToast(`${fixed}টি employee/bank data fix হয়েছে`, 'fix');
+    }
+    return fixed;
+  }
+
+  // ============================================
+  // HEAL 9: Orphaned Payment Cleanup (warn only)
+  // Finance-এ payment আছে কিন্তু student নেই
+  // ============================================
+  function healOrphanedPayments() {
+    const data = window.globalData;
+    if (!data || !data.finance || !data.students) return 0;
+
+    const studentNames = new Set(data.students.map(s => (s.name || '').trim().toLowerCase()));
+    const orphaned = data.finance.filter(f => {
+      const person = ((f.person || f.studentName || '')).trim().toLowerCase();
+      return person && !studentNames.has(person);
+    });
+
+    if (orphaned.length > 0) {
+      hLog('warn', `${orphaned.length}টি orphaned payment পাওয়া গেছে — student নেই এমন entries`);
+      // Remove করি না — শুধু warn করি কারণ intentional হতে পারে
+    }
+    return 0; // warn only, no destructive action
+  }
+
+  // ============================================
+  // HEAL 10: Finance Total Recalculation
+  // Income - Expense ≠ cashBalance হলে fix
+  // ============================================
+  function healFinanceRecalculation() {
+    const data = window.globalData;
+    if (!data || !data.finance) return 0;
+
+    let calcCash = 0;
+    data.finance.forEach(f => {
+      const amt = parseFloat(f.amount) || 0;
+      if (f.type === 'Income' || f.type === 'আয়') calcCash += amt;
+      else if (f.type === 'Expense' || f.type === 'ব্যয়') calcCash -= amt;
+    });
+
+    const stored = parseFloat(data.cashBalance) || 0;
+    const gap = Math.abs(calcCash - stored);
+
+    // শুধু বড় gap হলে fix করো (৳10,000+)
+    if (gap > 10000) {
+      hLog('fix', `Cash balance মিলছে না: Calculated ৳${calcCash.toFixed(0)} vs Stored ৳${stored.toFixed(0)} (gap: ৳${gap.toFixed(0)}) → recalculate`);
+      // app-এর নিজের recalculate function থাকলে সেটা call করো
+      if (typeof window.recalculateCashBalanceFromTransactions === 'function') {
+        window.recalculateCashBalanceFromTransactions();
+        hLog('fix', 'Cash balance app function দিয়ে recalculate হয়েছে');
+      } else {
+        data.cashBalance = calcCash;
+        localStorage.setItem('wingsfly_data', JSON.stringify(data));
+        hLog('fix', `Cash balance manual recalculate: ৳${calcCash.toFixed(0)}`);
+      }
+      healToast(`Cash balance auto-recalculate হয়েছে: ৳${calcCash.toFixed(0)}`, 'fix');
+      return 1;
+    } else if (gap > 1) {
+      hLog('info', `Cash balance minor gap: ৳${gap.toFixed(0)} — monitor করা হচ্ছে`);
+    }
+    return 0;
+  }
+
+  // ============================================
+  // HEAL 11: Missing Array Fields Auto-Init
+  // ============================================
+  function healMissingArrayFields() {
+    const data = window.globalData;
+    if (!data) return 0;
+    let fixed = 0;
+
+    const requiredArrays = [
+      'students', 'finance', 'employees', 'bankAccounts', 'mobileBanking',
+      'incomeCategories', 'expenseCategories', 'courseNames', 'users',
+      'examRegistrations', 'visitors', 'notices'
+    ];
+    requiredArrays.forEach(key => {
+      if (!Array.isArray(data[key])) {
+        hLog('fix', `data.${key} missing → [] init করা হয়েছে`);
+        data[key] = []; fixed++;
+      }
+    });
+    if (!data.settings || typeof data.settings !== 'object') {
+      data.settings = {}; hLog('fix', 'data.settings → {} init'); fixed++;
+    }
+    if (!data.attendance || typeof data.attendance !== 'object') {
+      data.attendance = {}; hLog('fix', 'data.attendance → {} init'); fixed++;
+    }
+    if (fixed > 0) localStorage.setItem('wingsfly_data', JSON.stringify(data));
+    return fixed;
+  }
+
+  // ============================================
+  // HEAL 12: Student Overpayment Detection
+  // paid > totalPayment হলে warn করো
+  // ============================================
+  function healOverpaymentCheck() {
+    const data = window.globalData;
+    if (!data || !data.students) return 0;
+    let overpaid = 0;
+    data.students.forEach(s => {
+      const paid  = parseFloat(s.paid) || 0;
+      const total = parseFloat(s.totalPayment) || 0;
+      if (total > 0 && paid > total + 1) {
+        overpaid++;
+        hLog('warn', `Overpaid: "${s.name}" ৳${paid} paid / ৳${total} total`);
+      }
+    });
+    if (overpaid > 0) healToast(`${overpaid}জন student overpaid — accounts check করুন`, 'warn');
+    return 0;
+  }
+
+  
   // Cloud-এ বেশি data থাকলে pull করো
   // ============================================
   async function healSyncMismatch() {
@@ -324,7 +515,25 @@
     // 4. UI refresh fix (fast, local only)
     totalFixed += healUIRefresh();
 
-    // 5. Cloud sync fix (async, network)
+    // 5. Student duplicate detection
+    totalFixed += healStudentDuplicates();
+
+    // 6. Employee & bank data corruption fix
+    totalFixed += healEmployeeBankData();
+
+    // 7. Orphaned payment warn
+    healOrphanedPayments();
+
+    // 8. Finance recalculation
+    totalFixed += healFinanceRecalculation();
+
+    // 9. Missing array fields init
+    totalFixed += healMissingArrayFields();
+
+    // 10. Overpayment detection (warn only)
+    healOverpaymentCheck();
+
+    // 11. Cloud sync fix (async, network)
     totalFixed += await healSyncMismatch();
 
     // Update UI stats
@@ -355,7 +564,7 @@
   // START
   // ============================================
   function start() {
-    hLog('info', '🛡️ Auto-Heal Engine চালু হয়েছে (প্রতি 60s)');
+    hLog('info', '🛡️ Auto-Heal Engine v3.0 চালু হয়েছে (প্রতি 60s) — 12 heal modules active');
 
     // প্রথমবার 10 সেকেন্ড পরে run করো (app load হতে দাও)
     setTimeout(() => {
