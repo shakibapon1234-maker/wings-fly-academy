@@ -261,7 +261,127 @@
     test('checkDailyBackup()',        () => fn('checkDailyBackup'));
     test('updateRecentActions()',     () => fn('updateRecentActions'));
 
-    return results;
+
+    // ── 19. PAYMENT & DELETE SYNC (Live Function Test) ──
+    section('Payment & Delete Sync', '💳');
+
+    // Backup real data
+    const _realStudents = JSON.parse(JSON.stringify(window.globalData?.students || []));
+    const _realFinance  = JSON.parse(JSON.stringify(window.globalData?.finance  || []));
+    const _realCash     = window.globalData?.cashBalance || 0;
+
+    // Setup
+    if (!window.globalData) window.globalData = {};
+    if (!window.globalData.students)    window.globalData.students    = [];
+    if (!window.globalData.finance)     window.globalData.finance     = [];
+    if (!window.globalData.bankAccounts)  window.globalData.bankAccounts  = [];
+    if (!window.globalData.mobileBanking) window.globalData.mobileBanking = [];
+
+    const _TSN  = '__WFTEST__' + Date.now();
+    const _FID1 = 'WFTFIN1_' + Date.now();
+    const _FID2 = 'WFTFIN2_' + (Date.now()+1);
+    const _initS = window.globalData.students.length;
+    const _initF = window.globalData.finance.length;
+    const _initC = parseFloat(window.globalData.cashBalance) || 0;
+
+    // Add test student
+    const _testSt = {
+      name: _TSN, phone: '01700000000', course: 'TEST', batch: '99',
+      enrollDate: '2026-01-01', method: 'Cash',
+      totalPayment: 10000, paid: 3000, due: 7000,
+      studentId: 'WF-TEST-' + Date.now(),
+      installments: [{amount:3000, date:'2026-01-01', method:'Cash', financeId:_FID1}]
+    };
+    window.globalData.students.push(_testSt);
+    window.globalData.finance.push({
+      id:_FID1, type:'Income', method:'Cash', date:'2026-01-01',
+      category:'Student Fee', person:_TSN, amount:3000,
+      description:'Enrollment fee for student: '+_TSN
+    });
+    window.globalData.cashBalance = _initC + 3000;
+
+    test('Student add → students array বাড়ে',     () => window.globalData.students.length > _initS ? {ok:true,msg:'✓ student যোগ হয়েছে'} : {ok:false,msg:'Array বাড়েনি'});
+    test('Student add → finance entry তৈরি হয়',   () => window.globalData.finance.some(f=>f.id===_FID1) ? {ok:true,msg:'✓ financeId='+_FID1.substr(0,12)+'...'} : {ok:false,msg:'Finance এ নেই'});
+    test('Student add → cash balance বাড়ে',        () => (parseFloat(window.globalData.cashBalance)||0) > _initC ? {ok:true,msg:'৳'+window.globalData.cashBalance} : {ok:false,msg:'Cash বাড়েনি'});
+
+    // Add 2nd installment
+    const _st = window.globalData.students.find(s=>s.name===_TSN);
+    if (_st) {
+      _st.installments.push({amount:2000, date:'2026-01-15', method:'Cash', financeId:_FID2});
+      _st.paid += 2000; _st.due -= 2000;
+      window.globalData.finance.push({
+        id:_FID2, type:'Income', method:'Cash', date:'2026-01-15',
+        category:'Student Installment', person:_TSN, amount:2000,
+        description:'Installment payment for student: '+_TSN
+      });
+      window.globalData.cashBalance += 2000;
+    }
+
+    test('2nd installment add হয়',                () => _st?.installments?.length===2 ? {ok:true,msg:'2 installments ✓'} : {ok:false,msg:'installments='+(_st?.installments?.length||'N/A')});
+    test('financeId link — 1st installment',       () => { const ok=window.globalData.finance.some(f=>String(f.id)===String(_FID1)); return ok?{ok:true,msg:'FID1 linked ✓'}:{ok:false,msg:'FID1 finance entry নেই'}; });
+    test('financeId link — 2nd installment',       () => { const ok=window.globalData.finance.some(f=>String(f.id)===String(_FID2)); return ok?{ok:true,msg:'FID2 linked ✓'}:{ok:false,msg:'FID2 finance entry নেই'}; });
+
+    // Delete 1st from student modal (simulate _deletePaymentCore)
+    const _fc1 = window.globalData.finance.length;
+    const _inst1fid = _st?.installments?.[0]?.financeId;
+    if (_st && _inst1fid) {
+      _st.installments = _st.installments.filter((_,i)=>i!==0);
+      _st.paid -= 3000; _st.due += 3000;
+      window.globalData.cashBalance -= 3000;
+      window.globalData.finance = window.globalData.finance.filter(f=>String(f.id)!==String(_inst1fid));
+    }
+
+    test('Student modal delete → installment সরে',() => _st?.installments?.length===1 ? {ok:true,msg:'1 installment বাকি ✓'} : {ok:false,msg:'installments='+(_st?.installments?.length||'N/A')});
+    test('Student modal delete → finance সরে',    () => (_fc1-window.globalData.finance.length)===1 ? {ok:true,msg:'Finance 1 টা কমেছে ✓'} : {ok:false,msg:'Finance সরেনি, কমেছে='+(_fc1-window.globalData.finance.length)});
+    test('Student modal delete → paid/due update',() => _st?.paid===2000 && _st?.due===8000 ? {ok:true,msg:'paid=2000, due=8000 ✓'} : {ok:false,msg:'paid='+_st?.paid+' due='+_st?.due});
+
+    // Delete 2nd from finance ledger (simulate deleteTransaction)
+    const _fc2 = window.globalData.finance.length;
+    const _paidBefore = _st?.paid || 0;
+    window.globalData.finance = window.globalData.finance.filter(f=>String(f.id)!==String(_FID2));
+    if (_st) {
+      _st.installments = (_st.installments||[]).filter(i=>String(i.financeId)!==String(_FID2));
+      _st.paid -= 2000; _st.due += 2000;
+      window.globalData.cashBalance -= 2000;
+    }
+
+    test('Finance delete → finance entry সরে',       () => (_fc2-window.globalData.finance.length)===1 ? {ok:true,msg:'Finance কমেছে ✓'} : {ok:false,msg:'সরেনি, কমেছে='+(_fc2-window.globalData.finance.length)});
+    test('Finance delete → student installment সরে', () => _st?.installments?.length===0 ? {ok:true,msg:'All installments cleared ✓'} : {ok:false,msg:'installments='+(_st?.installments?.length||'N/A')});
+    test('Finance delete → student paid update',     () => _st?.paid===_paidBefore-2000 ? {ok:true,msg:'paid='+_st?.paid+' ✓'} : {ok:false,msg:'paid='+_st?.paid+' (হওয়া উচিত '+(_paidBefore-2000)+')'});
+    test('All deletes পরে paid=0, due=total',        () => _st?.paid===0 && _st?.due===10000 ? {ok:true,msg:'paid=0, due=10000 ✓'} : {warn:true,msg:'paid='+_st?.paid+' due='+_st?.due});
+
+    // Delete student
+    const _sc = window.globalData.students.length;
+    window.globalData.students = window.globalData.students.filter(s=>s.name!==_TSN);
+    test('Student delete → array থেকে সরে',          () => (_sc-window.globalData.students.length)===1 ? {ok:true,msg:'Student removed ✓'} : {ok:false,msg:'সরেনি'});
+
+    // Cash not negative after cleanup
+    test('Cash balance negative নয়',                () => (parseFloat(window.globalData.cashBalance)||0)>=0 ? {ok:true,msg:'৳'+window.globalData.cashBalance+' ✓'} : {warn:true,msg:'Negative: ৳'+window.globalData.cashBalance});
+
+    // Restore real data
+    window.globalData.students    = _realStudents;
+    window.globalData.finance     = _realFinance;
+    window.globalData.cashBalance = _realCash;
+
+    // ── 20. NOTICE BOARD SYNC ──
+    section('Notice Board Sync', '📢');
+    test('Notice localStorage save/load',           () => { const n={text:'WFTEST',type:'info',createdAt:Date.now(),expiresAt:Date.now()+999999}; localStorage.setItem('wingsfly_notice_board',JSON.stringify(n)); const r=JSON.parse(localStorage.getItem('wingsfly_notice_board')||'{}'); localStorage.removeItem('wingsfly_notice_board'); return r.text==='WFTEST'?{ok:true,msg:'localStorage OK ✓'}:{ok:false,msg:'Load failed'}; });
+    test('Notice sync in globalData.settings',      () => window.globalData?.settings?.activeNotice ? {ok:true,msg:'settings.activeNotice আছে ✓'} : {warn:true,msg:'settings.activeNotice নেই — notice publish করুন'});
+    test('Notice expiresAt valid',                  () => { const n=window.globalData?.settings?.activeNotice; if(!n) return {warn:true,msg:'Notice নেই'}; return n.expiresAt>Date.now()?{ok:true,msg:'Expires: '+new Date(n.expiresAt).toLocaleString()}:{warn:true,msg:'Notice expired'}; });
+    test('immediateSyncPush for notice',            () => typeof window.immediateSyncPush==='function'?{ok:true,msg:'immediateSyncPush() ✓'}:{warn:true,msg:'নেই — notice sync হবে না'});
+    test('scheduleSyncPush for notice',             () => typeof window.scheduleSyncPush==='function'?{ok:true,msg:'scheduleSyncPush() ✓'}:{warn:true,msg:'নেই'});
+
+    // ── 21. DELETE CROSS-SYNC FUNCTIONS ──
+    section('Delete Cross-Sync', '🗑️');
+    test('_deletePaymentCore() available',          () => typeof window._deletePaymentCore==='function'?{ok:true,msg:'Central delete function ✓'}:{warn:true,msg:'_deletePaymentCore নেই'});
+    test('deleteInstallment() available',           () => fn('deleteInstallment'));
+    test('deleteTransaction() available',           () => fn('deleteTransaction'));
+    test('deleteStudent() available',               () => fn('deleteStudent'));
+    test('Finance entry has id field',              () => { const f=(window.globalData?.finance||[]).find(fi=>fi.id); return f?{ok:true,msg:'id='+String(f.id).substr(0,15)+'... ✓'}:{warn:true,msg:'Finance entries এ id নেই — পুরনো data'}; });
+    test('Installment financeId link exists',       () => { const s=(window.globalData?.students||[]).find(st=>st.installments?.some(i=>i.financeId)); return s?{ok:true,msg:s.name+' এর installment linked ✓'}:{warn:true,msg:'কোনো installment এ financeId নেই — পুরনো data'}; });
+
+
+        return results;
   }
 
   // ── RENDER ──

@@ -43,8 +43,7 @@
   let isPushing = false;
   let isPulling = false;
   let isMonitoringEnabled = false;
-  // ✅ Reload fix: localStorage থেকে restore করো
-  let lastPushTime = parseInt(localStorage.getItem('wings_last_push_time') || '0');
+  let lastPushTime = 0;
   let lastPullTime = 0;
   let pushDebounceTimer = null;
   let pullIntervalId = null;
@@ -252,6 +251,20 @@
         localVersion = cloudVersion;
         lastPullTime = Date.now();
 
+        // ✅ Notice Board restore — cloud থেকে pull হলে notice ও restore করো
+        try {
+          const cloudNotice = window.globalData?.settings?.activeNotice;
+          if (cloudNotice && cloudNotice.expiresAt && Date.now() < cloudNotice.expiresAt) {
+            localStorage.setItem('wingsfly_notice_board', JSON.stringify(cloudNotice));
+            if (typeof window.showNoticeBanner === 'function') window.showNoticeBanner(cloudNotice);
+            log('📢', 'Notice restored from cloud');
+          } else if (!cloudNotice) {
+            // Cloud এ notice নেই — local থেকেও সরাও
+            localStorage.removeItem('wingsfly_notice_board');
+            if (typeof window.hideNoticeBanner === 'function') window.hideNoticeBanner();
+          }
+        } catch(e) { log('⚠️', 'Notice restore error: ' + e.message); }
+
         // Refresh UI
         if (typeof window.renderFullUI === 'function') {
           window.renderFullUI();
@@ -377,7 +390,6 @@
       // Save version and timestamp locally
       localStorage.setItem('lastSyncTime', timestamp.toString());
       localStorage.setItem('wings_local_version', localVersion.toString());
-      localStorage.setItem('wings_last_push_time', timestamp.toString());
       lastPushTime = timestamp;
 
       log('✅', `Pushed v${localVersion} at ${new Date(timestamp).toLocaleTimeString('bn-BD')}`);
@@ -646,13 +658,7 @@
   window.saveToCloud = () => pushToCloud('Legacy saveToCloud');
   window.loadFromCloud    = (force = false) => pullFromCloud(false, force);
   window.manualSync       = window.wingsSync.fullSync;
-  window.scheduleSyncPush = schedulePush;
-
-  // ✅ Delete এর জন্য: debounce ছাড়া তাৎক্ষণিক push
-  window.immediateSyncPush = function(reason) {
-    if (pushDebounceTimer) { clearTimeout(pushDebounceTimer); pushDebounceTimer = null; }
-    pushToCloud(reason);
-  };
+  window.scheduleSyncPush = schedulePush; // delete/add action এর reason পাঠানোর জন্য
 
   // ==========================================
   // AUTO-START SYSTEM

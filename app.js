@@ -8546,6 +8546,8 @@ window.renderFullUI = function () {
   if (typeof renderCashBalance === 'function') renderCashBalance();
   if (typeof renderRecentAdmissions === 'function') renderRecentAdmissions();
   if (typeof updateGrandTotal === 'function') updateGrandTotal();
+  // ✅ Notice board reload এ restore করো
+  if (typeof initNoticeBoard === 'function') initNoticeBoard();
 };
 
 // Auto-populate dropdown when data loads
@@ -8958,12 +8960,18 @@ function updateSidebarNoticeDot(hasActive) {
 
 // ----- Load & Display on page init -----
 function initNoticeBoard() {
-  // ✅ Cloud থেকে আসা notice check করো (globalData.settings.activeNotice)
-  const cloudNotice = window.globalData?.settings?.activeNotice;
-  if (cloudNotice && cloudNotice.expiresAt && Date.now() < cloudNotice.expiresAt) {
-    // localStorage এও save করো (fast reload এর জন্য)
-    try { localStorage.setItem(NOTICE_STORAGE_KEY, JSON.stringify(cloudNotice)); } catch(e) {}
-  }
+  // ✅ globalData.settings থেকে cloud-synced notice check করো
+  try {
+    const cloudNotice = window.globalData?.settings?.activeNotice;
+    if (cloudNotice && cloudNotice.expiresAt && Date.now() < cloudNotice.expiresAt) {
+      // localStorage এও save করো
+      localStorage.setItem(NOTICE_STORAGE_KEY, JSON.stringify(cloudNotice));
+    } else if (cloudNotice && cloudNotice.expiresAt && Date.now() >= cloudNotice.expiresAt) {
+      // Expired — দুই জায়গা থেকেই সরাও
+      delete window.globalData.settings.activeNotice;
+      localStorage.removeItem(NOTICE_STORAGE_KEY);
+    }
+  } catch(e) {}
 
   const notice = getActiveNotice();
   if (notice) {
@@ -9174,21 +9182,22 @@ function publishNotice() {
     expiresAt: Date.now() + durationMinutes * 60 * 1000
   };
 
-  // ✅ 1. localStorage এ save (fast local display)
+  // ✅ 1. localStorage এ save করো (instant local display)
   try { localStorage.setItem(NOTICE_STORAGE_KEY, JSON.stringify(notice)); } catch(e) {}
 
-  // ✅ 2. globalData.settings এ রাখো → Supabase sync এ যাবে
-  if (window.globalData) {
+  // ✅ 2. globalData.settings এ রাখো → Supabase এ যাবে
+  try {
+    if (!window.globalData) window.globalData = {};
     if (!window.globalData.settings) window.globalData.settings = {};
     window.globalData.settings.activeNotice = notice;
     localStorage.setItem('wingsfly_data', JSON.stringify(window.globalData));
-    // Cloud এ push করো
+    // Cloud push
     if (typeof window.immediateSyncPush === 'function') {
       window.immediateSyncPush('Notice Published: ' + text.substr(0, 40));
     } else if (typeof window.scheduleSyncPush === 'function') {
       window.scheduleSyncPush('Notice Published: ' + text.substr(0, 40));
     }
-  }
+  } catch(e) { console.warn('Notice sync error:', e); }
 
   closeNoticeModal();
   showNoticeBanner(notice);
@@ -9206,15 +9215,17 @@ function deleteNotice() {
   try { localStorage.removeItem(NOTICE_STORAGE_KEY); } catch(e) {}
 
   // ✅ globalData.settings থেকেও সরাও → Supabase sync
-  if (window.globalData?.settings) {
-    delete window.globalData.settings.activeNotice;
-    localStorage.setItem('wingsfly_data', JSON.stringify(window.globalData));
-    if (typeof window.immediateSyncPush === 'function') {
-      window.immediateSyncPush('Notice Deleted');
-    } else if (typeof window.scheduleSyncPush === 'function') {
-      window.scheduleSyncPush('Notice Deleted');
+  try {
+    if (window.globalData?.settings) {
+      delete window.globalData.settings.activeNotice;
+      localStorage.setItem('wingsfly_data', JSON.stringify(window.globalData));
+      if (typeof window.immediateSyncPush === 'function') {
+        window.immediateSyncPush('Notice Deleted');
+      } else if (typeof window.scheduleSyncPush === 'function') {
+        window.scheduleSyncPush('Notice Deleted');
+      }
     }
-  }
+  } catch(e) { console.warn('Notice delete sync error:', e); }
 
   hideNoticeBanner();
   closeNoticeModal();
