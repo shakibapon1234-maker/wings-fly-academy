@@ -2053,9 +2053,14 @@ textarea.form-control {
    BETTER VISIBILITY IN TABLES
    =================================== */
 
-/* Student name — শুধু name link-এ color, avatar অক্ষত থাকবে */
+/* Student name — সব কলামে color fix, avatar অক্ষত থাকবে */
 .table td:nth-child(3) a.hover-primary,
-.table tbody tr td:nth-child(3) a.hover-primary {
+.table tbody tr td:nth-child(3) a.hover-primary,
+.table td:nth-child(2) a.hover-primary,
+.table tbody tr td:nth-child(2) a.hover-primary,
+.table td:nth-child(1) a.hover-primary,
+.table tbody tr td:nth-child(1) a.hover-primary,
+a.hover-primary {
   color: #00d9ff !important;
   font-weight: 700 !important;
   font-size: 1rem !important;
@@ -2065,7 +2070,9 @@ textarea.form-control {
 }
 
 /* Hover */
-.table tbody tr:hover td:nth-child(3) a.hover-primary {
+.table tbody tr:hover td a.hover-primary,
+.table tbody tr:hover td:nth-child(3) a.hover-primary,
+.table tbody tr:hover td:nth-child(2) a.hover-primary {
   color: #00fff5 !important;
   text-shadow: 0 0 12px rgba(0, 255, 245, 0.7) !important;
 }
