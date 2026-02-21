@@ -92,34 +92,108 @@
       </div>`;
   }
 
+  // ─── Buffered rendering ───────────────────────────────────
+  // সব results buffer-এ রাখি, শেষে একসাথে render করি
+  // যাতে errors উপরে আসতে পারে
+  let renderBuffer = [];   // { type: 'section'|'result', ... }
+  let currentSection = '';
+
   function appendResult(r) {
-    const el = document.getElementById('functest-results');
-    if (!el) return;
-    const colors = { pass: '#00ff88', fail: '#ff4466', warn: '#ffcc00', skip: '#888' };
-    const icons  = { pass: '✅', fail: '❌', warn: '⚠️', skip: '⏭' };
-    const bg = r.s === 'fail' ? 'rgba(255,68,102,0.06)' : r.s === 'warn' ? 'rgba(255,200,0,0.06)' : 'transparent';
-    el.innerHTML += `
-      <div style="display:flex;align-items:flex-start;gap:8px;padding:5px 4px;border-bottom:1px solid rgba(255,255,255,0.05);background:${bg};border-radius:4px;margin-bottom:2px;">
-        <span style="font-size:0.85rem;min-width:18px;">${icons[r.s]}</span>
-        <div style="flex:1;min-width:0;">
-          <span style="color:${colors[r.s]};font-size:0.8rem;font-weight:600;">${r.name}</span>
-          ${r.detail ? `<span style="color:#7aa0c4;font-size:0.72rem;margin-left:6px;">${r.detail}</span>` : ''}
-        </div>
-      </div>`;
-    el.scrollTop = el.scrollHeight;
+    renderBuffer.push({ type: 'result', r, section: currentSection });
   }
 
   function sectionHeader(title) {
-    const el = document.getElementById('functest-results');
-    if (!el) return;
-    el.innerHTML += `
-      <div style="color:#00d4ff;font-size:0.72rem;font-weight:700;text-transform:uppercase;letter-spacing:1.5px;
-                  padding:10px 4px 4px;margin-top:6px;border-top:1px solid rgba(0,212,255,0.15);">
-        ${title}
-      </div>`;
+    currentSection = title;
+    renderBuffer.push({ type: 'section', title });
   }
 
   function log(r) { appendResult(r); }
+
+  function buildResultHTML(r) {
+    const colors = { pass: '#00ff88', fail: '#ff4466', warn: '#ffcc00', skip: '#888' };
+    const icons  = { pass: '✅', fail: '❌', warn: '⚠️', skip: '⏭' };
+    const isFail = r.s === 'fail';
+    const isWarn = r.s === 'warn';
+    const bg = isFail
+      ? 'rgba(255,68,102,0.12)'
+      : isWarn ? 'rgba(255,200,0,0.08)' : 'transparent';
+    const border = isFail
+      ? 'border-left:3px solid #ff4466;'
+      : isWarn ? 'border-left:3px solid #ffcc00;' : '';
+    const nameSz = isFail ? '0.85rem' : '0.8rem';
+    const bold = isFail ? 'font-weight:700;' : 'font-weight:600;';
+    return `
+      <div style="display:flex;align-items:flex-start;gap:8px;padding:${isFail?'7px 8px':'5px 4px'};
+                  border-bottom:1px solid rgba(255,255,255,0.05);background:${bg};
+                  border-radius:4px;margin-bottom:${isFail?'4px':'2px'};${border}">
+        <span style="font-size:${isFail?'1rem':'0.85rem'};min-width:18px;">${icons[r.s]}</span>
+        <div style="flex:1;min-width:0;">
+          <span style="color:${colors[r.s]};font-size:${nameSz};${bold}">${r.name}</span>
+          ${r.detail ? `<div style="color:${isFail?'#ffaaaa':'#7aa0c4'};font-size:0.72rem;margin-top:${isFail?'3px':'0'};margin-left:${isFail?'0':'6px'}">${r.detail}</div>` : ''}
+        </div>
+      </div>`;
+  }
+
+  function buildSectionHTML(title) {
+    return `<div style="color:#00d4ff;font-size:0.72rem;font-weight:700;text-transform:uppercase;
+                        letter-spacing:1.5px;padding:10px 4px 4px;margin-top:6px;
+                        border-top:1px solid rgba(0,212,255,0.15);">${title}</div>`;
+  }
+
+  function renderAllResults() {
+    const el = document.getElementById('functest-results');
+    if (!el) return;
+
+    // ── Failures & Warnings উপরে দেখাও ──
+    const fails = renderBuffer.filter(b => b.type === 'result' && b.r.s === 'fail');
+    const warns = renderBuffer.filter(b => b.type === 'result' && b.r.s === 'warn');
+
+    let html = '';
+
+    if (fails.length > 0) {
+      html += `<div style="background:rgba(255,68,102,0.1);border:1px solid rgba(255,68,102,0.4);
+                            border-radius:10px;padding:10px 12px;margin-bottom:10px;">
+        <div style="color:#ff4466;font-size:0.8rem;font-weight:700;margin-bottom:6px;
+                    display:flex;align-items:center;gap:6px;">
+          ❌ ${fails.length}টি Error — এগুলো fix করুন
+        </div>`;
+      fails.forEach(b => {
+        html += buildResultHTML(b.r);
+      });
+      html += `</div>`;
+    }
+
+    if (warns.length > 0) {
+      html += `<div style="background:rgba(255,200,0,0.08);border:1px solid rgba(255,200,0,0.35);
+                            border-radius:10px;padding:10px 12px;margin-bottom:10px;">
+        <div style="color:#ffcc00;font-size:0.8rem;font-weight:700;margin-bottom:6px;
+                    display:flex;align-items:center;gap:6px;">
+          ⚠️ ${warns.length}টি Warning — Review করুন
+        </div>`;
+      warns.forEach(b => {
+        html += buildResultHTML(b.r);
+      });
+      html += `</div>`;
+    }
+
+    if (fails.length > 0 || warns.length > 0) {
+      html += `<div style="color:#4a6080;font-size:0.7rem;text-align:center;
+                            padding:4px 0 8px;border-bottom:1px solid rgba(255,255,255,0.08);
+                            margin-bottom:6px;">── সব results ──</div>`;
+    }
+
+    // ── সব results (section দিয়ে) ──
+    renderBuffer.forEach(b => {
+      if (b.type === 'section') {
+        html += buildSectionHTML(b.title);
+      } else {
+        html += buildResultHTML(b.r);
+      }
+    });
+
+    el.innerHTML = (el.innerHTML || '') + html;
+    el.scrollTop = 0; // উপরে স্ক্রল করো
+  }
 
   // ─── Cleanup: test data মুছে ফেলা ───────────────────────
   async function cleanupTestData() {
@@ -700,6 +774,8 @@
     // Reset
     results  = [];
     warnings = [];
+    renderBuffer = [];
+    currentSection = '';
     testData = { studentRowIndex: null, financeId: null };
 
     const resultsEl  = document.getElementById('functest-results');
@@ -736,6 +812,9 @@
     const failed = results.filter(r => r.s === 'fail').length;
     const warned = results.filter(r => r.s === 'warn').length;
     const total  = results.length;
+
+    // Render all buffered results (errors first, then all)
+    renderAllResults();
 
     // Re-render all results (they were already appended live, just update summary)
     renderSummary(total, passed, failed, warned);
