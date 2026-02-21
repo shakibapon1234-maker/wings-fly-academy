@@ -3554,15 +3554,25 @@ async function handleStudentSubmit(e) {
       // Get the actual index of the newly added student
       const newStudentIndex = window.globalData.students.length - 1;
 
-      // AUTOMATICALLY ADD PAYMENT TO INCOME (Only for NEW students)
+      // AUTOMATICALLY ADD PAYMENT TO INCOME (Only for NEW students with paid > 0)
       if (student.paid > 0) {
+        // Shared ID links installment ↔ finance entry
+        const initFinanceId = 'FIN_INIT_' + Date.now() + '_' + Math.random().toString(36).substr(2, 5);
+
+        // Update installment to have the financeId
+        if (student.installments && student.installments.length > 0) {
+          student.installments[0].financeId = initFinanceId;
+        }
+
         const financeEntry = {
+          id: initFinanceId,
           type: 'Income',
           method: student.method,
           date: student.enrollDate,
           category: 'Student Fee',
           person: student.name,
           amount: student.paid,
+          studentId: student.studentId || null,
           description: `Enrollment fee for student: ${student.name} | Batch: ${student.batch}`,
           timestamp: new Date().toISOString()
         };
@@ -3724,15 +3734,15 @@ function handleAddInstallment() {
   // 1. Update Student Data
   if (!student.installments) student.installments = [];
 
-  // Shared ID links installment ↔ finance entry for safe cross-delete
-  const sharedId = Date.now() + '_' + Math.random().toString(36).substr(2, 6);
+  // Shared ID: installment ↔ finance entry এর bridge
+  const sharedId = 'FIN_' + Date.now() + '_' + Math.random().toString(36).substr(2, 5);
 
   student.installments.push({ amount, date: today, method, financeId: sharedId });
 
   student.paid = (parseFloat(student.paid) || 0) + amount;
   student.due = Math.max(0, (parseFloat(student.totalPayment) || 0) - student.paid);
 
-  // 2. Add to Finance Ledger
+  // 2. Add to Finance Ledger (same sharedId)
   const financeEntry = {
     id: sharedId,
     type: 'Income',
@@ -3741,7 +3751,7 @@ function handleAddInstallment() {
     category: 'Student Installment',
     person: student.name,
     amount: amount,
-    studentId: student.id || null,
+    studentId: student.studentId || student.id || null,
     description: `Installment payment for student: ${student.name} | Batch: ${student.batch}`,
     timestamp: new Date().toISOString()
   };
@@ -3771,6 +3781,83 @@ window.openStudentPaymentModal = openStudentPaymentModal;
 window.handleAddInstallment = handleAddInstallment;
 
 // ✅ DELETE INSTALLMENT — Payment History থেকে একটা payment সরানো
+// ============================================================
+// CENTRAL PAYMENT DELETE — যেকোনো জায়গা থেকে call করা যাবে
+// সব জায়গা থেকে একসাথে সরাবে: installment + finance + account
+// ============================================================
+function _deletePaymentCore(student, inst, rowIndex) {
+  const amount = parseFloat(inst.amount) || 0;
+  const method = inst.method || 'Cash';
+  const fid    = inst.financeId ? String(inst.financeId) : null;
+
+  // ── 1. Student installments থেকে সরাও ──────────────────
+  if (!inst.isMigrated) {
+    if (fid) {
+      student.installments = (student.installments || []).filter(i => String(i.financeId) !== fid);
+    } else {
+      // পুরনো data (financeId নেই): amount+date দিয়ে ঠিক একটাই সরাও
+      let removed = false;
+      student.installments = (student.installments || []).filter(i => {
+        if (removed) return true;
+        if (parseFloat(i.amount) === amount && i.date === inst.date) { removed = true; return false; }
+        return true;
+      });
+    }
+  }
+  // isMigrated হলে installments এ নেই, শুধু paid adjust হবে
+
+  // ── 2. Student paid / due update ─────────────────────────
+  student.paid = Math.max(0, (parseFloat(student.paid) || 0) - amount);
+  student.due  = Math.max(0, (parseFloat(student.totalPayment) || 0) - student.paid);
+
+  // ── 3. Finance ledger থেকে সরাও ─────────────────────────
+  if (fid) {
+    // Exact ID — শুধু ওই একটাই
+    globalData.finance = (globalData.finance || []).filter(f => String(f.id) !== fid);
+  } else {
+    // পুরনো data fuzzy match — amount+person+date, ঠিক একটাই
+    let removed = false;
+    globalData.finance = (globalData.finance || []).filter(f => {
+      if (removed) return true;
+      const okAmt  = Math.abs(parseFloat(f.amount) - amount) < 0.5;
+      const okName = f.person === student.name ||
+                     (f.description && f.description.includes(student.name));
+      const okDate = !inst.date || inst.date === 'Opening' || f.date === inst.date;
+      const okCat  = f.category === 'Student Installment' ||
+                     f.category === 'Student Fee' ||
+                     f.category === 'Student Payment';
+      if (okAmt && okName && okDate && okCat) { removed = true; return false; }
+      return true;
+    });
+  }
+
+  // ── 4. Account balance reverse ────────────────────────────
+  if (method === 'Cash') {
+    globalData.cashBalance = Math.max(0, (parseFloat(globalData.cashBalance) || 0) - amount);
+  } else {
+    let acc = (globalData.bankAccounts  || []).find(a => a.name === method);
+    if (!acc) acc = (globalData.mobileBanking || []).find(a => a.name === method);
+    if (acc) acc.balance = Math.max(0, (parseFloat(acc.balance) || 0) - amount);
+  }
+
+  // ── 5. Save ───────────────────────────────────────────────
+  localStorage.setItem('wingsfly_data', JSON.stringify(window.globalData));
+  if (typeof window.immediateSyncPush === 'function') {
+    window.immediateSyncPush('Delete Payment: ' + student.name + ' ৳' + amount);
+  } else if (typeof window.scheduleSyncPush === 'function') {
+    window.scheduleSyncPush('Delete Payment: ' + student.name + ' ৳' + amount);
+  } else {
+    saveToStorage();
+  }
+
+  // ── 6. UI refresh ─────────────────────────────────────────
+  render(globalData.students);
+  updateGlobalStats();
+  if (typeof renderLedger       === 'function') renderLedger(globalData.finance);
+  if (typeof renderAccountList  === 'function') renderAccountList();
+  if (typeof renderCashBalance  === 'function') renderCashBalance();
+}
+
 function deleteInstallment(rowIndex, instIndex) {
   const student = globalData.students[rowIndex];
   if (!student) { alert('Student not found!'); return; }
@@ -3781,78 +3868,12 @@ function deleteInstallment(rowIndex, instIndex) {
 
   if (!confirm(`এই payment টি delete করতে চান?\n৳${formatNumber(inst.amount)} (${inst.date} - ${inst.method || 'Cash'})`)) return;
 
-  const amount = parseFloat(inst.amount) || 0;
-  const method = inst.method || 'Cash';
-
-  // 1. Student installments array থেকে সরাও
-  if (!inst.isMigrated) {
-    if (inst.financeId) {
-      // financeId দিয়ে exact match — সবচেয়ে নির্ভরযোগ্য
-      student.installments = (student.installments || []).filter(i => i.financeId !== inst.financeId);
-    } else {
-      // পুরনো data — index দিয়ে সরাও
-      const hasMigrated = installments.length > 0 && installments[0].isMigrated;
-      const realIndex = hasMigrated ? instIndex - 1 : instIndex;
-      if (realIndex >= 0) {
-        student.installments = (student.installments || []).filter((_, i) => i !== realIndex);
-      }
-    }
-  }
-  // isMigrated হলে installments array তে নেই, শুধু paid adjust হবে
-
-  // 2. Student paid/due update
-  student.paid = Math.max(0, (parseFloat(student.paid) || 0) - amount);
-  student.due = Math.max(0, (parseFloat(student.totalPayment) || 0) - student.paid);
-
-  // 3. Finance ledger থেকে সরাও
-  if (inst.financeId) {
-    // Exact ID match — শুধু ওই একটাই সরাবে
-    globalData.finance = (globalData.finance || []).filter(f => String(f.id) !== String(inst.financeId));
-  } else {
-    // পুরনো data — fuzzy match, কিন্তু শুধু একটাই সরাও
-    let removed = false;
-    globalData.finance = (globalData.finance || []).filter(f => {
-      if (removed) return true;
-      const sameAmount = parseFloat(f.amount) === amount;
-      const samePerson = f.person === student.name || (f.description && f.description.includes(student.name));
-      const sameDate = !inst.date || inst.date === 'Opening' || f.date === inst.date;
-      const isStudentPmt = f.category === 'Student Installment' || f.category === 'Student Payment';
-      if (sameAmount && samePerson && sameDate && isStudentPmt) {
-        removed = true;
-        return false;
-      }
-      return true;
-    });
-  }
-
-  // 4. Account balance reverse
-  if (method === 'Cash') {
-    globalData.cashBalance = Math.max(0, (parseFloat(globalData.cashBalance) || 0) - amount);
-  } else {
-    let acc = (globalData.bankAccounts || []).find(a => a.name === method);
-    if (!acc) acc = (globalData.mobileBanking || []).find(a => a.name === method);
-    if (acc) acc.balance = Math.max(0, (parseFloat(acc.balance) || 0) - amount);
-  }
-
-  // 5. Save + Push
-  localStorage.setItem('wingsfly_data', JSON.stringify(window.globalData));
-  if (typeof window.immediateSyncPush === 'function') {
-    window.immediateSyncPush('Delete Installment: ' + student.name + ' ৳' + amount);
-  } else if (typeof window.scheduleSyncPush === 'function') {
-    window.scheduleSyncPush('Delete Installment: ' + student.name + ' ৳' + amount);
-  } else {
-    saveToStorage();
-  }
+  _deletePaymentCore(student, inst, rowIndex);
 
   showSuccessToast('Payment deleted successfully!');
 
-  // 6. Refresh UI
+  // Payment modal refresh
   openStudentPaymentModal(rowIndex);
-  render(globalData.students);
-  updateGlobalStats();
-  if (typeof renderLedger === 'function') renderLedger(globalData.finance);
-  if (typeof renderAccountList === 'function') renderAccountList();
-  if (typeof renderCashBalance === 'function') renderCashBalance();
 }
 
 window.deleteInstallment = deleteInstallment;
@@ -4069,82 +4090,71 @@ async function handleTransferSubmit(e) {
 function deleteTransaction(id) {
   
 
-  // Handle both string and number IDs (localStorage/Supabase can change types)
   const sid = String(id);
-  const txToDelete = globalData.finance.find(f => String(f.id) === sid);
+  const txToDelete = (globalData.finance || []).find(f => String(f.id) === sid);
   
   if (!txToDelete) {
     showErrorToast('Transaction not found.');
-    renderLedger(globalData.finance);
-    renderAccountDetails && renderAccountDetails();
+    if (typeof renderLedger === 'function') renderLedger(globalData.finance);
+    if (typeof renderAccountDetails === 'function') renderAccountDetails();
     return;
   }
 
-  if (typeof updateAccountBalance === "function") {
-    updateAccountBalance(txToDelete.method, txToDelete.amount, txToDelete.type, false);
-  }
-
-  // Finance থেকে exact ID দিয়ে সরাও — শুধু ওই একটাই
-  globalData.finance = globalData.finance.filter(f => String(f.id) !== sid);
-
-  // ✅ SAFE Student sync: financeId দিয়ে exact match থাকলেই সরাও
-  // ⚠️ name/description দিয়ে match করা বিপজ্জনক — সব finance মুছে যেতে পারে
-  if (
+  // ── Student Payment হলে central function দিয়ে delete করো ──
+  const isStudentPayment =
     txToDelete.category === 'Student Installment' ||
-    txToDelete.category === 'Student Payment'
-  ) {
-    const txAmount = parseFloat(txToDelete.amount) || 0;
-    // শুধু studentId বা person (exact name) দিয়ে student খুঁজো
-    const student = globalData.students.find(s =>
-      (txToDelete.studentId && s.id && String(s.id) === String(txToDelete.studentId)) ||
-      (txToDelete.person && s.name && s.name === txToDelete.person)
+    txToDelete.category === 'Student Fee' ||
+    txToDelete.category === 'Student Payment';
+
+  if (isStudentPayment) {
+    // Student খুঁজে বের করো — studentId বা exact person name
+    const student = (globalData.students || []).find(s =>
+      (txToDelete.studentId && s.studentId && String(s.studentId) === String(txToDelete.studentId)) ||
+      (txToDelete.person    && s.name      && s.name === txToDelete.person)
     );
 
     if (student) {
-      if (student.installments && student.installments.length > 0) {
-        const prevLen = student.installments.length;
-        // 1st: financeId exact match
-        student.installments = student.installments.filter(i => String(i.financeId) !== sid);
-        // 2nd fallback (পুরনো data, financeId নেই): amount+date দিয়ে শুধু ১টা সরাও
-        if (student.installments.length === prevLen) {
-          let removed = false;
-          student.installments = student.installments.filter(i => {
-            if (removed) return true;
-            if (parseFloat(i.amount) === txAmount && i.date === txToDelete.date) {
-              removed = true;
-              return false;
-            }
-            return true;
-          });
-        }
-      }
-      student.paid = Math.max(0, (parseFloat(student.paid) || 0) - txAmount);
-      student.due = Math.max(0, (parseFloat(student.totalPayment) || 0) - student.paid);
-      if (typeof render === 'function') render(globalData.students);
+      // Finance entry কে installment object এ রূপান্তর করো
+      const fakeInst = {
+        amount:    txToDelete.amount,
+        date:      txToDelete.date,
+        method:    txToDelete.method,
+        financeId: sid,
+        isMigrated: false
+      };
+      // Central delete — সব কিছু একসাথে সরাবে
+      _deletePaymentCore(student, fakeInst, globalData.students.indexOf(student));
+      showSuccessToast('Payment deleted and student updated!');
+      // Ledger refresh (already done inside _deletePaymentCore)
+      return;
     }
+    // Student না পেলে নিচে normal delete হবে
   }
 
-  // UI update
-  renderLedger(globalData.finance);
+  // ── Non-student transaction normal delete ──
+  if (typeof updateAccountBalance === 'function') {
+    updateAccountBalance(txToDelete.method, txToDelete.amount, txToDelete.type, false);
+  }
+  globalData.finance = globalData.finance.filter(f => String(f.id) !== sid);
+
+  if (typeof renderLedger === 'function') renderLedger(globalData.finance);
   updateGlobalStats();
   showSuccessToast('Transaction deleted successfully!');
 
-  // Save + Immediate push
   const _dc = parseInt(localStorage.getItem('wings_total_deleted') || '0') + 1;
   localStorage.setItem('wings_total_deleted', _dc.toString());
   localStorage.setItem('wingsfly_data', JSON.stringify(window.globalData));
   if (typeof window.immediateSyncPush === 'function') {
-    window.immediateSyncPush('Delete Transaction: ' + (txToDelete.description || txToDelete.category || String(id)));
+    window.immediateSyncPush('Delete Transaction: ' + (txToDelete.description || txToDelete.category || sid));
   } else if (typeof window.scheduleSyncPush === 'function') {
-    window.scheduleSyncPush('Delete Transaction: ' + (txToDelete.description || txToDelete.category || String(id)));
+    window.scheduleSyncPush('Delete Transaction: ' + (txToDelete.description || txToDelete.category || sid));
   } else {
     saveToStorage();
   }
 
-  // Refresh Account Details modal if open
   const accModal = document.getElementById('accountDetailsModal');
   if (accModal && bootstrap.Modal.getInstance(accModal)) {
-    renderAccountDetails();
+    if (typeof renderAccountDetails === 'function') renderAccountDetails();
   }
 }
 
