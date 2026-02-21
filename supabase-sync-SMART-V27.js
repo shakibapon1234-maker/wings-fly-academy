@@ -43,8 +43,7 @@
   let isPushing = false;
   let isPulling = false;
   let isMonitoringEnabled = false;
-  // ✅ RELOAD FIX: localStorage থেকে lastPushTime restore করো
-  // নইলে page reload এ lastPushTime=0 হয়ে যায় এবং 15s block কাজ করে না
+  // ✅ RELOAD FIX: localStorage থেকে restore করো — reload এ 15s block কাজ করার জন্য
   let lastPushTime = parseInt(localStorage.getItem('wings_last_push_time') || '0');
   let lastPullTime = 0;
   let pushDebounceTimer = null;
@@ -378,7 +377,7 @@
       // Save version and timestamp locally
       localStorage.setItem('lastSyncTime', timestamp.toString());
       localStorage.setItem('wings_local_version', localVersion.toString());
-      // ✅ RELOAD FIX: Push time localStorage এ save করো যাতে reload এর পরেও block কাজ করে
+      // ✅ Reload fix: push time localStorage এ রাখো
       localStorage.setItem('wings_last_push_time', timestamp.toString());
       lastPushTime = timestamp;
 
@@ -650,15 +649,9 @@
   window.manualSync       = window.wingsSync.fullSync;
   window.scheduleSyncPush = schedulePush; // delete/add action এর reason পাঠানোর জন্য
 
-  // ✅ immediateSyncPush: delete এর জন্য — debounce ছাড়া তাৎক্ষণিক push
-  // page reload এর আগেই cloud এ save নিশ্চিত করে
+  // ✅ Delete এর জন্য: debounce ছাড়া সাথে সাথে push
   window.immediateSyncPush = function(reason) {
-    // চলমান debounce timer বাতিল করো
-    if (pushDebounceTimer) {
-      clearTimeout(pushDebounceTimer);
-      pushDebounceTimer = null;
-    }
-    // সাথে সাথে push করো
+    if (pushDebounceTimer) { clearTimeout(pushDebounceTimer); pushDebounceTimer = null; }
     pushToCloud(reason);
   };
 
