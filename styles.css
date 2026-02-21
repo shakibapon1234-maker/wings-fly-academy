@@ -849,83 +849,155 @@ body::after {
    METRIC CARDS - Enhanced Neon Style
    =================================== */
 
+/* ============================================================
+   AVIATION METRIC CARD — Running Light Border + Neon Pulse
+   ============================================================ */
+
+/* Wrapper trick: card sits inside a pseudo-border container */
 .aviation-metric-card {
   background: linear-gradient(135deg,
-      rgba(21, 26, 53, 0.95) 0%,
-      rgba(31, 21, 69, 0.95) 100%);
+      rgba(10, 14, 39, 0.97) 0%,
+      rgba(18, 12, 48, 0.97) 100%);
   padding: 2rem;
-  border-radius: 15px;
-  border: 2px solid;
-  transition: all var(--transition-normal);
+  border-radius: 16px;
+  border: none;
+  transition: all 0.35s cubic-bezier(0.4, 0, 0.2, 1);
   position: relative;
   overflow: hidden;
-  backdrop-filter: blur(10px);
+  backdrop-filter: blur(14px);
+  z-index: 0;
 }
 
+/* ── Running light border using conic-gradient ── */
 .aviation-metric-card::before {
   content: '';
   position: absolute;
-  top: -50%;
-  right: -50%;
-  width: 200%;
-  height: 200%;
-  background: linear-gradient(45deg,
-      transparent,
-      rgba(255, 255, 255, 0.03),
-      transparent);
-  transform: rotate(45deg);
-  animation: shimmer 4s infinite;
+  inset: -2px;
+  border-radius: 18px;
+  z-index: -1;
+  background: conic-gradient(
+    from var(--card-angle, 0deg),
+    transparent 0%,
+    transparent 60%,
+    var(--card-light, #00d9ff) 75%,
+    transparent 90%,
+    transparent 100%
+  );
+  animation: cardLightSpin 3s linear infinite;
 }
 
-@keyframes shimmer {
-  0% {
-    transform: translateX(-100%) translateY(-100%) rotate(45deg);
-  }
-
-  100% {
-    transform: translateX(100%) translateY(100%) rotate(45deg);
-  }
+@property --card-angle {
+  syntax: '<angle>';
+  initial-value: 0deg;
+  inherits: false;
 }
 
+@keyframes cardLightSpin {
+  0%   { --card-angle: 0deg; }
+  100% { --card-angle: 360deg; }
+}
+
+/* ── Inner background fill (hides ::before bleed) ── */
+.aviation-metric-card::after {
+  content: '';
+  position: absolute;
+  inset: 2px;
+  border-radius: 14px;
+  background: linear-gradient(135deg,
+      rgba(10, 14, 39, 0.98) 0%,
+      rgba(18, 12, 48, 0.98) 100%);
+  z-index: -1;
+}
+
+/* ── Pulse glow — always on ── */
+/* Card 1: Blue (Total Students) */
+.row.g-4 .col-md-6:nth-child(1) .aviation-metric-card {
+  --card-light: #00d9ff;
+  box-shadow:
+    0 0 15px rgba(0, 217, 255, 0.25),
+    0 0 35px rgba(0, 217, 255, 0.1);
+  animation: pulseBlue 3s ease-in-out infinite;
+}
+
+@keyframes pulseBlue {
+  0%, 100% { box-shadow: 0 0 15px rgba(0,217,255,0.25), 0 0 35px rgba(0,217,255,0.10); }
+  50%       { box-shadow: 0 0 28px rgba(0,217,255,0.55), 0 0 60px rgba(0,217,255,0.25); }
+}
+
+/* Card 2: Green (Total Income) */
+.row.g-4 .col-md-6:nth-child(2) .aviation-metric-card {
+  --card-light: #00ff88;
+  box-shadow:
+    0 0 15px rgba(0, 255, 136, 0.25),
+    0 0 35px rgba(0, 255, 136, 0.1);
+  animation: pulseGreen 3s ease-in-out infinite;
+  animation-delay: 0.75s;
+}
+
+@keyframes pulseGreen {
+  0%, 100% { box-shadow: 0 0 15px rgba(0,255,136,0.25), 0 0 35px rgba(0,255,136,0.10); }
+  50%       { box-shadow: 0 0 28px rgba(0,255,136,0.55), 0 0 60px rgba(0,255,136,0.25); }
+}
+
+/* Card 3: Orange/Red (Total Expense) */
+.row.g-4 .col-md-6:nth-child(3) .aviation-metric-card {
+  --card-light: #ff6b35;
+  box-shadow:
+    0 0 15px rgba(255, 107, 53, 0.25),
+    0 0 35px rgba(255, 107, 53, 0.1);
+  animation: pulseOrange 3s ease-in-out infinite;
+  animation-delay: 1.5s;
+}
+
+@keyframes pulseOrange {
+  0%, 100% { box-shadow: 0 0 15px rgba(255,107,53,0.25), 0 0 35px rgba(255,107,53,0.10); }
+  50%       { box-shadow: 0 0 28px rgba(255,107,53,0.55), 0 0 60px rgba(255,107,53,0.25); }
+}
+
+/* Card 4: Purple (Net Profit) */
+.row.g-4 .col-md-6:nth-child(4) .aviation-metric-card {
+  --card-light: #b537f2;
+  box-shadow:
+    0 0 15px rgba(181, 55, 242, 0.25),
+    0 0 35px rgba(181, 55, 242, 0.1);
+  animation: pulsePurple 3s ease-in-out infinite;
+  animation-delay: 2.25s;
+}
+
+@keyframes pulsePurple {
+  0%, 100% { box-shadow: 0 0 15px rgba(181,55,242,0.25), 0 0 35px rgba(181,55,242,0.10); }
+  50%       { box-shadow: 0 0 28px rgba(181,55,242,0.55), 0 0 60px rgba(181,55,242,0.25); }
+}
+
+/* ── Hover: lift + intense glow ── */
 .aviation-metric-card:hover {
-  transform: translateY(-8px) scale(1.02);
+  transform: translateY(-10px) scale(1.025);
+  animation-play-state: paused;
 }
 
-.metric-card-blue {
-  border-color: var(--neon-blue);
-  box-shadow: var(--glow-blue);
+.row.g-4 .col-md-6:nth-child(1) .aviation-metric-card:hover {
+  box-shadow: 0 0 40px rgba(0,217,255,0.7), 0 0 80px rgba(0,217,255,0.35), 0 20px 40px rgba(0,0,0,0.5);
+}
+.row.g-4 .col-md-6:nth-child(2) .aviation-metric-card:hover {
+  box-shadow: 0 0 40px rgba(0,255,136,0.7), 0 0 80px rgba(0,255,136,0.35), 0 20px 40px rgba(0,0,0,0.5);
+}
+.row.g-4 .col-md-6:nth-child(3) .aviation-metric-card:hover {
+  box-shadow: 0 0 40px rgba(255,107,53,0.7), 0 0 80px rgba(255,107,53,0.35), 0 20px 40px rgba(0,0,0,0.5);
+}
+.row.g-4 .col-md-6:nth-child(4) .aviation-metric-card:hover {
+  box-shadow: 0 0 40px rgba(181,55,242,0.7), 0 0 80px rgba(181,55,242,0.35), 0 20px 40px rgba(0,0,0,0.5);
 }
 
-.metric-card-blue:hover {
-  box-shadow: 0 0 40px rgba(0, 217, 255, 1), 0 0 80px rgba(0, 217, 255, 0.5);
+/* ── Hover এ running light দ্রুত হয় ── */
+.aviation-metric-card:hover::before {
+  animation-duration: 1.2s;
 }
 
-.metric-card-green {
-  border-color: var(--neon-green);
-  box-shadow: var(--glow-green);
-}
-
-.metric-card-green:hover {
-  box-shadow: 0 0 40px rgba(0, 255, 136, 1), 0 0 80px rgba(0, 255, 136, 0.5);
-}
-
-.metric-card-orange {
-  border-color: var(--neon-orange);
-  box-shadow: var(--glow-orange);
-}
-
-.metric-card-orange:hover {
-  box-shadow: 0 0 40px rgba(255, 107, 53, 1), 0 0 80px rgba(255, 107, 53, 0.5);
-}
-
-.metric-card-purple {
-  border-color: var(--neon-purple);
-  box-shadow: var(--glow-purple);
-}
-
-.metric-card-purple:hover {
-  box-shadow: 0 0 40px rgba(181, 55, 242, 1), 0 0 80px rgba(181, 55, 242, 0.5);
-}
+/* Legacy color classes (অন্য জায়গায় ব্যবহার হলে) */
+.metric-card-blue  { --card-light: #00d9ff; }
+.metric-card-green { --card-light: #00ff88; }
+.metric-card-orange{ --card-light: #ff6b35; }
+.metric-card-purple{ --card-light: #b537f2; }
 
 .av-card-header {
   display: flex;
@@ -2466,73 +2538,31 @@ tfoot th {
   display: flex;
   align-items: center;
   gap: 0;
-  min-height: 54px;
+  min-height: 48px;
   overflow: hidden;
-  border-bottom: 3px solid rgba(255,255,255,0.2);
-  border-top: 3px solid rgba(255,255,255,0.2);
-  position: relative;
+  border-bottom: 2px solid rgba(255,255,255,0.15);
 }
 
-/* Shimmer overlay for all types */
-.notice-banner-inner::after {
-  content: '';
-  position: absolute;
-  top: 0; left: -100%;
-  width: 60%;
-  height: 100%;
-  background: linear-gradient(90deg, transparent, rgba(255,255,255,0.08), transparent);
-  animation: noticeShimmer 3s linear infinite;
-  pointer-events: none;
-}
-
-@keyframes noticeShimmer {
-  0%   { left: -60%; }
-  100% { left: 160%; }
-}
-
-/* ── WARNING (গাঢ় লাল — DUE card এর মতো) ── */
+/* Type variants */
 #noticeBoardBanner.notice-warning .notice-banner-inner {
-  background: linear-gradient(90deg, #7f1d1d, #b91c1c, #dc2626, #b91c1c, #7f1d1d);
+  background: linear-gradient(90deg, #b45309, #d97706, #f59e0b, #d97706, #b45309);
   background-size: 200% 100%;
-  border-top: 3px solid #f87171;
-  border-bottom: 3px solid #f87171;
-  box-shadow: 0 0 18px rgba(220, 38, 38, 0.5), inset 0 1px 0 rgba(255,255,255,0.1);
-  animation: noticeSlideDown 0.5s ease both, noticeBgShift 5s linear infinite;
+  animation: noticeSlideDown 0.5s ease both, noticeBgShift 4s linear infinite;
 }
-
-/* ── DANGER (উজ্জ্বল লাল + glow) ── */
 #noticeBoardBanner.notice-danger .notice-banner-inner {
-  background: linear-gradient(90deg, #6b0000, #b91c1c, #ef4444, #b91c1c, #6b0000);
+  background: linear-gradient(90deg, #7f1d1d, #dc2626, #ef4444, #dc2626, #7f1d1d);
   background-size: 200% 100%;
-  border-top: 3px solid #fca5a5;
-  border-bottom: 3px solid #fca5a5;
-  box-shadow: 0 0 24px rgba(239, 68, 68, 0.65), inset 0 1px 0 rgba(255,255,255,0.12);
-  animation: noticeSlideDown 0.5s ease both, noticeBgShift 3s linear infinite, noticeDangerPulse 2s ease-in-out infinite;
+  animation: noticeSlideDown 0.5s ease both, noticeBgShift 4s linear infinite;
 }
-
-@keyframes noticeDangerPulse {
-  0%, 100% { box-shadow: 0 0 20px rgba(239, 68, 68, 0.6); }
-  50%       { box-shadow: 0 0 36px rgba(239, 68, 68, 0.9), 0 0 8px rgba(255,100,100,0.4); }
-}
-
-/* ── INFO (নীল) ── */
 #noticeBoardBanner.notice-info .notice-banner-inner {
   background: linear-gradient(90deg, #1e3a5f, #1d4ed8, #3b82f6, #1d4ed8, #1e3a5f);
   background-size: 200% 100%;
-  border-top: 3px solid #93c5fd;
-  border-bottom: 3px solid #93c5fd;
-  box-shadow: 0 0 18px rgba(59, 130, 246, 0.5), inset 0 1px 0 rgba(255,255,255,0.1);
-  animation: noticeSlideDown 0.5s ease both, noticeBgShift 5s linear infinite;
+  animation: noticeSlideDown 0.5s ease both, noticeBgShift 4s linear infinite;
 }
-
-/* ── SUCCESS (সবুজ) ── */
 #noticeBoardBanner.notice-success .notice-banner-inner {
   background: linear-gradient(90deg, #14532d, #16a34a, #22c55e, #16a34a, #14532d);
   background-size: 200% 100%;
-  border-top: 3px solid #86efac;
-  border-bottom: 3px solid #86efac;
-  box-shadow: 0 0 18px rgba(34, 197, 94, 0.5), inset 0 1px 0 rgba(255,255,255,0.1);
-  animation: noticeSlideDown 0.5s ease both, noticeBgShift 5s linear infinite;
+  animation: noticeSlideDown 0.5s ease both, noticeBgShift 4s linear infinite;
 }
 
 @keyframes noticeBgShift {
@@ -2545,22 +2575,20 @@ tfoot th {
   display: flex;
   align-items: center;
   gap: 8px;
-  padding: 0 18px;
-  background: rgba(0,0,0,0.4);
+  padding: 0 16px;
+  background: rgba(0,0,0,0.3);
   height: 100%;
-  min-height: 54px;
+  min-height: 48px;
   white-space: nowrap;
-  border-right: 2px solid rgba(255,255,255,0.25);
-  backdrop-filter: blur(4px);
+  border-right: 2px solid rgba(255,255,255,0.2);
 }
 
 .notice-label {
-  font-weight: 900;
-  font-size: 0.72rem;
-  letter-spacing: 3.5px;
+  font-weight: 800;
+  font-size: 0.75rem;
+  letter-spacing: 3px;
   text-transform: uppercase;
   color: #fff;
-  text-shadow: 0 0 10px rgba(255,255,255,0.5);
 }
 
 /* Pulse icon */
@@ -2607,28 +2635,25 @@ tfoot th {
   display: flex;
   align-items: center;
   gap: 10px;
-  padding: 0 16px;
-  background: rgba(0,0,0,0.4);
+  padding: 0 14px;
+  background: rgba(0,0,0,0.3);
   height: 100%;
-  min-height: 54px;
-  border-left: 2px solid rgba(255,255,255,0.25);
+  min-height: 48px;
+  border-left: 2px solid rgba(255,255,255,0.2);
   white-space: nowrap;
-  backdrop-filter: blur(4px);
 }
 
 .notice-countdown-badge {
-  background: rgba(0,0,0,0.5);
+  background: rgba(0,0,0,0.4);
   color: #fff;
-  font-size: 0.73rem;
-  font-weight: 800;
-  padding: 5px 12px;
+  font-size: 0.75rem;
+  font-weight: 700;
+  padding: 4px 10px;
   border-radius: 20px;
-  border: 1px solid rgba(255,255,255,0.35);
-  letter-spacing: 0.8px;
+  border: 1px solid rgba(255,255,255,0.3);
+  letter-spacing: 0.5px;
   display: flex;
   align-items: center;
-  text-shadow: 0 0 8px rgba(255,255,255,0.4);
-  box-shadow: inset 0 1px 0 rgba(255,255,255,0.1);
 }
 
 .notice-manage-btn {
