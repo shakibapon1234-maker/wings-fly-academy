@@ -3669,9 +3669,12 @@ function openStudentPaymentModal(rowIndex) {
         <td>${inst.date} ${inst.isMigrated ? '(Initial)' : ''}</td>
         <td><span class="badge bg-light text-dark border">${inst.method || 'N/A'}</span></td>
         <td class="text-end fw-bold">৳${formatNumber(inst.amount)}</td>
-        <td class="text-end">
+        <td class="text-end d-flex gap-1 justify-content-end">
           <button class="btn btn-sm btn-outline-primary" onclick="printReceipt(${rowIndex}, ${inst.amount})">
             <i class="bi bi-printer"></i> RECEIPT
+          </button>
+          <button class="btn btn-sm btn-outline-danger" onclick="deleteInstallment(${rowIndex}, ${idx})" title="Delete this payment">
+            <i class="bi bi-trash"></i>
           </button>
         </td>
       `;
@@ -3761,6 +3764,77 @@ function handleAddInstallment() {
 window.openStudentPaymentModal = openStudentPaymentModal;
 window.handleAddInstallment = handleAddInstallment;
 
+// ✅ DELETE INSTALLMENT — Payment History থেকে একটা payment সরানো
+function deleteInstallment(rowIndex, instIndex) {
+  const student = globalData.students[rowIndex];
+  if (!student) { alert('Student not found!'); return; }
+
+  const installments = getStudentInstallments(student);
+  const inst = installments[instIndex];
+  if (!inst) { alert('Installment not found!'); return; }
+
+  if (!confirm(`এই payment টি delete করতে চান?\n৳${formatNumber(inst.amount)} (${inst.date} - ${inst.method || 'Cash'})`)) return;
+
+  const amount = parseFloat(inst.amount) || 0;
+  const method = inst.method || 'Cash';
+
+  // 1. Student installments array থেকে সরাও
+  if (!inst.isMigrated) {
+    // Normal installment — directly from student.installments
+    student.installments = (student.installments || []).filter((_, i) => {
+      // instIndex match করে সেটা বাদ দাও
+      return i !== instIndex;
+    });
+  } else {
+    // Migrated (initial payment) — paid field থেকে বাদ দাও
+    // এটা student.payment field এ আছে, installments এ নেই
+    // তাই শুধু paid/due adjust করব
+  }
+
+  // 2. Student paid/due update করো
+  student.paid = Math.max(0, (parseFloat(student.paid) || 0) - amount);
+  student.due = Math.max(0, (parseFloat(student.totalPayment) || 0) - student.paid);
+
+  // 3. Finance ledger থেকেও সরাও (matching entry)
+  const beforeCount = (globalData.finance || []).length;
+  globalData.finance = (globalData.finance || []).filter(f => {
+    const sameAmount = parseFloat(f.amount) === amount;
+    const samePerson = f.person === student.name || (f.description && f.description.includes(student.name));
+    const sameMethod = !f.method || f.method === method;
+    const sameDate = !inst.date || f.date === inst.date;
+    return !(sameAmount && samePerson && sameDate);
+  });
+
+  // 4. Account balance reverse করো
+  if (method === 'Cash') {
+    globalData.cashBalance = Math.max(0, (parseFloat(globalData.cashBalance) || 0) - amount);
+  } else {
+    let acc = (globalData.bankAccounts || []).find(a => a.name === method);
+    if (!acc) acc = (globalData.mobileBanking || []).find(a => a.name === method);
+    if (acc) acc.balance = Math.max(0, (parseFloat(acc.balance) || 0) - amount);
+  }
+
+  // 5. Save immediately to localStorage + cloud
+  localStorage.setItem('wingsfly_data', JSON.stringify(window.globalData));
+  if (typeof window.scheduleSyncPush === 'function') {
+    window.scheduleSyncPush('Delete Installment: ' + student.name + ' ৳' + amount);
+  } else {
+    saveToStorage();
+  }
+
+  showSuccessToast('Payment deleted successfully!');
+
+  // 6. Modal refresh করো
+  openStudentPaymentModal(rowIndex);
+  render(globalData.students);
+  updateGlobalStats();
+  if (typeof renderLedger === 'function') renderLedger(globalData.finance);
+  if (typeof renderAccountList === 'function') renderAccountList();
+  if (typeof renderCashBalance === 'function') renderCashBalance();
+}
+
+window.deleteInstallment = deleteInstallment;
+
 
 
 function deleteStudent(rowIndex) {
@@ -3825,14 +3899,7 @@ function deleteStudent(rowIndex) {
     return;
   }
 
-  // ✅ FIX V27: আগে localStorage এ save — তারপর cloud push
-  // এটা না করলে রিফ্রেশে localStorage থেকে পুরোনো data ফিরে আসে
-  localStorage.setItem('wingsfly_data', JSON.stringify(window.globalData));
-  localStorage.setItem('wingsfly_deleted_backup', JSON.stringify(window.globalData.deletedItems || []));
-  localStorage.setItem('wingsfly_activity_backup', JSON.stringify(window.globalData.activityHistory || []));
-  console.log('💾 [DELETE] Saved to localStorage immediately');
-
-  // Cloud push
+  // ✅ Sync এ 'Delete' word পাঠাও যাতে cloud এ delete বোঝা যায়
   if (typeof window.scheduleSyncPush === 'function') {
     window.scheduleSyncPush('Delete Student: ' + (student.name || 'Unknown'));
   } else {
