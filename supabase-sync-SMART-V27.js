@@ -397,7 +397,9 @@
         last_updated: timestamp.toString(),
         last_device: DEVICE_ID,
         last_action: reason,
-        // deleted_count removed — column does not exist in Supabase table
+        last_device: DEVICE_ID,
+        updated_by: sessionStorage.getItem('username') || 'Admin',
+        device_id: DEVICE_ID,
       };
 
       const { error } = await supabaseClient
