@@ -1,7 +1,7 @@
 /**
  * ========================================
  * WINGS FLY AVIATION ACADEMY
- * SMART SYNC SYSTEM V28 - EMPLOYEE PROTECTION + DAILY BACKUP
+ * SMART SYNC SYSTEM V29 - PUSH QUEUE + CLOUD HISTORY + BEACON FIX
  * ========================================
  * 
  * 🌍 Real-world Multi-device Sync Solution
@@ -15,6 +15,9 @@
  * - Refresh/reload handling
  * - Network offline/online detection
  * - Zero data loss guarantee
+ * - V29: Push Queue — push চলার সময় data হারাবে না
+ * - V29: beforeunload এ সঠিক full data save
+ * - V29: deletedItems ও activityHistory cloud এ sync হবে
  * 
  * Author: Wings Fly IT Team
  * Date: February 2026
@@ -49,6 +52,9 @@
   let pullIntervalId = null;
   let localVersion = 0; // Vector clock for this device
   let isOnline = navigator.onLine;
+
+  // ✅ V29: Push Queue — push চলার সময় নতুন push এলে queue তে রাখো
+  let pendingPushReason = null; // null = no pending push
 
   // ==========================================
   // DEVICE ID GENERATION
@@ -216,14 +222,20 @@
         isMonitoringEnabled = false;
 
         // ✅ PRESERVE LOCAL-ONLY DATA (deletedItems & activityHistory)
-        // এগুলো cloud এ store হয় না, তাই pull এ হারিয়ে যায়
-        // Local backup থেকে restore করো
+        // V29: এখন cloud এ store হয়, তাই cloud টাই সঠিক।
+        // তবে cloud এ না থাকলে (পুরোনো data) local backup থেকে নিয়ো।
         const _savedDeleted = localStorage.getItem('wingsfly_deleted_backup');
         const _savedActivity = localStorage.getItem('wingsfly_activity_backup');
-        const _preservedDeleted = _savedDeleted ? JSON.parse(_savedDeleted) :
-          (window.globalData && window.globalData.deletedItems) || [];
-        const _preservedActivity = _savedActivity ? JSON.parse(_savedActivity) :
-          (window.globalData && window.globalData.activityHistory) || [];
+        const _cloudDeleted = data.deleted_items || null;
+        const _cloudActivity = data.activity_history || null;
+
+        // Cloud এ আছে → cloud নাও। নইলে local backup।
+        const _preservedDeleted = _cloudDeleted !== null ? _cloudDeleted :
+          (_savedDeleted ? JSON.parse(_savedDeleted) :
+            (window.globalData && window.globalData.deletedItems) || []);
+        const _preservedActivity = _cloudActivity !== null ? _cloudActivity :
+          (_savedActivity ? JSON.parse(_savedActivity) :
+            (window.globalData && window.globalData.activityHistory) || []);
 
         // Update global data
         window.globalData = {
@@ -355,7 +367,10 @@
     }
 
     if (isPushing) {
-      log('⏳', 'Push in progress, queuing...');
+      // ✅ V29 FIX: আগে শুধু return false করত, ফলে data হারাত।
+      // এখন reason টা queue তে রাখো — push শেষ হলে এটা execute হবে।
+      pendingPushReason = reason;
+      log('⏳', `Push in progress — queued: "${reason}"`);
       return false;
     }
 
@@ -398,6 +413,9 @@
         exam_registrations: window.globalData.examRegistrations || [],
         visitors: window.globalData.visitors || [],
         employee_roles: window.globalData.employeeRoles || [],
+        // ✅ V29 NEW: deletedItems ও activityHistory এখন cloud এ save হবে
+        deleted_items: window.globalData.deletedItems || [],
+        activity_history: window.globalData.activityHistory || [],
         version: localVersion,
         last_updated: new Date(timestamp).toISOString(),
         last_device: DEVICE_ID,
@@ -421,6 +439,15 @@
       showNotification(`📤 ${reason} saved`, 'success');
 
       isPushing = false;
+
+      // ✅ V29: Queue তে pending push থাকলে এখন execute করো
+      if (pendingPushReason !== null) {
+        const queuedReason = pendingPushReason;
+        pendingPushReason = null;
+        log('🔁', `Executing queued push: "${queuedReason}"`);
+        setTimeout(() => pushToCloud(queuedReason), 300);
+      }
+
       return true;
 
     } catch (error) {
@@ -430,6 +457,12 @@
       // Rollback version on error
       localVersion--;
       localStorage.setItem('wings_local_version', localVersion.toString());
+
+      // ✅ V29: Error হলে pending queue সাফ করো (stale data push এড়াতে)
+      if (pendingPushReason !== null) {
+        log('⚠️', `Queue cleared after push error (was: "${pendingPushReason}")`);
+        pendingPushReason = null;
+      }
 
       isPushing = false;
       return false;
@@ -650,20 +683,76 @@
   function setupRefreshHandling() {
     // Save pending changes before page unload
     window.addEventListener('beforeunload', (e) => {
-      // If there's a pending push, try to execute it immediately
-      if (pushDebounceTimer) {
+      // ✅ V29 FIX: আগে sendBeacon এ শুধু metadata যেত, data যেত না।
+      // এখন full data সহ Supabase REST API তে PATCH পাঠাবে।
+      if (pushDebounceTimer || isPushing || pendingPushReason) {
         clearTimeout(pushDebounceTimer);
 
-        // Synchronous push attempt (may not complete)
-        navigator.sendBeacon && navigator.sendBeacon(
-          `${SUPABASE_URL}/rest/v1/${TABLE_NAME}`,
-          JSON.stringify({
+        if (!window.globalData || !navigator.sendBeacon) return;
+
+        try {
+          // localVersion increment করো (unsaved change আছে)
+          const beaconVersion = localVersion + 1;
+          const beaconTimestamp = new Date().toISOString();
+
+          const payload = JSON.stringify({
             id: RECORD_ID,
-            last_updated: new Date().toISOString(),
+            students: window.globalData.students || [],
+            employees: window.globalData.employees || [],
+            finance: window.globalData.finance || [],
+            settings: window.globalData.settings || {},
+            income_categories: window.globalData.incomeCategories || [],
+            expense_categories: window.globalData.expenseCategories || [],
+            payment_methods: window.globalData.paymentMethods || [],
+            cash_balance: window.globalData.cashBalance || 0,
+            bank_accounts: window.globalData.bankAccounts || [],
+            mobile_banking: window.globalData.mobileBanking || [],
+            course_names: window.globalData.courseNames || [],
+            attendance: window.globalData.attendance || {},
+            next_id: window.globalData.nextId || 1001,
+            users: window.globalData.users || [],
+            exam_registrations: window.globalData.examRegistrations || [],
+            visitors: window.globalData.visitors || [],
+            employee_roles: window.globalData.employeeRoles || [],
+            deleted_items: window.globalData.deletedItems || [],
+            activity_history: window.globalData.activityHistory || [],
+            version: beaconVersion,
+            last_updated: beaconTimestamp,
             last_device: DEVICE_ID,
-            last_action: 'Page refresh'
-          })
-        );
+            last_action: 'Page-close auto-save',
+            updated_by: sessionStorage.getItem('username') || 'Admin',
+            device_id: DEVICE_ID,
+          });
+
+          // Supabase REST upsert endpoint
+          const beaconUrl = `${SUPABASE_URL}/rest/v1/${TABLE_NAME}?on_conflict=id`;
+          const blob = new Blob([payload], { type: 'application/json' });
+
+          // sendBeacon এর সাথে header পাঠানো যায় না, তাই fetch (keepalive) ব্যবহার করি
+          // keepalive: true মানে page close হলেও request complete হবে
+          fetch(beaconUrl, {
+            method: 'POST',
+            headers: {
+              'Content-Type': 'application/json',
+              'apikey': SUPABASE_KEY,
+              'Authorization': `Bearer ${SUPABASE_KEY}`,
+              'Prefer': 'resolution=merge-duplicates',
+            },
+            body: payload,
+            keepalive: true, // ✅ Page close হলেও complete হবে
+          }).catch(() => {
+            // keepalive fetch fail হলে sendBeacon fallback
+            navigator.sendBeacon(beaconUrl, blob);
+          });
+
+          // Version locally সেভ করো (অন্তত localStorage এ থাকুক)
+          localStorage.setItem('wings_local_version', beaconVersion.toString());
+          localStorage.setItem('lastSyncTime', Date.now().toString());
+
+          log('💾', `Page-close save attempted (v${beaconVersion})`);
+        } catch (err) {
+          log('⚠️', 'Page-close save error: ' + err.message);
+        }
       }
     });
 
@@ -757,7 +846,7 @@
   // ==========================================
   function startSyncSystem() {
     log('🚀', '━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━');
-    log('🚀', 'Wings Fly Smart Sync V28 (Employee Protection + Daily Backup)');
+    log('🚀', 'Wings Fly Smart Sync V29 (Push Queue + Cloud History + Beacon Fix)');
     log('🚀', 'Industry-Standard Multi-device Sync');
     log('🚀', '━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━');
     log('💻', `Device: ${DEVICE_ID}`);
@@ -813,6 +902,9 @@
         log('💡', '  ✅ Refresh/reload handling');
         log('💡', '  ✅ V28: Employees protected from accidental delete');
         log('💡', '  ✅ V28: Daily backup (7 days) — use wingsRestoreBackup()');
+        log('💡', '  ✅ V29: Push queue — no data loss during concurrent push');
+        log('💡', '  ✅ V29: Page-close full data save (keepalive fetch)');
+        log('💡', '  ✅ V29: deletedItems + activityHistory synced to cloud');
         log('💡', '━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━');
       }, 2500);
     });
