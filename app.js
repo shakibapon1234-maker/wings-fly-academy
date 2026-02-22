@@ -582,6 +582,17 @@ function updateCharts() {
   if (courseChartInstance) courseChartInstance.destroy();
 
   // RENDER FINANCE CHART (Bar)
+  // Create gradient fills for bar chart
+  const incomeGradient = financeCtx.createLinearGradient(0, 0, 0, 320);
+  incomeGradient.addColorStop(0, 'rgba(0, 200, 255, 0.95)');
+  incomeGradient.addColorStop(0.5, 'rgba(59, 130, 246, 0.85)');
+  incomeGradient.addColorStop(1, 'rgba(123, 47, 247, 0.7)');
+
+  const expenseGradient = financeCtx.createLinearGradient(0, 0, 0, 320);
+  expenseGradient.addColorStop(0, 'rgba(255, 80, 80, 0.9)');
+  expenseGradient.addColorStop(0.5, 'rgba(200, 40, 80, 0.7)');
+  expenseGradient.addColorStop(1, 'rgba(100, 0, 50, 0.5)');
+
   financeChartInstance = new Chart(financeCtx, {
     type: 'bar',
     data: {
@@ -590,18 +601,20 @@ function updateCharts() {
         {
           label: 'Income',
           data: incomeData,
-          backgroundColor: '#3b82f6', // Av Blue
-          borderRadius: 8,
-          barThickness: 20,
+          backgroundColor: incomeGradient,
+          borderRadius: 10,
+          barThickness: 22,
           borderWidth: 0,
+          borderSkipped: false,
         },
         {
           label: 'Expense',
           data: expenseData,
-          backgroundColor: '#111827', // Av Dark Navy
-          borderRadius: 8,
-          barThickness: 20,
+          backgroundColor: expenseGradient,
+          borderRadius: 10,
+          barThickness: 22,
           borderWidth: 0,
+          borderSkipped: false,
         }
       ]
     },

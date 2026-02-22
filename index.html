@@ -1582,12 +1582,17 @@
                                 <div class="col-lg-4 border-start border-av-border">
                                     <p class="fw-bold mb-4 opacity-75" style="font-size: 0.9rem;">Course Enrollments
                                     </p>
-                                    <div class="chart-container-centered" style="height: 250px;">
-                                        <canvas id="courseChart"></canvas>
-                                        <div class="chart-center-value">
-                                            <div class="chart-center-number" id="dashTotalStudentsCenter">0</div>
-                                            <div class="chart-center-label">Students</div>
+                                    <div style="display:flex;align-items:center;justify-content:center;height:250px;">
+                                      <div class="donut-ring-wrapper">
+                                        <div class="donut-spinning-ring"></div>
+                                        <div class="chart-container-centered donut-inner" style="height:230px;width:230px;">
+                                            <canvas id="courseChart"></canvas>
+                                            <div class="chart-center-value">
+                                                <div class="chart-center-number" id="dashTotalStudentsCenter">0</div>
+                                                <div class="chart-center-label">Students</div>
+                                            </div>
                                         </div>
+                                      </div>
                                     </div>
                                     <div id="courseChartLegend" class="mt-4"></div>
                                 </div>
@@ -5650,7 +5655,55 @@
   outline:none!important;
 }
 .wf-bin-search::placeholder { color:#806060!important; }
-</style>`;
+
+    /* ===== SPINNING RING + GRADIENT CHART ===== */
+
+    .donut-ring-wrapper {
+      position: relative;
+      width: 250px;
+      height: 250px;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      flex-shrink: 0;
+    }
+
+    .donut-spinning-ring {
+      position: absolute;
+      inset: 0;
+      border-radius: 50%;
+      padding: 4px;
+      background: conic-gradient(
+        from 0deg,
+        #00f2ff 0%,
+        #7b2ff7 25%,
+        #ffd700 50%,
+        #00f2ff 75%,
+        #7b2ff7 100%
+      );
+      -webkit-mask:
+        linear-gradient(#fff 0 0) content-box,
+        linear-gradient(#fff 0 0);
+      -webkit-mask-composite: xor;
+      mask-composite: exclude;
+      animation: ringRotate 3s linear infinite;
+      z-index: 1;
+    }
+
+    @keyframes ringRotate {
+      from { transform: rotate(0deg); }
+      to   { transform: rotate(360deg); }
+    }
+
+    .donut-inner {
+      position: relative;
+      z-index: 2;
+      border-radius: 50%;
+    }
+
+    /* ===== END SPINNING RING ===== */
+
+    </style>`;
 
             // ── Inject styles once ──
             function injectStyles() {
