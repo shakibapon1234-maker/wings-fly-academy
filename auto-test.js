@@ -517,7 +517,7 @@
     const testPayload = {
       id: testRecordId,
       version: 1,
-      last_updated: Date.now().toString(),
+      last_updated: new Date().toISOString(),
       last_device: 'test_suite_v3',
       students: [],
       finance: []
