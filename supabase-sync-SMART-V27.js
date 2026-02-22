@@ -142,7 +142,7 @@
       }
 
       // Get metadata
-      const cloudTimestamp = parseInt(data.last_updated) || 0;
+      const cloudTimestamp = data.last_updated ? new Date(data.last_updated).getTime() : 0;
       const cloudVersion = parseInt(data.version) || 0;
       const cloudDevice = data.last_device || 'unknown';
       const localTimestamp = parseInt(localStorage.getItem('lastSyncTime')) || 0;
@@ -588,7 +588,7 @@
           `${SUPABASE_URL}/rest/v1/${TABLE_NAME}`,
           JSON.stringify({
             id: RECORD_ID,
-            last_updated: Date.now().toString(),
+            last_updated: new Date().toISOString(),
             last_device: DEVICE_ID,
             last_action: 'Page refresh'
           })
