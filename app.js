@@ -774,7 +774,7 @@ document.addEventListener('DOMContentLoaded', function () {
   // ✅ AUTO-POPULATE BATCH FILTER ON PAGE LOAD
   setTimeout(() => {
     if (typeof populateBatchFilter === 'function') {
-      populateBatchFilter();
+      populateBatchFilter(); if (typeof populateCourseFilter === 'function') populateCourseFilter();
     }
   }, 500);
 
@@ -873,7 +873,7 @@ window.renderFullUI = function () {
     if (typeof renderRecentAdmissions === 'function') renderRecentAdmissions();
     if (typeof updateGrandTotal === 'function') updateGrandTotal();
     if (typeof populateDropdowns === 'function') populateDropdowns();
-    if (typeof populateBatchFilter === 'function') populateBatchFilter();
+    if (typeof populateBatchFilter === 'function') populateBatchFilter(); if (typeof populateCourseFilter === 'function') populateCourseFilter();
   } catch (e) {
     console.warn('UI Refresh partially skipped:', e);
   }
@@ -1075,7 +1075,7 @@ function loadFromStorage() {
     // ✅ CRITICAL FIX: Populate batch filter after loading data
     if (typeof populateBatchFilter === 'function') {
       setTimeout(() => {
-        populateBatchFilter();
+        populateBatchFilter(); if (typeof populateCourseFilter === 'function') populateCourseFilter();
         console.log('✅ Batch filter populated after data load');
       }, 200);
     }
@@ -2003,7 +2003,7 @@ function render(students) {
   updateTableFooter(students);
 
   // ✅ AUTO-POPULATE BATCH FILTER DROPDOWN
-  populateBatchFilter();
+  populateBatchFilter(); if (typeof populateCourseFilter === 'function') populateCourseFilter();
 }
 
 function updateTableFooter(students) {
@@ -7149,16 +7149,42 @@ function populateBatchFilter() {
   console.log('✅ Batch filter populated successfully');
 }
 
+function populateCourseFilter() {
+  const select = document.getElementById('courseFilterSelect');
+  if (!select) {
+    console.warn('⚠️ courseFilterSelect element not found');
+    return;
+  }
+
+  if (!window.globalData || !window.globalData.students) {
+    console.warn('⚠️ globalData.students not available');
+    return;
+  }
+
+  const courses = [...new Set(globalData.students.map(s => s.course))].filter(Boolean).sort();
+
+  console.log('📊 Populating course filter with', courses.length, 'courses:', courses);
+
+  select.innerHTML = '<option value="">All Courses</option>';
+  courses.forEach(c => {
+    select.innerHTML += `<option value="${c}">${c}</option>`;
+  });
+
+  console.log('✅ Course filter populated successfully');
+}
+
 function applyAdvancedSearch() {
   const batch = document.getElementById('batchFilterSelect')?.value;
+  const course = document.getElementById('courseFilterSelect')?.value;
   const startDate = document.getElementById('advSearchStartDate')?.value;
   const endDate = document.getElementById('advSearchEndDate')?.value;
 
   const filtered = globalData.students.filter(s => {
     const matchBatch = !batch || s.batch?.toString() === batch;
+    const matchCourse = !course || s.course === course;
     const matchStart = !startDate || s.enrollDate >= startDate;
     const matchEnd = !endDate || s.enrollDate <= endDate;
-    return matchBatch && matchStart && matchEnd;
+    return matchBatch && matchCourse && matchStart && matchEnd;
   });
 
   // Calculate totals
@@ -7173,7 +7199,7 @@ function applyAdvancedSearch() {
 
   // Show/hide summary
   const summary = document.getElementById('advSearchSummary');
-  if (batch || startDate || endDate) {
+  if (batch || course || startDate || endDate) {
     summary.classList.remove('d-none');
   } else {
     summary.classList.add('d-none');
@@ -7185,6 +7211,9 @@ function applyAdvancedSearch() {
 
 function clearAdvancedSearch() {
   document.getElementById('batchFilterSelect').value = '';
+  if (document.getElementById('courseFilterSelect')) {
+    document.getElementById('courseFilterSelect').value = '';
+  }
   document.getElementById('advSearchStartDate').value = '';
   document.getElementById('advSearchEndDate').value = '';
   document.getElementById('advSearchSummary').classList.add('d-none');
@@ -7192,6 +7221,7 @@ function clearAdvancedSearch() {
 }
 
 window.populateBatchFilter = populateBatchFilter;
+window.populateCourseFilter = populateCourseFilter;
 window.applyAdvancedSearch = applyAdvancedSearch;
 window.clearAdvancedSearch = clearAdvancedSearch;
 

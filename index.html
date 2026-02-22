@@ -1941,7 +1941,7 @@
                                         Filters</button>
                                 </div>
                                 <div class="row g-3">
-                                    <div class="col-md-3">
+                                    <div class="col-md-2">
                                         <label class="form-label small fw-bold">Filter by Batch</label>
                                         <select id="batchFilterSelect" class="form-select form-select-sm"
                                             onchange="applyAdvancedSearch()">
@@ -1949,11 +1949,18 @@
                                         </select>
                                     </div>
                                     <div class="col-md-3">
+                                        <label class="form-label small fw-bold">Filter by Course</label>
+                                        <select id="courseFilterSelect" class="form-select form-select-sm"
+                                            onchange="applyAdvancedSearch()">
+                                            <option value="">All Courses</option>
+                                        </select>
+                                    </div>
+                                    <div class="col-md-2">
                                         <label class="form-label small fw-bold">From Date</label>
                                         <input type="date" id="advSearchStartDate" class="form-control form-select-sm"
                                             onchange="applyAdvancedSearch()">
                                     </div>
-                                    <div class="col-md-3">
+                                    <div class="col-md-2">
                                         <label class="form-label small fw-bold">To Date</label>
                                         <input type="date" id="advSearchEndDate" class="form-control form-select-sm"
                                             onchange="applyAdvancedSearch()">
