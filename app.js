@@ -1272,10 +1272,26 @@ function showDashboard(username) {
     window.loadFromCloud(true).then(() => {  // force=true: 15s block bypass করবে
       console.log('✅ Login sync complete — loading dashboard');
       loadDashboard();
+      // ✅ Cloud pull শেষ হওয়ার ৫ সেকেন্ড পর snapshot — সঠিক data নিশ্চিত
+      setTimeout(function() {
+        if (window.globalData) {
+          if (!window.globalData.deletedItems) window.globalData.deletedItems = [];
+          if (!window.globalData.activityHistory) window.globalData.activityHistory = [];
+        }
+        takeSnapshot();
+        console.log('📸 Login snapshot taken (5s after cloud sync)');
+      }, 5000);
     }).catch(() => {
       // Cloud pull fail হলেও local data দিয়ে dashboard দেখাও
       console.warn('⚠️ Cloud pull failed — loading from local data');
       loadDashboard();
+      // Cloud fail হলে ১০ সেকেন্ড পর retry করে snapshot নাও
+      setTimeout(function() {
+        if (window.globalData && (window.globalData.students || []).length > 0) {
+          takeSnapshot();
+          console.log('📸 Login snapshot taken (fallback, 10s)');
+        }
+      }, 10000);
     });
   } else {
     loadDashboard();
@@ -2850,10 +2866,13 @@ function checkDailyBackup() {
   const lastBackup = localStorage.getItem('last_auto_backup_date');
 
   if (lastBackup !== today) {
-    console.log("Wings Fly: Daily auto-backup triggered");
-    exportData();
-    localStorage.setItem('last_auto_backup_date', today);
-    showSuccessToast('Daily Auto-Backup completed successfully!');
+    // ✅ Cloud pull শেষ হওয়ার পরে backup নাও — ৮ সেকেন্ড delay
+    setTimeout(function() {
+      console.log("Wings Fly: Daily auto-backup triggered (after cloud sync)");
+      exportData();
+      localStorage.setItem('last_auto_backup_date', today);
+      showSuccessToast('📥 Daily Auto-Backup completed!');
+    }, 8000);
   }
 }
 
@@ -9677,21 +9696,16 @@ window.downloadSnapshot = downloadSnapshot;
 window.deleteSnapshot = deleteSnapshot;
 window.renderSnapshotList = renderSnapshotList;
 
-// Page load হলে প্রথম snapshot নাও (যদি আজকের কোনো snapshot না থাকে)
+// Page load হলে hourly snapshot interval শুরু করো
+// ⚠️ DOMContentLoaded-এ snapshot নেওয়া হয় না — cloud sync হওয়ার আগে খালি data যাবে
+// ✅ Login-এর পরে showDashboard() থেকে 5 সেকেন্ড পর snapshot নেওয়া হয়
 document.addEventListener('DOMContentLoaded', function() {
   var ONE_HOUR = 60 * 60 * 1000;
 
-  // ৩ সেকেন্ড পর প্রথম snapshot
-  setTimeout(function() {
-    if (window.globalData) {
-      if (!window.globalData.deletedItems) window.globalData.deletedItems = [];
-      if (!window.globalData.activityHistory) window.globalData.activityHistory = [];
-    }
-    takeSnapshot();
-  }, 3000);
-
   // প্রতি ৫ মিনিটে check, ১ ঘন্টা পার হলে নতুন নাও
   setInterval(function() {
+    // শুধু logged in থাকলে snapshot নাও
+    if (!sessionStorage.getItem('isLoggedIn')) return;
     var snaps = getSnapshots();
     var last = snaps[0];
     if (!last || (Date.now() - last.id) > ONE_HOUR) {
