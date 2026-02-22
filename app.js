@@ -3559,19 +3559,30 @@ async function handleStudentSubmit(e) {
 
       // AUTOMATICALLY ADD PAYMENT TO INCOME (Only for NEW students)
       if (student.paid > 0) {
-        const financeEntry = {
-          type: 'Income',
-          method: student.method,
-          date: student.enrollDate,
-          category: 'Student Fee',
-          person: student.name,
-          amount: student.paid,
-          description: `Enrollment fee for student: ${student.name} | Batch: ${student.batch}`,
-          timestamp: new Date().toISOString()
-        };
-        window.globalData.finance.push(financeEntry);
-        if (typeof updateAccountBalance === "function") {
-          updateAccountBalance(financeEntry.method, financeEntry.amount, financeEntry.type);
+        // DUPLICATE GUARD: Check if finance entry already exists for this student
+        const alreadyInFinance = (window.globalData.finance || []).some(f =>
+          f.person === student.name &&
+          f.category === 'Student Fee' &&
+          parseFloat(f.amount) === parseFloat(student.paid)
+        );
+
+        if (!alreadyInFinance) {
+          const financeEntry = {
+            type: 'Income',
+            method: student.method,
+            date: student.enrollDate,
+            category: 'Student Fee',
+            person: student.name,
+            amount: student.paid,
+            description: `Enrollment fee for student: ${student.name} | Batch: ${student.batch}`,
+            timestamp: new Date().toISOString()
+          };
+          window.globalData.finance.push(financeEntry);
+          if (typeof updateAccountBalance === "function") {
+            updateAccountBalance(financeEntry.method, financeEntry.amount, financeEntry.type);
+          }
+        } else {
+          console.warn(`⚠️ Duplicate enrollment finance entry prevented for ${student.name}`);
         }
       }
 
@@ -3730,7 +3741,7 @@ function handleAddInstallment() {
   student.paid = (parseFloat(student.paid) || 0) + amount;
   student.due = Math.max(0, (parseFloat(student.totalPayment) || 0) - student.paid);
 
-  // 2. Add to Finance Ledger
+  // 2. Add to Finance Ledger (with duplicate prevention)
   const financeEntry = {
     id: Date.now(),
     type: 'Income',
@@ -3742,11 +3753,22 @@ function handleAddInstallment() {
     description: `Installment payment for student: ${student.name} | Batch: ${student.batch}`,
     timestamp: new Date().toISOString()
   };
-  globalData.finance.push(financeEntry);
 
-  // 3. Update Account Balance (THIS WAS MISSING - causing balance mismatch!)
-  if (typeof updateAccountBalance === "function") {
-    updateAccountBalance(financeEntry.method, financeEntry.amount, financeEntry.type);
+  // DUPLICATE GUARD: Finance total for this student should equal student.paid BEFORE this entry
+  // If finance already shows more than student.paid, skip adding to finance (already counted)
+  const financeTotal = (globalData.finance || [])
+    .filter(f => f.person === student.name && (f.category === 'Student Installment' || f.category === 'Student Fee'))
+    .reduce((sum, f) => sum + (parseFloat(f.amount) || 0), 0);
+  const expectedBeforeThis = (parseFloat(student.paid) || 0); // student.paid already updated above
+
+  if (financeTotal < expectedBeforeThis) {
+    globalData.finance.push(financeEntry);
+    // 3. Update Account Balance
+    if (typeof updateAccountBalance === "function") {
+      updateAccountBalance(financeEntry.method, financeEntry.amount, financeEntry.type);
+    }
+  } else {
+    console.warn(`⚠️ Duplicate finance entry prevented for ${student.name}. Finance:${financeTotal} >= Expected:${expectedBeforeThis}`);
   }
 
   // 4. Save & Refresh
@@ -9733,4 +9755,70 @@ document.addEventListener('DOMContentLoaded', function() {
       }
     }, 3000);
   });
+})();
+
+// ===================================
+// BALANCE INTEGRITY MONITOR
+// Finance vs Student collection মিলছে কিনা check করে
+// Mismatch হলে UI-তে warning দেখায়
+// ===================================
+(function balanceIntegrityMonitor() {
+  function runCheck() {
+    try {
+      const gd = window.globalData;
+      if (!gd || !gd.finance || !gd.students) return;
+
+      // Per-student finance vs paid check
+      const finByPerson = {};
+      (gd.finance || []).forEach(f => {
+        if (f.category === 'Student Installment' || f.category === 'Student Fee') {
+          if (!finByPerson[f.person]) finByPerson[f.person] = 0;
+          finByPerson[f.person] += parseFloat(f.amount) || 0;
+        }
+      });
+
+      let mismatches = [];
+      (gd.students || []).forEach(s => {
+        const fin = finByPerson[s.name] || 0;
+        const paid = parseFloat(s.paid) || 0;
+        if (Math.abs(fin - paid) > 1) { // 1 টাকার tolerance
+          mismatches.push(`${s.name}: Finance=৳${fin}, Paid=৳${paid}, Extra=৳${fin - paid}`);
+        }
+      });
+
+      // UI warning badge
+      let badge = document.getElementById('_balanceWarningBadge');
+      if (mismatches.length > 0) {
+        console.warn('⚠️ Balance Integrity Issues:', mismatches);
+        if (!badge) {
+          badge = document.createElement('div');
+          badge.id = '_balanceWarningBadge';
+          badge.style.cssText = `
+            position: fixed; bottom: 20px; left: 20px; z-index: 99999;
+            background: #ef4444; color: white; padding: 10px 16px;
+            border-radius: 10px; font-size: 13px; font-weight: bold;
+            box-shadow: 0 4px 15px rgba(0,0,0,0.3); cursor: pointer;
+            max-width: 320px;
+          `;
+          badge.onclick = () => badge.remove();
+          document.body.appendChild(badge);
+        }
+        badge.innerHTML = `⚠️ Balance Mismatch Detected!<br><small>${mismatches.join('<br>')}</small><br><small style="opacity:0.8">Click to dismiss</small>`;
+      } else {
+        if (badge) badge.remove();
+      }
+    } catch(e) {
+      console.warn('Balance monitor error:', e);
+    }
+  }
+
+  // Page load হওয়ার ৫ সেকেন্ড পর প্রথম check
+  document.addEventListener('DOMContentLoaded', function() {
+    setTimeout(runCheck, 5000);
+    // তারপর প্রতি ৫ মিনিটে
+    setInterval(runCheck, 5 * 60 * 1000);
+  });
+
+  // যেকোনো installment save হলেও check করো
+  window.checkBalanceIntegrity = runCheck;
 })();
