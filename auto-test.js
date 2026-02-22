@@ -736,20 +736,23 @@
     if (orphaned.length === 0) { pass('No orphaned payments', 'সব payment-এর student আছে'); }
     else { warn(`${orphaned.length}টি orphaned payment`, 'Finance-এ student নেই এমন entry আছে'); }
 
-    // --- 10c: Duplicate finance entries (exact same amount+date+type) ---
+    // --- 10c: Duplicate finance entries (same person+amount+date+type) ---
+    // person name ও include করো নয়তো আলাদা student এর same amount false positive দেয়
     const finKeys = new Map();
     let dupCount = 0;
     finance.forEach(f => {
-      const key = `${f.type}|${f.amount}|${f.date}`;
+      const key = `${f.type}|${f.amount}|${f.date}|${(f.person||'').trim().toLowerCase()}`;
       finKeys.set(key, (finKeys.get(key) || 0) + 1);
     });
     finKeys.forEach((count, key) => { if (count > 1) dupCount += count - 1; });
     if (dupCount === 0) { pass('No duplicate finance entries'); }
-    else { warn(`${dupCount}টি সম্ভাব্য duplicate entry`, 'একই date+amount+type এর multiple entry'); }
+    else { warn(`${dupCount}টি সম্ভাব্য duplicate entry`, 'একই date+amount+type+person এর multiple entry'); }
 
-    // --- 10d: Income/Expense net vs cashBalance ---
+    // --- 10d: Cash-only Income/Expense net vs cashBalance ---
+    // শুধু Cash method এর transactions দিয়ে cashBalance compare করো
     let calcCash = 0;
     finance.forEach(f => {
+      if (f.method !== 'Cash') return;
       const amt = parseFloat(f.amount) || 0;
       if (f.type === 'Income' || f.type === 'আয়') calcCash += amt;
       else if (f.type === 'Expense' || f.type === 'ব্যয়') calcCash -= amt;
