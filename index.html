@@ -1583,16 +1583,18 @@
                                     <p class="fw-bold mb-4 opacity-75" style="font-size: 0.9rem;">Course Enrollments
                                     </p>
                                     <div style="display:flex;align-items:center;justify-content:center;height:250px;">
-                                      <div class="donut-ring-wrapper">
-                                        <div class="donut-spinning-ring"></div>
-                                        <div class="chart-container-centered donut-inner" style="height:230px;width:230px;">
-                                            <canvas id="courseChart"></canvas>
-                                            <div class="chart-center-value">
-                                                <div class="chart-center-number" id="dashTotalStudentsCenter">0</div>
-                                                <div class="chart-center-label">Students</div>
+                                        <div class="donut-ring-wrapper">
+                                            <div class="donut-spinning-ring"></div>
+                                            <div class="chart-container-centered donut-inner"
+                                                style="height:230px;width:230px;">
+                                                <canvas id="courseChart"></canvas>
+                                                <div class="chart-center-value">
+                                                    <div class="chart-center-number" id="dashTotalStudentsCenter">0
+                                                    </div>
+                                                    <div class="chart-center-label">Students</div>
+                                                </div>
                                             </div>
                                         </div>
-                                      </div>
                                     </div>
                                     <div id="courseChartLegend" class="mt-4"></div>
                                 </div>
@@ -2736,125 +2738,160 @@
                 <!-- END ACCOUNT MANAGEMENT SECTION -->
                 <!-- =============================================== -->
 
-        <!-- =============================================== -->
-        <!-- CERTIFICATE SECTION -->
-        <!-- =============================================== -->
-        <div id="certificateSection" class="d-none">
-          <div class="container-fluid py-3">
-            <div class="row mb-3">
-              <div class="col-12">
-                <h4 class="text-white mb-1"><i class="bi bi-award-fill text-warning me-2"></i>Certificate Generator</h4>
-                <p class="text-white-50 small mb-0">স্টুডেন্টদের সার্টিফিকেট তৈরি ও ডাউনলোড করুন</p>
-              </div>
-            </div>
-            <!-- Single Certificate -->
-            <div class="row g-3">
-              <div class="col-lg-4 col-md-5">
-                <div class="card bg-dark border-secondary text-white">
-                  <div class="card-header border-secondary"><i class="bi bi-person-badge me-2 text-warning"></i>Single Certificate</div>
-                  <div class="card-body">
-                    <label class="form-label small text-white-50">স্টুডেন্ট সিলেক্ট করুন</label>
-                    <select id="certStudentSelect" class="form-select bg-secondary text-white border-0 mb-2" onchange="previewCertificate()">
-                      <option value="">-- Select Student --</option>
-                    </select>
-                    <div class="row g-2 mt-1">
-                      <div class="col-7">
-                        <label class="form-label small text-white-50">Session Start Date</label>
-                        <input type="date" id="certSessionStart" class="form-control bg-secondary text-white border-0" onchange="previewCertificate()">
-                      </div>
-                      <div class="col-5">
-                        <label class="form-label small text-white-50">Duration</label>
-                        <select id="certDuration" class="form-select bg-secondary text-white border-0" onchange="previewCertificate()">
-                          <option value="">-- Select --</option>
-                          <option value="3">3 Month</option>
-                          <option value="6">6 Month</option>
-                        </select>
-                      </div>
-                    </div>
-                    <div id="certSessionPreview" class="small mt-1 mb-3" style="color:#f0c040;min-height:18px;"></div>
-                    <div id="certStudentInfo" class="d-none mb-3 p-2 rounded" style="background:#1e2a3a;">
-                      <div class="d-flex align-items-center gap-2">
-                        <img id="certStudentPhoto" src="" width="48" height="48" class="rounded-circle object-fit-cover border border-warning" style="object-fit:cover;" onerror="this.src='https://ui-avatars.com/api/?background=f59e0b0026color=fff0026size=480026name=S'">
-                        <div>
-                          <div class="fw-bold" id="certStudentName">-</div>
-                          <div class="text-white-50 small" id="certStudentBatch">-</div>
+                <!-- =============================================== -->
+                <!-- CERTIFICATE SECTION -->
+                <!-- =============================================== -->
+                <div id="certificateSection" class="d-none">
+                    <div class="container-fluid py-3">
+                        <div class="row mb-3">
+                            <div class="col-12">
+                                <h4 class="text-white mb-1"><i
+                                        class="bi bi-award-fill text-warning me-2"></i>Certificate Generator</h4>
+                                <p class="text-white-50 small mb-0">স্টুডেন্টদের সার্টিফিকেট তৈরি ও ডাউনলোড করুন</p>
+                            </div>
                         </div>
-                      </div>
+                        <!-- Single Certificate -->
+                        <div class="row g-3">
+                            <div class="col-lg-4 col-md-5">
+                                <div class="card bg-dark border-secondary text-white">
+                                    <div class="card-header border-secondary"><i
+                                            class="bi bi-person-badge me-2 text-warning"></i>Single Certificate</div>
+                                    <div class="card-body">
+                                        <label class="form-label small text-white-50">স্টুডেন্ট সিলেক্ট করুন</label>
+                                        <select id="certStudentSelect"
+                                            class="form-select bg-secondary text-white border-0 mb-2"
+                                            onchange="previewCertificate()">
+                                            <option value="">-- Select Student --</option>
+                                        </select>
+                                        <div class="row g-2 mt-1">
+                                            <div class="col-7">
+                                                <label class="form-label small text-white-50">Session Start Date</label>
+                                                <input type="date" id="certSessionStart"
+                                                    class="form-control bg-secondary text-white border-0"
+                                                    onchange="previewCertificate()">
+                                            </div>
+                                            <div class="col-5">
+                                                <label class="form-label small text-white-50">Duration</label>
+                                                <select id="certDuration"
+                                                    class="form-select bg-secondary text-white border-0"
+                                                    onchange="previewCertificate()">
+                                                    <option value="">-- Select --</option>
+                                                    <option value="3">3 Month</option>
+                                                    <option value="6">6 Month</option>
+                                                </select>
+                                            </div>
+                                        </div>
+                                        <div id="certSessionPreview" class="small mt-1 mb-3"
+                                            style="color:#f0c040;min-height:18px;"></div>
+                                        <div id="certStudentInfo" class="d-none mb-3 p-2 rounded"
+                                            style="background:#1e2a3a;">
+                                            <div class="d-flex align-items-center gap-2">
+                                                <img id="certStudentPhoto" src="" width="48" height="48"
+                                                    class="rounded-circle object-fit-cover border border-warning"
+                                                    style="object-fit:cover;"
+                                                    onerror="this.src='https://ui-avatars.com/api/?background=f59e0b0026color=fff0026size=480026name=S'">
+                                                <div>
+                                                    <div class="fw-bold" id="certStudentName">-</div>
+                                                    <div class="text-white-50 small" id="certStudentBatch">-</div>
+                                                </div>
+                                            </div>
+                                        </div>
+                                        <div class="d-grid gap-2">
+                                            <button class="btn btn-warning fw-bold"
+                                                onclick="downloadSingleCertificate()"><i
+                                                    class="bi bi-download me-2"></i>Download PDF</button>
+                                            <button class="btn btn-outline-light" onclick="printSingleCertificate()"><i
+                                                    class="bi bi-printer me-2"></i>Print Certificate</button>
+                                        </div>
+                                    </div>
+                                </div>
+                                <!-- Bulk Section -->
+                                <div class="card bg-dark border-secondary text-white mt-3">
+                                    <div class="card-header border-secondary"><i
+                                            class="bi bi-stack me-2 text-info"></i>Bulk Generation</div>
+                                    <div class="card-body">
+                                        <label class="form-label small text-white-50">Filter by Batch</label>
+                                        <input type="text" id="certBatchFilter"
+                                            class="form-control bg-secondary text-white border-0 mb-2"
+                                            placeholder="যেমন: Batch-03">
+                                        <label class="form-label small text-white-50">Filter by Course</label>
+                                        <select id="certCourseFilter"
+                                            class="form-select bg-secondary text-white border-0 mb-3">
+                                            <option value="">-- All Courses --</option>
+                                        </select>
+                                        <button class="btn btn-info w-100 fw-bold mb-2" onclick="loadBulkStudents()"><i
+                                                class="bi bi-search me-2"></i>Search Students</button>
+                                        <div id="certBulkList" class="small text-white-50 mb-2"></div>
+                                        <button class="btn btn-success w-100 fw-bold d-none" id="certGenerateAllBtn"
+                                            onclick="generateAllCertificates()"><i class="bi bi-files me-2"></i>Generate
+                                            All Certificates</button>
+                                    </div>
+                                </div>
+                            </div>
+                            <!-- Preview -->
+                            <div class="col-lg-8 col-md-7">
+                                <div class="card bg-dark border-secondary text-white">
+                                    <div class="card-header border-secondary"><i
+                                            class="bi bi-eye me-2 text-success"></i>Certificate Preview</div>
+                                    <div class="card-body p-2"
+                                        style="min-height:400px; background:#111; border-radius:8px; display:flex; align-items:center; justify-content:center;">
+                                        <div id="certPreviewArea" style="width:100%; text-align:center; color:#666;">
+                                            স্টুডেন্ট সিলেক্ট করুন প্রিভিউ দেখতে</div>
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
                     </div>
-                    <div class="d-grid gap-2">
-                      <button class="btn btn-warning fw-bold" onclick="downloadSingleCertificate()"><i class="bi bi-download me-2"></i>Download PDF</button>
-                      <button class="btn btn-outline-light" onclick="printSingleCertificate()"><i class="bi bi-printer me-2"></i>Print Certificate</button>
-                    </div>
-                  </div>
                 </div>
-                <!-- Bulk Section -->
-                <div class="card bg-dark border-secondary text-white mt-3">
-                  <div class="card-header border-secondary"><i class="bi bi-stack me-2 text-info"></i>Bulk Generation</div>
-                  <div class="card-body">
-                    <label class="form-label small text-white-50">Filter by Batch</label>
-                    <input type="text" id="certBatchFilter" class="form-control bg-secondary text-white border-0 mb-2" placeholder="যেমন: Batch-03">
-                    <label class="form-label small text-white-50">Filter by Course</label>
-                    <select id="certCourseFilter" class="form-select bg-secondary text-white border-0 mb-3">
-                      <option value="">-- All Courses --</option>
-                    </select>
-                    <button class="btn btn-info w-100 fw-bold mb-2" onclick="loadBulkStudents()"><i class="bi bi-search me-2"></i>Search Students</button>
-                    <div id="certBulkList" class="small text-white-50 mb-2"></div>
-                    <button class="btn btn-success w-100 fw-bold d-none" id="certGenerateAllBtn" onclick="generateAllCertificates()"><i class="bi bi-files me-2"></i>Generate All Certificates</button>
-                  </div>
-                </div>
-              </div>
-              <!-- Preview -->
-              <div class="col-lg-8 col-md-7">
-                <div class="card bg-dark border-secondary text-white">
-                  <div class="card-header border-secondary"><i class="bi bi-eye me-2 text-success"></i>Certificate Preview</div>
-                  <div class="card-body p-2" style="min-height:400px; background:#111; border-radius:8px; display:flex; align-items:center; justify-content:center;">
-                    <div id="certPreviewArea" style="width:100%; text-align:center; color:#666;">স্টুডেন্ট সিলেক্ট করুন প্রিভিউ দেখতে</div>
-                  </div>
-                </div>
-              </div>
-            </div>
-          </div>
-        </div>
-        <!-- END CERTIFICATE SECTION -->
+                <!-- END CERTIFICATE SECTION -->
 
-        <!-- =============================================== -->
-        <!-- ID CARD SECTION -->
-        <!-- =============================================== -->
-        <div id="idcardsSection" class="d-none">
-          <div class="container-fluid py-3">
-            <div class="row mb-3">
-              <div class="col-12">
-                <h4 class="text-white mb-1"><i class="bi bi-person-badge text-white me-2"></i>ID Card Generator</h4>
-                <p class="text-white-50 small mb-0">স্টুডেন্টদের ID Card তৈরি ও প্রিন্ট করুন</p>
-              </div>
-            </div>
-            <div class="row g-3">
-              <div class="col-lg-4 col-md-5">
-                <div class="card bg-dark border-secondary text-white">
-                  <div class="card-header border-secondary"><i class="bi bi-person-badge me-2 text-info"></i>Select Student</div>
-                  <div class="card-body">
-                    <label class="form-label small text-white-50">স্টুডেন্ট সিলেক্ট করুন</label>
-                    <select id="idcardStudentSelect" class="form-select bg-secondary text-white border-0 mb-3" onchange="previewIdCard()">
-                      <option value="">-- Select Student --</option>
-                    </select>
-                    <div class="d-grid gap-2">
-                      <button class="btn btn-info fw-bold text-white" onclick="printIdCardFromSection()"><i class="bi bi-printer me-2"></i>Print ID Card</button>
+                <!-- =============================================== -->
+                <!-- ID CARD SECTION -->
+                <!-- =============================================== -->
+                <div id="idcardsSection" class="d-none">
+                    <div class="container-fluid py-3">
+                        <div class="row mb-3">
+                            <div class="col-12">
+                                <h4 class="text-white mb-1"><i class="bi bi-person-badge text-white me-2"></i>ID Card
+                                    Generator</h4>
+                                <p class="text-white-50 small mb-0">স্টুডেন্টদের ID Card তৈরি ও প্রিন্ট করুন</p>
+                            </div>
+                        </div>
+                        <div class="row g-3">
+                            <div class="col-lg-4 col-md-5">
+                                <div class="card bg-dark border-secondary text-white">
+                                    <div class="card-header border-secondary"><i
+                                            class="bi bi-person-badge me-2 text-info"></i>Select Student</div>
+                                    <div class="card-body">
+                                        <label class="form-label small text-white-50">স্টুডেন্ট সিলেক্ট করুন</label>
+                                        <select id="idcardStudentSelect"
+                                            class="form-select bg-secondary text-white border-0 mb-3"
+                                            onchange="previewIdCard()">
+                                            <option value="">-- Select Student --</option>
+                                        </select>
+                                        <div class="d-grid gap-2">
+                                            <button class="btn btn-info fw-bold text-white"
+                                                onclick="printIdCardFromSection()"><i
+                                                    class="bi bi-printer me-2"></i>Print ID Card</button>
+                                        </div>
+                                    </div>
+                                </div>
+                            </div>
+                            <div class="col-lg-8 col-md-7">
+                                <div class="card bg-dark border-secondary text-white">
+                                    <div class="card-header border-secondary"><i
+                                            class="bi bi-eye me-2 text-success"></i>ID Card Preview</div>
+                                    <div class="card-body"
+                                        style="min-height:250px;background:#111;border-radius:8px;display:flex;align-items:center;justify-content:center;">
+                                        <div id="idcardPreviewArea" style="text-align:center;color:#666;">স্টুডেন্ট
+                                            সিলেক্ট করুন প্রিভিউ দেখতে</div>
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
                     </div>
-                  </div>
                 </div>
-              </div>
-              <div class="col-lg-8 col-md-7">
-                <div class="card bg-dark border-secondary text-white">
-                  <div class="card-header border-secondary"><i class="bi bi-eye me-2 text-success"></i>ID Card Preview</div>
-                  <div class="card-body" style="min-height:250px;background:#111;border-radius:8px;display:flex;align-items:center;justify-content:center;">
-                    <div id="idcardPreviewArea" style="text-align:center;color:#666;">স্টুডেন্ট সিলেক্ট করুন প্রিভিউ দেখতে</div>
-                  </div>
-                </div>
-              </div>
-            </div>
-          </div>
-        </div>
-        <!-- END ID CARD SECTION -->
+                <!-- END ID CARD SECTION -->
 
         </div>
     </div>
@@ -5165,10 +5202,10 @@
     <!-- Supabase Configuration (Update with your credentials) -->
 
     <!-- Supabase Sync System (Multi-user Real-time Sync) -->
-    <script src="supabase-sync-SMART-V27.js?v=2.0"></script>
+    <script src="supabase-sync-SMART-V28.js?v=2.0"></script>
 
     <!-- Main Application (Sync code now embedded inside) -->
-    <script src="app.js?v=13.8"></script>
+    <script src="app.js?v=14.0"></script>
 
     <!-- =============================================== -->
     <!-- MOBILE BANKING MODAL -->

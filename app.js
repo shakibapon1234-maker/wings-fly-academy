@@ -775,9 +775,9 @@ document.addEventListener('DOMContentLoaded', function () {
     const username = sessionStorage.getItem('username') || 'Admin';
     showDashboard(username);
 
-    // Cloud sync is handled automatically by supabase-sync-SMART-V26.js
+    // Cloud sync is handled automatically by supabase-sync-SMART-V28.js
     // No duplicate sync call needed here.
-    console.log('🔄 Cloud sync handled by Smart Sync V26 system.');
+    console.log('🔄 Cloud sync handled by Smart Sync V28 system.');
   }
 
 
