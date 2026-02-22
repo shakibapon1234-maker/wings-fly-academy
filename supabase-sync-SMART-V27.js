@@ -394,10 +394,9 @@
         visitors: window.globalData.visitors || [],
         employee_roles: window.globalData.employeeRoles || [],
         version: localVersion,
-        last_updated: timestamp.toString(),
+        last_updated: new Date(timestamp).toISOString(),
         last_device: DEVICE_ID,
         last_action: reason,
-        last_device: DEVICE_ID,
         updated_by: sessionStorage.getItem('username') || 'Admin',
         device_id: DEVICE_ID,
       };
