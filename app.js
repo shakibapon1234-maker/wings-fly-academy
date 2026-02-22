@@ -2488,6 +2488,7 @@ function addCourseName() {
   globalData.courseNames.push(val);
   saveToStorage();
   populateDropdowns();
+  if (typeof populateBatchFilter === 'function') populateBatchFilter(); // ✅ Filter dropdown sync
   input.value = '';
 }
 
@@ -2496,6 +2497,7 @@ function deleteCourseName(name) {
   globalData.courseNames = globalData.courseNames.filter(c => c !== name);
   saveToStorage();
   populateDropdowns();
+  if (typeof populateBatchFilter === 'function') populateBatchFilter(); // ✅ Filter dropdown sync
 }
 
 
@@ -6669,15 +6671,15 @@ function renderEmployeeList() {
                 <div class="bg-primary-subtle text-primary rounded-circle d-flex align-items-center justify-content-center fw-bold" style="width: 32px; height: 32px;">
                     ${e.name.charAt(0).toUpperCase()}
                 </div>
-                <div class="fw-bold text-dark">${e.name}</div>
+                <div class="fw-bold text-white">${e.name}</div>
             </div>
         </td>
         <td><span class="badge bg-light text-dark border">${e.role}</span></td>
         <td>
-            <div class="small">${e.phone}</div>
+            <div class="small text-white">${e.phone}</div>
             <div class="small text-muted">${e.email || '-'}</div>
         </td>
-        <td class="fw-bold text-dark">৳${formatNumber(e.salary)}</td>
+        <td class="fw-bold text-white">৳${formatNumber(e.salary)}</td>
         <td class="small text-muted">${e.joiningDate || '-'}</td>
         <td class="small ${e.resignDate ? 'text-danger fw-bold' : 'text-muted'}">${e.resignDate || '-'}</td>
         <td>${statusBadge}</td>
@@ -7262,28 +7264,49 @@ function populateBatchFilter() {
     return;
   }
 
+  // Populate Batch filter
   const batches = [...new Set(globalData.students.map(s => s.batch))].filter(b => b).sort((a, b) => a - b);
-
   console.log('📊 Populating batch filter with', batches.length, 'batches:', batches);
-
   select.innerHTML = '<option value="">All Batches</option>';
   batches.forEach(b => {
     select.innerHTML += `<option value="${b}">Batch ${b}</option>`;
   });
-
   console.log('✅ Batch filter populated successfully');
+
+  // ✅ FIX: Populate Course filter — Settings এর courseNames + students এ existing courses মিলিয়ে
+  const courseSelect = document.getElementById('courseFilterSelect');
+  if (courseSelect) {
+    const currentCourseVal = courseSelect.value;
+    // Settings এ যোগ করা courses (globalData.courseNames)
+    const settingsCourses = globalData.courseNames || [];
+    // Students এ existing courses (Settings এ না থাকলেও দেখাবে)
+    const studentCourses = [...new Set(globalData.students.map(s => s.course))].filter(c => c);
+    // দুটো merge করো, unique রাখো, sort করো
+    const allCourses = [...new Set([...settingsCourses, ...studentCourses])].sort();
+    courseSelect.innerHTML = '<option value="">All Courses</option>';
+    allCourses.forEach(c => {
+      courseSelect.innerHTML += `<option value="${c}">${c}</option>`;
+    });
+    // পুরোনো selected value ধরে রাখো
+    if (currentCourseVal && allCourses.includes(currentCourseVal)) {
+      courseSelect.value = currentCourseVal;
+    }
+    console.log('✅ Course filter populated with', allCourses.length, 'courses (settings + students)');
+  }
 }
 
 function applyAdvancedSearch() {
   const batch = document.getElementById('batchFilterSelect')?.value;
+  const course = document.getElementById('courseFilterSelect')?.value; // ✅ FIX: course filter যোগ
   const startDate = document.getElementById('advSearchStartDate')?.value;
   const endDate = document.getElementById('advSearchEndDate')?.value;
 
   const filtered = globalData.students.filter(s => {
     const matchBatch = !batch || s.batch?.toString() === batch;
+    const matchCourse = !course || s.course === course; // ✅ FIX: course match
     const matchStart = !startDate || s.enrollDate >= startDate;
     const matchEnd = !endDate || s.enrollDate <= endDate;
-    return matchBatch && matchStart && matchEnd;
+    return matchBatch && matchCourse && matchStart && matchEnd;
   });
 
   // Calculate totals
@@ -7298,7 +7321,7 @@ function applyAdvancedSearch() {
 
   // Show/hide summary
   const summary = document.getElementById('advSearchSummary');
-  if (batch || startDate || endDate) {
+  if (batch || course || startDate || endDate) { // ✅ FIX: course ও check করো
     summary.classList.remove('d-none');
   } else {
     summary.classList.add('d-none');
@@ -7310,6 +7333,9 @@ function applyAdvancedSearch() {
 
 function clearAdvancedSearch() {
   document.getElementById('batchFilterSelect').value = '';
+  if (document.getElementById('courseFilterSelect')) {
+    document.getElementById('courseFilterSelect').value = ''; // ✅ FIX: course ও reset
+  }
   document.getElementById('advSearchStartDate').value = '';
   document.getElementById('advSearchEndDate').value = '';
   document.getElementById('advSearchSummary').classList.add('d-none');
