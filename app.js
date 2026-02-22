@@ -774,7 +774,7 @@ document.addEventListener('DOMContentLoaded', function () {
   // ✅ AUTO-POPULATE BATCH FILTER ON PAGE LOAD
   setTimeout(() => {
     if (typeof populateBatchFilter === 'function') {
-      populateBatchFilter(); if (typeof populateCourseFilter === 'function') populateCourseFilter();
+      populateBatchFilter();
     }
   }, 500);
 
@@ -873,7 +873,7 @@ window.renderFullUI = function () {
     if (typeof renderRecentAdmissions === 'function') renderRecentAdmissions();
     if (typeof updateGrandTotal === 'function') updateGrandTotal();
     if (typeof populateDropdowns === 'function') populateDropdowns();
-    if (typeof populateBatchFilter === 'function') populateBatchFilter(); if (typeof populateCourseFilter === 'function') populateCourseFilter();
+    if (typeof populateBatchFilter === 'function') populateBatchFilter();
   } catch (e) {
     console.warn('UI Refresh partially skipped:', e);
   }
@@ -1075,7 +1075,7 @@ function loadFromStorage() {
     // ✅ CRITICAL FIX: Populate batch filter after loading data
     if (typeof populateBatchFilter === 'function') {
       setTimeout(() => {
-        populateBatchFilter(); if (typeof populateCourseFilter === 'function') populateCourseFilter();
+        populateBatchFilter();
         console.log('✅ Batch filter populated after data load');
       }, 200);
     }
@@ -2003,7 +2003,7 @@ function render(students) {
   updateTableFooter(students);
 
   // ✅ AUTO-POPULATE BATCH FILTER DROPDOWN
-  populateBatchFilter(); if (typeof populateCourseFilter === 'function') populateCourseFilter();
+  populateBatchFilter();
 }
 
 function updateTableFooter(students) {
@@ -5563,6 +5563,7 @@ function generateStudentId(batchName) {
             <div class="stu-info">
               <div class="name">${s.name}</div>
               <div class="sid">${s.studentId || '—'}</div>
+              ${s.course ? `<div class="course-tag" style="font-size:0.7rem;color:#00d9ff;background:rgba(0,217,255,0.1);border:1px solid rgba(0,217,255,0.2);border-radius:4px;padding:1px 6px;margin-top:2px;display:inline-block;">${s.course}</div>` : ''}
             </div>
             <div class="att-toggle-group">
               <button class="att-toggle-btn p-btn ${status !== 'Absent' ? 'active-p' : ''}"
@@ -5712,6 +5713,7 @@ function generateStudentId(batchName) {
         <td style="padding:8px 10px;border:1px solid rgba(255,255,255,0.05);color:rgba(255,255,255,0.35);text-align:center;font-size:0.78rem;">${idx+1}</td>
         <td style="padding:8px 12px;border:1px solid rgba(255,255,255,0.05);color:#00d9ff;font-size:0.75rem;font-family:monospace;white-space:nowrap;">${s.studentId||'—'}</td>
         <td style="padding:8px 14px;border:1px solid rgba(255,255,255,0.05);font-weight:600;white-space:nowrap;">${s.name}</td>
+        <td style="padding:8px 10px;border:1px solid rgba(255,255,255,0.05);color:#ffd700;font-size:0.72rem;white-space:nowrap;">${s.course||'—'}</td>
         ${cells}
         <td style="text-align:center;border:1px solid rgba(255,255,255,0.05);background:rgba(0,255,136,0.08);font-weight:800;color:#00ff88;padding:4px 8px;">${p}</td>
         <td style="text-align:center;border:1px solid rgba(255,255,255,0.05);background:rgba(255,59,92,0.08);font-weight:800;color:#ff3b5c;padding:4px 8px;">${a}</td>
@@ -5738,6 +5740,7 @@ function generateStudentId(batchName) {
             <th style="padding:9px 10px;border:1px solid rgba(255,255,255,0.08);background:rgba(0,217,255,0.1);color:rgba(0,217,255,0.7);font-size:0.7rem;letter-spacing:1px;text-align:center;">#</th>
             <th style="padding:9px 12px;border:1px solid rgba(255,255,255,0.08);background:rgba(0,217,255,0.1);color:rgba(0,217,255,0.7);font-size:0.7rem;letter-spacing:1px;white-space:nowrap;">ID</th>
             <th style="padding:9px 14px;border:1px solid rgba(255,255,255,0.08);background:rgba(0,217,255,0.1);color:rgba(0,217,255,0.7);font-size:0.7rem;letter-spacing:1px;white-space:nowrap;">Student Name</th>
+            <th style="padding:9px 12px;border:1px solid rgba(255,255,255,0.08);background:rgba(0,217,255,0.1);color:rgba(0,217,255,0.7);font-size:0.7rem;letter-spacing:1px;white-space:nowrap;">Course</th>
             ${dayThs}
             <th style="text-align:center;border:1px solid rgba(255,255,255,0.08);background:rgba(0,255,136,0.12);color:#00ff88;font-size:0.7rem;padding:5px 8px;">P</th>
             <th style="text-align:center;border:1px solid rgba(255,255,255,0.08);background:rgba(255,59,92,0.12);color:#ff3b5c;font-size:0.7rem;padding:5px 8px;">A</th>
@@ -5831,6 +5834,7 @@ function generateStudentId(batchName) {
         <td style="padding:8px 12px;border:1px solid rgba(255,255,255,0.05);color:rgba(255,255,255,0.35);text-align:center;">${idx+1}</td>
         <td style="padding:8px 14px;border:1px solid rgba(255,255,255,0.05);font-weight:600;white-space:nowrap;">${sd.s.name}</td>
         <td style="padding:8px 10px;border:1px solid rgba(255,255,255,0.05);color:#00d9ff;font-family:monospace;font-size:0.75rem;">${sd.s.studentId||'—'}</td>
+        <td style="padding:8px 10px;border:1px solid rgba(255,255,255,0.05);color:#ffd700;font-size:0.72rem;white-space:nowrap;">${sd.s.course||'—'}</td>
         ${monthCells}
         <td style="text-align:center;border:1px solid rgba(255,255,255,0.05);color:#00ff88;font-weight:800;background:rgba(0,255,136,0.08);">${sd.totalP}</td>
         <td style="text-align:center;border:1px solid rgba(255,255,255,0.05);color:#ff3b5c;font-weight:800;background:rgba(255,59,92,0.08);">${sd.totalA}</td>
@@ -5846,6 +5850,7 @@ function generateStudentId(batchName) {
             <th style="padding:9px 10px;border:1px solid rgba(255,255,255,0.07);background:rgba(0,217,255,0.1);color:rgba(0,217,255,0.7);font-size:0.7rem;text-align:center;">#</th>
             <th style="padding:9px 14px;border:1px solid rgba(255,255,255,0.07);background:rgba(0,217,255,0.1);color:rgba(0,217,255,0.7);font-size:0.7rem;">Name</th>
             <th style="padding:9px 10px;border:1px solid rgba(255,255,255,0.07);background:rgba(0,217,255,0.1);color:rgba(0,217,255,0.7);font-size:0.7rem;">ID</th>
+            <th style="padding:9px 10px;border:1px solid rgba(255,255,255,0.07);background:rgba(0,217,255,0.1);color:rgba(0,217,255,0.7);font-size:0.7rem;">Course</th>
             ${monthThs}
             <th style="text-align:center;border:1px solid rgba(255,255,255,0.07);background:rgba(0,255,136,0.1);color:#00ff88;font-size:0.7rem;padding:5px 8px;">P</th>
             <th style="text-align:center;border:1px solid rgba(255,255,255,0.07);background:rgba(255,59,92,0.1);color:#ff3b5c;font-size:0.7rem;padding:5px 8px;">A</th>
@@ -5964,6 +5969,7 @@ function generateStudentId(batchName) {
           <td style="border:1px solid #ccc;text-align:center;font-size:12px;color:#555;">${i+1}</td>
           <td style="border:1px solid #ccc;padding:4px 10px;font-weight:600;">${s.name}</td>
           <td style="border:1px solid #ccc;text-align:center;font-size:11px;color:#2c7da0;">${s.studentId||''}</td>
+          <td style="border:1px solid #ccc;padding:4px 8px;font-size:11px;color:#1a4d6e;">${s.course||''}</td>
           <td style="border:1px solid #ccc;"></td>
         </tr>`).join('');
       tableContent = `
@@ -5973,7 +5979,8 @@ function generateStudentId(batchName) {
               <th style="border:1px solid #ccc;color:#fff;padding:8px;width:40px;text-align:center;">#</th>
               <th style="border:1px solid #ccc;color:#fff;padding:8px;text-align:left;">Student Name</th>
               <th style="border:1px solid #ccc;color:#fff;padding:8px;text-align:center;width:90px;">ID</th>
-              <th style="border:1px solid #ccc;color:#fff;padding:8px;text-align:center;min-width:200px;">Signature</th>
+              <th style="border:1px solid #ccc;color:#fff;padding:8px;text-align:center;width:140px;">Course</th>
+              <th style="border:1px solid #ccc;color:#fff;padding:8px;text-align:center;min-width:180px;">Signature</th>
             </tr>
           </thead>
           <tbody>${rows}</tbody>
@@ -5987,13 +5994,15 @@ function generateStudentId(batchName) {
           `<td style="border:1px solid #dde;height:28px;"></td>`).join('');
         return `<tr><td style="border:1px solid #bcd;text-align:center;font-size:11px;color:#555;">${i+1}</td>
           <td style="border:1px solid #bcd;padding:3px 8px;font-weight:600;font-size:12px;">${s.name}</td>
+          <td style="border:1px solid #bcd;padding:3px 6px;font-size:11px;color:#1a4d6e;">${s.course||''}</td>
           ${cells}</tr>`;
       }).join('');
       tableContent = `
         <table style="width:100%;border-collapse:collapse;font-size:11px;">
           <thead>
             <tr><th style="border:1px solid #bcd;background:#1a4d6e;color:#fff;width:35px;text-align:center;">#</th>
-            <th style="border:1px solid #bcd;background:#1a4d6e;color:#fff;text-align:left;padding:6px;min-width:160px;">Name</th>
+            <th style="border:1px solid #bcd;background:#1a4d6e;color:#fff;text-align:left;padding:6px;min-width:150px;">Name</th>
+            <th style="border:1px solid #bcd;background:#1a4d6e;color:#fff;text-align:left;padding:6px;min-width:120px;">Course</th>
             ${colH}</tr>
           </thead>
           <tbody>${rows}</tbody>
@@ -6008,6 +6017,7 @@ function generateStudentId(batchName) {
         return `<tr>
           <td style="border:1px solid #000;text-align:center;font-size:${isPortrait ? 10 : 12}px;">${i+1}</td>
           <td style="border:1px solid #000;padding:3px 8px;font-weight:600;font-size:${isPortrait ? 11 : 13}px;font-style:italic;color:#1a4d6e;">${s.name}</td>
+          <td style="border:1px solid #000;padding:3px 6px;font-size:${isPortrait ? 9 : 11}px;color:#1a4d6e;">${s.course||'—'}</td>
           ${cells}
         </tr>`;
       }).join('');
@@ -6017,6 +6027,7 @@ function generateStudentId(batchName) {
             <tr>
               <th style="border:1px solid #000;background:#f0f8ff;width:40px;text-align:center;font-size:${isPortrait ? 9 : 11}px;color:#1a4d6e;">SL</th>
               <th style="border:1px solid #000;background:#f0f8ff;text-align:left;padding:5px 8px;font-size:${isPortrait ? 9 : 11}px;color:#1a4d6e;">Student Name</th>
+              <th style="border:1px solid #000;background:#f0f8ff;text-align:left;padding:5px 6px;font-size:${isPortrait ? 9 : 11}px;color:#1a4d6e;min-width:${isPortrait ? 80 : 120}px;">Course</th>
               ${colH}
             </tr>
           </thead>
@@ -7149,42 +7160,16 @@ function populateBatchFilter() {
   console.log('✅ Batch filter populated successfully');
 }
 
-function populateCourseFilter() {
-  const select = document.getElementById('courseFilterSelect');
-  if (!select) {
-    console.warn('⚠️ courseFilterSelect element not found');
-    return;
-  }
-
-  if (!window.globalData || !window.globalData.students) {
-    console.warn('⚠️ globalData.students not available');
-    return;
-  }
-
-  const courses = [...new Set(globalData.students.map(s => s.course))].filter(Boolean).sort();
-
-  console.log('📊 Populating course filter with', courses.length, 'courses:', courses);
-
-  select.innerHTML = '<option value="">All Courses</option>';
-  courses.forEach(c => {
-    select.innerHTML += `<option value="${c}">${c}</option>`;
-  });
-
-  console.log('✅ Course filter populated successfully');
-}
-
 function applyAdvancedSearch() {
   const batch = document.getElementById('batchFilterSelect')?.value;
-  const course = document.getElementById('courseFilterSelect')?.value;
   const startDate = document.getElementById('advSearchStartDate')?.value;
   const endDate = document.getElementById('advSearchEndDate')?.value;
 
   const filtered = globalData.students.filter(s => {
     const matchBatch = !batch || s.batch?.toString() === batch;
-    const matchCourse = !course || s.course === course;
     const matchStart = !startDate || s.enrollDate >= startDate;
     const matchEnd = !endDate || s.enrollDate <= endDate;
-    return matchBatch && matchCourse && matchStart && matchEnd;
+    return matchBatch && matchStart && matchEnd;
   });
 
   // Calculate totals
@@ -7199,7 +7184,7 @@ function applyAdvancedSearch() {
 
   // Show/hide summary
   const summary = document.getElementById('advSearchSummary');
-  if (batch || course || startDate || endDate) {
+  if (batch || startDate || endDate) {
     summary.classList.remove('d-none');
   } else {
     summary.classList.add('d-none');
@@ -7211,9 +7196,6 @@ function applyAdvancedSearch() {
 
 function clearAdvancedSearch() {
   document.getElementById('batchFilterSelect').value = '';
-  if (document.getElementById('courseFilterSelect')) {
-    document.getElementById('courseFilterSelect').value = '';
-  }
   document.getElementById('advSearchStartDate').value = '';
   document.getElementById('advSearchEndDate').value = '';
   document.getElementById('advSearchSummary').classList.add('d-none');
@@ -7221,7 +7203,6 @@ function clearAdvancedSearch() {
 }
 
 window.populateBatchFilter = populateBatchFilter;
-window.populateCourseFilter = populateCourseFilter;
 window.applyAdvancedSearch = applyAdvancedSearch;
 window.clearAdvancedSearch = clearAdvancedSearch;
 
