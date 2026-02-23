@@ -6,8 +6,8 @@
 // ✅ Only syncs if cloud data is newer
 // ===================================
 
-const SUPABASE_URL = 'https://gtoldrltbjxwshubplfp.supabase.co';
-const SUPABASE_ANON_KEY = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6Imd0b2xkcmx0Ymp4d3NodWJwbGZwIiwicm9sZSI6ImFub24iLCJpYXQiOjE3MzY5NTMyODgsImV4cCI6MjA1MjUyOTI4OH0.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6Imd0b2xkcmx0Ymp4d3NodWJwbGZwIiwicm9sZSI6ImFub24iLCJpYXQiOjE3MzY5NTMyODgsImV4cCI6MjA1MjUyOTI4OH0.eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9';
+const SUPABASE_URL = window.SUPABASE_CONFIG?.URL || 'https://gtoldrltxjrwshubplfp.supabase.co';
+const SUPABASE_ANON_KEY = window.SUPABASE_CONFIG?.KEY || 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6Imd0b2xkcmx0eGpyd3NodWJwbGZwIiwicm9sZSI6ImFub24iLCJpYXQiOjE3NzEwOTk5MTksImV4cCI6MjA4NjY3NTkxOX0.7NTx3tzU1C5VaewNZZHTaJf2WJ_GtjhQPKOymkxRsUk';
 
 let supabase = null;
 let isSupabaseReady = false;

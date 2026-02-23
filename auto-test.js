@@ -25,27 +25,27 @@
 
   // ─── Constants ────────────────────────────────────────────
   const SUITE_VERSION = '5.0';
-  const SUPABASE_URL  = 'https://gtoldrltxjrwshubplfp.supabase.co';
-  const SUPABASE_KEY  = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6Imd0b2xkcmx0eGpyd3NodWJwbGZwIiwicm9sZSI6ImFub24iLCJpYXQiOjE3NzEwOTk5MTksImV4cCI6MjA4NjY3NTkxOX0.7NTx3tzU1C5VaewNZZHTaJf2WJ_GtjhQPKOymkxRsUk';
-  const TEST_TAG      = '__WFTEST__';  // এই tag দিয়ে test data চিহ্নিত হবে
-  const TIMEOUT_MS    = 8000;
+  const SUPABASE_URL = window.SUPABASE_CONFIG?.URL || 'https://gtoldrltxjrwshubplfp.supabase.co';
+  const SUPABASE_KEY = window.SUPABASE_CONFIG?.KEY || 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6Imd0b2xkcmx0eGpyd3NodWJwbGZwIiwicm9sZSI6ImFub24iLCJpYXQiOjE3NzEwOTk5MTksImV4cCI6MjA4NjY3NTkxOX0.7NTx3tzU1C5VaewNZZHTaJf2WJ_GtjhQPKOymkxRsUk';
+  const TEST_TAG = '__WFTEST__';  // এই tag দিয়ে test data চিহ্নিত হবে
+  const TIMEOUT_MS = 8000;
 
   // ─── State ────────────────────────────────────────────────
-  let results  = [];
+  let results = [];
   let warnings = [];
   let testData = { studentRowIndex: null, financeId: null };
 
   // ─── Helpers ──────────────────────────────────────────────
-  function pass(name, detail = '')  { results.push({ s: 'pass',  name, detail }); }
-  function fail(name, detail = '')  { results.push({ s: 'fail',  name, detail }); }
-  function warn(name, detail = '')  { results.push({ s: 'warn',  name, detail }); warnings.push(name); }
-  function skip(name, reason = '')  { results.push({ s: 'skip',  name, detail: reason }); }
+  function pass(name, detail = '') { results.push({ s: 'pass', name, detail }); }
+  function fail(name, detail = '') { results.push({ s: 'fail', name, detail }); }
+  function warn(name, detail = '') { results.push({ s: 'warn', name, detail }); warnings.push(name); }
+  function skip(name, reason = '') { results.push({ s: 'skip', name, detail: reason }); }
 
   function exists(fnName) { return typeof window[fnName] === 'function'; }
 
   function safeCall(fn) {
     try { return { ok: true, val: fn() }; }
-    catch(e) { return { ok: false, err: e.message }; }
+    catch (e) { return { ok: false, err: e.message }; }
   }
 
   function timeout(ms) {
@@ -102,7 +102,7 @@
     const el = document.getElementById('functest-results');
     if (!el) return;
     const colors = { pass: '#00ff88', fail: '#ff4466', warn: '#ffcc00', skip: '#888' };
-    const icons  = { pass: '✅', fail: '❌', warn: '⚠️', skip: '⏭' };
+    const icons = { pass: '✅', fail: '❌', warn: '⚠️', skip: '⏭' };
     const isFail = r.s === 'fail';
     const isWarn = r.s === 'warn';
     const bg = isFail ? 'rgba(255,68,102,0.15)' : isWarn ? 'rgba(255,200,0,0.10)' : 'transparent';
@@ -113,8 +113,8 @@
     div.innerHTML =
       '<span style="font-size:' + (isFail ? '1rem' : '0.85rem') + ';min-width:18px;">' + icons[r.s] + '</span>' +
       '<div style="flex:1;min-width:0;">' +
-        '<div style="color:' + colors[r.s] + ';font-size:' + (isFail ? '0.88rem' : '0.8rem') + ';font-weight:' + (isFail ? '700' : '600') + ';">' + r.name + '</div>' +
-        (r.detail ? '<div style="color:' + (isFail ? '#ffaaaa' : isWarn ? '#ffe08a' : '#7aa0c4') + ';font-size:0.72rem;margin-top:' + (isFail ? '3px' : '0') + ';">' + r.detail + '</div>' : '') +
+      '<div style="color:' + colors[r.s] + ';font-size:' + (isFail ? '0.88rem' : '0.8rem') + ';font-weight:' + (isFail ? '700' : '600') + ';">' + r.name + '</div>' +
+      (r.detail ? '<div style="color:' + (isFail ? '#ffaaaa' : isWarn ? '#ffe08a' : '#7aa0c4') + ';font-size:0.72rem;margin-top:' + (isFail ? '3px' : '0') + ';">' + r.detail + '</div>' : '') +
       '</div>';
     el.appendChild(div);
     el.scrollTop = el.scrollHeight;
@@ -147,10 +147,10 @@
         const after = (window.globalData.students || []).length;
         if (before !== after) {
           // localStorage আপডেট
-          try { localStorage.setItem('wingsfly_data', JSON.stringify(window.globalData)); } catch(e) {}
+          try { localStorage.setItem('wingsfly_data', JSON.stringify(window.globalData)); } catch (e) { }
         }
       }
-    } catch(e) {}
+    } catch (e) { }
   }
 
   // ═══════════════════════════════════════════════════════════
@@ -200,8 +200,8 @@
     pass('globalData exists');
 
     const requiredArrays = ['students', 'finance', 'employees', 'bankAccounts', 'mobileBanking',
-                            'incomeCategories', 'expenseCategories', 'courseNames', 'users',
-                            'examRegistrations', 'visitors'];
+      'incomeCategories', 'expenseCategories', 'courseNames', 'users',
+      'examRegistrations', 'visitors'];
 
     requiredArrays.forEach(key => {
       if (!Array.isArray(gd[key])) {
@@ -390,7 +390,7 @@
     });
     if (!r1.ok) { fail('localStorage read error', r1.err); }
     else if (!lsData) { warn('localStorage empty', 'অ্যাপ লোড বা save হয়নি'); }
-    else { pass('localStorage has data', `students: ${(lsData.students||[]).length}, finance: ${(lsData.finance||[]).length}`); }
+    else { pass('localStorage has data', `students: ${(lsData.students || []).length}, finance: ${(lsData.finance || []).length}`); }
 
     // --- 5b: Write/Read test ---
     const testKey = `__wftest_${Date.now()}`;
@@ -429,7 +429,7 @@
       if (usedKB < 3000) { pass('localStorage usage OK', `~${usedKB} KB used`); }
       else if (usedKB < 4500) { warn('localStorage usage high', `~${usedKB} KB — 5MB limit এ কাছাকাছি`); }
       else { fail('localStorage near full!', `~${usedKB} KB — sync fail হতে পারে!`); }
-    } catch(e) { skip('Storage quota check', e.message); }
+    } catch (e) { skip('Storage quota check', e.message); }
   }
 
   // ── GROUP 6: UI & DOM Elements ─────────────────────────────
@@ -506,8 +506,8 @@
         const errText = await res.text().catch(() => '');
         fail('Supabase read failed', `HTTP ${res.status} — ${errText.slice(0, 80)}`);
       }
-    } catch(e) {
-      if (e.message === 'Timeout') { fail('Supabase read TIMEOUT', `${TIMEOUT_MS/1000}s এর মধ্যে response আসেনি`); }
+    } catch (e) {
+      if (e.message === 'Timeout') { fail('Supabase read TIMEOUT', `${TIMEOUT_MS / 1000}s এর মধ্যে response আসেনি`); }
       else { fail('Supabase read error', e.message); }
     }
 
@@ -543,27 +543,27 @@
             if (rec && rec.last_device === 'test_suite_v3') { pass('Supabase READ-BACK OK', 'লেখা data সঠিকভাবে পড়া গেছে'); }
             else { fail('Supabase read-back mismatch', 'লেখা data পড়া গেলেও content মিলছে না'); }
           }
-        } catch(e2) { warn('Supabase read-back error', e2.message); }
+        } catch (e2) { warn('Supabase read-back error', e2.message); }
 
         // --- 7g: Cleanup test record ---
         try {
           await fetchSupa(`/rest/v1/academy_data?id=eq.${testRecordId}`, { method: 'DELETE' });
           pass('Test record cleaned up from Supabase');
-        } catch(e3) { warn('Cleanup failed', 'test record ম্যানুয়ালি delete করুন: id=wingsfly_test_probe'); }
+        } catch (e3) { warn('Cleanup failed', 'test record ম্যানুয়ালি delete করুন: id=wingsfly_test_probe'); }
 
       } else {
         const errText = await writeRes.text().catch(() => '');
         fail('Supabase WRITE failed', `HTTP ${writeRes.status} — ${errText.slice(0, 80)}`);
       }
-    } catch(e) {
-      if (e.message === 'Timeout') { fail('Supabase WRITE TIMEOUT', `${TIMEOUT_MS/1000}s এর মধ্যে response আসেনি`); }
+    } catch (e) {
+      if (e.message === 'Timeout') { fail('Supabase WRITE TIMEOUT', `${TIMEOUT_MS / 1000}s এর মধ্যে response আসেনি`); }
       else { fail('Supabase WRITE error', e.message); }
     }
 
     // --- 7h: Version conflict detection ---
     if (cloudData) {
-      const localVer  = parseInt(localStorage.getItem('wings_local_version')) || 0;
-      const cloudVer  = cloudData.version || 0;
+      const localVer = parseInt(localStorage.getItem('wings_local_version')) || 0;
+      const cloudVer = cloudData.version || 0;
       const diff = Math.abs(localVer - cloudVer);
       if (diff === 0) { pass('Versions in sync', `Local v${localVer} = Cloud v${cloudVer}`); }
       else if (diff <= 2) { warn('Minor version gap', `Local v${localVer}, Cloud v${cloudVer} — ছোট ব্যবধান`); }
@@ -572,7 +572,7 @@
       // --- 7i: Device conflict check ---
       const myDevice = localStorage.getItem('wings_device_id') || '';
       if (cloudData.last_device && myDevice && cloudData.last_device !== myDevice) {
-        warn('Last write from different device', `Cloud device: ${cloudData.last_device.slice(0,8)}… আপনার device আলাদা — স্বাভাবিক যদি multi-device use করেন`);
+        warn('Last write from different device', `Cloud device: ${cloudData.last_device.slice(0, 8)}… আপনার device আলাদা — স্বাভাবিক যদি multi-device use করেন`);
       } else {
         pass('Device ID consistent');
       }
@@ -620,7 +620,7 @@
     const r4 = safeCall(() => {
       const malformed = '{"broken": true, invalid}';
       try { JSON.parse(malformed); return false; }
-      catch(e) { return true; } // এটাই সঠিক — malformed JSON throw করবে
+      catch (e) { return true; } // এটাই সঠিক — malformed JSON throw করবে
     });
     if (r4.ok && r4.val) { pass('JSON parse error caught correctly'); }
     else { fail('JSON parse error handling broken'); }
@@ -670,7 +670,7 @@
       lsAfter = localStorage.getItem('wingsfly_data');
       if (lsAfter === snapshot) { pass('Manual save to localStorage OK'); }
       else { fail('localStorage save/read mismatch'); }
-    } catch(e) { fail('localStorage save failed', e.message); }
+    } catch (e) { fail('localStorage save failed', e.message); }
 
     // --- 9b: wingsSync.pushNow available ---
     if (window.wingsSync && typeof window.wingsSync.pushNow === 'function') {
@@ -686,7 +686,7 @@
         } else {
           pass('Push callable');
         }
-      } catch(e) { fail('Push threw error', e.message); }
+      } catch (e) { fail('Push threw error', e.message); }
     } else {
       fail('wingsSync.pushNow not available');
     }
@@ -741,7 +741,7 @@
     const finKeys = new Map();
     let dupCount = 0;
     finance.forEach(f => {
-      const key = `${f.type}|${f.amount}|${f.date}|${(f.person||'').trim().toLowerCase()}`;
+      const key = `${f.type}|${f.amount}|${f.date}|${(f.person || '').trim().toLowerCase()}`;
       finKeys.set(key, (finKeys.get(key) || 0) + 1);
     });
     finKeys.forEach((count, key) => { if (count > 1) dupCount += count - 1; });
@@ -1018,8 +1018,8 @@
 
     // --- 14d: Merge strategy — arrays combine without loss ---
     const r3 = safeCall(() => {
-      const local  = [{ id: 1, name: 'Alice' }, { id: 2, name: 'Bob' }];
-      const cloud  = [{ id: 1, name: 'Alice Updated' }, { id: 3, name: 'Charlie' }];
+      const local = [{ id: 1, name: 'Alice' }, { id: 2, name: 'Bob' }];
+      const cloud = [{ id: 1, name: 'Alice Updated' }, { id: 3, name: 'Charlie' }];
       // Smart merge: cloud items update local, new items added, deletions ignored
       const merged = [...local];
       cloud.forEach(ci => {
@@ -1122,10 +1122,10 @@
     const gd = window.globalData;
     if (!gd) { skip('Exam/Visitor tests', 'globalData নেই'); return; }
 
-    const exams    = gd.examRegistrations || [];
-    const finance  = gd.finance           || [];
-    const deleted  = gd.deletedItems      || [];
-    const students = gd.students          || [];
+    const exams = gd.examRegistrations || [];
+    const finance = gd.finance || [];
+    const deleted = gd.deletedItems || [];
+    const students = gd.students || [];
 
     // --- 16a: Basic exam data ---
     if (exams.length > 0) {
@@ -1157,19 +1157,19 @@
         : skip('Exam-Finance orphan test', 'কোনো Exam Fee finance নেই');
     } else {
       fail('Exam-Finance মিসম্যাচ! ' + orphaned + 'টি orphaned Exam Fee entry',
-           'exam delete হয়েছে কিন্তু finance এ আছে — deleteExamRegistration finance cleanup দরকার');
+        'exam delete হয়েছে কিন্তু finance এ আছে — deleteExamRegistration finance cleanup দরকার');
     }
 
     // --- 16c: ✅ Student-Finance Orphan Detection ---
     // Student delete হলে Student Fee finance entry থেকে যেতে পারে (historical — warn only)
-    const studentNames = new Set(students.map(s => (s.name||'').toLowerCase().trim()));
-    const studentFees  = finance.filter(f => f.category === 'Student Fee' && f.person);
-    const orphanedFees = studentFees.filter(f => !studentNames.has((f.person||'').toLowerCase().trim()));
+    const studentNames = new Set(students.map(s => (s.name || '').toLowerCase().trim()));
+    const studentFees = finance.filter(f => f.category === 'Student Fee' && f.person);
+    const orphanedFees = studentFees.filter(f => !studentNames.has((f.person || '').toLowerCase().trim()));
     if (orphanedFees.length === 0) {
-      studentFees.length > 0 ? pass('Student-Finance: সব Student Fee এর student আছে ✅') : skip('Student-Finance test','কোনো Student Fee নেই');
+      studentFees.length > 0 ? pass('Student-Finance: সব Student Fee এর student আছে ✅') : skip('Student-Finance test', 'কোনো Student Fee নেই');
     } else {
       warn('Student-Finance: ' + orphanedFees.length + 'টি Student Fee এর student নেই',
-           'student delete হয়েছে — finance entry historical record হিসেবে থাকতে পারে');
+        'student delete হয়েছে — finance entry historical record হিসেবে থাকতে পারে');
     }
 
     // --- 16d: ✅ Recycle Bin integrity ---
@@ -1181,8 +1181,8 @@
 
     if (deleted.length > 0) {
       const byType = {};
-      deleted.forEach(d => { byType[d.type] = (byType[d.type]||0)+1; });
-      pass('Recycle Bin has items', Object.entries(byType).map(([k,v])=>k+':'+v).join(', '));
+      deleted.forEach(d => { byType[d.type] = (byType[d.type] || 0) + 1; });
+      pass('Recycle Bin has items', Object.entries(byType).map(([k, v]) => k + ':' + v).join(', '));
 
       // ✅ Exam entries in recycle bin?
       byType['exam']
@@ -1295,7 +1295,7 @@
       try {
         JSON.stringify(obj); // Safe object — should work
         return true;
-      } catch(e) { throw new Error('Safe object failed: ' + e.message); }
+      } catch (e) { throw new Error('Safe object failed: ' + e.message); }
     });
     if (r4.ok) { pass('JSON circular reference protection OK'); }
     else { fail('JSON serialization issue', r4.err); }
@@ -1346,14 +1346,14 @@
   // ═══════════════════════════════════════════════════════════
   async function runFunctionTests() {
     // Reset
-    results  = [];
+    results = [];
     warnings = [];
     testData = { studentRowIndex: null, financeId: null };
 
-    const resultsEl  = document.getElementById('functest-results');
-    const summaryEl  = document.getElementById('functest-summary');
-    if (resultsEl)  { resultsEl.innerHTML  = ''; resultsEl.style.display = 'block'; }
-    if (summaryEl)  { summaryEl.style.display = 'none'; summaryEl.innerHTML = ''; }
+    const resultsEl = document.getElementById('functest-results');
+    const summaryEl = document.getElementById('functest-summary');
+    if (resultsEl) { resultsEl.innerHTML = ''; resultsEl.style.display = 'block'; }
+    if (summaryEl) { summaryEl.style.display = 'none'; summaryEl.innerHTML = ''; }
 
     // Header
     if (resultsEl) {
@@ -1391,7 +1391,7 @@
     const passed = results.filter(r => r.s === 'pass').length;
     const failed = results.filter(r => r.s === 'fail').length;
     const warned = results.filter(r => r.s === 'warn').length;
-    const total  = results.length;
+    const total = results.length;
 
     // Re-render all results (they were already appended live, just update summary)
     renderSummary(total, passed, failed, warned);
@@ -1456,7 +1456,7 @@
 
   // ─── Expose ───────────────────────────────────────────────
   window.runFunctionTests = runFunctionTests;
-  window.runAutoTests     = runFunctionTests; // ✅ alias for console use
+  window.runAutoTests = runFunctionTests; // ✅ alias for console use
 
   // Auto-indicate version in console
   console.log(`%c🧬 Wings Fly Test Suite v${SUITE_VERSION} loaded (Deep E2E)`, 'color:#00d4ff');

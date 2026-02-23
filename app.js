@@ -3356,7 +3356,7 @@ window.openAllRemindersModal = openAllRemindersModal;
 // ===================================
 
 function filterData() {
-  const q = document.getElementById('searchInput').value.toLowerCase().trim();
+  const q = (document.getElementById('globalFilterSearchInput')?.value || document.getElementById('searchInput')?.value || '').toLowerCase().trim();
   const batchSummary = document.getElementById('batchSummaryCard');
   const activeTab = localStorage.getItem('wingsfly_active_tab') || 'students';
 
@@ -3441,6 +3441,19 @@ function filterData() {
       return matchSearch && matchDate && matchType && matchCategory && matchMethod && matchLoan;
     });
     renderLedger(filteredFinance);
+  }
+}
+
+// Synchronize Top Navbar search with Global Filter search (and vice versa)
+function syncSearchInputs(caller) {
+  const topSearch = document.getElementById('searchInput');
+  const filterSearch = document.getElementById('globalFilterSearchInput');
+  const q = caller.value;
+
+  if (caller.id === 'searchInput' && filterSearch) {
+    filterSearch.value = q;
+  } else if (caller.id === 'globalFilterSearchInput' && topSearch) {
+    topSearch.value = q;
   }
 }
 

@@ -207,31 +207,6 @@
                 "totalPayment": 17500
             },
             {
-                "due": 12000,
-                "name": "Masuk Al Hossain",
-                "paid": 3000,
-                "batch": "18",
-                "phone": "01733580871",
-                "photo": null,
-                "course": "Air Ticket & Visa processing Both",
-                "method": "Cash",
-                "remarks": "",
-                "studentId": "WF-18009",
-                "bloodGroup": "",
-                "enrollDate": "0019-02-19",
-                "fatherName": "",
-                "motherName": "",
-                "installments": [
-                    {
-                        "date": "0019-02-19",
-                        "amount": 3000,
-                        "method": "Cash"
-                    }
-                ],
-                "reminderDate": null,
-                "totalPayment": 15000
-            },
-            {
                 "due": 8000,
                 "name": "Mohammed Tarek Hasan",
                 "paid": 7000,
@@ -702,8 +677,8 @@
                 "description": "Installment payment for student: Md Jahirul | Batch: 18"
             },
             {
-                "id": "REC_Masuk_Al_Hossain_0_1771682442139",
-                "date": "0019-02-19",
+                "id": "REC_Masuk_Al_Hossain_0_1771682442140",
+                "date": "2026-02-19",
                 "type": "Income",
                 "amount": 3000,
                 "method": "Cash",
@@ -711,7 +686,7 @@
                 "category": "Student Installment",
                 "recovered": true,
                 "studentId": null,
-                "timestamp": "2026-02-21T14:00:42.139Z",
+                "timestamp": "2026-02-21T14:00:42.140Z",
                 "description": "Installment payment for student: Masuk Al Hossain | Batch: 18"
             },
             {

@@ -1246,13 +1246,14 @@
                     <div class="d-flex align-items-center flex-grow-1">
                         <h4 class="mb-0 fw-bold me-4 text-av-main">Welcome back, Admin! <span
                                 class="badge bg-primary-subtle text-primary border border-primary-subtle rounded-pill px-3"
-                                style="font-size: 0.7rem; vertical-align: middle;">Cloud Pro âœ¨</span></h4>
+                                style="font-size: 0.7rem; vertical-align: middle;">Cloud Pro ✨</span></h4>
                         <div class="search-wrapper position-relative mx-auto" style="width: 450px;">
                             <i class="bi bi-search position-absolute top-50 translate-middle-y ms-3 text-dim"></i>
                             <input type="text" id="searchInput"
                                 class="form-control rounded-pill ps-5 bg-light border-0 shadow-sm"
                                 style="padding: 0.75rem 1rem 0.75rem 3rem;"
-                                placeholder="Search students, transactions, courses..." onkeyup="handleGlobalSearch()">
+                                placeholder="Search students, transactions, courses..."
+                                onkeyup="syncSearchInputs(this); handleGlobalSearch()">
                         </div>
                     </div>
                     <div class="d-flex gap-3 align-items-center">
@@ -1281,7 +1282,7 @@
                                 style="min-width: 280px;">
                                 <li class="mb-2">
                                     <div class="d-flex justify-content-between align-items-center mb-2">
-                                        <h6 class="mb-0 fw-bold">â˜ï¸ Cloud Sync</h6>
+                                        <h6 class="mb-0 fw-bold">☁️ Cloud Sync</h6>
                                         <span class="badge bg-light text-dark" id="syncStatusText">Ready</span>
                                     </div>
                                     <small class="text-muted d-block">Last sync: <span
@@ -1818,8 +1819,9 @@
                         <div class="row g-3 align-items-center">
                             <div class="col-md-auto text-muted"> <span class="fs-5">🎓</span> </div>
                             <div class="col-md-3">
-                                <input type="text" id="searchInput" class="form-control premium-input-modern"
-                                    placeholder="Search records..." onkeyup="filterData()">
+                                <input type="text" id="globalFilterSearchInput"
+                                    class="form-control premium-input-modern" placeholder="Search records..."
+                                    onkeyup="syncSearchInputs(this); filterData()">
                             </div>
                             <div class="col-md-auto">
                                 <div class="d-flex gap-2">
@@ -3310,7 +3312,7 @@
             <div class="modal-content custom-modal" style="min-height: 500px;">
                 <div class="modal-header border-bottom">
                     <h5 class="modal-title fw-bold">
-                        <span class="me-2 header-icon-circle bg-primary-light">âš™ï¸</span>System Settings
+                        <span class="me-2 header-icon-circle bg-primary-light">⚙️</span>System Settings
                     </h5>
                     <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
                 </div>
@@ -3559,7 +3561,7 @@
                                                         <div class="d-flex align-items-center mb-3">
                                                             <div class="icon-box bg-transparent text-danger me-3"
                                                                 style="width: 40px; height: 40px; border-radius: 10px; display: flex; align-items: center; justify-content: center;">
-                                                                âš ï¸</div>
+                                                                ⚠️</div>
                                                             <div>
                                                                 <h6 class="fw-bold text-danger mb-0">
                                                                     Danger Zone
@@ -5253,9 +5255,8 @@
         if (window.supabase && window.supabase.createClient) window.createClient = window.supabase.createClient;
     </script>
 
-    <!-- Supabase Configuration (Handled by Main Sync) -->
-
-
+    <!-- Supabase Configuration (Centralized) -->
+    <script src="supabase-config.js"></script>
     <!-- Emergency Disaster Recovery (Automatic data repair) -->
     <script src="EMERGENCY_RESTORE.js"></script>
 
@@ -5350,8 +5351,8 @@
         // ============================================
         // SYNC DIAGNOSTIC (Settings-এ inline version)
         // ============================================
-        const DIAG_URL = 'https://gtoldrltxjrwshubplfp.supabase.co/rest/v1/academy_data?id=eq.wingsfly_main&select=*';
-        const DIAG_KEY = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6Imd0b2xkcmx0eGpyd3NodWJwbGZwIiwicm9sZSI6ImFub24iLCJpYXQiOjE3NzEwOTk5MTksImV4cCI6MjA4NjY3NTkxOX0.7NTx3tzU1C5VaewNZZHTaJf2WJ_GtjhQPKOymkxRsUk';
+        const DIAG_URL = window.SUPABASE_CONFIG?.URL + '/rest/v1/' + (window.SUPABASE_CONFIG?.TABLE || 'academy_data') + '?id=eq.' + (window.SUPABASE_CONFIG?.MAIN_RECORD || 'wingsfly_main') + '&select=*';
+        const DIAG_KEY = window.SUPABASE_CONFIG?.KEY || '';
 
         function diagFmt(n) { return '৳' + Number(n || 0).toLocaleString('en-IN'); }
         function diagTime(ts) {
