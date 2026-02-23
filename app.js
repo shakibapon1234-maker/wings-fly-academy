@@ -7364,38 +7364,67 @@ function populateBatchFilter() {
 
 function applyAdvancedSearch() {
   const batch = document.getElementById('batchFilterSelect')?.value;
-  const course = document.getElementById('courseFilterSelect')?.value; // ✅ FIX: course filter যোগ
+  const course = document.getElementById('courseFilterSelect')?.value;
   const startDate = document.getElementById('advSearchStartDate')?.value;
   const endDate = document.getElementById('advSearchEndDate')?.value;
 
-  const filtered = globalData.students.filter(s => {
+  // 1. Filter Students and Calculate Student-only Income
+  const filteredStudents = globalData.students.filter(s => {
     const matchBatch = !batch || s.batch?.toString() === batch;
-    const matchCourse = !course || s.course === course; // ✅ FIX: course match
+    const matchCourse = !course || s.course === course;
     const matchStart = !startDate || s.enrollDate >= startDate;
     const matchEnd = !endDate || s.enrollDate <= endDate;
     return matchBatch && matchCourse && matchStart && matchEnd;
   });
 
-  // Calculate totals
-  const totalCollected = filtered.reduce((sum, s) => sum + (parseFloat(s.paid) || 0), 0);
-  const totalDue = filtered.reduce((sum, s) => sum + (parseFloat(s.due) || 0), 0);
+  const totalIncome = filteredStudents.reduce((sum, s) => sum + (parseFloat(s.paid) || 0), 0);
+  const totalDue = filteredStudents.reduce((sum, s) => sum + (parseFloat(s.due) || 0), 0);
 
-  // Update UI
-  document.getElementById('advSearchIncome').innerText = '৳' + formatNumber(totalCollected);
-  document.getElementById('advSearchCollected').innerText = '৳' + formatNumber(totalCollected);
+  // 2. Calculate Total Expenses within the same Date Range
+  let totalExpense = 0;
+  if (globalData.finance) {
+    globalData.finance.forEach(f => {
+      const fDate = f.date;
+      const matchStart = !startDate || fDate >= startDate;
+      const matchEnd = !endDate || fDate <= endDate;
+      if (matchStart && matchEnd) {
+        if (f.type === 'Expense' || f.type === 'ব্যয়' || f.type === 'Loan Given') {
+          totalExpense += (parseFloat(f.amount) || 0);
+        }
+      }
+    });
+  }
+
+  // 3. Calculate Net Profit/Loss
+  const netProfit = totalIncome - totalExpense;
+
+  // 4. Update UI
+  document.getElementById('advSearchIncome').innerText = '৳' + formatNumber(totalIncome);
+  document.getElementById('advSearchCollected').innerText = '৳' + formatNumber(totalIncome);
   document.getElementById('advSearchDue').innerText = '৳' + formatNumber(totalDue);
-  document.getElementById('advSearchCount').innerText = filtered.length;
+  document.getElementById('advSearchCount').innerText = filteredStudents.length;
+
+  const expEl = document.getElementById('advSearchExpense');
+  if (expEl) expEl.innerText = '৳' + formatNumber(totalExpense);
+
+  const profitEl = document.getElementById('advSearchProfit');
+  if (profitEl) {
+    profitEl.innerText = '৳' + formatNumber(Math.abs(netProfit));
+    profitEl.className = netProfit >= 0 ? 'h6 fw-bold text-success mb-0' : 'h6 fw-bold text-danger mb-0';
+    // লস হলে মাইনাস সাইন দেখানোর জন্য
+    if (netProfit < 0) profitEl.innerText = '- ৳' + formatNumber(Math.abs(netProfit));
+  }
 
   // Show/hide summary
   const summary = document.getElementById('advSearchSummary');
-  if (batch || course || startDate || endDate) { // ✅ FIX: course ও check করো
+  if (batch || course || startDate || endDate) {
     summary.classList.remove('d-none');
   } else {
     summary.classList.add('d-none');
   }
 
-  // Render filtered students
-  render(filtered);
+  // Render filtered students in table
+  render(filteredStudents);
 }
 
 function clearAdvancedSearch() {

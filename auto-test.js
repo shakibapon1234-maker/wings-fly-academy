@@ -552,8 +552,14 @@
         } catch (e3) { warn('Cleanup failed', 'test record ম্যানুয়ালি delete করুন: id=wingsfly_test_probe'); }
 
       } else {
-        const errText = await writeRes.text().catch(() => '');
-        fail('Supabase WRITE failed', `HTTP ${writeRes.status} — ${errText.slice(0, 80)}`);
+        const errJson = await writeRes.json().catch(() => ({}));
+        const errCode = errJson.code || writeRes.status;
+        
+        if (errCode === '42501') {
+          warn('Supabase WRITE Restricted (RLS)', 'ডাটাবেস সুরক্ষিত! শুধু মেইন রেকর্ড লিখতে পারবেন। এটি কোনো এরর নয়।');
+        } else {
+          fail('Supabase WRITE failed', `HTTP ${writeRes.status} — ${JSON.stringify(errJson).slice(0, 80)}`);
+        }
       }
     } catch (e) {
       if (e.message === 'Timeout') { fail('Supabase WRITE TIMEOUT', `${TIMEOUT_MS / 1000}s এর মধ্যে response আসেনি`); }
