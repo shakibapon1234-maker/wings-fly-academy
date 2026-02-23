@@ -759,30 +759,11 @@ window.exportData = exportData;
 window.importData = importData;
 window.handleImportFile = handleImportFile;
 
-// Global Data Store (Local Storage)
-window.globalData = {
-  students: [],
-  finance: [],
-  employees: [],
-  settings: {
-    startBalances: {},
-    academyName: 'Wings Fly Aviation Academy',
-    monthlyTarget: 200000
-  },
-  incomeCategories: ['Tuition Fees', 'Loan Received', 'Other'],
-  expenseCategories: ['Salary', 'Rent', 'Utilities', 'Loan Given', 'Other'],
-  paymentMethods: ['Cash', 'Bkash', 'Nogod'],
-  cashBalance: 0,
-  bankAccounts: [],
-  mobileBanking: [],
-  courseNames: ['Caregiver', 'Student Visa', 'Other'],
-  attendance: {},
-  nextId: 1001,
-  users: [{ username: 'admin', password: '0a041b9462caa4a31bac3567e0b6e6fd9100787db2ab433d96f6d178cabfce90', role: 'admin', name: 'Super Admin' }],
-  examRegistrations: [],
-  visitors: [],
-  employeeRoles: ['Instructor', 'Admin', 'Staff', 'Manager']
-};
+// ⚠️ NOTE: globalData is initialized at the top of this file (line 10)
+// using localStorage data. Do NOT re-initialize here — it would
+// overwrite saved data with empty arrays every time the script loads.
+// globalData is already set via: if (typeof window.globalData === 'undefined') { ... }
+// at the very top of app.js. This block has been intentionally removed.
 
 let currentStudentForProfile = null;
 
@@ -1961,11 +1942,11 @@ function checkPersonBalance() {
 
   let html = '';
   if (balance < 0) {
-    html = `<span class="text-danger"> ï¸ They Owe: ৳${formatNumber(Math.abs(balance))}</span>`;
+    html = `<span class="text-danger">⚠️  They Owe: ৳${formatNumber(Math.abs(balance))}</span>`;
   } else if (balance > 0) {
     html = `<span class="text-success">✅ We Owe: ৳${formatNumber(balance)}</span>`;
   } else {
-    html = `<span class="text-muted">✔️ Account Settled (Balance 0)</span>`;
+    html = `<span class="text-muted">✔️ Account Settled (Balance 0)</span>`;
   }
 
   display.innerHTML = `${html} <span class="text-muted ms-2 small fw-normal">(Total Loan: ৳${formatNumber(given)} | Paid: ৳${formatNumber(received)})</span>`;
