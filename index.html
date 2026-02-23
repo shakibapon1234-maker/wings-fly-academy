@@ -2972,7 +2972,10 @@
                                 <label class="form-label fw-bold small text-uppercase text-muted">Phone
                                     Number</label>
                                 <input type="tel" name="phone" class="form-control premium-input-modern"
-                                    placeholder="e.g., +8801234567890" required>
+                                    placeholder="e.g., +8801234567890" required
+                                    inputmode="numeric"
+                                    pattern="[0-9+\-\s]+"
+                                    oninput="(function(el){var b=el.value;el.value=el.value.replace(/[^0-9+\-\s]/g,'');if(b!==el.value&&window.showPhoneOnlyToast)window.showPhoneOnlyToast();})(this)">
                             </div>
                         </div>
 
@@ -4602,7 +4605,10 @@
                         <div class="mb-3">
                             <label class="form-label fw-bold small text-uppercase text-muted">Phone Number</label>
                             <input type="tel" name="visitorPhone" class="form-control premium-input-modern"
-                                placeholder="e.g., 017xxxxxxxx" required>
+                                placeholder="e.g., 017xxxxxxxx" required
+                                inputmode="numeric"
+                                pattern="[0-9+\-\s]+"
+                                oninput="(function(el){var b=el.value;el.value=el.value.replace(/[^0-9+\-\s]/g,'');if(b!==el.value&&window.showPhoneOnlyToast)window.showPhoneOnlyToast();})(this)">
                         </div>
                         <div class="mb-3">
                             <label class="form-label fw-bold small text-uppercase text-muted">Interested Course</label>
@@ -5005,7 +5011,10 @@
                             <div class="col-md-6">
                                 <label class="form-label fw-bold small text-muted">Phone Number</label>
                                 <input type="tel" name="phone" class="form-control premium-input-modern"
-                                    placeholder="e.g. +88017..." required>
+                                    placeholder="e.g. +88017..." required
+                                    inputmode="numeric"
+                                    pattern="[0-9+\-\s]+"
+                                    oninput="(function(el){var b=el.value;el.value=el.value.replace(/[^0-9+\-\s]/g,'');if(b!==el.value&&window.showPhoneOnlyToast)window.showPhoneOnlyToast();})(this)">
                             </div>
                         </div>
 
@@ -6294,6 +6303,66 @@
             });
         })();
     </script>
+
+<!-- Phone Number Only Toast Notification -->
+<div id="phoneOnlyToast" style="
+    display: none;
+    position: fixed;
+    top: 24px;
+    left: 50%;
+    transform: translateX(-50%);
+    z-index: 99999;
+    background: linear-gradient(135deg, #ff4d4d, #c0392b);
+    color: white;
+    padding: 14px 24px;
+    border-radius: 12px;
+    box-shadow: 0 8px 30px rgba(0,0,0,0.25);
+    font-size: 15px;
+    font-weight: 600;
+    align-items: center;
+    gap: 10px;
+    pointer-events: none;
+    animation: none;
+">
+    <span style="font-size:20px;">🚫</span>
+    <span>Text is not allowed! Please enter numbers only.</span>
+</div>
+
+<style>
+@keyframes phoneToastIn {
+    from { opacity: 0; top: 0px; }
+    to   { opacity: 1; top: 24px; }
+}
+@keyframes phoneToastOut {
+    from { opacity: 1; top: 24px; }
+    to   { opacity: 0; top: 0px; }
+}
+</style>
+
+<script>
+(function() {
+    let _phoneToastTimer = null;
+
+    window.showPhoneOnlyToast = function() {
+        const toast = document.getElementById('phoneOnlyToast');
+        if (!toast) return;
+
+        clearTimeout(_phoneToastTimer);
+        toast.style.display = 'flex';
+        toast.style.animation = 'none';
+        void toast.offsetWidth;
+        toast.style.animation = 'phoneToastIn 0.3s ease forwards';
+
+        _phoneToastTimer = setTimeout(function() {
+            toast.style.animation = 'phoneToastOut 0.4s ease forwards';
+            setTimeout(function() {
+                toast.style.display = 'none';
+            }, 400);
+        }, 2500);
+    };
+})();
+</script>
+
 </body>
 
 </html>
