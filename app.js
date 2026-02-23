@@ -8796,13 +8796,11 @@ window.renderFullUI = function () {
     if (typeof updateGrandTotal === 'function') updateGrandTotal();
     if (typeof populateDropdowns === 'function') populateDropdowns();
     if (typeof populateBatchFilter === 'function') populateBatchFilter();
-    // ✅ Notice board reload এ restore করো
     if (typeof initNoticeBoard === 'function') initNoticeBoard();
   } catch (e) {
     console.warn('UI Refresh partially skipped:', e);
   }
 };
-
 // Auto-populate dropdown when data loads
 if (document.readyState === 'loading') {
   document.addEventListener('DOMContentLoaded', () => {

@@ -392,12 +392,35 @@ async function deleteExamRegistration(regId) {
   const idx = window.globalData.examRegistrations.findIndex(r => r.regId === regId);
   if (idx < 0) return;
 
+  const reg = window.globalData.examRegistrations[idx];
+
+  // ✅ FIX 1: Recycle Bin এ পাঠাও
+  if (typeof window.moveToTrash === 'function') {
+    window.moveToTrash('exam', reg);
+  }
+
+  // ✅ FIX 2: Linked finance entry ও delete করো (data mismatch রোধ)
+  if (window.globalData.finance) {
+    const before = window.globalData.finance.length;
+    window.globalData.finance = window.globalData.finance.filter(f => {
+      return !(f.note || f.description || '').includes(`Reg: ${regId}`);
+    });
+    const removed = before - window.globalData.finance.length;
+    if (removed > 0) {
+      // Account balance reverse করো
+      if (typeof updateAccountBalance === 'function' && reg.examFee && reg.paymentMethod) {
+        updateAccountBalance(reg.paymentMethod, parseFloat(reg.examFee) || 0, 'Income', false);
+      }
+    }
+  }
+
   window.globalData.examRegistrations.splice(idx, 1);
   await saveToStorage();
-  // ✅ Cloud sync push
-  if (typeof window.scheduleSyncPush ==='function') window.scheduleSyncPush('Exam Registration Deleted');
+  if (typeof window.scheduleSyncPush === 'function') window.scheduleSyncPush('Exam Registration Deleted');
   showSuccessToast('🗑️ Exam registration deleted');
   searchExamResults();
+  if (typeof updateGlobalStats === 'function') updateGlobalStats();
+  if (typeof renderDashboard === 'function') renderDashboard();
 }
 window.deleteExamRegistration = deleteExamRegistration;
 

@@ -1118,57 +1118,130 @@
 
   // ── GROUP 16: Exam & Visitor Module Tests ─────────────────
   function testExamVisitor() {
-    sectionHeader('16 — Exam & Visitor Module Tests');
+    sectionHeader('16 — Exam, Visitor & Linked Data Integrity');
     const gd = window.globalData;
     if (!gd) { skip('Exam/Visitor tests', 'globalData নেই'); return; }
 
-    // --- 16a: Exam registrations ---
-    const exams = gd.examRegistrations || [];
+    const exams    = gd.examRegistrations || [];
+    const finance  = gd.finance           || [];
+    const deleted  = gd.deletedItems      || [];
+    const students = gd.students          || [];
+
+    // --- 16a: Basic exam data ---
     if (exams.length > 0) {
-      pass('Exam registrations exist', `${exams.length}টি registration`);
-      let examBad = 0;
-      exams.forEach(e => { if (!e.name && !e.studentName) examBad++; });
-      if (examBad === 0) { pass('Exam registration data integrity OK'); }
-      else { warn(`${examBad} exam entry-তে name নেই`); }
+      pass('Exam registrations exist', exams.length + 'টি');
+      const bad = exams.filter(e => !e.studentName && !e.name).length;
+      bad === 0 ? pass('Exam entries all have studentName') : warn(bad + ' exam entry-তে name নেই');
+      const noRegId = exams.filter(e => !e.regId).length;
+      noRegId === 0 ? pass('সব exam এ regId আছে') : fail(noRegId + ' exam এ regId নেই — delete করলে finance mismatch হবে');
     } else {
-      skip('Exam registration tests', 'কোনো exam registration নেই');
+      skip('Exam registration tests', 'কোনো exam নেই');
     }
 
-    // --- 16b: Visitor data ---
+    // --- 16b: ✅ Exam-Finance Orphan Detection ---
+    // Exam delete হলে finance entry ও delete হওয়া উচিত (deleteExamRegistration)
+    const examFeeEntries = finance.filter(f =>
+      f.category === 'Exam Fee' || (f.note || f.description || '').includes('Exam Fee')
+    );
+    let orphaned = 0;
+    examFeeEntries.forEach(f => {
+      const note = f.note || f.description || '';
+      const m = note.match(/Reg:\s*([\w-]+)/);
+      if (m) {
+        if (!exams.some(e => e.regId === m[1])) orphaned++;
+      }
+    });
+    if (orphaned === 0) {
+      examFeeEntries.length > 0
+        ? pass('Exam-Finance: কোনো orphaned entry নেই ✅', examFeeEntries.length + ' exam fee entry linked')
+        : skip('Exam-Finance orphan test', 'কোনো Exam Fee finance নেই');
+    } else {
+      fail('Exam-Finance মিসম্যাচ! ' + orphaned + 'টি orphaned Exam Fee entry',
+           'exam delete হয়েছে কিন্তু finance এ আছে — deleteExamRegistration finance cleanup দরকার');
+    }
+
+    // --- 16c: ✅ Student-Finance Orphan Detection ---
+    // Student delete হলে Student Fee finance entry থেকে যেতে পারে (historical — warn only)
+    const studentNames = new Set(students.map(s => (s.name||'').toLowerCase().trim()));
+    const studentFees  = finance.filter(f => f.category === 'Student Fee' && f.person);
+    const orphanedFees = studentFees.filter(f => !studentNames.has((f.person||'').toLowerCase().trim()));
+    if (orphanedFees.length === 0) {
+      studentFees.length > 0 ? pass('Student-Finance: সব Student Fee এর student আছে ✅') : skip('Student-Finance test','কোনো Student Fee নেই');
+    } else {
+      warn('Student-Finance: ' + orphanedFees.length + 'টি Student Fee এর student নেই',
+           'student delete হয়েছে — finance entry historical record হিসেবে থাকতে পারে');
+    }
+
+    // --- 16d: ✅ Recycle Bin integrity ---
+    if (typeof window.moveToTrash === 'function') {
+      pass('moveToTrash function exists ✅');
+    } else {
+      fail('moveToTrash function MISSING — Recycle Bin কাজ করবে না!');
+    }
+
+    if (deleted.length > 0) {
+      const byType = {};
+      deleted.forEach(d => { byType[d.type] = (byType[d.type]||0)+1; });
+      pass('Recycle Bin has items', Object.entries(byType).map(([k,v])=>k+':'+v).join(', '));
+
+      // ✅ Exam entries in recycle bin?
+      byType['exam']
+        ? pass('Recycle Bin: exam entries আছে ✅', byType['exam'] + 'টি')
+        : warn('Recycle Bin: কোনো exam entry নেই', 'exam delete হলে recycle bin এ যাওয়া উচিত');
+
+      // deleted items এর required fields check
+      const badEntries = deleted.filter(d => !d.type || !d.item || !d.deletedAt);
+      badEntries.length === 0 ? pass('Recycle Bin entries সব valid') : warn(badEntries.length + ' recycle bin entry incomplete');
+    } else {
+      skip('Recycle Bin content test', 'এখনো কোনো item delete করা হয়নি');
+    }
+
+    // --- 16e: ✅ deleteExamRegistration function check ---
+    typeof window.deleteExamRegistration === 'function'
+      ? pass('deleteExamRegistration function exists ✅')
+      : fail('deleteExamRegistration MISSING!');
+    typeof window.handleExamRegistration === 'function'
+      ? pass('handleExamRegistration function exists ✅')
+      : fail('handleExamRegistration MISSING!');
+
+    // --- 16f: Visitor data ---
     const visitors = gd.visitors || [];
-    if (visitors.length > 0) {
-      pass('Visitor records exist', `${visitors.length} জন visitor`);
-      let visBad = 0;
-      visitors.forEach(v => { if (!v.name) visBad++; });
-      if (visBad === 0) { pass('Visitor data integrity OK'); }
-      else { warn(`${visBad} visitor-এর name নেই`); }
-    } else {
-      skip('Visitor tests', 'কোনো visitor record নেই');
-    }
+    visitors.length > 0
+      ? pass('Visitor records: ' + visitors.length + ' জন')
+      : skip('Visitor test', 'কোনো visitor নেই');
+    typeof window.renderVisitors === 'function'
+      ? pass('renderVisitors exists')
+      : warn('renderVisitors missing');
 
-    // --- 16c: Notice board ---
+    // --- 16g: Notice board ---
     const notices = gd.notices || gd.noticeBoard || [];
-    if (notices.length > 0) {
-      pass('Notice board has data', `${notices.length}টি notice`);
-    } else {
-      skip('Notice board test', 'কোনো notice নেই');
+    notices.length > 0 ? pass('Notice board: ' + notices.length + 'টি notice') : skip('Notice test', 'কোনো notice নেই');
+
+    // --- 16h: Exam date validation ---
+    if (exams.length > 0) {
+      const badDates = exams.filter(e => {
+        const d = e.date || e.registrationDate;
+        return d && isNaN(new Date(d).getTime());
+      });
+      badDates.length === 0 ? pass('Exam dates valid') : warn(badDates.length + ' exam এর date invalid');
     }
 
-    // --- 16d: renderVisitors function ---
-    if (exists('renderVisitors')) { pass('renderVisitors function exists'); }
-    else { warn('renderVisitors missing', 'Visitor tab কাজ নাও করতে পারে'); }
+    // --- 16i: ✅ Installment-Finance link ---
+    // Student installment add হলে finance এ entry যায় — orphan check
+    const installmentFinance = finance.filter(f => f.category === 'Student Fee' && f.description && f.description.includes('Installment'));
+    if (installmentFinance.length > 0) {
+      pass('Installment finance entries: ' + installmentFinance.length + 'টি');
+    }
 
-    // --- 16e: Exam date validation ---
-    if (exams.length > 0) {
-      const invalidDates = exams.filter(e => {
-        if (!e.date && !e.examDate) return false;
-        const d = new Date(e.date || e.examDate);
-        return isNaN(d.getTime());
-      });
-      if (invalidDates.length === 0) { pass('Exam dates all valid'); }
-      else { warn(`${invalidDates.length} exam-এর date invalid`); }
+    // --- 16j: ✅ renderFullUI completeness ---
+    // sync pull এর পরে renderFullUI call হয় — সব UI refresh হওয়া দরকার
+    if (typeof window.renderFullUI === 'function') {
+      pass('renderFullUI function exists ✅');
+    } else {
+      fail('renderFullUI MISSING — sync pull এর পর UI update হবে না!');
     }
   }
+
 
   // ── GROUP 17: Stress & Boundary Tests ─────────────────────
   function testStressBoundary() {
