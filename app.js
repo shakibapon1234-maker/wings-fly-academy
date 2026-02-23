@@ -555,7 +555,7 @@ function handleResetAllData() {
       examRegistrations: [],
       visitors: [],
       employeeRoles: [],         // খালি - কোনো default role নেই
-      credentials: { username: 'admin', password: 'admin123' }  // শুধু admin login রাখা
+      credentials: { username: 'admin', password: 'e7d3bfb67567c3d94bcecb2ce65ef146eac83e50dc3f3b89e81bb647a8bada4c' }  // default — change via Settings
     };
 
     // Update window reference
@@ -995,7 +995,7 @@ function loadFromStorage() {
         ],
         courseNames: ['Caregiver', 'Student Visa', 'Other'],
         settings: { academyName: 'Wings Fly Aviation Academy' },
-        users: [{ username: 'admin', password: 'admin123', role: 'admin', name: 'Super Admin' }]
+        users: [{ username: 'admin', password: 'e7d3bfb67567c3d94bcecb2ce65ef146eac83e50dc3f3b89e81bb647a8bada4c', role: 'admin', name: 'Super Admin' }]
       };
       if (typeof globalData !== 'undefined') globalData = window.globalData;
     }
@@ -1005,7 +1005,7 @@ function loadFromStorage() {
       globalData.users = [
         {
           username: (globalData.credentials && globalData.credentials.username) || 'admin',
-          password: (globalData.credentials && globalData.credentials.password) || 'admin123',
+          password: (globalData.credentials && globalData.credentials.password) || 'e7d3bfb67567c3d94bcecb2ce65ef146eac83e50dc3f3b89e81bb647a8bada4c',
           role: 'admin',
           name: 'Admin'
         }
@@ -1078,7 +1078,7 @@ function loadFromStorage() {
 
     // Ensure credentials exist
     if (!globalData.credentials) {
-      globalData.credentials = { username: 'admin', password: 'admin123' };
+      globalData.credentials = { username: 'admin', password: 'e7d3bfb67567c3d94bcecb2ce65ef146eac83e50dc3f3b89e81bb647a8bada4c' };
       migrationNeeded = true;
     }
 
@@ -1232,7 +1232,7 @@ async function handleLogin(e) {
         finance: [],
         employees: [],
         users: [
-          { username: 'admin', password: 'admin123', role: 'admin', name: 'Admin' }
+          { username: 'admin', password: 'e7d3bfb67567c3d94bcecb2ce65ef146eac83e50dc3f3b89e81bb647a8bada4c', role: 'admin', name: 'Admin' }
         ]
       };
     }
@@ -1245,7 +1245,7 @@ async function handleLogin(e) {
       globalData.users = [
         {
           username: 'admin',
-          password: 'admin123',
+          password: 'e7d3bfb67567c3d94bcecb2ce65ef146eac83e50dc3f3b89e81bb647a8bada4c',
           role: 'admin',
           name: 'Admin'
         }
@@ -1266,23 +1266,7 @@ async function handleLogin(e) {
       await migratePasswordIfNeeded(validUser, password);
     }
 
-    // C. EMERGENCY FALLBACK: Always allow default admin
-    if (!validUser && username === 'admin' && (password === 'admin123' || hashedInput === '0a041b9462caa4a31bac3567e0b6e6fd9100787db2ab433d96f6d178cabfce90')) {
-      console.warn('⚠️ Using emergency admin fallback');
-      validUser = {
-        username: 'admin',
-        password: '0a041b9462caa4a31bac3567e0b6e6fd9100787db2ab433d96f6d178cabfce90',
-        role: 'admin',
-        name: 'Admin'
-      };
-      // Auto-add to users list for next time
-      if (globalData.users && Array.isArray(globalData.users)) {
-        if (!globalData.users.find(u => u.username === 'admin')) {
-          globalData.users.push(validUser);
-          saveToStorage(true);
-        }
-      }
-    }
+    // Emergency fallback removed — use Settings to reset password if locked out
 
     // 3. Final validation
     if (validUser) {
@@ -3616,8 +3600,8 @@ async function handleStudentSubmit(e) {
           ? window.globalData.students[parseInt(data.studentRowIndex)]?.studentId
           : generateStudentId(data.batch);
 
-        // Upload photo to Firebase Storage
-        showSuccessToast('⏳ Uploading photo...');
+        // Photo processing (base64, stored locally + synced via Supabase)
+        showSuccessToast('⏳ Processing photo...');
         photoURL = await uploadStudentPhoto(tempStudentId, selectedStudentPhotoFile);
 
         // If updating student and had old photo, delete it
@@ -8075,7 +8059,7 @@ function handleDataReset() {
       mobileBanking: window.globalData.mobileBanking || [],
       courseNames: window.globalData.courseNames || [],
       employeeRoles: window.globalData.employeeRoles || [],
-      credentials: window.globalData.credentials || { username: 'admin', password: 'admin123' },
+      credentials: window.globalData.credentials || { username: 'admin', password: 'e7d3bfb67567c3d94bcecb2ce65ef146eac83e50dc3f3b89e81bb647a8bada4c' },
       users: window.globalData.users || []
     };
 
