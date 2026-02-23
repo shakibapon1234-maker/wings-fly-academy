@@ -778,19 +778,13 @@ window.globalData = {
   courseNames: ['Caregiver', 'Student Visa', 'Other'],
   attendance: {},
   nextId: 1001,
-  users: [{ username: 'admin', password: 'admin123', role: 'admin', name: 'Super Admin' }],
+  users: [{ username: 'admin', password: '0a041b9462caa4a31bac3567e0b6e6fd9100787db2ab433d96f6d178cabfce90', role: 'admin', name: 'Super Admin' }],
   examRegistrations: [],
   visitors: [],
   employeeRoles: ['Instructor', 'Admin', 'Staff', 'Manager']
 };
 
 let currentStudentForProfile = null;
-
-// Demo Login Credentials
-const DEMO_CREDENTIALS = {
-  username: 'admin',
-  password: 'admin123'
-};
 
 // ===================================
 // INITIALIZATION
@@ -969,7 +963,7 @@ function loadFromStorage() {
       // Ensure users array always exists with default admin
       if (!window.globalData.users || !Array.isArray(window.globalData.users) || window.globalData.users.length === 0) {
         window.globalData.users = [
-          { username: 'admin', password: 'admin123', role: 'admin', name: 'Admin' }
+          { username: 'admin', password: '0a041b9462caa4a31bac3567e0b6e6fd9100787db2ab433d96f6d178cabfce90', role: 'admin', name: 'Admin' }
         ];
         saveToStorage();
       }
@@ -1191,6 +1185,31 @@ window.resetPaymentMethods = function () {
 // LOGIN & AUTHENTICATION
 // ===================================
 
+// SHA-256 Password Hashing (Browser Native — no library needed)
+async function hashPassword(password) {
+  try {
+    const msgBuffer = new TextEncoder().encode(password);
+    const hashBuffer = await crypto.subtle.digest('SHA-256', msgBuffer);
+    const hashArray = Array.from(new Uint8Array(hashBuffer));
+    return hashArray.map(b => b.toString(16).padStart(2, '0')).join('');
+  } catch (e) {
+    // Fallback: return plain text if crypto not supported (very old browser)
+    console.warn('⚠️ crypto.subtle not available — using plain text comparison');
+    return password;
+  }
+}
+
+// Upgrade user's stored plain text password to hash (one-time auto-migration)
+async function migratePasswordIfNeeded(user, plainPassword) {
+  // যদি stored password 64 chars (SHA-256 hex) না হয়, তাহলে এটা plain text — upgrade করো
+  if (user.password && user.password.length !== 64) {
+    const hashed = await hashPassword(user.password);
+    user.password = hashed;
+    await saveToStorage();
+    console.log('🔐 Password upgraded to SHA-256 hash for user:', user.username);
+  }
+}
+
 async function handleLogin(e) {
   e.preventDefault();
 
@@ -1233,17 +1252,26 @@ async function handleLogin(e) {
       ];
     }
 
-    // A. Check Local Users
-    validUser = globalData.users.find(u => u.username === username && u.password === password);
+    // A. Hash the input password for secure comparison
+    const hashedInput = await hashPassword(password);
 
-    // B. Cloud sync skipped during login to prevent blocking
+    // B. Check Local Users — hash compare (new) OR plain text compare (backward compat)
+    validUser = globalData.users.find(u =>
+      u.username === username &&
+      (u.password === hashedInput || u.password === password)
+    );
 
-    // C. EMERGENCY FALLBACK: Always allow default admin if users list is broken or out of sync
-    if (!validUser && username === 'admin' && (password === 'admin123')) {
-      console.warn("⚠️ Using emergency admin fallback");
+    // If found with plain text, auto-migrate to hash
+    if (validUser) {
+      await migratePasswordIfNeeded(validUser, password);
+    }
+
+    // C. EMERGENCY FALLBACK: Always allow default admin
+    if (!validUser && username === 'admin' && (password === 'admin123' || hashedInput === '0a041b9462caa4a31bac3567e0b6e6fd9100787db2ab433d96f6d178cabfce90')) {
+      console.warn('⚠️ Using emergency admin fallback');
       validUser = {
         username: 'admin',
-        password: 'admin123',
+        password: '0a041b9462caa4a31bac3567e0b6e6fd9100787db2ab433d96f6d178cabfce90',
         role: 'admin',
         name: 'Admin'
       };
