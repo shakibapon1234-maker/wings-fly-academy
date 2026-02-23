@@ -917,16 +917,10 @@
 
         if (currentStudents.length < 15) {
             console.log('⚠️ Data loss confirmed (Count: ' + currentStudents.length + '). Restoring from 2026-02-22 backup...');
-
-            // Merge or Overwrite? Overwrite is safer for total loss recovery
-            // but let's keep it safe by only doing it once.
-            if (!localStorage.getItem('wingsfly_emergency_restored')) {
-                localStorage.setItem('wingsfly_data', JSON.stringify(backupData));
-                localStorage.setItem('wingsfly_emergency_restored', 'true');
-                console.log('✅ Restoration complete! Reloading page...');
-                alert('⚠️ Data Loss Detected! \n\nI have successfully restored 23 students from your yesterday-s backup (Feb 22). \n\nThe page will now reload.');
-                window.location.reload();
-            }
+            localStorage.setItem('wingsfly_data', JSON.stringify(backupData));
+            console.log('✅ Restoration complete! Reloading page...');
+            alert('⚠️ Data Loss Detected! \n\nRestoring 23 students from Feb 22 backup. \n\nPage will reload now.');
+            window.location.reload();
         } else {
             console.log('✅ Data seems intact (Count: ' + currentStudents.length + '). No restoration needed.');
         }
