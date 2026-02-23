@@ -2421,8 +2421,10 @@ function renderSettingsLists() {
       if (document.getElementById('settingsUsername')) {
         document.getElementById('settingsUsername').value = (globalData.credentials && globalData.credentials.username) || 'admin';
       }
+      // ✅ Security: never pre-fill password field — user must type new one to change it
       if (document.getElementById('settingsPassword')) {
-        document.getElementById('settingsPassword').value = (globalData.credentials && globalData.credentials.password) || 'admin123';
+        document.getElementById('settingsPassword').value = '';
+        document.getElementById('settingsPassword').placeholder = 'Type new password to change...';
       }
     }
   }
@@ -4564,27 +4566,41 @@ function handleSettingsSubmit(e) {
     monthlyTarget: parseFloat(formData.monthlyTarget) || 200000
   };
 
-  // Update Credentials
+  // Update Credentials (with SHA-256 hashing)
   if (formData.adminPassword) {
-    globalData.credentials = {
-      username: formData.adminUsername || 'admin',
-      password: formData.adminPassword
-    };
+    const newUsername = formData.adminUsername || 'admin';
+    // Hash the new password before saving
+    hashPassword(formData.adminPassword).then(hashedPwd => {
+      globalData.credentials = {
+        username: newUsername,
+        password: hashedPwd
+      };
 
-    // Also update in users list for login compatibility
-    if (globalData.users && Array.isArray(globalData.users)) {
-      const adminUser = globalData.users.find(u => u.username === (formData.adminUsername || 'admin'));
-      if (adminUser) {
-        adminUser.password = formData.adminPassword;
-      } else {
-        globalData.users.push({
-          username: formData.adminUsername || 'admin',
-          password: formData.adminPassword,
-          role: 'admin',
-          name: 'Super Admin'
-        });
+      // Also update in users list for login compatibility
+      if (globalData.users && Array.isArray(globalData.users)) {
+        // Find by old username or 'admin'
+        const adminUser = globalData.users.find(u => u.role === 'admin');
+        if (adminUser) {
+          adminUser.username = newUsername;
+          adminUser.password = hashedPwd;
+        } else {
+          globalData.users.push({
+            username: newUsername,
+            password: hashedPwd,
+            role: 'admin',
+            name: 'Super Admin'
+          });
+        }
       }
-    }
+      saveToStorage();
+      if (typeof scheduleSyncPush === 'function') scheduleSyncPush('Credentials updated');
+    });
+  } else if (formData.adminUsername) {
+    // Username changed but no new password — update username only
+    const newUsername = formData.adminUsername;
+    if (globalData.credentials) globalData.credentials.username = newUsername;
+    const adminUser = globalData.users && globalData.users.find(u => u.role === 'admin');
+    if (adminUser) adminUser.username = newUsername;
   }
 
   saveToStorage();
