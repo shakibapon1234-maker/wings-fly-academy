@@ -555,7 +555,7 @@ function handleResetAllData() {
       examRegistrations: [],
       visitors: [],
       employeeRoles: [],         // খালি - কোনো default role নেই
-      credentials: { username: 'admin', password: 'e7d3bfb67567c3d94bcecb2ce65ef146eac83e50dc3f3b89e81bb647a8bada4c' }  // default — change via Settings
+      credentials: { username: 'admin', password: '24439613fdc37b350853c815b8da53d8d57fab41035a242240732f23eff41e66' }  // default — password: shakib@123
     };
 
     // Update window reference
@@ -976,7 +976,7 @@ function loadFromStorage() {
         ],
         courseNames: ['Caregiver', 'Student Visa', 'Other'],
         settings: { academyName: 'Wings Fly Aviation Academy' },
-        users: [{ username: 'admin', password: 'e7d3bfb67567c3d94bcecb2ce65ef146eac83e50dc3f3b89e81bb647a8bada4c', role: 'admin', name: 'Super Admin' }]
+        users: [{ username: 'admin', password: '24439613fdc37b350853c815b8da53d8d57fab41035a242240732f23eff41e66', role: 'admin', name: 'Super Admin' }]
       };
       if (typeof globalData !== 'undefined') globalData = window.globalData;
     }
@@ -1213,7 +1213,7 @@ async function handleLogin(e) {
         finance: [],
         employees: [],
         users: [
-          { username: 'admin', password: 'e7d3bfb67567c3d94bcecb2ce65ef146eac83e50dc3f3b89e81bb647a8bada4c', role: 'admin', name: 'Admin' }
+          { username: 'admin', password: '24439613fdc37b350853c815b8da53d8d57fab41035a242240732f23eff41e66', role: 'admin', name: 'Admin' }
         ]
       };
     }
@@ -1226,7 +1226,7 @@ async function handleLogin(e) {
       globalData.users = [
         {
           username: 'admin',
-          password: 'e7d3bfb67567c3d94bcecb2ce65ef146eac83e50dc3f3b89e81bb647a8bada4c',
+          password: '24439613fdc37b350853c815b8da53d8d57fab41035a242240732f23eff41e66',
           role: 'admin',
           name: 'Admin'
         }

@@ -1,7 +1,7 @@
 /**
  * ========================================
  * WINGS FLY AVIATION ACADEMY
- * SMART SYNC SYSTEM V29 - PUSH QUEUE + CLOUD HISTORY + BEACON FIX
+ * SMART SYNC SYSTEM V30 - PUSH QUEUE + CLOUD HISTORY + BEACON FIX + RACE CONDITION + DAILY CLOUD BACKUP
  * ========================================
  * 
  * 🌍 Real-world Multi-device Sync Solution
@@ -57,6 +57,10 @@
 
   // ✅ V29: Push Queue — push চলার সময় নতুন push এলে queue তে রাখো
   let pendingPushReason = null; // null = no pending push
+
+  // ✅ V30 FIX: Realtime reconnect counter (max 3 attempts, then fallback to polling)
+  let realtimeReconnectCount = 0;
+  window.initialSyncComplete = false; // ✅ V31: Globally exposed for Auto-Heal
 
   // ==========================================
   // DEVICE ID GENERATION
@@ -138,6 +142,7 @@
       if (error) {
         if (error.code === 'PGRST116') {
           if (!silent) log('ℹ️', 'No cloud data - first device');
+          window.initialSyncComplete = true; // ✅ V31
           isPulling = false;
           return true;
         }
@@ -288,6 +293,7 @@
 
         localVersion = cloudVersion;
         lastPullTime = Date.now();
+        window.initialSyncComplete = true; // ✅ V31
 
         // ✅ Notice Board restore — cloud থেকে pull হলে notice ও restore করো
         // ✅ RACE CONDITION FIX: notice push pending থাকলে restore করো না
@@ -409,15 +415,54 @@
         return false;
       }
 
+      // ✅ V31: PUSH PROTECTION LOCK
+      // ১. প্রথমবার ডাটা পুল হওয়া পর্যন্ত পুশ বন্ধ
+      if (!window.initialSyncComplete) {
+        log('🛡️', 'Push BLOCKED: Initial cloud pull not complete yet.');
+        isPushing = false;
+        return false;
+      }
+
+      // ২. MASS DATA LOSS PROTECTION ON PUSH
+      // যদি লোকাল ডাটা ক্লাউড ডাটার চেয়ে বিপুল পরিমাণ কমে যায় (যেমন ভুল করে সব ডিলিট হলো)
+      const localCount = (window.globalData.students || []).length;
+      const lastKnownCount = parseInt(localStorage.getItem('wings_last_known_count')) || 0;
+
+      if (lastKnownCount > 5 && localCount === 0 && !reason.toLowerCase().includes('factory-reset')) {
+        log('🚫', 'Push ABORTED: Mass data loss detected in local memory! (Count 0 vs ' + lastKnownCount + '). Refusing to overwrite cloud.');
+        showNotification('🚫 ডাটা লস রুখতে সেভ বন্ধ করা হয়েছে। রিফ্রেশ দিন।', 'error');
+        isPushing = false;
+        return false;
+      }
+
+      // লোকাল কাউন্ট আপডেট করে রাখো ভবিষ্যতে চেক করার জন্য
+      localStorage.setItem('wings_last_known_count', localCount.toString());
+
       // Increment local version (Vector Clock)
       localVersion++;
 
       log('📤', `Pushing v${localVersion} (${reason})...`);
 
       const timestamp = Date.now();
+
+      // ✅ V30 FIX: Photo payload reduction
+      // Student.photo তে base64 থাকলে sync payload অনেক বড় হয় (400+ student = 9-36MB)
+      // Solution: photo field থেকে base64 বাদ দিয়ে শুধু photo_key (reference) রাখো
+      // Photo নিজে IndexedDB তে local এ থাকবে — cloud sync করা লাগবে না
+      const studentsWithoutPhotos = (window.globalData.students || []).map(s => {
+        if (!s.photo) return s;
+        // base64 হলে strip করো, শুধু key রাখো
+        if (s.photo.startsWith('data:image')) {
+          // ✅ IndexedDB key হিসেবে `photo_${studentId}` রাখো reference এর জন্য
+          const safeKey = `photo_${s.studentId || s.id || 'unknown'}`;
+          return { ...s, photo: safeKey, _photoLocal: true }; // _photoLocal = local only flag
+        }
+        return s; // already a key or URL — keep as-is
+      });
+
       const payload = {
         id: RECORD_ID,
-        students: window.globalData.students || [],
+        students: studentsWithoutPhotos,
         employees: window.globalData.employees || [],
         finance: window.globalData.finance || [],
         settings: window.globalData.settings || {},
@@ -606,8 +651,31 @@
           if (status === 'SUBSCRIBED') {
             log('✅', 'Realtime active!');
             showNotification('🔄 Real-time sync enabled', 'success');
+            // Reset reconnect counter on success
+            realtimeReconnectCount = 0;
           } else if (status === 'CHANNEL_ERROR' || status === 'TIMED_OUT') {
-            log('⚠️', 'Realtime error - will retry');
+            log('⚠️', `Realtime ${status} — scheduling reconnect...`);
+
+            // ✅ V30 FIX: Auto-reconnect with exponential backoff (max 3 attempts)
+            if (realtimeReconnectCount < 3) {
+              realtimeReconnectCount++;
+              const delay = realtimeReconnectCount * 10000; // 10s, 20s, 30s
+              log('🔁', `Reconnect attempt ${realtimeReconnectCount}/3 in ${delay / 1000}s...`);
+              setTimeout(() => {
+                try {
+                  if (realtimeChannel) {
+                    supabaseClient.removeChannel(realtimeChannel);
+                    realtimeChannel = null;
+                  }
+                  startRealtimeListener();
+                } catch (e) {
+                  log('❌', 'Reconnect failed: ' + e.message);
+                }
+              }, delay);
+            } else {
+              log('⚠️', 'Realtime max reconnects reached — polling fallback active');
+              // Polling fallback এমনিতেই চালু আছে (startContinuousPull)
+            }
           }
         });
 

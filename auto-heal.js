@@ -25,19 +25,19 @@
 (function () {
   'use strict';
 
-  const HEAL_INTERVAL   = 60 * 1000;  // প্রতি ৬০ সেকেন্ডে check
-  const SUPABASE_URL    = window.SUPABASE_CONFIG?.URL || 'https://gtoldrltxjrwshubplfp.supabase.co';
-  const SUPABASE_KEY    = window.SUPABASE_CONFIG?.KEY || 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6Imd0b2xkcmx0eGpyd3NodWJwbGZwIiwicm9sZSI6ImFub24iLCJpYXQiOjE3NzEwOTk5MTksImV4cCI6MjA4NjY3NTkxOX0.7NTx3tzU1C5VaewNZZHTaJf2WJ_GtjhQPKOymkxRsUk';
-  const API_URL         = `${SUPABASE_URL}/rest/v1/academy_data?id=eq.wingsfly_main&select=*`;
-  const HEADERS         = { 'apikey': SUPABASE_KEY, 'Authorization': 'Bearer ' + SUPABASE_KEY };
+  const HEAL_INTERVAL = 60 * 1000;  // প্রতি ৬০ সেকেন্ডে check
+  const SUPABASE_URL = window.SUPABASE_CONFIG?.URL || 'https://gtoldrltxjrwshubplfp.supabase.co';
+  const SUPABASE_KEY = window.SUPABASE_CONFIG?.KEY || 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6Imd0b2xkcmx0eGpyd3NodWJwbGZwIiwicm9sZSI6ImFub24iLCJpYXQiOjE3NzEwOTk5MTksImV4cCI6MjA4NjY3NTkxOX0.7NTx3tzU1C5VaewNZZHTaJf2WJ_GtjhQPKOymkxRsUk';
+  const API_URL = `${SUPABASE_URL}/rest/v1/academy_data?id=eq.wingsfly_main&select=*`;
+  const HEADERS = { 'apikey': SUPABASE_KEY, 'Authorization': 'Bearer ' + SUPABASE_KEY };
 
   // Stats — Settings-এ দেখানোর জন্য
   const healStats = {
-    totalRuns      : 0,
-    totalFixes     : 0,
-    lastRun        : null,
-    lastFix        : null,
-    log            : [],   // max 50 entries
+    totalRuns: 0,
+    totalFixes: 0,
+    lastRun: null,
+    lastFix: null,
+    log: [],   // max 50 entries
   };
   window.healStats = healStats;
 
@@ -49,7 +49,7 @@
     healStats.log.unshift(entry);
     if (healStats.log.length > 50) healStats.log.pop();
 
-    const icon = { info:'ℹ️', fix:'🔧', warn:'⚠️', ok:'✅', err:'❌' }[type] || '•';
+    const icon = { info: 'ℹ️', fix: '🔧', warn: '⚠️', ok: '✅', err: '❌' }[type] || '•';
     console.log(`[AutoHeal] ${icon} ${msg}`);
 
     // Settings-এ heal log থাকলে update করো
@@ -60,11 +60,11 @@
     const container = document.getElementById('heal-log-container');
     if (!container) return;
     container.innerHTML = healStats.log.slice(0, 20).map(e => {
-      const colors = { fix:'#d1fae5', warn:'#fef3c7', err:'#fee2e2', ok:'#d1fae5', info:'#eff6ff' };
-      const textColors = { fix:'#065f46', warn:'#92400e', err:'#991b1b', ok:'#065f46', info:'#1e40af' };
+      const colors = { fix: '#d1fae5', warn: '#fef3c7', err: '#fee2e2', ok: '#d1fae5', info: '#eff6ff' };
+      const textColors = { fix: '#065f46', warn: '#92400e', err: '#991b1b', ok: '#065f46', info: '#1e40af' };
       return `<div style="
-        background:${colors[e.type]||'#f9fafb'};
-        color:${textColors[e.type]||'#374151'};
+        background:${colors[e.type] || '#f9fafb'};
+        color:${textColors[e.type] || '#374151'};
         padding:5px 10px;
         border-radius:6px;
         margin-bottom:4px;
@@ -98,8 +98,8 @@
 
     let fixed = 0;
     data.students.forEach(s => {
-      const total  = parseFloat(s.totalPayment) || 0;
-      const paid   = parseFloat(s.paid) || 0;
+      const total = parseFloat(s.totalPayment) || 0;
+      const paid = parseFloat(s.paid) || 0;
       const correctDue = Math.max(0, total - paid);
       const currentDue = parseFloat(s.due) || 0;
 
@@ -368,7 +368,7 @@
     if (!data || !data.students) return 0;
     let overpaid = 0;
     data.students.forEach(s => {
-      const paid  = parseFloat(s.paid) || 0;
+      const paid = parseFloat(s.paid) || 0;
       const total = parseFloat(s.totalPayment) || 0;
       if (total > 0 && paid > total + 1) {
         overpaid++;
@@ -379,7 +379,7 @@
     return 0;
   }
 
-  
+
   // Cloud-এ বেশি data থাকলে pull করো
   // ============================================
   async function healSyncMismatch() {
@@ -397,7 +397,7 @@
         return 0;
       }
 
-      const arr   = await res.json();
+      const arr = await res.json();
       const cloud = arr[0];
 
       if (!cloud) {
@@ -411,11 +411,11 @@
       }
 
       const localStudents = (window.globalData?.students || []).length;
-      const localFinance  = (window.globalData?.finance  || []).length;
+      const localFinance = (window.globalData?.finance || []).length;
       const cloudStudents = (cloud.students || []).length;
-      const cloudFinance  = (cloud.finance  || []).length;
-      const localVer      = parseInt(localStorage.getItem('wings_local_version')) || 0;
-      const cloudVer      = parseInt(cloud.version) || 0;
+      const cloudFinance = (cloud.finance || []).length;
+      const localVer = parseInt(localStorage.getItem('wings_local_version')) || 0;
+      const cloudVer = parseInt(cloud.version) || 0;
 
       // Case A: Local-এ বেশি data → push to cloud
       if (localStudents > cloudStudents || localFinance > cloudFinance) {
@@ -459,7 +459,7 @@
     if (!dashStudentEl) return 0;
 
     const displayed = parseInt(dashStudentEl.innerText) || 0;
-    const actual    = (window.globalData?.students || []).length;
+    const actual = (window.globalData?.students || []).length;
 
     if (actual > 0 && displayed === 0) {
       hLog('fix', `Dashboard 0 দেখাচ্ছিল কিন্তু actual student ${actual} — UI refresh করা হচ্ছে`);
@@ -497,6 +497,12 @@
   // MAIN HEAL CYCLE
   // ============================================
   async function runHealCycle() {
+    // ✅ V31 Guard: সিঙ্ক না হওয়া পর্যন্ত ওয়েট করো
+    if (window.initialSyncComplete === false) {
+      hLog('info', 'Waiting for initial cloud sync before healing...');
+      return;
+    }
+
     // Login না হলে skip
     if (sessionStorage.getItem('isLoggedIn') !== 'true') return;
     if (!window.globalData) return;
@@ -595,9 +601,9 @@
 
   // Public API
   window.autoHeal = {
-    runNow  : runHealCycle,
+    runNow: runHealCycle,
     getStats: () => healStats,
-    getLogs : () => healStats.log,
+    getLogs: () => healStats.log,
   };
 
   // DOM ready হলে start করো
