@@ -1,6 +1,6 @@
 /**
  * ============================================
- * WINGS FLY — AUTO-HEAL ENGINE v3.0
+ * WINGS FLY — AUTO-HEAL ENGINE v3.1
  * ============================================
  * Background-এ চলে, সমস্যা detect করে নিজে fix করে।
  * কোনো command ছাড়াই কাজ করে।
@@ -18,6 +18,8 @@
  * 10.  Finance total recalculation
  * 11.  Missing array field init (exam, visitors, etc.)
  * 12.  Student overpayment detection & alert
+ *
+ * ✅ v3.1 Fix: Local fix হলে cloud এ auto-push (data sync নিশ্চিত)
  */
 
 (function () {
@@ -541,6 +543,16 @@
       healStats.totalFixes += totalFixed;
       healStats.lastFix = new Date().toLocaleTimeString('bn-BD');
       hLog('fix', `Heal cycle সম্পন্ন — ${totalFixed}টি সমস্যা auto-fix হয়েছে ✓`);
+
+      // ✅ V30 FIX: Heal এ local data পরিবর্তন হলে cloud এও push করো
+      // নইলে cloud এ পুরোনো (corrupt) data থেকে যাবে
+      if (typeof window.scheduleSyncPush === 'function') {
+        window.scheduleSyncPush(`Auto-Heal: ${totalFixed} fixes`);
+        hLog('info', `Heal fix cloud এ push scheduled (${totalFixed} changes)`);
+      } else if (typeof window.saveToCloud === 'function') {
+        await window.saveToCloud();
+        hLog('info', 'Heal fix cloud এ push সম্পন্ন');
+      }
     } else {
       hLog('ok', `Heal cycle সম্পন্ন — কোনো সমস্যা নেই ✓`);
     }
