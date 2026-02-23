@@ -1071,6 +1071,53 @@
             animation: sidebarLogoSpin 2s linear infinite;
         }
     </style>
+
+    <!-- ===== DONUT SPINNING RING - PERMANENT STATIC STYLES ===== -->
+    <style id="donut-ring-permanent-style">
+        .donut-ring-wrapper {
+            position: relative;
+            width: 250px;
+            height: 250px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            flex-shrink: 0;
+        }
+
+        .donut-spinning-ring {
+            position: absolute;
+            inset: 0;
+            border-radius: 50%;
+            padding: 4px;
+            background: conic-gradient(
+                from 0deg,
+                #00f2ff 0%,
+                #7b2ff7 25%,
+                #ffd700 50%,
+                #00f2ff 75%,
+                #7b2ff7 100%
+            );
+            -webkit-mask:
+                linear-gradient(#fff 0 0) content-box,
+                linear-gradient(#fff 0 0);
+            -webkit-mask-composite: xor;
+            mask-composite: exclude;
+            animation: ringRotate 3s linear infinite !important;
+            animation-play-state: running !important;
+            z-index: 1;
+        }
+
+        @keyframes ringRotate {
+            from { transform: rotate(0deg); }
+            to   { transform: rotate(360deg); }
+        }
+
+        .donut-inner {
+            position: relative;
+            z-index: 2;
+            border-radius: 50%;
+        }
+    </style>
 </head>
 
 <body>
@@ -1761,6 +1808,32 @@
 
                 </div>
 
+                <!-- GLOBAL FILTER BOX -->
+                <div id="globalFilterCard" class="card border-0 shadow-sm mb-4">
+                    <div class="card-body">
+
+                        <div class="row g-3 align-items-center">
+                            <div class="col-md-auto text-muted"> <span class="fs-5">🎓</span> </div>
+                            <div class="col-md-3">
+                                <input type="text" id="searchInput" class="form-control premium-input-modern"
+                                    placeholder="Search records..." onkeyup="filterData()">
+                            </div>
+                            <div class="col-md-auto">
+                                <div class="d-flex gap-2">
+                                    <input type="date" id="mainStartDate" class="form-control premium-input-modern"
+                                        onchange="filterData()">
+                                    <span class="align-self-center text-muted">-</span>
+                                    <input type="date" id="mainEndDate" class="form-control premium-input-modern"
+                                        onchange="filterData()">
+                                </div>
+                            </div>
+                            <div class="col-md text-end">
+                                <button type="button" class="btn btn-primary px-4 rounded-pill fw-bold"
+                                    onclick="filterData()">Apply Filters</button>
+                            </div>
+                        </div>
+                    </div>
+                </div>
 
                 <!-- LOADER -->
                 <div id="loader" class="text-center py-5" style="display: none;">
@@ -1911,7 +1984,6 @@
                             <p class="mb-0">Enter search criteria or clear filters to view exam results.</p>
                         </div>
                     </div>
-
 
                     <!-- STUDENT SECTION -->
                     <div id="studentSection">
