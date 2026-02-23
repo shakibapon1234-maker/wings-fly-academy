@@ -403,7 +403,8 @@
       if (!cloud) {
         // Cloud-এ কোনো data নেই — push করো
         hLog('fix', 'Cloud-এ data নেই — local data push করা হচ্ছে');
-        if (typeof window.saveToCloud === 'function') await window.saveToCloud();
+        if (typeof window.scheduleSyncPush === 'function') window.scheduleSyncPush('Heal: Cloud empty push');
+        else if (typeof window.saveToCloud === 'function') await window.saveToCloud();
         healToast('Cloud empty ছিল — data push করা হয়েছে', 'fix');
         fixed++;
         return fixed;
@@ -419,7 +420,8 @@
       // Case A: Local-এ বেশি data → push to cloud
       if (localStudents > cloudStudents || localFinance > cloudFinance) {
         hLog('fix', `Local বেশি data আছে (students: ${localStudents} vs ${cloudStudents}) — cloud push করা হচ্ছে`);
-        if (typeof window.saveToCloud === 'function') await window.saveToCloud();
+        if (typeof window.scheduleSyncPush === 'function') window.scheduleSyncPush('Heal: Local more data push');
+        else if (typeof window.saveToCloud === 'function') await window.saveToCloud();
         healToast(`Cloud sync: ${localStudents} students push করা হয়েছে`, 'fix');
         fixed++;
       }
@@ -544,8 +546,10 @@
       healStats.lastFix = new Date().toLocaleTimeString('bn-BD');
       hLog('fix', `Heal cycle সম্পন্ন — ${totalFixed}টি সমস্যা auto-fix হয়েছে ✓`);
 
-      // ✅ V30 FIX: Heal এ local data পরিবর্তন হলে cloud এও push করো
-      // নইলে cloud এ পুরোনো (corrupt) data থেকে যাবে
+      // ✅ V30 FIX: Local fix হলে cloud এ auto-push (data sync নিশ্চিত)
+      // healSyncMismatch নিজেই cloud handle করে, তাই এখানে শুধু local fixes এর জন্য push
+      // healSyncMismatch এর fixes (cloud pull/push) আলাদা count করা হয় না totalFixed এ
+      // তাই এখানে push করলে loop হবে না
       if (typeof window.scheduleSyncPush === 'function') {
         window.scheduleSyncPush(`Auto-Heal: ${totalFixed} fixes`);
         hLog('info', `Heal fix cloud এ push scheduled (${totalFixed} changes)`);

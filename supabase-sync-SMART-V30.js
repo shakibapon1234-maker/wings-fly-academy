@@ -428,9 +428,8 @@
       };
 
       // ✅ V30 FIX: Race condition prevention
-      // দুটো device একসাথে push করলে, শুধু সেই device-ই জিতবে যার version বেশি।
-      // প্রথমে চেক করো cloud-এ এখন যে version আছে সেটা আমাদের নতুন version এর চেয়ে কম কিনা।
-      // যদি cloud-এ ইতিমধ্যে বেশি version থাকে → আমরা হেরে গেছি → push করো না, বরং pull করো।
+      // দুটো device একসাথে push করলে, cloud version check করে সিদ্ধান্ত নাও।
+      // isPushing = true রেখেই check করো — flag কখনো drop করো না এই block এ।
       const { data: currentCloud, error: checkError } = await supabaseClient
         .from(TABLE_NAME)
         .select('version')
@@ -441,14 +440,24 @@
         const currentCloudVersion = parseInt(currentCloud.version) || 0;
         if (currentCloudVersion >= localVersion) {
           // অন্য device আগেই push করে ফেলেছে — আমাদের version পুরোনো হয়ে গেছে
-          log('⚠️', `Race condition detected! Cloud v${currentCloudVersion} >= our v${localVersion} — pulling instead`);
-          localVersion = currentCloudVersion; // local version sync করো
+          log('⚠️', `Race condition detected! Cloud v${currentCloudVersion} >= our v${localVersion} — re-reading globalData`);
+          localVersion = currentCloudVersion + 1; // cloud version এর পরে আমাদের version
           localStorage.setItem('wings_local_version', localVersion.toString());
-          isPushing = false;
-          // Pull করো তারপর আবার push করো (updated data দিয়ে)
-          await pullFromCloud(false, true);
-          localVersion++; // এখন fresh version নিয়ে push করো
-          payload.version = localVersion;
+
+          // ✅ payload fresh করো latest globalData থেকে (stale snapshot নয়)
+          // isPushing = true রেখেই করো — নইলে continuous pull interfere করবে
+          payload.students    = window.globalData.students    || [];
+          payload.employees   = window.globalData.employees   || [];
+          payload.finance     = window.globalData.finance     || [];
+          payload.cash_balance = window.globalData.cashBalance || 0;
+          payload.bank_accounts = window.globalData.bankAccounts || [];
+          payload.mobile_banking = window.globalData.mobileBanking || [];
+          payload.attendance  = window.globalData.attendance  || {};
+          payload.exam_registrations = window.globalData.examRegistrations || [];
+          payload.visitors    = window.globalData.visitors    || [];
+          payload.deleted_items = window.globalData.deletedItems || [];
+          payload.activity_history = window.globalData.activityHistory || [];
+          payload.version     = localVersion;
           payload.last_updated = new Date().toISOString();
         }
       }
@@ -458,7 +467,6 @@
         .upsert(payload, { onConflict: 'id' });
 
       if (error) throw error;
-      isPushing = true; // re-acquire lock (pulled করার পরে false হয়ে গিয়েছিল)
 
       // Save version and timestamp locally
       localStorage.setItem('lastSyncTime', timestamp.toString());
@@ -489,16 +497,24 @@
       localStorage.setItem('wings_local_version', localVersion.toString());
 
       // ✅ V30 FIX: Error হলে queue clear করো না — 5 সেকেন্ড পরে retry করো
-      // V29 বাগ: queue clear হয়ে যেত, pending data হারাত
+      // কিন্তু [retry] suffix থাকলে আর retry করো না (infinite loop বন্ধ)
+      const isRetryAttempt = reason.includes('[retry]');
+
       if (pendingPushReason !== null) {
         const retryReason = pendingPushReason;
         pendingPushReason = null;
-        log('⚠️', `Push failed — retrying queued "${retryReason}" in 5s`);
-        setTimeout(() => pushToCloud(retryReason), 5000);
-      } else {
-        // নিজের push-ও fail হয়েছে — 5s পরে retry করো
+        if (!isRetryAttempt) {
+          log('⚠️', `Push failed — retrying queued "${retryReason}" in 5s`);
+          setTimeout(() => pushToCloud(retryReason + ' [retry]'), 5000);
+        } else {
+          log('⚠️', `Retry also failed for "${retryReason}" — giving up to prevent loop`);
+        }
+      } else if (!isRetryAttempt) {
+        // নিজের push fail হয়েছে — একবার retry করো
         log('⚠️', `Push failed — retrying "${reason}" in 5s`);
         setTimeout(() => pushToCloud(reason + ' [retry]'), 5000);
+      } else {
+        log('⚠️', `Retry failed for "${reason}" — giving up`);
       }
 
       isPushing = false;
