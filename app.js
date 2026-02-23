@@ -6591,9 +6591,10 @@ async function handleEmployeeSubmit(e) {
     renderEmployeeList();
 
     // Attempt cloud sync in background
-    if (typeof window.saveToCloud === 'function') {
-      console.log('🚀 Initiating employee sync to cloud...');
-      window.saveToCloud(true).catch(err => {
+    if (typeof window.scheduleSyncPush === 'function') {
+      window.scheduleSyncPush('Employee save');
+    } else if (typeof window.saveToCloud === 'function') {
+      window.saveToCloud().catch(err => {
         console.error('Background cloud sync failed:', err);
       });
     }
@@ -6762,9 +6763,11 @@ async function deleteEmployee(id) {
     localStorage.setItem('lastLocalUpdate', currentTime);
     localStorage.setItem('wingsfly_data', JSON.stringify(globalData));
 
-    if (typeof window.saveToCloud === 'function') {
+    if (typeof window.scheduleSyncPush === 'function') {
+      window.scheduleSyncPush('Employee delete');
+    } else if (typeof window.saveToCloud === 'function') {
       console.log('🚀 Forcing immediate employee deletion sync to cloud...');
-      await window.saveToCloud(true);
+      await window.saveToCloud();
     }
 
     renderEmployeeList();
@@ -8730,15 +8733,21 @@ window.printAccountReport = printAccountReport;
 // Core UI Refresh Functions for Auto-Sync
 window.renderFullUI = function () {
   console.log('🔄 Global UI Refresh Triggered');
-  if (typeof render === 'function') render(window.globalData.students || []);
-  if (typeof renderLedger === 'function') renderLedger(window.globalData.finance || []);
-  if (typeof updateGlobalStats === 'function') updateGlobalStats();
-  if (typeof renderDashboard === 'function') renderDashboard();
-  if (typeof renderCashBalance === 'function') renderCashBalance();
-  if (typeof renderRecentAdmissions === 'function') renderRecentAdmissions();
-  if (typeof updateGrandTotal === 'function') updateGrandTotal();
-  // ✅ Notice board reload এ restore করো
-  if (typeof initNoticeBoard === 'function') initNoticeBoard();
+  try {
+    if (typeof render === 'function') render(window.globalData.students || []);
+    if (typeof renderLedger === 'function') renderLedger(window.globalData.finance || []);
+    if (typeof updateGlobalStats === 'function') updateGlobalStats();
+    if (typeof renderDashboard === 'function') renderDashboard();
+    if (typeof renderCashBalance === 'function') renderCashBalance();
+    if (typeof renderRecentAdmissions === 'function') renderRecentAdmissions();
+    if (typeof updateGrandTotal === 'function') updateGrandTotal();
+    if (typeof populateDropdowns === 'function') populateDropdowns();
+    if (typeof populateBatchFilter === 'function') populateBatchFilter();
+    // ✅ Notice board reload এ restore করো
+    if (typeof initNoticeBoard === 'function') initNoticeBoard();
+  } catch (e) {
+    console.warn('UI Refresh partially skipped:', e);
+  }
 };
 
 // Auto-populate dropdown when data loads

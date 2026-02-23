@@ -192,6 +192,8 @@ async function handleExamRegistration(e) {
   }
 
   await saveToStorage();
+  // ✅ Cloud sync push
+  if (typeof window.scheduleSyncPush ==='function') window.scheduleSyncPush('Exam Registration Saved');
 
   // Modal বন্ধ করা
   const modalEl = document.getElementById('examRegistrationModal');
@@ -392,6 +394,8 @@ async function deleteExamRegistration(regId) {
 
   window.globalData.examRegistrations.splice(idx, 1);
   await saveToStorage();
+  // ✅ Cloud sync push
+  if (typeof window.scheduleSyncPush ==='function') window.scheduleSyncPush('Exam Registration Deleted');
   showSuccessToast('🗑️ Exam registration deleted');
   searchExamResults();
 }
@@ -436,6 +440,8 @@ async function handleAddResult(e) {
 
   regs[idx].grade = grade;
   await saveToStorage();
+  // ✅ Cloud sync push
+  if (typeof window.scheduleSyncPush ==='function') window.scheduleSyncPush('Exam Grade Saved');
 
   showSuccessToast(`✅ Grade "${grade}" saved for ${regs[idx].studentName}`);
 
