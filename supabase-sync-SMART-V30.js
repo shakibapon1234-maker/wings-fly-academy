@@ -36,7 +36,7 @@
   const SUPABASE_KEY = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6Imd0b2xkcmx0eGpyd3NodWJwbGZwIiwicm9sZSI6ImFub24iLCJpYXQiOjE3NzEwOTk5MTksImV4cCI6MjA4NjY3NTkxOX0.7NTx3tzU1C5VaewNZZHTaJf2WJ_GtjhQPKOymkxRsUk';
   const TABLE_NAME = 'academy_data';
   const RECORD_ID = 'wingsfly_main';
-  const PULL_INTERVAL = 3000; // Pull every 3 seconds (V28 Smart Sync)
+  const PULL_INTERVAL = 15000; // Pull every 15 seconds (reduced from 3s to protect Supabase free tier quota)
   const PUSH_DEBOUNCE_DELAY = 1000; // Wait 1 second after last change before pushing
   const DEVICE_ID = generateDeviceId();
 
@@ -446,18 +446,18 @@
 
           // ✅ payload fresh করো latest globalData থেকে (stale snapshot নয়)
           // isPushing = true রেখেই করো — নইলে continuous pull interfere করবে
-          payload.students    = window.globalData.students    || [];
-          payload.employees   = window.globalData.employees   || [];
-          payload.finance     = window.globalData.finance     || [];
+          payload.students = window.globalData.students || [];
+          payload.employees = window.globalData.employees || [];
+          payload.finance = window.globalData.finance || [];
           payload.cash_balance = window.globalData.cashBalance || 0;
           payload.bank_accounts = window.globalData.bankAccounts || [];
           payload.mobile_banking = window.globalData.mobileBanking || [];
-          payload.attendance  = window.globalData.attendance  || {};
+          payload.attendance = window.globalData.attendance || {};
           payload.exam_registrations = window.globalData.examRegistrations || [];
-          payload.visitors    = window.globalData.visitors    || [];
+          payload.visitors = window.globalData.visitors || [];
           payload.deleted_items = window.globalData.deletedItems || [];
           payload.activity_history = window.globalData.activityHistory || [];
-          payload.version     = localVersion;
+          payload.version = localVersion;
           payload.last_updated = new Date().toISOString();
         }
       }

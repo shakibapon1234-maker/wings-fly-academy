@@ -33,7 +33,7 @@
   const SUPABASE_KEY = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6Imd0b2xkcmx0eGpyd3NodWJwbGZwIiwicm9sZSI6ImFub24iLCJpYXQiOjE3NzEwOTk5MTksImV4cCI6MjA4NjY3NTkxOX0.7NTx3tzU1C5VaewNZZHTaJf2WJ_GtjhQPKOymkxRsUk';
   const TABLE_NAME = 'academy_data';
   const RECORD_ID = 'wingsfly_main';
-  const PULL_INTERVAL = 3000; // Pull every 3 seconds (V28 Smart Sync)
+  const PULL_INTERVAL = 15000; // Pull every 15 seconds (corrected from 3s)
   const PUSH_DEBOUNCE_DELAY = 1000; // Wait 1 second after last change before pushing
   const DEVICE_ID = generateDeviceId();
 
