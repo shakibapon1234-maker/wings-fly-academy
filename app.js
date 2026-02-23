@@ -50,7 +50,7 @@ console.log('📦 Global Data Initialized.');
 function logActivity(type, action, description, data = null) {
   try {
     if (!window.globalData.activityHistory) window.globalData.activityHistory = [];
-    
+
     const entry = {
       id: Date.now() + Math.random().toString(36).substr(2, 5),
       type: type,       // 'student', 'finance', 'employee', 'settings', 'login'
@@ -60,16 +60,16 @@ function logActivity(type, action, description, data = null) {
       user: sessionStorage.getItem('username') || 'Admin',
       data: data        // snapshot of the item (for restore)
     };
-    
+
     window.globalData.activityHistory.unshift(entry); // newest first
-    
+
     // Keep max 500 entries
     if (window.globalData.activityHistory.length > 500) {
       window.globalData.activityHistory = window.globalData.activityHistory.slice(0, 500);
     }
-    
+
     localStorage.setItem('wingsfly_data', JSON.stringify(window.globalData));
-  } catch(e) {
+  } catch (e) {
     console.warn('History log error:', e);
   }
 }
@@ -79,7 +79,7 @@ window.logActivity = logActivity;
 function moveToTrash(type, item) {
   try {
     if (!window.globalData.deletedItems) window.globalData.deletedItems = [];
-    
+
     const trashEntry = {
       id: Date.now() + Math.random().toString(36).substr(2, 5),
       type: type,
@@ -87,18 +87,18 @@ function moveToTrash(type, item) {
       deletedAt: new Date().toISOString(),
       deletedBy: sessionStorage.getItem('username') || 'Admin'
     };
-    
+
     window.globalData.deletedItems.unshift(trashEntry);
-    
+
     // Keep max 200 deleted items
     if (window.globalData.deletedItems.length > 200) {
       window.globalData.deletedItems = window.globalData.deletedItems.slice(0, 200);
     }
-    
+
     localStorage.setItem('wingsfly_data', JSON.stringify(window.globalData));
     // FIX: cloud pull এ deletedItems হারিয়ে না যায় তাই backup রাখো
     localStorage.setItem('wingsfly_deleted_backup', JSON.stringify(window.globalData.deletedItems));
-  } catch(e) {
+  } catch (e) {
     console.warn('Trash error:', e);
   }
 }
@@ -108,27 +108,27 @@ window.moveToTrash = moveToTrash;
 function loadActivityHistory() {
   const container = document.getElementById('activityHistoryList');
   if (!container) return;
-  
+
   const history = window.globalData.activityHistory || [];
   const filterVal = document.getElementById('historyFilter')?.value || 'all';
-  
+
   const filtered = filterVal === 'all' ? history : history.filter(h => h.type === filterVal);
-  
+
   if (filtered.length === 0) {
     container.innerHTML = '<div class="text-center text-muted py-5"><div style="font-size:3rem">📋</div><p>কোনো Activity নেই।</p></div>';
     return;
   }
-  
+
   const icons = { student: '🎓', finance: '💰', employee: '👤', settings: '⚙️', login: '🔐', default: '📝' };
   const colors = { ADD: '#00ff88', EDIT: '#00d9ff', DELETE: '#ff4444', LOGIN: '#b537f2', LOGOUT: '#ffaa00', default: '#ffffff' };
   const actionBadge = { ADD: 'success', EDIT: 'info', DELETE: 'danger', LOGIN: 'primary', LOGOUT: 'warning', SETTING_CHANGE: 'secondary' };
-  
+
   container.innerHTML = filtered.map(h => {
     const d = new Date(h.timestamp);
-    const timeStr = d.toLocaleString('en-BD', { day:'2-digit', month:'short', year:'numeric', hour:'2-digit', minute:'2-digit' });
+    const timeStr = d.toLocaleString('en-BD', { day: '2-digit', month: 'short', year: 'numeric', hour: '2-digit', minute: '2-digit' });
     const icon = icons[h.type] || icons.default;
     const badge = actionBadge[h.action] || 'secondary';
-    
+
     return `
     <div class="d-flex align-items-start gap-3 p-3 mb-2 rounded-3" style="background: rgba(0,217,255,0.05); border: 1px solid rgba(0,217,255,0.15);">
       <div style="font-size:1.5rem; min-width:36px; text-align:center;">${icon}</div>
@@ -160,31 +160,31 @@ window.clearActivityHistory = clearActivityHistory;
 function loadDeletedItems() {
   const container = document.getElementById('deletedItemsList');
   if (!container) return;
-  
+
   const deleted = window.globalData.deletedItems || [];
   const filterVal = document.getElementById('trashFilter')?.value || 'all';
-  
+
   const filtered = filterVal === 'all' ? deleted : deleted.filter(d => d.type === filterVal);
-  
+
   if (filtered.length === 0) {
     container.innerHTML = '<div class="text-center text-muted py-5"><div style="font-size:3rem">🗑️</div><p>Trash খালি। কোনো deleted item নেই।</p></div>';
     return;
   }
-  
+
   const icons = { student: '🎓', finance: '💰', employee: '👤' };
-  
+
   container.innerHTML = filtered.map((d, idx) => {
     const date = new Date(d.deletedAt);
-    const dateStr = date.toLocaleString('en-BD', { day:'2-digit', month:'short', year:'numeric', hour:'2-digit', minute:'2-digit' });
+    const dateStr = date.toLocaleString('en-BD', { day: '2-digit', month: 'short', year: 'numeric', hour: '2-digit', minute: '2-digit' });
     const icon = icons[d.type] || '📄';
-    
+
     // Build display name
     let name = '';
     if (d.type === 'student') name = d.item.name || d.item.studentName || 'Unknown Student';
     else if (d.type === 'finance') name = (d.item.description || d.item.category || 'Transaction') + ' - ৳' + (d.item.amount || 0);
     else if (d.type === 'employee') name = d.item.name || 'Unknown Employee';
     else name = JSON.stringify(d.item).substring(0, 60) + '...';
-    
+
     return `
     <div class="d-flex align-items-start gap-3 p-3 mb-2 rounded-3" style="background: rgba(255,68,68,0.05); border: 1px solid rgba(255,68,68,0.2);">
       <div style="font-size:1.5rem; min-width:36px; text-align:center;">${icon}</div>
@@ -212,38 +212,38 @@ window.loadDeletedItems = loadDeletedItems;
 // Restore a deleted item
 function restoreDeletedItem(trashId) {
   if (!confirm('এই item টি restore করবেন?')) return;
-  
+
   const deleted = window.globalData.deletedItems || [];
   const idx = deleted.findIndex(d => d.id === trashId);
   if (idx === -1) { alert('Item পাওয়া যায়নি!'); return; }
-  
+
   const trashEntry = deleted[idx];
   const item = trashEntry.item;
   const type = trashEntry.type;
-  
+
   if (type === 'student') {
     if (!window.globalData.students) window.globalData.students = [];
     window.globalData.students.push(item);
     logActivity('student', 'ADD', `Restored student: ${item.name || 'Unknown'}`, item);
     if (typeof render === 'function') render(window.globalData.students);
-    
+
   } else if (type === 'finance') {
     if (!window.globalData.finance) window.globalData.finance = [];
     window.globalData.finance.push(item);
     logActivity('finance', 'ADD', `Restored transaction: ${item.description || item.category || ''}`, item);
     if (typeof renderLedger === 'function') renderLedger(window.globalData.finance);
-    
+
   } else if (type === 'employee') {
     if (!window.globalData.employees) window.globalData.employees = [];
     window.globalData.employees.push(item);
     logActivity('employee', 'ADD', `Restored employee: ${item.name || 'Unknown'}`, item);
   }
-  
+
   // Remove from trash
   window.globalData.deletedItems.splice(idx, 1);
   saveToStorage();
   loadDeletedItems();
-  
+
   showSuccessToast(`✅ ${type} successfully restored!`);
   if (typeof updateGlobalStats === 'function') updateGlobalStats();
 }
@@ -252,11 +252,11 @@ window.restoreDeletedItem = restoreDeletedItem;
 // Permanently delete from trash
 function permanentDelete(trashId) {
   if (!confirm('এই item টি চিরতরে মুছে ফেলবেন? এটি আর ফিরিয়ে আনা যাবে না।')) return;
-  
+
   const deleted = window.globalData.deletedItems || [];
   const idx = deleted.findIndex(d => d.id === trashId);
   if (idx === -1) return;
-  
+
   window.globalData.deletedItems.splice(idx, 1);
   saveToStorage(true);
   loadDeletedItems();
@@ -361,7 +361,7 @@ async function uploadStudentPhoto(studentId, file) {
         const MAX = 400;
         let w = img.width, h = img.height;
         if (w > h) { if (w > MAX) { h = Math.round(h * MAX / w); w = MAX; } }
-        else        { if (h > MAX) { w = Math.round(w * MAX / h); h = MAX; } }
+        else { if (h > MAX) { w = Math.round(w * MAX / h); h = MAX; } }
         canvas.width = w; canvas.height = h;
         const ctx = canvas.getContext('2d');
         ctx.drawImage(img, 0, 0, w, h);
@@ -372,7 +372,7 @@ async function uploadStudentPhoto(studentId, file) {
         initPhotoDB().then(db => {
           const tx = db.transaction([PHOTO_STORE_NAME], 'readwrite');
           tx.objectStore(PHOTO_STORE_NAME).put(resizedBase64, photoKey);
-        }).catch(() => {});
+        }).catch(() => { });
 
         console.log(`✅ Photo processed: ${Math.round(resizedBase64.length / 1024)}KB`);
         resolve(resizedBase64); // ✅ base64 return করো, key নয়
@@ -454,10 +454,10 @@ function updateAccountBalance(method, amount, type, isAddition = true) {
 
   // Types that ADD to balance (money coming IN to the account)
   // Note: Loan Receiving = money received as loan (adds to balance, but NOT income)
-  const moneyInTypes  = ['Income', 'Transfer In',  'Loan Receiving', 'Loan Received'];
+  const moneyInTypes = ['Income', 'Transfer In', 'Loan Receiving', 'Loan Received'];
   // Types that SUBTRACT from balance (money going OUT of the account)
   // Note: Loan Giving = money given as loan (removes from balance, but NOT expense)
-  const moneyOutTypes = ['Expense', 'Transfer Out', 'Loan Giving',   'Loan Given'];
+  const moneyOutTypes = ['Expense', 'Transfer Out', 'Loan Giving', 'Loan Given'];
 
   // Handle Cash
   if (method === 'Cash') {
@@ -848,7 +848,7 @@ document.addEventListener('DOMContentLoaded', function () {
 
       renderSettingsLists();
       // Snapshot list refresh
-      setTimeout(function() {
+      setTimeout(function () {
         if (typeof renderSnapshotList === 'function') renderSnapshotList();
       }, 200);
     });
@@ -891,11 +891,11 @@ async function saveToStorage(skipCloudSync = false) {
     // Arrays নিশ্চিত করো
     if (!window.globalData.deletedItems) window.globalData.deletedItems = [];
     if (!window.globalData.activityHistory) window.globalData.activityHistory = [];
-    
+
     // Backup রাখো যাতে cloud pull এ হারিয়ে না যায়
     localStorage.setItem('wingsfly_deleted_backup', JSON.stringify(window.globalData.deletedItems));
     localStorage.setItem('wingsfly_activity_backup', JSON.stringify(window.globalData.activityHistory));
-    
+
     const currentTime = Date.now().toString();
     localStorage.setItem('wingsfly_data', JSON.stringify(window.globalData));
     localStorage.setItem('lastLocalUpdate', currentTime);
@@ -969,8 +969,7 @@ function loadFromStorage() {
       // Ensure users array always exists with default admin
       if (!window.globalData.users || !Array.isArray(window.globalData.users) || window.globalData.users.length === 0) {
         window.globalData.users = [
-          { username: 'admin', password: 'admin123', role: 'admin', name: 'Super Admin' },
-          { username: 'admin', password: '11108022ashu', role: 'admin', name: 'Master Admin' }
+          { username: 'admin', password: 'admin123', role: 'admin', name: 'Admin' }
         ];
         saveToStorage();
       }
@@ -1214,8 +1213,7 @@ async function handleLogin(e) {
         finance: [],
         employees: [],
         users: [
-          { username: 'admin', password: 'admin123', role: 'admin', name: 'Super Admin' },
-          { username: 'admin', password: '11108022ashu', role: 'admin', name: 'Master Admin' }
+          { username: 'admin', password: 'admin123', role: 'admin', name: 'Admin' }
         ]
       };
     }
@@ -1230,13 +1228,7 @@ async function handleLogin(e) {
           username: 'admin',
           password: 'admin123',
           role: 'admin',
-          name: 'Super Admin'
-        },
-        {
-          username: 'admin',
-          password: '11108022ashu',
-          role: 'admin',
-          name: 'Master Admin'
+          name: 'Admin'
         }
       ];
     }
@@ -1247,13 +1239,13 @@ async function handleLogin(e) {
     // B. Cloud sync skipped during login to prevent blocking
 
     // C. EMERGENCY FALLBACK: Always allow default admin if users list is broken or out of sync
-    if (!validUser && username === 'admin' && (password === 'admin123' || password === '11108022ashu')) {
+    if (!validUser && username === 'admin' && (password === 'admin123')) {
       console.warn("⚠️ Using emergency admin fallback");
       validUser = {
         username: 'admin',
         password: 'admin123',
         role: 'admin',
-        name: 'Super Admin'
+        name: 'Admin'
       };
       // Auto-add to users list for next time
       if (globalData.users && Array.isArray(globalData.users)) {
@@ -1297,7 +1289,7 @@ function showDashboard(username) {
   try {
     const cleanUrl = window.location.origin + window.location.pathname;
     window.history.replaceState({}, document.title, cleanUrl);
-  } catch(e) {}
+  } catch (e) { }
 
   const userEl = document.getElementById('sidebarUser') || document.getElementById('currentUser');
   if (userEl) userEl.innerText = username;
@@ -1313,7 +1305,7 @@ function showDashboard(username) {
       console.log('✅ Login sync complete — loading dashboard');
       loadDashboard();
       // ✅ Cloud pull শেষ হওয়ার ৫ সেকেন্ড পর snapshot — সঠিক data নিশ্চিত
-      setTimeout(function() {
+      setTimeout(function () {
         if (window.globalData) {
           if (!window.globalData.deletedItems) window.globalData.deletedItems = [];
           if (!window.globalData.activityHistory) window.globalData.activityHistory = [];
@@ -1326,7 +1318,7 @@ function showDashboard(username) {
       console.warn('⚠️ Cloud pull failed — loading from local data');
       loadDashboard();
       // Cloud fail হলে ১০ সেকেন্ড পর retry করে snapshot নাও
-      setTimeout(function() {
+      setTimeout(function () {
         if (window.globalData && (window.globalData.students || []).length > 0) {
           takeSnapshot();
           console.log('📸 Login snapshot taken (fallback, 10s)');
@@ -1768,9 +1760,9 @@ function printLoanDetail() {
     .sort((a, b) => new Date(a.date) - new Date(b.date));
 
   const start = document.getElementById('loanDetailStartDate')?.value || '';
-  const end   = document.getElementById('loanDetailEndDate')?.value   || '';
+  const end = document.getElementById('loanDetailEndDate')?.value || '';
   if (start) txs = txs.filter(tx => tx.date >= start);
-  if (end)   txs = txs.filter(tx => tx.date <= end);
+  if (end) txs = txs.filter(tx => tx.date <= end);
 
   const academy = (globalData.settings?.academyName) || 'Wings Fly Aviation Academy';
   const dateRange = (start || end) ? `${start || 'Beginning'} → ${end || 'Today'}` : 'All Time';
@@ -1790,7 +1782,7 @@ function printLoanDetail() {
     }
     const balColor = runningBalance < 0 ? '#dc2626' : runningBalance > 0 ? '#16a34a' : '#64748b';
     const typeColor = debit > 0 ? '#dc2626' : '#16a34a';
-    const typeBg    = debit > 0 ? '#fee2e2' : '#dcfce7';
+    const typeBg = debit > 0 ? '#fee2e2' : '#dcfce7';
 
     rowsHTML += `
       <tr style="background:${i % 2 === 0 ? '#f8fafc' : '#ffffff'};">
@@ -2920,7 +2912,7 @@ function checkDailyBackup() {
 
   if (lastBackup !== today) {
     // ✅ Cloud pull শেষ হওয়ার পরে backup নাও — ৮ সেকেন্ড delay
-    setTimeout(function() {
+    setTimeout(function () {
       console.log("Wings Fly: Daily auto-backup triggered (after cloud sync)");
       exportData();
       localStorage.setItem('last_auto_backup_date', today);
@@ -3972,7 +3964,7 @@ window.deleteInstallment = deleteInstallment;
 
 
 function deleteStudent(rowIndex) {
-  
+
 
   // Get student info before deleting
   const student = globalData.students[rowIndex];
@@ -3980,12 +3972,12 @@ function deleteStudent(rowIndex) {
     alert("Error: Student not found.");
     return;
   }
-  
+
   // Move to trash before deleting
   if (typeof moveToTrash === 'function') moveToTrash('student', student);
-  if (typeof logActivity === 'function') logActivity('student', 'DELETE', 
+  if (typeof logActivity === 'function') logActivity('student', 'DELETE',
     'Student deleted: ' + (student.name || 'Unknown') + ' | Batch: ' + (student.batch || '-') + ' | Course: ' + (student.course || '-'), student);
-  
+
   // Delete count track করো (sync এর জন্য)
   const _delCount = parseInt(localStorage.getItem('wings_total_deleted') || '0') + 1;
   localStorage.setItem('wings_total_deleted', _delCount.toString());
@@ -4054,7 +4046,7 @@ function deleteStudent(rowIndex) {
 window.deleteStudent = deleteStudent;
 
 // ✅ V28 FIX: auto-test critical function checks — aliases যোগ করা হয়েছে
-window.openStudentModal = function(index) {
+window.openStudentModal = function (index) {
   // student modal খোলে — add/edit উভয় ক্ষেত্রে
   const el = document.getElementById('studentModal');
   if (!el) return;
@@ -4063,9 +4055,9 @@ window.openStudentModal = function(index) {
   }
   new bootstrap.Modal(el).show();
 };
-window.saveStudent    = handleStudentSubmit; // form submit handler
+window.saveStudent = handleStudentSubmit; // form submit handler
 window.renderStudents = render;              // main student render function
-window.saveEmployee   = handleEmployeeSubmit; // employee form submit handler
+window.saveEmployee = handleEmployeeSubmit; // employee form submit handler
 
 async function handleFinanceSubmit(e) {
   e.preventDefault();
@@ -4119,8 +4111,8 @@ async function handleFinanceSubmit(e) {
   form.querySelector('input[name="date"]').value = today;
 
   showSuccessToast('Transaction added successfully!');
-    if (typeof logActivity === 'function') logActivity('finance', 'ADD', 
-      (formData.type || 'Transaction') + ': ' + (formData.category || '') + ' - ৳' + (formData.amount || 0) + ' | ' + (formData.description || ''));
+  if (typeof logActivity === 'function') logActivity('finance', 'ADD',
+    (formData.type || 'Transaction') + ': ' + (formData.category || '') + ' - ৳' + (formData.amount || 0) + ' | ' + (formData.description || ''));
   updateGlobalStats(); if (typeof renderFinanceTable === "function") renderFinanceTable();
 }
 
@@ -4186,12 +4178,12 @@ async function handleTransferSubmit(e) {
 // ===================================
 
 function deleteTransaction(id) {
-  
+
 
   // Handle both string and number IDs (localStorage/Supabase can change types)
   const sid = String(id);
   const txToDelete = globalData.finance.find(f => String(f.id) === sid);
-  
+
   if (!txToDelete) {
     showErrorToast('Transaction not found.');
     renderLedger(globalData.finance);
@@ -4204,7 +4196,7 @@ function deleteTransaction(id) {
   }
 
   globalData.finance = globalData.finance.filter(f => String(f.id) !== sid);
-  
+
   // Render FIRST so user sees the change immediately (before async cloud push)
   renderLedger(globalData.finance);
   updateGlobalStats();
@@ -5223,9 +5215,9 @@ function generateStudentId(batchName) {
 (function () {
   'use strict';
 
-  const MONTH_NAMES = ['January','February','March','April','May','June',
-                       'July','August','September','October','November','December'];
-  const MONTH_SHORT = ['Jan','Feb','Mar','Apr','May','Jun','Jul','Aug','Sep','Oct','Nov','Dec'];
+  const MONTH_NAMES = ['January', 'February', 'March', 'April', 'May', 'June',
+    'July', 'August', 'September', 'October', 'November', 'December'];
+  const MONTH_SHORT = ['Jan', 'Feb', 'Mar', 'Apr', 'May', 'Jun', 'Jul', 'Aug', 'Sep', 'Oct', 'Nov', 'Dec'];
 
   // ── Helper ──────────────────────────────────────────
   function gd() { return window.globalData || {}; }
@@ -5633,7 +5625,7 @@ function generateStudentId(batchName) {
   // ── MARK ATTENDANCE ─────────────────────────────────
   function loadAttendanceList() {
     const batch = (document.getElementById('attMarkBatch') || document.getElementById('attendanceBatchSelect'))?.value;
-    const date  = (document.getElementById('attMarkDate')  || document.getElementById('attendanceDate'))?.value;
+    const date = (document.getElementById('attMarkDate') || document.getElementById('attendanceDate'))?.value;
 
     const container = document.getElementById('attMarkContainer') || document.getElementById('attendanceListContainer');
     const selectAll = document.getElementById('attMarkSelectAll');
@@ -5647,7 +5639,7 @@ function generateStudentId(batchName) {
 
     const batchStudents = (gd().students || []).filter(s => s.batch === batch);
     const attKey = `${batch}_${date}`;
-    const saved  = gd().attendance?.[attKey] || {};
+    const saved = gd().attendance?.[attKey] || {};
 
     if (countBadge) countBadge.textContent = `${batchStudents.length} Student${batchStudents.length !== 1 ? 's' : ''}`;
     if (selectAll && batchStudents.length > 0) selectAll.classList.remove('d-none');
@@ -5659,10 +5651,9 @@ function generateStudentId(batchName) {
 
     // New mark UI
     if (container) {
-      container.innerHTML = `<div class="att-mark-scroll" id="attMarkScroll">${
-        batchStudents.map(s => {
-          const status = saved[s.studentId] || 'Present';
-          return `
+      container.innerHTML = `<div class="att-mark-scroll" id="attMarkScroll">${batchStudents.map(s => {
+        const status = saved[s.studentId] || 'Present';
+        return `
           <div class="att-mark-student-row">
             <div class="stu-info">
               <div class="name">${s.name}</div>
@@ -5676,8 +5667,8 @@ function generateStudentId(batchName) {
                 onclick="toggleAtt(this,'Absent','${s.studentId}')">A</button>
             </div>
           </div>`;
-        }).join('')
-      }</div>`;
+      }).join('')
+        }</div>`;
     }
   }
   window.loadAttendanceList = loadAttendanceList;
@@ -5706,7 +5697,7 @@ function generateStudentId(batchName) {
 
   function saveAttendance() {
     const batch = (document.getElementById('attMarkBatch') || document.getElementById('attendanceBatchSelect'))?.value;
-    const date  = (document.getElementById('attMarkDate')  || document.getElementById('attendanceDate'))?.value;
+    const date = (document.getElementById('attMarkDate') || document.getElementById('attendanceDate'))?.value;
     if (!batch || !date) {
       window.showErrorToast?.('❌ Batch ও Date বেছে নিন');
       return;
@@ -5736,7 +5727,7 @@ function generateStudentId(batchName) {
   // আলাদা নামে — যাতে কোনো override কাজ না করে
   function attHubSave() {
     const batch = (document.getElementById('attMarkBatch'))?.value;
-    const date  = (document.getElementById('attMarkDate'))?.value;
+    const date = (document.getElementById('attMarkDate'))?.value;
     if (!batch || !date) {
       window.showErrorToast?.('❌ Batch ও Date বেছে নিন');
       return;
@@ -5764,14 +5755,14 @@ function generateStudentId(batchName) {
   // ── MONTHLY REPORT ──────────────────────────────────
   function renderMonthlyReport() {
     const batch = document.getElementById('attMonBatch')?.value;
-    const year  = parseInt(document.getElementById('attMonYear')?.value);
+    const year = parseInt(document.getElementById('attMonYear')?.value);
     const month = parseInt(document.getElementById('attMonMonth')?.value);
-    const wrap  = document.getElementById('attMonTableWrap');
+    const wrap = document.getElementById('attMonTableWrap');
     const stats = document.getElementById('attMonStats');
 
     if (!batch || !wrap) { return; }
 
-    const daysInMonth   = new Date(year, month + 1, 0).getDate();
+    const daysInMonth = new Date(year, month + 1, 0).getDate();
     const batchStudents = (gd().students || []).filter(s => s.batch === batch);
 
     if (batchStudents.length === 0) {
@@ -5783,7 +5774,7 @@ function generateStudentId(batchName) {
     // Working days
     const workingDays = [];
     for (let d = 1; d <= daysInMonth; d++) {
-      const ds = `${year}-${String(month+1).padStart(2,'0')}-${String(d).padStart(2,'0')}`;
+      const ds = `${year}-${String(month + 1).padStart(2, '0')}-${String(d).padStart(2, '0')}`;
       if (gd().attendance?.[`${batch}_${ds}`]) workingDays.push(d);
     }
 
@@ -5792,8 +5783,8 @@ function generateStudentId(batchName) {
     const rows = batchStudents.map((s, idx) => {
       let p = 0, a = 0;
       const cells = Array.from({ length: daysInMonth }, (_, i) => {
-        const d  = i + 1;
-        const ds = `${year}-${String(month+1).padStart(2,'0')}-${String(d).padStart(2,'0')}`;
+        const d = i + 1;
+        const ds = `${year}-${String(month + 1).padStart(2, '0')}-${String(d).padStart(2, '0')}`;
         const dayData = gd().attendance?.[`${batch}_${ds}`];
         const st = dayData ? dayData[s.studentId] : undefined;
         const isWD = !!dayData;
@@ -5814,10 +5805,10 @@ function generateStudentId(batchName) {
       const rowBg = idx % 2 === 0 ? 'rgba(255,255,255,0.015)' : 'transparent';
 
       return `<tr style="background:${rowBg};">
-        <td style="padding:8px 10px;border:1px solid rgba(255,255,255,0.05);color:rgba(255,255,255,0.35);text-align:center;font-size:0.78rem;">${idx+1}</td>
-        <td style="padding:8px 12px;border:1px solid rgba(255,255,255,0.05);color:#00d9ff;font-size:0.75rem;font-family:monospace;white-space:nowrap;">${s.studentId||'—'}</td>
+        <td style="padding:8px 10px;border:1px solid rgba(255,255,255,0.05);color:rgba(255,255,255,0.35);text-align:center;font-size:0.78rem;">${idx + 1}</td>
+        <td style="padding:8px 12px;border:1px solid rgba(255,255,255,0.05);color:#00d9ff;font-size:0.75rem;font-family:monospace;white-space:nowrap;">${s.studentId || '—'}</td>
         <td style="padding:8px 14px;border:1px solid rgba(255,255,255,0.05);font-weight:600;white-space:nowrap;">${s.name}</td>
-        <td style="padding:8px 10px;border:1px solid rgba(255,255,255,0.05);color:#ffd700;font-size:0.72rem;white-space:nowrap;">${s.course||'—'}</td>
+        <td style="padding:8px 10px;border:1px solid rgba(255,255,255,0.05);color:#ffd700;font-size:0.72rem;white-space:nowrap;">${s.course || '—'}</td>
         ${cells}
         <td style="text-align:center;border:1px solid rgba(255,255,255,0.05);background:rgba(0,255,136,0.08);font-weight:800;color:#00ff88;padding:4px 8px;">${p}</td>
         <td style="text-align:center;border:1px solid rgba(255,255,255,0.05);background:rgba(255,59,92,0.08);font-weight:800;color:#ff3b5c;padding:4px 8px;">${a}</td>
@@ -5828,10 +5819,10 @@ function generateStudentId(batchName) {
     // Day headers
     const dayThs = Array.from({ length: daysInMonth }, (_, i) => {
       const d = i + 1;
-      const ds = `${year}-${String(month+1).padStart(2,'0')}-${String(d).padStart(2,'0')}`;
-      const isWD  = !!(gd().attendance?.[`${batch}_${ds}`]);
+      const ds = `${year}-${String(month + 1).padStart(2, '0')}-${String(d).padStart(2, '0')}`;
+      const isWD = !!(gd().attendance?.[`${batch}_${ds}`]);
       const isFri = new Date(year, month, d).getDay() === 5;
-      const bg  = isWD ? 'rgba(0,217,255,0.18)' : (isFri ? 'rgba(255,215,0,0.1)' : 'rgba(255,255,255,0.04)');
+      const bg = isWD ? 'rgba(0,217,255,0.18)' : (isFri ? 'rgba(255,215,0,0.1)' : 'rgba(255,255,255,0.04)');
       const txt = isWD ? '#00d9ff' : (isFri ? '#ffd700' : 'rgba(255,255,255,0.3)');
       return `<th style="text-align:center;min-width:26px;font-size:0.68rem;background:${bg};color:${txt};border:1px solid rgba(255,255,255,0.07);padding:5px 2px;">${d}</th>`;
     }).join('');
@@ -5860,11 +5851,11 @@ function generateStudentId(batchName) {
       ? Math.round(totalP / (workingDays.length * batchStudents.length) * 100) : 0;
     if (stats) {
       stats.classList.remove('d-none');
-      document.getElementById('attMonWd').textContent   = workingDays.length;
-      document.getElementById('attMonStu').textContent  = batchStudents.length;
+      document.getElementById('attMonWd').textContent = workingDays.length;
+      document.getElementById('attMonStu').textContent = batchStudents.length;
       document.getElementById('attMonTotP').textContent = totalP;
       document.getElementById('attMonTotA').textContent = totalA;
-      document.getElementById('attMonAvg').textContent  = avgRate + '%';
+      document.getElementById('attMonAvg').textContent = avgRate + '%';
       document.getElementById('attMonBest').textContent = bestName;
     }
   }
@@ -5873,8 +5864,8 @@ function generateStudentId(batchName) {
   // ── YEARLY REPORT ───────────────────────────────────
   function renderYearlyReport() {
     const batch = document.getElementById('attYrBatch')?.value;
-    const year  = parseInt(document.getElementById('attYrYear')?.value);
-    const wrap  = document.getElementById('attYrContent');
+    const year = parseInt(document.getElementById('attYrYear')?.value);
+    const wrap = document.getElementById('attYrContent');
     if (!batch || !wrap) return;
 
     const batchStudents = (gd().students || []).filter(s => s.batch === batch);
@@ -5890,7 +5881,7 @@ function generateStudentId(batchName) {
         const daysInMonth = new Date(year, mi + 1, 0).getDate();
         let mp = 0, ma = 0, mwd = 0;
         for (let d = 1; d <= daysInMonth; d++) {
-          const ds  = `${year}-${String(mi+1).padStart(2,'0')}-${String(d).padStart(2,'0')}`;
+          const ds = `${year}-${String(mi + 1).padStart(2, '0')}-${String(d).padStart(2, '0')}`;
           const key = `${batch}_${ds}`;
           const dayData = gd().attendance?.[key];
           if (dayData) {
@@ -5911,7 +5902,7 @@ function generateStudentId(batchName) {
     // Stats row
     const overallP = stuData.reduce((a, x) => a + x.totalP, 0);
     const overallA = stuData.reduce((a, x) => a + x.totalA, 0);
-    const best     = stuData.reduce((b, x) => x.rate > (b?.rate || -1) ? x : b, null);
+    const best = stuData.reduce((b, x) => x.rate > (b?.rate || -1) ? x : b, null);
 
     const statsHtml = `
     <div class="att-stats-row" style="margin-bottom:20px;">
@@ -5924,7 +5915,7 @@ function generateStudentId(batchName) {
 
     // Table header months
     const monthThs = MONTH_NAMES.map(m =>
-      `<th style="text-align:center;min-width:52px;background:rgba(0,217,255,0.08);color:rgba(0,217,255,0.7);font-size:0.68rem;letter-spacing:1px;border:1px solid rgba(255,255,255,0.06);padding:7px 3px;">${m.slice(0,3).toUpperCase()}</th>`
+      `<th style="text-align:center;min-width:52px;background:rgba(0,217,255,0.08);color:rgba(0,217,255,0.7);font-size:0.68rem;letter-spacing:1px;border:1px solid rgba(255,255,255,0.06);padding:7px 3px;">${m.slice(0, 3).toUpperCase()}</th>`
     ).join('');
 
     const tableRows = stuData.map((sd, idx) => {
@@ -5934,11 +5925,11 @@ function generateStudentId(batchName) {
         return `<td style="text-align:center;border:1px solid rgba(255,255,255,0.05);font-weight:700;font-size:0.75rem;color:${rc};">${md.rate}%</td>`;
       }).join('');
       const overallRc = rateColor(sd.rate);
-      return `<tr style="background:${idx%2===0?'rgba(255,255,255,0.015)':'transparent'};">
-        <td style="padding:8px 12px;border:1px solid rgba(255,255,255,0.05);color:rgba(255,255,255,0.35);text-align:center;">${idx+1}</td>
+      return `<tr style="background:${idx % 2 === 0 ? 'rgba(255,255,255,0.015)' : 'transparent'};">
+        <td style="padding:8px 12px;border:1px solid rgba(255,255,255,0.05);color:rgba(255,255,255,0.35);text-align:center;">${idx + 1}</td>
         <td style="padding:8px 14px;border:1px solid rgba(255,255,255,0.05);font-weight:600;white-space:nowrap;">${sd.s.name}</td>
-        <td style="padding:8px 10px;border:1px solid rgba(255,255,255,0.05);color:#00d9ff;font-family:monospace;font-size:0.75rem;">${sd.s.studentId||'—'}</td>
-        <td style="padding:8px 10px;border:1px solid rgba(255,255,255,0.05);color:#ffd700;font-size:0.72rem;white-space:nowrap;">${sd.s.course||'—'}</td>
+        <td style="padding:8px 10px;border:1px solid rgba(255,255,255,0.05);color:#00d9ff;font-family:monospace;font-size:0.75rem;">${sd.s.studentId || '—'}</td>
+        <td style="padding:8px 10px;border:1px solid rgba(255,255,255,0.05);color:#ffd700;font-size:0.72rem;white-space:nowrap;">${sd.s.course || '—'}</td>
         ${monthCells}
         <td style="text-align:center;border:1px solid rgba(255,255,255,0.05);color:#00ff88;font-weight:800;background:rgba(0,255,136,0.08);">${sd.totalP}</td>
         <td style="text-align:center;border:1px solid rgba(255,255,255,0.05);color:#ff3b5c;font-weight:800;background:rgba(255,59,92,0.08);">${sd.totalA}</td>
@@ -5970,15 +5961,15 @@ function generateStudentId(batchName) {
   // ── COURSE-WISE REPORT ──────────────────────────────
   function renderCourseReport() {
     const course = document.getElementById('attCwCourse')?.value;
-    const batch  = document.getElementById('attCwBatch')?.value;
-    const year   = parseInt(document.getElementById('attCwYear')?.value);
-    const month  = parseInt(document.getElementById('attCwMonth')?.value);
-    const wrap   = document.getElementById('attCwContent');
+    const batch = document.getElementById('attCwBatch')?.value;
+    const year = parseInt(document.getElementById('attCwYear')?.value);
+    const month = parseInt(document.getElementById('attCwMonth')?.value);
+    const wrap = document.getElementById('attCwContent');
     if (!wrap) return;
 
     let students = gd().students || [];
     if (course) students = students.filter(s => s.course === course);
-    if (batch)  students = students.filter(s => s.batch  === batch);
+    if (batch) students = students.filter(s => s.batch === batch);
 
     if (students.length === 0) {
       wrap.innerHTML = `<div class="att-empty"><i class="bi bi-mortarboard"></i><p>কোনো Student পাওয়া যায়নি</p></div>`;
@@ -6000,7 +5991,7 @@ function generateStudentId(batchName) {
       const stuRows = stuList.map(s => {
         let p = 0, a = 0;
         for (let d = 1; d <= daysInMonth; d++) {
-          const ds = `${year}-${String(month+1).padStart(2,'0')}-${String(d).padStart(2,'0')}`;
+          const ds = `${year}-${String(month + 1).padStart(2, '0')}-${String(d).padStart(2, '0')}`;
           const dayData = gd().attendance?.[`${b}_${ds}`];
           if (dayData) {
             if (d === 1) wd++;
@@ -6014,7 +6005,7 @@ function generateStudentId(batchName) {
         return `<div style="display:flex;align-items:center;justify-content:space-between;padding:10px 14px;border-bottom:1px solid rgba(255,255,255,0.05);">
           <div>
             <div style="font-weight:600;font-size:0.88rem;">${s.name}</div>
-            <div style="font-size:0.72rem;color:#00d9ff;opacity:0.7;font-family:monospace;">${s.studentId||'—'}</div>
+            <div style="font-size:0.72rem;color:#00d9ff;opacity:0.7;font-family:monospace;">${s.studentId || '—'}</div>
           </div>
           <div style="display:flex;align-items:center;gap:14px;font-family:'Rajdhani',sans-serif;">
             <span style="color:#00ff88;font-weight:700;">${p}P</span>
@@ -6050,7 +6041,7 @@ function generateStudentId(batchName) {
     const batch = document.getElementById('attBlankBatch')?.value;
     if (!batch) { window.showErrorToast?.('❌ Batch বেছে নিন'); return; }
 
-    const cols  = parseInt(document.getElementById('attBlankCols')?.value) || 26;
+    const cols = parseInt(document.getElementById('attBlankCols')?.value) || 26;
     const label = document.getElementById('attBlankLabel')?.value || '';
     const students = (gd().students || []).filter(s => s.batch === batch);
     if (students.length === 0) { window.showErrorToast?.('❌ এই Batch-এ কোনো Student নেই'); return; }
@@ -6058,7 +6049,7 @@ function generateStudentId(batchName) {
     students.sort((a, b) => (a.studentId || '').toString().localeCompare((b.studentId || '').toString()));
 
     const logo1 = window.APP_LOGOS?.premium || 'wings_logo_premium.png';
-    const logo2 = window.APP_LOGOS?.linear  || 'wings_logo_linear.png';
+    const logo2 = window.APP_LOGOS?.linear || 'wings_logo_linear.png';
     const isPortrait = style === 'portrait';
     const isSignature = style === 'signature';
     const isMonthly = style === 'monthly-grid';
@@ -6070,10 +6061,10 @@ function generateStudentId(batchName) {
       // Signature sheet
       const rows = students.map((s, i) => `
         <tr style="height:38px;">
-          <td style="border:1px solid #ccc;text-align:center;font-size:12px;color:#555;">${i+1}</td>
+          <td style="border:1px solid #ccc;text-align:center;font-size:12px;color:#555;">${i + 1}</td>
           <td style="border:1px solid #ccc;padding:4px 10px;font-weight:600;">${s.name}</td>
-          <td style="border:1px solid #ccc;text-align:center;font-size:11px;color:#2c7da0;">${s.studentId||''}</td>
-          <td style="border:1px solid #ccc;padding:4px 8px;font-size:11px;color:#1a4d6e;">${s.course||''}</td>
+          <td style="border:1px solid #ccc;text-align:center;font-size:11px;color:#2c7da0;">${s.studentId || ''}</td>
+          <td style="border:1px solid #ccc;padding:4px 8px;font-size:11px;color:#1a4d6e;">${s.course || ''}</td>
           <td style="border:1px solid #ccc;"></td>
         </tr>`).join('');
       tableContent = `
@@ -6092,13 +6083,13 @@ function generateStudentId(batchName) {
     } else if (isMonthly) {
       // Monthly grid
       const colH = Array.from({ length: 31 }, (_, i) =>
-        `<th style="border:1px solid #bcd;background:#e8f4ff;text-align:center;width:22px;font-size:10px;color:#1a4d6e;">${i+1}</th>`).join('');
+        `<th style="border:1px solid #bcd;background:#e8f4ff;text-align:center;width:22px;font-size:10px;color:#1a4d6e;">${i + 1}</th>`).join('');
       const rows = students.map((s, i) => {
         const cells = Array.from({ length: 31 }, () =>
           `<td style="border:1px solid #dde;height:28px;"></td>`).join('');
-        return `<tr><td style="border:1px solid #bcd;text-align:center;font-size:11px;color:#555;">${i+1}</td>
+        return `<tr><td style="border:1px solid #bcd;text-align:center;font-size:11px;color:#555;">${i + 1}</td>
           <td style="border:1px solid #bcd;padding:3px 8px;font-weight:600;font-size:12px;">${s.name}</td>
-          <td style="border:1px solid #bcd;padding:3px 6px;font-size:11px;color:#1a4d6e;">${s.course||''}</td>
+          <td style="border:1px solid #bcd;padding:3px 6px;font-size:11px;color:#1a4d6e;">${s.course || ''}</td>
           ${cells}</tr>`;
       }).join('');
       tableContent = `
@@ -6114,14 +6105,14 @@ function generateStudentId(batchName) {
     } else {
       // Standard landscape/portrait
       const colH = Array.from({ length: cols }, (_, i) =>
-        `<th style="border:1px solid #000;width:${isPortrait ? 28 : 36}px;text-align:center;font-size:${isPortrait ? 9 : 11}px;">${i+1}</th>`).join('');
+        `<th style="border:1px solid #000;width:${isPortrait ? 28 : 36}px;text-align:center;font-size:${isPortrait ? 9 : 11}px;">${i + 1}</th>`).join('');
       const rows = students.map((s, i) => {
         const cells = Array.from({ length: cols }, () =>
           `<td style="border:1px solid #000;height:${isPortrait ? 28 : 32}px;"></td>`).join('');
         return `<tr>
-          <td style="border:1px solid #000;text-align:center;font-size:${isPortrait ? 10 : 12}px;">${i+1}</td>
+          <td style="border:1px solid #000;text-align:center;font-size:${isPortrait ? 10 : 12}px;">${i + 1}</td>
           <td style="border:1px solid #000;padding:3px 8px;font-weight:600;font-size:${isPortrait ? 11 : 13}px;font-style:italic;color:#1a4d6e;">${s.name}</td>
-          <td style="border:1px solid #000;padding:3px 6px;font-size:${isPortrait ? 9 : 11}px;color:#1a4d6e;">${s.course||'—'}</td>
+          <td style="border:1px solid #000;padding:3px 6px;font-size:${isPortrait ? 9 : 11}px;color:#1a4d6e;">${s.course || '—'}</td>
           ${cells}
         </tr>`;
       }).join('');
@@ -6201,7 +6192,7 @@ function generateStudentId(batchName) {
   // backwards compat
   window.printBlankAttendanceSheet = () => {
     const batch = document.getElementById('attendanceBatchSelect')?.value ||
-                  document.getElementById('attMarkBatch')?.value;
+      document.getElementById('attMarkBatch')?.value;
     if (!batch) { window.showErrorToast?.('❌ Batch বেছে নিন'); return; }
     // open hub at blank tab
     openAttendanceModal();
@@ -6297,7 +6288,7 @@ function openIdCardModal(rowIndex) {
     const enrollDate = new Date(student.enrollDate || Date.now());
     const expiryDate = new Date(enrollDate);
     expiryDate.setFullYear(expiryDate.getFullYear() + 1);
-    const fmtDate = (d) => d.toLocaleDateString('en-GB', {day:'2-digit',month:'short',year:'numeric'});
+    const fmtDate = (d) => d.toLocaleDateString('en-GB', { day: '2-digit', month: 'short', year: 'numeric' });
 
     const photoSrc = (student.photo && student.photo.length > 10)
       ? student.photo
@@ -6397,7 +6388,7 @@ function openIdCardModal(rowIndex) {
     const modalEl = document.getElementById('idCardModal');
     if (!modalEl) { alert("ID Card Modal not found."); return; }
     new bootstrap.Modal(modalEl).show();
-  } catch(e) {
+  } catch (e) {
     console.error("ID Card error:", e);
     alert("Error generating ID Card.");
   }
@@ -6805,7 +6796,7 @@ async function deleteEmployee(id) {
   const empToDelete = (window.globalData.employees || []).find(e => e.id == id);
   if (empToDelete) {
     if (typeof moveToTrash === 'function') moveToTrash('employee', empToDelete);
-    if (typeof logActivity === 'function') logActivity('employee', 'DELETE', 
+    if (typeof logActivity === 'function') logActivity('employee', 'DELETE',
       'Employee deleted: ' + (empToDelete.name || 'Unknown') + ' | Role: ' + (empToDelete.role || '-'), empToDelete);
   }
   if (confirm('Are you sure you want to remove this employee?')) {
@@ -8158,14 +8149,14 @@ function showAllAccountsSearch(dateFrom, dateTo) {
   const fmt = window.formatNumber || (n => Number(n).toLocaleString('en-IN'));
   const allTx = (globalData.finance || []).filter(f => {
     const matchFrom = !dateFrom || (f.date && f.date >= dateFrom);
-    const matchTo   = !dateTo   || (f.date && f.date <= dateTo);
+    const matchTo = !dateTo || (f.date && f.date <= dateTo);
     return matchFrom && matchTo;
   }).slice().reverse();
 
-  const cashBal   = parseFloat(globalData.cashBalance) || 0;
-  const bankBal   = (globalData.bankAccounts || []).reduce((a,b) => a+(parseFloat(b.balance)||0), 0);
-  const mobileBal = (globalData.mobileBanking || []).reduce((a,b) => a+(parseFloat(b.balance)||0), 0);
-  const totalBal  = cashBal + bankBal + mobileBal;
+  const cashBal = parseFloat(globalData.cashBalance) || 0;
+  const bankBal = (globalData.bankAccounts || []).reduce((a, b) => a + (parseFloat(b.balance) || 0), 0);
+  const mobileBal = (globalData.mobileBanking || []).reduce((a, b) => a + (parseFloat(b.balance) || 0), 0);
+  const totalBal = cashBal + bankBal + mobileBal;
 
   document.getElementById('unifiedSearchResults').classList.remove('d-none');
   document.getElementById('noSearchResults').classList.add('d-none');
@@ -8197,14 +8188,14 @@ function showAllAccountsSearch(dateFrom, dateTo) {
   let rows = '';
   allTx.forEach(f => {
     const amt = parseFloat(f.amount) || 0;
-    const isIncome = ['Income','Loan Received','Transfer In'].includes(f.type);
+    const isIncome = ['Income', 'Loan Received', 'Transfer In'].includes(f.type);
     rows += `<tr>
-      <td style="padding:8px;font-size:0.82rem;">${f.date||'-'}</td>
-      <td style="padding:8px;"><span style="background:${isIncome?'rgba(0,255,136,0.15)':'rgba(255,59,92,0.15)'};color:${isIncome?'#00ff88':'#ff3b5c'};padding:2px 8px;border-radius:20px;font-size:0.75rem;font-weight:700;">${f.type||'-'}</span></td>
-      <td style="padding:8px;font-weight:600;color:#00d9ff;">${f.method||'Cash'}</td>
-      <td style="padding:8px;">${f.category||'-'}</td>
-      <td style="padding:8px;color:rgba(255,255,255,0.6);">${f.description||f.note||'-'}</td>
-      <td style="padding:8px;text-align:right;font-weight:700;color:${isIncome?'#00ff88':'#ff3b5c'};">৳${fmt(amt)}</td>
+      <td style="padding:8px;font-size:0.82rem;">${f.date || '-'}</td>
+      <td style="padding:8px;"><span style="background:${isIncome ? 'rgba(0,255,136,0.15)' : 'rgba(255,59,92,0.15)'};color:${isIncome ? '#00ff88' : '#ff3b5c'};padding:2px 8px;border-radius:20px;font-size:0.75rem;font-weight:700;">${f.type || '-'}</span></td>
+      <td style="padding:8px;font-weight:600;color:#00d9ff;">${f.method || 'Cash'}</td>
+      <td style="padding:8px;">${f.category || '-'}</td>
+      <td style="padding:8px;color:rgba(255,255,255,0.6);">${f.description || f.note || '-'}</td>
+      <td style="padding:8px;text-align:right;font-weight:700;color:${isIncome ? '#00ff88' : '#ff3b5c'};">৳${fmt(amt)}</td>
     </tr>`;
   });
 
@@ -8643,36 +8634,36 @@ function exportAccountToExcel() {
 
 function printAllAccountsReport() {
   const dateFrom = document.getElementById('unifiedDateFrom').value;
-  const dateTo   = document.getElementById('unifiedDateTo').value;
+  const dateTo = document.getElementById('unifiedDateTo').value;
   const fmt = window.formatNumber || (n => Number(n).toLocaleString('en-IN'));
-  const cashBal   = parseFloat(globalData.cashBalance) || 0;
-  const bankBal   = (globalData.bankAccounts || []).reduce((a,b) => a+(parseFloat(b.balance)||0), 0);
-  const mobileBal = (globalData.mobileBanking || []).reduce((a,b) => a+(parseFloat(b.balance)||0), 0);
+  const cashBal = parseFloat(globalData.cashBalance) || 0;
+  const bankBal = (globalData.bankAccounts || []).reduce((a, b) => a + (parseFloat(b.balance) || 0), 0);
+  const mobileBal = (globalData.mobileBanking || []).reduce((a, b) => a + (parseFloat(b.balance) || 0), 0);
   const allTx = (globalData.finance || []).filter(f => {
     return (!dateFrom || f.date >= dateFrom) && (!dateTo || f.date <= dateTo);
   }).slice().reverse();
   let rows = '', totalIn = 0, totalOut = 0;
   allTx.forEach(f => {
-    const amt = parseFloat(f.amount)||0;
-    const isIn = ['Income','Loan Received','Transfer In'].includes(f.type);
-    if(isIn) totalIn+=amt; else totalOut+=amt;
-    rows += `<tr><td>${f.date||'-'}</td><td>${f.type||'-'}</td><td>${f.method||'Cash'}</td><td>${f.category||'-'}</td><td>${f.description||'-'}</td><td style="text-align:right;color:${isIn?'green':'red'}">${isIn?'+':'-'}৳${fmt(amt)}</td></tr>`;
+    const amt = parseFloat(f.amount) || 0;
+    const isIn = ['Income', 'Loan Received', 'Transfer In'].includes(f.type);
+    if (isIn) totalIn += amt; else totalOut += amt;
+    rows += `<tr><td>${f.date || '-'}</td><td>${f.type || '-'}</td><td>${f.method || 'Cash'}</td><td>${f.category || '-'}</td><td>${f.description || '-'}</td><td style="text-align:right;color:${isIn ? 'green' : 'red'}">${isIn ? '+' : '-'}৳${fmt(amt)}</td></tr>`;
   });
-  const pw = window.open('','_blank');
+  const pw = window.open('', '_blank');
   pw.document.write(`<!DOCTYPE html><html><head><title>All Accounts</title>
   <style>body{font-family:Arial;padding:20px}h2{border-bottom:2px solid #333;padding-bottom:8px}.cards{display:flex;gap:12px;margin:12px 0;flex-wrap:wrap}.card{border:1px solid #ccc;border-radius:8px;padding:10px 16px;text-align:center}.label{font-size:0.7rem;color:#666;text-transform:uppercase}.val{font-size:1.1rem;font-weight:700}table{width:100%;border-collapse:collapse;margin-top:12px}th,td{border:1px solid #ddd;padding:8px;font-size:0.82rem}th{background:#333;color:#fff}.totals{margin-top:12px;background:#f5f5f5;padding:10px;border-radius:6px}@media print{button{display:none}}</style>
   </head><body>
   <h2>🏛️ All Accounts Report</h2>
-  <div>Date: ${new Date().toLocaleDateString()}${dateFrom||dateTo?' | '+( dateFrom||'Start')+' → '+(dateTo||'Today'):''}</div>
+  <div>Date: ${new Date().toLocaleDateString()}${dateFrom || dateTo ? ' | ' + (dateFrom || 'Start') + ' → ' + (dateTo || 'Today') : ''}</div>
   <div class="cards">
     <div class="card"><div class="label">Cash</div><div class="val">৳${fmt(cashBal)}</div></div>
     <div class="card"><div class="label">Bank</div><div class="val">৳${fmt(bankBal)}</div></div>
     <div class="card"><div class="label">Mobile</div><div class="val">৳${fmt(mobileBal)}</div></div>
-    <div class="card" style="background:#fffde7"><div class="label">Total</div><div class="val">৳${fmt(cashBal+bankBal+mobileBal)}</div></div>
+    <div class="card" style="background:#fffde7"><div class="label">Total</div><div class="val">৳${fmt(cashBal + bankBal + mobileBal)}</div></div>
   </div>
   <table><thead><tr><th>Date</th><th>Type</th><th>Account</th><th>Category</th><th>Details</th><th>Amount</th></tr></thead>
-  <tbody>${rows||'<tr><td colspan="6" style="text-align:center">No transactions</td></tr>'}</tbody></table>
-  <div class="totals">Income: <b style="color:green">৳${fmt(totalIn)}</b> | Expense: <b style="color:red">৳${fmt(totalOut)}</b> | Net: <b>৳${fmt(totalIn-totalOut)}</b></div>
+  <tbody>${rows || '<tr><td colspan="6" style="text-align:center">No transactions</td></tr>'}</tbody></table>
+  <div class="totals">Income: <b style="color:green">৳${fmt(totalIn)}</b> | Expense: <b style="color:red">৳${fmt(totalOut)}</b> | Net: <b>৳${fmt(totalIn - totalOut)}</b></div>
   <br><button onclick="window.print()" style="padding:10px 24px;background:#333;color:#fff;border:none;border-radius:6px;cursor:pointer">🖨️ Print</button>
   </body></html>`);
   pw.document.close();
@@ -8860,7 +8851,7 @@ function showMethodBalance(selectId) {
   }
 
   const colorMap = { cash: '#00ff88', bank: '#00d9ff', mobile: '#ff2d95' };
-  const bgMap   = { cash: 'rgba(0,255,136,0.12)', bank: 'rgba(0,217,255,0.12)', mobile: 'rgba(255,45,149,0.12)' };
+  const bgMap = { cash: 'rgba(0,255,136,0.12)', bank: 'rgba(0,217,255,0.12)', mobile: 'rgba(255,45,149,0.12)' };
   const iconMap = { cash: '💵', bank: '🏦', mobile: '📱' };
   const borderMap = { cash: 'rgba(0,255,136,0.35)', bank: 'rgba(0,217,255,0.35)', mobile: 'rgba(255,45,149,0.35)' };
 
@@ -8915,20 +8906,20 @@ async function handleVisitorSubmit(e) {
   const phone = (data.visitorPhone || '').trim();
   const visitDate = (data.visitDate || '').trim();
 
-  if (!name)      { showErrorToast('❌ Visitor name is required.'); return; }
-  if (!phone)     { showErrorToast('❌ Phone number is required.'); return; }
+  if (!name) { showErrorToast('❌ Visitor name is required.'); return; }
+  if (!phone) { showErrorToast('❌ Phone number is required.'); return; }
   if (!visitDate) { showErrorToast('❌ Visit date is required.'); return; }
 
   const editIndex = data.visitorRowIndex !== '' && data.visitorRowIndex !== undefined
     ? parseInt(data.visitorRowIndex) : -1;
 
   const visitor = {
-    name:     name,
-    phone:    phone,
-    course:   data.interestedCourse || '',
-    date:     visitDate,
-    remarks:  (data.visitorRemarks || '').trim(),
-    addedAt:  new Date().toISOString()
+    name: name,
+    phone: phone,
+    course: data.interestedCourse || '',
+    date: visitDate,
+    remarks: (data.visitorRemarks || '').trim(),
+    addedAt: new Date().toISOString()
   };
 
   if (!window.globalData.visitors) window.globalData.visitors = [];
@@ -8964,22 +8955,22 @@ function renderVisitors() {
   const noMsg = document.getElementById('noVisitorsMessage');
   if (!tbody) return;
 
-  const q      = (document.getElementById('visitorSearchInput')?.value || '').toLowerCase().trim();
-  const start  = document.getElementById('visitorStartDate')?.value || '';
-  const end    = document.getElementById('visitorEndDate')?.value   || '';
+  const q = (document.getElementById('visitorSearchInput')?.value || '').toLowerCase().trim();
+  const start = document.getElementById('visitorStartDate')?.value || '';
+  const end = document.getElementById('visitorEndDate')?.value || '';
 
   let list = (window.globalData.visitors || []).slice();
 
   // Filter
   if (q) {
     list = list.filter(v =>
-      (v.name  || '').toLowerCase().includes(q) ||
+      (v.name || '').toLowerCase().includes(q) ||
       (v.phone || '').toLowerCase().includes(q) ||
-      (v.course|| '').toLowerCase().includes(q)
+      (v.course || '').toLowerCase().includes(q)
     );
   }
   if (start) list = list.filter(v => v.date >= start);
-  if (end)   list = list.filter(v => v.date <= end);
+  if (end) list = list.filter(v => v.date <= end);
 
   // Sort newest first
   list = list.slice().reverse();
@@ -9015,8 +9006,8 @@ function renderVisitors() {
         </td>
         <td style="padding:0.75rem 1rem;">
           ${v.course
-            ? `<span class="badge rounded-pill px-3" style="background:rgba(0,217,255,0.15); color:#00d9ff; border:1px solid rgba(0,217,255,0.3);">${v.course}</span>`
-            : `<span class="text-muted small">—</span>`}
+        ? `<span class="badge rounded-pill px-3" style="background:rgba(0,217,255,0.15); color:#00d9ff; border:1px solid rgba(0,217,255,0.3);">${v.course}</span>`
+        : `<span class="text-muted small">—</span>`}
         </td>
         <td style="padding:0.75rem 1rem; font-size:0.88rem; color:rgba(255,255,255,0.6);">${v.remarks || '—'}</td>
         <td style="padding:0.75rem 1rem; text-align:right;">
@@ -9043,7 +9034,7 @@ function clearVisitorFilters() {
   const s = document.getElementById('visitorSearchInput');
   const d1 = document.getElementById('visitorStartDate');
   const d2 = document.getElementById('visitorEndDate');
-  if (s)  s.value  = '';
+  if (s) s.value = '';
   if (d1) d1.value = '';
   if (d2) d2.value = '';
   renderVisitors();
@@ -9058,9 +9049,9 @@ function editVisitor(index) {
   const form = document.getElementById('visitorForm');
   if (!form) return;
 
-  form.elements['visitorName'].value    = v.name    || '';
-  form.elements['visitorPhone'].value   = v.phone   || '';
-  form.elements['visitDate'].value      = v.date    || '';
+  form.elements['visitorName'].value = v.name || '';
+  form.elements['visitorPhone'].value = v.phone || '';
+  form.elements['visitDate'].value = v.date || '';
   form.elements['visitorRemarks'].value = v.remarks || '';
 
   // Course select
@@ -9103,12 +9094,12 @@ document.addEventListener('DOMContentLoaded', () => {
 });
 
 // Global expose
-window.handleVisitorSubmit  = handleVisitorSubmit;
-window.renderVisitors       = renderVisitors;
-window.searchVisitors       = searchVisitors;
-window.clearVisitorFilters  = clearVisitorFilters;
-window.editVisitor          = editVisitor;
-window.deleteVisitor        = deleteVisitor;
+window.handleVisitorSubmit = handleVisitorSubmit;
+window.renderVisitors = renderVisitors;
+window.searchVisitors = searchVisitors;
+window.clearVisitorFilters = clearVisitorFilters;
+window.editVisitor = editVisitor;
+window.deleteVisitor = deleteVisitor;
 
 // ── Delete & Edit Transaction Event Delegation ───────────────────────────────
 // Uses ledgerTableBody directly to avoid document-level conflicts (GitHub Pages blocks confirm())
@@ -9117,7 +9108,7 @@ function attachLedgerListeners() {
   if (!tbody || tbody._listenersAttached) return;
   tbody._listenersAttached = true;
 
-  tbody.addEventListener('click', function(e) {
+  tbody.addEventListener('click', function (e) {
     // Edit button
     const editBtn = e.target.closest('.edit-tx-btn');
     if (editBtn) {
@@ -9156,13 +9147,13 @@ function attachLedgerListeners() {
 }
 
 // Attach on DOM ready and also after every renderLedger call
-document.addEventListener('DOMContentLoaded', function() {
+document.addEventListener('DOMContentLoaded', function () {
   setTimeout(attachLedgerListeners, 500);
 });
 setTimeout(attachLedgerListeners, 2500);
 
 // Use event delegation on document level as fallback (always works)
-document.addEventListener('click', function(e) {
+document.addEventListener('click', function (e) {
   // Delete button fallback
   const delBtn = e.target.closest('.del-tx-btn');
   if (delBtn) {
@@ -9234,7 +9225,7 @@ function _noticeSave(notice) {
     } else if (typeof window.scheduleSyncPush === 'function') {
       window.scheduleSyncPush(notice ? 'Notice Published' : 'Notice Deleted');
     }
-  } catch(e) { console.warn('Notice save error:', e); }
+  } catch (e) { console.warn('Notice save error:', e); }
 }
 
 function _noticeRead() {
@@ -9266,7 +9257,7 @@ function _noticeRead() {
       window.globalData.settings.activeNotice = n;
     }
     return n;
-  } catch(e) { return null; }
+  } catch (e) { return null; }
 }
 
 function updateSidebarNoticeDot(hasActive) {
@@ -9384,7 +9375,7 @@ function openNoticeModal() {
 
   // Char counter
   if (textInput) {
-    textInput.oninput = function() {
+    textInput.oninput = function () {
       if (charCount) charCount.textContent = this.value.length;
     };
   }
@@ -9423,11 +9414,11 @@ function noticeToast(msg, type) {
   try {
     if (type === 'error' && typeof showErrorToast === 'function') { showErrorToast(msg); return; }
     if (typeof showSuccessToast === 'function') { showSuccessToast(msg); return; }
-  } catch(e) {}
+  } catch (e) { }
   // Fallback: simple alert-style
   const div = document.createElement('div');
   div.textContent = msg;
-  div.style.cssText = `position:fixed;top:20px;right:20px;z-index:99999;background:${type==='error'?'#dc2626':'#16a34a'};color:#fff;padding:12px 24px;border-radius:12px;font-weight:700;font-size:0.95rem;box-shadow:0 4px 20px rgba(0,0,0,0.4);`;
+  div.style.cssText = `position:fixed;top:20px;right:20px;z-index:99999;background:${type === 'error' ? '#dc2626' : '#16a34a'};color:#fff;padding:12px 24px;border-radius:12px;font-weight:700;font-size:0.95rem;box-shadow:0 4px 20px rgba(0,0,0,0.4);`;
   document.body.appendChild(div);
   setTimeout(() => div.remove(), 3000);
 }
@@ -9440,7 +9431,7 @@ function closeNoticeModal() {
     let m = bootstrap.Modal.getInstance(modalEl);
     if (!m) m = bootstrap.Modal.getOrCreateInstance(modalEl);
     m.hide();
-  } catch(e) {
+  } catch (e) {
     // fallback: hide manually
     modalEl.classList.remove('show');
     modalEl.style.display = 'none';
@@ -9482,10 +9473,10 @@ function publishNotice() {
   showNoticeBanner(notice);
 
   const dLabel = durationMinutes >= 1440
-    ? `${Math.floor(durationMinutes/1440)} দিন`
+    ? `${Math.floor(durationMinutes / 1440)} দিন`
     : durationMinutes >= 60
-    ? `${Math.floor(durationMinutes/60)} ঘণ্টা`
-    : `${durationMinutes} মিনিট`;
+      ? `${Math.floor(durationMinutes / 60)} ঘণ্টা`
+      : `${durationMinutes} মিনিট`;
 
   noticeToast(`✅ নোটিস প্রকাশিত! মেয়াদ: ${dLabel}`, 'success');
 }
@@ -9497,7 +9488,7 @@ function deleteNotice() {
 }
 
 // Auto-init when DOM ready
-document.addEventListener('DOMContentLoaded', function() {
+document.addEventListener('DOMContentLoaded', function () {
   setTimeout(initNoticeBoard, 800);
 });
 
@@ -9528,7 +9519,7 @@ function renderActivityLog() {
     var bkData = bk ? JSON.parse(bk) : [];
     var cur = window.globalData.activityHistory || [];
     window.globalData.activityHistory = bkData.length >= cur.length ? bkData : cur;
-  } catch(e) { console.warn('renderActivityLog:', e); }
+  } catch (e) { console.warn('renderActivityLog:', e); }
   if (typeof loadActivityHistory === 'function') loadActivityHistory();
 }
 function renderRecycleBin() {
@@ -9539,7 +9530,7 @@ function renderRecycleBin() {
     var bkData = bk ? JSON.parse(bk) : [];
     var cur = window.globalData.deletedItems || [];
     window.globalData.deletedItems = bkData.length >= cur.length ? bkData : cur;
-  } catch(e) { console.warn('renderRecycleBin:', e); }
+  } catch (e) { console.warn('renderRecycleBin:', e); }
   if (typeof loadDeletedItems === 'function') loadDeletedItems();
 }
 function clearRecycleBin() {
@@ -9548,7 +9539,7 @@ function clearRecycleBin() {
 window.renderActivityLog = renderActivityLog;
 window.renderRecycleBin = renderRecycleBin;
 window.clearRecycleBin = clearRecycleBin;
-window.clearActivityLog = function() {
+window.clearActivityLog = function () {
   if (!confirm('সব Activity History মুছে ফেলবেন?')) return;
   if (!window.globalData) return;
   window.globalData.activityHistory = [];
@@ -9564,38 +9555,38 @@ window.clearActivityLog = function() {
 // logFilterType -> historyFilter (alias)
 // binFilterType -> trashFilter (alias)
 const _origLoadActivityHistory = window.loadActivityHistory;
-window.loadActivityHistory = function() {
+window.loadActivityHistory = function () {
   // Support both container IDs
   const h1 = document.getElementById('activityHistoryList');
   const h2 = document.getElementById('activityLogContainer');
-  
+
   const history = (window.globalData && window.globalData.activityHistory) || [];
   const filterEl = document.getElementById('historyFilter') || document.getElementById('logFilterType');
   const filterVal = filterEl ? filterEl.value : 'all';
   const searchEl = document.getElementById('logSearch');
   const searchVal = searchEl ? searchEl.value.toLowerCase() : '';
-  
+
   const isActionFilter = filterEl && filterEl.id === 'logFilterType';
   const filtered = history.filter(h => {
     const typeOk = filterVal === 'all' ||
-      (isActionFilter ? (h.action||'').toUpperCase() === filterVal.toUpperCase() : h.type === filterVal);
+      (isActionFilter ? (h.action || '').toUpperCase() === filterVal.toUpperCase() : h.type === filterVal);
     const searchOk = !searchVal ||
-      (h.description||'').toLowerCase().includes(searchVal) ||
-      (h.user||'').toLowerCase().includes(searchVal);
+      (h.description || '').toLowerCase().includes(searchVal) ||
+      (h.user || '').toLowerCase().includes(searchVal);
     return typeOk && searchOk;
   });
-  
+
   const icons = { student: '🎓', finance: '💰', employee: '👤', settings: '⚙️', login: '🔐' };
   const actionBadge = { ADD: 'success', EDIT: 'info', DELETE: 'danger', LOGIN: 'primary', LOGOUT: 'warning', SETTING_CHANGE: 'secondary' };
-  
-  const html = filtered.length === 0 
+
+  const html = filtered.length === 0
     ? '<div class="text-center text-muted py-5"><div style="font-size:3rem">📋</div><p>কোনো Activity নেই।</p></div>'
     : filtered.map(h => {
-        const d = new Date(h.timestamp);
-        const timeStr = d.toLocaleString('en-BD', { day:'2-digit', month:'short', year:'numeric', hour:'2-digit', minute:'2-digit' });
-        const icon = icons[h.type] || '📝';
-        const badge = actionBadge[h.action] || 'secondary';
-        return `<div class="d-flex align-items-start gap-3 p-3 mb-2 rounded-3" style="background:rgba(0,217,255,0.05);border:1px solid rgba(0,217,255,0.15);">
+      const d = new Date(h.timestamp);
+      const timeStr = d.toLocaleString('en-BD', { day: '2-digit', month: 'short', year: 'numeric', hour: '2-digit', minute: '2-digit' });
+      const icon = icons[h.type] || '📝';
+      const badge = actionBadge[h.action] || 'secondary';
+      return `<div class="d-flex align-items-start gap-3 p-3 mb-2 rounded-3" style="background:rgba(0,217,255,0.05);border:1px solid rgba(0,217,255,0.15);">
           <div style="font-size:1.5rem;min-width:36px;text-align:center;">${icon}</div>
           <div class="flex-grow-1">
             <div class="d-flex align-items-center gap-2 mb-1">
@@ -9607,39 +9598,39 @@ window.loadActivityHistory = function() {
             <div class="text-muted" style="font-size:0.75rem;">👤 ${h.user || 'Admin'}</div>
           </div>
         </div>`;
-      }).join('');
-  
+    }).join('');
+
   if (h1) h1.innerHTML = html;
   if (h2) h2.innerHTML = html;
 };
 
 const _origLoadDeletedItems = window.loadDeletedItems;
-window.loadDeletedItems = function() {
+window.loadDeletedItems = function () {
   const c1 = document.getElementById('deletedItemsList');
   const c2 = document.getElementById('recycleBinContainer');
-  
+
   const deleted = (window.globalData && window.globalData.deletedItems) || [];
   const filterEl = document.getElementById('trashFilter') || document.getElementById('binFilterType');
   const filterVal = filterEl ? filterEl.value : 'all';
-  
+
   const filtered = filterVal === 'all' ? deleted : deleted.filter(d => d.type === filterVal || d.type === filterVal.toLowerCase());
-  
+
   const icons = { student: '🎓', finance: '💰', employee: '👤', visitor: '🙋', Student: '🎓', Finance: '💰', Employee: '👤', Visitor: '🙋' };
-  
+
   const html = filtered.length === 0
     ? '<div class="text-center text-muted py-5"><div style="font-size:3rem">🗑️</div><p>Trash খালি।</p></div>'
     : filtered.map(d => {
-        const date = new Date(d.deletedAt);
-        const dateStr = date.toLocaleString('en-BD', { day:'2-digit', month:'short', year:'numeric', hour:'2-digit', minute:'2-digit' });
-        const icon = icons[d.type] || '📄';
-        let name = '';
-        const t = (d.type||'').toLowerCase();
-        if (t === 'student') name = d.item.name || 'Unknown Student';
-        else if (t === 'finance') name = (d.item.description || d.item.category || 'Transaction') + ' — ৳' + (d.item.amount || 0);
-        else if (t === 'employee') name = d.item.name || 'Unknown Employee';
-        else name = JSON.stringify(d.item).substring(0, 60);
-        
-        return `<div class="d-flex align-items-start gap-3 p-3 mb-2 rounded-3" style="background:rgba(255,68,68,0.05);border:1px solid rgba(255,68,68,0.2);">
+      const date = new Date(d.deletedAt);
+      const dateStr = date.toLocaleString('en-BD', { day: '2-digit', month: 'short', year: 'numeric', hour: '2-digit', minute: '2-digit' });
+      const icon = icons[d.type] || '📄';
+      let name = '';
+      const t = (d.type || '').toLowerCase();
+      if (t === 'student') name = d.item.name || 'Unknown Student';
+      else if (t === 'finance') name = (d.item.description || d.item.category || 'Transaction') + ' — ৳' + (d.item.amount || 0);
+      else if (t === 'employee') name = d.item.name || 'Unknown Employee';
+      else name = JSON.stringify(d.item).substring(0, 60);
+
+      return `<div class="d-flex align-items-start gap-3 p-3 mb-2 rounded-3" style="background:rgba(255,68,68,0.05);border:1px solid rgba(255,68,68,0.2);">
           <div style="font-size:1.5rem;min-width:36px;text-align:center;">${icon}</div>
           <div class="flex-grow-1">
             <div class="d-flex align-items-center gap-2 mb-1">
@@ -9654,8 +9645,8 @@ window.loadDeletedItems = function() {
             <button class="btn btn-sm btn-outline-danger" onclick="permanentDelete('${d.id}')">❌ Remove</button>
           </div>
         </div>`;
-      }).join('');
-  
+    }).join('');
+
   if (c1) c1.innerHTML = html;
   if (c2) c2.innerHTML = html;
 };
@@ -9684,7 +9675,7 @@ function takeSnapshot() {
 
     var existingRaw = localStorage.getItem(_KEY);
     var snapshots = [];
-    try { snapshots = JSON.parse(existingRaw) || []; } catch(e) { snapshots = []; }
+    try { snapshots = JSON.parse(existingRaw) || []; } catch (e) { snapshots = []; }
 
     var newSnap = {
       id: Date.now(),
@@ -9703,7 +9694,7 @@ function takeSnapshot() {
     console.log('📸 Snapshot taken:', newSnap.label);
 
     if (typeof renderSnapshotList === 'function') renderSnapshotList();
-  } catch(e) {
+  } catch (e) {
     console.warn('Snapshot error:', e);
   }
 }
@@ -9711,7 +9702,7 @@ function takeSnapshot() {
 function getSnapshots() {
   try {
     return JSON.parse(localStorage.getItem('wingsfly_snapshots')) || [];
-  } catch(e) { return []; }
+  } catch (e) { return []; }
 }
 
 function restoreSnapshot(id) {
@@ -9726,7 +9717,7 @@ function restoreSnapshot(id) {
     if (typeof updateGlobalStats === 'function') updateGlobalStats();
     if (typeof showSuccessToast === 'function') showSuccessToast('✅ Snapshot restore সফল! ' + snap.label);
     if (typeof renderSnapshotList === 'function') renderSnapshotList();
-  } catch(e) {
+  } catch (e) {
     if (typeof showErrorToast === 'function') showErrorToast('Restore failed: ' + e.message);
   }
 }
@@ -9739,14 +9730,14 @@ function downloadSnapshot(id) {
   const blob = new Blob([snap.data], { type: 'application/json' });
   const a = document.createElement('a');
   a.href = URL.createObjectURL(blob);
-  a.download = 'WingsFly_Snapshot_' + new Date(snap.id).toISOString().slice(0,16).replace('T','_').replace(':','-') + '.json';
+  a.download = 'WingsFly_Snapshot_' + new Date(snap.id).toISOString().slice(0, 16).replace('T', '_').replace(':', '-') + '.json';
   a.click();
   URL.revokeObjectURL(a.href);
 }
 
 function deleteSnapshot(id) {
   var snapshots = getSnapshots();
-  snapshots = snapshots.filter(function(s) { return s.id !== id; });
+  snapshots = snapshots.filter(function (s) { return s.id !== id; });
   localStorage.setItem('wingsfly_snapshots', JSON.stringify(snapshots));
   if (typeof renderSnapshotList === 'function') renderSnapshotList();
 }
@@ -9764,7 +9755,7 @@ function renderSnapshotList() {
 
   container.innerHTML = snapshots.map((snap, i) => `
     <div class="d-flex align-items-center gap-2 p-2 mb-2 rounded-3" style="background:rgba(0,217,255,0.06);border:1px solid rgba(0,217,255,0.15);">
-      <div style="min-width:20px;text-align:center;color:#00d9ff;font-weight:bold;font-size:0.8rem;">#${i+1}</div>
+      <div style="min-width:20px;text-align:center;color:#00d9ff;font-weight:bold;font-size:0.8rem;">#${i + 1}</div>
       <div class="flex-grow-1" style="font-size:0.85rem;color:#c0e0ff;">📸 ${snap.label}</div>
       <button class="btn btn-sm py-0 px-2" style="background:rgba(0,200,100,0.2);color:#00cc66;border:1px solid #00cc66;font-size:0.75rem;" onclick="restoreSnapshot(${snap.id})">↩️ Restore</button>
       <button class="btn btn-sm py-0 px-2" style="background:rgba(0,150,255,0.2);color:#00aaff;border:1px solid #00aaff;font-size:0.75rem;" onclick="downloadSnapshot(${snap.id})">⬇️</button>
@@ -9783,11 +9774,11 @@ window.renderSnapshotList = renderSnapshotList;
 // Page load হলে hourly snapshot interval শুরু করো
 // ⚠️ DOMContentLoaded-এ snapshot নেওয়া হয় না — cloud sync হওয়ার আগে খালি data যাবে
 // ✅ Login-এর পরে showDashboard() থেকে 5 সেকেন্ড পর snapshot নেওয়া হয়
-document.addEventListener('DOMContentLoaded', function() {
+document.addEventListener('DOMContentLoaded', function () {
   var ONE_HOUR = 60 * 60 * 1000;
 
   // প্রতি ৫ মিনিটে check, ১ ঘন্টা পার হলে নতুন নাও
-  setInterval(function() {
+  setInterval(function () {
     // শুধু logged in থাকলে snapshot নাও
     if (!sessionStorage.getItem('isLoggedIn')) return;
     var snaps = getSnapshots();
@@ -9800,13 +9791,13 @@ document.addEventListener('DOMContentLoaded', function() {
   // Settings Modal খোলার সময় সব refresh
   var settingsEl = document.getElementById('settingsModal');
   if (settingsEl) {
-    settingsEl.addEventListener('shown.bs.modal', function() {
+    settingsEl.addEventListener('shown.bs.modal', function () {
       try {
         var raw = localStorage.getItem('wingsfly_data');
         if (raw) window.globalData = JSON.parse(raw);
         if (!window.globalData.deletedItems) window.globalData.deletedItems = [];
         if (!window.globalData.activityHistory) window.globalData.activityHistory = [];
-      } catch(e) {}
+      } catch (e) { }
       if (typeof renderSnapshotList === 'function') renderSnapshotList();
       if (typeof renderActivityLog === 'function') renderActivityLog();
       if (typeof renderRecycleBin === 'function') renderRecycleBin();
@@ -9818,18 +9809,18 @@ document.addEventListener('DOMContentLoaded', function() {
 // ================================================================
 // AUTO-HEAL ENGINE
 // ================================================================
-(function() {
+(function () {
   var _stats = { totalRuns: 0, totalFixes: 0, lastRun: null, lastFix: null };
 
   function _healLog(msg, type) {
     var container = document.getElementById('heal-log-container');
     if (!container) return;
-    var colors = { ok:'#00ff88', warn:'#ffcc00', err:'#ff4466', info:'#00d4ff' };
-    var icon = {ok:'✅',warn:'⚠️',err:'❌',info:'ℹ️'}[type] || 'ℹ️';
+    var colors = { ok: '#00ff88', warn: '#ffcc00', err: '#ff4466', info: '#00d4ff' };
+    var icon = { ok: '✅', warn: '⚠️', err: '❌', info: 'ℹ️' }[type] || 'ℹ️';
     var placeholder = container.querySelector('span');
     if (placeholder) placeholder.remove();
     var div = document.createElement('div');
-    div.style.cssText = 'color:' + (colors[type]||'#c8d8f0') + ';margin:2px 0;font-size:0.78rem;';
+    div.style.cssText = 'color:' + (colors[type] || '#c8d8f0') + ';margin:2px 0;font-size:0.78rem;';
     div.textContent = '[' + new Date().toLocaleTimeString() + '] ' + icon + ' ' + msg;
     container.appendChild(div);
     container.scrollTop = container.scrollHeight;
@@ -9837,10 +9828,10 @@ document.addEventListener('DOMContentLoaded', function() {
 
   function _updateUI() {
     var e;
-    e = document.getElementById('heal-stats-total-runs'); if(e) e.textContent = _stats.totalRuns;
-    e = document.getElementById('heal-stats-total-fixes'); if(e) e.textContent = _stats.totalFixes;
-    e = document.getElementById('heal-stats-last-run'); if(e) e.textContent = _stats.lastRun ? new Date(_stats.lastRun).toLocaleTimeString() : '—';
-    e = document.getElementById('heal-stats-last-fix'); if(e) e.textContent = _stats.lastFix ? new Date(_stats.lastFix).toLocaleTimeString() : '—';
+    e = document.getElementById('heal-stats-total-runs'); if (e) e.textContent = _stats.totalRuns;
+    e = document.getElementById('heal-stats-total-fixes'); if (e) e.textContent = _stats.totalFixes;
+    e = document.getElementById('heal-stats-last-run'); if (e) e.textContent = _stats.lastRun ? new Date(_stats.lastRun).toLocaleTimeString() : '—';
+    e = document.getElementById('heal-stats-last-fix'); if (e) e.textContent = _stats.lastFix ? new Date(_stats.lastFix).toLocaleTimeString() : '—';
   }
 
   function _runHeal() {
@@ -9853,7 +9844,7 @@ document.addEventListener('DOMContentLoaded', function() {
       var raw = localStorage.getItem('wingsfly_data');
       data = raw ? JSON.parse(raw) : (window.globalData || null);
       if (!data) { _healLog('Data পাওয়া যায়নি!', 'err'); return; }
-    } catch(e) { _healLog('Parse error: ' + e.message, 'err'); return; }
+    } catch (e) { _healLog('Parse error: ' + e.message, 'err'); return; }
 
     _healLog('Check শুরু হচ্ছে...', 'info');
     if (!Array.isArray(data.deletedItems)) { data.deletedItems = []; fixed++; _healLog('Recycle Bin array তৈরি হয়েছে', 'warn'); }
@@ -9880,12 +9871,12 @@ document.addEventListener('DOMContentLoaded', function() {
   }
 
   window.autoHeal = {
-    runNow: function() { _runHeal(); },
-    getStats: function() { return _stats; }
+    runNow: function () { _runHeal(); },
+    getStats: function () { return _stats; }
   };
 
-  document.addEventListener('DOMContentLoaded', function() {
-    setTimeout(function() {
+  document.addEventListener('DOMContentLoaded', function () {
+    setTimeout(function () {
       _healLog('Auto-Heal Engine চালু (প্রতি 60s)', 'info');
       setInterval(_runHeal, 60000);
     }, 2500);
@@ -9915,12 +9906,12 @@ document.addEventListener('DOMContentLoaded', function() {
         (gd.bankAccounts || []).forEach(a => bankMap[a.name] = 0);
         (gd.mobileBanking || []).forEach(a => mobileMap[a.name] = 0);
 
-        const moneyIn  = ['Income', 'Transfer In',  'Loan Receiving', 'Loan Received'];
+        const moneyIn = ['Income', 'Transfer In', 'Loan Receiving', 'Loan Received'];
         const moneyOut = ['Expense', 'Transfer Out', 'Loan Giving', 'Loan Given'];
 
         gd.finance.forEach(f => {
           const amt = parseFloat(f.amount) || 0;
-          const isIn  = moneyIn.includes(f.type);
+          const isIn = moneyIn.includes(f.type);
           const isOut = moneyOut.includes(f.type);
           if (!isIn && !isOut) return;
 
@@ -9962,7 +9953,7 @@ document.addEventListener('DOMContentLoaded', function() {
 })();
 
 // Balance integrity monitor removed
-window.checkBalanceIntegrity = function() {};
+window.checkBalanceIntegrity = function () { };
 
 
 // ===================================
@@ -10000,7 +9991,7 @@ function buildIdCardHTML(student) {
   const enrollDate = new Date(student.enrollDate || Date.now());
   const expiryDate = new Date(enrollDate);
   expiryDate.setFullYear(expiryDate.getFullYear() + 1);
-  const fmtDate = (d) => d.toLocaleDateString('en-GB', {day:'2-digit', month:'short', year:'numeric'});
+  const fmtDate = (d) => d.toLocaleDateString('en-GB', { day: '2-digit', month: 'short', year: 'numeric' });
   const initials = student.name ? student.name[0].toUpperCase() : 'S';
   const photoHTML = (student.photo && student.photo.length > 10)
     ? '<img src="' + student.photo + '" style="width:100%;height:100%;object-fit:cover;object-position:top;">'
@@ -10103,9 +10094,9 @@ function printIdCardFromSection() {
 function goToCertificateFromProfile() {
   const student = window.currentStudentForProfile;
   bootstrap.Modal.getInstance(document.getElementById('studentProfileModal'))?.hide();
-  setTimeout(function() {
+  setTimeout(function () {
     switchTab('certificates');
-    setTimeout(function() {
+    setTimeout(function () {
       const idx = student ? globalData.students.findIndex(s => s.name === student.name) : -1;
       if (idx >= 0) {
         const sel = document.getElementById('certStudentSelect');
@@ -10118,9 +10109,9 @@ function goToCertificateFromProfile() {
 function goToIdCardFromProfile() {
   const student = window.currentStudentForProfile;
   bootstrap.Modal.getInstance(document.getElementById('studentProfileModal'))?.hide();
-  setTimeout(function() {
+  setTimeout(function () {
     switchTab('idcards');
-    setTimeout(function() {
+    setTimeout(function () {
       const idx = student ? globalData.students.findIndex(s => s.name === student.name) : -1;
       if (idx >= 0) {
         const sel = document.getElementById('idcardStudentSelect');
@@ -10195,7 +10186,7 @@ function previewCertificate() {
 }
 
 // White background remover for signature images
-window._rmWhite = function(img) {
+window._rmWhite = function (img) {
   try {
     var cv = document.createElement('canvas');
     cv.width = img.naturalWidth || 320;
@@ -10205,12 +10196,12 @@ window._rmWhite = function(img) {
     ctx.drawImage(img, 0, 0);
     var d = ctx.getImageData(0, 0, cv.width, cv.height);
     for (var i = 0; i < d.data.length; i += 4) {
-      var br = (d.data[i] + d.data[i+1] + d.data[i+2]) / 3;
+      var br = (d.data[i] + d.data[i + 1] + d.data[i + 2]) / 3;
       if (br > 150) {
-        d.data[i+3] = 0; // transparent
+        d.data[i + 3] = 0; // transparent
       } else {
-        d.data[i] = 255; d.data[i+1] = 255; d.data[i+2] = 255;
-        d.data[i+3] = Math.min(255, (150 - br) * 4);
+        d.data[i] = 255; d.data[i + 1] = 255; d.data[i + 2] = 255;
+        d.data[i + 3] = Math.min(255, (150 - br) * 4);
       }
     }
     ctx.putImageData(d, 0, 0);
@@ -10218,7 +10209,7 @@ window._rmWhite = function(img) {
       img.parentNode.insertBefore(cv, img);
       img.remove();
     }
-  } catch(e) { console.warn('Sign render error:', e); }
+  } catch (e) { console.warn('Sign render error:', e); }
 };
 
 function buildCertificateHTML(student) {
@@ -10230,10 +10221,10 @@ function buildCertificateHTML(student) {
   const durationInput = document.getElementById('certDuration');
   const startVal = startInput ? startInput.value : '';
   const durationVal = durationInput ? parseInt(durationInput.value) : 0;
-  
+
   let sessionLabel = 'Date';
   let sessionValue = dateStr;
-  
+
   if (startVal && durationVal) {
     const startDate = new Date(startVal);
     const endDate = new Date(startVal);
@@ -10425,10 +10416,61 @@ async function generateAllCertificates() {
   if (btn) btn.disabled = true;
   for (let i = 0; i < certBulkStudents.length; i++) {
     const s = certBulkStudents[i];
-    if (btn) btn.textContent = `Generating ${i+1}/${certBulkStudents.length}...`;
+    if (btn) btn.textContent = `Generating ${i + 1}/${certBulkStudents.length}...`;
     printCertificateForStudent(s, true);
     await new Promise(r => setTimeout(r, 1200));
   }
   if (btn) { btn.disabled = false; btn.textContent = 'Generate All Certificates'; }
   alert(`✅ ${certBulkStudents.length}টি সার্টিফিকেট উইন্ডো খোলা হয়েছে। প্রতিটি থেকে PDF Save করুন।`);
 }
+
+function exportStudentListExcel() {
+  const students = window.globalData?.students || [];
+  if (students.length === 0) { alert('No student data to export!'); return; }
+
+  let csv = 'Date,ID,Name,Course,Batch,Total,Paid,Due\n';
+  students.forEach(s => {
+    csv += `${s.enrollDate || ''},${s.studentId || ''},` +
+      `"${(s.name || '').replace(/"/g, '""')}",` +
+      `"${(s.course || '').replace(/"/g, '""')}",` +
+      `"${s.batch || ''}",${s.totalPayment || 0},${s.paid || 0},${s.due || 0}\n`;
+  });
+
+  const blob = new Blob([csv], { type: 'text/csv;charset=utf-8;' });
+  const link = document.createElement('a');
+  link.href = URL.createObjectURL(blob);
+  link.setAttribute('download', `Student_List_${new Date().toISOString().split('T')[0]}.csv`);
+  document.body.appendChild(link);
+  link.click();
+  document.body.removeChild(link);
+}
+window.exportStudentListExcel = exportStudentListExcel;
+
+function exportBatchReportExcel() {
+  const students = window.globalData?.students || [];
+  if (students.length === 0) { alert('No data to export!'); return; }
+
+  const batchMap = {};
+  students.forEach(s => {
+    const b = s.batch || 'Unknown';
+    if (!batchMap[b]) batchMap[b] = { total: 0, paid: 0, due: 0, count: 0 };
+    batchMap[b].total += parseFloat(s.totalPayment) || 0;
+    batchMap[b].paid += parseFloat(s.paid) || 0;
+    batchMap[b].due += parseFloat(s.due) || 0;
+    batchMap[b].count++;
+  });
+
+  let csv = 'Batch,Students,Total Receivable,Collected,Due\n';
+  Object.entries(batchMap).forEach(([batch, d]) => {
+    csv += `${batch},${d.count},${d.total},${d.paid},${d.due}\n`;
+  });
+
+  const blob = new Blob([csv], { type: 'text/csv;charset=utf-8;' });
+  const link = document.createElement('a');
+  link.href = URL.createObjectURL(blob);
+  link.setAttribute('download', `Batch_Report_${new Date().toISOString().split('T')[0]}.csv`);
+  document.body.appendChild(link);
+  link.click();
+  document.body.removeChild(link);
+}
+window.exportBatchReportExcel = exportBatchReportExcel;
