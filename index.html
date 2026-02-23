@@ -1089,14 +1089,12 @@
             inset: 0;
             border-radius: 50%;
             padding: 4px;
-            background: conic-gradient(
-                from 0deg,
-                #00f2ff 0%,
-                #7b2ff7 25%,
-                #ffd700 50%,
-                #00f2ff 75%,
-                #7b2ff7 100%
-            );
+            background: conic-gradient(from 0deg,
+                    #00f2ff 0%,
+                    #7b2ff7 25%,
+                    #ffd700 50%,
+                    #00f2ff 75%,
+                    #7b2ff7 100%);
             -webkit-mask:
                 linear-gradient(#fff 0 0) content-box,
                 linear-gradient(#fff 0 0);
@@ -1108,8 +1106,13 @@
         }
 
         @keyframes ringRotate {
-            from { transform: rotate(0deg); }
-            to   { transform: rotate(360deg); }
+            from {
+                transform: rotate(0deg);
+            }
+
+            to {
+                transform: rotate(360deg);
+            }
         }
 
         .donut-inner {
@@ -2972,8 +2975,7 @@
                                 <label class="form-label fw-bold small text-uppercase text-muted">Phone
                                     Number</label>
                                 <input type="tel" name="phone" class="form-control premium-input-modern"
-                                    placeholder="e.g., +8801234567890" required
-                                    inputmode="numeric"
+                                    placeholder="e.g., +8801234567890" required inputmode="numeric"
                                     pattern="[0-9+\-\s]+"
                                     oninput="(function(el){var b=el.value;el.value=el.value.replace(/[^0-9+\-\s]/g,'');if(b!==el.value&&window.showPhoneOnlyToast)window.showPhoneOnlyToast();})(this)">
                             </div>
@@ -4605,9 +4607,7 @@
                         <div class="mb-3">
                             <label class="form-label fw-bold small text-uppercase text-muted">Phone Number</label>
                             <input type="tel" name="visitorPhone" class="form-control premium-input-modern"
-                                placeholder="e.g., 017xxxxxxxx" required
-                                inputmode="numeric"
-                                pattern="[0-9+\-\s]+"
+                                placeholder="e.g., 017xxxxxxxx" required inputmode="numeric" pattern="[0-9+\-\s]+"
                                 oninput="(function(el){var b=el.value;el.value=el.value.replace(/[^0-9+\-\s]/g,'');if(b!==el.value&&window.showPhoneOnlyToast)window.showPhoneOnlyToast();})(this)">
                         </div>
                         <div class="mb-3">
@@ -5011,9 +5011,7 @@
                             <div class="col-md-6">
                                 <label class="form-label fw-bold small text-muted">Phone Number</label>
                                 <input type="tel" name="phone" class="form-control premium-input-modern"
-                                    placeholder="e.g. +88017..." required
-                                    inputmode="numeric"
-                                    pattern="[0-9+\-\s]+"
+                                    placeholder="e.g. +88017..." required inputmode="numeric" pattern="[0-9+\-\s]+"
                                     oninput="(function(el){var b=el.value;el.value=el.value.replace(/[^0-9+\-\s]/g,'');if(b!==el.value&&window.showPhoneOnlyToast)window.showPhoneOnlyToast();})(this)">
                             </div>
                         </div>
@@ -5255,7 +5253,11 @@
         if (window.supabase && window.supabase.createClient) window.createClient = window.supabase.createClient;
     </script>
 
-    <!-- Supabase Configuration (Update with your credentials) -->
+    <!-- Supabase Configuration (Handled by Main Sync) -->
+
+
+    <!-- Emergency Disaster Recovery (Automatic data repair) -->
+    <script src="EMERGENCY_RESTORE.js"></script>
 
     <!-- Supabase Sync System (Multi-user Real-time Sync) -->
     <script src="supabase-sync-SMART-V30.js?v=3.0"></script>
@@ -6304,8 +6306,8 @@
         })();
     </script>
 
-<!-- Phone Number Only Toast Notification -->
-<div id="phoneOnlyToast" style="
+    <!-- Phone Number Only Toast Notification -->
+    <div id="phoneOnlyToast" style="
     display: none;
     position: fixed;
     top: 24px;
@@ -6324,44 +6326,59 @@
     pointer-events: none;
     animation: none;
 ">
-    <span style="font-size:20px;">🚫</span>
-    <span>Text is not allowed! Please enter numbers only.</span>
-</div>
+        <span style="font-size:20px;">🚫</span>
+        <span>Text is not allowed! Please enter numbers only.</span>
+    </div>
 
-<style>
-@keyframes phoneToastIn {
-    from { opacity: 0; top: 0px; }
-    to   { opacity: 1; top: 24px; }
-}
-@keyframes phoneToastOut {
-    from { opacity: 1; top: 24px; }
-    to   { opacity: 0; top: 0px; }
-}
-</style>
+    <style>
+        @keyframes phoneToastIn {
+            from {
+                opacity: 0;
+                top: 0px;
+            }
 
-<script>
-(function() {
-    let _phoneToastTimer = null;
+            to {
+                opacity: 1;
+                top: 24px;
+            }
+        }
 
-    window.showPhoneOnlyToast = function() {
-        const toast = document.getElementById('phoneOnlyToast');
-        if (!toast) return;
+        @keyframes phoneToastOut {
+            from {
+                opacity: 1;
+                top: 24px;
+            }
 
-        clearTimeout(_phoneToastTimer);
-        toast.style.display = 'flex';
-        toast.style.animation = 'none';
-        void toast.offsetWidth;
-        toast.style.animation = 'phoneToastIn 0.3s ease forwards';
+            to {
+                opacity: 0;
+                top: 0px;
+            }
+        }
+    </style>
 
-        _phoneToastTimer = setTimeout(function() {
-            toast.style.animation = 'phoneToastOut 0.4s ease forwards';
-            setTimeout(function() {
-                toast.style.display = 'none';
-            }, 400);
-        }, 2500);
-    };
-})();
-</script>
+    <script>
+        (function () {
+            let _phoneToastTimer = null;
+
+            window.showPhoneOnlyToast = function () {
+                const toast = document.getElementById('phoneOnlyToast');
+                if (!toast) return;
+
+                clearTimeout(_phoneToastTimer);
+                toast.style.display = 'flex';
+                toast.style.animation = 'none';
+                void toast.offsetWidth;
+                toast.style.animation = 'phoneToastIn 0.3s ease forwards';
+
+                _phoneToastTimer = setTimeout(function () {
+                    toast.style.animation = 'phoneToastOut 0.4s ease forwards';
+                    setTimeout(function () {
+                        toast.style.display = 'none';
+                    }, 400);
+                }, 2500);
+            };
+        })();
+    </script>
 
 </body>
 
