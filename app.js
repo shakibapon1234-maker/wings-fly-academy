@@ -1428,14 +1428,12 @@ function switchTab(tab, refreshStats = true) {
   } else if (tab === 'students') {
     if (studentBtn) studentBtn.classList.add('active');
     if (studentSection) studentSection.classList.remove('d-none');
-    if (globalFilterCard) globalFilterCard.classList.remove('d-none');
     const pageTitle = document.querySelector('.page-title');
     if (pageTitle) pageTitle.textContent = 'Student Management';
     filterData();
   } else if (tab === 'ledger') {
     if (ledgerBtn) ledgerBtn.classList.add('active');
     if (ledgerSection) ledgerSection.classList.remove('d-none');
-    if (globalFilterCard) globalFilterCard.classList.remove('d-none');
     const pageTitle = document.querySelector('.page-title');
     if (pageTitle) pageTitle.textContent = 'Financial Ledger';
     filterData();
