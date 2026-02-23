@@ -347,21 +347,40 @@ function removeStudentPhoto() {
 }
 
 async function uploadStudentPhoto(studentId, file) {
-  const db = await initPhotoDB();
+  // ✅ FIX: base64 return করো (key নয়) — যাতে img src সরাসরি কাজ করে
+  // এতে: cloud sync এ photo যাবে, multi-device এ দেখা যাবে, ERR_FILE_NOT_FOUND বন্ধ
   return new Promise((resolve, reject) => {
     const reader = new FileReader();
-    reader.onload = async (e) => {
-      const base64 = e.target.result;
-      const transaction = db.transaction([PHOTO_STORE_NAME], 'readwrite');
-      const store = transaction.objectStore(PHOTO_STORE_NAME);
-      const photoKey = `photo_${studentId}`;
-      store.put(base64, photoKey);
-      transaction.oncomplete = () => {
-        console.log('✅ Photo saved to local database');
-        resolve(photoKey);
+    reader.onload = (e) => {
+      const originalBase64 = e.target.result;
+
+      // ✅ Photo resize: max 400px, quality 0.75 → ~30-50KB
+      const img = new Image();
+      img.onload = () => {
+        const canvas = document.createElement('canvas');
+        const MAX = 400;
+        let w = img.width, h = img.height;
+        if (w > h) { if (w > MAX) { h = Math.round(h * MAX / w); w = MAX; } }
+        else        { if (h > MAX) { w = Math.round(w * MAX / h); h = MAX; } }
+        canvas.width = w; canvas.height = h;
+        const ctx = canvas.getContext('2d');
+        ctx.drawImage(img, 0, 0, w, h);
+        const resizedBase64 = canvas.toDataURL('image/jpeg', 0.75);
+
+        // IndexedDB তেও backup রাখো (backward compatibility)
+        const photoKey = `photo_${studentId}`;
+        initPhotoDB().then(db => {
+          const tx = db.transaction([PHOTO_STORE_NAME], 'readwrite');
+          tx.objectStore(PHOTO_STORE_NAME).put(resizedBase64, photoKey);
+        }).catch(() => {});
+
+        console.log(`✅ Photo processed: ${Math.round(resizedBase64.length / 1024)}KB`);
+        resolve(resizedBase64); // ✅ base64 return করো, key নয়
       };
-      transaction.onerror = () => reject('Database error');
+      img.onerror = () => resolve(originalBase64); // resize fail হলে original
+      img.src = originalBase64;
     };
+    reader.onerror = () => reject('File read error');
     reader.readAsDataURL(file);
   });
 }
@@ -378,15 +397,37 @@ function getStudentPhotoSrc(photoKey, imgElementId = null) {
 
   if (!photoKey) return placeholder;
 
+  // ✅ NEW FORMAT: base64 সরাসরি থাকলে সেটাই return করো
+  if (photoKey.startsWith('data:image')) {
+    if (imgElementId) {
+      const img = document.getElementById(imgElementId);
+      if (img) { img.src = photoKey; img.style.objectFit = 'cover'; }
+    }
+    return photoKey;
+  }
+
+  // ✅ OLD KEY FORMAT (photo_WF-xxxxx): IndexedDB থেকে load + auto-migrate
   initPhotoDB().then(db => {
     const transaction = db.transaction([PHOTO_STORE_NAME], 'readonly');
     const request = transaction.objectStore(PHOTO_STORE_NAME).get(photoKey);
     request.onsuccess = () => {
-      if (request.result && imgElementId) {
-        const img = document.getElementById(imgElementId);
-        if (img) {
-          img.src = request.result;
-          img.style.objectFit = 'cover';
+      if (request.result) {
+        if (imgElementId) {
+          const img = document.getElementById(imgElementId);
+          if (img) { img.src = request.result; img.style.objectFit = 'cover'; }
+        }
+        // ✅ MIGRATE: student.photo কে base64 এ update করো (একবারই হবে)
+        const students = window.globalData && window.globalData.students;
+        if (students) {
+          const s = students.find(st => st.photo === photoKey);
+          if (s) {
+            s.photo = request.result;
+            localStorage.setItem('wingsfly_data', JSON.stringify(window.globalData));
+            if (typeof window.scheduleSyncPush === 'function') {
+              window.scheduleSyncPush('Photo key→base64 migration');
+            }
+            console.log('✅ Photo migrated to base64:', photoKey);
+          }
         }
       }
     };
@@ -394,7 +435,6 @@ function getStudentPhotoSrc(photoKey, imgElementId = null) {
 
   return placeholder;
 }
-
 // Make functions globally available
 window.uploadStudentPhoto = uploadStudentPhoto;
 window.deleteStudentPhoto = deleteStudentPhoto;
@@ -1988,18 +2028,31 @@ function render(students) {
     // === STUDENT PHOTO OR INITIAL ===
     let studentAvatar = '';
     if (s.photo) {
-      // If photo exists, show it
-      studentAvatar = `
-        <img src="${s.photo}" 
-             alt="${s.name}" 
-             class="rounded-circle" 
-             style="width: 38px; height: 38px; object-fit: cover; border: 2px solid #00d9ff;"
-             onerror="this.style.display='none'; this.nextElementSibling.style.display='flex';">
-        <div class="bg-primary-subtle text-primary rounded-circle align-items-center justify-content-center fw-bold" 
-             style="width: 38px; height: 38px; font-size: 0.9rem; display: none;">
-          ${(s.name || 'S').charAt(0).toUpperCase()}
-        </div>
-      `;
+      // ✅ FIX: base64 হলে সরাসরি দেখাও; old key format হলে initial দেখাও (migration হলে auto-fix)
+      const isBase64Photo = s.photo.startsWith('data:image');
+      if (isBase64Photo) {
+        studentAvatar = `
+          <img src="${s.photo}" 
+               alt="${s.name}" 
+               class="rounded-circle" 
+               style="width: 38px; height: 38px; object-fit: cover; border: 2px solid #00d9ff;"
+               onerror="this.style.display='none'; this.nextElementSibling.style.display='flex';">
+          <div class="bg-primary-subtle text-primary rounded-circle align-items-center justify-content-center fw-bold" 
+               style="width: 38px; height: 38px; font-size: 0.9rem; display: none;">
+            ${(s.name || 'S').charAt(0).toUpperCase()}
+          </div>
+        `;
+        // Trigger migration in background (old key format এর জন্য)
+      } else {
+        // Old key format — getStudentPhotoSrc দিয়ে async migrate করো, এখন initial দেখাও
+        getStudentPhotoSrc(s.photo); // triggers background migration
+        studentAvatar = `
+          <div class="bg-primary-subtle text-primary rounded-circle align-items-center justify-content-center fw-bold" 
+               style="width: 38px; height: 38px; font-size: 0.9rem; display: flex;">
+            ${(s.name || 'S').charAt(0).toUpperCase()}
+          </div>
+        `;
+      }
     } else {
       // If no photo, show initial letter
       studentAvatar = `
