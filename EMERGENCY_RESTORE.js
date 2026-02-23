@@ -886,18 +886,35 @@
     };
 
     function restore() {
-        console.log('🔄 Emergency Data Restoration started...');
-        const currentData = JSON.parse(localStorage.getItem('wingsfly_data') || '{}');
+        console.log('🔄 Checking if emergency restoration is needed...');
+        const rawData = localStorage.getItem('wingsfly_data');
+        const currentData = JSON.parse(rawData || '{}');
         const currentStudents = currentData.students || [];
+        const currentEmployees = currentData.employees || [];
 
-        if (currentStudents.length < 15) {
-            console.log('⚠️ Data loss confirmed (Count: ' + currentStudents.length + '). Restoring from 2026-02-22 backup...');
-            localStorage.setItem('wingsfly_data', JSON.stringify(backupData));
-            console.log('✅ Restoration complete! Reloading page...');
-            alert('⚠️ Data Loss Detected! \n\nRestoring 23 students from Feb 22 backup. \n\nPage will reload now.');
-            window.location.reload();
+        // ✅ SECURITY FIX: 
+        // ১. যদি কোনো ডেটা থাকে (student বা employee), তবে অটো-রেস্টোর করবেন না।
+        // ২. যদি ইন্টারনেট থাকে, তবে ক্লাউড সিঙ্ককে সুযোগ দিন।
+        // ৩. শুধু তখনই রেস্টোর করবেন যখন ডেটা একদম শূন্য এবং নেট নেই।
+
+        if (!rawData || (currentStudents.length === 0 && currentEmployees.length === 0)) {
+            // সত্যিকারের ডেটা লস (একদম খালি)
+            if (navigator.onLine) {
+                console.log('🌐 Internet is online. Skipping local emergency restore to allow Cloud Sync to recover data.');
+                return;
+            }
+
+            console.log('⚠️ Critical Data Loss Detected (Offline). Prompting for restore...');
+            if (confirm('⚠️ Data Loss Detected (Offline)! \n\nNo local data found. Would you like to restore from the Feb 22 emergency backup? \n\n(If you have internet, click Cancel and refresh to sync from Cloud instead).')) {
+                localStorage.setItem('wingsfly_data', JSON.stringify(backupData));
+                console.log('✅ Restoration complete! Reloading page...');
+                window.location.reload();
+            }
+        } else if (currentStudents.length > 0 && currentStudents.length < 15) {
+            // ডেটা আছে কিন্তু কম (আংশিক লস হতে পারে)
+            console.log('ℹ️ Local data found (Count: ' + currentStudents.length + '). Skipping auto-restore to avoid overwriting newer data (like HR/Staff).');
         } else {
-            console.log('✅ Data seems intact (Count: ' + currentStudents.length + '). No restoration needed.');
+            console.log('✅ Data exists. No restoration needed.');
         }
     }
 

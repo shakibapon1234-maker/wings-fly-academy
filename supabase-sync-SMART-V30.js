@@ -201,8 +201,27 @@
             cloudLastAction.toLowerCase().includes('remove');
           const isCloudNewer = cloudVersion > localVersion;
 
+          // ✅ V31: ADVANCED MASS-DATA-LOSS PROTECTION
+          // যদি ক্লাউড ভার্সন বেশি হয় কিন্তু ডেটা অনেক বেশি কমে যায় (৫টির বেশি আইটেম ডিফারেন্স এবং ক্লাউড অর্ধেকেরও কম)
+          // তবে এটি সন্দেহজনক হতে পারে। সেক্ষেত্রে লোকাল ডেটা ওভাররাইট হওয়ার আগে একটি এমারজেন্সি ব্যাকআপ নিন।
+          const studentDiff = localStudents.length - cloudStudents.length;
+          const isSuspiciousLoss = isCloudNewer && !isOwnPush && !isDeleteAction &&
+            (studentDiff > 5 && cloudStudents.length < (localStudents.length / 2));
+
+          if (isSuspiciousLoss) {
+            log('🛡️', 'Suspicious mass data loss detected in cloud! Creating emergency snapshot before sync...');
+            try {
+              const snapshot = {
+                timestamp: new Date().toISOString(),
+                version: localVersion,
+                data: JSON.parse(JSON.stringify(window.globalData))
+              };
+              localStorage.setItem('wings_emergency_snapshot', JSON.stringify(snapshot));
+            } catch (e) { log('⚠️', 'Snapshot failed: ' + e.message); }
+          }
+
           if (isOwnPush || isDeleteAction || isCloudNewer) {
-            log('🗑️', `Accepting cloud (own=${isOwnPush}, delete=${isDeleteAction}, newer=${isCloudNewer})`);
+            log('🗑️', `Accepting cloud (own=${isOwnPush}, delete=${isDeleteAction}, newer=${isCloudNewer}, suspicious=${isSuspiciousLoss})`);
             log('🗑️', `Students: Cloud=${cloudStudents.length} Local=${localStudents.length}`);
             log('🗑️', `Employees: Cloud=${cloudEmployees.length} Local=${localEmployees.length}`);
             // Continue below (no return)
