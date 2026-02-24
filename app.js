@@ -4830,14 +4830,6 @@ function handleSettingsSubmit(e) {
 
   saveToStorage();
 
-  // Keep Record tab active থাকলে modal বন্ধ করবে না
-  const activeTab = document.querySelector('#settingsTabContent .settings-tab-pane[style*="display:block"], #settingsTabContent .settings-tab-pane.active');
-  if (activeTab && activeTab.id === 'tab-keeprecord') {
-    showSuccessToast('Settings updated successfully!');
-    updateGlobalStats();
-    return;
-  }
-
   const modal = bootstrap.Modal.getInstance(document.getElementById('settingsModal'));
   modal.hide();
 
@@ -11141,7 +11133,7 @@ function openKeepRecordModal(editId) {
 
   form.style.display = 'block';
   // form এ scroll করো
-  setTimeout(() => form.scrollIntoView({ behavior: 'smooth', block: 'start' }), 50);
+  form.scrollIntoView({ behavior: 'smooth', block: 'start' });
 }
 window.openKeepRecordModal = openKeepRecordModal;
 
@@ -11152,27 +11144,18 @@ function closeKeepRecordModal() {
 window.closeKeepRecordModal = closeKeepRecordModal;
 
 function saveKeepRecord() {
-  const dateEl = document.getElementById('krNoteDate');
-  const tagEl = document.getElementById('krNoteTag');
-  const titleEl = document.getElementById('krNoteTitle');
-  const bodyEl = document.getElementById('krNoteBody');
-  const editIdEl = document.getElementById('krEditId');
-
-  if (!dateEl || !titleEl || !bodyEl) return;
-
-  const date = dateEl.value;
-  const tag = tagEl ? tagEl.value : 'General';
-  const title = titleEl.value.trim();
-  const body = bodyEl.value.trim();
+  const date = document.getElementById('krNoteDate').value;
+  const tag = document.getElementById('krNoteTag').value;
+  const title = document.getElementById('krNoteTitle').value.trim();
+  const body = document.getElementById('krNoteBody').value.trim();
 
   if (!title && !body) {
     if (typeof showToast === 'function') showToast('শিরোনাম বা নোট লিখুন!', 'warning');
-    else alert('শিরোনাম বা নোট লিখুন!');
     return;
   }
 
   const records = getKeepRecords();
-  const editId = editIdEl ? editIdEl.value : '';
+  const editId = document.getElementById('krEditId').value;
 
   if (editId) {
     const idx = records.findIndex(r => r.id === editId);
@@ -11248,8 +11231,8 @@ function renderKeepRecords() {
           <span style="background:${tagColor}22; color:${tagColor}; border:1px solid ${tagColor}55; border-radius:6px; padding:1px 8px; font-size:0.7rem; font-weight:700; white-space:nowrap; flex-shrink:0;">${rec.tag || 'General'}</span>
           <span style="color:#ffd54f; font-size:0.75rem; white-space:nowrap; flex-shrink:0;">📅 ${rec.date || ''}</span>
           <div style="margin-left:auto; display:flex; gap:6px; flex-shrink:0;">
-            <button title="Edit" style="padding:3px 9px; font-size:0.75rem; background:rgba(13,110,253,0.15); color:#6ea8fe; border:1px solid rgba(13,110,253,0.3); border-radius:6px; cursor:pointer; white-space:nowrap;" onclick="event.stopPropagation(); openKeepRecordModal('${rec.id}')">✏️ Edit</button>
-            <button title="Delete" style="padding:3px 9px; font-size:0.75rem; background:rgba(220,53,69,0.15); color:#f87171; border:1px solid rgba(220,53,69,0.3); border-radius:6px; cursor:pointer; white-space:nowrap;" onclick="event.stopPropagation(); deleteKeepRecord('${rec.id}')">🗑️</button>
+            <button type="button" title="Edit" style="padding:3px 9px; font-size:0.75rem; background:rgba(13,110,253,0.15); color:#6ea8fe; border:1px solid rgba(13,110,253,0.3); border-radius:6px; cursor:pointer; white-space:nowrap;" onclick="event.preventDefault(); event.stopPropagation(); openKeepRecordModal('${rec.id}')">✏️ Edit</button>
+            <button type="button" title="Delete" style="padding:3px 9px; font-size:0.75rem; background:rgba(220,53,69,0.15); color:#f87171; border:1px solid rgba(220,53,69,0.3); border-radius:6px; cursor:pointer; white-space:nowrap;" onclick="event.preventDefault(); event.stopPropagation(); deleteKeepRecord('${rec.id}')">🗑️</button>
           </div>
         </div>
         ${rec.title ? `<div style="color:#e2e8f0; font-size:0.9rem; font-weight:700; margin-bottom:3px;">${rec.title}</div>` : ''}
