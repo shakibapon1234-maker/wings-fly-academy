@@ -5678,6 +5678,23 @@
                 renderMobileBankingList();
             }
         });
+
+        // ✅ EARLY DEFINE: checkPasswordMatch - settings modal এ oninput এ call হয়
+        // app.js load হওয়ার আগেও কাজ করবে
+        window.checkPasswordMatch = function() {
+            var p1 = document.getElementById('settingsPassword');
+            var p2 = document.getElementById('settingsPasswordConfirm');
+            var msg = document.getElementById('passwordMatchMsg');
+            if (!p1 || !p2 || !msg) return;
+            if (!p1.value && !p2.value) { msg.style.display = 'none'; return; }
+            if (p1.value === p2.value) {
+                msg.style.display = 'block';
+                msg.innerHTML = '<span style="color:#22c55e;">✅ পাসওয়ার্ড মিলেছে!</span>';
+            } else {
+                msg.style.display = 'block';
+                msg.innerHTML = '<span style="color:#ef4444;">❌ পাসওয়ার্ড মিলছে না</span>';
+            }
+        };
     </script>
 
     <!-- =============================================== -->
