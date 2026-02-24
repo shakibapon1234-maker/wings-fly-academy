@@ -7697,10 +7697,22 @@ function applyAdvancedSearch() {
 function clearAdvancedSearch() {
   document.getElementById('batchFilterSelect').value = '';
   if (document.getElementById('courseFilterSelect')) {
-    document.getElementById('courseFilterSelect').value = ''; // ✅ FIX: course ও reset
+    document.getElementById('courseFilterSelect').value = '';
   }
   document.getElementById('advSearchStartDate').value = '';
   document.getElementById('advSearchEndDate').value = '';
+  // ✅ Previous Due ও Profit clear করো
+  const pd = document.getElementById('advPrevDue');
+  const pp = document.getElementById('advPrevProfit');
+  if (pd) pd.value = '';
+  if (pp) pp.value = '';
+  // ✅ Summary values reset
+  ['advSearchIncome','advSearchCollected','advSearchDue','advSearchCount',
+   'advSearchExpense','advSearchProfit','advSummPrevDue','advSummPrevProfit',
+   'advSummTotalDue','advSummTotalProfit'].forEach(id => {
+    const el = document.getElementById(id);
+    if (el) el.innerText = id === 'advSearchCount' ? '0' : '৳0';
+  });
   document.getElementById('advSearchSummary').classList.add('d-none');
   render(globalData.students);
 }
@@ -11096,10 +11108,19 @@ function saveKeepRecordsToStorage(records) {
 function openKeepRecordModal(editId) {
   const backdrop = document.getElementById('krModalBackdrop');
   if (!backdrop) return;
-  // Bootstrap modal এর backdrop (z-index:1050) এর উপরে থাকতে হবে
-  document.body.appendChild(backdrop); // body তে move করো যাতে stacking context ঠিক থাকে
-  backdrop.style.zIndex = '99999';
-  backdrop.style.display = 'flex';
+
+  // Settings modal এর overflow/transform থেকে বের করে body তে নিয়ে যাই
+  document.body.appendChild(backdrop);
+
+  // Settings modal এর scrollable container এর overflow temporarily disable করি
+  const settingsContent = document.querySelector('#settingsModal .modal-content');
+  if (settingsContent) settingsContent.style.overflow = 'visible';
+  const settingsDialog = document.querySelector('#settingsModal .modal-dialog');
+  if (settingsDialog) settingsDialog.style.overflow = 'visible';
+  const settingsBody = document.querySelector('#settingsModal .modal-body');
+  if (settingsBody) settingsBody.style.overflow = 'visible';
+
+  backdrop.style.cssText = 'display:flex !important; position:fixed !important; inset:0 !important; background:rgba(0,0,0,0.85) !important; z-index:999999 !important; align-items:center !important; justify-content:center !important;';
 
   document.getElementById('krEditId').value = '';
   document.getElementById('krNoteDate').value = new Date().toISOString().split('T')[0];
@@ -11125,7 +11146,16 @@ window.openKeepRecordModal = openKeepRecordModal;
 
 function closeKeepRecordModal() {
   const backdrop = document.getElementById('krModalBackdrop');
-  if (backdrop) backdrop.style.display = 'none';
+  if (backdrop) {
+    backdrop.style.cssText = 'display:none;';
+  }
+  // Settings modal এর overflow restore করি
+  const settingsContent = document.querySelector('#settingsModal .modal-content');
+  if (settingsContent) settingsContent.style.overflow = '';
+  const settingsDialog = document.querySelector('#settingsModal .modal-dialog');
+  if (settingsDialog) settingsDialog.style.overflow = '';
+  const settingsBody = document.querySelector('#settingsModal .modal-body');
+  if (settingsBody) settingsBody.style.overflow = '';
 }
 window.closeKeepRecordModal = closeKeepRecordModal;
 
