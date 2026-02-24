@@ -7662,9 +7662,29 @@ function applyAdvancedSearch() {
     if (netProfit < 0) profitEl.innerText = '- ৳' + formatNumber(Math.abs(netProfit));
   }
 
+  // Previous Due & Previous Profit calculation
+  const prevDueInput = parseFloat(document.getElementById('advPrevDue')?.value) || 0;
+  const prevProfitInput = parseFloat(document.getElementById('advPrevProfit')?.value) || 0;
+
+  const totalDueCombined = totalDue + prevDueInput;
+  const totalProfitCombined = netProfit + prevProfitInput;
+
+  const prevDueEl = document.getElementById('advSummPrevDue');
+  const prevProfitEl = document.getElementById('advSummPrevProfit');
+  const totalDueCombEl = document.getElementById('advSummTotalDue');
+  const totalProfitCombEl = document.getElementById('advSummTotalProfit');
+
+  if (prevDueEl) prevDueEl.innerText = '৳' + formatNumber(prevDueInput);
+  if (prevProfitEl) prevProfitEl.innerText = '৳' + formatNumber(prevProfitInput);
+  if (totalDueCombEl) totalDueCombEl.innerText = '৳' + formatNumber(totalDueCombined);
+  if (totalProfitCombEl) {
+    totalProfitCombEl.innerText = (totalProfitCombined < 0 ? '- ' : '') + '৳' + formatNumber(Math.abs(totalProfitCombined));
+    totalProfitCombEl.style.color = totalProfitCombined >= 0 ? '#38bdf8' : '#f87171';
+  }
+
   // Show/hide summary
   const summary = document.getElementById('advSearchSummary');
-  if (batch || course || startDate || endDate) {
+  if (batch || course || startDate || endDate || prevDueInput || prevProfitInput) {
     summary.classList.remove('d-none');
   } else {
     summary.classList.add('d-none');
@@ -11076,6 +11096,9 @@ function saveKeepRecordsToStorage(records) {
 function openKeepRecordModal(editId) {
   const backdrop = document.getElementById('krModalBackdrop');
   if (!backdrop) return;
+  // Bootstrap modal এর backdrop (z-index:1050) এর উপরে থাকতে হবে
+  document.body.appendChild(backdrop); // body তে move করো যাতে stacking context ঠিক থাকে
+  backdrop.style.zIndex = '99999';
   backdrop.style.display = 'flex';
 
   document.getElementById('krEditId').value = '';
