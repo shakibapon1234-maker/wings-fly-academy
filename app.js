@@ -4830,6 +4830,14 @@ function handleSettingsSubmit(e) {
 
   saveToStorage();
 
+  // Keep Record tab active থাকলে modal বন্ধ করবে না
+  const activeTab = document.querySelector('#settingsTabContent .settings-tab-pane[style*="display:block"], #settingsTabContent .settings-tab-pane.active');
+  if (activeTab && activeTab.id === 'tab-keeprecord') {
+    showSuccessToast('Settings updated successfully!');
+    updateGlobalStats();
+    return;
+  }
+
   const modal = bootstrap.Modal.getInstance(document.getElementById('settingsModal'));
   modal.hide();
 
@@ -11133,7 +11141,7 @@ function openKeepRecordModal(editId) {
 
   form.style.display = 'block';
   // form এ scroll করো
-  form.scrollIntoView({ behavior: 'smooth', block: 'start' });
+  setTimeout(() => form.scrollIntoView({ behavior: 'smooth', block: 'start' }), 50);
 }
 window.openKeepRecordModal = openKeepRecordModal;
 
@@ -11144,18 +11152,27 @@ function closeKeepRecordModal() {
 window.closeKeepRecordModal = closeKeepRecordModal;
 
 function saveKeepRecord() {
-  const date = document.getElementById('krNoteDate').value;
-  const tag = document.getElementById('krNoteTag').value;
-  const title = document.getElementById('krNoteTitle').value.trim();
-  const body = document.getElementById('krNoteBody').value.trim();
+  const dateEl = document.getElementById('krNoteDate');
+  const tagEl = document.getElementById('krNoteTag');
+  const titleEl = document.getElementById('krNoteTitle');
+  const bodyEl = document.getElementById('krNoteBody');
+  const editIdEl = document.getElementById('krEditId');
+
+  if (!dateEl || !titleEl || !bodyEl) return;
+
+  const date = dateEl.value;
+  const tag = tagEl ? tagEl.value : 'General';
+  const title = titleEl.value.trim();
+  const body = bodyEl.value.trim();
 
   if (!title && !body) {
     if (typeof showToast === 'function') showToast('শিরোনাম বা নোট লিখুন!', 'warning');
+    else alert('শিরোনাম বা নোট লিখুন!');
     return;
   }
 
   const records = getKeepRecords();
-  const editId = document.getElementById('krEditId').value;
+  const editId = editIdEl ? editIdEl.value : '';
 
   if (editId) {
     const idx = records.findIndex(r => r.id === editId);
