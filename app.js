@@ -34,13 +34,6 @@ if (typeof window.globalData === 'undefined') {
 // সবসময় নিশ্চিত করো
 if (!window.globalData.deletedItems) window.globalData.deletedItems = [];
 if (!window.globalData.activityHistory) window.globalData.activityHistory = [];
-// ✅ credentials object নিশ্চিত করো
-if (!window.globalData.credentials) {
-  window.globalData.credentials = {
-    username: 'admin',
-    password: 'e7d3bfb67567c3d94bcecb2ce65ef146eac83e50dc3f3b89e81bb647a8bada4c'
-  };
-}
 
 // Global Chart instances to prevent initialization errors
 window.financeChartInstance = null;
@@ -178,7 +171,7 @@ function loadDeletedItems() {
     return;
   }
 
-  const icons = { student: '🎓', finance: '💰', employee: '👤', keep_record: '📝', exam: '📋' };
+  const icons = { student: '🎓', finance: '💰', employee: '👤' };
 
   container.innerHTML = filtered.map((d, idx) => {
     const date = new Date(d.deletedAt);
@@ -190,7 +183,6 @@ function loadDeletedItems() {
     if (d.type === 'student') name = d.item.name || d.item.studentName || 'Unknown Student';
     else if (d.type === 'finance') name = (d.item.description || d.item.category || 'Transaction') + ' - ৳' + (d.item.amount || 0);
     else if (d.type === 'employee') name = d.item.name || 'Unknown Employee';
-    else if (d.type === 'keep_record') name = d.item.title || 'Untitled Note';
     else name = JSON.stringify(d.item).substring(0, 60) + '...';
 
     return `
@@ -5083,8 +5075,13 @@ function printReport(type) {
       return matchSearch && matchDate;
     }).sort((a, b) => b.rowIndex - a.rowIndex);
 
+    // ✅ Total row calculate
+    const grandTotal    = students.reduce((sum, s) => sum + (parseFloat(s.totalPayment) || 0), 0);
+    const grandPaid     = students.reduce((sum, s) => sum + (parseFloat(s.paid) || 0), 0);
+    const grandDue      = students.reduce((sum, s) => sum + (parseFloat(s.due) || 0), 0);
+
     tableContent = `
-      <table class="report-table">
+      <table class="report-table" style="width:100%; border-collapse:collapse;">
         <thead>
           <tr>
             <th style="text-align: left;">Date</th>
@@ -5109,6 +5106,22 @@ function printReport(type) {
             </tr>
           `).join('')}
         </tbody>
+        <tfoot>
+          <tr style="background:#f1f5f9; border-top:2px solid #1e293b;">
+            <td colspan="4" style="text-align:right; padding:10px 8px; font-weight:900; font-size:13px; color:#1e293b; text-transform:uppercase; letter-spacing:1px;">
+              TOTAL &rarr;
+            </td>
+            <td style="text-align:right; padding:10px 8px; font-weight:900; font-size:13px; color:#1e293b; border-left:1px solid #cbd5e1;">
+              ৳${formatNumber(grandTotal)}
+            </td>
+            <td style="text-align:right; padding:10px 8px; font-weight:900; font-size:13px; color:#10b981; border-left:1px solid #cbd5e1;">
+              ৳${formatNumber(grandPaid)}
+            </td>
+            <td style="text-align:right; padding:10px 8px; font-weight:900; font-size:13px; color:#ef4444; border-left:1px solid #cbd5e1;">
+              ৳${formatNumber(grandDue)}
+            </td>
+          </tr>
+        </tfoot>
       </table>
     `;
   } else if (type === 'ledger') {
@@ -9953,7 +9966,7 @@ window.loadDeletedItems = function () {
 
   const filtered = filterVal === 'all' ? deleted : deleted.filter(d => d.type === filterVal || d.type === filterVal.toLowerCase());
 
-  const icons = { student: '🎓', finance: '💰', employee: '👤', visitor: '🙋', keep_record: '📝', exam: '📋', Student: '🎓', Finance: '💰', Employee: '👤', Visitor: '🙋' };
+  const icons = { student: '🎓', finance: '💰', employee: '👤', visitor: '🙋', Student: '🎓', Finance: '💰', Employee: '👤', Visitor: '🙋' };
 
   const html = filtered.length === 0
     ? '<div class="text-center text-muted py-5"><div style="font-size:3rem">🗑️</div><p>Trash খালি।</p></div>'
@@ -9966,8 +9979,6 @@ window.loadDeletedItems = function () {
       if (t === 'student') name = d.item.name || 'Unknown Student';
       else if (t === 'finance') name = (d.item.description || d.item.category || 'Transaction') + ' — ৳' + (d.item.amount || 0);
       else if (t === 'employee') name = d.item.name || 'Unknown Employee';
-      else if (t === 'keep_record') name = d.item.title || 'Untitled Note';
-      else if (t === 'exam') name = (d.item.studentName || d.item.name || 'Unknown') + ' — ' + (d.item.subjectName || 'Exam');
       else name = JSON.stringify(d.item).substring(0, 60);
 
       return `<div class="d-flex align-items-start gap-3 p-3 mb-2 rounded-3" style="background:rgba(255,68,68,0.05);border:1px solid rgba(255,68,68,0.2);">
@@ -11192,26 +11203,10 @@ window.saveKeepRecord = saveKeepRecord;
 
 function deleteKeepRecord(id) {
   if (!confirm('এই নোটটি মুছে ফেলবেন?')) return;
-  const allRecords = getKeepRecords();
-  const deletedItem = allRecords.find(r => r.id === id);
-  const records = allRecords.filter(r => r.id !== id);
-
-  // ✅ Recycle Bin এ পাঠাও
-  if (deletedItem && typeof moveToTrash === 'function') {
-    moveToTrash('keep_record', deletedItem);
-  }
-
-  // ✅ Activity Log এ লগ করো
-  if (typeof logActivity === 'function') {
-    logActivity('settings', 'DELETE',
-      `Keep Record ডিলিট: "${deletedItem?.title || 'Untitled'}"`,
-      deletedItem
-    );
-  }
-
+  const records = getKeepRecords().filter(r => r.id !== id);
   saveKeepRecordsToStorage(records);
   renderKeepRecords();
-  if (typeof showToast === 'function') showToast('নোট মুছে গেছে এবং Recycle Bin এ পাঠানো হয়েছে', 'info');
+  if (typeof showToast === 'function') showToast('নোট মুছে গেছে', 'info');
 }
 window.deleteKeepRecord = deleteKeepRecord;
 
