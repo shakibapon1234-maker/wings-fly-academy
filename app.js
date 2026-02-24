@@ -772,6 +772,15 @@ let currentStudentForProfile = null;
 // ===================================
 
 document.addEventListener('DOMContentLoaded', function () {
+  // ✅ URL থেকে sensitive params (username, password) সাথে সাথে সরিয়ে দাও
+  try {
+    const url = new URL(window.location.href);
+    if (url.searchParams.has('password') || url.searchParams.has('username')) {
+      const cleanUrl = window.location.origin + window.location.pathname;
+      window.history.replaceState({}, document.title, cleanUrl);
+    }
+  } catch (e) {}
+
   // Load data from localStorage
   loadFromStorage();
 
@@ -1247,14 +1256,13 @@ async function handleLogin(e) {
       const cred = globalData.credentials;
       if (cred.username === username &&
           (cred.password === hashedInput || cred.password === password)) {
-        // credentials match — dummy user object তৈরি করো
         validUser = {
           username: cred.username,
           password: cred.password,
           role: 'admin',
           name: cred.username
         };
-        // users array তেও sync করো যাতে পরের বার ঠিক থাকে
+        // users array তেও sync করো
         const existingAdmin = (globalData.users || []).find(u => u.role === 'admin');
         if (existingAdmin) {
           existingAdmin.username = cred.username;
@@ -1264,6 +1272,21 @@ async function handleLogin(e) {
           globalData.users.push({ ...validUser, name: 'Super Admin' });
         }
         saveToStorage();
+      }
+    }
+
+    // D. ✅ Last resort: default password check (shakib@123 or admin123)
+    if (!validUser && username === 'admin') {
+      const defaults = ['shakib@123', 'admin123', 'admin'];
+      for (const def of defaults) {
+        const defHash = await hashPassword(def);
+        const anyUser = (globalData.users || []).find(u => u.role === 'admin');
+        if (anyUser && (anyUser.password === defHash || anyUser.password === def)) {
+          if (password === def) {
+            validUser = anyUser;
+            break;
+          }
+        }
       }
     }
 
