@@ -876,6 +876,18 @@ async function saveToStorage(skipCloudSync = false) {
     if (!window.globalData.deletedItems) window.globalData.deletedItems = [];
     if (!window.globalData.activityHistory) window.globalData.activityHistory = [];
 
+    // ✅ Secret Question backup restore guard:
+    // cloud pull এ credentials overwrite হলেও backup থেকে restore করো
+    const _backupQ = localStorage.getItem('wingsfly_secret_q');
+    const _backupA = localStorage.getItem('wingsfly_secret_a');
+    if (_backupQ) {
+      if (!window.globalData.credentials) window.globalData.credentials = {};
+      if (!window.globalData.credentials.secretQuestion) {
+        window.globalData.credentials.secretQuestion = _backupQ;
+        if (_backupA) window.globalData.credentials.secretAnswer = _backupA;
+      }
+    }
+
     // Backup রাখো যাতে cloud pull এ হারিয়ে না যায়
     localStorage.setItem('wingsfly_deleted_backup', JSON.stringify(window.globalData.deletedItems));
     localStorage.setItem('wingsfly_activity_backup', JSON.stringify(window.globalData.activityHistory));
@@ -4753,13 +4765,35 @@ function handleSettingsSubmit(e) {
   }
 
   // ✅ Secret Question সেভ করো (পাসওয়ার্ড ছাড়াও সেভ হবে)
+  // FIX: secretQuestionSection hidden থাকলে temporarily দেখাই value পড়তে
+  const _secSection = document.getElementById('secretQuestionSection');
+  const _wasHidden = _secSection && (_secSection.style.display === 'none' || _secSection.style.display === '');
+  if (_wasHidden && _secSection) _secSection.style.display = 'block';
+
   const secretQ = (formData.secretQuestion || document.getElementById('secretQuestion')?.value || '').trim();
   const secretA = (formData.secretAnswer || document.getElementById('secretAnswer')?.value || '').trim();
+
+  if (_wasHidden && _secSection) _secSection.style.display = 'none';
+
+  if (!globalData.credentials) globalData.credentials = { username: 'admin' };
+
   if (secretQ) {
-    if (!globalData.credentials) globalData.credentials = { username: 'admin' };
     globalData.credentials.secretQuestion = secretQ;
     if (secretA) globalData.credentials.secretAnswer = secretA.toLowerCase();
+    // আলাদা localStorage key তেও backup রাখো — cloud sync এ overwrite হলেও থাকবে
+    localStorage.setItem('wingsfly_secret_q', secretQ);
+    if (secretA) localStorage.setItem('wingsfly_secret_a', secretA.toLowerCase());
     showSuccessToast('🛡️ Secret Question সেভ হয়েছে!');
+  } else if (globalData.credentials.secretQuestion) {
+    // existing question টিকিয়ে রাখো, form এ না দেখালেও মুছবে না
+  } else {
+    // localStorage backup থেকে restore করার চেষ্টা করো
+    const backupQ = localStorage.getItem('wingsfly_secret_q');
+    const backupA = localStorage.getItem('wingsfly_secret_a');
+    if (backupQ) {
+      globalData.credentials.secretQuestion = backupQ;
+      if (backupA) globalData.credentials.secretAnswer = backupA;
+    }
   }
 
   saveToStorage();
@@ -11107,20 +11141,21 @@ function renderKeepRecords() {
 
   container.innerHTML = records.map(rec => {
     const tagColor = KR_TAG_COLORS[rec.tag] || '#6c757d';
-    const bodyPreview = (rec.body || '').length > 120 ? rec.body.substring(0, 120) + '...' : (rec.body || '');
+    const bodyPreview = (rec.body || '').length > 140 ? rec.body.substring(0, 140) + '...' : (rec.body || '');
     return `
-      <div style="background:var(--bg-card,#1e2530); border:1px solid rgba(255,255,255,0.08); border-radius:12px; padding:14px 16px; position:relative;">
-        <div class="d-flex align-items-start gap-2 mb-1">
-          <span style="background:${tagColor}22; color:${tagColor}; border:1px solid ${tagColor}55; border-radius:6px; padding:1px 8px; font-size:0.72rem; font-weight:700; white-space:nowrap;">${rec.tag || 'General'}</span>
-          <span style="color:#ffd54f; font-size:0.78rem; margin-left:auto; white-space:nowrap;">📅 ${rec.date || ''}</span>
+      <div style="background:var(--bg-card,#1e2530); border:1px solid rgba(255,255,255,0.08); border-radius:12px; padding:12px 14px;">
+        <div style="display:flex; align-items:center; gap:8px; margin-bottom:6px; flex-wrap:nowrap;">
+          <span style="background:${tagColor}22; color:${tagColor}; border:1px solid ${tagColor}55; border-radius:6px; padding:1px 8px; font-size:0.7rem; font-weight:700; white-space:nowrap; flex-shrink:0;">${rec.tag || 'General'}</span>
+          <span style="color:#ffd54f; font-size:0.75rem; white-space:nowrap; flex-shrink:0;">📅 ${rec.date || ''}</span>
+          <div style="margin-left:auto; display:flex; gap:6px; flex-shrink:0;">
+            <button title="Edit" style="padding:3px 9px; font-size:0.75rem; background:rgba(13,110,253,0.15); color:#6ea8fe; border:1px solid rgba(13,110,253,0.3); border-radius:6px; cursor:pointer; white-space:nowrap;" onclick="event.stopPropagation(); openKeepRecordModal('${rec.id}')">✏️ Edit</button>
+            <button title="Delete" style="padding:3px 9px; font-size:0.75rem; background:rgba(220,53,69,0.15); color:#f87171; border:1px solid rgba(220,53,69,0.3); border-radius:6px; cursor:pointer; white-space:nowrap;" onclick="event.stopPropagation(); deleteKeepRecord('${rec.id}')">🗑️</button>
+          </div>
         </div>
-        ${rec.title ? `<div class="fw-bold" style="color:#e2e8f0; font-size:0.95rem; margin-bottom:4px;">${rec.title}</div>` : ''}
-        ${bodyPreview ? `<div style="color:#94a3b8; font-size:0.83rem; line-height:1.5; white-space:pre-wrap;">${bodyPreview}</div>` : ''}
-        <div style="position:absolute; top:10px; right:12px; display:flex; gap:6px;">
-          <button class="btn btn-sm" style="padding:2px 8px; font-size:0.75rem; background:rgba(13,110,253,0.15); color:#6ea8fe; border:1px solid rgba(13,110,253,0.3); border-radius:6px;" onclick="openKeepRecordModal('${rec.id}')">✏️</button>
-          <button class="btn btn-sm" style="padding:2px 8px; font-size:0.75rem; background:rgba(220,53,69,0.15); color:#f87171; border:1px solid rgba(220,53,69,0.3); border-radius:6px;" onclick="deleteKeepRecord('${rec.id}')">🗑️</button>
-        </div>
+        ${rec.title ? `<div style="color:#e2e8f0; font-size:0.9rem; font-weight:700; margin-bottom:3px;">${rec.title}</div>` : ''}
+        ${bodyPreview ? `<div style="color:#94a3b8; font-size:0.82rem; line-height:1.55; white-space:pre-wrap;">${bodyPreview}</div>` : ''}
       </div>`;
+  }).join('');
   }).join('');
 }
 window.renderKeepRecords = renderKeepRecords;
@@ -11136,6 +11171,7 @@ document.addEventListener('click', function(e) {
 // ===================================
 function fixAllPaidFinanceMismatch() {
   const resultEl = document.getElementById('krFixResult');
+  if (resultEl) resultEl.innerHTML = '<span class="text-muted">🔄 চেক করা হচ্ছে...</span>';
   try {
     const students = window.globalData.students || [];
     const finance = window.globalData.finance || [];
@@ -11144,30 +11180,34 @@ function fixAllPaidFinanceMismatch() {
 
     students.forEach((student, idx) => {
       const name = student.name;
+      const nameLower = (name || '').trim().toLowerCase();
       const studentPaid = parseFloat(student.paid) || 0;
+      if (studentPaid === 0) return; // paid 0 হলে skip
 
-      // Finance records for this student (Student Fee / Student Installment)
+      // ✅ Case-insensitive person name match
       const finRecords = finance.filter(f =>
-        f.person === name &&
+        (f.person || '').trim().toLowerCase() === nameLower &&
         (f.category === 'Student Fee' || f.category === 'Student Installment') &&
-        (f.type === 'Income')
+        f.type === 'Income'
       );
       const finTotal = finRecords.reduce((sum, f) => sum + (parseFloat(f.amount) || 0), 0);
 
       const diff = studentPaid - finTotal;
-      if (Math.abs(diff) > 0.5) {
-        mismatches.push({ name, studentPaid, finTotal, diff });
-        if (diff > 0) {
-          // Finance কম — একটা correction entry যোগ করো
+      // finance entry নেই কিন্তু paid আছে — এটাও fix করো
+      if (Math.abs(diff) > 0.5 || (finTotal === 0 && studentPaid > 0)) {
+        mismatches.push({ name, studentPaid, finTotal, diff: studentPaid - finTotal });
+        if (studentPaid > finTotal) {
+          // Finance কম / নেই — correction entry যোগ করো
+          const corrAmt = studentPaid - finTotal;
           window.globalData.finance.push({
-            id: Date.now() + idx,
+            id: 'fix_' + Date.now() + '_' + idx,
             type: 'Income',
             method: student.method || 'Cash',
             date: student.enrollDate || new Date().toISOString().split('T')[0],
             category: 'Student Fee',
             person: name,
-            amount: diff,
-            description: `[Auto-Fix] Fee correction for ${name}`,
+            amount: corrAmt,
+            description: '[Auto-Fix] Paid-Finance correction for ' + name,
             timestamp: new Date().toISOString()
           });
         } else {
@@ -11180,17 +11220,21 @@ function fixAllPaidFinanceMismatch() {
     });
 
     if (fixedCount > 0) {
-      saveToStorage();
+      // ✅ local + cloud উভয়ে save করো
+      saveToStorage().then(() => {
+        if (typeof window.saveToCloud === 'function') window.saveToCloud();
+      });
       if (resultEl) {
-        resultEl.innerHTML = `<span class="text-success fw-bold">✅ ${fixedCount}টি mismatch fix হয়েছে!</span><br><small class="text-muted">${mismatches.map(m => `${m.name}: paid ৳${m.studentPaid} vs finance ৳${m.finTotal}`).join('<br>')}</small>`;
+        resultEl.innerHTML = '<span class="text-success fw-bold">✅ ' + fixedCount + 'টি mismatch fix হয়েছে!</span><br><small class="text-muted">' +
+          mismatches.map(m => m.name + ': paid ৳' + m.studentPaid + ' vs finance ৳' + m.finTotal).join('<br>') + '</small>';
       }
-      if (typeof showToast === 'function') showToast(`✅ ${fixedCount}টি paid/finance mismatch fix হয়েছে!`, 'success');
+      if (typeof showToast === 'function') showToast('✅ ' + fixedCount + 'টি paid/finance fix হয়েছে! Cloud sync হচ্ছে...', 'success');
     } else {
-      if (resultEl) resultEl.innerHTML = '<span class="text-success">✅ কোনো mismatch নেই — সব ঠিক আছে!</span>';
+      if (resultEl) resultEl.innerHTML = '<span class="text-success fw-bold">✅ কোনো mismatch নেই — সব ঠিক আছে!</span>';
       if (typeof showToast === 'function') showToast('✅ কোনো mismatch নেই!', 'success');
     }
   } catch(e) {
-    if (resultEl) resultEl.innerHTML = `<span class="text-danger">❌ Error: ${e.message}</span>`;
+    if (resultEl) resultEl.innerHTML = '<span class="text-danger">❌ Error: ' + e.message + '</span>';
   }
 }
 window.fixAllPaidFinanceMismatch = fixAllPaidFinanceMismatch;

@@ -1446,13 +1446,22 @@
     // 18g: Per-student finance vs paid
     let mismatch = 0;
     students.forEach(s => {
-      const ft = finance.filter(f => f.person === s.name && ['Student Fee','Student Installment'].includes(f.category) && f.type === 'Income')
-        .reduce((sum, f) => sum + (parseFloat(f.amount) || 0), 0);
-      if (ft > 0 && Math.abs(ft - (parseFloat(s.paid) || 0)) > 1) mismatch++;
+      const sName = (s.name || '').trim().toLowerCase();
+      const sPaid = parseFloat(s.paid) || 0;
+      if (sPaid === 0) return; // paid 0 হলে skip
+      const ft = finance.filter(f => {
+        const fPerson = (f.person || '').trim().toLowerCase();
+        return fPerson === sName &&
+          ['Student Fee','Student Installment'].includes(f.category) &&
+          f.type === 'Income';
+      }).reduce((sum, f) => sum + (parseFloat(f.amount) || 0), 0);
+      // ft===0 মানে finance entry নেই কিন্তু paid আছে — এটাও mismatch
+      if (ft === 0 && sPaid > 0) { mismatch++; return; }
+      if (ft > 0 && Math.abs(ft - sPaid) > 1) mismatch++;
     });
     mismatch === 0
       ? pass('✅ Student paid ≈ Finance ledger total')
-      : warn('⚠️ ' + mismatch + ' student-এ paid ও finance মিলছে না', 'Edit করলে auto-fix হবে');
+      : warn('⚠️ ' + mismatch + ' student-এ paid ও finance মিলছে না', 'Settings > Data Management > Auto-Fix চালান');
 
     // 18h: updateAccountBalance
     typeof window.updateAccountBalance === 'function'

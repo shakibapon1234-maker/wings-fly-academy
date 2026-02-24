@@ -393,19 +393,23 @@
     data.students.forEach(student => {
       const name = student.name;
       if (!name) return;
+      const nameLower = name.trim().toLowerCase();
       const studentPaid = parseFloat(student.paid) || 0;
       if (studentPaid === 0) return;
 
+      // ✅ Case-insensitive person name match
       const finRecords = finance.filter(f =>
-        f.person === name &&
+        (f.person || '').trim().toLowerCase() === nameLower &&
         (f.category === 'Student Fee' || f.category === 'Student Installment') &&
         f.type === 'Income'
       );
       const finTotal = finRecords.reduce((sum, f) => sum + (parseFloat(f.amount) || 0), 0);
       const diff = studentPaid - finTotal;
 
-      if (Math.abs(diff) > 1) {
-        if (diff > 0) {
+      // finance নেই (finTotal===0) বা mismatch — fix করো
+      if (Math.abs(diff) > 1 || (finTotal === 0 && studentPaid > 0)) {
+        const corrAmt = studentPaid - finTotal;
+        if (corrAmt > 0) {
           finance.push({
             id: 'heal_' + Date.now() + '_' + Math.random().toString(36).slice(2, 5),
             type: 'Income',
@@ -413,15 +417,15 @@
             date: student.enrollDate || new Date().toISOString().split('T')[0],
             category: 'Student Fee',
             person: name,
-            amount: diff,
-            description: '[Auto-Heal] Paid-Finance sync correction for ' + name,
+            amount: corrAmt,
+            description: '[Auto-Heal] Paid-Finance sync for ' + name,
             timestamp: new Date().toISOString()
           });
-          hLog('fix', 'Paid-Finance fix (' + name + '): finance += ৳' + diff.toFixed(0));
-        } else {
+          hLog('fix', 'Paid-Finance fix (' + name + '): finance += ৳' + corrAmt.toFixed(0));
+        } else if (corrAmt < 0) {
           student.paid = Math.round(finTotal * 100) / 100;
           student.due = Math.max(0, (parseFloat(student.totalPayment) || 0) - student.paid);
-          hLog('fix', 'Paid-Finance fix (' + name + '): paid aligned to finance ৳' + student.paid);
+          hLog('fix', 'Paid-Finance fix (' + name + '): paid aligned to ৳' + student.paid);
         }
         fixed++;
       }
@@ -430,7 +434,6 @@
     if (fixed > 0) {
       localStorage.setItem('wingsfly_data', JSON.stringify(data));
       healToast(fixed + ' student Paid-Finance sync fix হয়েছে', 'fix');
-      // update status badge
       if (typeof window.updatePaidFinanceStatusBadge === 'function') window.updatePaidFinanceStatusBadge();
     }
     return fixed;
