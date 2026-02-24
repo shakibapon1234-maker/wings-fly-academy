@@ -2365,16 +2365,23 @@ tfoot th {
     display: none !important;
   }
 
-  /* Hide sidebar, navbar, modals */
-  body.printing-receipt .sidebar,
+  /* ✅ Extra safety: nested elements যা body direct child নয় তাও hide করো */
+  body.printing-receipt #loginSection,
+  body.printing-receipt #mainContent,
   body.printing-receipt #sidebar,
+  body.printing-receipt .sidebar,
   body.printing-receipt nav,
   body.printing-receipt .navbar,
   body.printing-receipt header,
   body.printing-receipt footer,
+  body.printing-receipt .modal,
   body.printing-receipt .modal-backdrop,
-  body.printing-receipt .container:not(#printArea),
-  body.printing-receipt .container-fluid:not(#printArea),
+  body.printing-receipt .no-print,
+  /* ✅ Total Balance Overview card — print এ আসবে না */
+  body.printing-receipt #accountsSection .card.no-print,
+  body.printing-receipt [id*="totalBalance"]:not(#printArea *),
+  body.printing-receipt .container:not(#printArea *),
+  body.printing-receipt .container-fluid:not(#printArea *),
   body.printing-receipt .glass-card,
   body.printing-receipt .dark-mode-card,
   body.printing-receipt button,

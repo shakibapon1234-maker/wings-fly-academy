@@ -162,10 +162,27 @@
       </div>
     `;
 
+    // ✅ FIX: Total Balance Overview card এবং সব no-print element forcefully hide করো
+    // যাতে print preview তে out-of-box না আসে
+    const noPrintEls = document.querySelectorAll('.no-print, #accountsSection .card, [id*="totalBalance"]');
+    const hiddenEls = [];
+    noPrintEls.forEach(el => {
+      if (!printArea.contains(el)) {
+        hiddenEls.push({ el, prev: el.style.display });
+        el.style.setProperty('display', 'none', 'important');
+      }
+    });
+
     document.body.classList.add('printing-receipt');
     setTimeout(() => {
       window.print();
-      setTimeout(() => document.body.classList.remove('printing-receipt'), 1000);
+      setTimeout(() => {
+        document.body.classList.remove('printing-receipt');
+        // ✅ Print শেষে সব element আবার দেখাও
+        hiddenEls.forEach(({ el, prev }) => {
+          el.style.display = prev || '';
+        });
+      }, 1000);
     }, 500);
   };
 
