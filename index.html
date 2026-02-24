@@ -6443,7 +6443,7 @@
                     return true;
                 });
 
-                var icons = { student: '🎓', finance: '💰', employee: '👤', visitor: '👋', keeprecord: '📝' };
+                var icons = { student: '🎓', finance: '💰', employee: '👤', visitor: '👋', keeprecord: '📝', examregistration: '📊' };
 
                 var rows = '';
                 if (filtered.length === 0) {
@@ -6499,6 +6499,7 @@
                 if (t === 'employee') return d.item.name || 'Unknown Employee';
                 if (t === 'visitor') return d.item.name || d.item.visitorName || 'Unknown Visitor';
                 if (t === 'keeprecord') return '📝 ' + (d.item.title || (d.item.body || '').substring(0, 60) || 'Untitled Note') + (d.item.tag ? ' [' + d.item.tag + ']' : '');
+                if (t === 'examregistration') return '📊 ' + (d.item.studentName || '?') + ' — ' + (d.item.subjectName || '') + ' ৳' + (d.item.examFee || 0);
                 return JSON.stringify(d.item).substring(0, 50);
             }
 
@@ -6522,6 +6523,13 @@
                             localStorage.setItem('wingsfly_keep_records', JSON.stringify(kr));
                             if (typeof window.renderKeepRecords === 'function') window.renderKeepRecords();
                         } catch(e) {}
+                    }
+                    if (t === 'examregistration') {
+                        if (!window.globalData.examRegistrations) window.globalData.examRegistrations = [];
+                        var already = window.globalData.examRegistrations.some(function(e) { return e.id === d.item.id || e.registrationId === d.item.registrationId; });
+                        if (!already) window.globalData.examRegistrations.push(d.item);
+                        else { d.item.id = 'EXAM-RESTORED-' + Date.now(); d.item.registrationId = d.item.id; window.globalData.examRegistrations.push(d.item); }
+                        if (typeof window.searchExamResults === 'function') window.searchExamResults();
                     }
                     window.globalData.deletedItems = (window.globalData.deletedItems || []).filter(function (x) { return x.id !== id; });
                     localStorage.setItem('wingsfly_data', JSON.stringify(window.globalData));
