@@ -288,6 +288,20 @@ function deleteExamRegistration(registrationId) {
 
     const examRegistrations = globalData.examRegistrations || [];
     const regToDelete = examRegistrations.find(reg => reg.id === registrationId);
+
+    // ✅ Recycle Bin এ পাঠাও (type: 'exam')
+    if (regToDelete && typeof window.moveToTrash === 'function') {
+        window.moveToTrash('exam', regToDelete);
+    }
+
+    // ✅ Activity Log এ রেকর্ড করো
+    if (regToDelete && typeof window.logActivity === 'function') {
+        window.logActivity('exam', 'DELETE',
+            'Exam Registration ডিলিট: ' + (regToDelete.studentName || regToDelete.name || 'Unknown') + ' — ' + (regToDelete.subjectName || ''),
+            regToDelete
+        );
+    }
+
     if (regToDelete && window.updateAccountBalance) {
         window.updateAccountBalance(regToDelete.paymentMethod, regToDelete.examFee, 'Income', false);
     }
@@ -305,7 +319,11 @@ function deleteExamRegistration(registrationId) {
         localStorage.setItem('wingsfly_data', JSON.stringify(globalData));
     }
 
-    alert('Exam registration deleted successfully!');
+    if (typeof showToast === 'function') {
+        showToast('Exam registration deleted and moved to Recycle Bin', 'info');
+    } else {
+        alert('Exam registration deleted successfully!');
+    }
     searchExamResults();
 }
 

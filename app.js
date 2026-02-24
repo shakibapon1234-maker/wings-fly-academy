@@ -34,6 +34,13 @@ if (typeof window.globalData === 'undefined') {
 // সবসময় নিশ্চিত করো
 if (!window.globalData.deletedItems) window.globalData.deletedItems = [];
 if (!window.globalData.activityHistory) window.globalData.activityHistory = [];
+// ✅ credentials object নিশ্চিত করো
+if (!window.globalData.credentials) {
+  window.globalData.credentials = {
+    username: 'admin',
+    password: 'e7d3bfb67567c3d94bcecb2ce65ef146eac83e50dc3f3b89e81bb647a8bada4c'
+  };
+}
 
 // Global Chart instances to prevent initialization errors
 window.financeChartInstance = null;
@@ -171,7 +178,7 @@ function loadDeletedItems() {
     return;
   }
 
-  const icons = { student: '🎓', finance: '💰', employee: '👤', keep_record: '📝' };
+  const icons = { student: '🎓', finance: '💰', employee: '👤', keep_record: '📝', exam: '📋' };
 
   container.innerHTML = filtered.map((d, idx) => {
     const date = new Date(d.deletedAt);
@@ -9946,7 +9953,7 @@ window.loadDeletedItems = function () {
 
   const filtered = filterVal === 'all' ? deleted : deleted.filter(d => d.type === filterVal || d.type === filterVal.toLowerCase());
 
-  const icons = { student: '🎓', finance: '💰', employee: '👤', visitor: '🙋', keep_record: '📝', Student: '🎓', Finance: '💰', Employee: '👤', Visitor: '🙋' };
+  const icons = { student: '🎓', finance: '💰', employee: '👤', visitor: '🙋', keep_record: '📝', exam: '📋', Student: '🎓', Finance: '💰', Employee: '👤', Visitor: '🙋' };
 
   const html = filtered.length === 0
     ? '<div class="text-center text-muted py-5"><div style="font-size:3rem">🗑️</div><p>Trash খালি।</p></div>'
@@ -9960,6 +9967,7 @@ window.loadDeletedItems = function () {
       else if (t === 'finance') name = (d.item.description || d.item.category || 'Transaction') + ' — ৳' + (d.item.amount || 0);
       else if (t === 'employee') name = d.item.name || 'Unknown Employee';
       else if (t === 'keep_record') name = d.item.title || 'Untitled Note';
+      else if (t === 'exam') name = (d.item.studentName || d.item.name || 'Unknown') + ' — ' + (d.item.subjectName || 'Exam');
       else name = JSON.stringify(d.item).substring(0, 60);
 
       return `<div class="d-flex align-items-start gap-3 p-3 mb-2 rounded-3" style="background:rgba(255,68,68,0.05);border:1px solid rgba(255,68,68,0.2);">

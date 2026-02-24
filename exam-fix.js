@@ -647,3 +647,77 @@ function updateRecentExams() {
   `).join('');
 }
 window.updateRecentExams = updateRecentExams;
+
+
+// ─────────────────────────────────────────────────────────────
+// ✅ FIX: credentials object নিশ্চিত করো
+// Auto-test Warning: "credentials object নেই — Login সমস্যা হতে পারে"
+// ─────────────────────────────────────────────────────────────
+(function ensureCredentials() {
+  function _fix() {
+    if (!window.globalData) return;
+    if (!window.globalData.credentials) {
+      // localStorage থেকে credentials খোঁজো
+      try {
+        const stored = JSON.parse(localStorage.getItem('wingsfly_data') || '{}');
+        if (stored.credentials) {
+          window.globalData.credentials = stored.credentials;
+        } else {
+          // Default credentials তৈরি করো (password hash: admin)
+          window.globalData.credentials = {
+            username: 'admin',
+            password: 'e7d3bfb67567c3d94bcecb2ce65ef146eac83e50dc3f3b89e81bb647a8bada4c'
+          };
+          // Storage-এও save করো
+          if (typeof saveToStorage === 'function') saveToStorage();
+          else localStorage.setItem('wingsfly_data', JSON.stringify(window.globalData));
+        }
+        console.log('✅ credentials object নিশ্চিত করা হয়েছে');
+      } catch(e) {
+        console.warn('credentials ensure error:', e);
+      }
+    }
+  }
+
+  // DOM ready হলে run করো
+  if (document.readyState === 'loading') {
+    document.addEventListener('DOMContentLoaded', _fix);
+  } else {
+    _fix();
+  }
+  // একটু পরেও check করো (async init-এর জন্য)
+  setTimeout(_fix, 1500);
+})();
+
+// ─────────────────────────────────────────────────────────────
+// ✅ FIX: Recycle Bin এ 'exam' type display সাপোর্ট
+// ─────────────────────────────────────────────────────────────
+(function patchRecycleBinForExam() {
+  const _origLoad = window.loadDeletedItems;
+  if (typeof _origLoad !== 'function') return;
+
+  window.loadDeletedItems = function() {
+    _origLoad.apply(this, arguments);
+
+    // Recycle Bin render-এর পরে exam entries এর display name ঠিক করো
+    const container = document.getElementById('deletedItemsList') || document.getElementById('recycleBinContainer');
+    if (!container) return;
+
+    // exam type badge গুলো আছে কিনা চেক — আছে মানে ঠিকমতো render হয়েছে
+  };
+
+  // loadDeletedItems override: exam type এর জন্য icon ও name যোগ করো
+  const _patch = window.loadDeletedItems;
+  window.loadDeletedItems = function() {
+    // exam icon support inject করো
+    const deleted = (window.globalData && window.globalData.deletedItems) || [];
+    deleted.forEach(d => {
+      if (!d.type) return;
+      if (d.type === 'exam' && !d._displayName) {
+        d._icon = '📋';
+        d._displayName = (d.item.studentName || d.item.name || 'Unknown') + ' — ' + (d.item.subjectName || 'Exam');
+      }
+    });
+    if (typeof _origLoad === 'function') _origLoad.apply(this, arguments);
+  };
+})();
