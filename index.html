@@ -1168,32 +1168,100 @@
     </div>
 
     <!-- Forgot Password Modal -->
-    <!-- Forgot Password Modal — Secret Question System -->
-    <div id="forgotPasswordModal" style="display:none; position:fixed; top:0; left:0; width:100%; height:100%; background:rgba(0,0,0,0.6); z-index:9999; align-items:center; justify-content:center;">
-        <div style="background:white; border-radius:20px; padding:36px; max-width:440px; width:92%; box-shadow:0 24px 64px rgba(0,0,0,0.25);">
+    <!-- Forgot Password Modal — Aviation Dark Theme -->
+    <div id="forgotPasswordModal" style="display:none; position:fixed; top:0; left:0; width:100%; height:100%; z-index:9999; align-items:center; justify-content:center; backdrop-filter:blur(8px); background:rgba(5,10,25,0.85);">
+
+        <div style="
+            background: linear-gradient(145deg, #0a0f2e 0%, #0d1b3e 50%, #0a1628 100%);
+            border: 1px solid rgba(0,200,255,0.25);
+            border-radius: 24px;
+            padding: 0;
+            max-width: 420px;
+            width: 92%;
+            box-shadow: 0 0 60px rgba(0,180,255,0.15), 0 32px 80px rgba(0,0,0,0.6);
+            overflow: hidden;
+            position: relative;
+        ">
+            <!-- Top glow bar -->
+            <div style="height:3px; background:linear-gradient(90deg, #00c8ff, #7b2ff7, #ff3cac); width:100%;"></div>
+
+            <!-- Decorative background circles -->
+            <div style="position:absolute; width:200px; height:200px; border-radius:50%; background:radial-gradient(circle, rgba(0,200,255,0.06) 0%, transparent 70%); top:-60px; right:-60px; pointer-events:none;"></div>
+            <div style="position:absolute; width:150px; height:150px; border-radius:50%; background:radial-gradient(circle, rgba(123,47,247,0.07) 0%, transparent 70%); bottom:-40px; left:-40px; pointer-events:none;"></div>
+
+            <div style="padding: 32px 32px 28px;">
 
             <!-- Step 1: Secret Question Answer -->
             <div id="fpm-step1">
                 <div class="text-center mb-4">
-                    <div style="font-size:2.5rem; margin-bottom:8px;">🔐</div>
-                    <h5 class="fw-bold mb-1">Forgot Password?</h5>
-                    <p class="text-muted small mb-0">আপনার Secret Question এর উত্তর দিন</p>
+                    <div style="
+                        width:70px; height:70px; border-radius:50%;
+                        background:linear-gradient(135deg, rgba(0,200,255,0.15), rgba(123,47,247,0.15));
+                        border:2px solid rgba(0,200,255,0.3);
+                        display:inline-flex; align-items:center; justify-content:center;
+                        font-size:2rem; margin-bottom:14px;
+                        box-shadow: 0 0 20px rgba(0,200,255,0.2);
+                    ">🔐</div>
+                    <h5 style="color:#00c8ff; font-weight:700; margin-bottom:6px; font-size:1.3rem;">Forgot Password?</h5>
+                    <p style="color:rgba(180,200,230,0.7); font-size:0.85rem; margin:0;">আপনার Secret Question এর উত্তর দিন</p>
                 </div>
-                <div class="mb-3 p-3 rounded-3" style="background:#f8f9fa; border-left:4px solid #0d6efd;">
-                    <p class="fw-bold mb-0 small text-uppercase text-muted">আপনার প্রশ্ন:</p>
-                    <p class="fw-semibold mb-0 mt-1" id="fpm-question-display">প্রশ্ন লোড হচ্ছে...</p>
+
+                <!-- Question display box -->
+                <div style="
+                    background:rgba(0,200,255,0.06);
+                    border:1px solid rgba(0,200,255,0.2);
+                    border-left:4px solid #00c8ff;
+                    border-radius:10px;
+                    padding:14px 16px;
+                    margin-bottom:16px;
+                ">
+                    <p style="color:rgba(150,180,210,0.8); font-size:0.72rem; text-transform:uppercase; letter-spacing:1px; margin-bottom:6px; font-weight:600;">আপনার প্রশ্ন:</p>
+                    <p style="color:#e0f4ff; font-weight:600; margin:0; font-size:0.95rem;" id="fpm-question-display">প্রশ্ন লোড হচ্ছে...</p>
                 </div>
-                <div class="mb-3">
-                    <input type="text" id="fpm-answer-input" class="form-control form-control-lg"
+
+                <!-- Answer input -->
+                <div style="margin-bottom:14px; position:relative;">
+                    <input type="text" id="fpm-answer-input"
+                        autocomplete="off"
+                        style="
+                            width:100%; padding:14px 16px;
+                            background:rgba(255,255,255,0.05);
+                            border:1px solid rgba(0,200,255,0.25);
+                            border-radius:12px; color:#e0f4ff;
+                            font-size:0.95rem; outline:none;
+                            transition:border-color 0.2s, box-shadow 0.2s;
+                            box-sizing:border-box;
+                        "
                         placeholder="উত্তর লিখুন..."
+                        onfocus="this.style.borderColor='rgba(0,200,255,0.6)'; this.style.boxShadow='0 0 0 3px rgba(0,200,255,0.1)';"
+                        onblur="this.style.borderColor='rgba(0,200,255,0.25)'; this.style.boxShadow='none';"
                         onkeydown="if(event.key==='Enter') checkSecretAnswer()">
                 </div>
-                <div id="fpm-msg" class="alert small mb-3" style="display:none;"></div>
-                <div class="d-flex gap-2">
-                    <button type="button" class="btn btn-primary flex-fill py-2" onclick="checkSecretAnswer()">
-                        ✅ Verify Answer
+
+                <div id="fpm-msg" style="display:none; padding:10px 14px; border-radius:10px; font-size:0.82rem; margin-bottom:12px;"></div>
+
+                <div style="display:flex; gap:10px;">
+                    <button type="button" onclick="checkSecretAnswer()" style="
+                        flex:1; padding:13px;
+                        background:linear-gradient(135deg, #00c8ff, #0080ff);
+                        border:none; border-radius:12px;
+                        color:white; font-weight:700; font-size:0.9rem;
+                        cursor:pointer; letter-spacing:0.5px;
+                        box-shadow:0 4px 20px rgba(0,200,255,0.3);
+                        transition:transform 0.15s, box-shadow 0.15s;
+                    " onmouseover="this.style.transform='translateY(-1px)'; this.style.boxShadow='0 6px 24px rgba(0,200,255,0.4)';"
+                       onmouseout="this.style.transform='none'; this.style.boxShadow='0 4px 20px rgba(0,200,255,0.3)';">
+                        ✅ VERIFY ANSWER
                     </button>
-                    <button type="button" class="btn btn-outline-secondary py-2" onclick="hideForgotPasswordModal()" style="min-width:90px;">
+                    <button type="button" onclick="hideForgotPasswordModal()" style="
+                        padding:13px 20px;
+                        background:rgba(255,255,255,0.06);
+                        border:1px solid rgba(255,255,255,0.15);
+                        border-radius:12px; color:rgba(200,220,240,0.8);
+                        font-size:0.88rem; cursor:pointer;
+                        transition:background 0.15s;
+                    " onmouseover="this.style.background='rgba(255,255,255,0.1)';"
+                       onmouseout="this.style.background='rgba(255,255,255,0.06)';">
                         বাতিল
                     </button>
                 </div>
@@ -1202,33 +1270,80 @@
             <!-- Step 2: New Password -->
             <div id="fpm-step2" style="display:none;">
                 <div class="text-center mb-4">
-                    <div style="font-size:2.5rem; margin-bottom:8px;">🔓</div>
-                    <h5 class="fw-bold mb-1">নতুন পাসওয়ার্ড দিন</h5>
-                    <p class="text-muted small mb-0">নিরাপদ পাসওয়ার্ড ব্যবহার করুন</p>
+                    <div style="
+                        width:70px; height:70px; border-radius:50%;
+                        background:linear-gradient(135deg, rgba(0,255,150,0.12), rgba(0,200,255,0.12));
+                        border:2px solid rgba(0,255,150,0.3);
+                        display:inline-flex; align-items:center; justify-content:center;
+                        font-size:2rem; margin-bottom:14px;
+                        box-shadow: 0 0 20px rgba(0,255,150,0.15);
+                    ">🔓</div>
+                    <h5 style="color:#00ff96; font-weight:700; margin-bottom:6px; font-size:1.3rem;">নতুন পাসওয়ার্ড দিন</h5>
+                    <p style="color:rgba(180,200,230,0.7); font-size:0.85rem; margin:0;">নিরাপদ পাসওয়ার্ড ব্যবহার করুন</p>
                 </div>
-                <div class="mb-3">
-                    <label class="form-label fw-bold small text-uppercase text-muted">নতুন পাসওয়ার্ড</label>
-                    <div class="input-group">
-                        <input type="password" id="fpm-new-password" class="form-control form-control-lg" placeholder="নতুন পাসওয়ার্ড লিখুন">
-                        <button class="btn btn-outline-secondary" type="button"
-                            onclick="const p=document.getElementById('fpm-new-password'); p.type=p.type==='password'?'text':'password';">👁️</button>
+
+                <div style="margin-bottom:14px;">
+                    <label style="color:rgba(150,180,210,0.8); font-size:0.72rem; text-transform:uppercase; letter-spacing:1px; font-weight:600; display:block; margin-bottom:8px;">নতুন পাসওয়ার্ড</label>
+                    <div style="display:flex; gap:0;">
+                        <input type="password" id="fpm-new-password"
+                            autocomplete="new-password"
+                            style="
+                                flex:1; padding:13px 16px;
+                                background:rgba(255,255,255,0.05);
+                                border:1px solid rgba(0,255,150,0.25); border-right:none;
+                                border-radius:12px 0 0 12px; color:#e0f4ff;
+                                font-size:0.9rem; outline:none;
+                            " placeholder="নতুন পাসওয়ার্ড লিখুন">
+                        <button type="button" onclick="const p=document.getElementById('fpm-new-password'); p.type=p.type==='password'?'text':'password';" style="
+                            padding:13px 16px;
+                            background:rgba(255,255,255,0.05);
+                            border:1px solid rgba(0,255,150,0.25); border-left:none;
+                            border-radius:0 12px 12px 0; color:rgba(200,220,240,0.7);
+                            cursor:pointer; font-size:1rem;
+                        ">👁️</button>
                     </div>
                 </div>
-                <div class="mb-3">
-                    <label class="form-label fw-bold small text-uppercase text-muted">নিশ্চিত করুন</label>
-                    <div class="input-group">
-                        <input type="password" id="fpm-confirm-password" class="form-control form-control-lg" placeholder="পাসওয়ার্ড আবার লিখুন"
+
+                <div style="margin-bottom:14px;">
+                    <label style="color:rgba(150,180,210,0.8); font-size:0.72rem; text-transform:uppercase; letter-spacing:1px; font-weight:600; display:block; margin-bottom:8px;">নিশ্চিত করুন</label>
+                    <div style="display:flex;">
+                        <input type="password" id="fpm-confirm-password"
+                            autocomplete="new-password"
+                            style="
+                                flex:1; padding:13px 16px;
+                                background:rgba(255,255,255,0.05);
+                                border:1px solid rgba(0,255,150,0.25); border-right:none;
+                                border-radius:12px 0 0 12px; color:#e0f4ff;
+                                font-size:0.9rem; outline:none;
+                            " placeholder="পাসওয়ার্ড আবার লিখুন"
                             onkeydown="if(event.key==='Enter') resetPasswordFromModal()">
-                        <button class="btn btn-outline-secondary" type="button"
-                            onclick="const p=document.getElementById('fpm-confirm-password'); p.type=p.type==='password'?'text':'password';">👁️</button>
+                        <button type="button" onclick="const p=document.getElementById('fpm-confirm-password'); p.type=p.type==='password'?'text':'password';" style="
+                            padding:13px 16px;
+                            background:rgba(255,255,255,0.05);
+                            border:1px solid rgba(0,255,150,0.25); border-left:none;
+                            border-radius:0 12px 12px 0; color:rgba(200,220,240,0.7);
+                            cursor:pointer; font-size:1rem;
+                        ">👁️</button>
                     </div>
                 </div>
-                <div id="fpm-msg2" class="alert small mb-3" style="display:none;"></div>
-                <button type="button" class="btn btn-success w-100 py-2 fw-bold" onclick="resetPasswordFromModal()">
+
+                <div id="fpm-msg2" style="display:none; padding:10px 14px; border-radius:10px; font-size:0.82rem; margin-bottom:12px;"></div>
+
+                <button type="button" onclick="resetPasswordFromModal()" style="
+                    width:100%; padding:14px;
+                    background:linear-gradient(135deg, #00c853, #00b347);
+                    border:none; border-radius:12px;
+                    color:white; font-weight:700; font-size:0.95rem;
+                    cursor:pointer; letter-spacing:0.5px;
+                    box-shadow:0 4px 20px rgba(0,200,83,0.35);
+                    transition:transform 0.15s;
+                " onmouseover="this.style.transform='translateY(-1px)';"
+                   onmouseout="this.style.transform='none';">
                     💾 পাসওয়ার্ড সেভ করুন
                 </button>
             </div>
 
+            </div><!-- end padding div -->
         </div>
     </div>
 
@@ -3785,6 +3900,7 @@
                                                             <div class="input-group">
                                                                 <input type="password" id="secretAnswer"
                                                                     name="secretAnswer"
+                                                                    autocomplete="off"
                                                                     class="form-control premium-input-modern"
                                                                     placeholder="গোপন উত্তর লিখুন">
                                                                 <button class="btn btn-outline-secondary" type="button"

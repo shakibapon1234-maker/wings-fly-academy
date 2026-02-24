@@ -1242,6 +1242,31 @@ async function handleLogin(e) {
       (u.password === hashedInput || u.password === password)
     );
 
+    // C. ✅ Fallback: credentials object দিয়েও check করো (settings এ change করলে এখানে থাকে)
+    if (!validUser && globalData.credentials) {
+      const cred = globalData.credentials;
+      if (cred.username === username &&
+          (cred.password === hashedInput || cred.password === password)) {
+        // credentials match — dummy user object তৈরি করো
+        validUser = {
+          username: cred.username,
+          password: cred.password,
+          role: 'admin',
+          name: cred.username
+        };
+        // users array তেও sync করো যাতে পরের বার ঠিক থাকে
+        const existingAdmin = (globalData.users || []).find(u => u.role === 'admin');
+        if (existingAdmin) {
+          existingAdmin.username = cred.username;
+          existingAdmin.password = cred.password;
+        } else {
+          if (!globalData.users) globalData.users = [];
+          globalData.users.push({ ...validUser, name: 'Super Admin' });
+        }
+        saveToStorage();
+      }
+    }
+
     // If found with plain text, auto-migrate to hash
     if (validUser) {
       await migratePasswordIfNeeded(validUser, password);
@@ -10790,14 +10815,18 @@ function checkSecretAnswer() {
   const msg = document.getElementById('fpm-msg');
 
   if (!input) {
-    msg.className = 'alert alert-warning small mb-3';
     msg.style.display = 'block';
+    msg.style.background = 'rgba(255,200,0,0.12)';
+    msg.style.border = '1px solid rgba(255,200,0,0.3)';
+    msg.style.color = '#ffd700';
     msg.innerHTML = '⚠️ উত্তর লিখুন!';
     return;
   }
   if (input !== stored) {
-    msg.className = 'alert alert-danger small mb-3';
     msg.style.display = 'block';
+    msg.style.background = 'rgba(255,60,80,0.12)';
+    msg.style.border = '1px solid rgba(255,60,80,0.3)';
+    msg.style.color = '#ff6b7a';
     msg.innerHTML = '❌ উত্তর সঠিক নয়! আবার চেষ্টা করুন।';
     document.getElementById('fpm-answer-input').value = '';
     document.getElementById('fpm-answer-input').focus();
@@ -10820,20 +10849,26 @@ async function resetPasswordFromModal() {
   const msg2 = document.getElementById('fpm-msg2');
 
   if (!newPwd || newPwd.length < 4) {
-    msg2.className = 'alert alert-warning small mb-3';
     msg2.style.display = 'block';
+    msg2.style.background = 'rgba(255,200,0,0.12)';
+    msg2.style.border = '1px solid rgba(255,200,0,0.3)';
+    msg2.style.color = '#ffd700';
     msg2.innerHTML = '⚠️ পাসওয়ার্ড কমপক্ষে ৪ অক্ষরের হতে হবে!';
     return;
   }
   if (newPwd !== confirmPwd) {
-    msg2.className = 'alert alert-danger small mb-3';
     msg2.style.display = 'block';
+    msg2.style.background = 'rgba(255,60,80,0.12)';
+    msg2.style.border = '1px solid rgba(255,60,80,0.3)';
+    msg2.style.color = '#ff6b7a';
     msg2.innerHTML = '❌ পাসওয়ার্ড দুটো মিলছে না!';
     return;
   }
 
-  msg2.className = 'alert alert-info small mb-3';
   msg2.style.display = 'block';
+  msg2.style.background = 'rgba(0,200,255,0.1)';
+  msg2.style.border = '1px solid rgba(0,200,255,0.3)';
+  msg2.style.color = '#00c8ff';
   msg2.innerHTML = '⏳ সেভ হচ্ছে...';
 
   try {
@@ -10851,11 +10886,15 @@ async function resetPasswordFromModal() {
       window.scheduleSyncPush('Password reset via Secret Question');
     }
 
-    msg2.className = 'alert alert-success small mb-3';
+    msg2.style.background = 'rgba(0,200,83,0.12)';
+    msg2.style.border = '1px solid rgba(0,200,83,0.3)';
+    msg2.style.color = '#00ff96';
     msg2.innerHTML = '✅ পাসওয়ার্ড পরিবর্তন হয়েছে! নতুন পাসওয়ার্ড দিয়ে লগিন করুন।';
     setTimeout(() => hideForgotPasswordModal(), 2500);
   } catch (err) {
-    msg2.className = 'alert alert-danger small mb-3';
+    msg2.style.background = 'rgba(255,60,80,0.12)';
+    msg2.style.border = '1px solid rgba(255,60,80,0.3)';
+    msg2.style.color = '#ff6b7a';
     msg2.innerHTML = '❌ সমস্যা হয়েছে: ' + err.message;
   }
 }
