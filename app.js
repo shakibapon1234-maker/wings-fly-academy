@@ -11106,8 +11106,9 @@ function saveKeepRecordsToStorage(records) {
 }
 
 function openKeepRecordModal(editId) {
-  const modalEl = document.getElementById('krBootstrapModal');
-  if (!modalEl) return;
+  // Inline form — Settings modal এর ভেতরেই দেখাবে, কোনো popup নেই
+  const form = document.getElementById('krInlineForm');
+  if (!form) return;
 
   // Fields reset
   document.getElementById('krEditId').value = '';
@@ -11130,27 +11131,15 @@ function openKeepRecordModal(editId) {
     }
   }
 
-  // Bootstrap Modal show করি
-  const bsModal = new bootstrap.Modal(modalEl, { backdrop: true, keyboard: true });
-  bsModal.show();
-
-  // backdrop এর z-index বাড়িয়ে দিই যাতে settingsModal এর উপরে থাকে
-  setTimeout(function() {
-    const backdrops = document.querySelectorAll('.modal-backdrop');
-    if (backdrops.length >= 1) {
-      backdrops[backdrops.length - 1].style.zIndex = '1099';
-    }
-    modalEl.style.zIndex = '1100';
-  }, 30);
+  form.style.display = 'block';
+  // form এ scroll করো
+  form.scrollIntoView({ behavior: 'smooth', block: 'start' });
 }
 window.openKeepRecordModal = openKeepRecordModal;
 
 function closeKeepRecordModal() {
-  const modalEl = document.getElementById('krBootstrapModal');
-  if (modalEl) {
-    const bsModal = bootstrap.Modal.getInstance(modalEl);
-    if (bsModal) bsModal.hide();
-  }
+  const form = document.getElementById('krInlineForm');
+  if (form) form.style.display = 'none';
 }
 window.closeKeepRecordModal = closeKeepRecordModal;
 
