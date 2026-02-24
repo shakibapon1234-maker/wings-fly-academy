@@ -2399,6 +2399,13 @@ function renderSettingsLists() {
         document.getElementById('secretAnswer').value = '';
         document.getElementById('secretAnswer').placeholder = globalData.credentials?.secretAnswer ? '(সেট আছে — পরিবর্তন করতে নতুন উত্তর লিখুন)' : 'গোপন উত্তর লিখুন';
       }
+      // Secret section hidden রাখো by default
+      const secSection = document.getElementById('secretQuestionSection');
+      if (secSection) secSection.style.display = 'none';
+      const secToggleText = document.getElementById('secretToggleText');
+      const secToggleIcon = document.getElementById('secretToggleIcon');
+      if (secToggleText) secToggleText.textContent = 'দেখুন';
+      if (secToggleIcon) secToggleIcon.textContent = '👁️';
     }
   }
 }
@@ -10853,6 +10860,36 @@ async function resetPasswordFromModal() {
   }
 }
 window.resetPasswordFromModal = resetPasswordFromModal;
+
+// Secret Question section hide/show toggle
+function toggleSecretQuestionSection() {
+  const section = document.getElementById('secretQuestionSection');
+  const toggleText = document.getElementById('secretToggleText');
+  const toggleIcon = document.getElementById('secretToggleIcon');
+  if (!section) return;
+
+  const isHidden = section.style.display === 'none' || section.style.display === '';
+  if (isHidden) {
+    section.style.display = 'block';
+    if (toggleText) toggleText.textContent = 'লুকান';
+    if (toggleIcon) toggleIcon.textContent = '🙈';
+    // Question ও answer populate করো
+    if (document.getElementById('secretQuestion')) {
+      document.getElementById('secretQuestion').value = (globalData.credentials && globalData.credentials.secretQuestion) || '';
+    }
+    if (document.getElementById('secretAnswer')) {
+      document.getElementById('secretAnswer').value = '';
+      document.getElementById('secretAnswer').placeholder = (globalData.credentials && globalData.credentials.secretAnswer)
+        ? '(সেট আছে — পরিবর্তন করতে নতুন উত্তর লিখুন)'
+        : 'গোপন উত্তর লিখুন';
+    }
+  } else {
+    section.style.display = 'none';
+    if (toggleText) toggleText.textContent = 'দেখুন';
+    if (toggleIcon) toggleIcon.textContent = '👁️';
+  }
+}
+window.toggleSecretQuestionSection = toggleSecretQuestionSection;
 
 // Password match checker for settings
 function checkPasswordMatch() {

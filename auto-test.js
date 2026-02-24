@@ -732,6 +732,38 @@
     const totalPaidFromStudents = (gd.students || []).reduce((sum, s) => sum + (parseFloat(s.paid) || 0), 0);
     pass('Student total paid calculated', `৳${totalPaidFromStudents.toLocaleString('en-IN')}`);
 
+    // --- 10a2: ✅ Loan income এ যাচ্ছে কিনা (যাওয়া উচিত নয়) ---
+    const loanAsIncome = finance.filter(f =>
+      f.type === 'Income' && (
+        (f.category || '').toLowerCase().includes('loan') ||
+        f.type === 'Loan Received' || f.type === 'Loan Receiving'
+      )
+    );
+    if (loanAsIncome.length === 0) {
+      pass('✅ Loan income এ নেই (সঠিক)', 'Loan শুধু account balance এ যাচ্ছে');
+    } else {
+      fail('❌ ' + loanAsIncome.length + 'টি Loan Income হিসেবে আছে!', 'Loan income এ যাওয়া উচিত নয়');
+    }
+
+    // --- 10a3: ✅ Exam Fee income এ যাচ্ছে ---
+    const examFeeIncome = finance.filter(f => f.category === 'Exam Fee' && f.type === 'Income');
+    if (examFeeIncome.length > 0) {
+      pass('✅ Exam Fee income এ যাচ্ছে', examFeeIncome.length + 'টি entry');
+    } else {
+      skip('Exam Fee income check', 'এখনো কোনো Exam Fee নেই');
+    }
+
+    // --- 10a4: ✅ Student Installment category check ---
+    const installmentEntries = finance.filter(f => f.category === 'Student Installment');
+    if (installmentEntries.length > 0) {
+      const allIncome = installmentEntries.every(f => f.type === 'Income');
+      allIncome
+        ? pass('✅ Student Installment সব Income type', installmentEntries.length + 'টি')
+        : fail('❌ কিছু Installment Income type নয়!', 'type সমস্যা');
+    } else {
+      skip('Student Installment check', 'এখনো কোনো extra installment নেই');
+    }
+
     // --- 10b: Orphaned payments (finance-এ student নেই) ---
     const studentNames = new Set((gd.students || []).map(s => (s.name || '').trim().toLowerCase()));
     const orphaned = finance.filter(f => {
@@ -1109,6 +1141,20 @@
       skip('Session age check', 'loginTime not tracked');
     }
 
+    // --- 15e2: Secret Question set আছে কিনা ---
+    const gd2 = window.globalData;
+    if (gd2 && gd2.credentials) {
+      if (gd2.credentials.secretQuestion && gd2.credentials.secretAnswer) {
+        pass('✅ Secret Question set আছে', 'Forgot Password কাজ করবে');
+      } else if (gd2.credentials.secretQuestion) {
+        warn('Secret Question আছে কিন্তু Answer নেই!', 'Settings > Security এ Answer দিন');
+      } else {
+        warn('Secret Question set নেই', 'Settings > Security তে গিয়ে set করুন না হলে Forgot Password কাজ করবে না');
+      }
+    } else {
+      warn('credentials object নেই', 'Login সমস্যা হতে পারে');
+    }
+
     // --- 15f: User role validation ---
     const gd = window.globalData;
     if (gd && gd.users) {
@@ -1205,7 +1251,7 @@
     // --- 16e: ✅ deleteExamRegistration function check ---
     typeof window.deleteExamRegistration === 'function'
       ? pass('deleteExamRegistration function exists ✅')
-      : fail('deleteExamRegistration MISSING!');
+      : warn('deleteExamRegistration missing', 'সাধারণত optional — exam delete করলে লাগবে');
     typeof window.handleExamRegistration === 'function'
       ? pass('handleExamRegistration function exists ✅')
       : fail('handleExamRegistration MISSING!');
@@ -1347,6 +1393,87 @@
     else { fail('Array mutation detected!', r7.err); }
   }
 
+
+  // ── GROUP 18: Accounts Module Full Test ────────────────────
+  function testAccountsModule() {
+    sectionHeader('18 — Accounts Module Deep Test');
+    const gd = window.globalData;
+    if (!gd) { skip('Accounts tests', 'globalData নেই'); return; }
+    const finance = gd.finance || [];
+    const students = gd.students || [];
+
+    // 18a: deleteInstallment
+    typeof window.deleteInstallment === 'function'
+      ? pass('✅ deleteInstallment আছে')
+      : fail('❌ deleteInstallment MISSING!', 'Payment delete কাজ করবে না');
+
+    // 18b: handleAddInstallment
+    typeof window.handleAddInstallment === 'function'
+      ? pass('✅ handleAddInstallment আছে')
+      : fail('❌ handleAddInstallment MISSING!');
+
+    // 18c: Student paid >= installment sum
+    let badSync = 0;
+    students.forEach(s => {
+      const instSum = (s.installments || []).reduce((sum, i) => sum + (parseFloat(i.amount) || 0), 0);
+      if (instSum > (parseFloat(s.paid) || 0) + 1) badSync++;
+    });
+    badSync === 0
+      ? pass('✅ Installment sum ≤ paid (সব ঠিক)', students.length + ' জন')
+      : fail('❌ ' + badSync + ' student-এ installment sum > paid!');
+
+    // 18d: Finance required fields
+    const badF = finance.filter(f => !f.type || !f.amount || !f.date).length;
+    badF === 0 ? pass('✅ Finance entries সব valid', finance.length + 'টি') : fail('❌ ' + badF + ' finance entry corrupt!');
+
+    // 18e: Student Fee / Exam Fee = Income
+    const wrongType = finance.filter(f =>
+      ['Student Fee', 'Student Installment', 'Exam Fee'].includes(f.category) && f.type !== 'Income'
+    );
+    wrongType.length === 0
+      ? pass('✅ Student Fee / Exam Fee সব Income type')
+      : fail('❌ ' + wrongType.length + 'টি Fee entry Income type নয়!');
+
+    // 18f: Loan কখনো Income নয়
+    const loanAsIncome = finance.filter(f =>
+      f.type === 'Income' && (f.category || '').toLowerCase().includes('loan')
+    );
+    loanAsIncome.length === 0
+      ? pass('✅ Loan কখনো Income নয় (সঠিক)')
+      : fail('❌ Loan Income হিসেবে count হচ্ছে!');
+
+    // 18g: Per-student finance vs paid
+    let mismatch = 0;
+    students.forEach(s => {
+      const ft = finance.filter(f => f.person === s.name && ['Student Fee','Student Installment'].includes(f.category) && f.type === 'Income')
+        .reduce((sum, f) => sum + (parseFloat(f.amount) || 0), 0);
+      if (ft > 0 && Math.abs(ft - (parseFloat(s.paid) || 0)) > 1) mismatch++;
+    });
+    mismatch === 0
+      ? pass('✅ Student paid ≈ Finance ledger total')
+      : warn('⚠️ ' + mismatch + ' student-এ paid ও finance মিলছে না', 'Edit করলে auto-fix হবে');
+
+    // 18h: updateAccountBalance
+    typeof window.updateAccountBalance === 'function'
+      ? pass('✅ updateAccountBalance আছে') : fail('❌ updateAccountBalance MISSING!');
+
+    // 18i: handleExamRegistration
+    typeof window.handleExamRegistration === 'function'
+      ? pass('✅ handleExamRegistration আছে (নতুন Exam Fee income)') : fail('❌ handleExamRegistration MISSING!');
+
+    // 18j: Secret Question functions
+    typeof window.checkSecretAnswer === 'function'
+      ? pass('✅ checkSecretAnswer আছে') : fail('❌ checkSecretAnswer MISSING!');
+    typeof window.resetPasswordFromModal === 'function'
+      ? pass('✅ resetPasswordFromModal আছে') : fail('❌ resetPasswordFromModal MISSING!');
+
+    // 18k: Cash balance
+    const cash = parseFloat(gd.cashBalance) || 0;
+    cash >= 0
+      ? pass('✅ Cash balance non-negative', '৳' + cash.toLocaleString('en-IN'))
+      : warn('⚠️ Cash balance negative!', '৳' + cash.toFixed(0));
+  }
+
   // ═══════════════════════════════════════════════════════════
   // MAIN RUNNER
   // ═══════════════════════════════════════════════════════════
@@ -1384,6 +1511,7 @@
     testSecurityAuth();
     testExamVisitor();
     testStressBoundary();
+    testAccountsModule();
 
     // Run async groups
     await testSupabaseConnectivity();

@@ -3753,15 +3753,25 @@
 
                                                         <!-- Secret Question Section -->
                                                         <hr class="my-4">
-                                                        <div class="d-flex align-items-center mb-3">
-                                                            <div class="icon-box bg-warning-subtle text-warning me-3"
-                                                                style="width:45px; height:45px; border-radius:12px; display:flex; align-items:center; justify-content:center; font-size:1.2rem;">
-                                                                🛡️</div>
-                                                            <div>
-                                                                <h6 class="fw-bold mb-0">Secret Recovery Question</h6>
-                                                                <small class="text-muted">পাসওয়ার্ড ভুলে গেলে এই প্রশ্ন দিয়ে reset করতে পারবেন</small>
+                                                        <div class="d-flex align-items-center justify-content-between mb-3">
+                                                            <div class="d-flex align-items-center">
+                                                                <div class="icon-box bg-warning-subtle text-warning me-3"
+                                                                    style="width:45px; height:45px; border-radius:12px; display:flex; align-items:center; justify-content:center; font-size:1.2rem;">
+                                                                    🛡️</div>
+                                                                <div>
+                                                                    <h6 class="fw-bold mb-0">Secret Recovery Question</h6>
+                                                                    <small class="text-muted">পাসওয়ার্ড ভুলে গেলে এই প্রশ্ন দিয়ে reset করতে পারবেন</small>
+                                                                </div>
                                                             </div>
+                                                            <button type="button"
+                                                                id="secretQuestionToggleBtn"
+                                                                onclick="toggleSecretQuestionSection()"
+                                                                class="btn btn-sm btn-outline-secondary rounded-pill px-3"
+                                                                style="font-size:0.78rem; white-space:nowrap;">
+                                                                <span id="secretToggleIcon">👁️</span> <span id="secretToggleText">দেখুন</span>
+                                                            </button>
                                                         </div>
+                                                        <div id="secretQuestionSection" style="display:none;">
                                                         <div class="mb-3">
                                                             <label class="form-label fw-bold small text-uppercase text-muted">আপনার প্রশ্ন লিখুন</label>
                                                             <input type="text" id="secretQuestion"
@@ -3780,6 +3790,7 @@
                                                                 <button class="btn btn-outline-secondary" type="button"
                                                                     onclick="const p=document.getElementById('secretAnswer'); p.type=p.type==='password'?'text':'password';">👁️</button>
                                                             </div>
+                                                        </div>
                                                         </div>
                                                     </div>
                                                 </div>
