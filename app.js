@@ -11106,22 +11106,10 @@ function saveKeepRecordsToStorage(records) {
 }
 
 function openKeepRecordModal(editId) {
-  const backdrop = document.getElementById('krModalBackdrop');
-  if (!backdrop) return;
+  const modalEl = document.getElementById('krBootstrapModal');
+  if (!modalEl) return;
 
-  // Settings modal এর overflow/transform থেকে বের করে body তে নিয়ে যাই
-  document.body.appendChild(backdrop);
-
-  // Settings modal এর scrollable container এর overflow temporarily disable করি
-  const settingsContent = document.querySelector('#settingsModal .modal-content');
-  if (settingsContent) settingsContent.style.overflow = 'visible';
-  const settingsDialog = document.querySelector('#settingsModal .modal-dialog');
-  if (settingsDialog) settingsDialog.style.overflow = 'visible';
-  const settingsBody = document.querySelector('#settingsModal .modal-body');
-  if (settingsBody) settingsBody.style.overflow = 'visible';
-
-  backdrop.style.cssText = 'display:flex !important; position:fixed !important; inset:0 !important; background:rgba(0,0,0,0.85) !important; z-index:999999 !important; align-items:center !important; justify-content:center !important;';
-
+  // Fields reset
   document.getElementById('krEditId').value = '';
   document.getElementById('krNoteDate').value = new Date().toISOString().split('T')[0];
   document.getElementById('krNoteTag').value = 'General';
@@ -11141,21 +11129,28 @@ function openKeepRecordModal(editId) {
       document.getElementById('krModalTitle').textContent = '✏️ নোট এডিট করুন';
     }
   }
+
+  // Bootstrap Modal show করি
+  const bsModal = new bootstrap.Modal(modalEl, { backdrop: true, keyboard: true });
+  bsModal.show();
+
+  // backdrop এর z-index বাড়িয়ে দিই যাতে settingsModal এর উপরে থাকে
+  setTimeout(function() {
+    const backdrops = document.querySelectorAll('.modal-backdrop');
+    if (backdrops.length >= 1) {
+      backdrops[backdrops.length - 1].style.zIndex = '1099';
+    }
+    modalEl.style.zIndex = '1100';
+  }, 30);
 }
 window.openKeepRecordModal = openKeepRecordModal;
 
 function closeKeepRecordModal() {
-  const backdrop = document.getElementById('krModalBackdrop');
-  if (backdrop) {
-    backdrop.style.cssText = 'display:none;';
+  const modalEl = document.getElementById('krBootstrapModal');
+  if (modalEl) {
+    const bsModal = bootstrap.Modal.getInstance(modalEl);
+    if (bsModal) bsModal.hide();
   }
-  // Settings modal এর overflow restore করি
-  const settingsContent = document.querySelector('#settingsModal .modal-content');
-  if (settingsContent) settingsContent.style.overflow = '';
-  const settingsDialog = document.querySelector('#settingsModal .modal-dialog');
-  if (settingsDialog) settingsDialog.style.overflow = '';
-  const settingsBody = document.querySelector('#settingsModal .modal-body');
-  if (settingsBody) settingsBody.style.overflow = '';
 }
 window.closeKeepRecordModal = closeKeepRecordModal;
 

@@ -4503,40 +4503,46 @@
     </div><!-- /modal-dialog -->
     </div><!-- /settingsModal -->
 
-    <!-- Keep Record Add/Edit Modal — body level (settingsModal এর বাইরে, তাই modal close হয় না) -->
-    <div id="krModalBackdrop" style="display:none; position:fixed; inset:0; background:rgba(0,0,0,0.72); z-index:99999; align-items:center; justify-content:center;" onclick="if(event.target===this)closeKeepRecordModal()">
-        <div class="custom-modal" style="width:min(500px,94vw); border-radius:16px; padding:24px; position:relative; z-index:100000;" onclick="event.stopPropagation()">
-            <div class="d-flex align-items-center justify-content-between mb-3">
-                <h6 class="fw-bold mb-0" id="krModalTitle">📝 নতুন নোট</h6>
-                <button type="button" style="background:none;border:none;color:#94a3b8;font-size:1.2rem;cursor:pointer;padding:2px 8px;" onclick="closeKeepRecordModal()">✕</button>
-            </div>
-            <input type="hidden" id="krEditId">
-            <div class="row g-2 mb-2">
-                <div class="col-6">
-                    <label class="form-label fw-semibold small">তারিখ</label>
-                    <input type="date" id="krNoteDate" class="form-control premium-input-modern form-control-sm">
+    <!-- Keep Record Add/Edit Modal — Bootstrap modal, z-index override দিয়ে settingsModal এর উপরে -->
+    <div class="modal fade" id="krBootstrapModal" tabindex="-1" style="z-index:1100;">
+        <div class="modal-dialog modal-dialog-centered" style="z-index:1101;">
+            <div class="modal-content custom-modal" style="border-radius:16px;">
+                <div class="modal-header border-0 pb-0">
+                    <h6 class="fw-bold mb-0" id="krModalTitle">📝 নতুন নোট</h6>
+                    <button type="button" style="background:none;border:none;color:#94a3b8;font-size:1.2rem;cursor:pointer;padding:2px 8px;" onclick="closeKeepRecordModal()">✕</button>
                 </div>
-                <div class="col-6">
-                    <label class="form-label fw-semibold small">ট্যাগ</label>
-                    <select id="krNoteTag" class="form-select premium-input-modern form-select-sm">
-                        <option>General</option><option>Finance</option><option>Student</option><option>Important</option><option>Reminder</option>
-                    </select>
+                <div class="modal-body pt-2">
+                    <input type="hidden" id="krEditId">
+                    <div class="row g-2 mb-2">
+                        <div class="col-6">
+                            <label class="form-label fw-semibold small">তারিখ</label>
+                            <input type="date" id="krNoteDate" class="form-control premium-input-modern form-control-sm">
+                        </div>
+                        <div class="col-6">
+                            <label class="form-label fw-semibold small">ট্যাগ</label>
+                            <select id="krNoteTag" class="form-select premium-input-modern form-select-sm">
+                                <option>General</option><option>Finance</option><option>Student</option><option>Important</option><option>Reminder</option>
+                            </select>
+                        </div>
+                    </div>
+                    <div class="mb-2">
+                        <label class="form-label fw-semibold small">শিরোনাম</label>
+                        <input type="text" id="krNoteTitle" class="form-control premium-input-modern form-control-sm" placeholder="নোটের শিরোনাম...">
+                    </div>
+                    <div class="mb-2">
+                        <label class="form-label fw-semibold small">বিবরণ / নোট</label>
+                        <textarea id="krNoteBody" class="form-control premium-input-modern" rows="4" placeholder="এখানে আপনার নোট লিখুন..."></textarea>
+                    </div>
                 </div>
-            </div>
-            <div class="mb-2">
-                <label class="form-label fw-semibold small">শিরোনাম</label>
-                <input type="text" id="krNoteTitle" class="form-control premium-input-modern form-control-sm" placeholder="নোটের শিরোনাম...">
-            </div>
-            <div class="mb-3">
-                <label class="form-label fw-semibold small">বিবরণ / নোট</label>
-                <textarea id="krNoteBody" class="form-control premium-input-modern" rows="4" placeholder="এখানে আপনার নোট লিখুন..."></textarea>
-            </div>
-            <div class="d-flex gap-2 justify-content-end">
-                <button class="btn btn-outline-secondary btn-sm" onclick="closeKeepRecordModal()">বাতিল</button>
-                <button class="btn btn-primary btn-sm" onclick="saveKeepRecord()">💾 সেভ করুন</button>
+                <div class="modal-footer border-0 pt-0">
+                    <button class="btn btn-outline-secondary btn-sm" onclick="closeKeepRecordModal()">বাতিল</button>
+                    <button class="btn btn-primary btn-sm" onclick="saveKeepRecord()">💾 সেভ করুন</button>
+                </div>
             </div>
         </div>
     </div>
+    <!-- krModalBackdrop alias — পুরানো code এর সাথে compatibility -->
+    <div id="krModalBackdrop" style="display:none;"></div>
 
     <!-- Edit Transaction Modal -->
     <div class="modal fade" id="editTransactionModal" tabindex="-1">
