@@ -35,6 +35,20 @@ if (typeof window.globalData === 'undefined') {
 if (!window.globalData.deletedItems) window.globalData.deletedItems = [];
 if (!window.globalData.activityHistory) window.globalData.activityHistory = [];
 
+// ✅ Secret Question — লগআউটের পরেও localStorage backup থেকে restore করো
+// (cloud sync বা re-login এ credentials overwrite হলেও কাজ করবে)
+(function _restoreSecretQ() {
+  const bq = localStorage.getItem('wingsfly_secret_q');
+  const ba = localStorage.getItem('wingsfly_secret_a');
+  if (bq) {
+    if (!window.globalData.credentials) window.globalData.credentials = {};
+    if (!window.globalData.credentials.secretQuestion) {
+      window.globalData.credentials.secretQuestion = bq;
+      if (ba) window.globalData.credentials.secretAnswer = ba;
+    }
+  }
+})();
+
 // Global Chart instances to prevent initialization errors
 window.financeChartInstance = null;
 window.studentStatusChart = null;
@@ -171,7 +185,7 @@ function loadDeletedItems() {
     return;
   }
 
-  const icons = { student: '🎓', finance: '💰', employee: '👤', keeprecord: '📝' };
+  const icons = { student: '🎓', finance: '💰', employee: '👤' };
 
   container.innerHTML = filtered.map((d, idx) => {
     const date = new Date(d.deletedAt);
@@ -183,7 +197,6 @@ function loadDeletedItems() {
     if (d.type === 'student') name = d.item.name || d.item.studentName || 'Unknown Student';
     else if (d.type === 'finance') name = (d.item.description || d.item.category || 'Transaction') + ' - ৳' + (d.item.amount || 0);
     else if (d.type === 'employee') name = d.item.name || 'Unknown Employee';
-    else if (d.type === 'keeprecord') name = '📝 ' + (d.item.title || (d.item.body || '').substring(0, 60) || 'Untitled Note') + (d.item.tag ? ` [${d.item.tag}]` : '');
     else name = JSON.stringify(d.item).substring(0, 60) + '...';
 
     return `
@@ -238,41 +251,9 @@ function restoreDeletedItem(trashId) {
     if (!window.globalData.employees) window.globalData.employees = [];
     window.globalData.employees.push(item);
     logActivity('employee', 'ADD', `Restored employee: ${item.name || 'Unknown'}`, item);
-
-  } else if (type === 'keeprecord') {
-    // ✅ Keep Records restore করো localStorage এ
-    const existingRecords = (() => {
-      try { return JSON.parse(localStorage.getItem('wingsfly_keep_records') || '[]'); } catch(e) { return []; }
-    })();
-    // Duplicate check
-    const alreadyExists = existingRecords.some(r => r.id === item.id);
-    if (!alreadyExists) {
-      existingRecords.unshift(item);
-    } else {
-      // ID clash হলে নতুন ID দিয়ে restore করো
-      item.id = 'kr_restored_' + Date.now();
-      existingRecords.unshift(item);
-    }
-    localStorage.setItem('wingsfly_keep_records', JSON.stringify(existingRecords));
-    logActivity('settings', 'ADD', `Keep Record Restore হয়েছে: "${item.title || (item.body || '').substring(0, 40) || 'Untitled'}"`, item);
-    if (typeof renderKeepRecords === 'function') renderKeepRecords();
-
-  } else if (type === 'examregistration') {
-    // ✅ Exam Registration restore
-    if (!window.globalData.examRegistrations) window.globalData.examRegistrations = [];
-    const alreadyExists = window.globalData.examRegistrations.some(e =>
-      (e.id === item.id) || (e.registrationId === item.registrationId)
-    );
-    if (!alreadyExists) {
-      window.globalData.examRegistrations.push(item);
-    } else {
-      item.id = 'EXAM-RESTORED-' + Date.now();
-      item.registrationId = item.id;
-      window.globalData.examRegistrations.push(item);
-    }
-    logActivity('student', 'ADD', `Exam Registration Restore হয়েছে: ${item.studentName || '?'} — ${item.subjectName || ''} (৳${item.examFee || 0})`, item);
-    if (typeof searchExamResults === 'function') searchExamResults();
   }
+
+  // Remove from trash
   window.globalData.deletedItems.splice(idx, 1);
   saveToStorage();
   loadDeletedItems();
@@ -10951,149 +10932,6 @@ function handleExamRegistration(e) {
 window.handleExamRegistration = handleExamRegistration;
 
 // ============================================================
-// EXAM RESULTS — Search, Render, Delete (Trash), Restore
-// ============================================================
-
-function searchExamResults() {
-  const tbody = document.getElementById('examResultsTableBody');
-  const display = document.getElementById('examResultsDisplay');
-  const noMsg = document.getElementById('noResultsMessage');
-  if (!tbody) return;
-
-  const search = (document.getElementById('examResultSearchInput')?.value || '').toLowerCase();
-  const batchFilter = (document.getElementById('examBatchFilter')?.value || '').toLowerCase();
-  const sessionFilter = (document.getElementById('examSessionFilter')?.value || '').toLowerCase();
-  const subjectFilter = (document.getElementById('examSubjectFilter')?.value || '').toLowerCase();
-  const startDate = document.getElementById('examStartDateFilter')?.value || '';
-  const endDate = document.getElementById('examEndDateFilter')?.value || '';
-
-  let exams = window.globalData.examRegistrations || [];
-
-  if (search) exams = exams.filter(e =>
-    (e.studentName || '').toLowerCase().includes(search) ||
-    (e.registrationId || e.id || '').toLowerCase().includes(search) ||
-    (e.studentId || '').toLowerCase().includes(search)
-  );
-  if (batchFilter) exams = exams.filter(e => (e.studentBatch || '').toLowerCase().includes(batchFilter));
-  if (sessionFilter) exams = exams.filter(e => (e.examSession || '').toLowerCase().includes(sessionFilter));
-  if (subjectFilter) exams = exams.filter(e => (e.subjectName || '').toLowerCase().includes(subjectFilter));
-  if (startDate) exams = exams.filter(e => (e.registrationDate || '') >= startDate);
-  if (endDate) exams = exams.filter(e => (e.registrationDate || '') <= endDate);
-
-  // Sort newest first
-  exams = [...exams].sort((a, b) => (b.registrationDate || '').localeCompare(a.registrationDate || ''));
-
-  const totalFee = exams.reduce((sum, e) => sum + (parseFloat(e.examFee) || 0), 0);
-
-  if (exams.length === 0) {
-    if (display) display.classList.add('d-none');
-    if (noMsg) { noMsg.classList.remove('d-none'); noMsg.innerHTML = '<p class="mb-0">কোনো exam registration পাওয়া যায়নি।</p>'; }
-    return;
-  }
-
-  if (display) display.classList.remove('d-none');
-  if (noMsg) noMsg.classList.add('d-none');
-
-  const gradeColors = { 'A+': 'success', 'A': 'success', 'B': 'info', 'C': 'warning', 'D': 'warning', 'F': 'danger', 'Pass': 'success', 'Fail': 'danger' };
-
-  tbody.innerHTML = exams.map(e => {
-    const grBadge = e.grade ? `<span class="badge bg-${gradeColors[e.grade] || 'secondary'}">${e.grade}</span>` : '<span class="text-muted">—</span>';
-    return `
-    <tr>
-      <td><small class="text-muted">${e.registrationId || e.id || '—'}</small></td>
-      <td><small class="text-muted">${e.studentId || '—'}</small></td>
-      <td class="fw-semibold">${e.studentName || '—'}</td>
-      <td>${e.studentBatch || '—'}</td>
-      <td>${e.examSession || '—'}</td>
-      <td>${e.subjectName || '—'}</td>
-      <td class="fw-bold text-success">৳${typeof formatNumber === 'function' ? formatNumber(e.examFee) : e.examFee}</td>
-      <td><span class="badge bg-secondary">${e.paymentMethod || '—'}</span></td>
-      <td>${grBadge}</td>
-      <td><small>${e.registrationDate || '—'}</small></td>
-      <td><small class="text-muted">${e.examComment || '—'}</small></td>
-      <td class="text-end no-print">
-        <button class="btn btn-sm btn-outline-danger" onclick="deleteExamRegistration('${e.id || e.registrationId}')">🗑️</button>
-      </td>
-    </tr>`;
-  }).join('');
-
-  // Update count and totals
-  const countEl = document.getElementById('filteredExamCount');
-  if (countEl) countEl.textContent = exams.length;
-  const totalCredit = document.getElementById('examTotalCredit');
-  if (totalCredit) totalCredit.textContent = '৳' + (typeof formatNumber === 'function' ? formatNumber(totalFee) : totalFee);
-  const netTotal = document.getElementById('examNetTotal');
-  if (netTotal) netTotal.textContent = '৳' + (typeof formatNumber === 'function' ? formatNumber(totalFee) : totalFee);
-  const totalFeeDisplay = document.getElementById('examTotalFeeDisplay');
-  if (totalFeeDisplay) totalFeeDisplay.textContent = '৳' + (typeof formatNumber === 'function' ? formatNumber(totalFee) : totalFee);
-}
-window.searchExamResults = searchExamResults;
-window.renderExamTable = searchExamResults; // alias
-
-// ✅ Exam Registration delete — Recycle Bin + Activity Log
-function deleteExamRegistration(examId) {
-  if (!confirm('এই exam registration মুছে ফেলবেন? (Recycle Bin থেকে Restore করা যাবে)')) return;
-
-  const exams = window.globalData.examRegistrations || [];
-  const exam = exams.find(e => (e.id === examId) || (e.registrationId === examId));
-  if (!exam) { alert('Exam registration পাওয়া যায়নি!'); return; }
-
-  // ✅ Recycle Bin এ পাঠাও
-  if (typeof moveToTrash === 'function') {
-    moveToTrash('examregistration', exam);
-  }
-
-  // ✅ Activity Log এ রেকর্ড করো
-  if (typeof logActivity === 'function') {
-    logActivity(
-      'student',
-      'DELETE',
-      `Exam Registration মুছে ফেলা হয়েছে: ${exam.studentName || '?'} — ${exam.subjectName || ''} (৳${exam.examFee || 0})`,
-      exam
-    );
-  }
-
-  // ✅ Finance ledger থেকেও matching Exam Fee entry সরাও (optional, description match)
-  if (window.globalData.finance) {
-    const fIdx = window.globalData.finance.findIndex(f =>
-      f.category === 'Exam Fee' &&
-      f.person === exam.studentName &&
-      parseFloat(f.amount) === parseFloat(exam.examFee) &&
-      f.date === exam.registrationDate
-    );
-    if (fIdx !== -1) {
-      const finEntry = window.globalData.finance[fIdx];
-      if (typeof moveToTrash === 'function') moveToTrash('finance', finEntry);
-      window.globalData.finance.splice(fIdx, 1);
-    }
-  }
-
-  // সত্যিকারের ডিলিট
-  window.globalData.examRegistrations = exams.filter(e => (e.id !== examId) && (e.registrationId !== examId));
-  if (typeof saveToStorage === 'function') saveToStorage();
-  searchExamResults();
-  if (typeof updateGlobalStats === 'function') updateGlobalStats();
-  if (typeof showToast === 'function') showToast('Exam Registration Recycle Bin এ সরানো হয়েছে', 'info');
-  else if (typeof showSuccessToast === 'function') showSuccessToast('Exam Registration Recycle Bin এ সরানো হয়েছে');
-}
-window.deleteExamRegistration = deleteExamRegistration;
-
-function clearExamFilters() {
-  const ids = ['examResultSearchInput','examBatchFilter','examSessionFilter','examSubjectFilter','examStartDateFilter','examEndDateFilter'];
-  ids.forEach(id => { const el = document.getElementById(id); if (el) el.value = ''; });
-  searchExamResults();
-}
-window.clearExamFilters = clearExamFilters;
-
-function printExamResults() { window.print(); }
-window.printExamResults = printExamResults;
-
-function exportExamResultsExcel() {
-  if (typeof showToast === 'function') showToast('Export feature — XLSX skill দিয়ে তৈরি করুন।', 'info');
-}
-window.exportExamResultsExcel = exportExamResultsExcel;
-
-
 // SECRET QUESTION — FORGOT PASSWORD SYSTEM
 // ============================================================
 
@@ -11378,31 +11216,11 @@ function saveKeepRecord() {
 window.saveKeepRecord = saveKeepRecord;
 
 function deleteKeepRecord(id) {
-  if (!confirm('এই নোটটি মুছে ফেলবেন? (Recycle Bin থেকে Restore করা যাবে)')) return;
-  const records = getKeepRecords();
-  const rec = records.find(r => r.id === id);
-  if (!rec) return;
-
-  // ✅ Recycle Bin এ পাঠাও
-  if (typeof moveToTrash === 'function') {
-    moveToTrash('keeprecord', rec);
-  }
-
-  // ✅ Activity Log এ রেকর্ড করো
-  if (typeof logActivity === 'function') {
-    logActivity(
-      'settings',
-      'DELETE',
-      `Keep Record মুছে ফেলা হয়েছে: "${rec.title || rec.body?.substring(0, 40) || 'Untitled'}"`,
-      rec
-    );
-  }
-
-  // সত্যিকারের ডিলিট
-  const updated = records.filter(r => r.id !== id);
-  saveKeepRecordsToStorage(updated);
+  if (!confirm('এই নোটটি মুছে ফেলবেন?')) return;
+  const records = getKeepRecords().filter(r => r.id !== id);
+  saveKeepRecordsToStorage(records);
   renderKeepRecords();
-  if (typeof showToast === 'function') showToast('নোট Recycle Bin এ সরানো হয়েছে', 'info');
+  if (typeof showToast === 'function') showToast('নোট মুছে গেছে', 'info');
 }
 window.deleteKeepRecord = deleteKeepRecord;
 

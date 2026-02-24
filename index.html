@@ -2959,50 +2959,68 @@
 
                     <!-- ========== TOTAL BALANCE SUMMARY (BOTTOM) ========== -->
                     <div class="card border-0 shadow-lg mb-4"
-                        style="background: linear-gradient(135deg, #0f2027 0%, #203a43 50%, #2c5364 100%); border-radius: 20px; border: 2px solid rgba(79,172,254,0.4) !important;">
+                        style="background: linear-gradient(135deg, #0a0e27 0%, #1a1040 50%, #0d1a2e 100%); border-radius: 20px; border: 2px solid rgba(0,230,118,0.3) !important; overflow: hidden; position: relative;">
+                        <!-- Decorative glow blobs -->
+                        <div style="position:absolute;top:-60px;left:-60px;width:200px;height:200px;background:radial-gradient(circle,rgba(0,230,118,0.18) 0%,transparent 70%);pointer-events:none;"></div>
+                        <div style="position:absolute;bottom:-60px;right:-60px;width:220px;height:220px;background:radial-gradient(circle,rgba(255,0,128,0.15) 0%,transparent 70%);pointer-events:none;"></div>
+
                         <div class="card-body p-4 p-md-5">
                             <div class="text-center mb-4">
-                                <h4 class="fw-bold text-white mb-1">
-                                    <span class="me-2">💰</span> TOTAL BALANCE OVERVIEW
+                                <h4 class="fw-bold mb-1" style="color:#ffffff; letter-spacing:1px; text-shadow:0 0 18px rgba(0,230,118,0.5);">
+                                    💰 TOTAL BALANCE OVERVIEW
                                 </h4>
-                                <p class="text-white opacity-75 mb-0 small">Cash + Bank + Mobile Banking Combined</p>
+                                <p style="color:rgba(255,255,255,0.6); margin:0; font-size:0.85rem;">Cash + Bank + Mobile Banking Combined</p>
                             </div>
+
                             <div class="row g-4 text-center mb-4">
+                                <!-- CASH -->
                                 <div class="col-md-4">
-                                    <div class="p-3 rounded-4"
-                                        style="background: rgba(255,255,255,0.08); border: 1px solid rgba(255,255,255,0.15);">
-                                        <div class="mb-2" style="font-size: 1.8rem;">💵</div>
-                                        <div class="text-white opacity-75 small fw-bold text-uppercase mb-1">Cash</div>
-                                        <div class="text-white fw-bold" style="font-size: 1.4rem;"
+                                    <div class="p-3 rounded-4" style="
+                                        background: linear-gradient(135deg, rgba(0,230,118,0.15) 0%, rgba(0,200,100,0.08) 100%);
+                                        border: 1.5px solid rgba(0,230,118,0.5);
+                                        box-shadow: 0 4px 24px rgba(0,230,118,0.15);
+                                        transition: transform 0.2s;">
+                                        <div class="mb-2" style="font-size: 2rem;">💵</div>
+                                        <div class="fw-bold text-uppercase mb-2" style="font-size:0.7rem; letter-spacing:2px; color:rgba(0,230,118,0.9);">CASH</div>
+                                        <div class="fw-bold" style="font-size: 1.6rem; color:#00e676; text-shadow:0 0 12px rgba(0,230,118,0.6);"
                                             id="totalBalanceCash">৳0</div>
                                     </div>
                                 </div>
+
+                                <!-- BANK -->
                                 <div class="col-md-4">
-                                    <div class="p-3 rounded-4"
-                                        style="background: rgba(255,255,255,0.08); border: 1px solid rgba(255,255,255,0.15);">
-                                        <div class="mb-2" style="font-size: 1.8rem;">🏦</div>
-                                        <div class="text-white opacity-75 small fw-bold text-uppercase mb-1">Bank</div>
-                                        <div class="text-white fw-bold" style="font-size: 1.4rem;"
+                                    <div class="p-3 rounded-4" style="
+                                        background: linear-gradient(135deg, rgba(0,180,255,0.15) 0%, rgba(0,120,220,0.08) 100%);
+                                        border: 1.5px solid rgba(0,180,255,0.5);
+                                        box-shadow: 0 4px 24px rgba(0,180,255,0.15);
+                                        transition: transform 0.2s;">
+                                        <div class="mb-2" style="font-size: 2rem;">🏦</div>
+                                        <div class="fw-bold text-uppercase mb-2" style="font-size:0.7rem; letter-spacing:2px; color:rgba(0,200,255,0.9);">BANK</div>
+                                        <div class="fw-bold" style="font-size: 1.6rem; color:#00cfff; text-shadow:0 0 12px rgba(0,200,255,0.6);"
                                             id="totalBalanceBank">৳0</div>
                                     </div>
                                 </div>
+
+                                <!-- MOBILE BANKING -->
                                 <div class="col-md-4">
-                                    <div class="p-3 rounded-4"
-                                        style="background: rgba(255,255,255,0.08); border: 1px solid rgba(255,255,255,0.15);">
-                                        <div class="mb-2" style="font-size: 1.8rem;">📱</div>
-                                        <div class="text-white opacity-75 small fw-bold text-uppercase mb-1">Mobile
-                                            Banking</div>
-                                        <div class="text-white fw-bold" style="font-size: 1.4rem;"
+                                    <div class="p-3 rounded-4" style="
+                                        background: linear-gradient(135deg, rgba(255,0,128,0.15) 0%, rgba(200,0,100,0.08) 100%);
+                                        border: 1.5px solid rgba(255,0,128,0.5);
+                                        box-shadow: 0 4px 24px rgba(255,0,128,0.15);
+                                        transition: transform 0.2s;">
+                                        <div class="mb-2" style="font-size: 2rem;">📱</div>
+                                        <div class="fw-bold text-uppercase mb-2" style="font-size:0.7rem; letter-spacing:2px; color:rgba(255,80,160,0.9);">MOBILE BANKING</div>
+                                        <div class="fw-bold" style="font-size: 1.6rem; color:#ff4da6; text-shadow:0 0 12px rgba(255,0,128,0.6);"
                                             id="totalBalanceMobile">৳0</div>
                                     </div>
                                 </div>
                             </div>
-                            <div class="text-center pt-3" style="border-top: 1px solid rgba(255,255,255,0.2);">
-                                <div class="text-white opacity-75 small fw-bold text-uppercase mb-2 letter-spacing-1">
-                                    Grand Total</div>
-                                <div class="text-white fw-bold"
-                                    style="font-size: 2.5rem; text-shadow: 0 0 20px rgba(79,172,254,0.6);"
-                                    id="totalBalanceGrand">৳0</div>
+
+                            <!-- GRAND TOTAL -->
+                            <div class="text-center pt-3" style="border-top: 1px solid rgba(255,255,255,0.12);">
+                                <div class="fw-bold text-uppercase mb-2" style="font-size:0.72rem; letter-spacing:3px; color:rgba(255,255,255,0.55);">GRAND TOTAL</div>
+                                <div class="fw-bold" id="totalBalanceGrand"
+                                    style="font-size: 2.8rem; color:#ffffff; text-shadow: 0 0 30px rgba(0,230,118,0.5), 0 0 60px rgba(255,0,128,0.2);">৳0</div>
                             </div>
                         </div>
                     </div>
@@ -6443,7 +6461,7 @@
                     return true;
                 });
 
-                var icons = { student: '🎓', finance: '💰', employee: '👤', visitor: '👋', keeprecord: '📝', examregistration: '📊' };
+                var icons = { student: '🎓', finance: '💰', employee: '👤', visitor: '👋' };
 
                 var rows = '';
                 if (filtered.length === 0) {
@@ -6498,8 +6516,6 @@
                 if (t === 'finance') return (d.item.description || d.item.category || 'Transaction') + ' — ৳' + (d.item.amount || 0);
                 if (t === 'employee') return d.item.name || 'Unknown Employee';
                 if (t === 'visitor') return d.item.name || d.item.visitorName || 'Unknown Visitor';
-                if (t === 'keeprecord') return '📝 ' + (d.item.title || (d.item.body || '').substring(0, 60) || 'Untitled Note') + (d.item.tag ? ' [' + d.item.tag + ']' : '');
-                if (t === 'examregistration') return '📊 ' + (d.item.studentName || '?') + ' — ' + (d.item.subjectName || '') + ' ৳' + (d.item.examFee || 0);
                 return JSON.stringify(d.item).substring(0, 50);
             }
 
@@ -6515,22 +6531,6 @@
                     if (t === 'student') { if (!window.globalData.students) window.globalData.students = []; window.globalData.students.push(d.item); }
                     if (t === 'finance') { if (!window.globalData.finance) window.globalData.finance = []; window.globalData.finance.push(d.item); }
                     if (t === 'employee') { if (!window.globalData.employees) window.globalData.employees = []; window.globalData.employees.push(d.item); }
-                    if (t === 'keeprecord') {
-                        try {
-                            var kr = JSON.parse(localStorage.getItem('wingsfly_keep_records') || '[]');
-                            if (!kr.some(function(r) { return r.id === d.item.id; })) kr.unshift(d.item);
-                            else { d.item.id = 'kr_restored_' + Date.now(); kr.unshift(d.item); }
-                            localStorage.setItem('wingsfly_keep_records', JSON.stringify(kr));
-                            if (typeof window.renderKeepRecords === 'function') window.renderKeepRecords();
-                        } catch(e) {}
-                    }
-                    if (t === 'examregistration') {
-                        if (!window.globalData.examRegistrations) window.globalData.examRegistrations = [];
-                        var already = window.globalData.examRegistrations.some(function(e) { return e.id === d.item.id || e.registrationId === d.item.registrationId; });
-                        if (!already) window.globalData.examRegistrations.push(d.item);
-                        else { d.item.id = 'EXAM-RESTORED-' + Date.now(); d.item.registrationId = d.item.id; window.globalData.examRegistrations.push(d.item); }
-                        if (typeof window.searchExamResults === 'function') window.searchExamResults();
-                    }
                     window.globalData.deletedItems = (window.globalData.deletedItems || []).filter(function (x) { return x.id !== id; });
                     localStorage.setItem('wingsfly_data', JSON.stringify(window.globalData));
                     renderRecycleBin();

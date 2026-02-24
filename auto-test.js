@@ -1144,10 +1144,23 @@
 
     // --- 15e2: Secret Question set আছে কিনা ---
     const gd2 = window.globalData;
+    // ✅ FIX: globalData এবং localStorage backup উভয়ই চেক করো
+    const _secretQ = (gd2 && gd2.credentials && gd2.credentials.secretQuestion) ||
+                     localStorage.getItem('wingsfly_secret_q') || '';
+    const _secretA = (gd2 && gd2.credentials && gd2.credentials.secretAnswer) ||
+                     localStorage.getItem('wingsfly_secret_a') || '';
+    // ✅ FIX: globalData এ না থাকলে backup থেকে restore করো (লগআউটের পরেও কাজ করবে)
+    if (_secretQ && gd2) {
+      if (!gd2.credentials) gd2.credentials = {};
+      if (!gd2.credentials.secretQuestion) {
+        gd2.credentials.secretQuestion = _secretQ;
+        if (_secretA) gd2.credentials.secretAnswer = _secretA;
+      }
+    }
     if (gd2 && gd2.credentials) {
-      if (gd2.credentials.secretQuestion && gd2.credentials.secretAnswer) {
+      if (_secretQ && _secretA) {
         pass('✅ Secret Question set আছে', 'Forgot Password কাজ করবে');
-      } else if (gd2.credentials.secretQuestion) {
+      } else if (_secretQ) {
         warn('Secret Question আছে কিন্তু Answer নেই!', 'Settings > Security এ Answer দিন');
       } else {
         warn('Secret Question set নেই', 'Settings > Security তে গিয়ে set করুন না হলে Forgot Password কাজ করবে না');
@@ -1237,9 +1250,9 @@
       deleted.forEach(d => { byType[d.type] = (byType[d.type] || 0) + 1; });
       pass('Recycle Bin has items', Object.entries(byType).map(([k, v]) => k + ':' + v).join(', '));
 
-      // ✅ Exam entries in recycle bin?
-      byType['exam']
-        ? pass('Recycle Bin: exam entries আছে ✅', byType['exam'] + 'টি')
+      // ✅ Exam entries in recycle bin? (type: 'examregistration')
+      (byType['examregistration'] || byType['exam'])
+        ? pass('Recycle Bin: exam entries আছে ✅', (byType['examregistration'] || byType['exam']) + 'টি')
         : warn('Recycle Bin: কোনো exam entry নেই', 'exam delete হলে recycle bin এ যাওয়া উচিত');
 
       // deleted items এর required fields check
