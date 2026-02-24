@@ -171,7 +171,7 @@ function loadDeletedItems() {
     return;
   }
 
-  const icons = { student: '🎓', finance: '💰', employee: '👤' };
+  const icons = { student: '🎓', finance: '💰', employee: '👤', keeprecord: '📝' };
 
   container.innerHTML = filtered.map((d, idx) => {
     const date = new Date(d.deletedAt);
@@ -183,6 +183,7 @@ function loadDeletedItems() {
     if (d.type === 'student') name = d.item.name || d.item.studentName || 'Unknown Student';
     else if (d.type === 'finance') name = (d.item.description || d.item.category || 'Transaction') + ' - ৳' + (d.item.amount || 0);
     else if (d.type === 'employee') name = d.item.name || 'Unknown Employee';
+    else if (d.type === 'keeprecord') name = '📝 ' + (d.item.title || (d.item.body || '').substring(0, 60) || 'Untitled Note') + (d.item.tag ? ` [${d.item.tag}]` : '');
     else name = JSON.stringify(d.item).substring(0, 60) + '...';
 
     return `
@@ -237,6 +238,24 @@ function restoreDeletedItem(trashId) {
     if (!window.globalData.employees) window.globalData.employees = [];
     window.globalData.employees.push(item);
     logActivity('employee', 'ADD', `Restored employee: ${item.name || 'Unknown'}`, item);
+
+  } else if (type === 'keeprecord') {
+    // ✅ Keep Records restore করো localStorage এ
+    const existingRecords = (() => {
+      try { return JSON.parse(localStorage.getItem('wingsfly_keep_records') || '[]'); } catch(e) { return []; }
+    })();
+    // Duplicate check
+    const alreadyExists = existingRecords.some(r => r.id === item.id);
+    if (!alreadyExists) {
+      existingRecords.unshift(item);
+    } else {
+      // ID clash হলে নতুন ID দিয়ে restore করো
+      item.id = 'kr_restored_' + Date.now();
+      existingRecords.unshift(item);
+    }
+    localStorage.setItem('wingsfly_keep_records', JSON.stringify(existingRecords));
+    logActivity('settings', 'ADD', `Keep Record Restore হয়েছে: "${item.title || (item.body || '').substring(0, 40) || 'Untitled'}"`, item);
+    if (typeof renderKeepRecords === 'function') renderKeepRecords();
   }
 
   // Remove from trash
@@ -11202,11 +11221,31 @@ function saveKeepRecord() {
 window.saveKeepRecord = saveKeepRecord;
 
 function deleteKeepRecord(id) {
-  if (!confirm('এই নোটটি মুছে ফেলবেন?')) return;
-  const records = getKeepRecords().filter(r => r.id !== id);
-  saveKeepRecordsToStorage(records);
+  if (!confirm('এই নোটটি মুছে ফেলবেন? (Recycle Bin থেকে Restore করা যাবে)')) return;
+  const records = getKeepRecords();
+  const rec = records.find(r => r.id === id);
+  if (!rec) return;
+
+  // ✅ Recycle Bin এ পাঠাও
+  if (typeof moveToTrash === 'function') {
+    moveToTrash('keeprecord', rec);
+  }
+
+  // ✅ Activity Log এ রেকর্ড করো
+  if (typeof logActivity === 'function') {
+    logActivity(
+      'settings',
+      'DELETE',
+      `Keep Record মুছে ফেলা হয়েছে: "${rec.title || rec.body?.substring(0, 40) || 'Untitled'}"`,
+      rec
+    );
+  }
+
+  // সত্যিকারের ডিলিট
+  const updated = records.filter(r => r.id !== id);
+  saveKeepRecordsToStorage(updated);
   renderKeepRecords();
-  if (typeof showToast === 'function') showToast('নোট মুছে গেছে', 'info');
+  if (typeof showToast === 'function') showToast('নোট Recycle Bin এ সরানো হয়েছে', 'info');
 }
 window.deleteKeepRecord = deleteKeepRecord;
 

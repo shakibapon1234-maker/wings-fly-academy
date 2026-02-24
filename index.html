@@ -6443,7 +6443,7 @@
                     return true;
                 });
 
-                var icons = { student: '🎓', finance: '💰', employee: '👤', visitor: '👋' };
+                var icons = { student: '🎓', finance: '💰', employee: '👤', visitor: '👋', keeprecord: '📝' };
 
                 var rows = '';
                 if (filtered.length === 0) {
@@ -6498,6 +6498,7 @@
                 if (t === 'finance') return (d.item.description || d.item.category || 'Transaction') + ' — ৳' + (d.item.amount || 0);
                 if (t === 'employee') return d.item.name || 'Unknown Employee';
                 if (t === 'visitor') return d.item.name || d.item.visitorName || 'Unknown Visitor';
+                if (t === 'keeprecord') return '📝 ' + (d.item.title || (d.item.body || '').substring(0, 60) || 'Untitled Note') + (d.item.tag ? ' [' + d.item.tag + ']' : '');
                 return JSON.stringify(d.item).substring(0, 50);
             }
 
@@ -6513,6 +6514,15 @@
                     if (t === 'student') { if (!window.globalData.students) window.globalData.students = []; window.globalData.students.push(d.item); }
                     if (t === 'finance') { if (!window.globalData.finance) window.globalData.finance = []; window.globalData.finance.push(d.item); }
                     if (t === 'employee') { if (!window.globalData.employees) window.globalData.employees = []; window.globalData.employees.push(d.item); }
+                    if (t === 'keeprecord') {
+                        try {
+                            var kr = JSON.parse(localStorage.getItem('wingsfly_keep_records') || '[]');
+                            if (!kr.some(function(r) { return r.id === d.item.id; })) kr.unshift(d.item);
+                            else { d.item.id = 'kr_restored_' + Date.now(); kr.unshift(d.item); }
+                            localStorage.setItem('wingsfly_keep_records', JSON.stringify(kr));
+                            if (typeof window.renderKeepRecords === 'function') window.renderKeepRecords();
+                        } catch(e) {}
+                    }
                     window.globalData.deletedItems = (window.globalData.deletedItems || []).filter(function (x) { return x.id !== id; });
                     localStorage.setItem('wingsfly_data', JSON.stringify(window.globalData));
                     renderRecycleBin();
