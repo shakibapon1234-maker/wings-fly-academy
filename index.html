@@ -1138,7 +1138,7 @@
                 <p class="text-muted">Aviation Academy Management System</p>
             </div>
 
-            <form id="loginForm" onsubmit="handleLogin(event)">
+            <form id="loginForm" onsubmit="if(typeof handleLogin==='function'){handleLogin(event);}else{event.preventDefault();document.getElementById('loginError').innerText='পেজ লোড হচ্ছে... একটু অপেক্ষা করুন এবং আবার চেষ্টা করুন।';}">
                 <div class="mb-3">
                     <label class="form-label">Username</label>
                     <input type="text" name="username" class="form-control" placeholder="Enter username" required
@@ -5694,6 +5694,36 @@
                 msg.style.display = 'block';
                 msg.innerHTML = '<span style="color:#ef4444;">❌ পাসওয়ার্ড মিলছে না</span>';
             }
+        };
+
+        // ✅ EARLY DEFINE: handleLogin wrapper
+        // app.js load না হলে queue করে রাখে, load হলে চালায়
+        window._loginQueue = null;
+        window.handleLogin = function(e) {
+            e.preventDefault();
+            // app.js এর real handleLogin load হয়েছে কিনা check করি
+            if (window._appHandleLogin && typeof window._appHandleLogin === 'function') {
+                window._appHandleLogin(e);
+                return;
+            }
+            // এখনো load হয়নি — wait করো
+            var err = document.getElementById('loginError');
+            var btn = document.getElementById('loginBtn');
+            if (err) err.innerText = 'লোড হচ্ছে... একটু অপেক্ষা করুন।';
+            if (btn) btn.disabled = true;
+            // 2 সেকেন্ড পরে আবার try করো
+            setTimeout(function() {
+                var form = document.getElementById('loginForm');
+                if (window._appHandleLogin && form) {
+                    // fake submit event তৈরি করো
+                    var fakeEvent = { preventDefault: function(){}, target: form };
+                    fakeEvent.target = form;
+                    window._appHandleLogin(fakeEvent);
+                } else {
+                    if (err) err.innerText = 'পেজ রিফ্রেশ করুন এবং আবার চেষ্টা করুন।';
+                    if (btn) { btn.disabled = false; btn.innerHTML = '<span>Login</span>'; }
+                }
+            }, 2000);
         };
     </script>
 

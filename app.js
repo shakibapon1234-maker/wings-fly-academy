@@ -1430,6 +1430,7 @@ function logout() {
   document.getElementById('loginError').innerText = '';
 }
 window.handleLogin = handleLogin;
+window._appHandleLogin = handleLogin; // index.html wrapper এর জন্য
 window.logout = logout;
 
 // ===================================
