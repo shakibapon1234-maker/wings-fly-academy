@@ -380,6 +380,84 @@
   }
 
 
+  // ============================================
+  // HEAL 13: Paid vs Finance Mismatch Auto-Fix
+  // Student.paid != finance ledger total হলে fix
+  // ============================================
+  function healPaidFinanceMismatch() {
+    const data = window.globalData;
+    if (!data || !data.students || !data.finance) return 0;
+    let fixed = 0;
+    const finance = data.finance;
+
+    data.students.forEach(student => {
+      const name = student.name;
+      if (!name) return;
+      const studentPaid = parseFloat(student.paid) || 0;
+      if (studentPaid === 0) return;
+
+      const finRecords = finance.filter(f =>
+        f.person === name &&
+        (f.category === 'Student Fee' || f.category === 'Student Installment') &&
+        f.type === 'Income'
+      );
+      const finTotal = finRecords.reduce((sum, f) => sum + (parseFloat(f.amount) || 0), 0);
+      const diff = studentPaid - finTotal;
+
+      if (Math.abs(diff) > 1) {
+        if (diff > 0) {
+          finance.push({
+            id: 'heal_' + Date.now() + '_' + Math.random().toString(36).slice(2, 5),
+            type: 'Income',
+            method: student.method || 'Cash',
+            date: student.enrollDate || new Date().toISOString().split('T')[0],
+            category: 'Student Fee',
+            person: name,
+            amount: diff,
+            description: '[Auto-Heal] Paid-Finance sync correction for ' + name,
+            timestamp: new Date().toISOString()
+          });
+          hLog('fix', 'Paid-Finance fix (' + name + '): finance += ৳' + diff.toFixed(0));
+        } else {
+          student.paid = Math.round(finTotal * 100) / 100;
+          student.due = Math.max(0, (parseFloat(student.totalPayment) || 0) - student.paid);
+          hLog('fix', 'Paid-Finance fix (' + name + '): paid aligned to finance ৳' + student.paid);
+        }
+        fixed++;
+      }
+    });
+
+    if (fixed > 0) {
+      localStorage.setItem('wingsfly_data', JSON.stringify(data));
+      healToast(fixed + ' student Paid-Finance sync fix হয়েছে', 'fix');
+      // update status badge
+      if (typeof window.updatePaidFinanceStatusBadge === 'function') window.updatePaidFinanceStatusBadge();
+    }
+    return fixed;
+  }
+
+  // status badge updater
+  function updatePaidFinanceStatusBadge() {
+    const badge = document.getElementById('krPaidFinanceStatus');
+    if (!badge || !window.globalData) return;
+    const finance = window.globalData.finance || [];
+    let mismatch = 0;
+    (window.globalData.students || []).forEach(s => {
+      const paid = parseFloat(s.paid) || 0;
+      if (paid === 0) return;
+      const ft = finance.filter(f =>
+        f.person === s.name &&
+        (f.category === 'Student Fee' || f.category === 'Student Installment') &&
+        f.type === 'Income'
+      ).reduce((sum, f) => sum + (parseFloat(f.amount) || 0), 0);
+      if (ft > 0 && Math.abs(ft - paid) > 1) mismatch++;
+    });
+    badge.innerHTML = mismatch === 0
+      ? '<span style="color:#00ff88;font-weight:700;">✅ সব ঠিক আছে</span>'
+      : '<span style="color:#ffcc00;font-weight:700;">⚠️ ' + mismatch + 'টি mismatch — auto-heal চলছে...</span>';
+  }
+  window.updatePaidFinanceStatusBadge = updatePaidFinanceStatusBadge;
+
   // Cloud-এ বেশি data থাকলে pull করো
   // ============================================
   async function healSyncMismatch() {
@@ -543,7 +621,10 @@
     // 10. Overpayment detection (warn only)
     healOverpaymentCheck();
 
-    // 11. Cloud sync fix (async, network)
+    // 11. Paid vs Finance mismatch fix (background auto-fix)
+    totalFixed += healPaidFinanceMismatch();
+
+    // 12. Cloud sync fix (async, network)
     totalFixed += await healSyncMismatch();
 
     // Update UI stats
@@ -604,6 +685,7 @@
     runNow: runHealCycle,
     getStats: () => healStats,
     getLogs: () => healStats.log,
+    fixPaidFinance: healPaidFinanceMismatch,  // direct access
   };
 
   // DOM ready হলে start করো

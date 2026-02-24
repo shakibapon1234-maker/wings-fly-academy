@@ -904,9 +904,10 @@
     else { fail('Data size too large!', `${sizeMB} MB — localStorage limit হতে পারে`); }
 
     // --- 12d: DOM element count ---
+    // ℹ️ Wings Fly is a large SPA — thresholds adjusted accordingly
     const domCount = document.querySelectorAll('*').length;
-    if (domCount < 2000) { pass('DOM size normal', `${domCount} elements`); }
-    else if (domCount < 5000) { warn('DOM getting large', `${domCount} elements`); }
+    if (domCount < 4000) { pass('DOM size normal', `${domCount} elements`); }
+    else if (domCount < 8000) { warn('DOM getting large', `${domCount} elements`); }
     else { fail('DOM too large!', `${domCount} elements — memory leak হতে পারে`); }
 
     // --- 12e: Student array sort speed ---

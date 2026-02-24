@@ -3549,6 +3549,10 @@
                                         onclick="switchSettingsTab('tab-diagnostic', this)">
                                         <span>🔍</span> Sync Diagnostic
                                     </button>
+                                    <button class="nav-link" type="button"
+                                        onclick="switchSettingsTab('tab-keeprecord', this); renderKeepRecords()">
+                                        <span>📝</span> Keep Record
+                                    </button>
                                 </div>
                                 <div class="mt-auto pt-4 text-center">
                                     <button type="submit" class="btn btn-primary w-100 py-2 shadow-sm">
@@ -3685,6 +3689,30 @@
                                     <div class="settings-tab-pane" id="tab-data" style="display:none; padding:24px;">
                                         <div class="row justify-content-center">
                                             <div class="col-md-8">
+                                                <!-- 🔧 Paid/Finance Mismatch Fix -->
+                                                <div class="card border-0 shadow-sm mb-4" style="border-left:3px solid #ffc107 !important;">
+                                                    <div class="card-body p-3">
+                                                        <div class="d-flex align-items-center mb-2">
+                                                            <span style="font-size:1.4rem;margin-right:10px;">🔧</span>
+                                                            <div class="flex-grow-1">
+                                                                <h6 class="fw-bold mb-0 text-warning">Paid ও Finance Auto-Sync</h6>
+                                                                <small class="text-muted">Auto-Heal প্রতি ৬০ সেকেন্ডে background-এ চেক করে fix করে</small>
+                                                            </div>
+                                                        </div>
+                                                        <div class="mb-2 p-2 rounded" style="background:rgba(255,255,255,0.04); border:1px solid rgba(255,255,255,0.08);">
+                                                            <div class="d-flex align-items-center justify-content-between">
+                                                                <span class="small text-muted">Current Status:</span>
+                                                                <span id="krPaidFinanceStatus" class="small">
+                                                                    <span style="color:#888;">চেক হচ্ছে...</span>
+                                                                </span>
+                                                            </div>
+                                                        </div>
+                                                        <button type="button" class="btn btn-warning btn-sm w-100 fw-bold" onclick="manualHealPaidFinance()">
+                                                            ⚡ এখনই Fix করুন
+                                                        </button>
+                                                        <div id="krFixResult" class="mt-2 small"></div>
+                                                    </div>
+                                                </div>
                                                 <!-- Backup & Restore -->
                                                 <div class="card border-0 shadow-sm mb-4">
                                                     <div class="card-body p-4">
@@ -4414,6 +4442,65 @@
 
                                     </div><!-- /diag-wrap -->
                                 </div><!-- /tab-diagnostic -->
+
+                                <!-- Tab: Keep Record -->
+                                <div class="settings-tab-pane" id="tab-keeprecord" style="display:none; padding:24px;">
+                                    <div class="d-flex align-items-center justify-content-between mb-3 flex-wrap gap-2">
+                                        <div>
+                                            <h6 class="settings-section-title mb-1">📝 Keep Record</h6>
+                                            <small class="text-muted">ব্যক্তিগত নোট ও রেকর্ড — তারিখ অনুযায়ী সেভ থাকে</small>
+                                        </div>
+                                        <button class="btn btn-sm btn-primary" onclick="openKeepRecordModal()">＋ নতুন নোট</button>
+                                    </div>
+                                    <div class="d-flex gap-2 mb-3 flex-wrap">
+                                        <input type="date" id="krFilterDate" class="form-control form-control-sm premium-input-modern" style="max-width:160px;" onchange="renderKeepRecords()">
+                                        <select id="krFilterTag" class="form-select form-select-sm premium-input-modern" style="max-width:160px;" onchange="renderKeepRecords()">
+                                            <option value="">সব ট্যাগ</option>
+                                            <option value="General">General</option>
+                                            <option value="Finance">Finance</option>
+                                            <option value="Student">Student</option>
+                                            <option value="Important">Important</option>
+                                            <option value="Reminder">Reminder</option>
+                                        </select>
+                                        <input type="text" id="krSearch" class="form-control form-control-sm premium-input-modern" style="max-width:200px;" oninput="renderKeepRecords()" placeholder="🔍 সার্চ করুন...">
+                                        <button class="btn btn-sm btn-outline-secondary ms-auto" onclick="document.getElementById('krFilterDate').value='';document.getElementById('krFilterTag').value='';document.getElementById('krSearch').value='';renderKeepRecords();">✕ ক্লিয়ার</button>
+                                    </div>
+                                    <div id="krRecordsList" style="max-height:420px; overflow-y:auto; display:flex; flex-direction:column; gap:10px;">
+                                        <div class="text-muted text-center py-4" style="font-size:0.9rem;">লোড হচ্ছে...</div>
+                                    </div>
+                                </div><!-- /tab-keeprecord -->
+
+                                <!-- Keep Record Add/Edit Modal (inline, no extra global DOM) -->
+                                <div id="krModalBackdrop" style="display:none; position:fixed; inset:0; background:rgba(0,0,0,0.65); z-index:9999; align-items:center; justify-content:center;">
+                                    <div class="custom-modal" style="width:min(500px,94vw); border-radius:16px; padding:24px; position:relative;">
+                                        <h6 class="fw-bold mb-3" id="krModalTitle">📝 নতুন নোট</h6>
+                                        <input type="hidden" id="krEditId">
+                                        <div class="row g-2 mb-2">
+                                            <div class="col-6">
+                                                <label class="form-label fw-semibold small">তারিখ</label>
+                                                <input type="date" id="krNoteDate" class="form-control premium-input-modern form-control-sm">
+                                            </div>
+                                            <div class="col-6">
+                                                <label class="form-label fw-semibold small">ট্যাগ</label>
+                                                <select id="krNoteTag" class="form-select premium-input-modern form-select-sm">
+                                                    <option>General</option><option>Finance</option><option>Student</option><option>Important</option><option>Reminder</option>
+                                                </select>
+                                            </div>
+                                        </div>
+                                        <div class="mb-2">
+                                            <label class="form-label fw-semibold small">শিরোনাম</label>
+                                            <input type="text" id="krNoteTitle" class="form-control premium-input-modern form-control-sm" placeholder="নোটের শিরোনাম...">
+                                        </div>
+                                        <div class="mb-3">
+                                            <label class="form-label fw-semibold small">বিবরণ / নোট</label>
+                                            <textarea id="krNoteBody" class="form-control premium-input-modern" rows="4" placeholder="এখানে আপনার নোট লিখুন..."></textarea>
+                                        </div>
+                                        <div class="d-flex gap-2 justify-content-end">
+                                            <button class="btn btn-outline-secondary btn-sm" onclick="closeKeepRecordModal()">বাতিল</button>
+                                            <button class="btn btn-primary btn-sm" onclick="saveKeepRecord()">💾 সেভ করুন</button>
+                                        </div>
+                                    </div>
+                                </div>
 
                             </div><!-- /tab-content -->
                         </div><!-- /flex-grow-1 content area -->

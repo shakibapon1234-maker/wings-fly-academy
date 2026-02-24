@@ -10978,3 +10978,282 @@ document.addEventListener('click', function(e) {
   const modal = document.getElementById('forgotPasswordModal');
   if (modal && e.target === modal) hideForgotPasswordModal();
 });
+
+// ===================================
+// KEEP RECORD / KEEP NOTE SYSTEM
+// ===================================
+
+function getKeepRecords() {
+  try {
+    return JSON.parse(localStorage.getItem('wingsfly_keep_records') || '[]');
+  } catch(e) { return []; }
+}
+
+function saveKeepRecordsToStorage(records) {
+  localStorage.setItem('wingsfly_keep_records', JSON.stringify(records));
+}
+
+function openKeepRecordModal(editId) {
+  const backdrop = document.getElementById('krModalBackdrop');
+  if (!backdrop) return;
+  backdrop.style.display = 'flex';
+
+  document.getElementById('krEditId').value = '';
+  document.getElementById('krNoteDate').value = new Date().toISOString().split('T')[0];
+  document.getElementById('krNoteTag').value = 'General';
+  document.getElementById('krNoteTitle').value = '';
+  document.getElementById('krNoteBody').value = '';
+  document.getElementById('krModalTitle').textContent = '📝 নতুন নোট';
+
+  if (editId) {
+    const records = getKeepRecords();
+    const rec = records.find(r => r.id === editId);
+    if (rec) {
+      document.getElementById('krEditId').value = rec.id;
+      document.getElementById('krNoteDate').value = rec.date || '';
+      document.getElementById('krNoteTag').value = rec.tag || 'General';
+      document.getElementById('krNoteTitle').value = rec.title || '';
+      document.getElementById('krNoteBody').value = rec.body || '';
+      document.getElementById('krModalTitle').textContent = '✏️ নোট এডিট করুন';
+    }
+  }
+}
+window.openKeepRecordModal = openKeepRecordModal;
+
+function closeKeepRecordModal() {
+  const backdrop = document.getElementById('krModalBackdrop');
+  if (backdrop) backdrop.style.display = 'none';
+}
+window.closeKeepRecordModal = closeKeepRecordModal;
+
+function saveKeepRecord() {
+  const date = document.getElementById('krNoteDate').value;
+  const tag = document.getElementById('krNoteTag').value;
+  const title = document.getElementById('krNoteTitle').value.trim();
+  const body = document.getElementById('krNoteBody').value.trim();
+
+  if (!title && !body) {
+    if (typeof showToast === 'function') showToast('শিরোনাম বা নোট লিখুন!', 'warning');
+    return;
+  }
+
+  const records = getKeepRecords();
+  const editId = document.getElementById('krEditId').value;
+
+  if (editId) {
+    const idx = records.findIndex(r => r.id === editId);
+    if (idx !== -1) {
+      records[idx] = { ...records[idx], date, tag, title, body, updatedAt: new Date().toISOString() };
+    }
+  } else {
+    records.unshift({
+      id: 'kr_' + Date.now(),
+      date: date || new Date().toISOString().split('T')[0],
+      tag: tag || 'General',
+      title,
+      body,
+      createdAt: new Date().toISOString()
+    });
+  }
+
+  saveKeepRecordsToStorage(records);
+  closeKeepRecordModal();
+  renderKeepRecords();
+  if (typeof showToast === 'function') showToast('✅ নোট সেভ হয়েছে!', 'success');
+}
+window.saveKeepRecord = saveKeepRecord;
+
+function deleteKeepRecord(id) {
+  if (!confirm('এই নোটটি মুছে ফেলবেন?')) return;
+  const records = getKeepRecords().filter(r => r.id !== id);
+  saveKeepRecordsToStorage(records);
+  renderKeepRecords();
+  if (typeof showToast === 'function') showToast('নোট মুছে গেছে', 'info');
+}
+window.deleteKeepRecord = deleteKeepRecord;
+
+const KR_TAG_COLORS = {
+  General: '#6c757d',
+  Finance: '#198754',
+  Student: '#0d6efd',
+  Important: '#dc3545',
+  Reminder: '#fd7e14'
+};
+
+function renderKeepRecords() {
+  const container = document.getElementById('krRecordsList');
+  if (!container) return;
+
+  const filterDate = document.getElementById('krFilterDate')?.value || '';
+  const filterTag = document.getElementById('krFilterTag')?.value || '';
+  const search = (document.getElementById('krSearch')?.value || '').toLowerCase();
+
+  let records = getKeepRecords();
+
+  if (filterDate) records = records.filter(r => r.date === filterDate);
+  if (filterTag) records = records.filter(r => r.tag === filterTag);
+  if (search) records = records.filter(r =>
+    (r.title || '').toLowerCase().includes(search) ||
+    (r.body || '').toLowerCase().includes(search)
+  );
+
+  // Sort: newest date first
+  records.sort((a, b) => (b.date || '').localeCompare(a.date || '') || (b.createdAt || '').localeCompare(a.createdAt || ''));
+
+  if (records.length === 0) {
+    container.innerHTML = '<div class="text-muted text-center py-5" style="font-size:0.9rem;">📭 কোনো নোট পাওয়া যায়নি</div>';
+    return;
+  }
+
+  container.innerHTML = records.map(rec => {
+    const tagColor = KR_TAG_COLORS[rec.tag] || '#6c757d';
+    const bodyPreview = (rec.body || '').length > 120 ? rec.body.substring(0, 120) + '...' : (rec.body || '');
+    return `
+      <div style="background:var(--bg-card,#1e2530); border:1px solid rgba(255,255,255,0.08); border-radius:12px; padding:14px 16px; position:relative;">
+        <div class="d-flex align-items-start gap-2 mb-1">
+          <span style="background:${tagColor}22; color:${tagColor}; border:1px solid ${tagColor}55; border-radius:6px; padding:1px 8px; font-size:0.72rem; font-weight:700; white-space:nowrap;">${rec.tag || 'General'}</span>
+          <span style="color:#ffd54f; font-size:0.78rem; margin-left:auto; white-space:nowrap;">📅 ${rec.date || ''}</span>
+        </div>
+        ${rec.title ? `<div class="fw-bold" style="color:#e2e8f0; font-size:0.95rem; margin-bottom:4px;">${rec.title}</div>` : ''}
+        ${bodyPreview ? `<div style="color:#94a3b8; font-size:0.83rem; line-height:1.5; white-space:pre-wrap;">${bodyPreview}</div>` : ''}
+        <div style="position:absolute; top:10px; right:12px; display:flex; gap:6px;">
+          <button class="btn btn-sm" style="padding:2px 8px; font-size:0.75rem; background:rgba(13,110,253,0.15); color:#6ea8fe; border:1px solid rgba(13,110,253,0.3); border-radius:6px;" onclick="openKeepRecordModal('${rec.id}')">✏️</button>
+          <button class="btn btn-sm" style="padding:2px 8px; font-size:0.75rem; background:rgba(220,53,69,0.15); color:#f87171; border:1px solid rgba(220,53,69,0.3); border-radius:6px;" onclick="deleteKeepRecord('${rec.id}')">🗑️</button>
+        </div>
+      </div>`;
+  }).join('');
+}
+window.renderKeepRecords = renderKeepRecords;
+
+// Close modal on backdrop click
+document.addEventListener('click', function(e) {
+  const backdrop = document.getElementById('krModalBackdrop');
+  if (backdrop && e.target === backdrop) closeKeepRecordModal();
+});
+
+// ===================================
+// PAID vs FINANCE MISMATCH AUTO-FIX
+// ===================================
+function fixAllPaidFinanceMismatch() {
+  const resultEl = document.getElementById('krFixResult');
+  try {
+    const students = window.globalData.students || [];
+    const finance = window.globalData.finance || [];
+    let fixedCount = 0;
+    let mismatches = [];
+
+    students.forEach((student, idx) => {
+      const name = student.name;
+      const studentPaid = parseFloat(student.paid) || 0;
+
+      // Finance records for this student (Student Fee / Student Installment)
+      const finRecords = finance.filter(f =>
+        f.person === name &&
+        (f.category === 'Student Fee' || f.category === 'Student Installment') &&
+        (f.type === 'Income')
+      );
+      const finTotal = finRecords.reduce((sum, f) => sum + (parseFloat(f.amount) || 0), 0);
+
+      const diff = studentPaid - finTotal;
+      if (Math.abs(diff) > 0.5) {
+        mismatches.push({ name, studentPaid, finTotal, diff });
+        if (diff > 0) {
+          // Finance কম — একটা correction entry যোগ করো
+          window.globalData.finance.push({
+            id: Date.now() + idx,
+            type: 'Income',
+            method: student.method || 'Cash',
+            date: student.enrollDate || new Date().toISOString().split('T')[0],
+            category: 'Student Fee',
+            person: name,
+            amount: diff,
+            description: `[Auto-Fix] Fee correction for ${name}`,
+            timestamp: new Date().toISOString()
+          });
+        } else {
+          // Finance বেশি — student.paid কে finance এর সাথে মিলিয়ে দাও
+          student.paid = Math.round(finTotal * 100) / 100;
+          student.due = Math.max(0, (parseFloat(student.totalPayment) || 0) - student.paid);
+        }
+        fixedCount++;
+      }
+    });
+
+    if (fixedCount > 0) {
+      saveToStorage();
+      if (resultEl) {
+        resultEl.innerHTML = `<span class="text-success fw-bold">✅ ${fixedCount}টি mismatch fix হয়েছে!</span><br><small class="text-muted">${mismatches.map(m => `${m.name}: paid ৳${m.studentPaid} vs finance ৳${m.finTotal}`).join('<br>')}</small>`;
+      }
+      if (typeof showToast === 'function') showToast(`✅ ${fixedCount}টি paid/finance mismatch fix হয়েছে!`, 'success');
+    } else {
+      if (resultEl) resultEl.innerHTML = '<span class="text-success">✅ কোনো mismatch নেই — সব ঠিক আছে!</span>';
+      if (typeof showToast === 'function') showToast('✅ কোনো mismatch নেই!', 'success');
+    }
+  } catch(e) {
+    if (resultEl) resultEl.innerHTML = `<span class="text-danger">❌ Error: ${e.message}</span>`;
+  }
+}
+window.fixAllPaidFinanceMismatch = fixAllPaidFinanceMismatch;
+
+// Manual trigger button (from Settings UI)
+function manualHealPaidFinance() {
+  const resultEl = document.getElementById('krFixResult');
+  if (resultEl) resultEl.innerHTML = '<span class="text-muted">🔄 চেক করা হচ্ছে...</span>';
+
+  // auto-heal engine থাকলে সেটা দিয়েই run করো
+  if (window.autoHeal && typeof window.autoHeal.runNow === 'function') {
+    window.autoHeal.runNow().then(() => {
+      if (resultEl) resultEl.innerHTML = '<span class="text-success fw-bold">✅ Auto-Heal সম্পন্ন! সব data check ও fix হয়েছে।</span>';
+      if (typeof window.updatePaidFinanceStatusBadge === 'function') window.updatePaidFinanceStatusBadge();
+    }).catch(e => {
+      // fallback to manual
+      fixAllPaidFinanceMismatch();
+    });
+  } else {
+    fixAllPaidFinanceMismatch();
+  }
+}
+window.manualHealPaidFinance = manualHealPaidFinance;
+
+// ===================================
+// BACKGROUND AUTO-CHECK (30s interval)
+// Paid vs Finance status badge update
+// ===================================
+(function startPaidFinanceAutoWatch() {
+  function checkAndUpdateBadge() {
+    if (typeof window.updatePaidFinanceStatusBadge === 'function') {
+      window.updatePaidFinanceStatusBadge();
+    } else {
+      // fallback: inline check
+      const badge = document.getElementById('krPaidFinanceStatus');
+      if (!badge || !window.globalData) return;
+      const finance = window.globalData.finance || [];
+      let mismatch = 0;
+      (window.globalData.students || []).forEach(s => {
+        const paid = parseFloat(s.paid) || 0;
+        if (paid === 0) return;
+        const ft = finance.filter(f =>
+          f.person === s.name &&
+          (f.category === 'Student Fee' || f.category === 'Student Installment') &&
+          f.type === 'Income'
+        ).reduce((sum, f) => sum + (parseFloat(f.amount) || 0), 0);
+        if (ft > 0 && Math.abs(ft - paid) > 1) mismatch++;
+      });
+      badge.innerHTML = mismatch === 0
+        ? '<span style="color:#00ff88;font-weight:700;">✅ সব ঠিক আছে</span>'
+        : '<span style="color:#ffcc00;font-weight:700;">⚠️ ' + mismatch + 'টি mismatch</span>';
+    }
+  }
+
+  // Settings modal খুললে status update করো
+  const settingsModalEl = document.getElementById('settingsModal');
+  if (settingsModalEl) {
+    settingsModalEl.addEventListener('shown.bs.modal', checkAndUpdateBadge);
+  }
+
+  // প্রতি ৩০ সেকেন্ডে badge update
+  setInterval(checkAndUpdateBadge, 30000);
+
+  // page load এর ৫ সেকেন্ড পরে প্রথমবার check
+  setTimeout(checkAndUpdateBadge, 5000);
+})();
