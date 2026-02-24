@@ -171,7 +171,7 @@ function loadDeletedItems() {
     return;
   }
 
-  const icons = { student: '🎓', finance: '💰', employee: '👤' };
+  const icons = { student: '🎓', finance: '💰', employee: '👤', keep_record: '📝' };
 
   container.innerHTML = filtered.map((d, idx) => {
     const date = new Date(d.deletedAt);
@@ -183,6 +183,7 @@ function loadDeletedItems() {
     if (d.type === 'student') name = d.item.name || d.item.studentName || 'Unknown Student';
     else if (d.type === 'finance') name = (d.item.description || d.item.category || 'Transaction') + ' - ৳' + (d.item.amount || 0);
     else if (d.type === 'employee') name = d.item.name || 'Unknown Employee';
+    else if (d.type === 'keep_record') name = d.item.title || 'Untitled Note';
     else name = JSON.stringify(d.item).substring(0, 60) + '...';
 
     return `
@@ -9945,7 +9946,7 @@ window.loadDeletedItems = function () {
 
   const filtered = filterVal === 'all' ? deleted : deleted.filter(d => d.type === filterVal || d.type === filterVal.toLowerCase());
 
-  const icons = { student: '🎓', finance: '💰', employee: '👤', visitor: '🙋', Student: '🎓', Finance: '💰', Employee: '👤', Visitor: '🙋' };
+  const icons = { student: '🎓', finance: '💰', employee: '👤', visitor: '🙋', keep_record: '📝', Student: '🎓', Finance: '💰', Employee: '👤', Visitor: '🙋' };
 
   const html = filtered.length === 0
     ? '<div class="text-center text-muted py-5"><div style="font-size:3rem">🗑️</div><p>Trash খালি।</p></div>'
@@ -9958,6 +9959,7 @@ window.loadDeletedItems = function () {
       if (t === 'student') name = d.item.name || 'Unknown Student';
       else if (t === 'finance') name = (d.item.description || d.item.category || 'Transaction') + ' — ৳' + (d.item.amount || 0);
       else if (t === 'employee') name = d.item.name || 'Unknown Employee';
+      else if (t === 'keep_record') name = d.item.title || 'Untitled Note';
       else name = JSON.stringify(d.item).substring(0, 60);
 
       return `<div class="d-flex align-items-start gap-3 p-3 mb-2 rounded-3" style="background:rgba(255,68,68,0.05);border:1px solid rgba(255,68,68,0.2);">
@@ -11182,10 +11184,26 @@ window.saveKeepRecord = saveKeepRecord;
 
 function deleteKeepRecord(id) {
   if (!confirm('এই নোটটি মুছে ফেলবেন?')) return;
-  const records = getKeepRecords().filter(r => r.id !== id);
+  const allRecords = getKeepRecords();
+  const deletedItem = allRecords.find(r => r.id === id);
+  const records = allRecords.filter(r => r.id !== id);
+
+  // ✅ Recycle Bin এ পাঠাও
+  if (deletedItem && typeof moveToTrash === 'function') {
+    moveToTrash('keep_record', deletedItem);
+  }
+
+  // ✅ Activity Log এ লগ করো
+  if (typeof logActivity === 'function') {
+    logActivity('settings', 'DELETE',
+      `Keep Record ডিলিট: "${deletedItem?.title || 'Untitled'}"`,
+      deletedItem
+    );
+  }
+
   saveKeepRecordsToStorage(records);
   renderKeepRecords();
-  if (typeof showToast === 'function') showToast('নোট মুছে গেছে', 'info');
+  if (typeof showToast === 'function') showToast('নোট মুছে গেছে এবং Recycle Bin এ পাঠানো হয়েছে', 'info');
 }
 window.deleteKeepRecord = deleteKeepRecord;
 
