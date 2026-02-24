@@ -1146,15 +1146,89 @@
                 </div>
                 <div class="mb-3">
                     <label class="form-label">Password</label>
-                    <input type="password" name="password" class="form-control" placeholder="Enter password" required
-                        autocomplete="current-password">
+                    <div class="input-group">
+                        <input type="password" id="loginPasswordInput" name="password" class="form-control" placeholder="Enter password" required
+                            autocomplete="current-password">
+                        <button class="btn btn-outline-secondary" type="button" id="loginPasswordToggle"
+                            onclick="const p=document.getElementById('loginPasswordInput'); const icon=document.getElementById('loginEyeIcon'); p.type=p.type==='password'?'text':'password'; icon.innerHTML=p.type==='password'?'👁️':'🙈';"
+                            style="border-left:0; background:white;">
+                            <span id="loginEyeIcon">👁️</span>
+                        </button>
+                    </div>
                 </div>
                 <button type="submit" class="btn btn-primary w-100" id="loginBtn">
                     <span>Login</span>
                 </button>
                 <p id="loginError" class="text-danger small mt-3 text-center"></p>
-                <p class="text-muted small mt-3 text-center">Admin: admin / shakib@123</p>
+                <p class="text-center mt-3 mb-0">
+                    <a href="#" onclick="showForgotPasswordModal()" class="text-primary small" style="text-decoration:none;">🔑 Forgot Password?</a>
+                </p>
             </form>
+        </div>
+    </div>
+
+    <!-- Forgot Password Modal -->
+    <!-- Forgot Password Modal — Secret Question System -->
+    <div id="forgotPasswordModal" style="display:none; position:fixed; top:0; left:0; width:100%; height:100%; background:rgba(0,0,0,0.6); z-index:9999; align-items:center; justify-content:center;">
+        <div style="background:white; border-radius:20px; padding:36px; max-width:440px; width:92%; box-shadow:0 24px 64px rgba(0,0,0,0.25);">
+
+            <!-- Step 1: Secret Question Answer -->
+            <div id="fpm-step1">
+                <div class="text-center mb-4">
+                    <div style="font-size:2.5rem; margin-bottom:8px;">🔐</div>
+                    <h5 class="fw-bold mb-1">Forgot Password?</h5>
+                    <p class="text-muted small mb-0">আপনার Secret Question এর উত্তর দিন</p>
+                </div>
+                <div class="mb-3 p-3 rounded-3" style="background:#f8f9fa; border-left:4px solid #0d6efd;">
+                    <p class="fw-bold mb-0 small text-uppercase text-muted">আপনার প্রশ্ন:</p>
+                    <p class="fw-semibold mb-0 mt-1" id="fpm-question-display">প্রশ্ন লোড হচ্ছে...</p>
+                </div>
+                <div class="mb-3">
+                    <input type="text" id="fpm-answer-input" class="form-control form-control-lg"
+                        placeholder="উত্তর লিখুন..."
+                        onkeydown="if(event.key==='Enter') checkSecretAnswer()">
+                </div>
+                <div id="fpm-msg" class="alert small mb-3" style="display:none;"></div>
+                <div class="d-flex gap-2">
+                    <button type="button" class="btn btn-primary flex-fill py-2" onclick="checkSecretAnswer()">
+                        ✅ Verify Answer
+                    </button>
+                    <button type="button" class="btn btn-outline-secondary py-2" onclick="hideForgotPasswordModal()" style="min-width:90px;">
+                        বাতিল
+                    </button>
+                </div>
+            </div>
+
+            <!-- Step 2: New Password -->
+            <div id="fpm-step2" style="display:none;">
+                <div class="text-center mb-4">
+                    <div style="font-size:2.5rem; margin-bottom:8px;">🔓</div>
+                    <h5 class="fw-bold mb-1">নতুন পাসওয়ার্ড দিন</h5>
+                    <p class="text-muted small mb-0">নিরাপদ পাসওয়ার্ড ব্যবহার করুন</p>
+                </div>
+                <div class="mb-3">
+                    <label class="form-label fw-bold small text-uppercase text-muted">নতুন পাসওয়ার্ড</label>
+                    <div class="input-group">
+                        <input type="password" id="fpm-new-password" class="form-control form-control-lg" placeholder="নতুন পাসওয়ার্ড লিখুন">
+                        <button class="btn btn-outline-secondary" type="button"
+                            onclick="const p=document.getElementById('fpm-new-password'); p.type=p.type==='password'?'text':'password';">👁️</button>
+                    </div>
+                </div>
+                <div class="mb-3">
+                    <label class="form-label fw-bold small text-uppercase text-muted">নিশ্চিত করুন</label>
+                    <div class="input-group">
+                        <input type="password" id="fpm-confirm-password" class="form-control form-control-lg" placeholder="পাসওয়ার্ড আবার লিখুন"
+                            onkeydown="if(event.key==='Enter') resetPasswordFromModal()">
+                        <button class="btn btn-outline-secondary" type="button"
+                            onclick="const p=document.getElementById('fpm-confirm-password'); p.type=p.type==='password'?'text':'password';">👁️</button>
+                    </div>
+                </div>
+                <div id="fpm-msg2" class="alert small mb-3" style="display:none;"></div>
+                <button type="button" class="btn btn-success w-100 py-2 fw-bold" onclick="resetPasswordFromModal()">
+                    💾 পাসওয়ার্ড সেভ করুন
+                </button>
+            </div>
+
         </div>
     </div>
 
@@ -3638,14 +3712,36 @@
                                                                 <input type="password" id="settingsPassword"
                                                                     name="adminPassword"
                                                                     class="form-control premium-input-modern"
-                                                                    placeholder="Enter new password">
-                                                                <button class="btn btn-outline-secondary border-start-0"
-                                                                    type="button"
-                                                                    onclick="const p = document.getElementById('settingsPassword'); p.type = p.type === 'password' ? 'text' : 'password';">
-                                                                    🖨️
+                                                                    placeholder="Enter new password"
+                                                                    oninput="checkPasswordMatch()">
+                                                                <button class="btn btn-outline-secondary"
+                                                                    type="button" id="settingsPasswordToggleBtn"
+                                                                    onclick="const p=document.getElementById('settingsPassword'); const icon=document.getElementById('settingsEyeIcon'); p.type=p.type==='password'?'text':'password'; icon.innerHTML=p.type==='password'?'👁️':'🙈';"
+                                                                    style="background:white;">
+                                                                    <span id="settingsEyeIcon">👁️</span>
                                                                 </button>
                                                             </div>
-                                                            <small class="text-muted mt-2 d-block">Use a unique password
+                                                        </div>
+
+                                                        <div class="mb-3">
+                                                            <label
+                                                                class="form-label fw-bold small text-uppercase text-muted">Confirm
+                                                                Password</label>
+                                                            <div class="input-group">
+                                                                <input type="password" id="settingsPasswordConfirm"
+                                                                    name="adminPasswordConfirm"
+                                                                    class="form-control premium-input-modern"
+                                                                    placeholder="Re-enter new password"
+                                                                    oninput="checkPasswordMatch()">
+                                                                <button class="btn btn-outline-secondary"
+                                                                    type="button"
+                                                                    onclick="const p=document.getElementById('settingsPasswordConfirm'); const icon=document.getElementById('settingsConfirmEyeIcon'); p.type=p.type==='password'?'text':'password'; icon.innerHTML=p.type==='password'?'👁️':'🙈';"
+                                                                    style="background:white;">
+                                                                    <span id="settingsConfirmEyeIcon">👁️</span>
+                                                                </button>
+                                                            </div>
+                                                            <div id="passwordMatchMsg" class="small mt-1" style="display:none;"></div>
+                                                            <small class="text-muted mt-1 d-block">Use a unique password
                                                                 to avoid Google Password Manager alerts.</small>
                                                         </div>
 
@@ -3653,6 +3749,37 @@
                                                             <strong>Note:</strong> After changing, use this new password
                                                             for both PCs. Make sure to <strong>Push to Cloud</strong>
                                                             after saving.
+                                                        </div>
+
+                                                        <!-- Secret Question Section -->
+                                                        <hr class="my-4">
+                                                        <div class="d-flex align-items-center mb-3">
+                                                            <div class="icon-box bg-warning-subtle text-warning me-3"
+                                                                style="width:45px; height:45px; border-radius:12px; display:flex; align-items:center; justify-content:center; font-size:1.2rem;">
+                                                                🛡️</div>
+                                                            <div>
+                                                                <h6 class="fw-bold mb-0">Secret Recovery Question</h6>
+                                                                <small class="text-muted">পাসওয়ার্ড ভুলে গেলে এই প্রশ্ন দিয়ে reset করতে পারবেন</small>
+                                                            </div>
+                                                        </div>
+                                                        <div class="mb-3">
+                                                            <label class="form-label fw-bold small text-uppercase text-muted">আপনার প্রশ্ন লিখুন</label>
+                                                            <input type="text" id="secretQuestion"
+                                                                name="secretQuestion"
+                                                                class="form-control premium-input-modern"
+                                                                placeholder="যেমন: আপনার মায়ের নাম কী? / প্রিয় রঙ কোনটি?">
+                                                            <small class="text-muted mt-1 d-block">এমন প্রশ্ন লিখুন যার উত্তর শুধু আপনি জানেন</small>
+                                                        </div>
+                                                        <div class="mb-3">
+                                                            <label class="form-label fw-bold small text-uppercase text-muted">উত্তর</label>
+                                                            <div class="input-group">
+                                                                <input type="password" id="secretAnswer"
+                                                                    name="secretAnswer"
+                                                                    class="form-control premium-input-modern"
+                                                                    placeholder="গোপন উত্তর লিখুন">
+                                                                <button class="btn btn-outline-secondary" type="button"
+                                                                    onclick="const p=document.getElementById('secretAnswer'); p.type=p.type==='password'?'text':'password';">👁️</button>
+                                                            </div>
                                                         </div>
                                                     </div>
                                                 </div>

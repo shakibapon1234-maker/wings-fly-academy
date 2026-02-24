@@ -2391,6 +2391,14 @@ function renderSettingsLists() {
         document.getElementById('settingsPassword').value = '';
         document.getElementById('settingsPassword').placeholder = 'Type new password to change...';
       }
+      // ✅ Secret Question populate করো
+      if (document.getElementById('secretQuestion')) {
+        document.getElementById('secretQuestion').value = (globalData.credentials && globalData.credentials.secretQuestion) || '';
+      }
+      if (document.getElementById('secretAnswer')) {
+        document.getElementById('secretAnswer').value = '';
+        document.getElementById('secretAnswer').placeholder = globalData.credentials?.secretAnswer ? '(সেট আছে — পরিবর্তন করতে নতুন উত্তর লিখুন)' : 'গোপন উত্তর লিখুন';
+      }
     }
   }
 }
@@ -2745,6 +2753,8 @@ function updateGlobalStats() {
     const d = new Date(f.date);
 
     if (f.type === 'Income') {
+      // ✅ Student Fee, Student Installment, Exam Fee — এগুলো Income এ count হবে
+      // Loan Received — income এ count হবে না (শুধু account balance এ যাবে)
       income += amt;
       // Check for current month income
       if (d.getMonth() === currentMonth && d.getFullYear() === currentYear) {
@@ -3608,6 +3618,10 @@ async function handleStudentSubmit(e) {
       const index = parseInt(editIndex);
       student = window.globalData.students[index];
       if (student) {
+        const oldPaid = parseFloat(student.paid) || 0;
+        const oldMethod = student.method || 'Cash';
+        const oldName = student.name;
+
         student.name = data.name;
         student.phone = data.phone;
         student.fatherName = data.fatherName || '';
@@ -3617,8 +3631,9 @@ async function handleStudentSubmit(e) {
         student.enrollDate = data.enrollDate;
         student.method = data.method;
         student.totalPayment = parseFloat(data.totalPayment) || 0;
-        student.paid = parseFloat(data.payment) || 0;
-        student.due = parseFloat(data.due) || 0;
+        const newPaid = parseFloat(data.payment) || 0;
+        student.paid = newPaid;
+        student.due = Math.max(0, student.totalPayment - newPaid);
         student.reminderDate = data.reminderDate || null;
         student.remarks = data.remarks || student.remarks || '';
         student.bloodGroup = data.bloodGroup || '';
@@ -3629,6 +3644,77 @@ async function handleStudentSubmit(e) {
         }
 
         if (!student.installments) student.installments = [];
+
+        // ✅ FIX: Student edit করলে finance entry আপডেট করো
+        // Step 1: পুরোনো Student Fee / Student Installment entries খুঁজে বের করো
+        const oldFinanceEntries = (window.globalData.finance || []).filter(f =>
+          (f.person === oldName || f.person === student.name) &&
+          (f.category === 'Student Fee' || f.category === 'Student Installment')
+        );
+
+        const oldFinanceTotal = oldFinanceEntries.reduce((sum, f) => sum + (parseFloat(f.amount) || 0), 0);
+
+        // Step 2: paid amount পরিবর্তন হয়েছে কিনা check করো
+        const paidDiff = newPaid - oldPaid;
+
+        if (Math.abs(paidDiff) > 0.01) {
+          if (paidDiff > 0) {
+            // বেশি টাকা paid হয়েছে — নতুন difference finance এ add করো
+            const diffEntry = {
+              id: Date.now(),
+              type: 'Income',
+              method: student.method || 'Cash',
+              date: student.enrollDate || new Date().toISOString().split('T')[0],
+              category: 'Student Fee',
+              person: student.name,
+              amount: paidDiff,
+              description: `Fee update for student: ${student.name} | Batch: ${student.batch}`,
+              timestamp: new Date().toISOString()
+            };
+            window.globalData.finance.push(diffEntry);
+            if (typeof updateAccountBalance === 'function') {
+              updateAccountBalance(diffEntry.method, diffEntry.amount, diffEntry.type);
+            }
+          } else {
+            // কম টাকা — excess টা finance থেকে বাদ দাও
+            const excess = Math.abs(paidDiff);
+            // সবচেয়ে recent entry থেকে বাদ দাও
+            let remaining = excess;
+            const financeList = window.globalData.finance;
+            for (let i = financeList.length - 1; i >= 0 && remaining > 0; i--) {
+              const f = financeList[i];
+              if ((f.person === oldName || f.person === student.name) &&
+                (f.category === 'Student Fee' || f.category === 'Student Installment')) {
+                const fAmt = parseFloat(f.amount) || 0;
+                if (fAmt <= remaining) {
+                  // পুরো entry সরাও
+                  if (typeof updateAccountBalance === 'function') {
+                    updateAccountBalance(f.method || 'Cash', fAmt, 'Income', false);
+                  }
+                  financeList.splice(i, 1);
+                  remaining -= fAmt;
+                } else {
+                  // আংশিক বাদ দাও
+                  if (typeof updateAccountBalance === 'function') {
+                    updateAccountBalance(f.method || 'Cash', remaining, 'Income', false);
+                  }
+                  f.amount = fAmt - remaining;
+                  remaining = 0;
+                }
+              }
+            }
+          }
+        }
+
+        // Step 3: Name change হলে finance entries তেও name update করো
+        if (oldName !== student.name) {
+          (window.globalData.finance || []).forEach(f => {
+            if (f.person === oldName) f.person = student.name;
+            if (f.description && f.description.includes(oldName)) {
+              f.description = f.description.replace(oldName, student.name);
+            }
+          });
+        }
       }
     } else {
       // ====== ADD NEW STUDENT ======
@@ -3911,44 +3997,69 @@ function deleteInstallment(rowIndex, instIndex) {
 
   const amount = parseFloat(inst.amount) || 0;
   const method = inst.method || 'Cash';
+  const instDate = inst.date;
 
-  // 1. Student installments array থেকে সরাও
-  if (!inst.isMigrated) {
-    // Normal installment — directly from student.installments
-    student.installments = (student.installments || []).filter((_, i) => {
-      // instIndex match করে সেটা বাদ দাও
-      return i !== instIndex;
+  // ✅ FIX: isMigrated হলে আলাদাভাবে handle করো
+  if (inst.isMigrated) {
+    // Initial payment — student.paid থেকে বাদ দাও, কিন্তু installments array এ নেই
+    // Initial payment এর finance entry সরাও
+    const beforeLen = (globalData.finance || []).length;
+    globalData.finance = (globalData.finance || []).filter(f => {
+      const sameCategory = f.category === 'Student Fee' || f.category === 'Student Installment';
+      const samePerson = f.person === student.name || (f.description && f.description.includes(student.name));
+      const sameAmount = Math.abs(parseFloat(f.amount) - amount) < 0.01;
+      const sameDate = f.date === instDate;
+      return !(sameCategory && samePerson && sameAmount && sameDate);
     });
+    // যদি exact match না পায় তাহলে closest amount দিয়ে খুঁজো
+    if ((globalData.finance || []).length === beforeLen) {
+      let removed = false;
+      globalData.finance = (globalData.finance || []).filter(f => {
+        if (removed) return true;
+        const sameCategory = f.category === 'Student Fee' || f.category === 'Student Installment';
+        const samePerson = f.person === student.name;
+        const sameAmount = Math.abs(parseFloat(f.amount) - amount) < 0.01;
+        if (sameCategory && samePerson && sameAmount) { removed = true; return false; }
+        return true;
+      });
+    }
   } else {
-    // Migrated (initial payment) — paid field থেকে বাদ দাও
-    // এটা student.payment field এ আছে, installments এ নেই
-    // তাই শুধু paid/due adjust করব
+    // ✅ FIX: isMigrated entry যদি থাকে তাহলে instIndex adjusted করতে হবে
+    // getStudentInstallments এ isMigrated entry টা index 0 এ unshift হয়
+    // তাই real installments array এ actual index = instIndex - (isMigrated আছে কিনা ? 1 : 0)
+    const hasMigrated = installments.length > 0 && installments[0].isMigrated;
+    const realIndex = hasMigrated ? instIndex - 1 : instIndex;
+
+    if (realIndex >= 0 && student.installments && student.installments[realIndex]) {
+      student.installments.splice(realIndex, 1);
+    }
+
+    // Finance ledger থেকে matching entry সরাও
+    let removedFromFinance = false;
+    globalData.finance = (globalData.finance || []).filter(f => {
+      if (removedFromFinance) return true;
+      const sameAmount = Math.abs(parseFloat(f.amount) - amount) < 0.01;
+      const samePerson = f.person === student.name || (f.description && f.description.includes(student.name));
+      const sameDate = f.date === instDate;
+      const isStudentTx = f.category === 'Student Fee' || f.category === 'Student Installment';
+      if (sameAmount && samePerson && sameDate && isStudentTx) {
+        removedFromFinance = true;
+        return false;
+      }
+      return true;
+    });
   }
 
-  // 2. Student paid/due update করো
+  // Student paid/due update
   student.paid = Math.max(0, (parseFloat(student.paid) || 0) - amount);
   student.due = Math.max(0, (parseFloat(student.totalPayment) || 0) - student.paid);
 
-  // 3. Finance ledger থেকেও সরাও (matching entry)
-  const beforeCount = (globalData.finance || []).length;
-  globalData.finance = (globalData.finance || []).filter(f => {
-    const sameAmount = parseFloat(f.amount) === amount;
-    const samePerson = f.person === student.name || (f.description && f.description.includes(student.name));
-    const sameMethod = !f.method || f.method === method;
-    const sameDate = !inst.date || f.date === inst.date;
-    return !(sameAmount && samePerson && sameDate);
-  });
-
-  // 4. Account balance reverse করো
-  if (method === 'Cash') {
-    globalData.cashBalance = Math.max(0, (parseFloat(globalData.cashBalance) || 0) - amount);
-  } else {
-    let acc = (globalData.bankAccounts || []).find(a => a.name === method);
-    if (!acc) acc = (globalData.mobileBanking || []).find(a => a.name === method);
-    if (acc) acc.balance = Math.max(0, (parseFloat(acc.balance) || 0) - amount);
+  // ✅ Account balance reverse করো
+  if (typeof updateAccountBalance === 'function') {
+    updateAccountBalance(method, amount, 'Income', false);
   }
 
-  // 5. Save immediately to localStorage + cloud
+  // Save
   localStorage.setItem('wingsfly_data', JSON.stringify(window.globalData));
   if (typeof window.scheduleSyncPush === 'function') {
     window.scheduleSyncPush('Delete Installment: ' + student.name + ' ৳' + amount);
@@ -3958,7 +4069,6 @@ function deleteInstallment(rowIndex, instIndex) {
 
   showSuccessToast('Payment deleted successfully!');
 
-  // 6. Modal refresh করো
   openStudentPaymentModal(rowIndex);
   render(globalData.students);
   updateGlobalStats();
@@ -3968,7 +4078,6 @@ function deleteInstallment(rowIndex, instIndex) {
 }
 
 window.deleteInstallment = deleteInstallment;
-
 
 
 function deleteStudent(rowIndex) {
@@ -4546,10 +4655,17 @@ function handleSettingsSubmit(e) {
 
   // Update Credentials (with SHA-256 hashing)
   if (formData.adminPassword) {
+    // Confirm password validation
+    const confirmPwd = formData.adminPasswordConfirm || document.getElementById('settingsPasswordConfirm')?.value || '';
+    if (confirmPwd && formData.adminPassword !== confirmPwd) {
+      showToast('❌ পাসওয়ার্ড দুটো মিলছে না! আবার চেষ্টা করুন।', 'danger');
+      return;
+    }
     const newUsername = formData.adminUsername || 'admin';
     // Hash the new password before saving
     hashPassword(formData.adminPassword).then(hashedPwd => {
       globalData.credentials = {
+        ...globalData.credentials,
         username: newUsername,
         password: hashedPwd
       };
@@ -4579,6 +4695,16 @@ function handleSettingsSubmit(e) {
     if (globalData.credentials) globalData.credentials.username = newUsername;
     const adminUser = globalData.users && globalData.users.find(u => u.role === 'admin');
     if (adminUser) adminUser.username = newUsername;
+  }
+
+  // ✅ Secret Question সেভ করো (পাসওয়ার্ড ছাড়াও সেভ হবে)
+  const secretQ = (formData.secretQuestion || document.getElementById('secretQuestion')?.value || '').trim();
+  const secretA = (formData.secretAnswer || document.getElementById('secretAnswer')?.value || '').trim();
+  if (secretQ) {
+    if (!globalData.credentials) globalData.credentials = { username: 'admin' };
+    globalData.credentials.secretQuestion = secretQ;
+    if (secretA) globalData.credentials.secretAnswer = secretA.toLowerCase();
+    showSuccessToast('🛡️ Secret Question সেভ হয়েছে!');
   }
 
   saveToStorage();
@@ -10525,3 +10651,231 @@ function exportBatchReportExcel() {
   document.body.removeChild(link);
 }
 window.exportBatchReportExcel = exportBatchReportExcel;
+
+// ============================================================
+// EXAM REGISTRATION — Finance Ledger এ Exam Fee যোগ করো
+// ============================================================
+
+function handleExamRegistration(e) {
+  e.preventDefault();
+  const form = document.getElementById('examRegistrationForm');
+  const formData = {};
+  new FormData(form).forEach((value, key) => formData[key] = value);
+
+  const examFee = parseFloat(formData.examFee) || 0;
+  const paymentMethod = formData.paymentMethod || 'Cash';
+  const studentName = (formData.studentName || '').trim();
+  const regDate = formData.registrationDate || new Date().toISOString().split('T')[0];
+
+  if (!studentName) {
+    showErrorToast('❌ Student name is required!');
+    return;
+  }
+  if (examFee <= 0) {
+    showErrorToast('❌ Please enter a valid exam fee!');
+    return;
+  }
+  if (!paymentMethod) {
+    showErrorToast('❌ Payment method is required!');
+    return;
+  }
+
+  // Generate registration ID
+  const regId = 'EXAM-' + Date.now();
+
+  // Exam registration object তৈরি করো
+  const examReg = {
+    id: regId,
+    registrationId: regId,
+    studentName: studentName,
+    studentId: formData.studentId || '',
+    studentBatch: formData.studentBatch || '',
+    examSession: formData.examSession || '',
+    subjectName: formData.subjectName || '',
+    examFee: examFee,
+    paymentMethod: paymentMethod,
+    registrationDate: regDate,
+    examComment: formData.examComment || '',
+    timestamp: new Date().toISOString()
+  };
+
+  // examRegistrations array এ যোগ করো
+  if (!window.globalData.examRegistrations) window.globalData.examRegistrations = [];
+  window.globalData.examRegistrations.push(examReg);
+
+  // ✅ Finance Ledger এ Exam Fee Income যোগ করো
+  const financeEntry = {
+    id: Date.now() + 1,
+    type: 'Income',
+    method: paymentMethod,
+    date: regDate,
+    category: 'Exam Fee',
+    person: studentName,
+    amount: examFee,
+    description: `Exam fee: ${formData.subjectName || 'Exam'} | Student: ${studentName} | Session: ${formData.examSession || '-'}`,
+    timestamp: new Date().toISOString()
+  };
+  window.globalData.finance.push(financeEntry);
+
+  // ✅ Account balance update করো
+  if (typeof updateAccountBalance === 'function') {
+    updateAccountBalance(paymentMethod, examFee, 'Income');
+  }
+
+  // Save করো
+  saveToStorage();
+  if (typeof window.scheduleSyncPush === 'function') {
+    window.scheduleSyncPush('Exam Registration: ' + studentName + ' ৳' + examFee);
+  }
+
+  showSuccessToast(`✅ Exam registered! Fee ৳${formatNumber(examFee)} income এ যোগ হয়েছে।`);
+
+  // Form reset
+  form.reset();
+  const today = new Date().toISOString().split('T')[0];
+  const regDateInput = document.getElementById('examRegistrationDate');
+  if (regDateInput) regDateInput.value = today;
+
+  // Refresh
+  updateGlobalStats();
+  if (typeof renderLedger === 'function') renderLedger(window.globalData.finance);
+  if (typeof renderExamTable === 'function') renderExamTable();
+}
+window.handleExamRegistration = handleExamRegistration;
+
+// ============================================================
+// SECRET QUESTION — FORGOT PASSWORD SYSTEM
+// ============================================================
+
+function showForgotPasswordModal() {
+  const modal = document.getElementById('forgotPasswordModal');
+  if (!modal) return;
+
+  const q = (globalData.credentials && globalData.credentials.secretQuestion) || '';
+  if (!q) {
+    showErrorToast('⚠️ Secret Question সেট নেই! Settings > Security তে গিয়ে আগে সেট করুন।');
+    return;
+  }
+
+  document.getElementById('fpm-step1').style.display = 'block';
+  document.getElementById('fpm-step2').style.display = 'none';
+  document.getElementById('fpm-question-display').textContent = q;
+
+  const ansInput = document.getElementById('fpm-answer-input');
+  if (ansInput) { ansInput.value = ''; }
+  const msg = document.getElementById('fpm-msg');
+  if (msg) msg.style.display = 'none';
+
+  modal.style.display = 'flex';
+  setTimeout(() => { if (ansInput) ansInput.focus(); }, 100);
+}
+window.showForgotPasswordModal = showForgotPasswordModal;
+
+function hideForgotPasswordModal() {
+  const modal = document.getElementById('forgotPasswordModal');
+  if (modal) modal.style.display = 'none';
+}
+window.hideForgotPasswordModal = hideForgotPasswordModal;
+
+function checkSecretAnswer() {
+  const input = (document.getElementById('fpm-answer-input').value || '').trim().toLowerCase();
+  const stored = ((globalData.credentials && globalData.credentials.secretAnswer) || '').trim().toLowerCase();
+  const msg = document.getElementById('fpm-msg');
+
+  if (!input) {
+    msg.className = 'alert alert-warning small mb-3';
+    msg.style.display = 'block';
+    msg.innerHTML = '⚠️ উত্তর লিখুন!';
+    return;
+  }
+  if (input !== stored) {
+    msg.className = 'alert alert-danger small mb-3';
+    msg.style.display = 'block';
+    msg.innerHTML = '❌ উত্তর সঠিক নয়! আবার চেষ্টা করুন।';
+    document.getElementById('fpm-answer-input').value = '';
+    document.getElementById('fpm-answer-input').focus();
+    return;
+  }
+
+  // সঠিক — Step 2 দেখাও
+  document.getElementById('fpm-step1').style.display = 'none';
+  document.getElementById('fpm-step2').style.display = 'block';
+  document.getElementById('fpm-msg2').style.display = 'none';
+  document.getElementById('fpm-new-password').value = '';
+  document.getElementById('fpm-confirm-password').value = '';
+  setTimeout(() => document.getElementById('fpm-new-password').focus(), 100);
+}
+window.checkSecretAnswer = checkSecretAnswer;
+
+async function resetPasswordFromModal() {
+  const newPwd = document.getElementById('fpm-new-password').value;
+  const confirmPwd = document.getElementById('fpm-confirm-password').value;
+  const msg2 = document.getElementById('fpm-msg2');
+
+  if (!newPwd || newPwd.length < 4) {
+    msg2.className = 'alert alert-warning small mb-3';
+    msg2.style.display = 'block';
+    msg2.innerHTML = '⚠️ পাসওয়ার্ড কমপক্ষে ৪ অক্ষরের হতে হবে!';
+    return;
+  }
+  if (newPwd !== confirmPwd) {
+    msg2.className = 'alert alert-danger small mb-3';
+    msg2.style.display = 'block';
+    msg2.innerHTML = '❌ পাসওয়ার্ড দুটো মিলছে না!';
+    return;
+  }
+
+  msg2.className = 'alert alert-info small mb-3';
+  msg2.style.display = 'block';
+  msg2.innerHTML = '⏳ সেভ হচ্ছে...';
+
+  try {
+    const hashedPwd = await hashPassword(newPwd);
+    if (!globalData.credentials) globalData.credentials = { username: 'admin' };
+    globalData.credentials.password = hashedPwd;
+
+    if (globalData.users && Array.isArray(globalData.users)) {
+      const adminUser = globalData.users.find(u => u.role === 'admin');
+      if (adminUser) adminUser.password = hashedPwd;
+    }
+
+    saveToStorage();
+    if (typeof window.scheduleSyncPush === 'function') {
+      window.scheduleSyncPush('Password reset via Secret Question');
+    }
+
+    msg2.className = 'alert alert-success small mb-3';
+    msg2.innerHTML = '✅ পাসওয়ার্ড পরিবর্তন হয়েছে! নতুন পাসওয়ার্ড দিয়ে লগিন করুন।';
+    setTimeout(() => hideForgotPasswordModal(), 2500);
+  } catch (err) {
+    msg2.className = 'alert alert-danger small mb-3';
+    msg2.innerHTML = '❌ সমস্যা হয়েছে: ' + err.message;
+  }
+}
+window.resetPasswordFromModal = resetPasswordFromModal;
+
+// Password match checker for settings
+function checkPasswordMatch() {
+  const pass = document.getElementById('settingsPassword');
+  const confirm = document.getElementById('settingsPasswordConfirm');
+  const msg = document.getElementById('passwordMatchMsg');
+  if (!pass || !confirm || !msg) return;
+  const p1 = pass.value;
+  const p2 = confirm.value;
+  if (!p2) { msg.style.display = 'none'; return; }
+  msg.style.display = 'block';
+  if (p1 === p2) {
+    msg.innerHTML = '✅ পাসওয়ার্ড মিলেছে!';
+    msg.style.color = '#198754';
+  } else {
+    msg.innerHTML = '❌ পাসওয়ার্ড মিলছে না!';
+    msg.style.color = '#dc3545';
+  }
+}
+window.checkPasswordMatch = checkPasswordMatch;
+
+// Click outside to close
+document.addEventListener('click', function(e) {
+  const modal = document.getElementById('forgotPasswordModal');
+  if (modal && e.target === modal) hideForgotPasswordModal();
+});
