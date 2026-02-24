@@ -11202,7 +11202,6 @@ function renderKeepRecords() {
         ${bodyPreview ? `<div style="color:#94a3b8; font-size:0.82rem; line-height:1.55; white-space:pre-wrap;">${bodyPreview}</div>` : ''}
       </div>`;
   }).join('');
-  }).join('');
 }
 window.renderKeepRecords = renderKeepRecords;
 
