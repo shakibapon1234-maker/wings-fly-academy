@@ -348,6 +348,7 @@ function printLoanDetail() {
       <th>Debit (−)</th>
       <th>Credit (+)</th>
       <th>Balance</th>
+      <th style="text-align:center;">Action</th>
     </tr>
   </thead>
   <tbody>
@@ -355,7 +356,7 @@ function printLoanDetail() {
   </tbody>
   <tfoot>
     <tr>
-      <td colspan="6" style="text-align:right; padding-right:16px;">NET BALANCE:</td>
+      <td colspan="7" style="text-align:right; padding-right:16px;">NET BALANCE:</td>
       <td style="text-align:right; color:${netColor}; font-size:16px;">${netLabel}</td>
     </tr>
   </tfoot>
