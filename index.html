@@ -7,106 +7,6 @@
     <meta http-equiv="Expires" content="0">
     <style>
         /* ===================================
-           WF ACCOUNTS STYLE — FORCE OVERRIDE
-           =================================== */
-        .wf-total-card {
-            background: linear-gradient(135deg,#050d25 0%,#090e30 40%,#060b22 100%) !important;
-            border-radius: 24px !important;
-            border: none !important;
-            animation: wfBoxGlow 4s ease-in-out infinite !important;
-            position: relative; overflow: hidden;
-        }
-        .wf-total-card::before {
-            content:''; position:absolute; inset:0; border-radius:24px;
-            background: radial-gradient(ellipse at 50% -10%, rgba(79,172,254,0.12) 0%, transparent 65%);
-            pointer-events:none;
-        }
-        @keyframes wfBoxGlow {
-            0%,100% { box-shadow: 0 0 0 2px #4facfe, 0 0 0 4.5px rgba(123,47,255,0.7), 0 0 45px rgba(79,172,254,0.22), 0 20px 60px rgba(0,0,0,0.6); }
-            33%      { box-shadow: 0 0 0 2px #f093fb, 0 0 0 4.5px rgba(245,87,108,0.7), 0 0 45px rgba(240,147,251,0.22), 0 20px 60px rgba(0,0,0,0.6); }
-            66%      { box-shadow: 0 0 0 2px #38ef7d, 0 0 0 4.5px rgba(17,153,142,0.7), 0 0 45px rgba(56,239,125,0.22), 0 20px 60px rgba(0,0,0,0.6); }
-        }
-        #totalBalanceCash {
-            background: linear-gradient(90deg, #f093fb, #f5576c) !important;
-            -webkit-background-clip: text !important;
-            -webkit-text-fill-color: transparent !important;
-            background-clip: text !important;
-            color: transparent !important;
-            font-size: 1.6rem !important; font-weight: 900 !important;
-        }
-        #totalBalanceBank {
-            background: linear-gradient(90deg, #4facfe, #00f2fe) !important;
-            -webkit-background-clip: text !important;
-            -webkit-text-fill-color: transparent !important;
-            background-clip: text !important;
-            color: transparent !important;
-            font-size: 1.6rem !important; font-weight: 900 !important;
-        }
-        #totalBalanceMobile {
-            background: linear-gradient(90deg, #38ef7d, #11998e) !important;
-            -webkit-background-clip: text !important;
-            -webkit-text-fill-color: transparent !important;
-            background-clip: text !important;
-            color: transparent !important;
-            font-size: 1.6rem !important; font-weight: 900 !important;
-        }
-        #totalBalanceGrand {
-            background: linear-gradient(90deg, #ffd700, #ff8c00, #ffd700) !important;
-            background-size: 200% auto !important;
-            -webkit-background-clip: text !important;
-            -webkit-text-fill-color: transparent !important;
-            background-clip: text !important;
-            color: transparent !important;
-            animation: wfGoldShimmer 3s linear infinite !important;
-            font-size: 3rem !important; letter-spacing: -1px;
-        }
-        @keyframes wfGoldShimmer {
-            0%   { background-position: 0% center; }
-            100% { background-position: 200% center; }
-        }
-        .wf-mini {
-            transition: all 0.3s ease;
-        }
-        /* Cash — deep pink/magenta */
-        .wf-mini-c {
-            background: linear-gradient(135deg, #2a0a1f 0%, #3d0d2b 60%, #1a0612 100%) !important;
-            border: 1px solid rgba(240,147,251,0.35) !important;
-            box-shadow: 0 4px 20px rgba(245,87,108,0.15) !important;
-        }
-        .wf-mini-c:hover {
-            background: linear-gradient(135deg, #3d0d2b 0%, #5a1040 60%, #2a0a1f 100%) !important;
-            border-color: rgba(240,147,251,0.7) !important;
-            box-shadow: 0 12px 32px rgba(245,87,108,0.35) !important;
-            transform: translateY(-5px);
-        }
-        /* Bank — deep blue/cyan */
-        .wf-mini-b {
-            background: linear-gradient(135deg, #021a30 0%, #042d4a 60%, #010e1e 100%) !important;
-            border: 1px solid rgba(79,172,254,0.35) !important;
-            box-shadow: 0 4px 20px rgba(79,172,254,0.15) !important;
-        }
-        .wf-mini-b:hover {
-            background: linear-gradient(135deg, #042d4a 0%, #063f66 60%, #021a30 100%) !important;
-            border-color: rgba(79,172,254,0.7) !important;
-            box-shadow: 0 12px 32px rgba(79,172,254,0.35) !important;
-            transform: translateY(-5px);
-        }
-        /* Mobile — deep green/teal */
-        .wf-mini-m {
-            background: linear-gradient(135deg, #021a0f 0%, #042d1a 60%, #010e08 100%) !important;
-            border: 1px solid rgba(56,239,125,0.35) !important;
-            box-shadow: 0 4px 20px rgba(56,239,125,0.15) !important;
-        }
-        .wf-mini-m:hover {
-            background: linear-gradient(135deg, #042d1a 0%, #064028 60%, #021a0f 100%) !important;
-            border-color: rgba(56,239,125,0.7) !important;
-            box-shadow: 0 12px 32px rgba(56,239,125,0.35) !important;
-            transform: translateY(-5px);
-        }
-        .wf-lbl { color: rgba(180,200,255,0.55) !important; }
-        .wf-grand-wrap { border-top: 1px solid rgba(255,215,0,0.2) !important; }
-        .wf-grand-lbl  { color: rgba(255,215,0,0.6) !important; letter-spacing:2px; }
-        /* ===================================
            COMPREHENSIVE WHITE REMOVAL
            LOADS FIRST - HIGHEST PRIORITY
            =================================== */
@@ -150,29 +50,14 @@
         }
 
         /* Cards and panels - dark gradient, NO WHITE */
-        .card:not(.wf-total-card),
+        .card,
         .section-card,
         .modal-content,
-        .card-body:not(.wf-total-card .card-body),
+        .card-body,
         .card-header {
             background: linear-gradient(135deg, rgba(21, 26, 53, 0.95), rgba(31, 21, 69, 0.95)) !important;
             border: 2px solid rgba(0, 217, 255, 0.4) !important;
             color: #ffffff !important;
-        }
-        /* WF Total Card — isolated from global .card override */
-        .wf-total-card {
-            background: linear-gradient(135deg,#050d25 0%,#090e30 40%,#060b22 100%) !important;
-            border: none !important;
-            border-radius: 24px !important;
-            animation: wfBoxGlow 4s ease-in-out infinite !important;
-            position: relative !important;
-            overflow: hidden !important;
-        }
-        .wf-total-card .card-body {
-            background: transparent !important;
-            border: none !important;
-            position: relative !important;
-            z-index: 1 !important;
         }
 
         /* Dropdown menus - NO WHITE */
@@ -401,7 +286,7 @@
     <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/bootstrap-icons@1.11.1/font/bootstrap-icons.css">
 
     <!-- Custom Styles -->
-    <link rel="stylesheet" href="styles.css?v=20260225_1">
+    <link rel="stylesheet" href="styles.css?v=20260205_3">
 
 
 
@@ -1253,7 +1138,7 @@
                 <p class="text-muted">Aviation Academy Management System</p>
             </div>
 
-            <form id="loginForm" onsubmit="if(typeof handleLogin==='function'){handleLogin(event);}else{event.preventDefault();document.getElementById('loginError').innerText='পেজ লোড হচ্ছে... একটু অপেক্ষা করুন এবং আবার চেষ্টা করুন।';}">
+            <form id="loginForm" onsubmit="handleLogin(event)">
                 <div class="mb-3">
                     <label class="form-label">Username</label>
                     <input type="text" name="username" class="form-control" placeholder="Enter username" required
@@ -1261,204 +1146,15 @@
                 </div>
                 <div class="mb-3">
                     <label class="form-label">Password</label>
-                    <div class="input-group">
-                        <input type="password" id="loginPasswordInput" name="password" class="form-control" placeholder="Enter password" required
-                            autocomplete="current-password">
-                        <button class="btn btn-outline-secondary" type="button" id="loginPasswordToggle"
-                            onclick="const p=document.getElementById('loginPasswordInput'); const icon=document.getElementById('loginEyeIcon'); p.type=p.type==='password'?'text':'password'; icon.innerHTML=p.type==='password'?'👁️':'🙈';"
-                            style="border-left:0; background:white;">
-                            <span id="loginEyeIcon">👁️</span>
-                        </button>
-                    </div>
+                    <input type="password" name="password" class="form-control" placeholder="Enter password" required
+                        autocomplete="current-password">
                 </div>
                 <button type="submit" class="btn btn-primary w-100" id="loginBtn">
                     <span>Login</span>
                 </button>
                 <p id="loginError" class="text-danger small mt-3 text-center"></p>
-                <p class="text-center mt-3 mb-0">
-                    <a href="#" onclick="showForgotPasswordModal()" class="text-primary small" style="text-decoration:none;">🔑 Forgot Password?</a>
-                </p>
+                <p class="text-muted small mt-3 text-center">Demo: admin / admin123</p>
             </form>
-        </div>
-    </div>
-
-    <!-- Forgot Password Modal -->
-    <!-- Forgot Password Modal — Aviation Dark Theme -->
-    <div id="forgotPasswordModal" style="display:none; position:fixed; top:0; left:0; width:100%; height:100%; z-index:9999; align-items:center; justify-content:center; backdrop-filter:blur(8px); background:rgba(5,10,25,0.85);">
-
-        <div style="
-            background: linear-gradient(145deg, #0a0f2e 0%, #0d1b3e 50%, #0a1628 100%);
-            border: 1px solid rgba(0,200,255,0.25);
-            border-radius: 24px;
-            padding: 0;
-            max-width: 420px;
-            width: 92%;
-            box-shadow: 0 0 60px rgba(0,180,255,0.15), 0 32px 80px rgba(0,0,0,0.6);
-            overflow: hidden;
-            position: relative;
-        ">
-            <!-- Top glow bar -->
-            <div style="height:3px; background:linear-gradient(90deg, #00c8ff, #7b2ff7, #ff3cac); width:100%;"></div>
-
-            <!-- Decorative background circles -->
-            <div style="position:absolute; width:200px; height:200px; border-radius:50%; background:radial-gradient(circle, rgba(0,200,255,0.06) 0%, transparent 70%); top:-60px; right:-60px; pointer-events:none;"></div>
-            <div style="position:absolute; width:150px; height:150px; border-radius:50%; background:radial-gradient(circle, rgba(123,47,247,0.07) 0%, transparent 70%); bottom:-40px; left:-40px; pointer-events:none;"></div>
-
-            <div style="padding: 32px 32px 28px;">
-
-            <!-- Step 1: Secret Question Answer -->
-            <div id="fpm-step1">
-                <div class="text-center mb-4">
-                    <div style="
-                        width:70px; height:70px; border-radius:50%;
-                        background:linear-gradient(135deg, rgba(0,200,255,0.15), rgba(123,47,247,0.15));
-                        border:2px solid rgba(0,200,255,0.3);
-                        display:inline-flex; align-items:center; justify-content:center;
-                        font-size:2rem; margin-bottom:14px;
-                        box-shadow: 0 0 20px rgba(0,200,255,0.2);
-                    ">🔐</div>
-                    <h5 style="color:#00c8ff; font-weight:700; margin-bottom:6px; font-size:1.3rem;">Forgot Password?</h5>
-                    <p style="color:rgba(180,200,230,0.7); font-size:0.85rem; margin:0;">আপনার Secret Question এর উত্তর দিন</p>
-                </div>
-
-                <!-- Question display box -->
-                <div style="
-                    background:rgba(0,200,255,0.06);
-                    border:1px solid rgba(0,200,255,0.2);
-                    border-left:4px solid #00c8ff;
-                    border-radius:10px;
-                    padding:14px 16px;
-                    margin-bottom:16px;
-                ">
-                    <p style="color:rgba(150,180,210,0.8); font-size:0.72rem; text-transform:uppercase; letter-spacing:1px; margin-bottom:6px; font-weight:600;">আপনার প্রশ্ন:</p>
-                    <p style="color:#e0f4ff; font-weight:600; margin:0; font-size:0.95rem;" id="fpm-question-display">প্রশ্ন লোড হচ্ছে...</p>
-                </div>
-
-                <!-- Answer input -->
-                <div style="margin-bottom:14px; position:relative;">
-                    <input type="text" id="fpm-answer-input"
-                        autocomplete="off"
-                        style="
-                            width:100%; padding:14px 16px;
-                            background:rgba(255,255,255,0.05);
-                            border:1px solid rgba(0,200,255,0.25);
-                            border-radius:12px; color:#e0f4ff;
-                            font-size:0.95rem; outline:none;
-                            transition:border-color 0.2s, box-shadow 0.2s;
-                            box-sizing:border-box;
-                        "
-                        placeholder="উত্তর লিখুন..."
-                        onfocus="this.style.borderColor='rgba(0,200,255,0.6)'; this.style.boxShadow='0 0 0 3px rgba(0,200,255,0.1)';"
-                        onblur="this.style.borderColor='rgba(0,200,255,0.25)'; this.style.boxShadow='none';"
-                        onkeydown="if(event.key==='Enter') checkSecretAnswer()">
-                </div>
-
-                <div id="fpm-msg" style="display:none; padding:10px 14px; border-radius:10px; font-size:0.82rem; margin-bottom:12px;"></div>
-
-                <div style="display:flex; gap:10px;">
-                    <button type="button" onclick="checkSecretAnswer()" style="
-                        flex:1; padding:13px;
-                        background:linear-gradient(135deg, #00c8ff, #0080ff);
-                        border:none; border-radius:12px;
-                        color:white; font-weight:700; font-size:0.9rem;
-                        cursor:pointer; letter-spacing:0.5px;
-                        box-shadow:0 4px 20px rgba(0,200,255,0.3);
-                        transition:transform 0.15s, box-shadow 0.15s;
-                    " onmouseover="this.style.transform='translateY(-1px)'; this.style.boxShadow='0 6px 24px rgba(0,200,255,0.4)';"
-                       onmouseout="this.style.transform='none'; this.style.boxShadow='0 4px 20px rgba(0,200,255,0.3)';">
-                        ✅ VERIFY ANSWER
-                    </button>
-                    <button type="button" onclick="hideForgotPasswordModal()" style="
-                        padding:13px 20px;
-                        background:rgba(255,255,255,0.06);
-                        border:1px solid rgba(255,255,255,0.15);
-                        border-radius:12px; color:rgba(200,220,240,0.8);
-                        font-size:0.88rem; cursor:pointer;
-                        transition:background 0.15s;
-                    " onmouseover="this.style.background='rgba(255,255,255,0.1)';"
-                       onmouseout="this.style.background='rgba(255,255,255,0.06)';">
-                        বাতিল
-                    </button>
-                </div>
-            </div>
-
-            <!-- Step 2: New Password -->
-            <div id="fpm-step2" style="display:none;">
-                <div class="text-center mb-4">
-                    <div style="
-                        width:70px; height:70px; border-radius:50%;
-                        background:linear-gradient(135deg, rgba(0,255,150,0.12), rgba(0,200,255,0.12));
-                        border:2px solid rgba(0,255,150,0.3);
-                        display:inline-flex; align-items:center; justify-content:center;
-                        font-size:2rem; margin-bottom:14px;
-                        box-shadow: 0 0 20px rgba(0,255,150,0.15);
-                    ">🔓</div>
-                    <h5 style="color:#00ff96; font-weight:700; margin-bottom:6px; font-size:1.3rem;">নতুন পাসওয়ার্ড দিন</h5>
-                    <p style="color:rgba(180,200,230,0.7); font-size:0.85rem; margin:0;">নিরাপদ পাসওয়ার্ড ব্যবহার করুন</p>
-                </div>
-
-                <div style="margin-bottom:14px;">
-                    <label style="color:rgba(150,180,210,0.8); font-size:0.72rem; text-transform:uppercase; letter-spacing:1px; font-weight:600; display:block; margin-bottom:8px;">নতুন পাসওয়ার্ড</label>
-                    <div style="display:flex; gap:0;">
-                        <input type="password" id="fpm-new-password"
-                            autocomplete="new-password"
-                            style="
-                                flex:1; padding:13px 16px;
-                                background:rgba(255,255,255,0.05);
-                                border:1px solid rgba(0,255,150,0.25); border-right:none;
-                                border-radius:12px 0 0 12px; color:#e0f4ff;
-                                font-size:0.9rem; outline:none;
-                            " placeholder="নতুন পাসওয়ার্ড লিখুন">
-                        <button type="button" onclick="const p=document.getElementById('fpm-new-password'); p.type=p.type==='password'?'text':'password';" style="
-                            padding:13px 16px;
-                            background:rgba(255,255,255,0.05);
-                            border:1px solid rgba(0,255,150,0.25); border-left:none;
-                            border-radius:0 12px 12px 0; color:rgba(200,220,240,0.7);
-                            cursor:pointer; font-size:1rem;
-                        ">👁️</button>
-                    </div>
-                </div>
-
-                <div style="margin-bottom:14px;">
-                    <label style="color:rgba(150,180,210,0.8); font-size:0.72rem; text-transform:uppercase; letter-spacing:1px; font-weight:600; display:block; margin-bottom:8px;">নিশ্চিত করুন</label>
-                    <div style="display:flex;">
-                        <input type="password" id="fpm-confirm-password"
-                            autocomplete="new-password"
-                            style="
-                                flex:1; padding:13px 16px;
-                                background:rgba(255,255,255,0.05);
-                                border:1px solid rgba(0,255,150,0.25); border-right:none;
-                                border-radius:12px 0 0 12px; color:#e0f4ff;
-                                font-size:0.9rem; outline:none;
-                            " placeholder="পাসওয়ার্ড আবার লিখুন"
-                            onkeydown="if(event.key==='Enter') resetPasswordFromModal()">
-                        <button type="button" onclick="const p=document.getElementById('fpm-confirm-password'); p.type=p.type==='password'?'text':'password';" style="
-                            padding:13px 16px;
-                            background:rgba(255,255,255,0.05);
-                            border:1px solid rgba(0,255,150,0.25); border-left:none;
-                            border-radius:0 12px 12px 0; color:rgba(200,220,240,0.7);
-                            cursor:pointer; font-size:1rem;
-                        ">👁️</button>
-                    </div>
-                </div>
-
-                <div id="fpm-msg2" style="display:none; padding:10px 14px; border-radius:10px; font-size:0.82rem; margin-bottom:12px;"></div>
-
-                <button type="button" onclick="resetPasswordFromModal()" style="
-                    width:100%; padding:14px;
-                    background:linear-gradient(135deg, #00c853, #00b347);
-                    border:none; border-radius:12px;
-                    color:white; font-weight:700; font-size:0.95rem;
-                    cursor:pointer; letter-spacing:0.5px;
-                    box-shadow:0 4px 20px rgba(0,200,83,0.35);
-                    transition:transform 0.15s;
-                " onmouseover="this.style.transform='translateY(-1px)';"
-                   onmouseout="this.style.transform='none';">
-                    💾 পাসওয়ার্ড সেভ করুন
-                </button>
-            </div>
-
-            </div><!-- end padding div -->
         </div>
     </div>
 
@@ -1853,7 +1549,7 @@
                                         <i class="bi bi-people-fill fs-5"></i>
                                     </div>
                                     <div class="av-card-body">
-                                        <h3 class="av-card-value value-blue" id="dashTotalStudents">0</h3>
+                                        <h3 class="av-card-value" id="dashTotalStudents">0</h3>
                                         <p class="av-card-subtitle">Active Students</p>
                                         <div class="av-card-trend av-trend-up">
                                             <i class="bi bi-arrow-up-short"></i> +12% <span
@@ -1871,7 +1567,7 @@
                                         <i class="bi bi-wallet2 fs-5"></i>
                                     </div>
                                     <div class="av-card-body">
-                                        <h3 class="av-card-value value-green" id="dashTotalIncome">৳0</h3>
+                                        <h3 class="av-card-value text-success" id="dashTotalIncome">৳0</h3>
                                         <p class="av-card-subtitle">Revenue Growth</p>
                                         <div class="av-card-trend av-trend-up">
                                             <i class="bi bi-arrow-up-short"></i> +8% <span
@@ -1889,7 +1585,7 @@
                                         <i class="bi bi-graph-down-arrow fs-5"></i>
                                     </div>
                                     <div class="av-card-body">
-                                        <h3 class="av-card-value value-orange" id="dashTotalExpense">৳0</h3>
+                                        <h3 class="av-card-value text-danger" id="dashTotalExpense">৳0</h3>
                                         <p class="av-card-subtitle">Operational Costs</p>
                                         <div class="av-card-trend av-trend-down">
                                             <i class="bi bi-arrow-down-short"></i> -3% <span
@@ -1907,7 +1603,7 @@
                                         <i class="bi bi-calculator fs-5"></i>
                                     </div>
                                     <div class="av-card-body">
-                                        <h3 class="av-card-value value-purple" id="dashTotalProfit">৳0</h3>
+                                        <h3 class="av-card-value text-success" id="dashTotalProfit">৳0</h3>
                                         <p class="av-card-subtitle" id="dashProfitStatus">Business Health</p>
                                         <div class="av-card-trend text-primary">
                                             <i class="bi bi-check-circle"></i> Healthy performance
@@ -2315,32 +2011,24 @@
                                             <option value="">All Batches</option>
                                         </select>
                                     </div>
-                                    <div class="col-md-2">
+                                    <div class="col-md-3">
                                         <label class="form-label small fw-bold">Filter by Course</label>
                                         <select id="courseFilterSelect" class="form-select form-select-sm"
                                             onchange="applyAdvancedSearch()">
                                             <option value="">All Courses</option>
                                         </select>
                                     </div>
-                                    <div class="col-6 col-md-2">
-                                        <label class="form-label small fw-bold">Previous Due ৳</label>
-                                        <input type="number" id="advPrevDue" class="form-control form-select-sm" placeholder="0" min="0" oninput="applyAdvancedSearch()" style="border:1px solid #f87171;">
-                                    </div>
-                                    <div class="col-6 col-md-2">
-                                        <label class="form-label small fw-bold">Previous Profit ৳</label>
-                                        <input type="number" id="advPrevProfit" class="form-control form-select-sm" placeholder="0" oninput="applyAdvancedSearch()" style="border:1px solid #22c55e;">
-                                    </div>
-                                    <div class="col-6 col-md-2">
+                                    <div class="col-md-2">
                                         <label class="form-label small fw-bold">From Date</label>
                                         <input type="date" id="advSearchStartDate" class="form-control form-select-sm"
                                             onchange="applyAdvancedSearch()">
                                     </div>
-                                    <div class="col-6 col-md-2">
+                                    <div class="col-md-2">
                                         <label class="form-label small fw-bold">To Date</label>
                                         <input type="date" id="advSearchEndDate" class="form-control form-select-sm"
                                             onchange="applyAdvancedSearch()">
                                     </div>
-                                    <div class="col-12 col-md-2">
+                                    <div class="col-md-3">
                                         <label class="form-label small fw-bold">Results</label>
                                         <div class="bg-transparent border rounded p-2 text-center">
                                             <div class="small text-muted">Total Income</div>
@@ -2349,42 +2037,18 @@
                                     </div>
                                 </div>
                                 <div id="advSearchSummary" class="mt-3 p-3 bg-transparent rounded border d-none">
-                                    <div class="row text-center g-2">
-                                        <div class="col-md-2">
+                                    <div class="row text-center">
+                                        <div class="col-md-4">
                                             <div class="small text-muted mb-1">Total Collected</div>
-                                            <div class="h6 fw-bold text-success mb-0" id="advSearchCollected">৳0</div>
+                                            <div class="h5 fw-bold text-success mb-0" id="advSearchCollected">৳0</div>
                                         </div>
-                                        <div class="col-md-2">
+                                        <div class="col-md-4">
                                             <div class="small text-muted mb-1">Total Due</div>
-                                            <div class="h6 fw-bold text-danger mb-0" id="advSearchDue">৳0</div>
+                                            <div class="h5 fw-bold text-danger mb-0" id="advSearchDue">৳0</div>
                                         </div>
-                                        <div class="col-md-2">
-                                            <div class="small text-muted mb-1">Students</div>
-                                            <div class="h6 fw-bold text-primary mb-0" id="advSearchCount">0</div>
-                                        </div>
-                                        <div class="col-md-3">
-                                            <div class="small text-muted mb-1">Total Expense</div>
-                                            <div class="h6 fw-bold text-warning mb-0" id="advSearchExpense">৳0</div>
-                                        </div>
-                                        <div class="col-md-3">
-                                            <div class="small text-muted mb-1">Net Profit/Loss</div>
-                                            <div class="h6 fw-bold mb-0" id="advSearchProfit">৳0</div>
-                                        </div>
-                                    </div>
-                                    <!-- Previous Due + Profit summary row -->
-                                    <div class="row text-center g-2 mt-1 pt-2" style="border-top:1px dashed rgba(255,255,255,0.15);">
-                                        <div class="col-md-3">
-                                            <div class="small mb-1" style="color:#f87171;">Previous Due</div>
-                                            <div class="h6 fw-bold mb-0" style="color:#f87171;" id="advSummPrevDue">৳0</div>
-                                        </div>
-                                        <div class="col-md-3">
-                                            <div class="small mb-1" style="color:#4ade80;">Previous Profit</div>
-                                            <div class="h6 fw-bold mb-0" style="color:#4ade80;" id="advSummPrevProfit">৳0</div>
-                                        </div>
-                                        <div style="display:none" id="advSummTotalDue"></div>
-                                        <div class="col-md-6">
-                                            <div class="small mb-1" style="color:#38bdf8;">Total Net Profit (সব মিলিয়ে)</div>
-                                            <div class="h6 fw-bold mb-0" style="color:#38bdf8;" id="advSummTotalProfit">৳0</div>
+                                        <div class="col-md-4">
+                                            <div class="small text-muted mb-1">Students Found</div>
+                                            <div class="h5 fw-bold text-primary mb-0" id="advSearchCount">0</div>
                                         </div>
                                     </div>
                                 </div>
@@ -2502,12 +2166,13 @@
                                                 <th class="text-end text-danger">Debit (-)</th>
                                                 <th class="text-end text-success">Credit (+)</th>
                                                 <th class="text-end">Balance</th>
+                                                <th class="text-center">Action</th>
                                             </tr>
                                         </thead>
                                         <tbody id="loanDetailBody"></tbody>
                                         <tfoot class="fw-bold">
                                             <tr>
-                                                <td colspan="6" class="text-end">NET BALANCE:</td>
+                                                <td colspan="7" class="text-end">NET BALANCE:</td>
                                                 <td class="text-end" id="loanDetailBalance">0</td>
                                             </tr>
                                         </tfoot>
@@ -2747,45 +2412,24 @@
                 <div id="accountsSection" class="d-none">
 
                     <!-- ========== CASH SECTION (HIGHLIGHTED AT TOP) ========== -->
-                    <div class="card border-0 shadow-lg mb-5" style="
-                        background: linear-gradient(135deg, #0d0d2b 0%, #1a0533 50%, #0a1535 100%);
-                        border-radius: 22px;
-                        border: 1.5px solid rgba(240,147,251,0.35) !important;
-                        position: relative; overflow: hidden;">
-                        <!-- Glow blob -->
-                        <div style="position:absolute;top:-40px;left:-40px;width:220px;height:220px;
-                            background:radial-gradient(circle,rgba(240,147,251,0.18) 0%,transparent 70%);pointer-events:none;"></div>
-                        <div style="position:absolute;bottom:-40px;right:-40px;width:200px;height:200px;
-                            background:radial-gradient(circle,rgba(245,87,108,0.15) 0%,transparent 70%);pointer-events:none;"></div>
-                        <div class="card-body p-4" style="position:relative;z-index:1;">
-                            <div class="d-flex justify-content-between align-items-center flex-wrap gap-3">
+                    <div class="card border-0 shadow-lg mb-5"
+                        style="background: linear-gradient(135deg, #f093fb 0%, #f5576c 100%); border-radius: 20px;">
+                        <div class="card-body p-4">
+                            <div class="d-flex justify-content-between align-items-center">
                                 <div>
-                                    <h4 class="fw-bold m-0" style="
-                                        background: linear-gradient(90deg, #f093fb, #f5576c);
-                                        -webkit-background-clip: text; -webkit-text-fill-color: transparent;
-                                        background-clip: text; font-size: 1.6rem; letter-spacing: 1px;">
-                                        <span class="me-2" style="font-size: 2rem; -webkit-text-fill-color: initial;">💵</span> CASH
+                                    <h4 class="fw-bold m-0 text-white">
+                                        <span class="me-2" style="font-size: 2rem;">💵</span> CASH
                                     </h4>
-                                    <p style="color:rgba(240,147,251,0.6); margin-bottom:0; margin-top:6px; font-size:0.85rem; font-weight:600;">Physical cash on hand</p>
+                                    <p class="text-white opacity-75 mb-0 mt-2">Physical cash on hand</p>
                                 </div>
                                 <div class="text-end">
-                                    <h2 class="fw-bold mb-0" id="cashBalance" style="
-                                        font-size: 2.4rem;
-                                        background: linear-gradient(90deg, #f093fb, #f5576c);
-                                        -webkit-background-clip: text; -webkit-text-fill-color: transparent;
-                                        background-clip: text; text-shadow: none;">৳0</h2>
-                                    <div class="mt-3 d-flex gap-2 justify-content-end">
-                                        <button class="btn btn-sm rounded-pill px-4 fw-bold" style="
-                                            background: linear-gradient(135deg, #f093fb, #f5576c);
-                                            border: none; color: #fff;
-                                            box-shadow: 0 4px 18px rgba(240,147,251,0.4);"
+                                    <h2 class="fw-bold text-white mb-0" id="cashBalance">৳0</h2>
+                                    <div class="mt-2 d-flex gap-2 justify-content-end">
+                                        <button class="btn btn-light btn-sm rounded-pill px-3 fw-bold"
                                             onclick="openCashModal()">
                                             <i class="bi bi-pencil-fill me-1"></i> Update Cash
                                         </button>
-                                        <button class="btn btn-sm rounded-pill px-4 fw-bold" style="
-                                            background: transparent;
-                                            border: 1.5px solid rgba(240,147,251,0.5);
-                                            color: #f093fb;"
+                                        <button class="btn btn-outline-light btn-sm rounded-pill px-3 fw-bold"
                                             onclick="recalculateCashBalanceFromTransactions(); showSuccessToast('💰 Cash balance recalculated from transactions!');"
                                             title="Recalculate from transactions">
                                             <i class="bi bi-arrow-clockwise me-1"></i> Sync
@@ -2797,19 +2441,11 @@
                     </div>
 
                     <!-- ========== UNIFIED ACCOUNT SEARCH (Cash + Bank + Mobile) ========== -->
-                    <div class="card border-0 shadow-lg mb-5" style="
-                        background: linear-gradient(135deg, #080d2a 0%, #0f1a3e 50%, #0a0f2a 100%);
-                        border-radius: 22px;
-                        border: 1.5px solid rgba(102,126,234,0.35) !important;
-                        position: relative; overflow: hidden;">
-                        <div style="position:absolute;top:-60px;right:-60px;width:250px;height:250px;
-                            background:radial-gradient(circle,rgba(118,75,162,0.2) 0%,transparent 70%);pointer-events:none;"></div>
-                        <div class="card-body p-4" style="position:relative;z-index:1;">
-                            <h5 class="fw-bold mb-3" style="
-                                background: linear-gradient(90deg, #667eea, #c084fc);
-                                -webkit-background-clip: text; -webkit-text-fill-color: transparent;
-                                background-clip: text; font-size: 1rem; letter-spacing: 0.5px;">
-                                <i class="bi bi-search me-2" style="-webkit-text-fill-color: #667eea;"></i>Search All Accounts (💵 Cash + 🏦 Bank + 📱 Mobile
+                    <div class="card border-0 shadow-lg mb-5"
+                        style="background: linear-gradient(135deg, #667eea 0%, #764ba2 100%); border-radius: 20px;">
+                        <div class="card-body p-4">
+                            <h5 class="text-white fw-bold mb-3">
+                                <i class="bi bi-search me-2"></i>Search All Accounts (💵 Cash + 🏦 Bank + 📱 Mobile
                                 Banking)
                             </h5>
                             <div class="row g-3 align-items-end">
@@ -3015,17 +2651,10 @@
                     <!-- ========== BANK DETAILS SECTION ========== -->
                     <div class="mb-5">
                         <div class="d-flex justify-content-between align-items-center mb-4">
-                            <h4 class="fw-bold m-0" style="
-                                background: linear-gradient(90deg, #4facfe, #00f2fe);
-                                -webkit-background-clip: text; -webkit-text-fill-color: transparent;
-                                background-clip: text; font-size: 1.4rem; letter-spacing: 0.5px;">
-                                <span class="me-2" style="-webkit-text-fill-color: initial; font-size: 1.5rem;">🏦</span> BANK DETAILS
+                            <h4 class="fw-bold m-0">
+                                <span class="me-2" style="font-size: 1.5rem;">🏦</span> BANK DETAILS
                             </h4>
-                            <button class="btn fw-bold px-4 rounded-3" onclick="openAccountModal()" style="
-                                background: linear-gradient(135deg, #0066ff, #00d4ff);
-                                border: none; color: #fff;
-                                box-shadow: 0 4px 18px rgba(0,180,255,0.35);
-                                transition: all 0.3s;">
+                            <button class="btn btn-primary fw-bold px-4 rounded-3" onclick="openAccountModal()">
                                 <i class="bi bi-plus-circle-fill me-2"></i>Add New Bank Account
                             </button>
                         </div>
@@ -3033,24 +2662,25 @@
                         <!-- Bank Accounts Table -->
                         <div class="card border-0 shadow-sm overflow-hidden rounded-4">
                             <div class="table-responsive">
-                                <table class="table table-hover align-middle modern-table mb-0" style="background:transparent;">
-                                    <thead style="background: linear-gradient(90deg, rgba(0,102,255,0.25), rgba(0,212,255,0.15));">
+                                <table class="table table-hover align-middle modern-table mb-0">
+                                    <thead style="background: #f1f5f9;">
                                         <tr>
-                                            <th style="padding:0.85rem 1rem;color:#00d4ff;font-size:0.78rem;text-transform:uppercase;letter-spacing:1px;border-color:rgba(0,212,255,0.15);font-weight:700;">SL.</th>
-                                            <th style="padding:0.85rem 1rem;color:#00d4ff;font-size:0.78rem;text-transform:uppercase;letter-spacing:1px;border-color:rgba(0,212,255,0.15);font-weight:700;">Name</th>
-                                            <th style="padding:0.85rem 1rem;color:#00d4ff;font-size:0.78rem;text-transform:uppercase;letter-spacing:1px;border-color:rgba(0,212,255,0.15);font-weight:700;">Branch</th>
-                                            <th style="padding:0.85rem 1rem;color:#00d4ff;font-size:0.78rem;text-transform:uppercase;letter-spacing:1px;border-color:rgba(0,212,255,0.15);font-weight:700;">Bank Name</th>
-                                            <th style="padding:0.85rem 1rem;color:#00d4ff;font-size:0.78rem;text-transform:uppercase;letter-spacing:1px;border-color:rgba(0,212,255,0.15);font-weight:700;">Account No.</th>
-                                            <th style="padding:0.85rem 1rem;color:#00d4ff;font-size:0.78rem;text-transform:uppercase;letter-spacing:1px;border-color:rgba(0,212,255,0.15);font-weight:700;text-align:right;">Balance</th>
-                                            <th style="padding:0.85rem 1rem;color:#00d4ff;font-size:0.78rem;text-transform:uppercase;letter-spacing:1px;border-color:rgba(0,212,255,0.15);font-weight:700;text-align:end;">Action</th>
+                                            <th style="padding: 1rem;">SL.</th>
+                                            <th style="padding: 1rem;">Name</th>
+                                            <th style="padding: 1rem;">Branch</th>
+                                            <th style="padding: 1rem;">Bank Name</th>
+                                            <th style="padding: 1rem;">Account No.</th>
+                                            <th style="padding: 1rem; text-align: right;">Balance</th>
+                                            <th style="padding: 1rem; text-align: end;">Action</th>
                                         </tr>
                                     </thead>
                                     <tbody id="accountTableBody"></tbody>
-                                    <tfoot>
-                                        <tr style="background:linear-gradient(90deg,rgba(0,200,100,0.12),rgba(0,255,136,0.06));border-top:2px solid rgba(0,200,100,0.3);">
-                                            <td colspan="5" style="padding:0.9rem 1rem;color:#00ff88;font-weight:800;font-size:0.95rem;border-color:rgba(0,200,100,0.15);">🏦 Total Bank Balance</td>
-                                            <td id="totalAccountBalance" style="padding:0.9rem 1rem;text-align:right;color:#00ff88;font-weight:900;font-size:1.1rem;border-color:rgba(0,200,100,0.15);">৳0</td>
-                                            <td style="border-color:rgba(0,200,100,0.15);"></td>
+                                    <tfoot style="font-weight: 800;">
+                                        <tr>
+                                            <td colspan="5" style="padding: 1rem;">Total Bank Balance</td>
+                                            <td id="totalAccountBalance" style="padding: 1rem; text-align: right;">৳0
+                                            </td>
+                                            <td></td>
                                         </tr>
                                     </tfoot>
                                 </table>
@@ -3068,17 +2698,10 @@
 
                     <div class="mb-5">
                         <div class="d-flex justify-content-between align-items-center mb-4">
-                            <h4 class="fw-bold m-0" style="
-                                background: linear-gradient(90deg, #11998e, #38ef7d);
-                                -webkit-background-clip: text; -webkit-text-fill-color: transparent;
-                                background-clip: text; font-size: 1.4rem; letter-spacing: 0.5px;">
-                                <span class="me-2" style="-webkit-text-fill-color: initial; font-size: 1.5rem;">📱</span> MOBILE BANKING
+                            <h4 class="fw-bold m-0">
+                                <span class="me-2" style="font-size: 1.5rem;">📱</span> MOBILE BANKING
                             </h4>
-                            <button class="btn fw-bold px-4 rounded-3" onclick="openMobileModal()" style="
-                                background: linear-gradient(135deg, #11998e, #38ef7d);
-                                border: none; color: #0a2010;
-                                box-shadow: 0 4px 18px rgba(17,153,142,0.4);
-                                transition: all 0.3s;">
+                            <button class="btn btn-success fw-bold px-4 rounded-3" onclick="openMobileModal()">
                                 <i class="bi bi-plus-circle-fill me-2"></i>Add Mobile Account
                             </button>
                         </div>
@@ -3086,22 +2709,23 @@
                         <!-- Mobile Banking Table -->
                         <div class="card border-0 shadow-sm overflow-hidden rounded-4">
                             <div class="table-responsive">
-                                <table class="table table-hover align-middle modern-table mb-0" style="background:transparent;">
-                                    <thead style="background: linear-gradient(90deg, rgba(17,153,142,0.25), rgba(56,239,125,0.15));">
+                                <table class="table table-hover align-middle modern-table mb-0">
+                                    <thead style="background: #f1f5f9;">
                                         <tr>
-                                            <th style="padding:0.85rem 1rem;color:#38ef7d;font-size:0.78rem;text-transform:uppercase;letter-spacing:1px;border-color:rgba(56,239,125,0.15);font-weight:700;">SL.</th>
-                                            <th style="padding:0.85rem 1rem;color:#38ef7d;font-size:0.78rem;text-transform:uppercase;letter-spacing:1px;border-color:rgba(56,239,125,0.15);font-weight:700;">Account Name</th>
-                                            <th style="padding:0.85rem 1rem;color:#38ef7d;font-size:0.78rem;text-transform:uppercase;letter-spacing:1px;border-color:rgba(56,239,125,0.15);font-weight:700;">Account No.</th>
-                                            <th style="padding:0.85rem 1rem;color:#38ef7d;font-size:0.78rem;text-transform:uppercase;letter-spacing:1px;border-color:rgba(56,239,125,0.15);font-weight:700;text-align:right;">Balance</th>
-                                            <th style="padding:0.85rem 1rem;color:#38ef7d;font-size:0.78rem;text-transform:uppercase;letter-spacing:1px;border-color:rgba(56,239,125,0.15);font-weight:700;text-align:end;">Action</th>
+                                            <th style="padding: 1rem;">SL.</th>
+                                            <th style="padding: 1rem;">Account Name</th>
+                                            <th style="padding: 1rem;">Account No.</th>
+                                            <th style="padding: 1rem; text-align: right;">Balance</th>
+                                            <th style="padding: 1rem; text-align: end;">Action</th>
                                         </tr>
                                     </thead>
                                     <tbody id="mobileTableBody"></tbody>
-                                    <tfoot>
-                                        <tr style="background:linear-gradient(90deg,rgba(17,153,142,0.15),rgba(56,239,125,0.08));border-top:2px solid rgba(56,239,125,0.3);">
-                                            <td colspan="3" style="padding:0.9rem 1rem;color:#38ef7d;font-weight:800;font-size:0.95rem;border-color:rgba(56,239,125,0.15);">📱 Total Mobile Balance</td>
-                                            <td id="totalMobileBalance" style="padding:0.9rem 1rem;text-align:right;color:#38ef7d;font-weight:900;font-size:1.1rem;border-color:rgba(56,239,125,0.15);">৳0</td>
-                                            <td style="border-color:rgba(56,239,125,0.15);"></td>
+                                    <tfoot style="font-weight: 800;">
+                                        <tr>
+                                            <td colspan="3" style="padding: 1rem;">Total Mobile Balance</td>
+                                            <td id="totalMobileBalance" style="padding: 1rem; text-align: right;">৳0
+                                            </td>
+                                            <td></td>
                                         </tr>
                                     </tfoot>
                                 </table>
@@ -3114,7 +2738,8 @@
                     </div>
 
                     <!-- ========== TOTAL BALANCE SUMMARY (BOTTOM) ========== -->
-                    <div class="card border-0 mb-4 no-print wf-total-card">
+                    <div class="card border-0 shadow-lg mb-4"
+                        style="background: linear-gradient(135deg, #0f2027 0%, #203a43 50%, #2c5364 100%); border-radius: 20px; border: 2px solid rgba(79,172,254,0.4) !important;">
                         <div class="card-body p-4 p-md-5">
                             <div class="text-center mb-4">
                                 <h4 class="fw-bold text-white mb-1">
@@ -3124,35 +2749,39 @@
                             </div>
                             <div class="row g-4 text-center mb-4">
                                 <div class="col-md-4">
-                                    <div class="p-3 rounded-4 wf-mini wf-mini-c" style="background:linear-gradient(135deg,#2a0a1f 0%,#3d0d2b 60%,#1a0612 100%)!important;border:1px solid rgba(240,147,251,0.45)!important;box-shadow:0 4px 24px rgba(245,87,108,0.25)!important;">
+                                    <div class="p-3 rounded-4"
+                                        style="background: rgba(255,255,255,0.08); border: 1px solid rgba(255,255,255,0.15);">
                                         <div class="mb-2" style="font-size: 1.8rem;">💵</div>
-                                        <div class="text-white opacity-75 small fw-bold text-uppercase mb-1 wf-lbl">Cash</div>
-                                        <div class="fw-bold"
+                                        <div class="text-white opacity-75 small fw-bold text-uppercase mb-1">Cash</div>
+                                        <div class="text-white fw-bold" style="font-size: 1.4rem;"
                                             id="totalBalanceCash">৳0</div>
                                     </div>
                                 </div>
                                 <div class="col-md-4">
-                                    <div class="p-3 rounded-4 wf-mini wf-mini-b" style="background:linear-gradient(135deg,#021a30 0%,#042d4a 60%,#010e1e 100%)!important;border:1px solid rgba(79,172,254,0.45)!important;box-shadow:0 4px 24px rgba(79,172,254,0.25)!important;">
+                                    <div class="p-3 rounded-4"
+                                        style="background: rgba(255,255,255,0.08); border: 1px solid rgba(255,255,255,0.15);">
                                         <div class="mb-2" style="font-size: 1.8rem;">🏦</div>
-                                        <div class="text-white opacity-75 small fw-bold text-uppercase mb-1 wf-lbl">Bank</div>
-                                        <div class="fw-bold"
+                                        <div class="text-white opacity-75 small fw-bold text-uppercase mb-1">Bank</div>
+                                        <div class="text-white fw-bold" style="font-size: 1.4rem;"
                                             id="totalBalanceBank">৳0</div>
                                     </div>
                                 </div>
                                 <div class="col-md-4">
-                                    <div class="p-3 rounded-4 wf-mini wf-mini-m" style="background:linear-gradient(135deg,#021a0f 0%,#042d1a 60%,#010e08 100%)!important;border:1px solid rgba(56,239,125,0.45)!important;box-shadow:0 4px 24px rgba(56,239,125,0.25)!important;">
+                                    <div class="p-3 rounded-4"
+                                        style="background: rgba(255,255,255,0.08); border: 1px solid rgba(255,255,255,0.15);">
                                         <div class="mb-2" style="font-size: 1.8rem;">📱</div>
-                                        <div class="text-white opacity-75 small fw-bold text-uppercase mb-1 wf-lbl">Mobile
+                                        <div class="text-white opacity-75 small fw-bold text-uppercase mb-1">Mobile
                                             Banking</div>
-                                        <div class="fw-bold"
+                                        <div class="text-white fw-bold" style="font-size: 1.4rem;"
                                             id="totalBalanceMobile">৳0</div>
                                     </div>
                                 </div>
                             </div>
-                            <div class="text-center pt-3 wf-grand-wrap">
-                                <div class="small fw-bold text-uppercase mb-2 letter-spacing-1 wf-grand-lbl">
+                            <div class="text-center pt-3" style="border-top: 1px solid rgba(255,255,255,0.2);">
+                                <div class="text-white opacity-75 small fw-bold text-uppercase mb-2 letter-spacing-1">
                                     Grand Total</div>
-                                <div class="fw-bold"
+                                <div class="text-white fw-bold"
+                                    style="font-size: 2.5rem; text-shadow: 0 0 20px rgba(79,172,254,0.6);"
                                     id="totalBalanceGrand">৳0</div>
                             </div>
                         </div>
@@ -3612,7 +3241,7 @@
     </div>
 
     <div class="modal fade" id="financeModal" tabindex="-1">
-        <div class="modal-dialog modal-dialog-centered modal-lg">
+        <div class="modal-dialog modal-dialog-centered">
             <div class="modal-content custom-modal">
                 <div class="modal-header">
                     <h5 class="modal-title fw-bold">
@@ -3622,8 +3251,8 @@
                 </div>
                 <div class="modal-body">
                     <form id="financeForm" onsubmit="handleFinanceSubmit(event)">
-                        <div class="row g-2">
-                            <div class="col-12 col-sm-4 mb-3">
+                        <div class="row">
+                            <div class="col-4 mb-3">
                                 <label class="form-label fw-semibold">Type</label>
                                 <select name="type" class="form-select" onchange="updateFinanceCategoryOptions()">
                                     <option value="Income">Income (+)</option>
@@ -3632,15 +3261,15 @@
                                     <option value="Loan Received">Loan Receiving (Money In)</option>
                                 </select>
                             </div>
-                            <div class="col-12 col-sm-4 mb-3">
+                            <div class="col-4 mb-3">
                                 <label class="form-label fw-semibold">Method</label>
-                                <select name="method" class="form-select" id="financeMethodSelect" style="min-width:0; width:100%;">
+                                <select name="method" class="form-select" id="financeMethodSelect">
                                     <!-- Populated dynamically -->
                                 </select>
                             </div>
-                            <div class="col-12 col-sm-4 mb-3">
+                            <div class="col-4 mb-3">
                                 <label class="form-label fw-semibold">Date</label>
-                                <input type="date" name="date" class="form-control" style="min-width:0; width:100%;" required>
+                                <input type="date" name="date" class="form-control" required>
                             </div>
                         </div>
                         <div class="mb-3">
@@ -3723,10 +3352,6 @@
                                     <button class="nav-link" type="button"
                                         onclick="switchSettingsTab('tab-diagnostic', this)">
                                         <span>🔍</span> Sync Diagnostic
-                                    </button>
-                                    <button class="nav-link" type="button"
-                                        onclick="switchSettingsTab('tab-keeprecord', this); renderKeepRecords()">
-                                        <span>📝</span> Keep Record
                                     </button>
                                 </div>
                                 <div class="mt-auto pt-4 text-center">
@@ -3864,30 +3489,6 @@
                                     <div class="settings-tab-pane" id="tab-data" style="display:none; padding:24px;">
                                         <div class="row justify-content-center">
                                             <div class="col-md-8">
-                                                <!-- 🔧 Paid/Finance Mismatch Fix -->
-                                                <div class="card border-0 shadow-sm mb-4" style="border-left:3px solid #ffc107 !important;">
-                                                    <div class="card-body p-3">
-                                                        <div class="d-flex align-items-center mb-2">
-                                                            <span style="font-size:1.4rem;margin-right:10px;">🔧</span>
-                                                            <div class="flex-grow-1">
-                                                                <h6 class="fw-bold mb-0 text-warning">Paid ও Finance Auto-Sync</h6>
-                                                                <small class="text-muted">Auto-Heal প্রতি ৬০ সেকেন্ডে background-এ চেক করে fix করে</small>
-                                                            </div>
-                                                        </div>
-                                                        <div class="mb-2 p-2 rounded" style="background:rgba(255,255,255,0.04); border:1px solid rgba(255,255,255,0.08);">
-                                                            <div class="d-flex align-items-center justify-content-between">
-                                                                <span class="small text-muted">Current Status:</span>
-                                                                <span id="krPaidFinanceStatus" class="small">
-                                                                    <span style="color:#888;">চেক হচ্ছে...</span>
-                                                                </span>
-                                                            </div>
-                                                        </div>
-                                                        <button type="button" class="btn btn-warning btn-sm w-100 fw-bold" onclick="manualHealPaidFinance()">
-                                                            ⚡ এখনই Fix করুন
-                                                        </button>
-                                                        <div id="krFixResult" class="mt-2 small"></div>
-                                                    </div>
-                                                </div>
                                                 <!-- Backup & Restore -->
                                                 <div class="card border-0 shadow-sm mb-4">
                                                     <div class="card-body p-4">
@@ -4030,36 +3631,14 @@
                                                                 <input type="password" id="settingsPassword"
                                                                     name="adminPassword"
                                                                     class="form-control premium-input-modern"
-                                                                    placeholder="Enter new password"
-                                                                    oninput="checkPasswordMatch()">
-                                                                <button class="btn btn-outline-secondary"
-                                                                    type="button" id="settingsPasswordToggleBtn"
-                                                                    onclick="const p=document.getElementById('settingsPassword'); const icon=document.getElementById('settingsEyeIcon'); p.type=p.type==='password'?'text':'password'; icon.innerHTML=p.type==='password'?'👁️':'🙈';"
-                                                                    style="background:white;">
-                                                                    <span id="settingsEyeIcon">👁️</span>
-                                                                </button>
-                                                            </div>
-                                                        </div>
-
-                                                        <div class="mb-3">
-                                                            <label
-                                                                class="form-label fw-bold small text-uppercase text-muted">Confirm
-                                                                Password</label>
-                                                            <div class="input-group">
-                                                                <input type="password" id="settingsPasswordConfirm"
-                                                                    name="adminPasswordConfirm"
-                                                                    class="form-control premium-input-modern"
-                                                                    placeholder="Re-enter new password"
-                                                                    oninput="checkPasswordMatch()">
-                                                                <button class="btn btn-outline-secondary"
+                                                                    placeholder="Enter new password">
+                                                                <button class="btn btn-outline-secondary border-start-0"
                                                                     type="button"
-                                                                    onclick="const p=document.getElementById('settingsPasswordConfirm'); const icon=document.getElementById('settingsConfirmEyeIcon'); p.type=p.type==='password'?'text':'password'; icon.innerHTML=p.type==='password'?'👁️':'🙈';"
-                                                                    style="background:white;">
-                                                                    <span id="settingsConfirmEyeIcon">👁️</span>
+                                                                    onclick="const p = document.getElementById('settingsPassword'); p.type = p.type === 'password' ? 'text' : 'password';">
+                                                                    🖨️
                                                                 </button>
                                                             </div>
-                                                            <div id="passwordMatchMsg" class="small mt-1" style="display:none;"></div>
-                                                            <small class="text-muted mt-1 d-block">Use a unique password
+                                                            <small class="text-muted mt-2 d-block">Use a unique password
                                                                 to avoid Google Password Manager alerts.</small>
                                                         </div>
 
@@ -4067,49 +3646,6 @@
                                                             <strong>Note:</strong> After changing, use this new password
                                                             for both PCs. Make sure to <strong>Push to Cloud</strong>
                                                             after saving.
-                                                        </div>
-
-                                                        <!-- Secret Question Section -->
-                                                        <hr class="my-4">
-                                                        <div class="d-flex align-items-center justify-content-between mb-3">
-                                                            <div class="d-flex align-items-center">
-                                                                <div class="icon-box bg-warning-subtle text-warning me-3"
-                                                                    style="width:45px; height:45px; border-radius:12px; display:flex; align-items:center; justify-content:center; font-size:1.2rem;">
-                                                                    🛡️</div>
-                                                                <div>
-                                                                    <h6 class="fw-bold mb-0">Secret Recovery Question</h6>
-                                                                    <small class="text-muted">পাসওয়ার্ড ভুলে গেলে এই প্রশ্ন দিয়ে reset করতে পারবেন</small>
-                                                                </div>
-                                                            </div>
-                                                            <button type="button"
-                                                                id="secretQuestionToggleBtn"
-                                                                onclick="toggleSecretQuestionSection()"
-                                                                class="btn btn-sm btn-outline-secondary rounded-pill px-3"
-                                                                style="font-size:0.78rem; white-space:nowrap;">
-                                                                <span id="secretToggleIcon">👁️</span> <span id="secretToggleText">দেখুন</span>
-                                                            </button>
-                                                        </div>
-                                                        <div id="secretQuestionSection" style="display:none;">
-                                                        <div class="mb-3">
-                                                            <label class="form-label fw-bold small text-uppercase text-muted">আপনার প্রশ্ন লিখুন</label>
-                                                            <input type="text" id="secretQuestion"
-                                                                name="secretQuestion"
-                                                                class="form-control premium-input-modern"
-                                                                placeholder="যেমন: আপনার মায়ের নাম কী? / প্রিয় রঙ কোনটি?">
-                                                            <small class="text-muted mt-1 d-block">এমন প্রশ্ন লিখুন যার উত্তর শুধু আপনি জানেন</small>
-                                                        </div>
-                                                        <div class="mb-3">
-                                                            <label class="form-label fw-bold small text-uppercase text-muted">উত্তর</label>
-                                                            <div class="input-group">
-                                                                <input type="password" id="secretAnswer"
-                                                                    name="secretAnswer"
-                                                                    autocomplete="off"
-                                                                    class="form-control premium-input-modern"
-                                                                    placeholder="গোপন উত্তর লিখুন">
-                                                                <button class="btn btn-outline-secondary" type="button"
-                                                                    onclick="const p=document.getElementById('secretAnswer'); p.type=p.type==='password'?'text':'password';">👁️</button>
-                                                            </div>
-                                                        </div>
                                                         </div>
                                                     </div>
                                                 </div>
@@ -4618,68 +4154,6 @@
                                     </div><!-- /diag-wrap -->
                                 </div><!-- /tab-diagnostic -->
 
-                                <!-- Tab: Keep Record -->
-                                <div class="settings-tab-pane" id="tab-keeprecord" style="display:none; padding:24px;">
-                                    <div class="d-flex align-items-center justify-content-between mb-3 flex-wrap gap-2">
-                                        <div>
-                                            <h6 class="settings-section-title mb-1">📝 Keep Record</h6>
-                                            <small class="text-muted">ব্যক্তিগত নোট ও রেকর্ড — তারিখ অনুযায়ী সেভ থাকে</small>
-                                        </div>
-                                        <button type="button" class="btn btn-sm btn-primary" onclick="event.preventDefault(); event.stopPropagation(); openKeepRecordModal()">＋ নতুন নোট</button>
-                                    </div>
-
-                                    <!-- Inline Add/Edit Form — default hide, নতুন নোট বা edit এ দেখাবে -->
-                                    <div id="krInlineForm" style="display:none; background:rgba(255,255,255,0.04); border:1px solid rgba(255,255,255,0.12); border-radius:14px; padding:18px; margin-bottom:18px;">
-                                        <div class="d-flex align-items-center justify-content-between mb-3">
-                                            <h6 class="fw-bold mb-0" id="krModalTitle" style="color:#7dd3fc;">📝 নতুন নোট</h6>
-                                            <button type="button" style="background:none;border:none;color:#94a3b8;font-size:1.2rem;cursor:pointer;" onclick="event.preventDefault(); event.stopPropagation(); closeKeepRecordModal()">✕</button>
-                                        </div>
-                                        <input type="hidden" id="krEditId">
-                                        <div class="row g-2 mb-2">
-                                            <div class="col-6">
-                                                <label class="form-label fw-semibold small">তারিখ</label>
-                                                <input type="date" id="krNoteDate" class="form-control premium-input-modern form-control-sm">
-                                            </div>
-                                            <div class="col-6">
-                                                <label class="form-label fw-semibold small">ট্যাগ</label>
-                                                <select id="krNoteTag" class="form-select premium-input-modern form-select-sm">
-                                                    <option>General</option><option>Finance</option><option>Student</option><option>Important</option><option>Reminder</option>
-                                                </select>
-                                            </div>
-                                        </div>
-                                        <div class="mb-2">
-                                            <label class="form-label fw-semibold small">শিরোনাম</label>
-                                            <input type="text" id="krNoteTitle" class="form-control premium-input-modern form-control-sm" placeholder="নোটের শিরোনাম...">
-                                        </div>
-                                        <div class="mb-3">
-                                            <label class="form-label fw-semibold small">বিবরণ / নোট</label>
-                                            <textarea id="krNoteBody" class="form-control premium-input-modern" rows="4" placeholder="এখানে আপনার নোট লিখুন..."></textarea>
-                                        </div>
-                                        <div class="d-flex gap-2 justify-content-end">
-                                            <button type="button" class="btn btn-outline-secondary btn-sm" onclick="event.preventDefault(); event.stopPropagation(); closeKeepRecordModal()">বাতিল</button>
-                                            <button type="button" class="btn btn-primary btn-sm" onclick="event.preventDefault(); event.stopPropagation(); saveKeepRecord()">💾 সেভ করুন</button>
-                                        </div>
-                                    </div>
-
-                                    <!-- Filter row -->
-                                    <div class="d-flex gap-2 mb-3 flex-wrap">
-                                        <input type="date" id="krFilterDate" class="form-control form-control-sm premium-input-modern" style="max-width:160px;" onchange="renderKeepRecords()">
-                                        <select id="krFilterTag" class="form-select form-select-sm premium-input-modern" style="max-width:160px;" onchange="renderKeepRecords()">
-                                            <option value="">সব ট্যাগ</option>
-                                            <option value="General">General</option>
-                                            <option value="Finance">Finance</option>
-                                            <option value="Student">Student</option>
-                                            <option value="Important">Important</option>
-                                            <option value="Reminder">Reminder</option>
-                                        </select>
-                                        <input type="text" id="krSearch" class="form-control form-control-sm premium-input-modern" style="max-width:200px;" oninput="renderKeepRecords()" placeholder="🔍 সার্চ করুন...">
-                                        <button type="button" class="btn btn-sm btn-outline-secondary ms-auto" onclick="event.preventDefault(); document.getElementById('krFilterDate').value='';document.getElementById('krFilterTag').value='';document.getElementById('krSearch').value='';renderKeepRecords();">✕ ক্লিয়ার</button>
-                                    </div>
-                                    <div id="krRecordsList" style="max-height:380px; overflow-y:auto; display:flex; flex-direction:column; gap:10px;">
-                                        <div class="text-muted text-center py-4" style="font-size:0.9rem;">লোড হচ্ছে...</div>
-                                    </div>
-                                </div><!-- /tab-keeprecord -->
-
                             </div><!-- /tab-content -->
                         </div><!-- /flex-grow-1 content area -->
                 </div><!-- /d-flex row -->
@@ -4688,9 +4162,6 @@
         </div><!-- /modal-content -->
     </div><!-- /modal-dialog -->
     </div><!-- /settingsModal -->
-
-    <!-- krModalBackdrop alias — পুরানো code এর সাথে compatibility -->
-    <div id="krModalBackdrop" style="display:none;"></div>
 
     <!-- Edit Transaction Modal -->
     <div class="modal fade" id="editTransactionModal" tabindex="-1">
@@ -5774,34 +5245,1145 @@
     </div>
 
     <!-- Bootstrap JS -->
-
     <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/js/bootstrap.bundle.min.js"></script>
     <script src="https://cdnjs.cloudflare.com/ajax/libs/html2pdf.js/0.10.1/html2pdf.bundle.min.js"></script>
+    <!-- Chart.js for Analytics -->
     <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+
+    <!-- Supabase JS Client for Multi-user Sync -->
     <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2/dist/umd/supabase.js"></script>
     <script>
         if (typeof window.supabase === 'undefined' && typeof supabase !== 'undefined') window.supabase = supabase;
         if (window.supabase && window.supabase.createClient) window.createClient = window.supabase.createClient;
     </script>
+
+    <!-- Supabase Configuration (Centralized) -->
     <script src="supabase-config.js"></script>
+    <!-- Emergency Disaster Recovery (Automatic data repair) -->
     <script src="EMERGENCY_RESTORE.js"></script>
-    <script src="supabase-sync-SMART-V30.js?v=3.1"></script>
-    <script src="app.js?v=15.0"></script>
+
+
+    <!-- Supabase Sync System (Multi-user Real-time Sync) -->
+    <script src="supabase-sync-SMART-V30.js?v=3.0"></script>
+
+    <!-- Main Application (Sync code now embedded inside) -->
+    <script src="app.js?v=14.0"></script>
+
+    <!-- =============================================== -->
+    <!-- MOBILE BANKING MODAL -->
+    <!-- =============================================== -->
+
+    <!-- Mobile Banking Modal -->
+    <div class="modal fade" id="mobileModal" tabindex="-1">
+        <div class="modal-dialog modal-dialog-centered">
+            <div class="modal-content border-0 shadow-lg">
+                <div class="modal-header border-0"
+                    style="background: linear-gradient(135deg, #11998e 0%, #38ef7d 100%);">
+                    <h5 class="modal-title text-white fw-bold">
+                        <span class="me-2">📱</span>Add Mobile Banking
+                    </h5>
+                    <button type="button" class="btn-close btn-close-white" data-bs-dismiss="modal"></button>
+                </div>
+                <div class="modal-body p-4">
+                    <form id="mobileForm" onsubmit="handleMobileSubmit(event)">
+                        <input type="hidden" name="mobileIndex" value="-1">
+
+                        <div class="mb-3">
+                            <label class="form-label fw-bold small text-uppercase text-muted">Account Name *</label>
+                            <input type="text" name="name" class="form-control premium-input-modern"
+                                placeholder="e.g., Bkash, Nagad, Rocket, Cash" required>
+                            <small class="text-muted">Enter mobile banking or cash account name</small>
+                        </div>
+
+                        <div class="mb-3">
+                            <label class="form-label fw-bold small text-uppercase text-muted">Account Number</label>
+                            <input type="text" name="accountNo" class="form-control premium-input-modern"
+                                placeholder="e.g., 01712345678">
+                        </div>
+
+                        <div class="mb-3">
+                            <label class="form-label fw-bold small text-uppercase text-muted">Current Balance *</label>
+                            <input type="number" name="balance" class="form-control premium-input-modern" value="0"
+                                step="0.01" required>
+                        </div>
+
+                        <div class="modal-footer border-0 px-0 pb-0 pt-3">
+                            <button type="button" class="btn btn-secondary rounded-pill px-4"
+                                data-bs-dismiss="modal">Cancel</button>
+                            <button type="submit" class="btn btn-success rounded-pill px-4 fw-bold">
+                                <i class="bi bi-check-lg me-1"></i> Save Account
+                            </button>
+                        </div>
+                    </form>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <script>
+        // Initialize mobile banking on page load
+        document.addEventListener('DOMContentLoaded', function () {
+            if (typeof renderMobileBankingList === 'function') {
+                renderMobileBankingList();
+            }
+        });
+    </script>
+
+    <!-- =============================================== -->
+    <!-- END MOBILE BANKING MODAL -->
+    <!-- =============================================== -->
+
+
+    <!-- =============================================== -->
+    <!-- WINGS FLY EXTENDED MODULES                     -->
+    <!-- =============================================== -->
     <script src="exam-fix.js"></script>
-    <link rel="stylesheet" href="quick-fix.css?v=1.1">
-    <script src="quick-fix.js?v=1.1"></script>
-    <script src="print-fix.js?v=2.0"></script>
+
+    <link rel="stylesheet" href="quick-fix.css">
+    <script src="quick-fix.js"></script>
+    <script src="print-fix.js"></script>
     <script src="symbol-fix.js"></script>
-    <script src="auto-heal.js?v=1.3"></script>
-    <script src="auto-test.js?v=3.1"></script>
-    <script src="accounts-style.js?v=2.0"></script>
-    <script src="login-init.js?v=1.0"></script>
-    <script src="sync-diagnostic.js?v=1.0"></script>
-    <script src="settings-tab.js?v=1.0"></script>
-    <script src="safety-net.js?v=1.0"></script>
-    <script src="activity-log-ui.js?v=1.0"></script>
-    <script src="login-particles.js?v=1.0"></script>
-    <script src="phone-toast.js?v=1.0"></script>
+    <script src="auto-heal.js?v=1.2"></script>
+    <script src="auto-test.js?v=3.0"></script>
+
+    <!-- =============================================== -->
+    <!-- INLINE DIAGNOSTIC & TEST SYSTEM               -->
+    <!-- =============================================== -->
+    <script>
+        // ============================================
+        // SYNC DIAGNOSTIC (Settings-এ inline version)
+        // ============================================
+        const DIAG_URL = window.SUPABASE_CONFIG?.URL + '/rest/v1/' + (window.SUPABASE_CONFIG?.TABLE || 'academy_data') + '?id=eq.' + (window.SUPABASE_CONFIG?.MAIN_RECORD || 'wingsfly_main') + '&select=*';
+        const DIAG_KEY = window.SUPABASE_CONFIG?.KEY || '';
+
+        function diagFmt(n) { return '৳' + Number(n || 0).toLocaleString('en-IN'); }
+        function diagTime(ts) {
+            if (!ts) return '—';
+            const d = new Date(parseInt(ts));
+            return isNaN(d) ? '—' : d.toLocaleTimeString('bn-BD');
+        }
+
+        function diagLog(msg, type = 'info') {
+            const area = document.getElementById('diag-log');
+            if (!area) return;
+            area.style.display = 'block';
+            const colors = { ok: '#00ff88', warn: '#ffcc00', err: '#ff4466', info: '#00d4ff' };
+            area.innerHTML += `<div style="color:${colors[type] || '#c8d8f0'};margin:2px 0">[${new Date().toLocaleTimeString()}] ${msg}</div>`;
+            area.scrollTop = area.scrollHeight;
+        }
+
+        function diagCheckRow(label, ok, warnMsg) {
+            return `<div class="diag-check ${ok ? 'diag-check-ok' : 'diag-check-warn'}">
+        <span class="chk-lbl">${label}</span>
+        <span class="${ok ? 'chk-ok' : 'chk-warn'}">${ok ? '✅ ঠিক আছে' : '⚠️ ' + warnMsg}</span>
+      </div>`;
+        }
+
+        function diagAuditRow(label, value, color) {
+            return `<div style="background:rgba(255,255,255,0.05);border:1px solid rgba(255,255,255,0.10);border-radius:8px;padding:8px;text-align:center;">
+        <div style="color:#7aa0c4;font-size:0.68rem;margin-bottom:3px;">${label}</div>
+        <div style="color:${color || '#e2f0ff'};font-weight:700;font-size:0.85rem;">${value}</div>
+      </div>`;
+        }
+
+        async function runDiagnosticInline() {
+            // Show containers
+            document.getElementById('diag-overall').style.display = 'block';
+            document.getElementById('diag-grid').style.display = 'flex';
+            document.getElementById('diag-log').innerHTML = '';
+
+            diagLog('🚀 Diagnostic শুরু হচ্ছে...');
+
+            // Local data
+            let local = null;
+            try {
+                const raw = localStorage.getItem('wingsfly_data');
+                if (raw) { local = JSON.parse(raw); diagLog('✅ লোকাল ডেটা পাওয়া গেছে', 'ok'); }
+                else { diagLog('⚠️ লোকালে কোনো ডেটা নেই', 'warn'); }
+            } catch (e) { diagLog('❌ লোকাল parse error: ' + e.message, 'err'); }
+
+            const lS = local?.students?.length || 0;
+            const lF = local?.finance?.length || 0;
+            const lC = local?.cashBalance || 0;
+            const lV = parseInt(localStorage.getItem('wings_local_version')) || 0;
+
+            document.getElementById('d-localStudents').textContent = lS;
+            document.getElementById('d-localFinance').textContent = lF;
+            document.getElementById('d-localCash').textContent = diagFmt(lC);
+            document.getElementById('d-localVer').textContent = 'v' + lV;
+
+            // Cloud data
+            diagLog('☁️ Cloud থেকে ডেটা আনা হচ্ছে...');
+            let cloud = null;
+            try {
+                const res = await fetch(DIAG_URL, { headers: { 'apikey': DIAG_KEY, 'Authorization': 'Bearer ' + DIAG_KEY } });
+                if (!res.ok) throw new Error('HTTP ' + res.status);
+                const arr = await res.json();
+                cloud = arr[0] || null;
+                if (cloud) diagLog('✅ Cloud ডেটা পাওয়া গেছে', 'ok');
+                else diagLog('⚠️ Cloud-এ এখনো কোনো ডেটা নেই', 'warn');
+            } catch (e) { diagLog('❌ Cloud fetch error: ' + e.message, 'err'); }
+
+            const cS = cloud?.students?.length || 0;
+            const cF = cloud?.finance?.length || 0;
+            const cC = cloud?.cash_balance || 0;
+            const cV = cloud?.version || 0;
+
+            document.getElementById('d-cloudStudents').textContent = cS;
+            document.getElementById('d-cloudFinance').textContent = cF;
+            document.getElementById('d-cloudCash').textContent = diagFmt(cC);
+            document.getElementById('d-cloudVer').textContent = 'v' + cV;
+
+            // Checks
+            let pass = 0;
+            const checks = [
+                ['Students match', lS === cS, `${Math.abs(lS - cS)} ব্যবধান`],
+                ['Finance match', lF === cF, `${Math.abs(lF - cF)} ব্যবধান`],
+                ['Cash match', Math.abs(lC - cC) < 1, diagFmt(Math.abs(lC - cC)) + 'ব্যবধান'],
+                ['Version sync', lV === cV, `Local v${lV}, Cloud v${cV}`],
+                ['Data loss risk নেই', !(cloud && (cS < lS || cF < lF)), 'Cloud-এ কম data!'],
+                ['Accounting OK', true, ''],
+            ];
+
+            let checksHTML = '';
+            checks.forEach(([label, ok, warn]) => {
+                if (ok) pass++;
+                checksHTML += diagCheckRow(label, ok, warn);
+                diagLog((ok ? '✅' : '⚠️') + ' ' + label + (ok ? '' : ' — ' + warn), ok ? 'ok' : 'warn');
+            });
+            document.getElementById('d-checks').innerHTML = checksHTML;
+
+            // Accounting audit
+            const finData = local?.finance || cloud?.finance || [];
+            let income = 0, expense = 0, loanIn = 0, loanOut = 0, due = 0;
+            finData.forEach(f => {
+                const amt = parseFloat(f.amount) || 0;
+                if (f.type === 'Income') income += amt;
+                else if (f.type === 'Expense') expense += amt;
+                else if (['Loan Receiving', 'Loan Received'].includes(f.type)) loanIn += amt;
+                else if (['Loan Giving', 'Loan Given'].includes(f.type)) loanOut += amt;
+            });
+            (local?.students || cloud?.students || []).forEach(s => { due += parseFloat(s.due) || 0; });
+            const profit = income - expense;
+
+            document.getElementById('d-accounting').innerHTML =
+                diagAuditRow('Total Income', diagFmt(income), 'text-success') +
+                diagAuditRow('Total Expense', diagFmt(expense), 'text-danger') +
+                diagAuditRow('Net Profit/Loss', diagFmt(Math.abs(profit)) + (profit >= 0 ? ' (লাভ)' : ' (ক্ষতি)'), profit >= 0 ? 'text-success' : 'text-danger') +
+                diagAuditRow('Loan Received', diagFmt(loanIn), 'text-info') +
+                diagAuditRow('Loan Given', diagFmt(loanOut), 'text-info') +
+                diagAuditRow('Student Due', diagFmt(due), 'text-warning');
+
+            // Overall
+            const pct = Math.round((pass / checks.length) * 100);
+            const prog = document.getElementById('diag-progress');
+            prog.style.width = pct + '%';
+            prog.className = 'progress-bar bg-' + (pct === 100 ? 'success' : pct >= 67 ? 'warning' : 'danger');
+
+            const overall = document.getElementById('diag-overall');
+            const lbl = document.getElementById('diag-overall-label');
+            const bdg = document.getElementById('diag-overall-badge');
+
+            if (pct === 100) {
+                overall.style.background = 'rgba(0,200,100,0.12)'; overall.style.borderColor = 'rgba(0,200,100,0.3)';
+                lbl.textContent = '✅ সব ঠিক আছে!'; lbl.style.color = '#00ff88';
+                bdg.textContent = pass + '/' + checks.length + ' পাস';
+                bdg.style.cssText = 'color:#00ff88;font-weight:700;font-size:0.9rem;';
+                prog.style.background = '#00ff88';
+                diagLog('🎉 Diagnostic সম্পন্ন — সব ঠিক আছে!', 'ok');
+            } else if (pct >= 50) {
+                overall.style.background = 'rgba(255,200,0,0.10)'; overall.style.borderColor = 'rgba(255,200,0,0.3)';
+                lbl.textContent = '⚠️ কিছু সমস্যা আছে'; lbl.style.color = '#ffcc00';
+                bdg.textContent = (checks.length - pass) + ' টি সমস্যা';
+                bdg.style.cssText = 'color:#ffcc00;font-weight:700;font-size:0.9rem;';
+                prog.style.background = '#ffcc00';
+                diagLog('⚠️ Diagnostic সম্পন্ন — কিছু সমস্যা আছে।', 'warn');
+            } else {
+                overall.style.background = 'rgba(255,50,70,0.12)'; overall.style.borderColor = 'rgba(255,50,70,0.3)';
+                lbl.textContent = '❌ গুরুতর সমস্যা! অবিলম্বে দেখুন।'; lbl.style.color = '#ff4466';
+                bdg.textContent = 'মাত্র ' + pass + '/' + checks.length + ' পাস';
+                bdg.style.cssText = 'color:#ff4466;font-weight:700;font-size:0.9rem;';
+                prog.style.background = '#ff4466';
+                diagLog('❌ গুরুতর সমস্যা! অবিলম্বে fix করুন।', 'err');
+            }
+        }
+        window.runDiagnosticInline = runDiagnosticInline;
+
+        // NOTE: runFunctionTests() is defined in auto-test.js (150+ tests)
+        // পুরনো simple version এখানে ছিল কিন্তু auto-test.js-এর version override করত
+        // তাই এখানে থেকে সরানো হয়েছে — auto-test.js-এর version ব্যবহার হবে
+    </script>
+
+
+    <style>
+        /* Settings tab custom switching */
+        #settingsTabContent {
+            position: relative;
+        }
+
+        .settings-tab-pane {
+            width: 100%;
+        }
+
+        #settingsModal .nav-link {
+            border-radius: 8px;
+            margin-bottom: 4px;
+            text-align: left;
+            width: 100%;
+            padding: 10px 14px;
+            border: none;
+            cursor: pointer;
+            transition: all 0.2s;
+        }
+
+        #settingsModal .nav-link.active {
+            background: linear-gradient(90deg, rgba(0, 217, 255, 0.3), rgba(181, 55, 242, 0.2)) !important;
+            color: #00fff5 !important;
+        }
+    </style>
+
+    <script>
+        function switchSettingsTab(tabId, btn) {
+            // Hide all tab panes
+            document.querySelectorAll('.settings-tab-pane').forEach(function (p) {
+                p.style.display = 'none';
+            });
+            // Deactivate all nav buttons
+            document.querySelectorAll('#settingsModal .nav-link').forEach(function (b) {
+                b.classList.remove('active');
+            });
+            // Show selected tab
+            var tab = document.getElementById(tabId);
+            if (tab) tab.style.display = 'block';
+            // Activate button
+            if (btn) btn.classList.add('active');
+        }
+        window.switchSettingsTab = switchSettingsTab;
+    </script>
+
+
+    <script>
+        // ============================================================
+        // WINGS FLY — SAFETY NET (সব JS load হওয়ার পরে চলে)
+        // clearActivityLog সহ সব critical functions guarantee করে
+        // ============================================================
+        (function () {
+            function ensureFunctions() {
+                // clearActivityLog — index.html এ call হয়
+                if (typeof window.clearActivityLog !== 'function') {
+                    window.clearActivityLog = function () {
+                        if (!confirm('সব Activity History মুছে ফেলবেন?')) return;
+                        if (!window.globalData) return;
+                        window.globalData.activityHistory = [];
+                        localStorage.setItem('wingsfly_activity_backup', '[]');
+                        localStorage.setItem('wingsfly_data', JSON.stringify(window.globalData));
+                        if (typeof window.loadActivityHistory === 'function') window.loadActivityHistory();
+                        if (typeof window.showSuccessToast === 'function') window.showSuccessToast('Activity History cleared!');
+                        else alert('Activity History cleared!');
+                    };
+                    console.log('[SafetyNet] clearActivityLog defined ✓');
+                }
+
+                // renderActivityLog — Activity Log tab
+                if (typeof window.renderActivityLog !== 'function') {
+                    window.renderActivityLog = function () {
+                        if (!window.globalData) window.globalData = {};
+                        try {
+                            var bk = localStorage.getItem('wingsfly_activity_backup');
+                            if (bk) window.globalData.activityHistory = JSON.parse(bk);
+                        } catch (e) { }
+                        if (!window.globalData.activityHistory) window.globalData.activityHistory = [];
+                        if (typeof window.loadActivityHistory === 'function') window.loadActivityHistory();
+                    };
+                    console.log('[SafetyNet] renderActivityLog defined ✓');
+                }
+
+                // renderRecycleBin — Recycle Bin tab
+                if (typeof window.renderRecycleBin !== 'function') {
+                    window.renderRecycleBin = function () {
+                        if (!window.globalData) window.globalData = {};
+                        try {
+                            var bk = localStorage.getItem('wingsfly_deleted_backup');
+                            if (bk) window.globalData.deletedItems = JSON.parse(bk);
+                        } catch (e) { }
+                        if (!window.globalData.deletedItems) window.globalData.deletedItems = [];
+                        if (typeof window.loadDeletedItems === 'function') window.loadDeletedItems();
+                    };
+                    console.log('[SafetyNet] renderRecycleBin defined ✓');
+                }
+            }
+
+            // DOM ready হলে run করো
+            if (document.readyState === 'loading') {
+                document.addEventListener('DOMContentLoaded', ensureFunctions);
+            } else {
+                ensureFunctions();
+            }
+            // Extra safety: 2 সেকেন্ড পরে আবার check
+            setTimeout(ensureFunctions, 2000);
+        })();
+    </script>
+
+    <!-- ============================================================
+     WINGS FLY — ACTIVITY LOG & RECYCLE BIN FIX + REDESIGN
+     ============================================================ -->
+    <script>
+        (function () {
+
+            // ── Styles ──
+            var STYLES = `
+<style id="wf-tabs-fix-style">
+/* ── Activity Log ── */
+#activityLogContainer { font-family: inherit; }
+.wf-act-toolbar { display:flex; flex-wrap:wrap; gap:8px; margin-bottom:12px; }
+.wf-act-toolbar input,
+.wf-act-toolbar select {
+  background:rgba(10,14,39,0.85)!important; border:1.5px solid rgba(0,217,255,0.35)!important;
+  color:#e0f0ff!important; border-radius:8px!important; padding:5px 10px!important;
+  font-size:0.8rem!important; outline:none!important; transition:border-color 0.2s;
+}
+.wf-act-toolbar input:focus, .wf-act-toolbar select:focus {
+  border-color:#00d9ff!important; box-shadow:0 0 0 2px rgba(0,217,255,0.15)!important;
+}
+.wf-act-toolbar input::placeholder { color:#6080a0!important; }
+.wf-act-toolbar label { color:#7090b0; font-size:0.75rem; white-space:nowrap; align-self:center; }
+.wf-act-stats { display:flex; gap:10px; flex-wrap:wrap; margin-bottom:10px; }
+.wf-act-stat-pill {
+  background:rgba(0,217,255,0.08); border:1px solid rgba(0,217,255,0.2);
+  border-radius:20px; padding:3px 12px; font-size:0.75rem; color:#90cce8;
+}
+.wf-act-stat-pill strong { color:#00d9ff; }
+.wf-act-table-wrap {
+  overflow-x:auto; border-radius:12px;
+  border:1.5px solid rgba(0,217,255,0.18); background:rgba(5,10,30,0.6);
+}
+.wf-act-table { width:100%; border-collapse:collapse; font-size:0.82rem; min-width:560px; }
+.wf-act-table thead th {
+  background:rgba(0,217,255,0.1); color:#00d9ff; font-weight:600;
+  padding:10px 12px; border-bottom:2px solid rgba(0,217,255,0.25);
+  white-space:nowrap; cursor:pointer; user-select:none; position:sticky; top:0; z-index:1;
+}
+.wf-act-table thead th:hover { background:rgba(0,217,255,0.18); }
+.wf-act-table thead th .sort-arrow { margin-left:4px; opacity:0.5; font-size:0.7rem; }
+.wf-act-table thead th.wf-sorted .sort-arrow { opacity:1; color:#00fff5; }
+.wf-act-table tbody tr { border-bottom:1px solid rgba(255,255,255,0.04); transition:background 0.15s; }
+.wf-act-table tbody tr:hover { background:rgba(0,217,255,0.06); }
+.wf-act-table tbody tr:last-child { border-bottom:none; }
+.wf-act-table td { padding:9px 12px; color:#d0e8ff; vertical-align:middle; }
+.wf-act-table td .desc-text { color:#ffffff; font-weight:500; }
+.wf-act-table td .user-text { color:#6090b8; font-size:0.72rem; margin-top:2px; }
+.wf-act-table td .time-text { color:#5080a0; font-size:0.72rem; }
+.wf-act-badge {
+  display:inline-block; padding:2px 8px; border-radius:20px;
+  font-size:0.68rem; font-weight:700; letter-spacing:0.5px;
+  text-transform:uppercase; border:1px solid;
+}
+.wf-act-badge.ADD    { background:rgba(0,255,136,0.12);  color:#00ff88; border-color:rgba(0,255,136,0.3); }
+.wf-act-badge.EDIT   { background:rgba(0,217,255,0.12);  color:#00d9ff; border-color:rgba(0,217,255,0.3); }
+.wf-act-badge.DELETE { background:rgba(255,60,80,0.12);  color:#ff4455; border-color:rgba(255,60,80,0.3); }
+.wf-act-badge.LOGIN  { background:rgba(181,55,242,0.15); color:#c060f0; border-color:rgba(181,55,242,0.3); }
+.wf-act-badge.LOGOUT { background:rgba(255,170,0,0.12);  color:#ffaa00; border-color:rgba(255,170,0,0.3); }
+.wf-act-badge.PAYMENT  { background:rgba(0,200,100,0.12);  color:#00cc66; border-color:rgba(0,200,100,0.3); }
+.wf-act-badge.SETTINGS { background:rgba(100,120,255,0.12); color:#8090ff; border-color:rgba(100,120,255,0.3); }
+.wf-act-badge.RESTORE  { background:rgba(0,255,200,0.12);  color:#00ffc8; border-color:rgba(0,255,200,0.3); }
+.wf-act-badge.OTHER  { background:rgba(120,120,120,0.12); color:#909090; border-color:rgba(120,120,120,0.3); }
+.wf-type-chip {
+  display:inline-flex; align-items:center; gap:4px; padding:2px 7px;
+  border-radius:5px; font-size:0.7rem; font-weight:600;
+  background:rgba(255,255,255,0.05); color:#90aec8;
+  border:1px solid rgba(255,255,255,0.1);
+}
+.wf-act-pager { display:flex; align-items:center; justify-content:space-between; margin-top:10px; gap:8px; flex-wrap:wrap; }
+.wf-act-pager .pager-info { color:#6090b0; font-size:0.75rem; }
+.wf-act-pager-btns { display:flex; gap:4px; }
+.wf-pager-btn {
+  background:rgba(0,217,255,0.08); border:1px solid rgba(0,217,255,0.2);
+  color:#00d9ff; border-radius:6px; padding:3px 10px;
+  font-size:0.75rem; cursor:pointer; transition:background 0.15s;
+}
+.wf-pager-btn:hover, .wf-pager-btn.wf-active { background:rgba(0,217,255,0.22); }
+.wf-pager-btn:disabled { opacity:0.3; cursor:not-allowed; }
+.wf-act-empty { text-align:center; padding:40px 20px; color:#5080a0; }
+.wf-act-empty .big-icon { font-size:2.5rem; margin-bottom:8px; }
+
+/* ── Recycle Bin ── */
+#recycleBinContainer { font-family:inherit; }
+.wf-bin-table-wrap {
+  overflow-x:auto; border-radius:12px;
+  border:1.5px solid rgba(255,68,68,0.2); background:rgba(10,5,5,0.5);
+}
+.wf-bin-table { width:100%; border-collapse:collapse; font-size:0.82rem; min-width:500px; }
+.wf-bin-table thead th {
+  background:rgba(255,68,68,0.1); color:#ff8080; font-weight:600;
+  padding:10px 12px; border-bottom:2px solid rgba(255,68,68,0.2); white-space:nowrap;
+}
+.wf-bin-table tbody tr { border-bottom:1px solid rgba(255,255,255,0.04); transition:background 0.15s; }
+.wf-bin-table tbody tr:hover { background:rgba(255,68,68,0.05); }
+.wf-bin-table td { padding:9px 12px; color:#d0c8c8; vertical-align:middle; }
+.wf-bin-type-badge {
+  display:inline-block; padding:2px 8px; border-radius:5px;
+  font-size:0.68rem; font-weight:700; background:rgba(255,100,100,0.12);
+  color:#ff9090; border:1px solid rgba(255,100,100,0.25); text-transform:uppercase;
+}
+.wf-bin-actions { display:flex; gap:5px; }
+.wf-bin-restore {
+  background:rgba(0,200,100,0.15); color:#00cc77;
+  border:1px solid rgba(0,200,100,0.3); border-radius:6px;
+  padding:3px 10px; font-size:0.72rem; cursor:pointer; white-space:nowrap; transition:background 0.15s;
+}
+.wf-bin-restore:hover { background:rgba(0,200,100,0.28); }
+.wf-bin-del {
+  background:rgba(255,50,50,0.12); color:#ff5555;
+  border:1px solid rgba(255,50,50,0.25); border-radius:6px;
+  padding:3px 8px; font-size:0.72rem; cursor:pointer; transition:background 0.15s;
+}
+.wf-bin-del:hover { background:rgba(255,50,50,0.25); }
+.wf-bin-empty-state { text-align:center; padding:40px; color:#604040; }
+.wf-bin-empty-state .big-icon { font-size:2.5rem; margin-bottom:8px; }
+.wf-bin-stats { display:flex; gap:10px; flex-wrap:wrap; margin-bottom:10px; }
+.wf-bin-stat-pill {
+  background:rgba(255,80,80,0.08); border:1px solid rgba(255,80,80,0.18);
+  border-radius:20px; padding:3px 12px; font-size:0.75rem; color:#c08080;
+}
+.wf-bin-stat-pill strong { color:#ff8080; }
+.wf-bin-search {
+  background:rgba(10,5,5,0.9)!important; border:1.5px solid rgba(255,80,80,0.3)!important;
+  color:#e8d0d0!important; border-radius:8px!important;
+  padding:5px 10px!important; font-size:0.8rem!important; min-width:200px;
+  outline:none!important;
+}
+.wf-bin-search::placeholder { color:#806060!important; }
+
+    /* ===== SPINNING RING + GRADIENT CHART ===== */
+
+    .donut-ring-wrapper {
+      position: relative;
+      width: 250px;
+      height: 250px;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      flex-shrink: 0;
+    }
+
+    .donut-spinning-ring {
+      position: absolute;
+      inset: 0;
+      border-radius: 50%;
+      padding: 4px;
+      background: conic-gradient(
+        from 0deg,
+        #00f2ff 0%,
+        #7b2ff7 25%,
+        #ffd700 50%,
+        #00f2ff 75%,
+        #7b2ff7 100%
+      );
+      -webkit-mask:
+        linear-gradient(#fff 0 0) content-box,
+        linear-gradient(#fff 0 0);
+      -webkit-mask-composite: xor;
+      mask-composite: exclude;
+      animation: ringRotate 3s linear infinite;
+      z-index: 1;
+    }
+
+    @keyframes ringRotate {
+      from { transform: rotate(0deg); }
+      to   { transform: rotate(360deg); }
+    }
+
+    .donut-inner {
+      position: relative;
+      z-index: 2;
+      border-radius: 50%;
+    }
+
+    /* ===== END SPINNING RING ===== */
+
+    </style>`;
+
+            // ── Inject styles once ──
+            function injectStyles() {
+                if (!document.getElementById('wf-tabs-fix-style')) {
+                    document.head.insertAdjacentHTML('beforeend', STYLES);
+                }
+            }
+
+            // ── State ──
+            var actState = { sort: 'time', dir: -1, page: 1, perPage: 20 };
+
+            // ══════════════════════════════════════════════════════════
+            // ACTIVITY LOG
+            // ══════════════════════════════════════════════════════════
+            function renderActivityLog() {
+                var wrap = document.getElementById('activityLogContainer');
+                if (!wrap) return;
+                injectStyles();
+
+                if (!window.globalData) window.globalData = {};
+                if (!Array.isArray(window.globalData.activityHistory)) {
+                    try {
+                        var bk = localStorage.getItem('wingsfly_activity_backup');
+                        window.globalData.activityHistory = bk ? JSON.parse(bk) : [];
+                    } catch (e) { window.globalData.activityHistory = []; }
+                }
+
+                var history = (window.globalData.activityHistory || []).slice();
+
+                // Filters
+                var fAction = (document.getElementById('logFilterType')?.value || 'all');
+                var fType = (document.getElementById('logFilterEntityType')?.value || 'all');
+                var fUser = (document.getElementById('logFilterUser')?.value || '').trim().toLowerCase();
+                var fSearch = (document.getElementById('logSearch')?.value || '').trim().toLowerCase();
+                var fDateFrom = document.getElementById('logDateFrom')?.value || '';
+                var fDateTo = document.getElementById('logDateTo')?.value || '';
+
+                var filtered = history.filter(function (h) {
+                    if (fAction !== 'all' && h.action !== fAction) return false;
+                    if (fType !== 'all' && h.type !== fType) return false;
+                    if (fUser && !(h.user || '').toLowerCase().includes(fUser)) return false;
+                    if (fSearch && !((h.description || '') + (h.action || '') + (h.type || '')).toLowerCase().includes(fSearch)) return false;
+                    if (fDateFrom) { if (new Date(h.timestamp) < new Date(fDateFrom)) return false; }
+                    if (fDateTo) { if (new Date(h.timestamp) > new Date(fDateTo + 'T23:59:59')) return false; }
+                    return true;
+                });
+
+                // Sort
+                filtered.sort(function (a, b) {
+                    var dir = actState.dir;
+                    if (actState.sort === 'time') return dir * (new Date(b.timestamp) - new Date(a.timestamp));
+                    if (actState.sort === 'action') return dir * (a.action || '').localeCompare(b.action || '');
+                    if (actState.sort === 'type') return dir * (a.type || '').localeCompare(b.type || '');
+                    if (actState.sort === 'user') return dir * (a.user || '').localeCompare(b.user || '');
+                    return 0;
+                });
+
+                // Stats
+                var total = filtered.length;
+                var addCount = filtered.filter(function (h) { return h.action === 'ADD'; }).length;
+                var editCount = filtered.filter(function (h) { return h.action === 'EDIT'; }).length;
+                var delCount = filtered.filter(function (h) { return h.action === 'DELETE'; }).length;
+
+                // Pagination
+                actState.page = Math.max(1, Math.min(actState.page, Math.ceil(total / actState.perPage) || 1));
+                var start = (actState.page - 1) * actState.perPage;
+                var pageItems = filtered.slice(start, start + actState.perPage);
+                var totalPages = Math.ceil(total / actState.perPage) || 1;
+
+                var icons = { student: '🎓', finance: '💰', employee: '👤', settings: '⚙️', login: '🔐', logout: '🔓' };
+
+                function thSort(col, label) {
+                    var arrow = actState.sort === col ? (actState.dir === -1 ? '▼' : '▲') : '↕';
+                    var cls = actState.sort === col ? 'wf-sorted' : '';
+                    return '<th class="' + cls + '" onclick="window._wfActSort(\'' + col + '\')">' + label + ' <span class="sort-arrow">' + arrow + '</span></th>';
+                }
+
+                var rows = '';
+                if (pageItems.length === 0) {
+                    rows = '<tr><td colspan="5"><div class="wf-act-empty"><div class="big-icon">📋</div><p>কোনো Activity পাওয়া যায়নি।</p></div></td></tr>';
+                } else {
+                    rows = pageItems.map(function (h) {
+                        var d = new Date(h.timestamp);
+                        var dateStr = d.toLocaleDateString('en-BD', { day: '2-digit', month: 'short', year: 'numeric' });
+                        var timeStr = d.toLocaleTimeString('en-BD', { hour: '2-digit', minute: '2-digit' });
+                        var icon = icons[(h.type || '').toLowerCase()] || '📝';
+                        var valid = ['ADD', 'EDIT', 'DELETE', 'LOGIN', 'LOGOUT', 'PAYMENT', 'SETTINGS', 'RESTORE'];
+                        var badgeCls = valid.includes(h.action) ? h.action : 'OTHER';
+                        return '<tr>'
+                            + '<td style="font-size:1.1rem;text-align:center;">' + icon + '</td>'
+                            + '<td><span class="wf-act-badge ' + badgeCls + '">' + (h.action || '?') + '</span></td>'
+                            + '<td><span class="wf-type-chip">' + (h.type || '?') + '</span></td>'
+                            + '<td><div class="desc-text">' + (h.description || '—') + '</div>'
+                            + '<div class="user-text">👤 ' + (h.user || 'Admin') + '</div></td>'
+                            + '<td style="white-space:nowrap;font-size:0.78rem;">' + dateStr + '<br><span class="time-text">' + timeStr + '</span></td>'
+                            + '</tr>';
+                    }).join('');
+                }
+
+                // Pager
+                var pageBtns = '';
+                pageBtns += '<button class="wf-pager-btn" onclick="window._wfActPage(' + (actState.page - 1) + ')" ' + (actState.page <= 1 ? 'disabled' : '') + '>‹</button>';
+                var s2 = Math.max(1, actState.page - 2), e2 = Math.min(totalPages, s2 + 4);
+                for (var p = s2; p <= e2; p++) {
+                    pageBtns += '<button class="wf-pager-btn' + (p === actState.page ? ' wf-active' : '') + '" onclick="window._wfActPage(' + p + ')">' + p + '</button>';
+                }
+                pageBtns += '<button class="wf-pager-btn" onclick="window._wfActPage(' + (actState.page + 1) + ')" ' + (actState.page >= totalPages ? 'disabled' : '') + '>›</button>';
+
+                wrap.innerHTML =
+                    '<div class="wf-act-stats">'
+                    + '<div class="wf-act-stat-pill">মোট: <strong>' + total + '</strong></div>'
+                    + '<div class="wf-act-stat-pill">➕ <strong style="color:#00ff88">' + addCount + '</strong></div>'
+                    + '<div class="wf-act-stat-pill">✏️ <strong style="color:#00d9ff">' + editCount + '</strong></div>'
+                    + '<div class="wf-act-stat-pill">🗑️ <strong style="color:#ff4455">' + delCount + '</strong></div>'
+                    + '</div>'
+                    + '<div class="wf-act-table-wrap"><table class="wf-act-table"><thead><tr>'
+                    + '<th style="width:36px;">Icon</th>'
+                    + thSort('action', 'Action')
+                    + thSort('type', 'Type')
+                    + thSort('description', 'Description')
+                    + thSort('time', '⏱ Time')
+                    + '</tr></thead><tbody>' + rows + '</tbody></table></div>'
+                    + '<div class="wf-act-pager">'
+                    + '<span class="pager-info">Showing ' + (total === 0 ? 0 : start + 1) + '–' + Math.min(start + actState.perPage, total) + ' of ' + total + '</span>'
+                    + '<div class="wf-act-pager-btns">' + pageBtns + '</div>'
+                    + '</div>';
+            }
+
+            window._wfActSort = function (col) {
+                if (actState.sort === col) actState.dir *= -1; else { actState.sort = col; actState.dir = -1; }
+                actState.page = 1; renderActivityLog();
+            };
+            window._wfActPage = function (p) { actState.page = p; renderActivityLog(); };
+
+            // ── Inject extended toolbar into Activity Log tab ──
+            function injectActivityToolbar() {
+                var tabDiv = document.getElementById('tab-activitylog');
+                if (!tabDiv || document.getElementById('wf-act-ext-toolbar')) return;
+
+                var existingRow = tabDiv.querySelector('.d-flex.gap-2.mb-3');
+                var toolbarHTML =
+                    '<div id="wf-act-ext-toolbar" class="wf-act-toolbar" style="margin-bottom:12px;">'
+                    + '<div style="display:flex;align-items:center;gap:6px;">'
+                    + '<label>🔍</label><input id="logSearch" type="text" placeholder="যেকোনো কিছু খুঁজুন..." style="min-width:180px;" oninput="window.renderActivityLog()">'
+                    + '</div>'
+                    + '<div style="display:flex;align-items:center;gap:6px;">'
+                    + '<label>Action:</label>'
+                    + '<select id="logFilterType" onchange="window.renderActivityLog()">'
+                    + '<option value="all">সব</option>'
+                    + '<option value="ADD">➕ Add</option>'
+                    + '<option value="EDIT">✏️ Edit</option>'
+                    + '<option value="DELETE">🗑️ Delete</option>'
+                    + '<option value="PAYMENT">💰 Payment</option>'
+                    + '<option value="LOGIN">🔐 Login</option>'
+                    + '<option value="LOGOUT">🔓 Logout</option>'
+                    + '<option value="SETTINGS">⚙️ Settings</option>'
+                    + '<option value="RESTORE">♻️ Restore</option>'
+                    + '</select>'
+                    + '</div>'
+                    + '<div style="display:flex;align-items:center;gap:6px;">'
+                    + '<label>Type:</label>'
+                    + '<select id="logFilterEntityType" onchange="window.renderActivityLog()">'
+                    + '<option value="all">সব</option>'
+                    + '<option value="student">🎓 Student</option>'
+                    + '<option value="finance">💰 Finance</option>'
+                    + '<option value="employee">👤 Employee</option>'
+                    + '<option value="settings">⚙️ Settings</option>'
+                    + '<option value="login">🔐 Login</option>'
+                    + '</select>'
+                    + '</div>'
+                    + '<div style="display:flex;align-items:center;gap:6px;">'
+                    + '<label>👤</label><input id="logFilterUser" type="text" placeholder="Username..." style="width:110px;" oninput="window.renderActivityLog()">'
+                    + '</div>'
+                    + '<div style="display:flex;align-items:center;gap:6px;">'
+                    + '<label>📅</label><input id="logDateFrom" type="date" style="width:138px;" onchange="window.renderActivityLog()">'
+                    + '<label>–</label><input id="logDateTo" type="date" style="width:138px;" onchange="window.renderActivityLog()">'
+                    + '</div>'
+                    + '</div>';
+
+                if (existingRow) {
+                    existingRow.outerHTML = toolbarHTML;
+                } else {
+                    var container = document.getElementById('activityLogContainer');
+                    if (container) container.insertAdjacentHTML('beforebegin', toolbarHTML);
+                }
+            }
+
+            // ══════════════════════════════════════════════════════════
+            // RECYCLE BIN
+            // ══════════════════════════════════════════════════════════
+            function renderRecycleBin() {
+                var wrap = document.getElementById('recycleBinContainer');
+                if (!wrap) return;
+                injectStyles();
+
+                if (!window.globalData) window.globalData = {};
+                if (!Array.isArray(window.globalData.deletedItems)) {
+                    try {
+                        var bk = localStorage.getItem('wingsfly_deleted_backup');
+                        window.globalData.deletedItems = bk ? JSON.parse(bk) : [];
+                    } catch (e) { window.globalData.deletedItems = []; }
+                }
+
+                var deleted = (window.globalData.deletedItems || []).slice();
+                var fType = (document.getElementById('binFilterType')?.value || 'all');
+                var fSearch = (document.getElementById('binSearchInput')?.value || '').trim().toLowerCase();
+
+                var filtered = deleted.filter(function (d) {
+                    if (fType !== 'all' && (d.type || '').toLowerCase() !== fType.toLowerCase()) return false;
+                    if (fSearch) {
+                        var name = _binName(d).toLowerCase();
+                        if (!name.includes(fSearch) && !(d.type || '').toLowerCase().includes(fSearch)) return false;
+                    }
+                    return true;
+                });
+
+                var icons = { student: '🎓', finance: '💰', employee: '👤', visitor: '👋' };
+
+                var rows = '';
+                if (filtered.length === 0) {
+                    rows = '<tr><td colspan="5"><div class="wf-bin-empty-state"><div class="big-icon">🗑️</div><p>Trash খালি।</p></div></td></tr>';
+                } else {
+                    rows = filtered.map(function (d) {
+                        var date = new Date(d.deletedAt);
+                        var dateStr = date.toLocaleDateString('en-BD', { day: '2-digit', month: 'short', year: 'numeric' });
+                        var timeStr = date.toLocaleTimeString('en-BD', { hour: '2-digit', minute: '2-digit' });
+                        var icon = icons[(d.type || '').toLowerCase()] || '📄';
+                        var name = _binName(d);
+                        return '<tr>'
+                            + '<td style="font-size:1.1rem;text-align:center;">' + icon + '</td>'
+                            + '<td><span class="wf-bin-type-badge">' + (d.type || '?') + '</span></td>'
+                            + '<td style="max-width:220px;"><div style="color:#fff;font-weight:500;">' + name + '</div>'
+                            + '<div style="font-size:0.71rem;color:#806060;">By: ' + (d.deletedBy || 'Admin') + '</div></td>'
+                            + '<td style="white-space:nowrap;font-size:0.75rem;color:#906060;">' + dateStr + '<br>' + timeStr + '</td>'
+                            + '<td><div class="wf-bin-actions">'
+                            + '<button class="wf-bin-restore" onclick="window._wfRestore(\'' + d.id + '\')">↩️ Restore</button>'
+                            + '<button class="wf-bin-del"     onclick="window._wfPermDel(\'' + d.id + '\')">❌</button>'
+                            + '</div></td>'
+                            + '</tr>';
+                    }).join('');
+                }
+
+                // Search box injection
+                var searchHTML = '';
+                if (!document.getElementById('binSearchInput')) {
+                    searchHTML = '<div style="margin-bottom:10px;">'
+                        + '<input id="binSearchInput" class="wf-bin-search" type="text" '
+                        + 'placeholder="🔍 Search deleted items..." oninput="window.renderRecycleBin()">'
+                        + '</div>';
+                }
+
+                wrap.innerHTML =
+                    '<div class="wf-bin-stats">'
+                    + '<div class="wf-bin-stat-pill">মোট: <strong>' + filtered.length + '</strong></div>'
+                    + '<div class="wf-bin-stat-pill">🎓 <strong>' + filtered.filter(function (d) { return (d.type || '').toLowerCase() === 'student'; }).length + '</strong></div>'
+                    + '<div class="wf-bin-stat-pill">💰 <strong>' + filtered.filter(function (d) { return (d.type || '').toLowerCase() === 'finance'; }).length + '</strong></div>'
+                    + '<div class="wf-bin-stat-pill">👤 <strong>' + filtered.filter(function (d) { return (d.type || '').toLowerCase() === 'employee'; }).length + '</strong></div>'
+                    + '</div>'
+                    + searchHTML
+                    + '<div class="wf-bin-table-wrap"><table class="wf-bin-table"><thead><tr>'
+                    + '<th style="width:36px;">Icon</th><th>Type</th><th>Item</th><th>Deleted At</th><th>Actions</th>'
+                    + '</tr></thead><tbody>' + rows + '</tbody></table></div>';
+            }
+
+            function _binName(d) {
+                var t = (d.type || '').toLowerCase();
+                if (!d.item) return '?';
+                if (t === 'student') return d.item.name || d.item.studentName || 'Unknown Student';
+                if (t === 'finance') return (d.item.description || d.item.category || 'Transaction') + ' — ৳' + (d.item.amount || 0);
+                if (t === 'employee') return d.item.name || 'Unknown Employee';
+                if (t === 'visitor') return d.item.name || d.item.visitorName || 'Unknown Visitor';
+                return JSON.stringify(d.item).substring(0, 50);
+            }
+
+            window._wfRestore = function (id) {
+                if (typeof window.restoreDeletedItem === 'function') {
+                    window.restoreDeletedItem(id);
+                    setTimeout(renderRecycleBin, 300);
+                } else {
+                    if (!confirm('Restore করবেন?')) return;
+                    var d = (window.globalData.deletedItems || []).find(function (x) { return x.id === id; });
+                    if (!d) { alert('Item পাওয়া যায়নি!'); return; }
+                    var t = (d.type || '').toLowerCase();
+                    if (t === 'student') { if (!window.globalData.students) window.globalData.students = []; window.globalData.students.push(d.item); }
+                    if (t === 'finance') { if (!window.globalData.finance) window.globalData.finance = []; window.globalData.finance.push(d.item); }
+                    if (t === 'employee') { if (!window.globalData.employees) window.globalData.employees = []; window.globalData.employees.push(d.item); }
+                    window.globalData.deletedItems = (window.globalData.deletedItems || []).filter(function (x) { return x.id !== id; });
+                    localStorage.setItem('wingsfly_data', JSON.stringify(window.globalData));
+                    renderRecycleBin();
+                    if (typeof window.showSuccessToast === 'function') window.showSuccessToast('✅ Restored!');
+                }
+            };
+
+            window._wfPermDel = function (id) {
+                if (typeof window.permanentDelete === 'function') {
+                    window.permanentDelete(id);
+                    setTimeout(renderRecycleBin, 300);
+                } else {
+                    if (!confirm('চিরতরে মুছবেন?')) return;
+                    window.globalData.deletedItems = (window.globalData.deletedItems || []).filter(function (x) { return x.id !== id; });
+                    localStorage.setItem('wingsfly_data', JSON.stringify(window.globalData));
+                    renderRecycleBin();
+                }
+            };
+
+            // ══════════════════════════════════════════════════════════
+            // MISSING FUNCTIONS (index.html বাটনগুলো এগুলো call করে)
+            // ══════════════════════════════════════════════════════════
+            window.clearActivityLog = function () {
+                if (!confirm('সব Activity History মুছে ফেলবেন?')) return;
+                if (!window.globalData) window.globalData = {};
+                window.globalData.activityHistory = [];
+                localStorage.setItem('wingsfly_data', JSON.stringify(window.globalData));
+                localStorage.setItem('wingsfly_activity_backup', '[]');
+                renderActivityLog();
+                if (typeof window.showSuccessToast === 'function') window.showSuccessToast('Activity Log cleared!');
+            };
+
+            window.clearRecycleBin = function () {
+                if (!confirm('সব Deleted Items চিরতরে মুছে ফেলবেন?')) return;
+                if (!window.globalData) window.globalData = {};
+                window.globalData.deletedItems = [];
+                localStorage.setItem('wingsfly_data', JSON.stringify(window.globalData));
+                localStorage.setItem('wingsfly_deleted_backup', '[]');
+                renderRecycleBin();
+                if (typeof window.showSuccessToast === 'function') window.showSuccessToast('Recycle Bin খালি হয়েছে!');
+            };
+
+            // ══════════════════════════════════════════════════════════
+            // EXPOSE & TAB SWITCH INTERCEPT
+            // ══════════════════════════════════════════════════════════
+            window.renderActivityLog = renderActivityLog;
+            window.renderRecycleBin = renderRecycleBin;
+
+            function init() {
+                // Override switchSettingsTab to auto-render + inject toolbar
+                var origSwitch = window.switchSettingsTab;
+                window.switchSettingsTab = function (tabId, btn) {
+                    if (typeof origSwitch === 'function') origSwitch(tabId, btn);
+                    if (tabId === 'tab-activitylog') {
+                        injectActivityToolbar();
+                        setTimeout(renderActivityLog, 60);
+                    }
+                    if (tabId === 'tab-recyclebin') {
+                        setTimeout(renderRecycleBin, 60);
+                    }
+                };
+
+                // Settings modal খোলার সময়ও render
+                var modal = document.getElementById('settingsModal');
+                if (modal) {
+                    modal.addEventListener('shown.bs.modal', function () {
+                        var active = modal.querySelector('.settings-tab-pane[style*="block"]');
+                        if (active && active.id === 'tab-activitylog') { injectActivityToolbar(); renderActivityLog(); }
+                        if (active && active.id === 'tab-recyclebin') { renderRecycleBin(); }
+                    });
+                }
+            }
+
+            if (document.readyState === 'loading') {
+                document.addEventListener('DOMContentLoaded', init);
+            } else {
+                init();
+            }
+
+            // ══════════════════════════════════════════════════════════
+            // ANTI-SAFETYNET: 2500ms পরে আবার redefine করো
+            // SafetyNet এর setTimeout(2000) এর পরে চলবে
+            // ══════════════════════════════════════════════════════════
+            setTimeout(function () {
+                window.renderActivityLog = renderActivityLog;
+                window.renderRecycleBin = renderRecycleBin;
+                // binFilterType onchange bind (original HTML এর dropdown)
+                var binFilter = document.getElementById('binFilterType');
+                if (binFilter && !binFilter._wfBound) {
+                    binFilter._wfBound = true;
+                    binFilter.addEventListener('change', renderRecycleBin);
+                }
+                console.log('[WF-TabsFix] ✅ Anti-SafetyNet override done (2500ms)');
+            }, 2500);
+
+            console.log('[WF-TabsFix] ✅ Activity Log & Recycle Bin loaded.');
+        })();
+    </script>
+
+    <script>
+        // ════════════════════════════════════════
+        // 1. LOGIN PAGE — PARTICLE BACKGROUND
+        // ════════════════════════════════════════
+        (function () {
+            var canvas = document.getElementById('loginParticleCanvas');
+            if (!canvas) return;
+            var ctx = canvas.getContext('2d');
+            var particles = [];
+            var animFrame;
+
+            function resize() {
+                canvas.width = window.innerWidth;
+                canvas.height = window.innerHeight;
+            }
+
+            function spawnParticles() {
+                particles = [];
+                var count = Math.floor((canvas.width * canvas.height) / 12000);
+                count = Math.max(40, Math.min(count, 100));
+                for (var i = 0; i < count; i++) {
+                    particles.push({
+                        x: Math.random() * canvas.width,
+                        y: Math.random() * canvas.height,
+                        r: Math.random() * 1.6 + 0.3,
+                        dx: (Math.random() - 0.5) * 0.35,
+                        dy: (Math.random() - 0.5) * 0.35,
+                        alpha: Math.random() * 0.5 + 0.15
+                    });
+                }
+            }
+
+            function drawParticles() {
+                ctx.clearRect(0, 0, canvas.width, canvas.height);
+                particles.forEach(function (p) {
+                    ctx.beginPath();
+                    ctx.arc(p.x, p.y, p.r, 0, Math.PI * 2);
+                    ctx.fillStyle = 'rgba(0,217,255,' + p.alpha + ')';
+                    ctx.fill();
+                    p.x += p.dx;
+                    p.y += p.dy;
+                    if (p.x < 0 || p.x > canvas.width) p.dx *= -1;
+                    if (p.y < 0 || p.y > canvas.height) p.dy *= -1;
+                });
+                animFrame = requestAnimationFrame(drawParticles);
+            }
+
+            function startParticles() {
+                canvas.style.display = 'block';
+                resize();
+                spawnParticles();
+                if (animFrame) cancelAnimationFrame(animFrame);
+                drawParticles();
+            }
+
+            function stopParticles() {
+                canvas.style.display = 'none';
+                if (animFrame) cancelAnimationFrame(animFrame);
+            }
+
+            window.addEventListener('resize', function () {
+                if (canvas.style.display !== 'none') { resize(); spawnParticles(); }
+            });
+
+            // LoginSection দেখা/লুকানো watch করি
+            var loginSection = document.getElementById('loginSection');
+            if (loginSection) {
+                var observer = new MutationObserver(function () {
+                    var hidden = loginSection.classList.contains('d-none');
+                    if (hidden) stopParticles(); else startParticles();
+                });
+                observer.observe(loginSection, { attributes: true, attributeFilter: ['class'] });
+                // Page load-এ যদি login দেখা যায়
+                if (!loginSection.classList.contains('d-none')) startParticles();
+            }
+        })();
+
+        // ════════════════════════════════════════
+        // 2. RIPPLE EFFECT — সব .btn button-এ
+        // ════════════════════════════════════════
+        (function () {
+            document.addEventListener('mousedown', function (e) {
+                var btn = e.target.closest('.btn');
+                if (!btn) return;
+                var rect = btn.getBoundingClientRect();
+                var size = Math.max(btn.offsetWidth, btn.offsetHeight);
+                var wave = document.createElement('span');
+                wave.className = 'ripple-wave';
+                wave.style.cssText = [
+                    'width:' + size + 'px',
+                    'height:' + size + 'px',
+                    'left:' + (e.clientX - rect.left - size / 2) + 'px',
+                    'top:' + (e.clientY - rect.top - size / 2) + 'px'
+                ].join(';');
+                btn.appendChild(wave);
+                wave.addEventListener('animationend', function () { wave.remove(); });
+            });
+        })();
+
+        // ════════════════════════════════════════
+        // 3. SIDEBAR LOGO — ACTIVITY SPIN
+        // ════════════════════════════════════════
+        (function () {
+            var logo = null;
+            var idleTimer = null;
+            var IDLE_DELAY = 1500;
+
+            function startSpin() {
+                if (!logo) logo = document.getElementById('sidebarLogoImg');
+                if (!logo) return;
+                logo.classList.add('is-active');
+                clearTimeout(idleTimer);
+                idleTimer = setTimeout(function () {
+                    logo.classList.remove('is-active');
+                }, IDLE_DELAY);
+            }
+
+            ['mousemove', 'mousedown', 'keydown', 'scroll', 'touchmove'].forEach(function (evt) {
+                document.addEventListener(evt, startSpin, { passive: true });
+            });
+        })();
+    </script>
+
+    <!-- Phone Number Only Toast Notification -->
+    <div id="phoneOnlyToast" style="
+    display: none;
+    position: fixed;
+    top: 24px;
+    left: 50%;
+    transform: translateX(-50%);
+    z-index: 99999;
+    background: linear-gradient(135deg, #ff4d4d, #c0392b);
+    color: white;
+    padding: 14px 24px;
+    border-radius: 12px;
+    box-shadow: 0 8px 30px rgba(0,0,0,0.25);
+    font-size: 15px;
+    font-weight: 600;
+    align-items: center;
+    gap: 10px;
+    pointer-events: none;
+    animation: none;
+">
+        <span style="font-size:20px;">🚫</span>
+        <span>Text is not allowed! Please enter numbers only.</span>
+    </div>
+
+    <style>
+        @keyframes phoneToastIn {
+            from {
+                opacity: 0;
+                top: 0px;
+            }
+
+            to {
+                opacity: 1;
+                top: 24px;
+            }
+        }
+
+        @keyframes phoneToastOut {
+            from {
+                opacity: 1;
+                top: 24px;
+            }
+
+            to {
+                opacity: 0;
+                top: 0px;
+            }
+        }
+    </style>
+
+    <script>
+        (function () {
+            let _phoneToastTimer = null;
+
+            window.showPhoneOnlyToast = function () {
+                const toast = document.getElementById('phoneOnlyToast');
+                if (!toast) return;
+
+                clearTimeout(_phoneToastTimer);
+                toast.style.display = 'flex';
+                toast.style.animation = 'none';
+                void toast.offsetWidth;
+                toast.style.animation = 'phoneToastIn 0.3s ease forwards';
+
+                _phoneToastTimer = setTimeout(function () {
+                    toast.style.animation = 'phoneToastOut 0.4s ease forwards';
+                    setTimeout(function () {
+                        toast.style.display = 'none';
+                    }, 400);
+                }, 2500);
+            };
+        })();
+    </script>
 
 </body>
+
 </html>

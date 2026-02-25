@@ -24,7 +24,7 @@
   'use strict';
 
   // ─── Constants ────────────────────────────────────────────
-  const SUITE_VERSION = '6.0';
+  const SUITE_VERSION = '5.0';
   const SUPABASE_URL = window.SUPABASE_CONFIG?.URL || 'https://gtoldrltxjrwshubplfp.supabase.co';
   const SUPABASE_KEY = window.SUPABASE_CONFIG?.KEY || 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6Imd0b2xkcmx0eGpyd3NodWJwbGZwIiwicm9sZSI6ImFub24iLCJpYXQiOjE3NzEwOTk5MTksImV4cCI6MjA4NjY3NTkxOX0.7NTx3tzU1C5VaewNZZHTaJf2WJ_GtjhQPKOymkxRsUk';
   const TEST_TAG = '__WFTEST__';  // এই tag দিয়ে test data চিহ্নিত হবে
@@ -168,13 +168,6 @@
       'openEmployeeModal', 'saveEmployee',
       'openAttendanceModal', 'openAccountModal',
       'exportData', 'importData',
-      // ✅ Delete functions
-      'deleteTransaction', 'deleteEmployee', 'deleteAccount',
-      'deleteMobileAccount', 'deleteVisitor', 'deleteKeepRecord',
-      // ✅ Recycle Bin
-      'moveToTrash', 'restoreDeletedItem',
-      // ✅ Activity Log
-      'logActivity',
     ];
 
     const optional = [
@@ -182,9 +175,6 @@
       'filterData', 'printReport',
       'recalculateCashBalanceFromTransactions',
       'openNoticeModal', 'publishNotice',
-      // ✅ Optional delete functions
-      'deleteNotice', 'deleteInstallment',
-      'deleteExamRegistration', 'deleteKeepRecord',
     ];
 
     let critFail = 0;
@@ -473,6 +463,54 @@
     } else {
       fail('switchTab missing', 'Tab navigation কাজ করবে না');
     }
+
+    // ── Loan Section: Delete & Edit Button Functions ────────
+    sectionHeader('6b — Loan Delete & Edit Button Checks');
+
+    if (exists('deleteLoanTransaction')) {
+      pass('deleteLoanTransaction function exists ✅');
+    } else {
+      fail('deleteLoanTransaction missing', 'Loan Detail এ Delete বাটন কাজ করবে না');
+    }
+
+    if (exists('editTransaction')) {
+      pass('editTransaction function exists ✅');
+    } else {
+      fail('editTransaction missing', 'Loan Detail এ Edit বাটন কাজ করবে না');
+    }
+
+    if (exists('moveToTrash')) {
+      pass('moveToTrash function exists (Recycle Bin support) ✅');
+    } else {
+      fail('moveToTrash missing', 'Recycle Bin কাজ করবে না');
+    }
+
+    if (exists('restoreDeletedItem')) {
+      pass('restoreDeletedItem function exists (Restore support) ✅');
+    } else {
+      fail('restoreDeletedItem missing', 'Recycle Bin থেকে Restore হবে না');
+    }
+
+    if (exists('logActivity')) {
+      pass('logActivity function exists (Activity Log support) ✅');
+    } else {
+      fail('logActivity missing', 'Activity History তে log হবে না');
+    }
+
+    // Check loan detail table has Action column header in DOM
+    const loanTable = document.querySelector('#loanDetailBody');
+    if (loanTable) {
+      pass('#loanDetailBody table exists');
+      // Check if Action column header is present
+      const actionTh = document.querySelector('#loanDetailView thead th:last-child');
+      if (actionTh && actionTh.textContent.trim().toLowerCase().includes('action')) {
+        pass('Loan table Action column header found ✅');
+      } else {
+        warn('Loan table Action column header not verified', 'Detail view খুলুন এবং দেখুন');
+      }
+    } else {
+      warn('#loanDetailBody not found', 'Loan detail view DOM তে আছে কিনা চেক করুন');
+    }
   }
 
   // ── GROUP 7: Supabase Connectivity ────────────────────────
@@ -562,14 +600,8 @@
         } catch (e3) { warn('Cleanup failed', 'test record ম্যানুয়ালি delete করুন: id=wingsfly_test_probe'); }
 
       } else {
-        const errJson = await writeRes.json().catch(() => ({}));
-        const errCode = errJson.code || writeRes.status;
-        
-        if (errCode === '42501') {
-          warn('Supabase WRITE Restricted (RLS)', 'ডাটাবেস সুরক্ষিত! শুধু মেইন রেকর্ড লিখতে পারবেন। এটি কোনো এরর নয়।');
-        } else {
-          fail('Supabase WRITE failed', `HTTP ${writeRes.status} — ${JSON.stringify(errJson).slice(0, 80)}`);
-        }
+        const errText = await writeRes.text().catch(() => '');
+        fail('Supabase WRITE failed', `HTTP ${writeRes.status} — ${errText.slice(0, 80)}`);
       }
     } catch (e) {
       if (e.message === 'Timeout') { fail('Supabase WRITE TIMEOUT', `${TIMEOUT_MS / 1000}s এর মধ্যে response আসেনি`); }
@@ -742,38 +774,6 @@
     const totalPaidFromStudents = (gd.students || []).reduce((sum, s) => sum + (parseFloat(s.paid) || 0), 0);
     pass('Student total paid calculated', `৳${totalPaidFromStudents.toLocaleString('en-IN')}`);
 
-    // --- 10a2: ✅ Loan income এ যাচ্ছে কিনা (যাওয়া উচিত নয়) ---
-    const loanAsIncome = finance.filter(f =>
-      f.type === 'Income' && (
-        (f.category || '').toLowerCase().includes('loan') ||
-        f.type === 'Loan Received' || f.type === 'Loan Receiving'
-      )
-    );
-    if (loanAsIncome.length === 0) {
-      pass('✅ Loan income এ নেই (সঠিক)', 'Loan শুধু account balance এ যাচ্ছে');
-    } else {
-      fail('❌ ' + loanAsIncome.length + 'টি Loan Income হিসেবে আছে!', 'Loan income এ যাওয়া উচিত নয়');
-    }
-
-    // --- 10a3: ✅ Exam Fee income এ যাচ্ছে ---
-    const examFeeIncome = finance.filter(f => f.category === 'Exam Fee' && f.type === 'Income');
-    if (examFeeIncome.length > 0) {
-      pass('✅ Exam Fee income এ যাচ্ছে', examFeeIncome.length + 'টি entry');
-    } else {
-      skip('Exam Fee income check', 'এখনো কোনো Exam Fee নেই');
-    }
-
-    // --- 10a4: ✅ Student Installment category check ---
-    const installmentEntries = finance.filter(f => f.category === 'Student Installment');
-    if (installmentEntries.length > 0) {
-      const allIncome = installmentEntries.every(f => f.type === 'Income');
-      allIncome
-        ? pass('✅ Student Installment সব Income type', installmentEntries.length + 'টি')
-        : fail('❌ কিছু Installment Income type নয়!', 'type সমস্যা');
-    } else {
-      skip('Student Installment check', 'এখনো কোনো extra installment নেই');
-    }
-
     // --- 10b: Orphaned payments (finance-এ student নেই) ---
     const studentNames = new Set((gd.students || []).map(s => (s.name || '').trim().toLowerCase()));
     const orphaned = finance.filter(f => {
@@ -914,10 +914,9 @@
     else { fail('Data size too large!', `${sizeMB} MB — localStorage limit হতে পারে`); }
 
     // --- 12d: DOM element count ---
-    // ℹ️ Wings Fly is a large SPA — thresholds adjusted accordingly
     const domCount = document.querySelectorAll('*').length;
-    if (domCount < 4000) { pass('DOM size normal', `${domCount} elements`); }
-    else if (domCount < 8000) { warn('DOM getting large', `${domCount} elements`); }
+    if (domCount < 2000) { pass('DOM size normal', `${domCount} elements`); }
+    else if (domCount < 5000) { warn('DOM getting large', `${domCount} elements`); }
     else { fail('DOM too large!', `${domCount} elements — memory leak হতে পারে`); }
 
     // --- 12e: Student array sort speed ---
@@ -1152,39 +1151,6 @@
       skip('Session age check', 'loginTime not tracked');
     }
 
-    // --- 15e2: Secret Question set আছে কিনা ---
-    const gd2 = window.globalData;
-    // ✅ FIX: globalData এবং localStorage backup উভয়ই চেক করো
-    const _secretQ = (gd2 && gd2.credentials && gd2.credentials.secretQuestion) ||
-                     localStorage.getItem('wingsfly_secret_q') || '';
-    const _secretA = (gd2 && gd2.credentials && gd2.credentials.secretAnswer) ||
-                     localStorage.getItem('wingsfly_secret_a') || '';
-    // ✅ FIX: globalData এ না থাকলে backup থেকে restore করো (লগআউটের পরেও কাজ করবে)
-    if (_secretQ && gd2) {
-      if (!gd2.credentials) gd2.credentials = {};
-      if (!gd2.credentials.secretQuestion) {
-        gd2.credentials.secretQuestion = _secretQ;
-        if (_secretA) gd2.credentials.secretAnswer = _secretA;
-      }
-    }
-    // ✅ AUTO-FIX: credentials object না থাকলে তৈরি করো
-    if (gd2 && !gd2.credentials) {
-      gd2.credentials = { username: 'admin' };
-      try { localStorage.setItem('wingsfly_data', JSON.stringify(gd2)); } catch(e) {}
-    }
-
-    if (gd2 && gd2.credentials) {
-      if (_secretQ && _secretA) {
-        pass('✅ Secret Question set আছে', 'Forgot Password কাজ করবে');
-      } else if (_secretQ) {
-        warn('Secret Question আছে কিন্তু Answer নেই!', 'Settings > Security এ Answer দিন');
-      } else {
-        skip('Secret Question check', 'Set করা হয়নি — optional');
-      }
-    } else {
-      skip('credentials check', 'Cloud sync এর পরে load হবে');
-    }
-
     // --- 15f: User role validation ---
     const gd = window.globalData;
     if (gd && gd.users) {
@@ -1266,9 +1232,9 @@
       deleted.forEach(d => { byType[d.type] = (byType[d.type] || 0) + 1; });
       pass('Recycle Bin has items', Object.entries(byType).map(([k, v]) => k + ':' + v).join(', '));
 
-      // ✅ Exam entries in recycle bin? (type: 'examregistration')
-      (byType['examregistration'] || byType['exam'])
-        ? pass('Recycle Bin: exam entries আছে ✅', (byType['examregistration'] || byType['exam']) + 'টি')
+      // ✅ Exam entries in recycle bin?
+      byType['exam']
+        ? pass('Recycle Bin: exam entries আছে ✅', byType['exam'] + 'টি')
         : warn('Recycle Bin: কোনো exam entry নেই', 'exam delete হলে recycle bin এ যাওয়া উচিত');
 
       // deleted items এর required fields check
@@ -1281,7 +1247,7 @@
     // --- 16e: ✅ deleteExamRegistration function check ---
     typeof window.deleteExamRegistration === 'function'
       ? pass('deleteExamRegistration function exists ✅')
-      : warn('deleteExamRegistration missing', 'সাধারণত optional — exam delete করলে লাগবে');
+      : fail('deleteExamRegistration MISSING!');
     typeof window.handleExamRegistration === 'function'
       ? pass('handleExamRegistration function exists ✅')
       : fail('handleExamRegistration MISSING!');
@@ -1423,294 +1389,6 @@
     else { fail('Array mutation detected!', r7.err); }
   }
 
-
-  // ── GROUP 18: Accounts Module Full Test ────────────────────
-  function testAccountsModule() {
-    sectionHeader('18 — Accounts Module Deep Test');
-    const gd = window.globalData;
-    if (!gd) { skip('Accounts tests', 'globalData নেই'); return; }
-    const finance = gd.finance || [];
-    const students = gd.students || [];
-
-    // 18a: deleteInstallment
-    typeof window.deleteInstallment === 'function'
-      ? pass('✅ deleteInstallment আছে')
-      : fail('❌ deleteInstallment MISSING!', 'Payment delete কাজ করবে না');
-
-    // 18b: handleAddInstallment
-    typeof window.handleAddInstallment === 'function'
-      ? pass('✅ handleAddInstallment আছে')
-      : fail('❌ handleAddInstallment MISSING!');
-
-    // 18c: Student paid >= installment sum
-    let badSync = 0;
-    students.forEach(s => {
-      const instSum = (s.installments || []).reduce((sum, i) => sum + (parseFloat(i.amount) || 0), 0);
-      if (instSum > (parseFloat(s.paid) || 0) + 1) badSync++;
-    });
-    badSync === 0
-      ? pass('✅ Installment sum ≤ paid (সব ঠিক)', students.length + ' জন')
-      : fail('❌ ' + badSync + ' student-এ installment sum > paid!');
-
-    // 18d: Finance required fields
-    const badF = finance.filter(f => !f.type || !f.amount || !f.date).length;
-    badF === 0 ? pass('✅ Finance entries সব valid', finance.length + 'টি') : fail('❌ ' + badF + ' finance entry corrupt!');
-
-    // 18e: Student Fee / Exam Fee = Income
-    const wrongType = finance.filter(f =>
-      ['Student Fee', 'Student Installment', 'Exam Fee'].includes(f.category) && f.type !== 'Income'
-    );
-    wrongType.length === 0
-      ? pass('✅ Student Fee / Exam Fee সব Income type')
-      : fail('❌ ' + wrongType.length + 'টি Fee entry Income type নয়!');
-
-    // 18f: Loan কখনো Income নয়
-    const loanAsIncome = finance.filter(f =>
-      f.type === 'Income' && (f.category || '').toLowerCase().includes('loan')
-    );
-    loanAsIncome.length === 0
-      ? pass('✅ Loan কখনো Income নয় (সঠিক)')
-      : fail('❌ Loan Income হিসেবে count হচ্ছে!');
-
-    // 18g: Per-student finance vs paid
-    let mismatch = 0;
-    students.forEach(s => {
-      const sName = (s.name || '').trim().toLowerCase();
-      const sPaid = parseFloat(s.paid) || 0;
-      if (sPaid === 0) return; // paid 0 হলে skip
-      const ft = finance.filter(f => {
-        const fPerson = (f.person || '').trim().toLowerCase();
-        return fPerson === sName &&
-          ['Student Fee','Student Installment'].includes(f.category) &&
-          f.type === 'Income';
-      }).reduce((sum, f) => sum + (parseFloat(f.amount) || 0), 0);
-      // ft===0 মানে finance entry নেই কিন্তু paid আছে — এটাও mismatch
-      if (ft === 0 && sPaid > 0) { mismatch++; return; }
-      if (ft > 0 && Math.abs(ft - sPaid) > 1) mismatch++;
-    });
-    mismatch === 0
-      ? pass('✅ Student paid ≈ Finance ledger total')
-      : warn('⚠️ ' + mismatch + ' student-এ paid ও finance মিলছে না', 'Settings > Data Management > Auto-Fix চালান');
-
-    // 18h: updateAccountBalance
-    typeof window.updateAccountBalance === 'function'
-      ? pass('✅ updateAccountBalance আছে') : fail('❌ updateAccountBalance MISSING!');
-
-    // 18i: handleExamRegistration
-    typeof window.handleExamRegistration === 'function'
-      ? pass('✅ handleExamRegistration আছে (নতুন Exam Fee income)') : fail('❌ handleExamRegistration MISSING!');
-
-    // 18j: Secret Question functions
-    typeof window.checkSecretAnswer === 'function'
-      ? pass('✅ checkSecretAnswer আছে') : fail('❌ checkSecretAnswer MISSING!');
-    typeof window.resetPasswordFromModal === 'function'
-      ? pass('✅ resetPasswordFromModal আছে') : fail('❌ resetPasswordFromModal MISSING!');
-
-    // 18k: Cash balance
-    const cash = parseFloat(gd.cashBalance) || 0;
-    cash >= 0
-      ? pass('✅ Cash balance non-negative', '৳' + cash.toLocaleString('en-IN'))
-      : warn('⚠️ Cash balance negative!', '৳' + cash.toFixed(0));
-  }
-
-
-  // ── GROUP 19: Delete → Recycle Bin → Restore Full Cycle ──
-  function testDeleteRestoreCycle() {
-    sectionHeader('19 — Delete / Restore / Activity Log Cycle Tests');
-    const gd = window.globalData;
-    if (!gd) { skip('Delete/Restore tests', 'globalData নেই'); return; }
-
-    // ─── 19a: moveToTrash function exists ───
-    if (typeof window.moveToTrash !== 'function') {
-      fail('moveToTrash MISSING — Recycle Bin কাজ করবে না!');
-    } else {
-      pass('moveToTrash function exists ✅');
-
-      // ─── 19b: moveToTrash fake data দিয়ে test ───
-      const before = (gd.deletedItems || []).length;
-      const fakeItem = {
-        id: '__TEST_TRASH__' + Date.now(),
-        name: 'Fake Test Item __WFTEST__',
-        type: 'testItem',
-        amount: 999
-      };
-      const r = safeCall(() => window.moveToTrash('testItem', fakeItem));
-      if (r.ok) {
-        const after = (gd.deletedItems || []).length;
-        if (after === before + 1) {
-          pass('moveToTrash: item Recycle Bin এ গেছে ✅', 'Recycle Bin size: ' + after);
-        } else {
-          fail('moveToTrash: Recycle Bin size বাড়েনি!', 'before: ' + before + ', after: ' + after);
-        }
-      } else {
-        fail('moveToTrash threw error', r.err);
-      }
-
-      // ─── 19c: Recycle Bin এ item সঠিকভাবে stored ───
-      const trashEntry = (gd.deletedItems || []).find(d => d.item && d.item.id === fakeItem.id);
-      if (trashEntry) {
-        pass('Recycle Bin entry structure correct ✅');
-        if (trashEntry.type) pass('trashEntry.type আছে: ' + trashEntry.type);
-        else fail('trashEntry.type নেই!');
-        if (trashEntry.deletedAt) pass('trashEntry.deletedAt আছে ✅');
-        else fail('trashEntry.deletedAt নেই!');
-        if (trashEntry.item) pass('trashEntry.item (original data) আছে ✅');
-        else fail('trashEntry.item নেই!');
-      } else {
-        fail('Recycle Bin-এ test item পাওয়া যায়নি!');
-      }
-
-      // ─── 19d: Cleanup test trash item ───
-      safeCall(() => {
-        gd.deletedItems = (gd.deletedItems || []).filter(d => !(d.item && d.item.id === fakeItem.id));
-      });
-      pass('Test trash item cleaned up ✅');
-    }
-
-    // ─── 19e: restoreDeletedItem function exists ───
-    typeof window.restoreDeletedItem === 'function'
-      ? pass('restoreDeletedItem function exists ✅')
-      : fail('restoreDeletedItem MISSING — Restore কাজ করবে না!');
-
-    // ─── 19f: logActivity function exists ───
-    typeof window.logActivity === 'function'
-      ? pass('logActivity function exists ✅')
-      : warn('logActivity function নেই', 'Activity Log কাজ নাও করতে পারে');
-
-    // ─── 19g: activityHistory array exists ───
-    if (Array.isArray(gd.activityHistory)) {
-      pass('activityHistory array আছে ✅', gd.activityHistory.length + 'টি entry');
-    } else {
-      warn('activityHistory array নেই', 'Activity Log empty হতে পারে');
-    }
-
-    // ─── 19h: logActivity fake call test ───
-    if (typeof window.logActivity === 'function') {
-      const beforeLog = (gd.activityHistory || []).length;
-      const r2 = safeCall(() => window.logActivity('testType', 'TEST', 'Auto Test Entry __WFTEST__', {}));
-      if (r2.ok) {
-        const afterLog = (gd.activityHistory || []).length;
-        if (afterLog > beforeLog) {
-          pass('logActivity: Activity Log এ entry গেছে ✅');
-          // cleanup
-          safeCall(() => {
-            gd.activityHistory = (gd.activityHistory || []).filter(a =>
-              !(a.description || '').includes('__WFTEST__')
-            );
-          });
-        } else {
-          warn('logActivity call OK কিন্তু activityHistory বাড়েনি');
-        }
-      } else {
-        fail('logActivity threw error', r2.err);
-      }
-    }
-
-    // ─── 19i: Delete function existence checks ───
-    const deleteFunctions = [
-      { fn: 'deleteStudent', label: 'Student delete' },
-      { fn: 'deleteTransaction', label: 'Transaction (Finance) delete' },
-      { fn: 'deleteEmployee', label: 'Employee delete' },
-      { fn: 'deleteAccount', label: 'Bank Account delete' },
-      { fn: 'deleteMobileAccount', label: 'Mobile Account delete' },
-      { fn: 'deleteVisitor', label: 'Visitor delete' },
-      { fn: 'deleteKeepRecord', label: 'Keep Record delete' },
-      { fn: 'deleteNotice', label: 'Notice delete' },
-      { fn: 'deleteInstallment', label: 'Installment delete' },
-      { fn: 'deleteExamRegistration', label: 'Exam Registration delete' },
-    ];
-
-    deleteFunctions.forEach(({ fn, label }) => {
-      typeof window[fn] === 'function'
-        ? pass('✅ ' + label + ' (' + fn + ') আছে')
-        : fail('❌ ' + fn + ' MISSING!', label + ' কাজ করবে না');
-    });
-
-    // ─── 19j: Recycle Bin max size (200) ───
-    const binSize = (gd.deletedItems || []).length;
-    if (binSize <= 200) {
-      pass('Recycle Bin size limit OK ✅', binSize + '/200 items');
-    } else {
-      warn('Recycle Bin 200 limit exceeded!', binSize + ' items — auto-trim হওয়া উচিত');
-    }
-
-    // ─── 19k: Recycle Bin entries by type ───
-    const byType = {};
-    (gd.deletedItems || []).forEach(d => { byType[d.type] = (byType[d.type] || 0) + 1; });
-    const knownTypes = ['student', 'finance', 'employee', 'bankAccount', 'mobileAccount',
-                        'visitor', 'keepRecord', 'exam', 'notice'];
-    const unknownTypes = Object.keys(byType).filter(t => !knownTypes.includes(t));
-    if (Object.keys(byType).length === 0) {
-      skip('Recycle Bin type check', 'Recycle Bin এখনো empty');
-    } else {
-      pass('Recycle Bin types: ' + Object.entries(byType).map(([k,v]) => k+':'+v).join(', '));
-      if (unknownTypes.length > 0) {
-        warn('Unknown trash types: ' + unknownTypes.join(', '), 'Restore করা যাবে না এই types এর items');
-      }
-    }
-
-    // ─── 19l: Student fake delete → Recycle Bin → check ───
-    if (gd.students && gd.students.length > 0 && typeof window.moveToTrash === 'function') {
-      const fakeStudent = {
-        rowIndex: Date.now() + 9999,
-        name: 'Fake Student __WFTEST__',
-        studentId: 'FS_TEST',
-        course: 'Test',
-        paid: 500,
-        totalPayment: 1000,
-        due: 500,
-        status: 'Active'
-      };
-      // Add fake student
-      gd.students.push(fakeStudent);
-      // Delete → trash
-      const trashBefore = (gd.deletedItems || []).length;
-      window.moveToTrash('student', fakeStudent);
-      gd.students = gd.students.filter(s => s.rowIndex !== fakeStudent.rowIndex);
-      const trashAfter = (gd.deletedItems || []).length;
-
-      if (trashAfter === trashBefore + 1) {
-        pass('✅ Student delete → Recycle Bin cycle complete');
-      } else {
-        fail('Student delete → Recycle Bin cycle FAILED');
-      }
-
-      // Cleanup
-      safeCall(() => {
-        gd.deletedItems = (gd.deletedItems || []).filter(d =>
-          !(d.item && d.item.rowIndex === fakeStudent.rowIndex)
-        );
-      });
-      pass('Fake student test data cleaned up ✅');
-    }
-
-    // ─── 19m: Finance fake delete → Recycle Bin → check ───
-    if (typeof window.moveToTrash === 'function') {
-      const fakeFin = {
-        id: 'FIN_TEST_' + Date.now(),
-        type: 'Income',
-        category: 'Test',
-        amount: 100,
-        date: new Date().toISOString().split('T')[0],
-        note: 'Auto Test __WFTEST__'
-      };
-      const finTrashBefore = (gd.deletedItems || []).length;
-      window.moveToTrash('finance', fakeFin);
-      const finTrashAfter = (gd.deletedItems || []).length;
-      if (finTrashAfter === finTrashBefore + 1) {
-        pass('✅ Finance delete → Recycle Bin cycle complete');
-      } else {
-        fail('Finance delete → Recycle Bin cycle FAILED');
-      }
-      // Cleanup
-      safeCall(() => {
-        gd.deletedItems = (gd.deletedItems || []).filter(d =>
-          !(d.item && d.item.id === fakeFin.id)
-        );
-      });
-    }
-  }
-
   // ═══════════════════════════════════════════════════════════
   // MAIN RUNNER
   // ═══════════════════════════════════════════════════════════
@@ -1748,8 +1426,6 @@
     testSecurityAuth();
     testExamVisitor();
     testStressBoundary();
-    testAccountsModule();
-    testDeleteRestoreCycle(); // ✅ Group 19: Delete/Restore/ActivityLog
 
     // Run async groups
     await testSupabaseConnectivity();

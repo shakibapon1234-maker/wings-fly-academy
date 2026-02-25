@@ -35,20 +35,6 @@ if (typeof window.globalData === 'undefined') {
 if (!window.globalData.deletedItems) window.globalData.deletedItems = [];
 if (!window.globalData.activityHistory) window.globalData.activityHistory = [];
 
-// ✅ Secret Question — লগআউটের পরেও localStorage backup থেকে restore করো
-// (cloud sync বা re-login এ credentials overwrite হলেও কাজ করবে)
-(function _restoreSecretQ() {
-  const bq = localStorage.getItem('wingsfly_secret_q');
-  const ba = localStorage.getItem('wingsfly_secret_a');
-  if (bq) {
-    if (!window.globalData.credentials) window.globalData.credentials = {};
-    if (!window.globalData.credentials.secretQuestion) {
-      window.globalData.credentials.secretQuestion = bq;
-      if (ba) window.globalData.credentials.secretAnswer = ba;
-    }
-  }
-})();
-
 // Global Chart instances to prevent initialization errors
 window.financeChartInstance = null;
 window.studentStatusChart = null;
@@ -244,66 +230,13 @@ function restoreDeletedItem(trashId) {
   } else if (type === 'finance') {
     if (!window.globalData.finance) window.globalData.finance = [];
     window.globalData.finance.push(item);
-    if (typeof updateAccountBalance === 'function') updateAccountBalance(item.method, item.amount, item.type, true);
-    logActivity('finance', 'ADD', 'Transaction restore করা হয়েছে: ' + (item.description || item.category || ''), item);
+    logActivity('finance', 'ADD', `Restored transaction: ${item.description || item.category || ''}`, item);
     if (typeof renderLedger === 'function') renderLedger(window.globalData.finance);
-    if (typeof updateGlobalStats === 'function') updateGlobalStats();
 
   } else if (type === 'employee') {
     if (!window.globalData.employees) window.globalData.employees = [];
     window.globalData.employees.push(item);
     logActivity('employee', 'ADD', `Restored employee: ${item.name || 'Unknown'}`, item);
-
-  } else if (type === 'keepRecord') {
-    // Keep Record restore
-    try {
-      let records = [];
-      try { records = JSON.parse(localStorage.getItem('wingsfly_keep_records') || '[]'); } catch(e) { records = []; }
-      records.unshift(item);
-      localStorage.setItem('wingsfly_keep_records', JSON.stringify(records));
-      logActivity('keepRecord', 'ADD', 'Keep Record restore করা হয়েছে: "' + (item.title || 'Untitled') + '"', item);
-      if (typeof renderKeepRecords === 'function') renderKeepRecords();
-    } catch(e) { console.warn('Keep Record restore error:', e); }
-
-  } else if (type === 'exam') {
-    // Exam Registration restore
-    if (!window.globalData.examRegistrations) window.globalData.examRegistrations = [];
-    window.globalData.examRegistrations.push(item);
-    logActivity('exam', 'ADD', 'Exam registration restore করা হয়েছে: "' + (item.studentName || item.regId || 'Unknown') + '"', item);
-    if (typeof searchExamResults === 'function') searchExamResults();
-    if (typeof renderExamDashboard === 'function') renderExamDashboard();
-
-  } else if (type === 'bankAccount') {
-    // Bank Account restore
-    if (!window.globalData.bankAccounts) window.globalData.bankAccounts = [];
-    window.globalData.bankAccounts.push(item);
-    logActivity('bankAccount', 'ADD', 'Bank Account restore করা হয়েছে: ' + (item.name || 'Unknown'), item);
-    if (typeof renderAccountList === 'function') renderAccountList();
-    if (typeof populateDropdowns === 'function') populateDropdowns();
-
-  } else if (type === 'mobileAccount') {
-    // Mobile Account restore
-    if (!window.globalData.mobileBanking) window.globalData.mobileBanking = [];
-    window.globalData.mobileBanking.push(item);
-    logActivity('mobileAccount', 'ADD', 'Mobile Account restore করা হয়েছে: ' + (item.name || 'Unknown'), item);
-    if (typeof renderMobileBankingList === 'function') renderMobileBankingList();
-    if (typeof updateGlobalStats === 'function') updateGlobalStats();
-
-  } else if (type === 'visitor') {
-    // Visitor restore
-    if (!window.globalData.visitors) window.globalData.visitors = [];
-    window.globalData.visitors.push(item);
-    logActivity('visitor', 'ADD', 'Visitor restore করা হয়েছে: ' + (item.name || item.visitorName || 'Unknown'), item);
-    if (typeof renderVisitors === 'function') renderVisitors();
-
-  } else if (type === 'notice') {
-    // Notice restore
-    try {
-      if (!window.globalData.settings) window.globalData.settings = {};
-      window.globalData.settings.activeNotice = item;
-      logActivity('notice', 'ADD', 'নোটিস restore করা হয়েছে: "' + (item.title || 'Notice') + '"', item);
-      if (typeof initNoticeBoard === 'function') initNoticeBoard();
-    } catch(e) {}
   }
 
   // Remove from trash
@@ -622,7 +555,7 @@ function handleResetAllData() {
       examRegistrations: [],
       visitors: [],
       employeeRoles: [],         // খালি - কোনো default role নেই
-      credentials: { username: 'admin', password: '24439613fdc37b350853c815b8da53d8d57fab41035a242240732f23eff41e66' }  // default — password: shakib@123
+      credentials: { username: 'admin', password: 'e7d3bfb67567c3d94bcecb2ce65ef146eac83e50dc3f3b89e81bb647a8bada4c' }  // default — change via Settings
     };
 
     // Update window reference
@@ -839,15 +772,6 @@ let currentStudentForProfile = null;
 // ===================================
 
 document.addEventListener('DOMContentLoaded', function () {
-  // ✅ URL থেকে sensitive params (username, password) সাথে সাথে সরিয়ে দাও
-  try {
-    const url = new URL(window.location.href);
-    if (url.searchParams.has('password') || url.searchParams.has('username')) {
-      const cleanUrl = window.location.origin + window.location.pathname;
-      window.history.replaceState({}, document.title, cleanUrl);
-    }
-  } catch (e) {}
-
   // Load data from localStorage
   loadFromStorage();
 
@@ -942,18 +866,6 @@ async function saveToStorage(skipCloudSync = false) {
     // Arrays নিশ্চিত করো
     if (!window.globalData.deletedItems) window.globalData.deletedItems = [];
     if (!window.globalData.activityHistory) window.globalData.activityHistory = [];
-
-    // ✅ Secret Question backup restore guard:
-    // cloud pull এ credentials overwrite হলেও backup থেকে restore করো
-    const _backupQ = localStorage.getItem('wingsfly_secret_q');
-    const _backupA = localStorage.getItem('wingsfly_secret_a');
-    if (_backupQ) {
-      if (!window.globalData.credentials) window.globalData.credentials = {};
-      if (!window.globalData.credentials.secretQuestion) {
-        window.globalData.credentials.secretQuestion = _backupQ;
-        if (_backupA) window.globalData.credentials.secretAnswer = _backupA;
-      }
-    }
 
     // Backup রাখো যাতে cloud pull এ হারিয়ে না যায়
     localStorage.setItem('wingsfly_deleted_backup', JSON.stringify(window.globalData.deletedItems));
@@ -1064,7 +976,7 @@ function loadFromStorage() {
         ],
         courseNames: ['Caregiver', 'Student Visa', 'Other'],
         settings: { academyName: 'Wings Fly Aviation Academy' },
-        users: [{ username: 'admin', password: '24439613fdc37b350853c815b8da53d8d57fab41035a242240732f23eff41e66', role: 'admin', name: 'Super Admin' }]
+        users: [{ username: 'admin', password: 'e7d3bfb67567c3d94bcecb2ce65ef146eac83e50dc3f3b89e81bb647a8bada4c', role: 'admin', name: 'Super Admin' }]
       };
       if (typeof globalData !== 'undefined') globalData = window.globalData;
     }
@@ -1301,7 +1213,7 @@ async function handleLogin(e) {
         finance: [],
         employees: [],
         users: [
-          { username: 'admin', password: '24439613fdc37b350853c815b8da53d8d57fab41035a242240732f23eff41e66', role: 'admin', name: 'Admin' }
+          { username: 'admin', password: 'e7d3bfb67567c3d94bcecb2ce65ef146eac83e50dc3f3b89e81bb647a8bada4c', role: 'admin', name: 'Admin' }
         ]
       };
     }
@@ -1314,7 +1226,7 @@ async function handleLogin(e) {
       globalData.users = [
         {
           username: 'admin',
-          password: '24439613fdc37b350853c815b8da53d8d57fab41035a242240732f23eff41e66',
+          password: 'e7d3bfb67567c3d94bcecb2ce65ef146eac83e50dc3f3b89e81bb647a8bada4c',
           role: 'admin',
           name: 'Admin'
         }
@@ -1330,82 +1242,12 @@ async function handleLogin(e) {
       (u.password === hashedInput || u.password === password)
     );
 
-    // C. ✅ Fallback: credentials object দিয়েও check করো (settings এ change করলে এখানে থাকে)
-    if (!validUser && globalData.credentials) {
-      const cred = globalData.credentials;
-      if (cred.username === username &&
-          (cred.password === hashedInput || cred.password === password)) {
-        validUser = {
-          username: cred.username,
-          password: cred.password,
-          role: 'admin',
-          name: cred.username
-        };
-        // users array তেও sync করো
-        const existingAdmin = (globalData.users || []).find(u => u.role === 'admin');
-        if (existingAdmin) {
-          existingAdmin.username = cred.username;
-          existingAdmin.password = cred.password;
-        } else {
-          if (!globalData.users) globalData.users = [];
-          globalData.users.push({ ...validUser, name: 'Super Admin' });
-        }
-        saveToStorage();
-      }
-    }
-
-    // D. ✅ Last resort: default password check (shakib@123 or admin123)
-    if (!validUser && username === 'admin') {
-      const defaults = ['shakib@123', 'admin123', 'admin'];
-      for (const def of defaults) {
-        const defHash = await hashPassword(def);
-        const anyUser = (globalData.users || []).find(u => u.role === 'admin');
-        if (anyUser && (anyUser.password === defHash || anyUser.password === def)) {
-          if (password === def) {
-            validUser = anyUser;
-            break;
-          }
-        }
-      }
-    }
-
-    // E. ✅ EMERGENCY FALLBACK: যদি stored password hash-এর সাথে input এর hash match করে
-    // এটা সব edge case cover করে (cloud sync mismatch, migration issue, ইত্যাদি)
-    if (!validUser && username === 'admin') {
-      const anyAdminUser = (globalData.users || []).find(u => u.role === 'admin' || u.username === 'admin');
-      if (anyAdminUser) {
-        const inputHash = await hashPassword(password);
-        // Direct hash comparison (most reliable)
-        if (anyAdminUser.password === inputHash) {
-          validUser = anyAdminUser;
-        }
-        // Plain text match (backward compat)
-        else if (anyAdminUser.password === password) {
-          validUser = anyAdminUser;
-        }
-      }
-    }
-
-    // F. ✅ FINAL EMERGENCY: credentials object with hash check
-    if (!validUser && globalData.credentials) {
-      const cred = globalData.credentials;
-      const inputHash = await hashPassword(password);
-      if (cred.username === username || username === 'admin') {
-        if (cred.password === inputHash || cred.password === password) {
-          validUser = {
-            username: cred.username || username,
-            password: cred.password,
-            role: 'admin',
-            name: cred.username || username
-          };
-        }
-      }
-    }
-
     // If found with plain text, auto-migrate to hash
     if (validUser) {
       await migratePasswordIfNeeded(validUser, password);
     }
+
+    // Emergency fallback removed — use Settings to reset password if locked out
 
     // 3. Final validation
     if (validUser) {
@@ -1497,7 +1339,6 @@ function logout() {
   document.getElementById('loginError').innerText = '';
 }
 window.handleLogin = handleLogin;
-window._appHandleLogin = handleLogin; // index.html wrapper এর জন্য
 window.logout = logout;
 
 // ===================================
@@ -1876,6 +1717,10 @@ function openLoanDetail(person) {
             <td class="text-end text-danger fw-bold">${debit > 0 ? formatNumber(debit) : '-'}</td>
             <td class="text-end text-success fw-bold">${credit > 0 ? formatNumber(credit) : '-'}</td>
             <td class="text-end ${balanceClass}">${balancePrefix}${formatNumber(Math.abs(runningBalance))}</td>
+            <td class="text-center">
+              <button class="btn btn-sm btn-outline-primary me-1 loan-edit-btn" onclick="editTransaction('${tx.id}')" title="Edit" style="padding:2px 7px;font-size:0.75rem;">✏️</button>
+              <button class="btn btn-sm btn-outline-danger loan-delete-btn" onclick="deleteLoanTransaction('${tx.id}')" title="Delete" style="padding:2px 7px;font-size:0.75rem;">🗑️</button>
+            </td>
         `;
     tbody.appendChild(tr);
     rowNum++;
@@ -2550,21 +2395,6 @@ function renderSettingsLists() {
         document.getElementById('settingsPassword').value = '';
         document.getElementById('settingsPassword').placeholder = 'Type new password to change...';
       }
-      // ✅ Secret Question populate করো
-      if (document.getElementById('secretQuestion')) {
-        document.getElementById('secretQuestion').value = (globalData.credentials && globalData.credentials.secretQuestion) || '';
-      }
-      if (document.getElementById('secretAnswer')) {
-        document.getElementById('secretAnswer').value = '';
-        document.getElementById('secretAnswer').placeholder = globalData.credentials?.secretAnswer ? '(সেট আছে — পরিবর্তন করতে নতুন উত্তর লিখুন)' : 'গোপন উত্তর লিখুন';
-      }
-      // Secret section hidden রাখো by default
-      const secSection = document.getElementById('secretQuestionSection');
-      if (secSection) secSection.style.display = 'none';
-      const secToggleText = document.getElementById('secretToggleText');
-      const secToggleIcon = document.getElementById('secretToggleIcon');
-      if (secToggleText) secToggleText.textContent = 'দেখুন';
-      if (secToggleIcon) secToggleIcon.textContent = '👁️';
     }
   }
 }
@@ -2919,8 +2749,6 @@ function updateGlobalStats() {
     const d = new Date(f.date);
 
     if (f.type === 'Income') {
-      // ✅ Student Fee, Student Installment, Exam Fee — এগুলো Income এ count হবে
-      // Loan Received — income এ count হবে না (শুধু account balance এ যাবে)
       income += amt;
       // Check for current month income
       if (d.getMonth() === currentMonth && d.getFullYear() === currentYear) {
@@ -2936,39 +2764,33 @@ function updateGlobalStats() {
 
   // --- AVIATION PREMIUM DASHBOARD METRICS ---
 
-  // ── Counting Animation ──────────────────────────────────
-  function _wfCount(el, target, prefix, ms) {
-    if (!el) return;
-    const t0 = performance.now();
-    (function step(now) {
-      const p = Math.min((now - t0) / ms, 1);
-      const e = 1 - Math.pow(1 - p, 4);
-      el.innerText = prefix + formatNumber(Math.round(target * e));
-      if (p < 1) requestAnimationFrame(step);
-    })(t0);
-  }
-
-  // 1. Total Students — Cyan
+  // 1. Total Students
   const dashStudentEl = document.getElementById('dashTotalStudents');
   const dashStudentCenter = document.getElementById('dashTotalStudentsCenter');
-  if (dashStudentEl) { dashStudentEl.className = 'av-card-value value-blue'; _wfCount(dashStudentEl, globalData.students.length, '', 1200); }
+  if (dashStudentEl) dashStudentEl.innerText = globalData.students.length;
   if (dashStudentCenter) dashStudentCenter.innerText = globalData.students.length;
 
-  // 2. Total Income — Green
+  // 2. Total Income
   const dashIncomeEl = document.getElementById('dashTotalIncome');
-  if (dashIncomeEl) { dashIncomeEl.className = 'av-card-value value-green'; _wfCount(dashIncomeEl, income, '৳', 1400); }
+  if (dashIncomeEl) dashIncomeEl.innerText = '৳' + formatNumber(income);
 
-  // 3. Total Expense — Orange
+  // 3. Total Expense
   const dashExpenseEl = document.getElementById('dashTotalExpense');
-  if (dashExpenseEl) { dashExpenseEl.className = 'av-card-value value-orange'; _wfCount(dashExpenseEl, expense, '৳', 1400); }
+  if (dashExpenseEl) dashExpenseEl.innerText = '৳' + formatNumber(expense);
 
-  // 4. Net Profit / Loss — Purple or Orange
+  // 4. Net Profit / Loss
   const dashProfitEl = document.getElementById('dashTotalProfit');
   const dashProfitStatus = document.getElementById('dashProfitStatus');
+
   if (dashProfitEl) {
-    dashProfitEl.className = profit >= 0 ? 'av-card-value value-purple' : 'av-card-value value-orange';
-    if (dashProfitStatus) dashProfitStatus.innerText = profit >= 0 ? 'Profit Growth' : 'Current Loss';
-    _wfCount(dashProfitEl, Math.abs(profit), '৳', 1600);
+    dashProfitEl.innerText = '৳' + formatNumber(Math.abs(profit));
+    if (profit >= 0) {
+      dashProfitEl.className = "av-card-value text-success";
+      if (dashProfitStatus) dashProfitStatus.innerText = "Profit Growth";
+    } else {
+      dashProfitEl.className = "av-card-value text-danger";
+      if (dashProfitStatus) dashProfitStatus.innerText = "Current Loss";
+    }
   }
 
   // Update New Dashboard Widgets
@@ -3790,10 +3612,6 @@ async function handleStudentSubmit(e) {
       const index = parseInt(editIndex);
       student = window.globalData.students[index];
       if (student) {
-        const oldPaid = parseFloat(student.paid) || 0;
-        const oldMethod = student.method || 'Cash';
-        const oldName = student.name;
-
         student.name = data.name;
         student.phone = data.phone;
         student.fatherName = data.fatherName || '';
@@ -3803,9 +3621,8 @@ async function handleStudentSubmit(e) {
         student.enrollDate = data.enrollDate;
         student.method = data.method;
         student.totalPayment = parseFloat(data.totalPayment) || 0;
-        const newPaid = parseFloat(data.payment) || 0;
-        student.paid = newPaid;
-        student.due = Math.max(0, student.totalPayment - newPaid);
+        student.paid = parseFloat(data.payment) || 0;
+        student.due = parseFloat(data.due) || 0;
         student.reminderDate = data.reminderDate || null;
         student.remarks = data.remarks || student.remarks || '';
         student.bloodGroup = data.bloodGroup || '';
@@ -3816,77 +3633,6 @@ async function handleStudentSubmit(e) {
         }
 
         if (!student.installments) student.installments = [];
-
-        // ✅ FIX: Student edit করলে finance entry আপডেট করো
-        // Step 1: পুরোনো Student Fee / Student Installment entries খুঁজে বের করো
-        const oldFinanceEntries = (window.globalData.finance || []).filter(f =>
-          (f.person === oldName || f.person === student.name) &&
-          (f.category === 'Student Fee' || f.category === 'Student Installment')
-        );
-
-        const oldFinanceTotal = oldFinanceEntries.reduce((sum, f) => sum + (parseFloat(f.amount) || 0), 0);
-
-        // Step 2: paid amount পরিবর্তন হয়েছে কিনা check করো
-        const paidDiff = newPaid - oldPaid;
-
-        if (Math.abs(paidDiff) > 0.01) {
-          if (paidDiff > 0) {
-            // বেশি টাকা paid হয়েছে — নতুন difference finance এ add করো
-            const diffEntry = {
-              id: Date.now(),
-              type: 'Income',
-              method: student.method || 'Cash',
-              date: student.enrollDate || new Date().toISOString().split('T')[0],
-              category: 'Student Fee',
-              person: student.name,
-              amount: paidDiff,
-              description: `Fee update for student: ${student.name} | Batch: ${student.batch}`,
-              timestamp: new Date().toISOString()
-            };
-            window.globalData.finance.push(diffEntry);
-            if (typeof updateAccountBalance === 'function') {
-              updateAccountBalance(diffEntry.method, diffEntry.amount, diffEntry.type);
-            }
-          } else {
-            // কম টাকা — excess টা finance থেকে বাদ দাও
-            const excess = Math.abs(paidDiff);
-            // সবচেয়ে recent entry থেকে বাদ দাও
-            let remaining = excess;
-            const financeList = window.globalData.finance;
-            for (let i = financeList.length - 1; i >= 0 && remaining > 0; i--) {
-              const f = financeList[i];
-              if ((f.person === oldName || f.person === student.name) &&
-                (f.category === 'Student Fee' || f.category === 'Student Installment')) {
-                const fAmt = parseFloat(f.amount) || 0;
-                if (fAmt <= remaining) {
-                  // পুরো entry সরাও
-                  if (typeof updateAccountBalance === 'function') {
-                    updateAccountBalance(f.method || 'Cash', fAmt, 'Income', false);
-                  }
-                  financeList.splice(i, 1);
-                  remaining -= fAmt;
-                } else {
-                  // আংশিক বাদ দাও
-                  if (typeof updateAccountBalance === 'function') {
-                    updateAccountBalance(f.method || 'Cash', remaining, 'Income', false);
-                  }
-                  f.amount = fAmt - remaining;
-                  remaining = 0;
-                }
-              }
-            }
-          }
-        }
-
-        // Step 3: Name change হলে finance entries তেও name update করো
-        if (oldName !== student.name) {
-          (window.globalData.finance || []).forEach(f => {
-            if (f.person === oldName) f.person = student.name;
-            if (f.description && f.description.includes(oldName)) {
-              f.description = f.description.replace(oldName, student.name);
-            }
-          });
-        }
       }
     } else {
       // ====== ADD NEW STUDENT ======
@@ -4169,69 +3915,44 @@ function deleteInstallment(rowIndex, instIndex) {
 
   const amount = parseFloat(inst.amount) || 0;
   const method = inst.method || 'Cash';
-  const instDate = inst.date;
 
-  // ✅ FIX: isMigrated হলে আলাদাভাবে handle করো
-  if (inst.isMigrated) {
-    // Initial payment — student.paid থেকে বাদ দাও, কিন্তু installments array এ নেই
-    // Initial payment এর finance entry সরাও
-    const beforeLen = (globalData.finance || []).length;
-    globalData.finance = (globalData.finance || []).filter(f => {
-      const sameCategory = f.category === 'Student Fee' || f.category === 'Student Installment';
-      const samePerson = f.person === student.name || (f.description && f.description.includes(student.name));
-      const sameAmount = Math.abs(parseFloat(f.amount) - amount) < 0.01;
-      const sameDate = f.date === instDate;
-      return !(sameCategory && samePerson && sameAmount && sameDate);
+  // 1. Student installments array থেকে সরাও
+  if (!inst.isMigrated) {
+    // Normal installment — directly from student.installments
+    student.installments = (student.installments || []).filter((_, i) => {
+      // instIndex match করে সেটা বাদ দাও
+      return i !== instIndex;
     });
-    // যদি exact match না পায় তাহলে closest amount দিয়ে খুঁজো
-    if ((globalData.finance || []).length === beforeLen) {
-      let removed = false;
-      globalData.finance = (globalData.finance || []).filter(f => {
-        if (removed) return true;
-        const sameCategory = f.category === 'Student Fee' || f.category === 'Student Installment';
-        const samePerson = f.person === student.name;
-        const sameAmount = Math.abs(parseFloat(f.amount) - amount) < 0.01;
-        if (sameCategory && samePerson && sameAmount) { removed = true; return false; }
-        return true;
-      });
-    }
   } else {
-    // ✅ FIX: isMigrated entry যদি থাকে তাহলে instIndex adjusted করতে হবে
-    // getStudentInstallments এ isMigrated entry টা index 0 এ unshift হয়
-    // তাই real installments array এ actual index = instIndex - (isMigrated আছে কিনা ? 1 : 0)
-    const hasMigrated = installments.length > 0 && installments[0].isMigrated;
-    const realIndex = hasMigrated ? instIndex - 1 : instIndex;
-
-    if (realIndex >= 0 && student.installments && student.installments[realIndex]) {
-      student.installments.splice(realIndex, 1);
-    }
-
-    // Finance ledger থেকে matching entry সরাও
-    let removedFromFinance = false;
-    globalData.finance = (globalData.finance || []).filter(f => {
-      if (removedFromFinance) return true;
-      const sameAmount = Math.abs(parseFloat(f.amount) - amount) < 0.01;
-      const samePerson = f.person === student.name || (f.description && f.description.includes(student.name));
-      const sameDate = f.date === instDate;
-      const isStudentTx = f.category === 'Student Fee' || f.category === 'Student Installment';
-      if (sameAmount && samePerson && sameDate && isStudentTx) {
-        removedFromFinance = true;
-        return false;
-      }
-      return true;
-    });
+    // Migrated (initial payment) — paid field থেকে বাদ দাও
+    // এটা student.payment field এ আছে, installments এ নেই
+    // তাই শুধু paid/due adjust করব
   }
 
-  // Student paid/due update
+  // 2. Student paid/due update করো
   student.paid = Math.max(0, (parseFloat(student.paid) || 0) - amount);
   student.due = Math.max(0, (parseFloat(student.totalPayment) || 0) - student.paid);
 
-  // ✅ Account balance reverse করো
-  if (typeof updateAccountBalance === 'function') {
-    updateAccountBalance(method, amount, 'Income', false);
+  // 3. Finance ledger থেকেও সরাও (matching entry)
+  const beforeCount = (globalData.finance || []).length;
+  globalData.finance = (globalData.finance || []).filter(f => {
+    const sameAmount = parseFloat(f.amount) === amount;
+    const samePerson = f.person === student.name || (f.description && f.description.includes(student.name));
+    const sameMethod = !f.method || f.method === method;
+    const sameDate = !inst.date || f.date === inst.date;
+    return !(sameAmount && samePerson && sameDate);
+  });
+
+  // 4. Account balance reverse করো
+  if (method === 'Cash') {
+    globalData.cashBalance = Math.max(0, (parseFloat(globalData.cashBalance) || 0) - amount);
+  } else {
+    let acc = (globalData.bankAccounts || []).find(a => a.name === method);
+    if (!acc) acc = (globalData.mobileBanking || []).find(a => a.name === method);
+    if (acc) acc.balance = Math.max(0, (parseFloat(acc.balance) || 0) - amount);
   }
 
-  // Save
+  // 5. Save immediately to localStorage + cloud
   localStorage.setItem('wingsfly_data', JSON.stringify(window.globalData));
   if (typeof window.scheduleSyncPush === 'function') {
     window.scheduleSyncPush('Delete Installment: ' + student.name + ' ৳' + amount);
@@ -4241,6 +3962,7 @@ function deleteInstallment(rowIndex, instIndex) {
 
   showSuccessToast('Payment deleted successfully!');
 
+  // 6. Modal refresh করো
   openStudentPaymentModal(rowIndex);
   render(globalData.students);
   updateGlobalStats();
@@ -4250,6 +3972,7 @@ function deleteInstallment(rowIndex, instIndex) {
 }
 
 window.deleteInstallment = deleteInstallment;
+
 
 
 function deleteStudent(rowIndex) {
@@ -4468,6 +4191,7 @@ async function handleTransferSubmit(e) {
 
 function deleteTransaction(id) {
 
+
   // Handle both string and number IDs (localStorage/Supabase can change types)
   const sid = String(id);
   const txToDelete = globalData.finance.find(f => String(f.id) === sid);
@@ -4479,14 +4203,21 @@ function deleteTransaction(id) {
     return;
   }
 
-  // ✅ Recycle Bin
-  if (typeof moveToTrash === 'function') moveToTrash('finance', txToDelete);
-  // ✅ Activity Log
-  if (typeof logActivity === 'function') logActivity('finance', 'DELETE',
-    'Transaction মুছে ফেলা হয়েছে: ' + (txToDelete.description || txToDelete.category || String(id)), txToDelete);
-
   if (typeof updateAccountBalance === "function") {
     updateAccountBalance(txToDelete.method, txToDelete.amount, txToDelete.type, false);
+  }
+
+  // ✅ Move to Recycle Bin (soft delete)
+  if (typeof moveToTrash === 'function') {
+    moveToTrash('finance', txToDelete);
+  }
+
+  // ✅ Log to Activity History
+  if (typeof logActivity === 'function') {
+    logActivity('finance', 'DELETE',
+      `Deleted loan/transaction: ${txToDelete.description || txToDelete.category || txToDelete.type} — ৳${txToDelete.amount} (${txToDelete.type})`,
+      txToDelete
+    );
   }
 
   globalData.finance = globalData.finance.filter(f => String(f.id) !== sid);
@@ -4494,7 +4225,7 @@ function deleteTransaction(id) {
   // Render FIRST so user sees the change immediately (before async cloud push)
   renderLedger(globalData.finance);
   updateGlobalStats();
-  showSuccessToast('Transaction deleted successfully!');
+  showSuccessToast('Transaction deleted! (Recycle Bin-এ পাঠানো হয়েছে)');
 
   // FIX: Delete reason পাঠাও যাতে Data Loss Prevention bypass হয়
   const _dc = parseInt(localStorage.getItem('wings_total_deleted') || '0') + 1;
@@ -4546,6 +4277,49 @@ function editTransaction(id) {
 }
 
 window.editTransaction = editTransaction;
+
+// ===================================
+// DELETE LOAN TRANSACTION (Loan Section থেকে)
+// Recycle Bin + Activity Log সহ, Income affect করবে না
+// ===================================
+function deleteLoanTransaction(id) {
+  if (!id) return;
+  if (!confirm('এই Loan transaction টি delete করতে চান?\n(Recycle Bin-এ পাঠানো হবে, পরে Restore করা যাবে)')) return;
+
+  const sid = String(id);
+  const tx = globalData.finance.find(f => String(f.id) === sid);
+  if (!tx) { showErrorToast('Transaction not found.'); return; }
+
+  // ✅ Move to Recycle Bin
+  if (typeof moveToTrash === 'function') moveToTrash('finance', tx);
+
+  // ✅ Log to Activity History
+  if (typeof logActivity === 'function') {
+    logActivity('finance', 'DELETE',
+      `Loan Transaction Deleted: ${tx.description || tx.category || tx.type} — ৳${tx.amount} | Person: ${tx.person || '-'}`,
+      tx
+    );
+  }
+
+  // ✅ Remove from finance list (does NOT affect income - loan is not income)
+  globalData.finance = globalData.finance.filter(f => String(f.id) !== sid);
+
+  // Save
+  localStorage.setItem('wingsfly_data', JSON.stringify(window.globalData));
+  if (typeof window.scheduleSyncPush === 'function') {
+    window.scheduleSyncPush('Delete Loan Transaction: ' + (tx.description || tx.type));
+  } else if (typeof saveToStorage === 'function') {
+    saveToStorage();
+  }
+
+  // ✅ Refresh loan detail view
+  updateGlobalStats();
+  if (typeof renderLoanSummary === 'function') renderLoanSummary();
+  if (window.currentLoanPerson) openLoanDetail(window.currentLoanPerson);
+
+  showSuccessToast('✅ Loan Transaction Deleted! Recycle Bin-এ পাঠানো হয়েছে।');
+}
+window.deleteLoanTransaction = deleteLoanTransaction;
 
 async function handleEditTransactionSubmit(e) {
   e.preventDefault();
@@ -4832,17 +4606,10 @@ function handleSettingsSubmit(e) {
 
   // Update Credentials (with SHA-256 hashing)
   if (formData.adminPassword) {
-    // Confirm password validation
-    const confirmPwd = formData.adminPasswordConfirm || document.getElementById('settingsPasswordConfirm')?.value || '';
-    if (confirmPwd && formData.adminPassword !== confirmPwd) {
-      showToast('❌ পাসওয়ার্ড দুটো মিলছে না! আবার চেষ্টা করুন।', 'danger');
-      return;
-    }
     const newUsername = formData.adminUsername || 'admin';
     // Hash the new password before saving
     hashPassword(formData.adminPassword).then(hashedPwd => {
       globalData.credentials = {
-        ...globalData.credentials,
         username: newUsername,
         password: hashedPwd
       };
@@ -4872,38 +4639,6 @@ function handleSettingsSubmit(e) {
     if (globalData.credentials) globalData.credentials.username = newUsername;
     const adminUser = globalData.users && globalData.users.find(u => u.role === 'admin');
     if (adminUser) adminUser.username = newUsername;
-  }
-
-  // ✅ Secret Question সেভ করো (পাসওয়ার্ড ছাড়াও সেভ হবে)
-  // FIX: secretQuestionSection hidden থাকলে temporarily দেখাই value পড়তে
-  const _secSection = document.getElementById('secretQuestionSection');
-  const _wasHidden = _secSection && (_secSection.style.display === 'none' || _secSection.style.display === '');
-  if (_wasHidden && _secSection) _secSection.style.display = 'block';
-
-  const secretQ = (formData.secretQuestion || document.getElementById('secretQuestion')?.value || '').trim();
-  const secretA = (formData.secretAnswer || document.getElementById('secretAnswer')?.value || '').trim();
-
-  if (_wasHidden && _secSection) _secSection.style.display = 'none';
-
-  if (!globalData.credentials) globalData.credentials = { username: 'admin' };
-
-  if (secretQ) {
-    globalData.credentials.secretQuestion = secretQ;
-    if (secretA) globalData.credentials.secretAnswer = secretA.toLowerCase();
-    // আলাদা localStorage key তেও backup রাখো — cloud sync এ overwrite হলেও থাকবে
-    localStorage.setItem('wingsfly_secret_q', secretQ);
-    if (secretA) localStorage.setItem('wingsfly_secret_a', secretA.toLowerCase());
-    showSuccessToast('🛡️ Secret Question সেভ হয়েছে!');
-  } else if (globalData.credentials.secretQuestion) {
-    // existing question টিকিয়ে রাখো, form এ না দেখালেও মুছবে না
-  } else {
-    // localStorage backup থেকে restore করার চেষ্টা করো
-    const backupQ = localStorage.getItem('wingsfly_secret_q');
-    const backupA = localStorage.getItem('wingsfly_secret_a');
-    if (backupQ) {
-      globalData.credentials.secretQuestion = backupQ;
-      if (backupA) globalData.credentials.secretAnswer = backupA;
-    }
   }
 
   saveToStorage();
@@ -5153,13 +4888,8 @@ function printReport(type) {
       return matchSearch && matchDate;
     }).sort((a, b) => b.rowIndex - a.rowIndex);
 
-    // ✅ Total row calculate
-    const grandTotal    = students.reduce((sum, s) => sum + (parseFloat(s.totalPayment) || 0), 0);
-    const grandPaid     = students.reduce((sum, s) => sum + (parseFloat(s.paid) || 0), 0);
-    const grandDue      = students.reduce((sum, s) => sum + (parseFloat(s.due) || 0), 0);
-
     tableContent = `
-      <table class="report-table" style="width:100%; border-collapse:collapse;">
+      <table class="report-table">
         <thead>
           <tr>
             <th style="text-align: left;">Date</th>
@@ -5184,22 +4914,6 @@ function printReport(type) {
             </tr>
           `).join('')}
         </tbody>
-        <tfoot>
-          <tr style="background:#f1f5f9; border-top:2px solid #1e293b;">
-            <td colspan="4" style="text-align:right; padding:10px 8px; font-weight:900; font-size:13px; color:#1e293b; text-transform:uppercase; letter-spacing:1px;">
-              TOTAL &rarr;
-            </td>
-            <td style="text-align:right; padding:10px 8px; font-weight:900; font-size:13px; color:#1e293b; border-left:1px solid #cbd5e1;">
-              ৳${formatNumber(grandTotal)}
-            </td>
-            <td style="text-align:right; padding:10px 8px; font-weight:900; font-size:13px; color:#10b981; border-left:1px solid #cbd5e1;">
-              ৳${formatNumber(grandPaid)}
-            </td>
-            <td style="text-align:right; padding:10px 8px; font-weight:900; font-size:13px; color:#ef4444; border-left:1px solid #cbd5e1;">
-              ৳${formatNumber(grandDue)}
-            </td>
-          </tr>
-        </tfoot>
       </table>
     `;
   } else if (type === 'ledger') {
@@ -7486,15 +7200,7 @@ async function handleAccountSubmit(e) {
 async function deleteAccount(index) {
   if (!confirm('Are you sure you want to delete this bank account?')) return;
 
-  const accToDelete = globalData.bankAccounts[index];
-  const accName = accToDelete ? accToDelete.name : 'Unknown';
-
-  // ✅ Recycle Bin
-  if (accToDelete && typeof moveToTrash === 'function') moveToTrash('bankAccount', accToDelete);
-  // ✅ Activity Log
-  if (typeof logActivity === 'function') logActivity('bankAccount', 'DELETE',
-    'Bank Account মুছে ফেলা হয়েছে: ' + accName, accToDelete);
-
+  const accName = globalData.bankAccounts[index].name;
   globalData.bankAccounts.splice(index, 1);
 
   // No need to remove from paymentMethods - handled dynamically in populateDropdowns
@@ -7718,108 +7424,47 @@ function populateBatchFilter() {
 
 function applyAdvancedSearch() {
   const batch = document.getElementById('batchFilterSelect')?.value;
-  const course = document.getElementById('courseFilterSelect')?.value;
+  const course = document.getElementById('courseFilterSelect')?.value; // ✅ FIX: course filter যোগ
   const startDate = document.getElementById('advSearchStartDate')?.value;
   const endDate = document.getElementById('advSearchEndDate')?.value;
 
-  // 1. Filter Students and Calculate Student-only Income
-  const filteredStudents = globalData.students.filter(s => {
+  const filtered = globalData.students.filter(s => {
     const matchBatch = !batch || s.batch?.toString() === batch;
-    const matchCourse = !course || s.course === course;
+    const matchCourse = !course || s.course === course; // ✅ FIX: course match
     const matchStart = !startDate || s.enrollDate >= startDate;
     const matchEnd = !endDate || s.enrollDate <= endDate;
     return matchBatch && matchCourse && matchStart && matchEnd;
   });
 
-  const totalIncome = filteredStudents.reduce((sum, s) => sum + (parseFloat(s.paid) || 0), 0);
-  const totalDue = filteredStudents.reduce((sum, s) => sum + (parseFloat(s.due) || 0), 0);
+  // Calculate totals
+  const totalCollected = filtered.reduce((sum, s) => sum + (parseFloat(s.paid) || 0), 0);
+  const totalDue = filtered.reduce((sum, s) => sum + (parseFloat(s.due) || 0), 0);
 
-  // 2. Calculate Total Expenses within the same Date Range
-  let totalExpense = 0;
-  if (globalData.finance) {
-    globalData.finance.forEach(f => {
-      const fDate = f.date;
-      const matchStart = !startDate || fDate >= startDate;
-      const matchEnd = !endDate || fDate <= endDate;
-      if (matchStart && matchEnd) {
-        if (f.type === 'Expense' || f.type === 'ব্যয়' || f.type === 'Loan Given') {
-          totalExpense += (parseFloat(f.amount) || 0);
-        }
-      }
-    });
-  }
-
-  // 3. Calculate Net Profit/Loss
-  const netProfit = totalIncome - totalExpense;
-
-  // 4. Update UI
-  document.getElementById('advSearchIncome').innerText = '৳' + formatNumber(totalIncome);
-  document.getElementById('advSearchCollected').innerText = '৳' + formatNumber(totalIncome);
+  // Update UI
+  document.getElementById('advSearchIncome').innerText = '৳' + formatNumber(totalCollected);
+  document.getElementById('advSearchCollected').innerText = '৳' + formatNumber(totalCollected);
   document.getElementById('advSearchDue').innerText = '৳' + formatNumber(totalDue);
-  document.getElementById('advSearchCount').innerText = filteredStudents.length;
-
-  const expEl = document.getElementById('advSearchExpense');
-  if (expEl) expEl.innerText = '৳' + formatNumber(totalExpense);
-
-  const profitEl = document.getElementById('advSearchProfit');
-  if (profitEl) {
-    profitEl.innerText = '৳' + formatNumber(Math.abs(netProfit));
-    profitEl.className = netProfit >= 0 ? 'h6 fw-bold text-success mb-0' : 'h6 fw-bold text-danger mb-0';
-    // লস হলে মাইনাস সাইন দেখানোর জন্য
-    if (netProfit < 0) profitEl.innerText = '- ৳' + formatNumber(Math.abs(netProfit));
-  }
-
-  // Previous Due & Previous Profit calculation
-  const prevDueInput = parseFloat(document.getElementById('advPrevDue')?.value) || 0;
-  const prevProfitInput = parseFloat(document.getElementById('advPrevProfit')?.value) || 0;
-
-  const totalDueCombined = totalDue + prevDueInput;
-  const totalProfitCombined = netProfit + prevProfitInput;
-
-  const prevDueEl = document.getElementById('advSummPrevDue');
-  const prevProfitEl = document.getElementById('advSummPrevProfit');
-  const totalDueCombEl = document.getElementById('advSummTotalDue');
-  const totalProfitCombEl = document.getElementById('advSummTotalProfit');
-
-  if (prevDueEl) prevDueEl.innerText = '৳' + formatNumber(prevDueInput);
-  if (prevProfitEl) prevProfitEl.innerText = '৳' + formatNumber(prevProfitInput);
-  if (totalDueCombEl) totalDueCombEl.innerText = '৳' + formatNumber(totalDueCombined);
-  if (totalProfitCombEl) {
-    totalProfitCombEl.innerText = (totalProfitCombined < 0 ? '- ' : '') + '৳' + formatNumber(Math.abs(totalProfitCombined));
-    totalProfitCombEl.style.color = totalProfitCombined >= 0 ? '#38bdf8' : '#f87171';
-  }
+  document.getElementById('advSearchCount').innerText = filtered.length;
 
   // Show/hide summary
   const summary = document.getElementById('advSearchSummary');
-  if (batch || course || startDate || endDate || prevDueInput || prevProfitInput) {
+  if (batch || course || startDate || endDate) { // ✅ FIX: course ও check করো
     summary.classList.remove('d-none');
   } else {
     summary.classList.add('d-none');
   }
 
-  // Render filtered students in table
-  render(filteredStudents);
+  // Render filtered students
+  render(filtered);
 }
 
 function clearAdvancedSearch() {
   document.getElementById('batchFilterSelect').value = '';
   if (document.getElementById('courseFilterSelect')) {
-    document.getElementById('courseFilterSelect').value = '';
+    document.getElementById('courseFilterSelect').value = ''; // ✅ FIX: course ও reset
   }
   document.getElementById('advSearchStartDate').value = '';
   document.getElementById('advSearchEndDate').value = '';
-  // ✅ Previous Due ও Profit clear করো
-  const pd = document.getElementById('advPrevDue');
-  const pp = document.getElementById('advPrevProfit');
-  if (pd) pd.value = '';
-  if (pp) pp.value = '';
-  // ✅ Summary values reset
-  ['advSearchIncome','advSearchCollected','advSearchDue','advSearchCount',
-   'advSearchExpense','advSearchProfit','advSummPrevDue','advSummPrevProfit',
-   'advSummTotalDue','advSummTotalProfit'].forEach(id => {
-    const el = document.getElementById(id);
-    if (el) el.innerText = id === 'advSearchCount' ? '0' : '৳0';
-  });
   document.getElementById('advSearchSummary').classList.add('d-none');
   render(globalData.students);
 }
@@ -8013,15 +7658,7 @@ async function handleMobileSubmit(e) {
 async function deleteMobileAccount(index) {
   if (!confirm('Are you sure you want to delete this mobile banking account?')) return;
 
-  const mobileToDelete = globalData.mobileBanking[index];
-  const accName = mobileToDelete ? mobileToDelete.name : 'Unknown';
-
-  // ✅ Recycle Bin
-  if (mobileToDelete && typeof moveToTrash === 'function') moveToTrash('mobileAccount', mobileToDelete);
-  // ✅ Activity Log
-  if (typeof logActivity === 'function') logActivity('mobileAccount', 'DELETE',
-    'Mobile Account মুছে ফেলা হয়েছে: ' + accName, mobileToDelete);
-
+  const accName = globalData.mobileBanking[index].name;
   globalData.mobileBanking.splice(index, 1);
 
   await saveToStorage();
@@ -9517,15 +9154,6 @@ async function deleteVisitor(index) {
   if (!confirm('Delete this visitor record?')) return;
   const visitors = window.globalData.visitors || [];
   if (!visitors[index]) return;
-
-  const visitorToDelete = visitors[index];
-
-  // ✅ Recycle Bin
-  if (typeof moveToTrash === 'function') moveToTrash('visitor', visitorToDelete);
-  // ✅ Activity Log
-  if (typeof logActivity === 'function') logActivity('visitor', 'DELETE',
-    'Visitor মুছে ফেলা হয়েছে: ' + (visitorToDelete.name || visitorToDelete.visitorName || 'Unknown'), visitorToDelete);
-
   visitors.splice(index, 1);
   await saveToStorage();
   showSuccessToast('🗑️ Visitor deleted.');
@@ -9935,15 +9563,6 @@ function publishNotice() {
   noticeToast(`✅ নোটিস প্রকাশিত! মেয়াদ: ${dLabel}`, 'success');
 }
 function deleteNotice() {
-  // ✅ Activity Log (Notice ছোট data, Recycle Bin এ রাখা দরকার নেই)
-  try {
-    const curNotice = window.globalData.settings && window.globalData.settings.activeNotice;
-    if (curNotice && typeof logActivity === 'function') {
-      logActivity('notice', 'DELETE', 'নোটিস মুছে ফেলা হয়েছে: "' + (curNotice.title || 'Notice') + '"', curNotice);
-    }
-    // ✅ Recycle Bin এও রাখো
-    if (curNotice && typeof moveToTrash === 'function') moveToTrash('notice', curNotice);
-  } catch(e) {}
   _noticeSave(null);
   hideNoticeBanner();
   closeNoticeModal();
@@ -10937,609 +10556,3 @@ function exportBatchReportExcel() {
   document.body.removeChild(link);
 }
 window.exportBatchReportExcel = exportBatchReportExcel;
-
-// ============================================================
-// EXAM REGISTRATION — Finance Ledger এ Exam Fee যোগ করো
-// ============================================================
-
-function handleExamRegistration(e) {
-  e.preventDefault();
-  const form = document.getElementById('examRegistrationForm');
-  const formData = {};
-  new FormData(form).forEach((value, key) => formData[key] = value);
-
-  const examFee = parseFloat(formData.examFee) || 0;
-  const paymentMethod = formData.paymentMethod || 'Cash';
-  const studentName = (formData.studentName || '').trim();
-  const regDate = formData.registrationDate || new Date().toISOString().split('T')[0];
-
-  if (!studentName) {
-    showErrorToast('❌ Student name is required!');
-    return;
-  }
-  if (examFee <= 0) {
-    showErrorToast('❌ Please enter a valid exam fee!');
-    return;
-  }
-  if (!paymentMethod) {
-    showErrorToast('❌ Payment method is required!');
-    return;
-  }
-
-  // Generate registration ID
-  const regId = 'EXAM-' + Date.now();
-
-  // Exam registration object তৈরি করো
-  const examReg = {
-    id: regId,
-    registrationId: regId,
-    studentName: studentName,
-    studentId: formData.studentId || '',
-    studentBatch: formData.studentBatch || '',
-    examSession: formData.examSession || '',
-    subjectName: formData.subjectName || '',
-    examFee: examFee,
-    paymentMethod: paymentMethod,
-    registrationDate: regDate,
-    examComment: formData.examComment || '',
-    timestamp: new Date().toISOString()
-  };
-
-  // examRegistrations array এ যোগ করো
-  if (!window.globalData.examRegistrations) window.globalData.examRegistrations = [];
-  window.globalData.examRegistrations.push(examReg);
-
-  // ✅ Finance Ledger এ Exam Fee Income যোগ করো
-  const financeEntry = {
-    id: Date.now() + 1,
-    type: 'Income',
-    method: paymentMethod,
-    date: regDate,
-    category: 'Exam Fee',
-    person: studentName,
-    amount: examFee,
-    description: `Exam fee: ${formData.subjectName || 'Exam'} | Student: ${studentName} | Session: ${formData.examSession || '-'}`,
-    timestamp: new Date().toISOString()
-  };
-  window.globalData.finance.push(financeEntry);
-
-  // ✅ Account balance update করো
-  if (typeof updateAccountBalance === 'function') {
-    updateAccountBalance(paymentMethod, examFee, 'Income');
-  }
-
-  // Save করো
-  saveToStorage();
-  if (typeof window.scheduleSyncPush === 'function') {
-    window.scheduleSyncPush('Exam Registration: ' + studentName + ' ৳' + examFee);
-  }
-
-  showSuccessToast(`✅ Exam registered! Fee ৳${formatNumber(examFee)} income এ যোগ হয়েছে।`);
-
-  // Form reset
-  form.reset();
-  const today = new Date().toISOString().split('T')[0];
-  const regDateInput = document.getElementById('examRegistrationDate');
-  if (regDateInput) regDateInput.value = today;
-
-  // Refresh
-  updateGlobalStats();
-  if (typeof renderLedger === 'function') renderLedger(window.globalData.finance);
-  if (typeof renderExamTable === 'function') renderExamTable();
-}
-window.handleExamRegistration = handleExamRegistration;
-
-// ============================================================
-// SECRET QUESTION — FORGOT PASSWORD SYSTEM
-// ============================================================
-
-function showForgotPasswordModal() {
-  const modal = document.getElementById('forgotPasswordModal');
-  if (!modal) return;
-
-  const q = (globalData.credentials && globalData.credentials.secretQuestion) ||
-            (globalData.users && globalData.users.find(u=>u.role==='admin') && globalData.users.find(u=>u.role==='admin').secretQuestion) || '';
-
-  if (!q) {
-    // Secret Question সেট না থাকলেও modal দেখাও — একটি info message দিয়ে
-    document.getElementById('fpm-step1').style.display = 'block';
-    document.getElementById('fpm-step2').style.display = 'none';
-    document.getElementById('fpm-question-display').textContent = '⚠️ Secret Question সেট নেই। Settings > Security তে গিয়ে আগে সেট করুন। তবুও উত্তর দিয়ে চেষ্টা করুন।';
-    const msg = document.getElementById('fpm-msg');
-    if (msg) {
-      msg.style.display = 'block';
-      msg.style.background = 'rgba(255,200,0,0.12)';
-      msg.style.border = '1px solid rgba(255,200,0,0.3)';
-      msg.style.color = '#ffd700';
-      msg.innerHTML = '⚠️ এখনো Secret Question সেট করা হয়নি। Settings > Security তে গিয়ে সেট করুন।<br><br>অথবা admin password: <strong>shakib@123</strong> দিয়ে login করে দেখুন।';
-    }
-    modal.style.display = 'flex';
-    return;
-  }
-
-  document.getElementById('fpm-step1').style.display = 'block';
-  document.getElementById('fpm-step2').style.display = 'none';
-  document.getElementById('fpm-question-display').textContent = q;
-
-  const ansInput = document.getElementById('fpm-answer-input');
-  if (ansInput) { ansInput.value = ''; }
-  const msg = document.getElementById('fpm-msg');
-  if (msg) msg.style.display = 'none';
-
-  modal.style.display = 'flex';
-  setTimeout(() => { if (ansInput) ansInput.focus(); }, 100);
-}
-window.showForgotPasswordModal = showForgotPasswordModal;
-
-function hideForgotPasswordModal() {
-  const modal = document.getElementById('forgotPasswordModal');
-  if (modal) modal.style.display = 'none';
-}
-window.hideForgotPasswordModal = hideForgotPasswordModal;
-
-function checkSecretAnswer() {
-  const input = (document.getElementById('fpm-answer-input').value || '').trim().toLowerCase();
-  const stored = ((globalData.credentials && globalData.credentials.secretAnswer) || '').trim().toLowerCase();
-  const msg = document.getElementById('fpm-msg');
-
-  if (!input) {
-    msg.style.display = 'block';
-    msg.style.background = 'rgba(255,200,0,0.12)';
-    msg.style.border = '1px solid rgba(255,200,0,0.3)';
-    msg.style.color = '#ffd700';
-    msg.innerHTML = '⚠️ উত্তর লিখুন!';
-    return;
-  }
-  if (input !== stored) {
-    msg.style.display = 'block';
-    msg.style.background = 'rgba(255,60,80,0.12)';
-    msg.style.border = '1px solid rgba(255,60,80,0.3)';
-    msg.style.color = '#ff6b7a';
-    msg.innerHTML = '❌ উত্তর সঠিক নয়! আবার চেষ্টা করুন।';
-    document.getElementById('fpm-answer-input').value = '';
-    document.getElementById('fpm-answer-input').focus();
-    return;
-  }
-
-  // সঠিক — Step 2 দেখাও
-  document.getElementById('fpm-step1').style.display = 'none';
-  document.getElementById('fpm-step2').style.display = 'block';
-  document.getElementById('fpm-msg2').style.display = 'none';
-  document.getElementById('fpm-new-password').value = '';
-  document.getElementById('fpm-confirm-password').value = '';
-  setTimeout(() => document.getElementById('fpm-new-password').focus(), 100);
-}
-window.checkSecretAnswer = checkSecretAnswer;
-
-async function resetPasswordFromModal() {
-  const newPwd = document.getElementById('fpm-new-password').value;
-  const confirmPwd = document.getElementById('fpm-confirm-password').value;
-  const msg2 = document.getElementById('fpm-msg2');
-
-  if (!newPwd || newPwd.length < 4) {
-    msg2.style.display = 'block';
-    msg2.style.background = 'rgba(255,200,0,0.12)';
-    msg2.style.border = '1px solid rgba(255,200,0,0.3)';
-    msg2.style.color = '#ffd700';
-    msg2.innerHTML = '⚠️ পাসওয়ার্ড কমপক্ষে ৪ অক্ষরের হতে হবে!';
-    return;
-  }
-  if (newPwd !== confirmPwd) {
-    msg2.style.display = 'block';
-    msg2.style.background = 'rgba(255,60,80,0.12)';
-    msg2.style.border = '1px solid rgba(255,60,80,0.3)';
-    msg2.style.color = '#ff6b7a';
-    msg2.innerHTML = '❌ পাসওয়ার্ড দুটো মিলছে না!';
-    return;
-  }
-
-  msg2.style.display = 'block';
-  msg2.style.background = 'rgba(0,200,255,0.1)';
-  msg2.style.border = '1px solid rgba(0,200,255,0.3)';
-  msg2.style.color = '#00c8ff';
-  msg2.innerHTML = '⏳ সেভ হচ্ছে...';
-
-  try {
-    const hashedPwd = await hashPassword(newPwd);
-    if (!globalData.credentials) globalData.credentials = { username: 'admin' };
-    globalData.credentials.password = hashedPwd;
-
-    if (globalData.users && Array.isArray(globalData.users)) {
-      const adminUser = globalData.users.find(u => u.role === 'admin');
-      if (adminUser) adminUser.password = hashedPwd;
-    }
-
-    saveToStorage();
-    if (typeof window.scheduleSyncPush === 'function') {
-      window.scheduleSyncPush('Password reset via Secret Question');
-    }
-
-    msg2.style.background = 'rgba(0,200,83,0.12)';
-    msg2.style.border = '1px solid rgba(0,200,83,0.3)';
-    msg2.style.color = '#00ff96';
-    msg2.innerHTML = '✅ পাসওয়ার্ড পরিবর্তন হয়েছে! নতুন পাসওয়ার্ড দিয়ে লগিন করুন।';
-    setTimeout(() => hideForgotPasswordModal(), 2500);
-  } catch (err) {
-    msg2.style.background = 'rgba(255,60,80,0.12)';
-    msg2.style.border = '1px solid rgba(255,60,80,0.3)';
-    msg2.style.color = '#ff6b7a';
-    msg2.innerHTML = '❌ সমস্যা হয়েছে: ' + err.message;
-  }
-}
-window.resetPasswordFromModal = resetPasswordFromModal;
-
-// Secret Question section hide/show toggle
-function toggleSecretQuestionSection() {
-  const section = document.getElementById('secretQuestionSection');
-  const toggleText = document.getElementById('secretToggleText');
-  const toggleIcon = document.getElementById('secretToggleIcon');
-  if (!section) return;
-
-  const isHidden = section.style.display === 'none' || section.style.display === '';
-  if (isHidden) {
-    section.style.display = 'block';
-    if (toggleText) toggleText.textContent = 'লুকান';
-    if (toggleIcon) toggleIcon.textContent = '🙈';
-    // Question ও answer populate করো
-    if (document.getElementById('secretQuestion')) {
-      document.getElementById('secretQuestion').value = (globalData.credentials && globalData.credentials.secretQuestion) || '';
-    }
-    if (document.getElementById('secretAnswer')) {
-      document.getElementById('secretAnswer').value = '';
-      document.getElementById('secretAnswer').placeholder = (globalData.credentials && globalData.credentials.secretAnswer)
-        ? '(সেট আছে — পরিবর্তন করতে নতুন উত্তর লিখুন)'
-        : 'গোপন উত্তর লিখুন';
-    }
-  } else {
-    section.style.display = 'none';
-    if (toggleText) toggleText.textContent = 'দেখুন';
-    if (toggleIcon) toggleIcon.textContent = '👁️';
-  }
-}
-window.toggleSecretQuestionSection = toggleSecretQuestionSection;
-
-// Password match checker for settings
-function checkPasswordMatch() {
-  const pass = document.getElementById('settingsPassword');
-  const confirm = document.getElementById('settingsPasswordConfirm');
-  const msg = document.getElementById('passwordMatchMsg');
-  if (!pass || !confirm || !msg) return;
-  const p1 = pass.value;
-  const p2 = confirm.value;
-  if (!p2) { msg.style.display = 'none'; return; }
-  msg.style.display = 'block';
-  if (p1 === p2) {
-    msg.innerHTML = '✅ পাসওয়ার্ড মিলেছে!';
-    msg.style.color = '#198754';
-  } else {
-    msg.innerHTML = '❌ পাসওয়ার্ড মিলছে না!';
-    msg.style.color = '#dc3545';
-  }
-}
-window.checkPasswordMatch = checkPasswordMatch;
-
-// Click outside to close
-document.addEventListener('click', function(e) {
-  const modal = document.getElementById('forgotPasswordModal');
-  if (modal && e.target === modal) hideForgotPasswordModal();
-});
-
-// ===================================
-// KEEP RECORD / KEEP NOTE SYSTEM
-// ===================================
-
-function getKeepRecords() {
-  try {
-    return JSON.parse(localStorage.getItem('wingsfly_keep_records') || '[]');
-  } catch(e) { return []; }
-}
-
-function saveKeepRecordsToStorage(records) {
-  localStorage.setItem('wingsfly_keep_records', JSON.stringify(records));
-}
-
-function openKeepRecordModal(editId) {
-  // Inline form — Settings modal এর ভেতরেই দেখাবে, কোনো popup নেই
-  const form = document.getElementById('krInlineForm');
-  if (!form) return;
-
-  // Fields reset
-  document.getElementById('krEditId').value = '';
-  document.getElementById('krNoteDate').value = new Date().toISOString().split('T')[0];
-  document.getElementById('krNoteTag').value = 'General';
-  document.getElementById('krNoteTitle').value = '';
-  document.getElementById('krNoteBody').value = '';
-  document.getElementById('krModalTitle').textContent = '📝 নতুন নোট';
-
-  if (editId) {
-    const records = getKeepRecords();
-    const rec = records.find(r => r.id === editId);
-    if (rec) {
-      document.getElementById('krEditId').value = rec.id;
-      document.getElementById('krNoteDate').value = rec.date || '';
-      document.getElementById('krNoteTag').value = rec.tag || 'General';
-      document.getElementById('krNoteTitle').value = rec.title || '';
-      document.getElementById('krNoteBody').value = rec.body || '';
-      document.getElementById('krModalTitle').textContent = '✏️ নোট এডিট করুন';
-    }
-  }
-
-  form.style.display = 'block';
-  // form এ scroll করো
-  form.scrollIntoView({ behavior: 'smooth', block: 'start' });
-}
-window.openKeepRecordModal = openKeepRecordModal;
-
-function closeKeepRecordModal() {
-  const form = document.getElementById('krInlineForm');
-  if (form) form.style.display = 'none';
-}
-window.closeKeepRecordModal = closeKeepRecordModal;
-
-function saveKeepRecord() {
-  const date = document.getElementById('krNoteDate').value;
-  const tag = document.getElementById('krNoteTag').value;
-  const title = document.getElementById('krNoteTitle').value.trim();
-  const body = document.getElementById('krNoteBody').value.trim();
-
-  if (!title && !body) {
-    if (typeof showToast === 'function') showToast('শিরোনাম বা নোট লিখুন!', 'warning');
-    return;
-  }
-
-  const records = getKeepRecords();
-  const editId = document.getElementById('krEditId').value;
-
-  if (editId) {
-    const idx = records.findIndex(r => r.id === editId);
-    if (idx !== -1) {
-      records[idx] = { ...records[idx], date, tag, title, body, updatedAt: new Date().toISOString() };
-    }
-  } else {
-    records.unshift({
-      id: 'kr_' + Date.now(),
-      date: date || new Date().toISOString().split('T')[0],
-      tag: tag || 'General',
-      title,
-      body,
-      createdAt: new Date().toISOString()
-    });
-  }
-
-  saveKeepRecordsToStorage(records);
-  closeKeepRecordModal();
-  renderKeepRecords();
-  if (typeof showToast === 'function') showToast('✅ নোট সেভ হয়েছে!', 'success');
-}
-window.saveKeepRecord = saveKeepRecord;
-
-function deleteKeepRecord(id) {
-  if (!confirm('এই নোটটি মুছে ফেলবেন?')) return;
-  const allRecords = getKeepRecords();
-  const target = allRecords.find(r => r.id === id);
-
-  // ✅ Recycle Bin এ পাঠাও
-  if (target && typeof window.moveToTrash === 'function') {
-    window.moveToTrash('keepRecord', target);
-  }
-
-  // ✅ Activity Log এ যোগ করো
-  if (target) {
-    try {
-      if (!window.globalData.activityHistory) window.globalData.activityHistory = [];
-      window.globalData.activityHistory.unshift({
-        id: Date.now(),
-        action: 'Delete',
-        type: 'Keep Record',
-        description: 'নোট মুছে ফেলা হয়েছে: "' + (target.title || 'Untitled') + '"',
-        timestamp: new Date().toISOString(),
-        user: sessionStorage.getItem('username') || 'Admin'
-      });
-      if (window.globalData.activityHistory.length > 500) {
-        window.globalData.activityHistory = window.globalData.activityHistory.slice(0, 500);
-      }
-    } catch(e) {}
-  }
-
-  const records = allRecords.filter(r => r.id !== id);
-  saveKeepRecordsToStorage(records);
-  renderKeepRecords();
-  if (typeof showToast === 'function') showToast('নোট মুছে গেছে', 'info');
-  if (typeof window.scheduleSyncPush === 'function') window.scheduleSyncPush('Keep Record Deleted');
-}
-window.deleteKeepRecord = deleteKeepRecord;
-
-const KR_TAG_COLORS = {
-  General: '#6c757d',
-  Finance: '#198754',
-  Student: '#0d6efd',
-  Important: '#dc3545',
-  Reminder: '#fd7e14'
-};
-
-function renderKeepRecords() {
-  const container = document.getElementById('krRecordsList');
-  if (!container) return;
-
-  const filterDate = document.getElementById('krFilterDate')?.value || '';
-  const filterTag = document.getElementById('krFilterTag')?.value || '';
-  const search = (document.getElementById('krSearch')?.value || '').toLowerCase();
-
-  let records = getKeepRecords();
-
-  if (filterDate) records = records.filter(r => r.date === filterDate);
-  if (filterTag) records = records.filter(r => r.tag === filterTag);
-  if (search) records = records.filter(r =>
-    (r.title || '').toLowerCase().includes(search) ||
-    (r.body || '').toLowerCase().includes(search)
-  );
-
-  // Sort: newest date first
-  records.sort((a, b) => (b.date || '').localeCompare(a.date || '') || (b.createdAt || '').localeCompare(a.createdAt || ''));
-
-  if (records.length === 0) {
-    container.innerHTML = '<div class="text-muted text-center py-5" style="font-size:0.9rem;">📭 কোনো নোট পাওয়া যায়নি</div>';
-    return;
-  }
-
-  container.innerHTML = records.map(rec => {
-    const tagColor = KR_TAG_COLORS[rec.tag] || '#6c757d';
-    const bodyPreview = (rec.body || '').length > 140 ? rec.body.substring(0, 140) + '...' : (rec.body || '');
-    return `
-      <div style="background:var(--bg-card,#1e2530); border:1px solid rgba(255,255,255,0.08); border-radius:12px; padding:12px 14px;">
-        <div style="display:flex; align-items:center; gap:8px; margin-bottom:6px; flex-wrap:nowrap;">
-          <span style="background:${tagColor}22; color:${tagColor}; border:1px solid ${tagColor}55; border-radius:6px; padding:1px 8px; font-size:0.7rem; font-weight:700; white-space:nowrap; flex-shrink:0;">${rec.tag || 'General'}</span>
-          <span style="color:#ffd54f; font-size:0.75rem; white-space:nowrap; flex-shrink:0;">📅 ${rec.date || ''}</span>
-          <div style="margin-left:auto; display:flex; gap:6px; flex-shrink:0;">
-            <button type="button" title="Edit" style="padding:3px 9px; font-size:0.75rem; background:rgba(13,110,253,0.15); color:#6ea8fe; border:1px solid rgba(13,110,253,0.3); border-radius:6px; cursor:pointer; white-space:nowrap;" onclick="event.preventDefault(); event.stopPropagation(); openKeepRecordModal('${rec.id}')">✏️ Edit</button>
-            <button type="button" title="Delete" style="padding:3px 9px; font-size:0.75rem; background:rgba(220,53,69,0.15); color:#f87171; border:1px solid rgba(220,53,69,0.3); border-radius:6px; cursor:pointer; white-space:nowrap;" onclick="event.preventDefault(); event.stopPropagation(); deleteKeepRecord('${rec.id}')">🗑️</button>
-          </div>
-        </div>
-        ${rec.title ? `<div style="color:#e2e8f0; font-size:0.9rem; font-weight:700; margin-bottom:3px;">${rec.title}</div>` : ''}
-        ${bodyPreview ? `<div style="color:#94a3b8; font-size:0.82rem; line-height:1.55; white-space:pre-wrap;">${bodyPreview}</div>` : ''}
-      </div>`;
-  }).join('');
-}
-window.renderKeepRecords = renderKeepRecords;
-
-// Close modal on backdrop click
-document.addEventListener('click', function(e) {
-  const backdrop = document.getElementById('krModalBackdrop');
-  if (backdrop && e.target === backdrop) closeKeepRecordModal();
-});
-
-// ===================================
-// PAID vs FINANCE MISMATCH AUTO-FIX
-// ===================================
-function fixAllPaidFinanceMismatch() {
-  const resultEl = document.getElementById('krFixResult');
-  if (resultEl) resultEl.innerHTML = '<span class="text-muted">🔄 চেক করা হচ্ছে...</span>';
-  try {
-    const students = window.globalData.students || [];
-    const finance = window.globalData.finance || [];
-    let fixedCount = 0;
-    let mismatches = [];
-
-    students.forEach((student, idx) => {
-      const name = student.name;
-      const nameLower = (name || '').trim().toLowerCase();
-      const studentPaid = parseFloat(student.paid) || 0;
-      if (studentPaid === 0) return; // paid 0 হলে skip
-
-      // ✅ Case-insensitive person name match
-      const finRecords = finance.filter(f =>
-        (f.person || '').trim().toLowerCase() === nameLower &&
-        (f.category === 'Student Fee' || f.category === 'Student Installment') &&
-        f.type === 'Income'
-      );
-      const finTotal = finRecords.reduce((sum, f) => sum + (parseFloat(f.amount) || 0), 0);
-
-      const diff = studentPaid - finTotal;
-      // finance entry নেই কিন্তু paid আছে — এটাও fix করো
-      if (Math.abs(diff) > 0.5 || (finTotal === 0 && studentPaid > 0)) {
-        mismatches.push({ name, studentPaid, finTotal, diff: studentPaid - finTotal });
-        if (studentPaid > finTotal) {
-          // Finance কম / নেই — correction entry যোগ করো
-          const corrAmt = studentPaid - finTotal;
-          window.globalData.finance.push({
-            id: 'fix_' + Date.now() + '_' + idx,
-            type: 'Income',
-            method: student.method || 'Cash',
-            date: student.enrollDate || new Date().toISOString().split('T')[0],
-            category: 'Student Fee',
-            person: name,
-            amount: corrAmt,
-            description: '[Auto-Fix] Paid-Finance correction for ' + name,
-            timestamp: new Date().toISOString()
-          });
-        } else {
-          // Finance বেশি — student.paid কে finance এর সাথে মিলিয়ে দাও
-          student.paid = Math.round(finTotal * 100) / 100;
-          student.due = Math.max(0, (parseFloat(student.totalPayment) || 0) - student.paid);
-        }
-        fixedCount++;
-      }
-    });
-
-    if (fixedCount > 0) {
-      // ✅ local + cloud উভয়ে save করো
-      saveToStorage().then(() => {
-        if (typeof window.saveToCloud === 'function') window.saveToCloud();
-      });
-      if (resultEl) {
-        resultEl.innerHTML = '<span class="text-success fw-bold">✅ ' + fixedCount + 'টি mismatch fix হয়েছে!</span><br><small class="text-muted">' +
-          mismatches.map(m => m.name + ': paid ৳' + m.studentPaid + ' vs finance ৳' + m.finTotal).join('<br>') + '</small>';
-      }
-      if (typeof showToast === 'function') showToast('✅ ' + fixedCount + 'টি paid/finance fix হয়েছে! Cloud sync হচ্ছে...', 'success');
-    } else {
-      if (resultEl) resultEl.innerHTML = '<span class="text-success fw-bold">✅ কোনো mismatch নেই — সব ঠিক আছে!</span>';
-      if (typeof showToast === 'function') showToast('✅ কোনো mismatch নেই!', 'success');
-    }
-  } catch(e) {
-    if (resultEl) resultEl.innerHTML = '<span class="text-danger">❌ Error: ' + e.message + '</span>';
-  }
-}
-window.fixAllPaidFinanceMismatch = fixAllPaidFinanceMismatch;
-
-// Manual trigger button (from Settings UI)
-function manualHealPaidFinance() {
-  const resultEl = document.getElementById('krFixResult');
-  if (resultEl) resultEl.innerHTML = '<span class="text-muted">🔄 চেক করা হচ্ছে...</span>';
-
-  // auto-heal engine থাকলে সেটা দিয়েই run করো
-  if (window.autoHeal && typeof window.autoHeal.runNow === 'function') {
-    window.autoHeal.runNow().then(() => {
-      if (resultEl) resultEl.innerHTML = '<span class="text-success fw-bold">✅ Auto-Heal সম্পন্ন! সব data check ও fix হয়েছে।</span>';
-      if (typeof window.updatePaidFinanceStatusBadge === 'function') window.updatePaidFinanceStatusBadge();
-    }).catch(e => {
-      // fallback to manual
-      fixAllPaidFinanceMismatch();
-    });
-  } else {
-    fixAllPaidFinanceMismatch();
-  }
-}
-window.manualHealPaidFinance = manualHealPaidFinance;
-
-// ===================================
-// BACKGROUND AUTO-CHECK (30s interval)
-// Paid vs Finance status badge update
-// ===================================
-(function startPaidFinanceAutoWatch() {
-  function checkAndUpdateBadge() {
-    if (typeof window.updatePaidFinanceStatusBadge === 'function') {
-      window.updatePaidFinanceStatusBadge();
-    } else {
-      // fallback: inline check
-      const badge = document.getElementById('krPaidFinanceStatus');
-      if (!badge || !window.globalData) return;
-      const finance = window.globalData.finance || [];
-      let mismatch = 0;
-      (window.globalData.students || []).forEach(s => {
-        const paid = parseFloat(s.paid) || 0;
-        if (paid === 0) return;
-        const ft = finance.filter(f =>
-          f.person === s.name &&
-          (f.category === 'Student Fee' || f.category === 'Student Installment') &&
-          f.type === 'Income'
-        ).reduce((sum, f) => sum + (parseFloat(f.amount) || 0), 0);
-        if (ft > 0 && Math.abs(ft - paid) > 1) mismatch++;
-      });
-      badge.innerHTML = mismatch === 0
-        ? '<span style="color:#00ff88;font-weight:700;">✅ সব ঠিক আছে</span>'
-        : '<span style="color:#ffcc00;font-weight:700;">⚠️ ' + mismatch + 'টি mismatch</span>';
-    }
-  }
-
-  // Settings modal খুললে status update করো
-  const settingsModalEl = document.getElementById('settingsModal');
-  if (settingsModalEl) {
-    settingsModalEl.addEventListener('shown.bs.modal', checkAndUpdateBadge);
-  }
-
-  // প্রতি ৩০ সেকেন্ডে badge update
-  setInterval(checkAndUpdateBadge, 30000);
-
-  // page load এর ৫ সেকেন্ড পরে প্রথমবার check
-  setTimeout(checkAndUpdateBadge, 5000);
-})();
