@@ -251,6 +251,25 @@ function restoreDeletedItem(trashId) {
     if (!window.globalData.employees) window.globalData.employees = [];
     window.globalData.employees.push(item);
     logActivity('employee', 'ADD', `Restored employee: ${item.name || 'Unknown'}`, item);
+
+  } else if (type === 'keepRecord') {
+    // Keep Record restore
+    try {
+      let records = [];
+      try { records = JSON.parse(localStorage.getItem('wingsfly_keep_records') || '[]'); } catch(e) { records = []; }
+      records.unshift(item);
+      localStorage.setItem('wingsfly_keep_records', JSON.stringify(records));
+      logActivity('keepRecord', 'ADD', 'Keep Record restore করা হয়েছে: "' + (item.title || 'Untitled') + '"', item);
+      if (typeof renderKeepRecords === 'function') renderKeepRecords();
+    } catch(e) { console.warn('Keep Record restore error:', e); }
+
+  } else if (type === 'exam') {
+    // Exam Registration restore
+    if (!window.globalData.examRegistrations) window.globalData.examRegistrations = [];
+    window.globalData.examRegistrations.push(item);
+    logActivity('exam', 'ADD', 'Exam registration restore করা হয়েছে: "' + (item.studentName || item.regId || 'Unknown') + '"', item);
+    if (typeof searchExamResults === 'function') searchExamResults();
+    if (typeof renderExamDashboard === 'function') renderExamDashboard();
   }
 
   // Remove from trash
