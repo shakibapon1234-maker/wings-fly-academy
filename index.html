@@ -7,6 +7,71 @@
     <meta http-equiv="Expires" content="0">
     <style>
         /* ===================================
+           WF ACCOUNTS STYLE — FORCE OVERRIDE
+           =================================== */
+        .wf-total-card {
+            background: linear-gradient(135deg,#050d25 0%,#090e30 40%,#060b22 100%) !important;
+            border-radius: 24px !important;
+            border: none !important;
+            animation: wfBoxGlow 4s ease-in-out infinite !important;
+            position: relative; overflow: hidden;
+        }
+        .wf-total-card::before {
+            content:''; position:absolute; inset:0; border-radius:24px;
+            background: radial-gradient(ellipse at 50% -10%, rgba(79,172,254,0.12) 0%, transparent 65%);
+            pointer-events:none;
+        }
+        @keyframes wfBoxGlow {
+            0%,100% { box-shadow: 0 0 0 2px #4facfe, 0 0 0 4.5px rgba(123,47,255,0.7), 0 0 45px rgba(79,172,254,0.22), 0 20px 60px rgba(0,0,0,0.6); }
+            33%      { box-shadow: 0 0 0 2px #f093fb, 0 0 0 4.5px rgba(245,87,108,0.7), 0 0 45px rgba(240,147,251,0.22), 0 20px 60px rgba(0,0,0,0.6); }
+            66%      { box-shadow: 0 0 0 2px #38ef7d, 0 0 0 4.5px rgba(17,153,142,0.7), 0 0 45px rgba(56,239,125,0.22), 0 20px 60px rgba(0,0,0,0.6); }
+        }
+        #totalBalanceCash {
+            background: linear-gradient(90deg, #f093fb, #f5576c) !important;
+            -webkit-background-clip: text !important;
+            -webkit-text-fill-color: transparent !important;
+            background-clip: text !important;
+            font-size: 1.6rem !important; font-weight: 900 !important;
+        }
+        #totalBalanceBank {
+            background: linear-gradient(90deg, #4facfe, #00f2fe) !important;
+            -webkit-background-clip: text !important;
+            -webkit-text-fill-color: transparent !important;
+            background-clip: text !important;
+            font-size: 1.6rem !important; font-weight: 900 !important;
+        }
+        #totalBalanceMobile {
+            background: linear-gradient(90deg, #38ef7d, #11998e) !important;
+            -webkit-background-clip: text !important;
+            -webkit-text-fill-color: transparent !important;
+            background-clip: text !important;
+            font-size: 1.6rem !important; font-weight: 900 !important;
+        }
+        #totalBalanceGrand {
+            background: linear-gradient(90deg, #ffd700, #ff8c00, #ffd700) !important;
+            background-size: 200% auto !important;
+            -webkit-background-clip: text !important;
+            -webkit-text-fill-color: transparent !important;
+            background-clip: text !important;
+            animation: wfGoldShimmer 3s linear infinite !important;
+            font-size: 3rem !important; letter-spacing: -1px;
+        }
+        @keyframes wfGoldShimmer {
+            0%   { background-position: 0% center; }
+            100% { background-position: 200% center; }
+        }
+        .wf-mini {
+            background: rgba(255,255,255,0.04) !important;
+            border: 1px solid rgba(255,255,255,0.1) !important;
+            transition: all 0.3s ease;
+        }
+        .wf-mini-c:hover { background:rgba(245,87,108,0.1)!important; border-color:rgba(240,147,251,0.5)!important; box-shadow:0 12px 28px rgba(245,87,108,0.2); transform:translateY(-5px); }
+        .wf-mini-b:hover { background:rgba(79,172,254,0.1)!important;  border-color:rgba(79,172,254,0.5)!important;  box-shadow:0 12px 28px rgba(79,172,254,0.2); transform:translateY(-5px); }
+        .wf-mini-m:hover { background:rgba(56,239,125,0.1)!important;  border-color:rgba(56,239,125,0.5)!important;  box-shadow:0 12px 28px rgba(56,239,125,0.2); transform:translateY(-5px); }
+        .wf-lbl { color: rgba(180,200,255,0.55) !important; }
+        .wf-grand-wrap { border-top: 1px solid rgba(255,215,0,0.2) !important; }
+        .wf-grand-lbl  { color: rgba(255,215,0,0.6) !important; letter-spacing:2px; }
+        /* ===================================
            COMPREHENSIVE WHITE REMOVAL
            LOADS FIRST - HIGHEST PRIORITY
            =================================== */
@@ -2999,8 +3064,7 @@
                     </div>
 
                     <!-- ========== TOTAL BALANCE SUMMARY (BOTTOM) ========== -->
-                    <div class="card border-0 shadow-lg mb-4 no-print"
-                        style="background: linear-gradient(135deg, #0f2027 0%, #203a43 50%, #2c5364 100%); border-radius: 20px; border: 2px solid rgba(79,172,254,0.4) !important;">
+                    <div class="card border-0 shadow-lg mb-4 no-print wf-total-card">
                         <div class="card-body p-4 p-md-5">
                             <div class="text-center mb-4">
                                 <h4 class="fw-bold text-white mb-1">
@@ -3010,39 +3074,35 @@
                             </div>
                             <div class="row g-4 text-center mb-4">
                                 <div class="col-md-4">
-                                    <div class="p-3 rounded-4"
-                                        style="background: rgba(255,255,255,0.08); border: 1px solid rgba(255,255,255,0.15);">
+                                    <div class="p-3 rounded-4 wf-mini wf-mini-c">
                                         <div class="mb-2" style="font-size: 1.8rem;">💵</div>
-                                        <div class="text-white opacity-75 small fw-bold text-uppercase mb-1">Cash</div>
-                                        <div class="text-white fw-bold" style="font-size: 1.4rem;"
+                                        <div class="text-white opacity-75 small fw-bold text-uppercase mb-1 wf-lbl">Cash</div>
+                                        <div class="fw-bold"
                                             id="totalBalanceCash">৳0</div>
                                     </div>
                                 </div>
                                 <div class="col-md-4">
-                                    <div class="p-3 rounded-4"
-                                        style="background: rgba(255,255,255,0.08); border: 1px solid rgba(255,255,255,0.15);">
+                                    <div class="p-3 rounded-4 wf-mini wf-mini-b">
                                         <div class="mb-2" style="font-size: 1.8rem;">🏦</div>
-                                        <div class="text-white opacity-75 small fw-bold text-uppercase mb-1">Bank</div>
-                                        <div class="text-white fw-bold" style="font-size: 1.4rem;"
+                                        <div class="text-white opacity-75 small fw-bold text-uppercase mb-1 wf-lbl">Bank</div>
+                                        <div class="fw-bold"
                                             id="totalBalanceBank">৳0</div>
                                     </div>
                                 </div>
                                 <div class="col-md-4">
-                                    <div class="p-3 rounded-4"
-                                        style="background: rgba(255,255,255,0.08); border: 1px solid rgba(255,255,255,0.15);">
+                                    <div class="p-3 rounded-4 wf-mini wf-mini-m">
                                         <div class="mb-2" style="font-size: 1.8rem;">📱</div>
-                                        <div class="text-white opacity-75 small fw-bold text-uppercase mb-1">Mobile
+                                        <div class="text-white opacity-75 small fw-bold text-uppercase mb-1 wf-lbl">Mobile
                                             Banking</div>
-                                        <div class="text-white fw-bold" style="font-size: 1.4rem;"
+                                        <div class="fw-bold"
                                             id="totalBalanceMobile">৳0</div>
                                     </div>
                                 </div>
                             </div>
-                            <div class="text-center pt-3" style="border-top: 1px solid rgba(255,255,255,0.2);">
-                                <div class="text-white opacity-75 small fw-bold text-uppercase mb-2 letter-spacing-1">
+                            <div class="text-center pt-3 wf-grand-wrap">
+                                <div class="small fw-bold text-uppercase mb-2 letter-spacing-1 wf-grand-lbl">
                                     Grand Total</div>
-                                <div class="text-white fw-bold"
-                                    style="font-size: 2.5rem; text-shadow: 0 0 20px rgba(79,172,254,0.6);"
+                                <div class="fw-bold"
                                     id="totalBalanceGrand">৳0</div>
                             </div>
                         </div>

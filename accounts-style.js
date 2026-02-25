@@ -101,7 +101,7 @@
     while (card && !card.classList.contains('card')) {
       card = card.parentElement;
     }
-    if (!card || card.classList.contains('wf-total-card')) return;
+    if (!card) return;
 
     card.classList.add('wf-total-card');
 
