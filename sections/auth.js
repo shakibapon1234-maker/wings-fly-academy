@@ -39,8 +39,8 @@ async function handleLogin(e) {
   btn.disabled = true;
   err.innerText = '';
 
-  const username = form.username.value;
-  const password = form.password.value;
+  const username = document.getElementById('loginUsernameField')?.value || form.username?.value || '';
+  const password = document.getElementById('loginPasswordField')?.value || form.password?.value || '';
 
   try {
     // CRITICAL: Ensure globalData exists and has users array
@@ -124,7 +124,7 @@ function showDashboard(username) {
   const userEl = document.getElementById('sidebarUser') || document.getElementById('currentUser');
   if (userEl) userEl.innerText = username;
 
-  // ✅ LOGIN: সবসময় dashboard-এ যাবে
+  // ✅ LOGIN: সবসময় dashboard-এ যাবে (refresh এ same tab থাকবে)
   localStorage.setItem('wingsfly_active_tab', 'dashboard');
   sessionStorage.setItem('wf_just_logged_in', 'true');
 
@@ -203,16 +203,14 @@ function loadDashboard() {
         if (mainEnd) mainEnd.value = '';
       }
 
-      // ✅ LOGIN → Dashboard, REFRESH → Same Tab
+      // ✅ LOGIN → Dashboard সবসময়, REFRESH → Same Tab
       var justLoggedIn = sessionStorage.getItem('wf_just_logged_in') === 'true';
       var activeTab = 'dashboard';
       if (justLoggedIn) {
-        // Fresh login: always dashboard
         sessionStorage.removeItem('wf_just_logged_in');
         activeTab = 'dashboard';
         localStorage.setItem('wingsfly_active_tab', 'dashboard');
       } else {
-        // Page refresh: restore last tab
         activeTab = localStorage.getItem('wingsfly_active_tab') || 'dashboard';
       }
 
@@ -379,3 +377,185 @@ window.showDashboard = showDashboard;
 window.logout = logout;
 window.loadDashboard = loadDashboard;
 window.switchTab = switchTab;
+
+// ═══════════════════════════════════════════════════
+// PAGE REFRESH → Same Tab Restore
+// ═══════════════════════════════════════════════════
+(function() {
+  if (sessionStorage.getItem('isLoggedIn') !== 'true') return;
+  document.addEventListener('DOMContentLoaded', function() {
+    var login = document.getElementById('loginSection');
+    var dash  = document.getElementById('dashboardSection');
+    if (!login || !dash) return;
+    if (!dash.classList.contains('d-none')) return;
+    login.classList.add('d-none');
+    dash.classList.remove('d-none');
+    var lastTab = localStorage.getItem('wingsfly_active_tab') || 'dashboard';
+    setTimeout(function() {
+      if (typeof loadDashboard === 'function') loadDashboard();
+      else if (typeof switchTab === 'function') switchTab(lastTab, true);
+    }, 350);
+    console.log('[Auth] Refresh restore → tab:', lastTab);
+  });
+})();
+
+// ═══════════════════════════════════════════════════
+// AUTO LOCKOUT
+// ═══════════════════════════════════════════════════
+(function() {
+  var _t = null, _m = 0;
+  function reset() {
+    if (_m <= 0) return;
+    clearTimeout(_t);
+    _t = setTimeout(function() {
+      if (sessionStorage.getItem('isLoggedIn') === 'true') {
+        if (typeof logout === 'function') logout();
+        if (typeof showErrorToast === 'function')
+          showErrorToast('⏰ ' + _m + ' মিনিট নিষ্ক্রিয় — Auto logout হয়েছে');
+      }
+    }, _m * 60000);
+  }
+  window.wfInitAutoLockout = function(mins) {
+    _m = parseInt(mins) || 0;
+    clearTimeout(_t);
+    if (_m <= 0) return;
+    reset();
+    ['mousemove','keydown','mousedown','touchstart','scroll'].forEach(function(e) {
+      document.removeEventListener(e, reset);
+      document.addEventListener(e, reset, {passive: true});
+    });
+  };
+  document.addEventListener('DOMContentLoaded', function() {
+    var mins = window.globalData?.settings?.autoLockoutMinutes || 0;
+    if (mins > 0 && sessionStorage.getItem('isLoggedIn') === 'true')
+      window.wfInitAutoLockout(mins);
+  });
+})();
+
+// ═══════════════════════════════════════════════════
+// FORGOT PASSWORD — Beautiful Custom Modal
+// ═══════════════════════════════════════════════════
+document.addEventListener('DOMContentLoaded', function() {
+
+  // Inject modal HTML
+  var modalHtml = `
+<div id="wfForgotOverlay" style="display:none;position:fixed;inset:0;z-index:99999;align-items:center;justify-content:center;background:rgba(2,5,20,0.85);backdrop-filter:blur(10px);">
+  <div style="background:linear-gradient(145deg,#080d28,#120830);border:1.5px solid rgba(0,217,255,0.25);border-radius:22px;width:92%;max-width:400px;overflow:hidden;box-shadow:0 20px 60px rgba(0,0,0,0.7),0 0 40px rgba(0,217,255,0.08);animation:wfFI .3s ease;">
+    <style>@keyframes wfFI{from{opacity:0;transform:scale(0.9) translateY(20px)}to{opacity:1;transform:scale(1) translateY(0)}}</style>
+    <div style="background:linear-gradient(135deg,rgba(0,217,255,0.1),rgba(181,55,242,0.1));padding:20px 24px 16px;border-bottom:1px solid rgba(0,217,255,0.1);text-align:center;">
+      <div style="width:52px;height:52px;border-radius:16px;background:linear-gradient(135deg,rgba(0,217,255,0.15),rgba(181,55,242,0.15));border:1.5px solid rgba(0,217,255,0.3);display:flex;align-items:center;justify-content:center;font-size:1.5rem;margin:0 auto 10px;">🔑</div>
+      <h3 style="color:#deeeff;font-size:1.02rem;font-weight:700;margin:0 0 3px;">Password Recovery</h3>
+      <p style="color:rgba(0,200,255,0.48);font-size:0.73rem;margin:0;">Secret Recovery Question দিয়ে password reset করুন</p>
+    </div>
+    <div style="padding:20px 24px 24px;">
+      <!-- Step 1 -->
+      <div id="wfFS1">
+        <div style="background:rgba(0,217,255,0.05);border:1px solid rgba(0,217,255,0.16);border-radius:10px;padding:12px 14px;margin-bottom:14px;">
+          <div style="font-size:0.65rem;font-weight:700;letter-spacing:1.2px;text-transform:uppercase;color:rgba(0,200,255,0.52);margin-bottom:5px;">🛡️ Recovery Question</div>
+          <div id="wfFQ" style="color:#c8e4ff;font-weight:600;font-size:0.86rem;">লোড হচ্ছে...</div>
+        </div>
+        <label style="display:block;font-size:0.67rem;font-weight:700;letter-spacing:1.3px;text-transform:uppercase;color:rgba(0,200,255,0.6);margin-bottom:5px;">✅ আপনার উত্তর</label>
+        <input type="text" id="wfFA" style="width:100%;background:rgba(3,8,30,0.8);border:1.5px solid rgba(0,217,255,0.2);border-radius:9px;color:#deeeff;padding:11px 14px;font-size:0.87rem;outline:none;box-sizing:border-box;-webkit-text-security:disc;"
+          autocomplete="off" data-lpignore="true" placeholder="গোপন উত্তর লিখুন"
+          onfocus="this.style.borderColor='#00d9ff'" onblur="this.style.borderColor='rgba(0,217,255,0.2)'"
+          onkeydown="if(event.key==='Enter')wfFV()">
+        <div id="wfFE" style="font-size:0.7rem;color:#ff4455;min-height:16px;margin-top:4px;font-weight:600;"></div>
+        <div style="display:flex;gap:10px;margin-top:14px;">
+          <button onclick="wfFV()" style="flex:1;background:linear-gradient(135deg,#00d9ff,#b537f2);color:#050a1e;border:none;border-radius:9px;padding:11px;font-weight:700;font-size:0.85rem;cursor:pointer;">✅ Verify</button>
+          <button onclick="wfFC()" style="background:rgba(255,255,255,0.06);color:rgba(200,220,255,0.7);border:1.5px solid rgba(255,255,255,0.1);border-radius:9px;padding:11px 16px;font-size:0.85rem;cursor:pointer;">Cancel</button>
+        </div>
+      </div>
+      <!-- Step 2 -->
+      <div id="wfFS2" style="display:none;">
+        <div style="text-align:center;margin-bottom:16px;">
+          <div style="font-size:2rem;margin-bottom:6px;">✅</div>
+          <div style="color:#00ff88;font-weight:700;font-size:0.9rem;">উত্তর সঠিক!</div>
+          <div style="color:rgba(180,210,255,0.55);font-size:0.74rem;margin-top:3px;">এখন নতুন password সেট করুন</div>
+        </div>
+        <label style="display:block;font-size:0.67rem;font-weight:700;letter-spacing:1.3px;text-transform:uppercase;color:rgba(0,200,255,0.6);margin-bottom:5px;">🔑 নতুন Password</label>
+        <input type="password" id="wfFP1" style="width:100%;background:rgba(3,8,30,0.8);border:1.5px solid rgba(0,217,255,0.2);border-radius:9px;color:#deeeff;padding:11px 14px;font-size:0.87rem;outline:none;box-sizing:border-box;margin-bottom:10px;"
+          autocomplete="new-password" placeholder="New password (min 4 chars)"
+          onfocus="this.style.borderColor='#00d9ff'" onblur="this.style.borderColor='rgba(0,217,255,0.2)'"
+          onkeydown="if(event.key==='Enter')wfFSP()">
+        <label style="display:block;font-size:0.67rem;font-weight:700;letter-spacing:1.3px;text-transform:uppercase;color:rgba(0,200,255,0.6);margin-bottom:5px;">🔁 Confirm Password</label>
+        <input type="password" id="wfFP2" style="width:100%;background:rgba(3,8,30,0.8);border:1.5px solid rgba(0,217,255,0.2);border-radius:9px;color:#deeeff;padding:11px 14px;font-size:0.87rem;outline:none;box-sizing:border-box;"
+          autocomplete="new-password" placeholder="Re-enter new password"
+          onfocus="this.style.borderColor='#00d9ff'" onblur="this.style.borderColor='rgba(0,217,255,0.2)'"
+          onkeydown="if(event.key==='Enter')wfFSP()">
+        <div id="wfFE2" style="font-size:0.7rem;color:#ff4455;min-height:16px;margin-top:4px;font-weight:600;"></div>
+        <div style="display:flex;gap:10px;margin-top:14px;">
+          <button onclick="wfFSP()" style="flex:1;background:linear-gradient(135deg,#00d9ff,#b537f2);color:#050a1e;border:none;border-radius:9px;padding:11px;font-weight:700;font-size:0.85rem;cursor:pointer;">💾 Password পরিবর্তন করুন</button>
+          <button onclick="wfFC()" style="background:rgba(255,255,255,0.06);color:rgba(200,220,255,0.7);border:1.5px solid rgba(255,255,255,0.1);border-radius:9px;padding:11px 16px;font-size:0.85rem;cursor:pointer;">Cancel</button>
+        </div>
+      </div>
+    </div>
+  </div>
+</div>`;
+  document.body.insertAdjacentHTML('beforeend', modalHtml);
+
+  // Click outside to close
+  document.getElementById('wfForgotOverlay').addEventListener('click', function(e) {
+    if (e.target === this) wfFC();
+  });
+});
+
+window.wfShowForgotModal = function() {
+  var gd = window.globalData;
+  var overlay = document.getElementById('wfForgotOverlay');
+  if (!overlay) { setTimeout(window.wfShowForgotModal, 200); return; }
+  if (!gd || !gd.settings || !gd.settings.recoveryQuestion) {
+    alert('⚠️ কোনো Recovery Question সেট করা নেই।\nSettings → 🔒 Security তে গিয়ে প্রথমে Question সেট করুন।');
+    return;
+  }
+  document.getElementById('wfFQ').textContent = gd.settings.recoveryQuestion;
+  document.getElementById('wfFA').value = '';
+  document.getElementById('wfFE').textContent = '';
+  document.getElementById('wfFE2') && (document.getElementById('wfFE2').textContent = '');
+  document.getElementById('wfFS1').style.display = 'block';
+  document.getElementById('wfFS2').style.display = 'none';
+  overlay.style.display = 'flex';
+  setTimeout(function() { document.getElementById('wfFA').focus(); }, 100);
+};
+window.wfShowForgotPassword = window.wfShowForgotModal;
+
+window.wfFC = function() {
+  var o = document.getElementById('wfForgotOverlay');
+  if (o) o.style.display = 'none';
+};
+
+window.wfFV = async function() {
+  var ans = document.getElementById('wfFA').value.trim();
+  var err = document.getElementById('wfFE');
+  if (!ans) { err.textContent = '❌ উত্তর লিখুন'; return; }
+  var gd = window.globalData;
+  var stored = gd?.settings?.recoveryAnswer;
+  if (!stored) { err.textContent = '❌ Recovery Answer সেট করা নেই'; return; }
+  var inputHash = typeof hashPassword === 'function' ? await hashPassword(ans.toLowerCase()) : ans.toLowerCase();
+  if (inputHash === stored) {
+    document.getElementById('wfFS1').style.display = 'none';
+    document.getElementById('wfFS2').style.display = 'block';
+    setTimeout(function() { document.getElementById('wfFP1').focus(); }, 100);
+  } else {
+    err.textContent = '❌ উত্তর সঠিক নয়। আবার চেষ্টা করুন।';
+    document.getElementById('wfFA').value = '';
+    document.getElementById('wfFA').focus();
+  }
+};
+
+window.wfFSP = async function() {
+  var pw = document.getElementById('wfFP1').value;
+  var pw2 = document.getElementById('wfFP2').value;
+  var err = document.getElementById('wfFE2');
+  if (!pw || pw.length < 4) { err.textContent = '❌ Password কমপক্ষে 4 অক্ষর হতে হবে'; return; }
+  if (pw !== pw2) { err.textContent = '❌ Password দুটি মিলছে না'; return; }
+  var gd = window.globalData;
+  var hashed = typeof hashPassword === 'function' ? await hashPassword(pw) : pw;
+  if (gd.users && gd.users[0]) gd.users[0].password = hashed;
+  if (gd.credentials) gd.credentials.password = hashed;
+  localStorage.setItem('wingsfly_data', JSON.stringify(gd));
+  if (typeof saveToStorage === 'function') saveToStorage();
+  wfFC();
+  if (typeof showSuccessToast === 'function')
+    showSuccessToast('✅ Password সফলভাবে পরিবর্তন হয়েছে! নতুন password দিয়ে Login করুন।');
+  else alert('✅ Password পরিবর্তন সফল! নতুন password দিয়ে Login করুন।');
+};
