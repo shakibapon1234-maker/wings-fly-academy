@@ -11217,10 +11217,37 @@ window.saveKeepRecord = saveKeepRecord;
 
 function deleteKeepRecord(id) {
   if (!confirm('এই নোটটি মুছে ফেলবেন?')) return;
-  const records = getKeepRecords().filter(r => r.id !== id);
+  const allRecords = getKeepRecords();
+  const target = allRecords.find(r => r.id === id);
+
+  // ✅ Recycle Bin এ পাঠাও
+  if (target && typeof window.moveToTrash === 'function') {
+    window.moveToTrash('keepRecord', target);
+  }
+
+  // ✅ Activity Log এ যোগ করো
+  if (target) {
+    try {
+      if (!window.globalData.activityHistory) window.globalData.activityHistory = [];
+      window.globalData.activityHistory.unshift({
+        id: Date.now(),
+        action: 'Delete',
+        type: 'Keep Record',
+        description: 'নোট মুছে ফেলা হয়েছে: "' + (target.title || 'Untitled') + '"',
+        timestamp: new Date().toISOString(),
+        user: sessionStorage.getItem('username') || 'Admin'
+      });
+      if (window.globalData.activityHistory.length > 500) {
+        window.globalData.activityHistory = window.globalData.activityHistory.slice(0, 500);
+      }
+    } catch(e) {}
+  }
+
+  const records = allRecords.filter(r => r.id !== id);
   saveKeepRecordsToStorage(records);
   renderKeepRecords();
   if (typeof showToast === 'function') showToast('নোট মুছে গেছে', 'info');
+  if (typeof window.scheduleSyncPush === 'function') window.scheduleSyncPush('Keep Record Deleted');
 }
 window.deleteKeepRecord = deleteKeepRecord;
 

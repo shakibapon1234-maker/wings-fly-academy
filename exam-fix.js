@@ -414,10 +414,23 @@ async function deleteExamRegistration(regId) {
     }
   }
 
+  // ✅ Activity Log এ যোগ করো
+  try {
+    if (!window.globalData.activityHistory) window.globalData.activityHistory = [];
+    window.globalData.activityHistory.unshift({
+      id: Date.now(),
+      action: 'Delete',
+      type: 'Exam Registration',
+      description: 'Exam registration মুছে ফেলা হয়েছে: "' + (reg.studentName || regId) + '"',
+      timestamp: new Date().toISOString(),
+      user: sessionStorage.getItem('username') || 'Admin'
+    });
+  } catch(e) {}
+
   window.globalData.examRegistrations.splice(idx, 1);
   await saveToStorage();
   if (typeof window.scheduleSyncPush === 'function') window.scheduleSyncPush('Exam Registration Deleted');
-  showSuccessToast('🗑️ Exam registration deleted');
+  showSuccessToast('🗑️ Exam registration deleted & moved to Recycle Bin');
   searchExamResults();
   if (typeof updateGlobalStats === 'function') updateGlobalStats();
   if (typeof renderDashboard === 'function') renderDashboard();

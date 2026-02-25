@@ -45,13 +45,13 @@
           margin-bottom:0;
         ">
           <colgroup>
-            <col style="width:9%;">
-            <col style="width:18%;">
-            <col style="width:28%;">
             <col style="width:10%;">
+            <col style="width:17%;">
+            <col style="width:26%;">
+            <col style="width:9%;">
+            <col style="width:13%;">
             <col style="width:12%;">
-            <col style="width:11%;">
-            <col style="width:12%;">
+            <col style="width:13%;">
           </colgroup>
           <thead>
             <tr style="background:#1a3a5c; color:#fff;">
@@ -79,10 +79,10 @@
           </tbody>
           <tfoot>
             <tr style="background:#dce8f5; border-top:2px solid #1a3a5c;">
-              <td colspan="4" style="padding:8px 6px; border:1px solid #aac; text-align:right; font-weight:800; font-size:12px; color:#1a3a5c;">TOTAL →</td>
-              <td style="padding:8px 6px; border:1px solid #aac; text-align:right; font-weight:800; font-size:12px; color:#1a3a5c;">৳${fmt(grandTotal)}</td>
-              <td style="padding:8px 6px; border:1px solid #aac; text-align:right; font-weight:800; font-size:12px; color:#007744;">৳${fmt(grandPaid)}</td>
-              <td style="padding:8px 6px; border:1px solid #aac; text-align:right; font-weight:800; font-size:12px; color:#c0001a;">৳${fmt(grandDue)}</td>
+              <td colspan="4" style="padding:6px 4px; border:1px solid #aac; text-align:right; font-weight:800; font-size:11px; color:#1a3a5c;">TOTAL →</td>
+              <td style="padding:6px 4px; border:1px solid #aac; text-align:right; font-weight:800; font-size:11px; color:#1a3a5c; word-break:break-all;">৳${fmt(grandTotal)}</td>
+              <td style="padding:6px 4px; border:1px solid #aac; text-align:right; font-weight:800; font-size:11px; color:#007744; word-break:break-all;">৳${fmt(grandPaid)}</td>
+              <td style="padding:6px 4px; border:1px solid #aac; text-align:right; font-weight:800; font-size:11px; color:#c0001a; word-break:break-all;">৳${fmt(grandDue)}</td>
             </tr>
           </tfoot>
         </table>
