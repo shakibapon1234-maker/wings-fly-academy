@@ -31,6 +31,7 @@
             -webkit-background-clip: text !important;
             -webkit-text-fill-color: transparent !important;
             background-clip: text !important;
+            color: transparent !important;
             font-size: 1.6rem !important; font-weight: 900 !important;
         }
         #totalBalanceBank {
@@ -38,6 +39,7 @@
             -webkit-background-clip: text !important;
             -webkit-text-fill-color: transparent !important;
             background-clip: text !important;
+            color: transparent !important;
             font-size: 1.6rem !important; font-weight: 900 !important;
         }
         #totalBalanceMobile {
@@ -45,6 +47,7 @@
             -webkit-background-clip: text !important;
             -webkit-text-fill-color: transparent !important;
             background-clip: text !important;
+            color: transparent !important;
             font-size: 1.6rem !important; font-weight: 900 !important;
         }
         #totalBalanceGrand {
@@ -53,6 +56,7 @@
             -webkit-background-clip: text !important;
             -webkit-text-fill-color: transparent !important;
             background-clip: text !important;
+            color: transparent !important;
             animation: wfGoldShimmer 3s linear infinite !important;
             font-size: 3rem !important; letter-spacing: -1px;
         }
@@ -61,13 +65,44 @@
             100% { background-position: 200% center; }
         }
         .wf-mini {
-            background: rgba(255,255,255,0.04) !important;
-            border: 1px solid rgba(255,255,255,0.1) !important;
             transition: all 0.3s ease;
         }
-        .wf-mini-c:hover { background:rgba(245,87,108,0.1)!important; border-color:rgba(240,147,251,0.5)!important; box-shadow:0 12px 28px rgba(245,87,108,0.2); transform:translateY(-5px); }
-        .wf-mini-b:hover { background:rgba(79,172,254,0.1)!important;  border-color:rgba(79,172,254,0.5)!important;  box-shadow:0 12px 28px rgba(79,172,254,0.2); transform:translateY(-5px); }
-        .wf-mini-m:hover { background:rgba(56,239,125,0.1)!important;  border-color:rgba(56,239,125,0.5)!important;  box-shadow:0 12px 28px rgba(56,239,125,0.2); transform:translateY(-5px); }
+        /* Cash — deep pink/magenta */
+        .wf-mini-c {
+            background: linear-gradient(135deg, #2a0a1f 0%, #3d0d2b 60%, #1a0612 100%) !important;
+            border: 1px solid rgba(240,147,251,0.35) !important;
+            box-shadow: 0 4px 20px rgba(245,87,108,0.15) !important;
+        }
+        .wf-mini-c:hover {
+            background: linear-gradient(135deg, #3d0d2b 0%, #5a1040 60%, #2a0a1f 100%) !important;
+            border-color: rgba(240,147,251,0.7) !important;
+            box-shadow: 0 12px 32px rgba(245,87,108,0.35) !important;
+            transform: translateY(-5px);
+        }
+        /* Bank — deep blue/cyan */
+        .wf-mini-b {
+            background: linear-gradient(135deg, #021a30 0%, #042d4a 60%, #010e1e 100%) !important;
+            border: 1px solid rgba(79,172,254,0.35) !important;
+            box-shadow: 0 4px 20px rgba(79,172,254,0.15) !important;
+        }
+        .wf-mini-b:hover {
+            background: linear-gradient(135deg, #042d4a 0%, #063f66 60%, #021a30 100%) !important;
+            border-color: rgba(79,172,254,0.7) !important;
+            box-shadow: 0 12px 32px rgba(79,172,254,0.35) !important;
+            transform: translateY(-5px);
+        }
+        /* Mobile — deep green/teal */
+        .wf-mini-m {
+            background: linear-gradient(135deg, #021a0f 0%, #042d1a 60%, #010e08 100%) !important;
+            border: 1px solid rgba(56,239,125,0.35) !important;
+            box-shadow: 0 4px 20px rgba(56,239,125,0.15) !important;
+        }
+        .wf-mini-m:hover {
+            background: linear-gradient(135deg, #042d1a 0%, #064028 60%, #021a0f 100%) !important;
+            border-color: rgba(56,239,125,0.7) !important;
+            box-shadow: 0 12px 32px rgba(56,239,125,0.35) !important;
+            transform: translateY(-5px);
+        }
         .wf-lbl { color: rgba(180,200,255,0.55) !important; }
         .wf-grand-wrap { border-top: 1px solid rgba(255,215,0,0.2) !important; }
         .wf-grand-lbl  { color: rgba(255,215,0,0.6) !important; letter-spacing:2px; }
@@ -115,14 +150,29 @@
         }
 
         /* Cards and panels - dark gradient, NO WHITE */
-        .card,
+        .card:not(.wf-total-card),
         .section-card,
         .modal-content,
-        .card-body,
+        .card-body:not(.wf-total-card .card-body),
         .card-header {
             background: linear-gradient(135deg, rgba(21, 26, 53, 0.95), rgba(31, 21, 69, 0.95)) !important;
             border: 2px solid rgba(0, 217, 255, 0.4) !important;
             color: #ffffff !important;
+        }
+        /* WF Total Card — isolated from global .card override */
+        .wf-total-card {
+            background: linear-gradient(135deg,#050d25 0%,#090e30 40%,#060b22 100%) !important;
+            border: none !important;
+            border-radius: 24px !important;
+            animation: wfBoxGlow 4s ease-in-out infinite !important;
+            position: relative !important;
+            overflow: hidden !important;
+        }
+        .wf-total-card .card-body {
+            background: transparent !important;
+            border: none !important;
+            position: relative !important;
+            z-index: 1 !important;
         }
 
         /* Dropdown menus - NO WHITE */
@@ -3064,7 +3114,7 @@
                     </div>
 
                     <!-- ========== TOTAL BALANCE SUMMARY (BOTTOM) ========== -->
-                    <div class="card border-0 shadow-lg mb-4 no-print wf-total-card">
+                    <div class="card border-0 mb-4 no-print wf-total-card">
                         <div class="card-body p-4 p-md-5">
                             <div class="text-center mb-4">
                                 <h4 class="fw-bold text-white mb-1">
@@ -3074,7 +3124,7 @@
                             </div>
                             <div class="row g-4 text-center mb-4">
                                 <div class="col-md-4">
-                                    <div class="p-3 rounded-4 wf-mini wf-mini-c">
+                                    <div class="p-3 rounded-4 wf-mini wf-mini-c" style="background:linear-gradient(135deg,#2a0a1f 0%,#3d0d2b 60%,#1a0612 100%)!important;border:1px solid rgba(240,147,251,0.45)!important;box-shadow:0 4px 24px rgba(245,87,108,0.25)!important;">
                                         <div class="mb-2" style="font-size: 1.8rem;">💵</div>
                                         <div class="text-white opacity-75 small fw-bold text-uppercase mb-1 wf-lbl">Cash</div>
                                         <div class="fw-bold"
@@ -3082,7 +3132,7 @@
                                     </div>
                                 </div>
                                 <div class="col-md-4">
-                                    <div class="p-3 rounded-4 wf-mini wf-mini-b">
+                                    <div class="p-3 rounded-4 wf-mini wf-mini-b" style="background:linear-gradient(135deg,#021a30 0%,#042d4a 60%,#010e1e 100%)!important;border:1px solid rgba(79,172,254,0.45)!important;box-shadow:0 4px 24px rgba(79,172,254,0.25)!important;">
                                         <div class="mb-2" style="font-size: 1.8rem;">🏦</div>
                                         <div class="text-white opacity-75 small fw-bold text-uppercase mb-1 wf-lbl">Bank</div>
                                         <div class="fw-bold"
@@ -3090,7 +3140,7 @@
                                     </div>
                                 </div>
                                 <div class="col-md-4">
-                                    <div class="p-3 rounded-4 wf-mini wf-mini-m">
+                                    <div class="p-3 rounded-4 wf-mini wf-mini-m" style="background:linear-gradient(135deg,#021a0f 0%,#042d1a 60%,#010e08 100%)!important;border:1px solid rgba(56,239,125,0.45)!important;box-shadow:0 4px 24px rgba(56,239,125,0.25)!important;">
                                         <div class="mb-2" style="font-size: 1.8rem;">📱</div>
                                         <div class="text-white opacity-75 small fw-bold text-uppercase mb-1 wf-lbl">Mobile
                                             Banking</div>
