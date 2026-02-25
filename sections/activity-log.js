@@ -133,18 +133,19 @@ function loadDeletedItems() {
   container.innerHTML = filtered.map((d, idx) => {
     const date = new Date(d.deletedAt);
     const dateStr = date.toLocaleString('en-BD', { day: '2-digit', month: 'short', year: 'numeric', hour: '2-digit', minute: '2-digit' });
-    const icons2 = { student: '🎓', finance: '💰', employee: '👤', keeprecord: '📝', keep_record: '📝', visitor: '🧑', notice: '📢', loan: '💳' };
-    const icon = icons2[d.type] || '📄';
+    const typeIconMap = { student: '🎓', finance: '💰', employee: '👤', keeprecord: '📝', keep_record: '📝', visitor: '🧑', notice: '📢', loan: '💳', idcard: '🪪' };
+    const icon = typeIconMap[(d.type||'').toLowerCase()] || '📄';
 
     // Build display name
     let name = '';
-    if (d.type === 'student') name = d.item.name || d.item.studentName || 'Unknown Student';
-    else if (d.type === 'finance') name = (d.item.description || d.item.category || 'Transaction') + ' - ৳' + (d.item.amount || 0);
-    else if (d.type === 'employee') name = d.item.name || 'Unknown Employee';
-    else if (d.type === 'keeprecord' || d.type === 'keep_record') name = '📝 ' + (d.item.title || d.item.content || 'Note').substring(0, 50);
-    else if (d.type === 'visitor') name = d.item.name || d.item.visitorName || 'Visitor';
-    else if (d.type === 'notice') name = d.item.title || 'Notice';
-    else if (d.type === 'loan') name = (d.item.studentName || d.item.name || 'Loan') + ' — ৳' + (d.item.amount || 0);
+    const t = (d.type || '').toLowerCase();
+    if (t === 'student') name = d.item.name || d.item.studentName || 'Unknown Student';
+    else if (t === 'finance') name = (d.item.description || d.item.category || 'Transaction') + ' — ৳' + (d.item.amount || 0);
+    else if (t === 'employee') name = d.item.name || 'Unknown Employee';
+    else if (t === 'keeprecord' || t === 'keep_record') name = '📝 ' + (d.item.title || d.item.content || 'Note').substring(0, 50);
+    else if (t === 'visitor') name = d.item.name || d.item.visitorName || 'Visitor';
+    else if (t === 'notice') name = d.item.title || 'Notice';
+    else if (t === 'loan') name = (d.item.studentName || d.item.name || 'Loan') + ' — ৳' + (d.item.amount || 0);
     else name = (d.item.name || d.item.title || JSON.stringify(d.item)).substring(0, 60);
 
     return `
@@ -181,34 +182,33 @@ function restoreDeletedItem(trashId) {
 
   const trashEntry = deleted[idx];
   const item = trashEntry.item;
-  const type = trashEntry.type;
-
-  const itemName = item.name || item.studentName || item.title || 'Item';
+  const type = (trashEntry.type || '').toLowerCase();
+  const itemName = item.name || item.studentName || item.title || item.content || 'Item';
 
   if (type === 'student') {
     if (!window.globalData.students) window.globalData.students = [];
     window.globalData.students.push(item);
     logActivity('student', 'ADD', `✅ Restored student: ${itemName}`, item);
-    if (typeof render === 'function') render(window.globalData.students);
+    if (typeof render === 'function') setTimeout(() => render(window.globalData.students), 100);
     if (typeof renderStudents === 'function') setTimeout(renderStudents, 100);
 
   } else if (type === 'finance') {
     if (!window.globalData.finance) window.globalData.finance = [];
     window.globalData.finance.push(item);
-    logActivity('finance', 'ADD', `✅ Restored transaction: ${item.description || item.category || ''}`, item);
-    if (typeof renderLedger === 'function') renderLedger(window.globalData.finance);
+    logActivity('finance', 'ADD', `✅ Restored transaction: ${item.description || item.category || itemName}`, item);
+    if (typeof renderLedger === 'function') setTimeout(() => renderLedger(window.globalData.finance), 100);
 
   } else if (type === 'employee') {
     if (!window.globalData.employees) window.globalData.employees = [];
     window.globalData.employees.push(item);
     logActivity('employee', 'ADD', `✅ Restored employee: ${itemName}`, item);
+    if (typeof renderEmployeeList === 'function') setTimeout(renderEmployeeList, 100);
 
   } else if (type === 'keeprecord' || type === 'keep_record') {
-    // ✅ FIX: Keep Record restore — wingsfly_keep_records localStorage এ ফেরত দাও
+    // ✅ FIX: Keep Record → wingsfly_keep_records localStorage এ ফেরত দাও
     try {
       const KEEP_KEY = 'wingsfly_keep_records';
       const existing = JSON.parse(localStorage.getItem(KEEP_KEY) || '[]');
-      // duplicate check — same id থাকলে add করো না
       if (!existing.find(r => r.id === item.id)) {
         existing.unshift(item);
         localStorage.setItem(KEEP_KEY, JSON.stringify(existing));
@@ -221,6 +221,7 @@ function restoreDeletedItem(trashId) {
     if (!window.globalData.visitors) window.globalData.visitors = [];
     window.globalData.visitors.push(item);
     logActivity('visitor', 'ADD', `✅ Restored visitor: ${itemName}`, item);
+    if (typeof renderVisitors === 'function') setTimeout(renderVisitors, 100);
 
   } else if (type === 'notice') {
     if (!window.globalData.notices) window.globalData.notices = [];
@@ -231,9 +232,10 @@ function restoreDeletedItem(trashId) {
     if (!window.globalData.loans) window.globalData.loans = [];
     window.globalData.loans.push(item);
     logActivity('loan', 'ADD', `✅ Restored loan: ${itemName}`, item);
+    if (typeof renderLoanSummary === 'function') setTimeout(renderLoanSummary, 100);
 
   } else {
-    // fallback: typeMap দিয়ে যা পারো restore করো
+    // fallback typeMap
     const typeMap = {
       'bankaccount': 'bankAccounts', 'mobileaccount': 'mobileBanking',
       'examregistration': 'examRegistrations', 'idcard': 'idCards'
@@ -246,15 +248,15 @@ function restoreDeletedItem(trashId) {
     }
   }
 
-  // Remove from trash
+  // ✅ Remove from trash + sync backup
   window.globalData.deletedItems.splice(idx, 1);
-  // backup sync
   localStorage.setItem('wingsfly_deleted_backup', JSON.stringify(window.globalData.deletedItems));
   saveToStorage();
-  loadDeletedItems();
+  setTimeout(loadDeletedItems, 150);
 
   showSuccessToast(`✅ ${itemName} সফলভাবে restore হয়েছে!`);
-  if (typeof updateGlobalStats === 'function') updateGlobalStats();
+  if (typeof updateGlobalStats === 'function') setTimeout(updateGlobalStats, 200);
+  // Cloud sync
   if (typeof window.scheduleSyncPush === 'function') window.scheduleSyncPush('Restore: ' + type);
 }
 window.restoreDeletedItem = restoreDeletedItem;
