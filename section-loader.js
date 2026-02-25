@@ -1,110 +1,68 @@
 // ============================================================
-// WINGS FLY — SECTION LOADER v1.0
-// ✅ HTML sections আলাদা ফাইলে, fetch() দিয়ে inject করে
-// ✅ কোনো app.js function বা event listener নষ্ট হবে না
-// ✅ switchTab() এর আগে lazy section load হয়
-// ✅ Modals সবসময় eager load হয় (Bootstrap কাজ করতে)
+// WINGS FLY — SECTION LOADER v2.0 (ALL EAGER)
+// ✅ সব section পেজ লোডেই inject হবে
+// ✅ switchTab wrap নেই — app.js এর original switchTab কাজ করবে
+// ✅ Modals inject হবে body-তে
 // ============================================================
 
 (function () {
   'use strict';
 
   const SECTIONS = [
-    { id: 'dashboardOverview',  file: 'sections/dashboard.html',    mode: 'eager' },
-    { id: 'studentSection',     file: 'sections/students.html',     mode: 'eager' },
-    { id: 'examResultsSection', file: 'sections/exam.html',         mode: 'eager' },
-    { id: 'loanSection',        file: 'sections/loans.html',        mode: 'lazy'  },
-    { id: 'ledgerSection',      file: 'sections/ledger.html',       mode: 'lazy'  },
-    { id: 'visitorSection',     file: 'sections/visitors.html',     mode: 'lazy'  },
-    { id: 'employeeSection',    file: 'sections/employees.html',    mode: 'lazy'  },
-    { id: 'accountsSection',    file: 'sections/accounts.html',     mode: 'lazy'  },
-    { id: 'certificateSection', file: 'sections/certificates.html', mode: 'lazy'  },
-    { id: 'idcardsSection',     file: 'sections/idcards.html',      mode: 'lazy'  },
+    { id: 'dashboardOverview',  file: 'sections/dashboard.html'    },
+    { id: 'studentSection',     file: 'sections/students.html'     },
+    { id: 'examResultsSection', file: 'sections/exam.html'         },
+    { id: 'loanSection',        file: 'sections/loans.html'        },
+    { id: 'ledgerSection',      file: 'sections/ledger.html'       },
+    { id: 'visitorSection',     file: 'sections/visitors.html'     },
+    { id: 'employeeSection',    file: 'sections/employees.html'    },
+    { id: 'accountsSection',    file: 'sections/accounts.html'     },
+    { id: 'certificateSection', file: 'sections/certificates.html' },
+    { id: 'idcardsSection',     file: 'sections/idcards.html'      },
   ];
 
-  const TAB_SECTION_MAP = {
-    loans:        'loanSection',
-    ledger:       'ledgerSection',
-    visitors:     'visitorSection',
-    employees:    'employeeSection',
-    accounts:     'accountsSection',
-    certificates: 'certificateSection',
-    idcards:      'idcardsSection',
-  };
-
-  const loaded = new Set();
-
-  async function injectSection(sectionId, file) {
-    if (loaded.has(sectionId)) return;
-    const el = document.getElementById(sectionId);
-    if (!el) return;
+  async function injectSection(id, file) {
+    const el = document.getElementById(id);
+    if (!el) { console.warn('⚠️ Placeholder not found:', id); return; }
     try {
       const res = await fetch(file);
-      if (!res.ok) throw new Error('HTTP ' + res.status + ' — ' + file);
-      const html = await res.text();
-      el.innerHTML = html;
+      if (!res.ok) throw new Error('HTTP ' + res.status);
+      el.innerHTML = await res.text();
       el.classList.remove('section-slot');
-      loaded.add(sectionId);
-      document.dispatchEvent(new CustomEvent('wf:sectionLoaded', { detail: { id: sectionId } }));
-      console.log('%c✅ Loaded: ' + sectionId, 'color:#00d9ff');
-    } catch (err) {
-      console.error('❌ Section load failed:', sectionId, err);
+      console.log('%c✅ ' + id, 'color:#00d9ff');
+    } catch (e) {
+      console.error('❌ Failed:', id, e.message);
     }
   }
 
   async function injectModals() {
-    if (loaded.has('__modals__')) return;
     const container = document.getElementById('modals-container');
-    if (!container) return;
+    if (!container) { console.warn('⚠️ #modals-container not found'); return; }
     try {
       const res = await fetch('sections/modals.html');
       if (!res.ok) throw new Error('HTTP ' + res.status);
       container.innerHTML = await res.text();
-      loaded.add('__modals__');
-      document.dispatchEvent(new CustomEvent('wf:modalsLoaded'));
       console.log('%c✅ Modals loaded', 'color:#00ff88');
-    } catch (err) {
-      console.error('❌ Modals load failed:', err);
+    } catch (e) {
+      console.error('❌ Modals failed:', e.message);
     }
   }
 
-  async function bootEager() {
-    const eagerSections = SECTIONS.filter(s => s.mode === 'eager');
-    await Promise.all(eagerSections.map(s => injectSection(s.id, s.file)));
+  async function loadAll() {
+    // সব section একসাথে load করো
+    await Promise.all(SECTIONS.map(s => injectSection(s.id, s.file)));
     await injectModals();
-    console.log('%c✅ Wings Fly: All eager sections ready', 'color:#00ff88;font-weight:bold');
+    console.log('%c✅ All sections ready!', 'color:#00ff88; font-weight:bold; font-size:14px');
+    // app.js কে জানাও যে সব ready
+    document.dispatchEvent(new CustomEvent('wf:sectionsReady'));
   }
 
-  function wrapSwitchTab() {
-    if (typeof window.switchTab !== 'function') {
-      setTimeout(wrapSwitchTab, 100);
-      return;
-    }
-    if (window._wfSectionLoaderWrapped) return;
-    window._wfSectionLoaderWrapped = true;
-
-    const orig = window.switchTab;
-    window.switchTab = async function (tab, refreshStats = true) {
-      const sectionId = TAB_SECTION_MAP[tab];
-      if (sectionId && !loaded.has(sectionId)) {
-        const cfg = SECTIONS.find(s => s.id === sectionId);
-        if (cfg) await injectSection(cfg.id, cfg.file);
-      }
-      return orig.call(this, tab, refreshStats);
-    };
-    console.log('%c✅ switchTab wrapped for lazy loading', 'color:#b537f2');
-  }
-
-  window.sectionLoader = {
-    load: (id) => { const cfg = SECTIONS.find(s => s.id === id); if (cfg) return injectSection(cfg.id, cfg.file); },
-    isLoaded: (id) => loaded.has(id),
-    loadAll: () => Promise.all(SECTIONS.map(s => injectSection(s.id, s.file))),
-  };
-
+  // DOM ready হলে শুরু করো
   if (document.readyState === 'loading') {
-    document.addEventListener('DOMContentLoaded', () => { bootEager(); wrapSwitchTab(); });
+    document.addEventListener('DOMContentLoaded', loadAll);
   } else {
-    bootEager(); wrapSwitchTab();
+    loadAll();
   }
 
+  window.sectionLoader = { reload: loadAll };
 })();

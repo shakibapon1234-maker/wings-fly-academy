@@ -2936,53 +2936,39 @@ function updateGlobalStats() {
 
   // --- AVIATION PREMIUM DASHBOARD METRICS ---
 
-  // ── Counting Animation (0 থেকে target পর্যন্ত গণনা করে) ──
-  function _wfAnimCount(el, target, prefix, duration) {
+  // ── Counting Animation ──────────────────────────────────
+  function _wfCount(el, target, prefix, ms) {
     if (!el) return;
-    const start = performance.now();
+    const t0 = performance.now();
     (function step(now) {
-      const p = Math.min((now - start) / duration, 1);
-      const eased = 1 - Math.pow(1 - p, 4); // easeOutQuart
-      el.innerText = prefix + formatNumber(Math.round(target * eased));
+      const p = Math.min((now - t0) / ms, 1);
+      const e = 1 - Math.pow(1 - p, 4);
+      el.innerText = prefix + formatNumber(Math.round(target * e));
       if (p < 1) requestAnimationFrame(step);
-    })(start);
+    })(t0);
   }
 
-  // 1. Total Students — Cyan (value-blue)
+  // 1. Total Students — Cyan
   const dashStudentEl = document.getElementById('dashTotalStudents');
   const dashStudentCenter = document.getElementById('dashTotalStudentsCenter');
-  if (dashStudentEl) {
-    dashStudentEl.className = 'av-card-value value-blue';
-    _wfAnimCount(dashStudentEl, globalData.students.length, '', 1200);
-  }
+  if (dashStudentEl) { dashStudentEl.className = 'av-card-value value-blue'; _wfCount(dashStudentEl, globalData.students.length, '', 1200); }
   if (dashStudentCenter) dashStudentCenter.innerText = globalData.students.length;
 
-  // 2. Total Income — Green (value-green)
+  // 2. Total Income — Green
   const dashIncomeEl = document.getElementById('dashTotalIncome');
-  if (dashIncomeEl) {
-    dashIncomeEl.className = 'av-card-value value-green';
-    _wfAnimCount(dashIncomeEl, income, '৳', 1400);
-  }
+  if (dashIncomeEl) { dashIncomeEl.className = 'av-card-value value-green'; _wfCount(dashIncomeEl, income, '৳', 1400); }
 
-  // 3. Total Expense — Orange (value-orange)
+  // 3. Total Expense — Orange
   const dashExpenseEl = document.getElementById('dashTotalExpense');
-  if (dashExpenseEl) {
-    dashExpenseEl.className = 'av-card-value value-orange';
-    _wfAnimCount(dashExpenseEl, expense, '৳', 1400);
-  }
+  if (dashExpenseEl) { dashExpenseEl.className = 'av-card-value value-orange'; _wfCount(dashExpenseEl, expense, '৳', 1400); }
 
-  // 4. Net Profit / Loss — Purple (profit) or Orange-red (loss)
+  // 4. Net Profit / Loss — Purple or Orange
   const dashProfitEl = document.getElementById('dashTotalProfit');
   const dashProfitStatus = document.getElementById('dashProfitStatus');
   if (dashProfitEl) {
-    if (profit >= 0) {
-      dashProfitEl.className = 'av-card-value value-purple';
-      if (dashProfitStatus) dashProfitStatus.innerText = 'Profit Growth';
-    } else {
-      dashProfitEl.className = 'av-card-value value-orange';
-      if (dashProfitStatus) dashProfitStatus.innerText = 'Current Loss';
-    }
-    _wfAnimCount(dashProfitEl, Math.abs(profit), '৳', 1600);
+    dashProfitEl.className = profit >= 0 ? 'av-card-value value-purple' : 'av-card-value value-orange';
+    if (dashProfitStatus) dashProfitStatus.innerText = profit >= 0 ? 'Profit Growth' : 'Current Loss';
+    _wfCount(dashProfitEl, Math.abs(profit), '৳', 1600);
   }
 
   // Update New Dashboard Widgets
