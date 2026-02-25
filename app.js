@@ -1732,9 +1732,8 @@ function renderLedger(transactions) {
     footerTotal.classList.add(totalDisplayed >= 0 ? 'text-success' : 'text-danger');
   }
 
-  // Dynamically update category filter dropdown (safe call — may live in ledger-render.js)
+  // Dynamically update category filter dropdown (safe — may be in ledger-render.js)
   if (typeof updateCategoryDropdown === 'function') updateCategoryDropdown();
-  else if (typeof updateFinanceCategoryOptions === 'function') updateFinanceCategoryOptions();
 }
 
 
@@ -4884,122 +4883,6 @@ function openTransferModal() {
   modal.show();
 }
 
-async function handleTransferSubmit(e) {
-  e.preventDefault();
-  const form = e.target;
-  const fromAcc = form.fromAccount.value;
-  const toAcc = form.toAccount.value;
-  const amount = parseFloat(form.amount.value);
-  const date = form.date.value;
-  const notes = form.notes.value || 'Internal Transfer';
-
-  if (!fromAcc || !toAcc || fromAcc === toAcc) {
-    alert('Please select two different accounts.');
-    return;
-  }
-  if (amount <= 0) {
-    alert('Please enter a valid amount.');
-    return;
-  }
-
-  // Helper function to find account (Cash, Bank, or Mobile)
-  function findAccount(accountName) {
-    if (accountName === 'Cash') {
-      return { type: 'cash', account: null };
-    }
-
-    let account = globalData.bankAccounts.find(a => a.name === accountName);
-    if (account) {
-      return { type: 'bank', account: account };
-    }
-
-    account = globalData.mobileBanking.find(a => a.name === accountName);
-    if (account) {
-      return { type: 'mobile', account: account };
-    }
-
-    return null;
-  }
-
-  // Find source and destination accounts
-  const sourceResult = findAccount(fromAcc);
-  const destResult = findAccount(toAcc);
-
-  if (!sourceResult) {
-    alert('Source account not found: ' + fromAcc);
-    return;
-  }
-
-  if (!destResult) {
-    alert('Destination account not found: ' + toAcc);
-    return;
-  }
-
-  // Check if source has enough balance
-  let sourceBalance = 0;
-  if (sourceResult.type === 'cash') {
-    sourceBalance = parseFloat(globalData.cashBalance) || 0;
-  } else {
-    sourceBalance = parseFloat(sourceResult.account.balance) || 0;
-  }
-
-  if (sourceBalance < amount) {
-    alert(`Insufficient balance in ${fromAcc}. Available: ৳${sourceBalance}`);
-    return;
-  }
-
-  // Update source balance (deduct)
-  if (sourceResult.type === 'cash') {
-    globalData.cashBalance = (parseFloat(globalData.cashBalance) || 0) - amount;
-  } else {
-    sourceResult.account.balance = (parseFloat(sourceResult.account.balance) || 0) - amount;
-  }
-
-  // Update destination balance (add)
-  if (destResult.type === 'cash') {
-    globalData.cashBalance = (parseFloat(globalData.cashBalance) || 0) + amount;
-  } else {
-    destResult.account.balance = (parseFloat(destResult.account.balance) || 0) + amount;
-  }
-
-  // Record in Ledger (Two entries for clarity)
-  const transferOut = {
-    date: date,
-    category: 'Transfer',
-    type: 'Transfer Out',
-    method: fromAcc,
-    amount: amount,
-    person: toAcc,
-    notes: notes,
-    rowIndex: globalData.finance.length + 1
-  };
-  globalData.finance.push(transferOut);
-
-  const transferIn = {
-    date: date,
-    category: 'Transfer',
-    type: 'Transfer In',
-    method: toAcc,
-    amount: amount,
-    person: fromAcc,
-    notes: notes,
-    rowIndex: globalData.finance.length + 1
-  };
-  globalData.finance.push(transferIn);
-
-  bootstrap.Modal.getInstance(document.getElementById('transferModal')).hide();
-  await saveToStorage();
-
-  // Update all displays
-  renderAccountList();
-  if (typeof renderCashBalance === 'function') renderCashBalance();
-  if (typeof renderMobileBankingList === 'function') renderMobileBankingList();
-  if (typeof updateGrandTotal === 'function') updateGrandTotal();
-  updateGlobalStats();
-
-  showSuccessToast('✅ Balance transferred successfully!');
-}
-
 // Global Exposure
 window.renderAccountList = renderAccountList;
 window.openAccountModal = openAccountModal;
@@ -6937,78 +6820,12 @@ window.keepRecord = keepRecord;
 })();
 
 // =====================================================
-// MISSING FUNCTIONS FIX — যোগ করা হয়েছে (Feb 2026)
-// openStudentModal, deleteStudent, openStudentPaymentModal
-// openEditStudentModal, updateCategoryDropdown
+// Phase 2 POST-FIX — additional window exposures
+// sections files এখন load হচ্ছে, তাই এগুলো supplement
 // =====================================================
 
-// ── updateCategoryDropdown / updateFinanceCategoryOptions ──
-// ledger-render.js-এ থাকার কথা, এখানে fallback হিসেবে আছে
-function updateCategoryDropdown() {
-  const filterEl = document.getElementById('ledgerCategoryFilter');
-  if (!filterEl) return;
-  const current = filterEl.value;
-  const cats = [...new Set((window.globalData.finance || []).map(f => f.category).filter(Boolean))].sort();
-  filterEl.innerHTML = '<option value="">All Categories</option>';
-  cats.forEach(c => {
-    const opt = document.createElement('option');
-    opt.value = c; opt.textContent = c;
-    filterEl.appendChild(opt);
-  });
-  if (current) filterEl.value = current;
-}
-
-function updateFinanceCategoryOptions() {
-  // Finance modal category dropdown
-  const typeEl = document.querySelector('#financeForm select[name="type"]');
-  const catEl = document.getElementById('financeCategorySelect');
-  if (!catEl) return;
-
-  const type = typeEl ? typeEl.value : 'Income';
-  const cats = {
-    'Income': ['Student Fee', 'Exam Fee', 'Course Fee', 'Other Income'],
-    'Expense': ['Rent', 'Salary', 'Utilities', 'Supplies', 'Maintenance', 'Marketing', 'Other Expense'],
-    'Loan Given': ['Loan Given'],
-    'Loan Received': ['Loan Received'],
-    'Transfer Out': ['Transfer Out'],
-    'Transfer In': ['Transfer In']
-  };
-
-  const options = cats[type] || ['Other'];
-  // Add custom categories from existing finance data
-  const existingCats = [...new Set((window.globalData.finance || [])
-    .filter(f => f.type === type).map(f => f.category).filter(Boolean))];
-  const allCats = [...new Set([...options, ...existingCats])].sort();
-
-  catEl.innerHTML = allCats.map(c => `<option value="${c}">${c}</option>`).join('');
-}
-
-window.updateCategoryDropdown = updateCategoryDropdown;
-window.updateFinanceCategoryOptions = updateFinanceCategoryOptions;
-
-// ── openStudentModal — Add New Student modal খোলে ──
-function openStudentModal() {
-  const form = document.getElementById('studentForm');
-  if (form) {
-    form.reset();
-    const rowIndex = document.getElementById('studentRowIndex');
-    if (rowIndex) rowIndex.value = '';
-  }
-  if (typeof removeStudentPhoto === 'function') removeStudentPhoto();
-  const enrollDateInput = document.querySelector('#studentForm input[name="enrollDate"]');
-  if (enrollDateInput && !enrollDateInput.value) {
-    enrollDateInput.value = new Date().toISOString().split('T')[0];
-  }
-  const title = document.querySelector('#studentModal .modal-title');
-  if (title) title.innerHTML = '<span class="me-2">👨‍🎓</span>Add New Student';
-  const modalEl = document.getElementById('studentModal');
-  if (modalEl) {
-    try { new bootstrap.Modal(modalEl).show(); } catch (err) { console.error('openStudentModal error:', err); }
-  }
-}
-window.openStudentModal = openStudentModal;
-
-// ── openEditStudentModal — Edit existing student ──
+// ── openEditStudentModal — Edit mode for student form ──
+// finance-crud.js এর openStudentModal incomplete, এটা full version
 function openEditStudentModal(index) {
   const student = (window.globalData.students || [])[index];
   if (!student) return;
@@ -7029,105 +6846,12 @@ function openEditStudentModal(index) {
   const title = document.querySelector('#studentModal .modal-title');
   if (title) title.innerHTML = `<span class="me-2">✏️</span>Edit — ${student.name}`;
   const modalEl = document.getElementById('studentModal');
-  if (modalEl) {
-    try { new bootstrap.Modal(modalEl).show(); } catch (err) { console.error(err); }
-  }
+  if (modalEl) { try { new bootstrap.Modal(modalEl).show(); } catch(e){ console.error(e); } }
 }
 window.openEditStudentModal = openEditStudentModal;
 
-// ── deleteStudent ──
-async function deleteStudent(index) {
-  const student = (window.globalData.students || [])[index];
-  if (!student) return;
-  if (!confirm(`Delete student "${student.name}"?`)) return;
-  if (typeof moveToTrash === 'function') moveToTrash('student', student);
-  if (typeof logActivity === 'function') logActivity('student', 'DELETE', `Student deleted: ${student.name}`, student);
-  window.globalData.students.splice(index, 1);
-  if (typeof saveToStorage === 'function') await saveToStorage();
-  if (typeof render === 'function') render(window.globalData.students);
-  if (typeof updateGlobalStats === 'function') updateGlobalStats();
-  if (typeof showSuccessToast === 'function') showSuccessToast(`✅ "${student.name}" deleted.`);
-}
-window.deleteStudent = deleteStudent;
-
-// ── openStudentPaymentModal ──
-function openStudentPaymentModal(index) {
-  const student = (window.globalData.students || [])[index];
-  if (!student) return;
-  window.currentPaymentStudentIndex = index;
-  const fmt = (n) => typeof formatNumber === 'function' ? formatNumber(n) : n;
-  const el = (id) => document.getElementById(id);
-  if (el('pmtTotalFee')) el('pmtTotalFee').textContent = '৳' + fmt(student.totalPayment || 0);
-  if (el('pmtTotalPaid')) el('pmtTotalPaid').textContent = '৳' + fmt(student.paid || 0);
-  if (el('pmtTotalDue')) el('pmtTotalDue').textContent = '৳' + fmt(student.due || 0);
-  const historyBody = el('pmtHistoryBody');
-  if (historyBody) {
-    const insts = student.installments || [];
-    historyBody.innerHTML = insts.length === 0
-      ? `<tr><td colspan="5" class="text-center text-muted py-3">No installments yet.</td></tr>`
-      : insts.map((inst, i) => `
-          <tr>
-            <td>${i+1}</td><td>${inst.date||'-'}</td><td>${inst.method||'Cash'}</td>
-            <td class="text-end fw-bold text-success">৳${fmt(inst.amount||0)}</td>
-            <td class="text-end"><button class="btn btn-sm btn-outline-danger" onclick="deleteInstallment(${index},${i})"><i class="bi bi-trash"></i></button></td>
-          </tr>`).join('');
-  }
-  const pmtForm = el('pmtAddForm');
-  if (pmtForm) pmtForm.reset();
-  const pmtSel = el('pmtNewMethod');
-  if (pmtSel) {
-    pmtSel.innerHTML = '<option value="Cash">Cash</option>';
-    (window.globalData.accounts||[]).forEach(a => pmtSel.innerHTML += `<option value="${a.name}">${a.name}</option>`);
-    (window.globalData.mobileBanking||[]).forEach(m => pmtSel.innerHTML += `<option value="${m.name}">${m.name}</option>`);
-  }
-  const modalEl = el('studentPaymentModal');
-  if (modalEl) { try { new bootstrap.Modal(modalEl).show(); } catch(e){ console.error(e); } }
-}
-window.openStudentPaymentModal = openStudentPaymentModal;
-
-// ── handleAddInstallment ──
-async function handleAddInstallment() {
-  const index = window.currentPaymentStudentIndex;
-  const student = (window.globalData.students||[])[index];
-  if (!student) return;
-  const amount = parseFloat(document.getElementById('pmtNewAmount')?.value) || 0;
-  const method = document.getElementById('pmtNewMethod')?.value || 'Cash';
-  if (amount <= 0) { if(typeof showErrorToast==='function') showErrorToast('❌ Enter a valid amount.'); return; }
-  const today = new Date().toISOString().split('T')[0];
-  if (!student.installments) student.installments = [];
-  student.installments.push({ amount, date: today, method });
-  student.paid = (parseFloat(student.paid)||0) + amount;
-  student.due = Math.max(0,(parseFloat(student.totalPayment)||0) - student.paid);
-  const entry = { id: Date.now().toString(), type:'Income', method, date:today, category:'Student Fee',
-    person:student.name, amount, description:`Installment — ${student.name}`, timestamp:new Date().toISOString() };
-  window.globalData.finance.push(entry);
-  if (typeof updateAccountBalance==='function') updateAccountBalance(method, amount, 'Income', true);
-  if (typeof saveToStorage==='function') await saveToStorage();
-  openStudentPaymentModal(index);
-  if (typeof render==='function') render(window.globalData.students);
-  if (typeof updateGlobalStats==='function') updateGlobalStats();
-  if (typeof showSuccessToast==='function') showSuccessToast('✅ Payment added!');
-}
-window.handleAddInstallment = handleAddInstallment;
-
-// ── deleteInstallment ──
-async function deleteInstallment(studentIndex, instIndex) {
-  if (!confirm('Delete this installment?')) return;
-  const student = (window.globalData.students||[])[studentIndex];
-  if (!student?.installments) return;
-  const inst = student.installments[instIndex];
-  if (!inst) return;
-  student.paid = Math.max(0,(parseFloat(student.paid)||0) - inst.amount);
-  student.due = Math.max(0,(parseFloat(student.totalPayment)||0) - student.paid);
-  student.installments.splice(instIndex, 1);
-  if (typeof saveToStorage==='function') await saveToStorage();
-  openStudentPaymentModal(studentIndex);
-  if (typeof render==='function') render(window.globalData.students);
-  if (typeof updateGlobalStats==='function') updateGlobalStats();
-  if (typeof showSuccessToast==='function') showSuccessToast('Installment removed.');
-}
-window.deleteInstallment = deleteInstallment;
-
-// ── switchTab expose ──
+// ── switchTab global expose ──
 if (typeof switchTab === 'function') window.switchTab = switchTab;
+
+// ── calcDue global expose ──
 if (typeof calcDue === 'function') window.calcDue = calcDue;
