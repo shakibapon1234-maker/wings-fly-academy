@@ -24,7 +24,7 @@
   'use strict';
 
   // ─── Constants ────────────────────────────────────────────
-  const SUITE_VERSION = '5.0';
+  const SUITE_VERSION = '6.0';
   const SUPABASE_URL = window.SUPABASE_CONFIG?.URL || 'https://gtoldrltxjrwshubplfp.supabase.co';
   const SUPABASE_KEY = window.SUPABASE_CONFIG?.KEY || 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6Imd0b2xkcmx0eGpyd3NodWJwbGZwIiwicm9sZSI6ImFub24iLCJpYXQiOjE3NzEwOTk5MTksImV4cCI6MjA4NjY3NTkxOX0.7NTx3tzU1C5VaewNZZHTaJf2WJ_GtjhQPKOymkxRsUk';
   const TEST_TAG = '__WFTEST__';  // এই tag দিয়ে test data চিহ্নিত হবে
@@ -168,6 +168,13 @@
       'openEmployeeModal', 'saveEmployee',
       'openAttendanceModal', 'openAccountModal',
       'exportData', 'importData',
+      // ✅ Delete functions
+      'deleteTransaction', 'deleteEmployee', 'deleteAccount',
+      'deleteMobileAccount', 'deleteVisitor', 'deleteKeepRecord',
+      // ✅ Recycle Bin
+      'moveToTrash', 'restoreDeletedItem',
+      // ✅ Activity Log
+      'logActivity',
     ];
 
     const optional = [
@@ -175,6 +182,9 @@
       'filterData', 'printReport',
       'recalculateCashBalanceFromTransactions',
       'openNoticeModal', 'publishNotice',
+      // ✅ Optional delete functions
+      'deleteNotice', 'deleteInstallment',
+      'deleteExamRegistration', 'deleteKeepRecord',
     ];
 
     let critFail = 0;
@@ -1497,6 +1507,204 @@
       : warn('⚠️ Cash balance negative!', '৳' + cash.toFixed(0));
   }
 
+
+  // ── GROUP 19: Delete → Recycle Bin → Restore Full Cycle ──
+  function testDeleteRestoreCycle() {
+    sectionHeader('19 — Delete / Restore / Activity Log Cycle Tests');
+    const gd = window.globalData;
+    if (!gd) { skip('Delete/Restore tests', 'globalData নেই'); return; }
+
+    // ─── 19a: moveToTrash function exists ───
+    if (typeof window.moveToTrash !== 'function') {
+      fail('moveToTrash MISSING — Recycle Bin কাজ করবে না!');
+    } else {
+      pass('moveToTrash function exists ✅');
+
+      // ─── 19b: moveToTrash fake data দিয়ে test ───
+      const before = (gd.deletedItems || []).length;
+      const fakeItem = {
+        id: '__TEST_TRASH__' + Date.now(),
+        name: 'Fake Test Item __WFTEST__',
+        type: 'testItem',
+        amount: 999
+      };
+      const r = safeCall(() => window.moveToTrash('testItem', fakeItem));
+      if (r.ok) {
+        const after = (gd.deletedItems || []).length;
+        if (after === before + 1) {
+          pass('moveToTrash: item Recycle Bin এ গেছে ✅', 'Recycle Bin size: ' + after);
+        } else {
+          fail('moveToTrash: Recycle Bin size বাড়েনি!', 'before: ' + before + ', after: ' + after);
+        }
+      } else {
+        fail('moveToTrash threw error', r.err);
+      }
+
+      // ─── 19c: Recycle Bin এ item সঠিকভাবে stored ───
+      const trashEntry = (gd.deletedItems || []).find(d => d.item && d.item.id === fakeItem.id);
+      if (trashEntry) {
+        pass('Recycle Bin entry structure correct ✅');
+        if (trashEntry.type) pass('trashEntry.type আছে: ' + trashEntry.type);
+        else fail('trashEntry.type নেই!');
+        if (trashEntry.deletedAt) pass('trashEntry.deletedAt আছে ✅');
+        else fail('trashEntry.deletedAt নেই!');
+        if (trashEntry.item) pass('trashEntry.item (original data) আছে ✅');
+        else fail('trashEntry.item নেই!');
+      } else {
+        fail('Recycle Bin-এ test item পাওয়া যায়নি!');
+      }
+
+      // ─── 19d: Cleanup test trash item ───
+      safeCall(() => {
+        gd.deletedItems = (gd.deletedItems || []).filter(d => !(d.item && d.item.id === fakeItem.id));
+      });
+      pass('Test trash item cleaned up ✅');
+    }
+
+    // ─── 19e: restoreDeletedItem function exists ───
+    typeof window.restoreDeletedItem === 'function'
+      ? pass('restoreDeletedItem function exists ✅')
+      : fail('restoreDeletedItem MISSING — Restore কাজ করবে না!');
+
+    // ─── 19f: logActivity function exists ───
+    typeof window.logActivity === 'function'
+      ? pass('logActivity function exists ✅')
+      : warn('logActivity function নেই', 'Activity Log কাজ নাও করতে পারে');
+
+    // ─── 19g: activityHistory array exists ───
+    if (Array.isArray(gd.activityHistory)) {
+      pass('activityHistory array আছে ✅', gd.activityHistory.length + 'টি entry');
+    } else {
+      warn('activityHistory array নেই', 'Activity Log empty হতে পারে');
+    }
+
+    // ─── 19h: logActivity fake call test ───
+    if (typeof window.logActivity === 'function') {
+      const beforeLog = (gd.activityHistory || []).length;
+      const r2 = safeCall(() => window.logActivity('testType', 'TEST', 'Auto Test Entry __WFTEST__', {}));
+      if (r2.ok) {
+        const afterLog = (gd.activityHistory || []).length;
+        if (afterLog > beforeLog) {
+          pass('logActivity: Activity Log এ entry গেছে ✅');
+          // cleanup
+          safeCall(() => {
+            gd.activityHistory = (gd.activityHistory || []).filter(a =>
+              !(a.description || '').includes('__WFTEST__')
+            );
+          });
+        } else {
+          warn('logActivity call OK কিন্তু activityHistory বাড়েনি');
+        }
+      } else {
+        fail('logActivity threw error', r2.err);
+      }
+    }
+
+    // ─── 19i: Delete function existence checks ───
+    const deleteFunctions = [
+      { fn: 'deleteStudent', label: 'Student delete' },
+      { fn: 'deleteTransaction', label: 'Transaction (Finance) delete' },
+      { fn: 'deleteEmployee', label: 'Employee delete' },
+      { fn: 'deleteAccount', label: 'Bank Account delete' },
+      { fn: 'deleteMobileAccount', label: 'Mobile Account delete' },
+      { fn: 'deleteVisitor', label: 'Visitor delete' },
+      { fn: 'deleteKeepRecord', label: 'Keep Record delete' },
+      { fn: 'deleteNotice', label: 'Notice delete' },
+      { fn: 'deleteInstallment', label: 'Installment delete' },
+      { fn: 'deleteExamRegistration', label: 'Exam Registration delete' },
+    ];
+
+    deleteFunctions.forEach(({ fn, label }) => {
+      typeof window[fn] === 'function'
+        ? pass('✅ ' + label + ' (' + fn + ') আছে')
+        : fail('❌ ' + fn + ' MISSING!', label + ' কাজ করবে না');
+    });
+
+    // ─── 19j: Recycle Bin max size (200) ───
+    const binSize = (gd.deletedItems || []).length;
+    if (binSize <= 200) {
+      pass('Recycle Bin size limit OK ✅', binSize + '/200 items');
+    } else {
+      warn('Recycle Bin 200 limit exceeded!', binSize + ' items — auto-trim হওয়া উচিত');
+    }
+
+    // ─── 19k: Recycle Bin entries by type ───
+    const byType = {};
+    (gd.deletedItems || []).forEach(d => { byType[d.type] = (byType[d.type] || 0) + 1; });
+    const knownTypes = ['student', 'finance', 'employee', 'bankAccount', 'mobileAccount',
+                        'visitor', 'keepRecord', 'exam', 'notice'];
+    const unknownTypes = Object.keys(byType).filter(t => !knownTypes.includes(t));
+    if (Object.keys(byType).length === 0) {
+      skip('Recycle Bin type check', 'Recycle Bin এখনো empty');
+    } else {
+      pass('Recycle Bin types: ' + Object.entries(byType).map(([k,v]) => k+':'+v).join(', '));
+      if (unknownTypes.length > 0) {
+        warn('Unknown trash types: ' + unknownTypes.join(', '), 'Restore করা যাবে না এই types এর items');
+      }
+    }
+
+    // ─── 19l: Student fake delete → Recycle Bin → check ───
+    if (gd.students && gd.students.length > 0 && typeof window.moveToTrash === 'function') {
+      const fakeStudent = {
+        rowIndex: Date.now() + 9999,
+        name: 'Fake Student __WFTEST__',
+        studentId: 'FS_TEST',
+        course: 'Test',
+        paid: 500,
+        totalPayment: 1000,
+        due: 500,
+        status: 'Active'
+      };
+      // Add fake student
+      gd.students.push(fakeStudent);
+      // Delete → trash
+      const trashBefore = (gd.deletedItems || []).length;
+      window.moveToTrash('student', fakeStudent);
+      gd.students = gd.students.filter(s => s.rowIndex !== fakeStudent.rowIndex);
+      const trashAfter = (gd.deletedItems || []).length;
+
+      if (trashAfter === trashBefore + 1) {
+        pass('✅ Student delete → Recycle Bin cycle complete');
+      } else {
+        fail('Student delete → Recycle Bin cycle FAILED');
+      }
+
+      // Cleanup
+      safeCall(() => {
+        gd.deletedItems = (gd.deletedItems || []).filter(d =>
+          !(d.item && d.item.rowIndex === fakeStudent.rowIndex)
+        );
+      });
+      pass('Fake student test data cleaned up ✅');
+    }
+
+    // ─── 19m: Finance fake delete → Recycle Bin → check ───
+    if (typeof window.moveToTrash === 'function') {
+      const fakeFin = {
+        id: 'FIN_TEST_' + Date.now(),
+        type: 'Income',
+        category: 'Test',
+        amount: 100,
+        date: new Date().toISOString().split('T')[0],
+        note: 'Auto Test __WFTEST__'
+      };
+      const finTrashBefore = (gd.deletedItems || []).length;
+      window.moveToTrash('finance', fakeFin);
+      const finTrashAfter = (gd.deletedItems || []).length;
+      if (finTrashAfter === finTrashBefore + 1) {
+        pass('✅ Finance delete → Recycle Bin cycle complete');
+      } else {
+        fail('Finance delete → Recycle Bin cycle FAILED');
+      }
+      // Cleanup
+      safeCall(() => {
+        gd.deletedItems = (gd.deletedItems || []).filter(d =>
+          !(d.item && d.item.id === fakeFin.id)
+        );
+      });
+    }
+  }
+
   // ═══════════════════════════════════════════════════════════
   // MAIN RUNNER
   // ═══════════════════════════════════════════════════════════
@@ -1535,6 +1743,7 @@
     testExamVisitor();
     testStressBoundary();
     testAccountsModule();
+    testDeleteRestoreCycle(); // ✅ Group 19: Delete/Restore/ActivityLog
 
     // Run async groups
     await testSupabaseConnectivity();
