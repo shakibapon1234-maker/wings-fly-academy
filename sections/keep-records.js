@@ -125,12 +125,15 @@ function deleteNote(id) {
   if (!window.globalData) window.globalData = {};
   if (!Array.isArray(window.globalData.deletedItems)) window.globalData.deletedItems = [];
 
-  const trashItem = Object.assign({}, noteToDelete, {
-    _trashId:   'TRASH_' + Date.now() + '_' + Math.floor(Math.random() * 9999),
-    _trashType: 'keeprecord',
-    _trashDate: new Date().toISOString(),
-    _trashBy:   sessionStorage.getItem('username') || 'Admin'
-  });
+  // ✅ FIX: Standard trash format — id/type/item/deletedAt/deletedBy
+  // restoreDeletedItem() এই format এ খোঁজে তাই এটা ঠিক রাখতে হবে
+  const trashItem = {
+    id:        'TRASH_' + Date.now() + '_' + Math.floor(Math.random() * 9999),
+    type:      'keeprecord',
+    item:      JSON.parse(JSON.stringify(noteToDelete)), // deep copy
+    deletedAt: new Date().toISOString(),
+    deletedBy: sessionStorage.getItem('username') || 'Admin'
+  };
   window.globalData.deletedItems.unshift(trashItem);
   if (window.globalData.deletedItems.length > 300) {
     window.globalData.deletedItems = window.globalData.deletedItems.slice(0, 300);
