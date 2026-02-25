@@ -1153,14 +1153,14 @@
                     <span>Login</span>
                 </button>
                 <p id="loginError" class="text-danger small mt-3 text-center"></p>
-                <div class="text-center mt-2">
-                    <button type="button" class="btn btn-link btn-sm text-muted p-0"
-                        style="font-size:0.78rem; text-decoration:none; opacity:0.65;"
-                        onclick="wfShowForgotPassword()">
+                <div class="text-center mt-3">
+                    <button type="button" id="forgotPwBtn"
+                        style="background:none;border:none;cursor:pointer;font-size:0.78rem;color:rgba(0,217,255,0.65);letter-spacing:0.5px;padding:4px 8px;border-radius:6px;transition:color .2s;"
+                        onmouseover="this.style.color='#00d9ff'" onmouseout="this.style.color='rgba(0,217,255,0.65)'"
+                        onclick="wfShowForgotModal()">
                         🔑 Forgot Password?
                     </button>
                 </div>
-                <p class="text-muted small mt-3 text-center">Demo: admin / admin123</p>
             </form>
         </div>
     </div>
@@ -3606,499 +3606,164 @@
                                     </div>
 
                                     <!-- Tab 4: Security & Access -->
-                                    <div class="settings-tab-pane" id="tab-security" style="display:none; padding:28px;">
+                                    <div class="settings-tab-pane" id="tab-security" style="display:none; padding:28px 22px;">
+                                    <style>
+                                    .sc{background:linear-gradient(145deg,rgba(8,12,38,0.95),rgba(18,8,45,0.95));border:1.5px solid rgba(0,217,255,0.16);border-radius:18px;padding:22px 24px;margin-bottom:18px;position:relative;overflow:hidden;}
+                                    .sc::after{content:'';position:absolute;top:0;left:0;right:0;height:2px;background:linear-gradient(90deg,#00d9ff,#b537f2,#00ffaa,#00d9ff);background-size:300%;animation:scg 5s linear infinite;}
+                                    @keyframes scg{0%{background-position:0%}100%{background-position:300%}}
+                                    .sc-h{display:flex;align-items:center;gap:13px;margin-bottom:18px;}
+                                    .sc-ic{width:44px;height:44px;border-radius:12px;display:flex;align-items:center;justify-content:center;font-size:1.25rem;flex-shrink:0;}
+                                    .sc-ic.cy{background:rgba(0,217,255,0.1);border:1.5px solid rgba(0,217,255,0.28);}
+                                    .sc-ic.pu{background:rgba(181,55,242,0.1);border:1.5px solid rgba(181,55,242,0.28);}
+                                    .sc-ic.gr{background:rgba(0,255,136,0.1);border:1.5px solid rgba(0,255,136,0.28);}
+                                    .sc-t{font-size:0.96rem;font-weight:700;color:#deeeff;margin:0 0 2px;}
+                                    .sc-s{font-size:0.74rem;color:rgba(0,200,255,0.52);margin:0;}
+                                    .sc-lb{display:block;font-size:0.68rem;font-weight:700;letter-spacing:1.4px;text-transform:uppercase;color:rgba(0,200,255,0.65);margin-bottom:6px;}
+                                    .sc-in{width:100%;background:rgba(3,8,30,0.8)!important;border:1.5px solid rgba(0,217,255,0.2)!important;border-radius:9px!important;color:#deeeff!important;padding:10px 14px!important;font-size:0.86rem!important;outline:none!important;transition:border-color .2s,box-shadow .2s;box-sizing:border-box;}
+                                    .sc-in:focus{border-color:#00d9ff!important;box-shadow:0 0 0 3px rgba(0,217,255,0.09)!important;}
+                                    .sc-in::placeholder{color:rgba(80,120,180,0.38)!important;}
+                                    .sc-g{display:flex;border:1.5px solid rgba(0,217,255,0.2);border-radius:9px;overflow:hidden;}
+                                    .sc-g .sc-in{border:none!important;border-radius:0!important;flex:1;}
+                                    .sc-ey{background:rgba(0,217,255,0.06);border:none;border-left:1.5px solid rgba(0,217,255,0.16);color:#00d9ff;padding:0 14px;cursor:pointer;font-size:0.9rem;transition:background .18s;}
+                                    .sc-ey:hover{background:rgba(0,217,255,0.15);}
+                                    .sc-br{height:4px;background:rgba(255,255,255,0.07);border-radius:2px;margin-top:6px;overflow:hidden;}
+                                    .sc-bf{height:100%;border-radius:2px;transition:width .3s,background .3s;width:0;}
+                                    .sc-st{font-size:0.68rem;font-weight:600;margin-top:3px;}
+                                    .sc-tip{background:rgba(0,217,255,0.05);border:1px solid rgba(0,217,255,0.14);border-radius:9px;padding:10px 13px;font-size:0.76rem;color:rgba(170,205,255,0.7);margin-top:13px;display:flex;gap:8px;}
+                                    .sc-dv{height:1px;background:rgba(255,255,255,0.06);margin:16px 0;}
+                                    .sc-tg{display:flex;align-items:center;justify-content:space-between;cursor:pointer;user-select:none;}
+                                    .sc-ar{color:rgba(0,200,255,0.45);transition:transform .25s;font-size:0.78rem;}
+                                    .sc-ar.op{transform:rotate(180deg);}
+                                    .sc-rb{max-height:0;overflow:hidden;opacity:0;transition:max-height .35s ease,opacity .25s;}
+                                    .sc-rb.op{max-height:500px;opacity:1;}
+                                    .sc-bk{display:inline-flex;align-items:center;gap:5px;background:rgba(255,140,0,0.09);border:1px solid rgba(255,140,0,0.26);border-radius:20px;padding:4px 11px;font-size:0.69rem;font-weight:600;color:#ffaa00;}
+                                    .sc-sv{background:linear-gradient(135deg,#00d9ff,#b537f2);color:#050a1e;border:none;border-radius:10px;padding:11px 24px;font-weight:700;font-size:0.84rem;cursor:pointer;display:inline-flex;align-items:center;gap:7px;transition:all .22s;box-shadow:0 3px 14px rgba(0,217,255,0.22);}
+                                    .sc-sv:hover{transform:translateY(-2px);box-shadow:0 6px 20px rgba(0,217,255,0.38);}
+                                    </style>
 
-                                        <style>
-                                        /* ── Security Tab Premium Styles ── */
-                                        .sec-section {
-                                            background: rgba(0,0,0,0.25);
-                                            border: 1.5px solid rgba(0,217,255,0.18);
-                                            border-radius: 18px;
-                                            padding: 26px 28px;
-                                            margin-bottom: 22px;
-                                            position: relative;
-                                            overflow: hidden;
-                                        }
-                                        .sec-section::before {
-                                            content: '';
-                                            position: absolute;
-                                            top: 0; left: 0; right: 0;
-                                            height: 2px;
-                                            background: linear-gradient(90deg, #00d9ff, #b537f2, #00d9ff);
-                                            background-size: 200%;
-                                            animation: secGradMove 3s linear infinite;
-                                        }
-                                        @keyframes secGradMove { 0%{background-position:0%} 100%{background-position:200%} }
-
-                                        .sec-header {
-                                            display: flex;
-                                            align-items: center;
-                                            gap: 14px;
-                                            margin-bottom: 22px;
-                                        }
-                                        .sec-icon-box {
-                                            width: 48px; height: 48px;
-                                            border-radius: 14px;
-                                            display: flex; align-items: center; justify-content: center;
-                                            font-size: 1.4rem;
-                                            flex-shrink: 0;
-                                        }
-                                        .sec-icon-cyan { background: rgba(0,217,255,0.12); border: 1.5px solid rgba(0,217,255,0.35); }
-                                        .sec-icon-purple { background: rgba(181,55,242,0.12); border: 1.5px solid rgba(181,55,242,0.35); }
-                                        .sec-icon-green { background: rgba(0,255,136,0.12); border: 1.5px solid rgba(0,255,136,0.35); }
-                                        .sec-title { font-size: 1rem; font-weight: 700; color: #e0f0ff; margin: 0 0 3px 0; }
-                                        .sec-subtitle { font-size: 0.78rem; color: rgba(0,217,255,0.6); margin: 0; }
-
-                                        .sec-label {
-                                            display: block;
-                                            font-size: 0.72rem;
-                                            font-weight: 700;
-                                            letter-spacing: 1.2px;
-                                            text-transform: uppercase;
-                                            color: rgba(0,217,255,0.75);
-                                            margin-bottom: 7px;
-                                        }
-                                        .sec-input {
-                                            width: 100%;
-                                            background: rgba(5,10,30,0.7) !important;
-                                            border: 1.5px solid rgba(0,217,255,0.25) !important;
-                                            border-radius: 10px !important;
-                                            color: #e0f0ff !important;
-                                            padding: 11px 16px !important;
-                                            font-size: 0.88rem !important;
-                                            outline: none !important;
-                                            transition: border-color 0.2s, box-shadow 0.2s;
-                                        }
-                                        .sec-input:focus {
-                                            border-color: #00d9ff !important;
-                                            box-shadow: 0 0 0 3px rgba(0,217,255,0.12) !important;
-                                        }
-                                        .sec-input::placeholder { color: rgba(120,150,200,0.5) !important; }
-                                        .sec-input-group {
-                                            display: flex;
-                                            gap: 0;
-                                            border: 1.5px solid rgba(0,217,255,0.25);
-                                            border-radius: 10px;
-                                            overflow: hidden;
-                                        }
-                                        .sec-input-group .sec-input {
-                                            border: none !important;
-                                            border-radius: 0 !important;
-                                            flex: 1;
-                                        }
-                                        .sec-eye-btn {
-                                            background: rgba(0,217,255,0.08);
-                                            border: none;
-                                            border-left: 1.5px solid rgba(0,217,255,0.2);
-                                            color: #00d9ff;
-                                            padding: 0 16px;
-                                            cursor: pointer;
-                                            font-size: 1rem;
-                                            transition: background 0.18s;
-                                        }
-                                        .sec-eye-btn:hover { background: rgba(0,217,255,0.18); }
-
-                                        .sec-strength-bar {
-                                            height: 4px;
-                                            border-radius: 2px;
-                                            background: rgba(255,255,255,0.1);
-                                            margin-top: 8px;
-                                            overflow: hidden;
-                                        }
-                                        .sec-strength-fill {
-                                            height: 100%;
-                                            border-radius: 2px;
-                                            transition: width 0.3s, background 0.3s;
-                                            width: 0%;
-                                        }
-                                        .sec-strength-text {
-                                            font-size: 0.7rem;
-                                            margin-top: 4px;
-                                            font-weight: 600;
-                                        }
-
-                                        .sec-note {
-                                            background: rgba(0,217,255,0.06);
-                                            border: 1px solid rgba(0,217,255,0.18);
-                                            border-radius: 10px;
-                                            padding: 12px 16px;
-                                            font-size: 0.8rem;
-                                            color: rgba(180,210,255,0.8);
-                                            margin-top: 16px;
-                                            display: flex;
-                                            align-items: flex-start;
-                                            gap: 10px;
-                                        }
-                                        .sec-note .note-icon { font-size: 1rem; flex-shrink: 0; margin-top: 1px; }
-
-                                        .sec-divider {
-                                            height: 1px;
-                                            background: rgba(255,255,255,0.07);
-                                            margin: 20px 0;
-                                        }
-
-                                        .sec-recovery-toggle {
-                                            display: flex;
-                                            align-items: center;
-                                            justify-content: space-between;
-                                            cursor: pointer;
-                                            user-select: none;
-                                            padding: 4px 0;
-                                        }
-                                        .sec-recovery-toggle .toggle-info { display: flex; align-items: center; gap: 12px; }
-                                        .sec-toggle-arrow {
-                                            color: rgba(0,217,255,0.6);
-                                            font-size: 0.85rem;
-                                            transition: transform 0.25s;
-                                        }
-                                        .sec-toggle-arrow.open { transform: rotate(180deg); }
-                                        .sec-recovery-body {
-                                            overflow: hidden;
-                                            transition: max-height 0.35s ease, opacity 0.25s;
-                                            max-height: 0;
-                                            opacity: 0;
-                                        }
-                                        .sec-recovery-body.open { max-height: 400px; opacity: 1; }
-
-                                        .sec-save-btn {
-                                            background: linear-gradient(135deg, #00d9ff, #b537f2);
-                                            color: #0a0e27;
-                                            border: none;
-                                            border-radius: 10px;
-                                            padding: 12px 28px;
-                                            font-weight: 700;
-                                            font-size: 0.85rem;
-                                            letter-spacing: 0.5px;
-                                            cursor: pointer;
-                                            transition: all 0.22s;
-                                            display: inline-flex;
-                                            align-items: center;
-                                            gap: 8px;
-                                            margin-top: 20px;
-                                        }
-                                        .sec-save-btn:hover {
-                                            transform: translateY(-2px);
-                                            box-shadow: 0 6px 20px rgba(0,217,255,0.4);
-                                        }
-                                        .sec-save-btn:active { transform: translateY(0); }
-
-                                        .sec-countdown-badge {
-                                            display: inline-flex;
-                                            align-items: center;
-                                            gap: 6px;
-                                            background: rgba(255,140,0,0.12);
-                                            border: 1px solid rgba(255,140,0,0.3);
-                                            border-radius: 20px;
-                                            padding: 4px 12px;
-                                            font-size: 0.72rem;
-                                            font-weight: 600;
-                                            color: #ffaa00;
-                                        }
-                                        </style>
-
-                                        <div style="max-width: 680px; margin: 0 auto;">
-
-                                            <!-- ── Section 1: Login Credentials ── -->
-                                            <div class="sec-section">
-                                                <div class="sec-header">
-                                                    <div class="sec-icon-box sec-icon-cyan">🔒</div>
-                                                    <div>
-                                                        <p class="sec-title">Login Credentials</p>
-                                                        <p class="sec-subtitle">Admin username এবং password পরিবর্তন করুন</p>
-                                                    </div>
-                                                </div>
-
-                                                <!-- Username -->
-                                                <div style="margin-bottom: 16px;">
-                                                    <label class="sec-label">👤 Admin Username</label>
-                                                    <input type="text" id="settingsUsername" name="adminUsername"
-                                                        class="sec-input" placeholder="Enter admin username"
-                                                        autocomplete="off">
-                                                </div>
-
-                                                <!-- New Password -->
-                                                <div style="margin-bottom: 16px;">
-                                                    <label class="sec-label">🔑 New Password</label>
-                                                    <div class="sec-input-group">
-                                                        <input type="password" id="settingsPassword" name="adminPassword"
-                                                            class="sec-input" placeholder="Enter new password"
-                                                            autocomplete="new-password"
-                                                            oninput="wfCheckPasswordStrength(this.value)">
-                                                        <button class="sec-eye-btn" type="button"
-                                                            onclick="const p=document.getElementById('settingsPassword');p.type=p.type==='password'?'text':'password';this.textContent=p.type==='password'?'👁️':'🙈';">
-                                                            👁️
-                                                        </button>
-                                                    </div>
-                                                    <!-- Strength bar -->
-                                                    <div class="sec-strength-bar">
-                                                        <div class="sec-strength-fill" id="pwStrengthFill"></div>
-                                                    </div>
-                                                    <div class="sec-strength-text" id="pwStrengthText" style="color:#666;"></div>
-                                                </div>
-
-                                                <!-- Confirm Password -->
-                                                <div style="margin-bottom: 4px;">
-                                                    <label class="sec-label">🔁 Confirm Password</label>
-                                                    <div class="sec-input-group">
-                                                        <input type="password" id="settingsPasswordConfirm"
-                                                            class="sec-input" placeholder="Re-enter new password"
-                                                            autocomplete="new-password"
-                                                            oninput="wfCheckPasswordMatch()">
-                                                        <button class="sec-eye-btn" type="button"
-                                                            onclick="const p=document.getElementById('settingsPasswordConfirm');p.type=p.type==='password'?'text':'password';this.textContent=p.type==='password'?'👁️':'🙈';">
-                                                            👁️
-                                                        </button>
-                                                    </div>
-                                                    <div id="pwMatchText" style="font-size:0.72rem;margin-top:5px;font-weight:600;"></div>
-                                                </div>
-
-                                                <div class="sec-note">
-                                                    <span class="note-icon">💡</span>
-                                                    <span>Password পরিবর্তনের পর উভয় PC-তে নতুন password ব্যবহার করুন এবং <strong style="color:#00d9ff;">Push to Cloud</strong> করুন।</span>
-                                                </div>
+                                    <div style="max-width:640px;margin:0 auto;">
+                                        <!-- ① Credentials -->
+                                        <div class="sc">
+                                            <div class="sc-h"><div class="sc-ic cy">🔒</div><div><p class="sc-t">Login Credentials</p><p class="sc-s">Username ও Password পরিবর্তন করুন</p></div></div>
+                                            <div style="margin-bottom:13px;">
+                                                <label class="sc-lb">👤 Admin Username</label>
+                                                <input type="text" id="settingsUsername" class="sc-in" placeholder="Enter username" autocomplete="off" data-form-type="other">
                                             </div>
-
-                                            <!-- ── Section 2: Secret Recovery Question ── -->
-                                            <div class="sec-section">
-                                                <div class="sec-recovery-toggle" onclick="wfToggleRecovery()">
-                                                    <div class="toggle-info">
-                                                        <div class="sec-icon-box sec-icon-purple">🛡️</div>
-                                                        <div>
-                                                            <p class="sec-title">Secret Recovery Question</p>
-                                                            <p class="sec-subtitle">পাসওয়ার্ড ভুলে গেলে এই প্রশ্ন দিয়ে reset করতে পারবেন</p>
-                                                        </div>
-                                                    </div>
-                                                    <span class="sec-toggle-arrow" id="recoveryArrow">▼</span>
+                                            <div style="margin-bottom:13px;">
+                                                <label class="sc-lb">🔑 New Password</label>
+                                                <div class="sc-g">
+                                                    <input type="password" id="settingsPassword" class="sc-in" placeholder="Enter new password" autocomplete="off" data-form-type="other" oninput="scPwStr(this.value)">
+                                                    <button class="sc-ey" type="button" onclick="scToggle('settingsPassword',this)">👁️</button>
                                                 </div>
-
-                                                <div class="sec-recovery-body" id="recoveryBody">
-                                                    <div class="sec-divider"></div>
-
-                                                    <!-- Recovery Question -->
-                                                    <div style="margin-bottom: 16px;">
-                                                        <label class="sec-label">❓ আপনার প্রশ্ন লিখুন</label>
-                                                        <input type="text" id="settingsRecoveryQuestion"
-                                                            class="sec-input"
-                                                            placeholder="যেমন: আপনার মায়ের নাম কী? / প্রিয় রঙ কোনটি?">
-                                                        <div style="font-size:0.72rem;color:rgba(100,150,200,0.6);margin-top:5px;">
-                                                            এমন প্রশ্ন লিখুন যার উত্তর শুধু আপনি জানেন
-                                                        </div>
-                                                    </div>
-
-                                                    <!-- Recovery Answer -->
-                                                    <div style="margin-bottom: 4px;">
-                                                        <label class="sec-label">✅ উত্তর</label>
-                                                        <div class="sec-input-group">
-                                                            <input type="password" id="settingsRecoveryAnswer"
-                                                                class="sec-input" placeholder="গোপন উত্তর লিখুন"
-                                                                autocomplete="off">
-                                                            <button class="sec-eye-btn" type="button"
-                                                                onclick="const p=document.getElementById('settingsRecoveryAnswer');p.type=p.type==='password'?'text':'password';this.textContent=p.type==='password'?'👁️':'🙈';">
-                                                                👁️
-                                                            </button>
-                                                        </div>
-                                                    </div>
-
-                                                    <div class="sec-note" style="background:rgba(181,55,242,0.06);border-color:rgba(181,55,242,0.2);">
-                                                        <span class="note-icon">🔐</span>
-                                                        <span>উত্তর হ্যাশ করে সংরক্ষণ করা হবে — কেউ দেখতে পাবে না। Login পেজে "Forgot Password?" বাটন দিয়ে recovery করা যাবে।</span>
-                                                    </div>
-                                                </div>
+                                                <div class="sc-br"><div class="sc-bf" id="scPwBar"></div></div>
+                                                <div class="sc-st" id="scPwTxt" style="color:#555;"></div>
                                             </div>
-
-                                            <!-- ── Section 3: Session & Lockout ── -->
-                                            <div class="sec-section">
-                                                <div class="sec-header">
-                                                    <div class="sec-icon-box sec-icon-green">🕐</div>
-                                                    <div>
-                                                        <p class="sec-title">Session & Auto Lockout</p>
-                                                        <p class="sec-subtitle">নিষ্ক্রিয় থাকলে স্বয়ংক্রিয়ভাবে লগআউট হবে</p>
-                                                    </div>
+                                            <div>
+                                                <label class="sc-lb">🔁 Confirm Password</label>
+                                                <div class="sc-g">
+                                                    <input type="password" id="settingsPasswordConfirm" class="sc-in" placeholder="Re-enter new password" autocomplete="off" data-form-type="other" oninput="scPwMatch()">
+                                                    <button class="sc-ey" type="button" onclick="scToggle('settingsPasswordConfirm',this)">👁️</button>
                                                 </div>
-
-                                                <div style="display:flex; align-items:center; gap:16px; flex-wrap:wrap;">
-                                                    <div style="flex:1; min-width:180px;">
-                                                        <label class="sec-label">⏱️ Auto Lockout Time</label>
-                                                        <select id="settingsAutoLockout" class="sec-input" style="cursor:pointer;">
-                                                            <option value="0">❌ Disabled (Never)</option>
-                                                            <option value="15">15 minutes</option>
-                                                            <option value="30">30 minutes</option>
-                                                            <option value="60">1 hour</option>
-                                                            <option value="120">2 hours</option>
-                                                            <option value="480">8 hours</option>
-                                                        </select>
-                                                    </div>
-                                                    <div id="lockoutStatusBadge" style="margin-top:18px;">
-                                                        <span class="sec-countdown-badge">
-                                                            <span>🔓</span>
-                                                            <span id="lockoutStatusText">Disabled</span>
-                                                        </span>
-                                                    </div>
-                                                </div>
-                                                <div style="font-size:0.74rem;color:rgba(100,160,200,0.55);margin-top:8px;">
-                                                    নির্ধারিত সময় নিষ্ক্রিয় থাকলে সিস্টেম স্বয়ংক্রিয়ভাবে লগআউট করবে এবং Login পেজে নিয়ে যাবে
-                                                </div>
+                                                <div id="scPwMatchTxt" style="font-size:0.68rem;margin-top:4px;font-weight:600;"></div>
                                             </div>
+                                            <div class="sc-tip"><span>💡</span><span>Password পরিবর্তনের পর উভয় PC-তে নতুন password ব্যবহার করুন এবং <strong style="color:#00d9ff;">Push to Cloud</strong> করুন।</span></div>
+                                        </div>
 
-                                            <!-- Save Button -->
-                                            <div style="text-align:right;">
-                                                <button class="sec-save-btn" type="button" onclick="saveSecuritySettings()">
-                                                    <span>💾</span> Save Security Settings
-                                                </button>
+                                        <!-- ② Secret Recovery -->
+                                        <div class="sc">
+                                            <div class="sc-tg" onclick="scTogRec()">
+                                                <div style="display:flex;align-items:center;gap:13px;">
+                                                    <div class="sc-ic pu">🛡️</div>
+                                                    <div><p class="sc-t">Secret Recovery Question</p><p class="sc-s">পাসওয়ার্ড ভুলে গেলে এই প্রশ্ন দিয়ে reset করতে পারবেন</p></div>
+                                                </div>
+                                                <span class="sc-ar" id="scRecArrow">▼</span>
+                                            </div>
+                                            <div class="sc-rb" id="scRecBody">
+                                                <div class="sc-dv"></div>
+                                                <div style="margin-bottom:13px;">
+                                                    <label class="sc-lb">❓ আপনার প্রশ্ন লিখুন</label>
+                                                    <input type="text" id="settingsRecoveryQuestion" class="sc-in" placeholder="যেমন: আপনার মায়ের নাম কী?" autocomplete="off" data-form-type="other">
+                                                    <div style="font-size:0.69rem;color:rgba(90,130,190,0.5);margin-top:4px;">এমন প্রশ্ন লিখুন যার উত্তর শুধু আপনি জানেন</div>
+                                                </div>
+                                                <div>
+                                                    <label class="sc-lb">✅ গোপন উত্তর</label>
+                                                    <div class="sc-g">
+                                                        <!-- type=text with CSS masking — Chrome password manager কে বোকা বানাবে -->
+                                                        <input type="text" id="settingsRecoveryAnswer" class="sc-in" placeholder="গোপন উত্তর লিখুন"
+                                                            autocomplete="off" data-form-type="other" data-lpignore="true"
+                                                            style="-webkit-text-security:disc;font-family:monospace;">
+                                                        <button class="sc-ey" type="button" id="scRecEye" onclick="scTogRec2()">👁️</button>
+                                                    </div>
+                                                </div>
+                                                <div class="sc-tip" style="background:rgba(181,55,242,0.05);border-color:rgba(181,55,242,0.16);margin-top:12px;">
+                                                    <span>🔐</span><span>উত্তর encrypted করে সংরক্ষণ করা হবে। Login পেজে "🔑 Forgot Password?" বাটন দিয়ে recovery করা যাবে।</span>
+                                                </div>
                                             </div>
                                         </div>
 
-                                        <script>
-                                        // ── Password Strength Check ──
-                                        function wfCheckPasswordStrength(val) {
-                                            const fill = document.getElementById('pwStrengthFill');
-                                            const text = document.getElementById('pwStrengthText');
-                                            if (!fill || !text) return;
-                                            if (!val) { fill.style.width='0%'; text.textContent=''; return; }
-                                            let score = 0;
-                                            if (val.length >= 8) score++;
-                                            if (val.length >= 12) score++;
-                                            if (/[A-Z]/.test(val)) score++;
-                                            if (/[0-9]/.test(val)) score++;
-                                            if (/[^A-Za-z0-9]/.test(val)) score++;
-                                            const levels = [
-                                                { w:'20%', c:'#ff3b5c', l:'Too weak' },
-                                                { w:'40%', c:'#ff8c00', l:'Weak' },
-                                                { w:'60%', c:'#ffcc00', l:'Fair' },
-                                                { w:'80%', c:'#00d9ff', l:'Good' },
-                                                { w:'100%', c:'#00ff88', l:'Strong 💪' },
-                                            ];
-                                            const lv = levels[Math.min(score, 4)];
-                                            fill.style.width = lv.w;
-                                            fill.style.background = lv.c;
-                                            text.textContent = lv.l;
-                                            text.style.color = lv.c;
-                                        }
+                                        <!-- ③ Auto Lockout -->
+                                        <div class="sc">
+                                            <div class="sc-h"><div class="sc-ic gr">⏱️</div><div><p class="sc-t">Session & Auto Lockout</p><p class="sc-s">নিষ্ক্রিয় থাকলে স্বয়ংক্রিয়ভাবে লগআউট হবে</p></div></div>
+                                            <label class="sc-lb">🔒 Auto Lockout Time</label>
+                                            <div style="display:flex;align-items:center;gap:12px;flex-wrap:wrap;">
+                                                <select id="settingsAutoLockout" class="sc-in" style="max-width:230px;cursor:pointer;" onchange="scLockBadge()">
+                                                    <option value="0">❌ Disabled (Never)</option>
+                                                    <option value="15">⏱️ 15 minutes</option>
+                                                    <option value="30">⏱️ 30 minutes</option>
+                                                    <option value="60">🕐 1 hour</option>
+                                                    <option value="120">🕑 2 hours</option>
+                                                    <option value="480">🕗 8 hours</option>
+                                                </select>
+                                                <span class="sc-bk" id="scLockBadge">🔓 Disabled</span>
+                                            </div>
+                                            <div style="font-size:0.7rem;color:rgba(90,130,190,0.48);margin-top:7px;">নির্ধারিত সময় নিষ্ক্রিয় থাকলে সিস্টেম স্বয়ংক্রিয়ভাবে লগআউট করবে</div>
+                                        </div>
 
-                                        // ── Password Match Check ──
-                                        function wfCheckPasswordMatch() {
-                                            const p1 = document.getElementById('settingsPassword')?.value || '';
-                                            const p2 = document.getElementById('settingsPasswordConfirm')?.value || '';
-                                            const mt = document.getElementById('pwMatchText');
-                                            if (!mt) return;
-                                            if (!p2) { mt.textContent=''; return; }
-                                            if (p1 === p2) {
-                                                mt.textContent = '✅ Password মিলে গেছে';
-                                                mt.style.color = '#00ff88';
-                                            } else {
-                                                mt.textContent = '❌ Password মিলছে না';
-                                                mt.style.color = '#ff4455';
-                                            }
-                                        }
+                                        <div style="text-align:right;">
+                                            <button class="sc-sv" type="button" onclick="scSave()">💾 Save Security Settings</button>
+                                        </div>
+                                    </div>
 
-                                        // ── Toggle Recovery Section ──
-                                        function wfToggleRecovery() {
-                                            const body = document.getElementById('recoveryBody');
-                                            const arrow = document.getElementById('recoveryArrow');
-                                            if (!body) return;
-                                            body.classList.toggle('open');
-                                            if (arrow) arrow.classList.toggle('open');
-                                        }
-
-                                        // ── Load security settings on tab open ──
-                                        function loadSecuritySettings() {
-                                            const gd = window.globalData;
-                                            if (!gd || !gd.settings) return;
-                                            const s = gd.settings;
-                                            const uEl = document.getElementById('settingsUsername');
-                                            if (uEl && s.adminUsername) uEl.value = s.adminUsername;
-                                            const lockEl = document.getElementById('settingsAutoLockout');
-                                            if (lockEl && s.autoLockoutMinutes !== undefined) lockEl.value = s.autoLockoutMinutes;
-                                            // Update lockout badge
-                                            updateLockoutBadge();
-                                            // Load recovery question (not answer — security)
-                                            const rqEl = document.getElementById('settingsRecoveryQuestion');
-                                            if (rqEl && s.recoveryQuestion) rqEl.value = s.recoveryQuestion;
-                                        }
-
-                                        function updateLockoutBadge() {
-                                            const sel = document.getElementById('settingsAutoLockout');
-                                            const txt = document.getElementById('lockoutStatusText');
-                                            if (!sel || !txt) return;
-                                            const val = parseInt(sel.value);
-                                            if (val === 0) { txt.textContent = 'Disabled'; }
-                                            else if (val < 60) { txt.textContent = val + ' min auto-lock'; }
-                                            else { txt.textContent = (val/60) + 'h auto-lock'; }
-                                        }
-                                        document.getElementById('settingsAutoLockout')?.addEventListener('change', updateLockoutBadge);
-
-                                        // ── Save Security Settings ──
-                                        async function saveSecuritySettings() {
-                                            const gd = window.globalData;
-                                            if (!gd) return;
-                                            if (!gd.settings) gd.settings = {};
-
-                                            const username = document.getElementById('settingsUsername')?.value.trim();
-                                            const newPw = document.getElementById('settingsPassword')?.value;
-                                            const confirmPw = document.getElementById('settingsPasswordConfirm')?.value;
-                                            const rQuestion = document.getElementById('settingsRecoveryQuestion')?.value.trim();
-                                            const rAnswer = document.getElementById('settingsRecoveryAnswer')?.value.trim();
-                                            const lockout = parseInt(document.getElementById('settingsAutoLockout')?.value || '0');
-
-                                            // Validate password match
-                                            if (newPw && newPw !== confirmPw) {
-                                                if (typeof showErrorToast === 'function') showErrorToast('❌ Password দুটি মিলছে না!');
-                                                return;
-                                            }
-
-                                            // Save username
-                                            if (username) {
-                                                gd.settings.adminUsername = username;
-                                                if (gd.users && gd.users[0]) gd.users[0].username = username;
-                                            }
-
-                                            // Save password (hashed)
-                                            if (newPw && newPw.length >= 4) {
-                                                const hashed = typeof hashPassword === 'function' ? await hashPassword(newPw) : newPw;
-                                                if (gd.users && gd.users[0]) gd.users[0].password = hashed;
-                                                if (gd.credentials) gd.credentials.password = hashed;
-                                            }
-
-                                            // Save recovery question + answer (hashed)
-                                            if (rQuestion) gd.settings.recoveryQuestion = rQuestion;
-                                            if (rAnswer) {
-                                                const hashedAns = typeof hashPassword === 'function' ? await hashPassword(rAnswer.toLowerCase()) : rAnswer;
-                                                gd.settings.recoveryAnswer = hashedAns;
-                                            }
-
-                                            // Save lockout
-                                            gd.settings.autoLockoutMinutes = lockout;
-
-                                            // Persist
-                                            if (typeof saveToStorage === 'function') saveToStorage();
-                                            localStorage.setItem('wingsfly_data', JSON.stringify(gd));
-
-                                            // Update auto-lockout timer
-                                            if (typeof wfInitAutoLockout === 'function') wfInitAutoLockout(lockout);
-
-                                            if (typeof showSuccessToast === 'function') showSuccessToast('✅ Security Settings সংরক্ষিত হয়েছে!');
-                                            console.log('[Security] Settings saved ✓');
-                                        }
-                                        window.saveSecuritySettings = saveSecuritySettings;
-
-                                        // Auto-load when tab shown
-                                        (function() {
-                                            const origSwitch = window.switchSettingsTab;
-                                            if (typeof origSwitch === 'function') {
-                                                const _orig = origSwitch;
-                                                window.switchSettingsTab = function(tabId, btn) {
-                                                    _orig(tabId, btn);
-                                                    if (tabId === 'tab-security') setTimeout(loadSecuritySettings, 60);
-                                                };
-                                            }
-                                            // Also load if tab already active
-                                            setTimeout(function() {
-                                                const tab = document.getElementById('tab-security');
-                                                if (tab && tab.style.display !== 'none') loadSecuritySettings();
-                                            }, 500);
-                                        })();
-                                        </script>
-
+                                    <script>
+                                    function scToggle(id,btn){const p=document.getElementById(id);if(!p)return;const show=p.style.webkitTextSecurity==='none'||p.type==='text';if(p.type==='password'){p.type='text';}else if(p.style.webkitTextSecurity){p.style.webkitTextSecurity=show?'disc':'none';}else{p.type=show?'password':'text';}if(btn)btn.textContent=show?'👁️':'🙈';}
+                                    function scTogRec2(){const p=document.getElementById('settingsRecoveryAnswer'),b=document.getElementById('scRecEye');if(!p)return;const vis=p.style.webkitTextSecurity==='none';p.style.webkitTextSecurity=vis?'disc':'none';if(b)b.textContent=vis?'👁️':'🙈';}
+                                    function scPwStr(v){const f=document.getElementById('scPwBar'),t=document.getElementById('scPwTxt');if(!f)return;if(!v){f.style.width='0';if(t)t.textContent='';return;}let s=0;if(v.length>=8)s++;if(v.length>=12)s++;if(/[A-Z]/.test(v))s++;if(/[0-9]/.test(v))s++;if(/[^A-Za-z0-9]/.test(v))s++;const L=[{w:'20%',c:'#ff3b5c',l:'Too weak'},{w:'40%',c:'#ff8c00',l:'Weak'},{w:'60%',c:'#ffcc00',l:'Fair'},{w:'80%',c:'#00d9ff',l:'Good'},{w:'100%',c:'#00ff88',l:'Strong 💪'}];const lv=L[Math.min(s,4)];f.style.width=lv.w;f.style.background=lv.c;if(t){t.textContent=lv.l;t.style.color=lv.c;}}
+                                    function scPwMatch(){const p1=document.getElementById('settingsPassword')?.value||'',p2=document.getElementById('settingsPasswordConfirm')?.value||'',mt=document.getElementById('scPwMatchTxt');if(!mt)return;if(!p2){mt.textContent='';return;}mt.textContent=p1===p2?'✅ Password মিলে গেছে':'❌ Password মিলছে না';mt.style.color=p1===p2?'#00ff88':'#ff4455';}
+                                    function scTogRec(){const b=document.getElementById('scRecBody'),a=document.getElementById('scRecArrow');if(!b)return;b.classList.toggle('op');if(a)a.classList.toggle('op');}
+                                    function scLockBadge(){const v=parseInt(document.getElementById('settingsAutoLockout')?.value||0),b=document.getElementById('scLockBadge');if(!b)return;b.textContent=v===0?'🔓 Disabled':v<60?'🔒 '+v+'min':'🔒 '+(v/60)+'h auto-lock';}
+                                    function scLoad(){const gd=window.globalData;if(!gd)return;const s=gd.settings||{};const uEl=document.getElementById('settingsUsername');if(uEl){uEl.value=s.adminUsername||(gd.users&&gd.users[0]?gd.users[0].username:'');}const lEl=document.getElementById('settingsAutoLockout');if(lEl&&s.autoLockoutMinutes!==undefined)lEl.value=s.autoLockoutMinutes;const rqEl=document.getElementById('settingsRecoveryQuestion');if(rqEl&&s.recoveryQuestion)rqEl.value=s.recoveryQuestion;scLockBadge();}
+                                    async function scSave(){
+                                        const gd=window.globalData;if(!gd)return;if(!gd.settings)gd.settings={};
+                                        const u=document.getElementById('settingsUsername')?.value.trim();
+                                        const pw=document.getElementById('settingsPassword')?.value;
+                                        const pw2=document.getElementById('settingsPasswordConfirm')?.value;
+                                        const rq=document.getElementById('settingsRecoveryQuestion')?.value.trim();
+                                        const ra=document.getElementById('settingsRecoveryAnswer')?.value.trim();
+                                        const lk=parseInt(document.getElementById('settingsAutoLockout')?.value||'0');
+                                        if(pw&&pw!==pw2){if(typeof showErrorToast==='function')showErrorToast('❌ Password দুটি মিলছে না!');return;}
+                                        if(u){gd.settings.adminUsername=u;if(gd.users&&gd.users[0])gd.users[0].username=u;}
+                                        if(pw&&pw.length>=4){const h=typeof hashPassword==='function'?await hashPassword(pw):pw;if(gd.users&&gd.users[0])gd.users[0].password=h;if(gd.credentials)gd.credentials.password=h;}
+                                        if(rq)gd.settings.recoveryQuestion=rq;
+                                        if(ra){const hA=typeof hashPassword==='function'?await hashPassword(ra.toLowerCase()):ra;gd.settings.recoveryAnswer=hA;}
+                                        gd.settings.autoLockoutMinutes=lk;
+                                        if(typeof saveToStorage==='function')saveToStorage();
+                                        localStorage.setItem('wingsfly_data',JSON.stringify(gd));
+                                        if(typeof wfInitAutoLockout==='function')wfInitAutoLockout(lk);
+                                        // Clear sensitive fields after save
+                                        ['settingsPassword','settingsPasswordConfirm','settingsRecoveryAnswer'].forEach(function(id){const el=document.getElementById(id);if(el)el.value='';});
+                                        document.getElementById('scPwBar').style.width='0';
+                                        document.getElementById('scPwTxt').textContent='';
+                                        document.getElementById('scPwMatchTxt').textContent='';
+                                        if(typeof showSuccessToast==='function')showSuccessToast('✅ Security Settings সংরক্ষিত হয়েছে!');
+                                    }
+                                    window.scLoad=scLoad;window.scSave=scSave;
+                                    // Auto-load when tab switches
+                                    (function(){
+                                        const orig=window.switchSettingsTab;
+                                        if(typeof orig==='function'){window.switchSettingsTab=function(id,btn){orig(id,btn);if(id==='tab-security')setTimeout(scLoad,80);};}
+                                        document.addEventListener('DOMContentLoaded',function(){setTimeout(function(){const t=document.getElementById('tab-security');if(t&&t.style.display!=='none')scLoad();},700);});
+                                    })();
+                                    </script>
                                     </div>
                                 </div>
 
@@ -7068,6 +6733,309 @@
         })();
     </script>
 
-</body>
+<!-- ═══════════════════════════════════════════════════════════════ -->
+<!-- FORGOT PASSWORD — Beautiful Custom Modal                     -->
+<!-- ═══════════════════════════════════════════════════════════════ -->
+<div id="wfForgotOverlay" style="display:none;position:fixed;inset:0;z-index:99999;align-items:center;justify-content:center;background:rgba(2,5,20,0.82);backdrop-filter:blur(8px);">
+    <div id="wfForgotBox" style="background:linear-gradient(145deg,#080d28,#120830);border:1.5px solid rgba(0,217,255,0.25);border-radius:22px;padding:0;width:92%;max-width:420px;overflow:hidden;box-shadow:0 20px 60px rgba(0,0,0,0.7),0 0 40px rgba(0,217,255,0.1);animation:wfFadeIn .3s ease;">
+        <style>
+        @keyframes wfFadeIn{from{opacity:0;transform:scale(0.9) translateY(20px)}to{opacity:1;transform:scale(1) translateY(0)}}
+        #wfForgotBox .wf-top{background:linear-gradient(135deg,rgba(0,217,255,0.12),rgba(181,55,242,0.12));padding:22px 24px 18px;border-bottom:1px solid rgba(0,217,255,0.12);}
+        #wfForgotBox .wf-ico{width:52px;height:52px;border-radius:16px;background:linear-gradient(135deg,rgba(0,217,255,0.2),rgba(181,55,242,0.2));border:1.5px solid rgba(0,217,255,0.35);display:flex;align-items:center;justify-content:center;font-size:1.5rem;margin:0 auto 12px;}
+        #wfForgotBox h3{color:#deeeff;font-size:1.05rem;font-weight:700;text-align:center;margin:0 0 4px;}
+        #wfForgotBox .wf-sub{color:rgba(0,200,255,0.5);font-size:0.74rem;text-align:center;margin:0;}
+        #wfForgotBox .wf-body{padding:20px 24px 24px;}
+        #wfForgotBox .wf-q{background:rgba(0,217,255,0.06);border:1px solid rgba(0,217,255,0.18);border-radius:10px;padding:12px 15px;margin-bottom:16px;color:rgba(200,230,255,0.85);font-size:0.84rem;line-height:1.5;}
+        #wfForgotBox .wf-q .wf-ql{font-size:0.66rem;font-weight:700;letter-spacing:1.2px;text-transform:uppercase;color:rgba(0,200,255,0.55);margin-bottom:5px;}
+        #wfForgotBox .wf-q .wf-qt{color:#c8e4ff;font-weight:600;}
+        #wfForgotBox .wf-lb{display:block;font-size:0.67rem;font-weight:700;letter-spacing:1.3px;text-transform:uppercase;color:rgba(0,200,255,0.6);margin-bottom:5px;}
+        #wfForgotBox .wf-inp{width:100%;background:rgba(3,8,30,0.8);border:1.5px solid rgba(0,217,255,0.2);border-radius:9px;color:#deeeff;padding:11px 14px;font-size:0.87rem;outline:none;transition:border-color .2s,box-shadow .2s;box-sizing:border-box;display:block;}
+        #wfForgotBox .wf-inp:focus{border-color:#00d9ff;box-shadow:0 0 0 3px rgba(0,217,255,0.1);}
+        #wfForgotBox .wf-inp::placeholder{color:rgba(80,120,180,0.35);}
+        #wfForgotBox .wf-err{font-size:0.72rem;color:#ff4455;margin-top:5px;font-weight:600;min-height:16px;}
+        #wfForgotBox .wf-btns{display:flex;gap:10px;margin-top:18px;}
+        #wfForgotBox .wf-btn-pri{flex:1;background:linear-gradient(135deg,#00d9ff,#b537f2);color:#050a1e;border:none;border-radius:9px;padding:11px;font-weight:700;font-size:0.85rem;cursor:pointer;transition:all .2s;}
+        #wfForgotBox .wf-btn-pri:hover{transform:translateY(-1px);box-shadow:0 5px 16px rgba(0,217,255,0.35);}
+        #wfForgotBox .wf-btn-sec{background:rgba(255,255,255,0.06);color:rgba(200,220,255,0.7);border:1.5px solid rgba(255,255,255,0.1);border-radius:9px;padding:11px 18px;font-size:0.85rem;cursor:pointer;transition:all .2s;}
+        #wfForgotBox .wf-btn-sec:hover{background:rgba(255,255,255,0.1);}
+        /* Step 2 — new password */
+        #wfForgotStep2{display:none;}
+        #wfForgotStep2.show{display:block;}
+        #wfForgotStep1.hide{display:none;}
+        </style>
 
+        <div class="wf-top">
+            <div class="wf-ico">🔑</div>
+            <h3>Password Recovery</h3>
+            <p class="wf-sub">Secret Recovery Question দিয়ে password reset করুন</p>
+        </div>
+        <div class="wf-body">
+            <!-- Step 1: Answer question -->
+            <div id="wfForgotStep1">
+                <div class="wf-q">
+                    <div class="wf-ql">🛡️ Recovery Question</div>
+                    <div class="wf-qt" id="wfForgotQText">লোড হচ্ছে...</div>
+                </div>
+                <label class="wf-lb">✅ আপনার উত্তর লিখুন</label>
+                <input type="text" id="wfForgotAnswerInput" class="wf-inp" placeholder="গোপন উত্তর লিখুন"
+                    autocomplete="off" data-lpignore="true" style="-webkit-text-security:disc;"
+                    onkeydown="if(event.key==='Enter')wfForgotVerify()">
+                <div class="wf-err" id="wfForgotErr"></div>
+                <div class="wf-btns">
+                    <button class="wf-btn-pri" onclick="wfForgotVerify()">✅ Verify Answer</button>
+                    <button class="wf-btn-sec" onclick="wfCloseForgot()">Cancel</button>
+                </div>
+            </div>
+            <!-- Step 2: New password -->
+            <div id="wfForgotStep2">
+                <div style="text-align:center;margin-bottom:16px;">
+                    <div style="font-size:2rem;margin-bottom:8px;">✅</div>
+                    <div style="color:#00ff88;font-weight:700;font-size:0.9rem;">উত্তর সঠিক!</div>
+                    <div style="color:rgba(180,210,255,0.6);font-size:0.76rem;margin-top:3px;">এখন নতুন password সেট করুন</div>
+                </div>
+                <label class="wf-lb">🔑 নতুন Password</label>
+                <input type="password" id="wfNewPwInput" class="wf-inp" placeholder="New password (min 4 chars)"
+                    autocomplete="new-password" onkeydown="if(event.key==='Enter')wfForgotSetPw()">
+                <label class="wf-lb" style="margin-top:12px;">🔁 Confirm Password</label>
+                <input type="password" id="wfNewPwConfirm" class="wf-inp" placeholder="Re-enter new password"
+                    autocomplete="new-password" onkeydown="if(event.key==='Enter')wfForgotSetPw()">
+                <div class="wf-err" id="wfForgotErr2"></div>
+                <div class="wf-btns">
+                    <button class="wf-btn-pri" onclick="wfForgotSetPw()">💾 Password পরিবর্তন করুন</button>
+                    <button class="wf-btn-sec" onclick="wfCloseForgot()">Cancel</button>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+
+<script>
+// ── Forgot Password Modal Logic ──
+window.wfShowForgotModal = function() {
+    const gd = window.globalData;
+    const overlay = document.getElementById('wfForgotOverlay');
+    if (!overlay) return;
+    if (!gd || !gd.settings || !gd.settings.recoveryQuestion) {
+        alert('⚠️ কোনো Recovery Question সেট করা নেই।\nSettings → 🔒 Security তে গিয়ে প্রথমে Question সেট করুন।');
+        return;
+    }
+    // Reset modal
+    document.getElementById('wfForgotStep1').classList.remove('hide');
+    document.getElementById('wfForgotStep2').classList.remove('show');
+    document.getElementById('wfForgotQText').textContent = gd.settings.recoveryQuestion;
+    document.getElementById('wfForgotAnswerInput').value = '';
+    document.getElementById('wfForgotErr').textContent = '';
+    document.getElementById('wfForgotErr2') && (document.getElementById('wfForgotErr2').textContent = '');
+    overlay.style.display = 'flex';
+    setTimeout(function(){ document.getElementById('wfForgotAnswerInput').focus(); }, 100);
+};
+window.wfCloseForgot = function() {
+    const overlay = document.getElementById('wfForgotOverlay');
+    if (overlay) overlay.style.display = 'none';
+};
+// Click outside to close
+document.getElementById('wfForgotOverlay').addEventListener('click', function(e) {
+    if (e.target === this) wfCloseForgot();
+});
+window.wfForgotVerify = async function() {
+    const answer = document.getElementById('wfForgotAnswerInput').value.trim();
+    const errEl = document.getElementById('wfForgotErr');
+    if (!answer) { errEl.textContent = '❌ উত্তর লিখুন'; return; }
+    const gd = window.globalData;
+    const storedHash = gd?.settings?.recoveryAnswer;
+    if (!storedHash) { errEl.textContent = '❌ Recovery Answer সেট করা নেই'; return; }
+    const inputHash = typeof hashPassword === 'function' ? await hashPassword(answer.toLowerCase()) : answer.toLowerCase();
+    if (inputHash === storedHash) {
+        // Correct — show step 2
+        document.getElementById('wfForgotStep1').classList.add('hide');
+        document.getElementById('wfForgotStep2').classList.add('show');
+        setTimeout(function(){ document.getElementById('wfNewPwInput').focus(); }, 100);
+    } else {
+        errEl.textContent = '❌ উত্তর সঠিক নয়। আবার চেষ্টা করুন।';
+        document.getElementById('wfForgotAnswerInput').value = '';
+        document.getElementById('wfForgotAnswerInput').focus();
+    }
+};
+window.wfForgotSetPw = async function() {
+    const pw = document.getElementById('wfNewPwInput').value;
+    const pw2 = document.getElementById('wfNewPwConfirm').value;
+    const errEl = document.getElementById('wfForgotErr2');
+    if (!pw || pw.length < 4) { errEl.textContent = '❌ Password কমপক্ষে 4 অক্ষর হতে হবে'; return; }
+    if (pw !== pw2) { errEl.textContent = '❌ Password দুটি মিলছে না'; return; }
+    const gd = window.globalData;
+    const hashed = typeof hashPassword === 'function' ? await hashPassword(pw) : pw;
+    if (gd.users && gd.users[0]) gd.users[0].password = hashed;
+    if (gd.credentials) gd.credentials.password = hashed;
+    localStorage.setItem('wingsfly_data', JSON.stringify(gd));
+    if (typeof saveToStorage === 'function') saveToStorage();
+    wfCloseForgot();
+    // Show success toast
+    if (typeof showSuccessToast === 'function') showSuccessToast('✅ Password সফলভাবে পরিবর্তন হয়েছে! নতুন password দিয়ে Login করুন।');
+    else alert('✅ Password পরিবর্তন সফল! নতুন password দিয়ে Login করুন।');
+};
+// Keep backward compat
+window.wfShowForgotPassword = window.wfShowForgotModal;
+</script>
+
+<!-- ═══════════════════════════════════════════════════════════════ -->
+<!-- MASTER PATCH — logActivity + moveToTrash + Auto Lockout       -->
+<!-- Runs after all sections load                                   -->
+<!-- ═══════════════════════════════════════════════════════════════ -->
+<script>
+(function runMasterPatch() {
+    'use strict';
+
+    // ── 1. logActivity — যদি activity-log.js না করে থাকে ──
+    if (typeof window.logActivity !== 'function') {
+        window.logActivity = function(action, type, description, data) {
+            try {
+                if (!window.globalData) return;
+                if (!Array.isArray(window.globalData.activityHistory)) {
+                    window.globalData.activityHistory = [];
+                }
+                var entry = {
+                    id: 'ACT_' + Date.now() + '_' + Math.floor(Math.random()*9999),
+                    action: (action || 'ACTION').toString().toUpperCase(),
+                    type: type || 'system',
+                    description: description || '',
+                    timestamp: new Date().toISOString(),
+                    user: sessionStorage.getItem('username') || 'Admin',
+                    data: data || null
+                };
+                window.globalData.activityHistory.unshift(entry);
+                // Max 500 entries
+                if (window.globalData.activityHistory.length > 500) {
+                    window.globalData.activityHistory = window.globalData.activityHistory.slice(0, 500);
+                }
+                // Backup to localStorage
+                try { localStorage.setItem('wingsfly_activity_backup', JSON.stringify(window.globalData.activityHistory)); } catch(e){}
+                console.log('[logActivity]', entry.action, entry.type, entry.description);
+            } catch(e) { console.warn('[logActivity] error:', e); }
+        };
+        console.log('[MasterPatch] logActivity defined ✓');
+    }
+
+    // ── 2. moveToTrash — universal delete gateway ──
+    if (typeof window.moveToTrash !== 'function') {
+        window.moveToTrash = function(type, item) {
+            if (!item) return;
+            var gd = window.globalData;
+            if (!gd) return;
+            if (!Array.isArray(gd.deletedItems)) gd.deletedItems = [];
+            var typeLower = (type || '').toLowerCase().replace(/\s/g, '');
+            var copy = JSON.parse(JSON.stringify(item));
+            copy._trashId = 'TRASH_' + Date.now() + '_' + Math.floor(Math.random()*9999);
+            copy._trashType = typeLower;
+            copy._trashDate = new Date().toISOString();
+            copy._trashBy = sessionStorage.getItem('username') || 'Admin';
+            gd.deletedItems.unshift(copy);
+            if (gd.deletedItems.length > 300) gd.deletedItems = gd.deletedItems.slice(0, 300);
+            try { localStorage.setItem('wingsfly_deleted_backup', JSON.stringify(gd.deletedItems)); } catch(e){}
+            window.logActivity('DELETE', typeLower, (item.name||item.studentName||item.title||item.id||'Item') + ' deleted', item);
+            if (typeof saveToStorage === 'function') saveToStorage();
+            console.log('[moveToTrash] ✓', typeLower, item.name||item.title||item.id||'');
+        };
+        console.log('[MasterPatch] moveToTrash defined ✓');
+    }
+
+    // ── 3. Patch keep-records deleteNote ──
+    function patchKeepRecords() {
+        var origDeleteNote = window.deleteNote;
+        if (origDeleteNote && !origDeleteNote._patched) {
+            window.deleteNote = function(idx) {
+                var gd = window.globalData;
+                if (gd && Array.isArray(gd.keepRecords) && gd.keepRecords[idx] !== undefined) {
+                    var item = gd.keepRecords[idx];
+                    window.moveToTrash('keeprecord', item);
+                    gd.keepRecords.splice(idx, 1);
+                    if (typeof saveToStorage === 'function') saveToStorage();
+                    if (typeof window.renderKeepRecordNotes === 'function') window.renderKeepRecordNotes();
+                    if (typeof showSuccessToast === 'function') showSuccessToast('🗑️ Note মুছে Recycle Bin-এ গেছে');
+                } else {
+                    origDeleteNote(idx);
+                }
+            };
+            window.deleteNote._patched = true;
+            console.log('[MasterPatch] deleteNote patched ✓');
+        } else if (!origDeleteNote) {
+            // Fallback if keep-records.js not loaded
+            window.deleteNote = function(idx) {
+                var gd = window.globalData;
+                if (!gd || !Array.isArray(gd.keepRecords)) return;
+                if (gd.keepRecords[idx] === undefined) return;
+                if (!confirm('এই Note মুছে ফেলবেন?')) return;
+                window.moveToTrash('keeprecord', gd.keepRecords[idx]);
+                gd.keepRecords.splice(idx, 1);
+                if (typeof saveToStorage === 'function') saveToStorage();
+                if (typeof window.renderKeepRecordNotes === 'function') window.renderKeepRecordNotes();
+                if (typeof showSuccessToast === 'function') showSuccessToast('🗑️ Note মুছে Recycle Bin-এ গেছে');
+            };
+            window.deleteNote._patched = true;
+            console.log('[MasterPatch] deleteNote fallback defined ✓');
+        }
+    }
+
+    // ── 4. Auto Lockout ──
+    if (typeof window.wfInitAutoLockout !== 'function') {
+        var _lockTimer = null;
+        var _lockMins = 0;
+        window.wfInitAutoLockout = function(minutes) {
+            _lockMins = parseInt(minutes) || 0;
+            clearTimeout(_lockTimer);
+            if (_lockMins <= 0) return;
+            resetTimer();
+            ['mousemove','keydown','mousedown','touchstart','scroll'].forEach(function(e) {
+                document.removeEventListener(e, resetTimer);
+                document.addEventListener(e, resetTimer, {passive:true});
+            });
+            console.log('[AutoLockout] Enabled:', _lockMins, 'min');
+        };
+        function resetTimer() {
+            if (_lockMins <= 0) return;
+            clearTimeout(_lockTimer);
+            _lockTimer = setTimeout(function() {
+                if (sessionStorage.getItem('isLoggedIn') === 'true') {
+                    if (typeof logout === 'function') logout();
+                    if (typeof showErrorToast === 'function') showErrorToast('⏰ '+_lockMins+' মিনিট নিষ্ক্রিয় — Auto logout হয়েছে');
+                }
+            }, _lockMins * 60 * 1000);
+        }
+    }
+
+    // ── 5. Session Restore on Refresh ──
+    function restoreSession() {
+        if (sessionStorage.getItem('isLoggedIn') !== 'true') return;
+        var loginSec = document.getElementById('loginSection');
+        var dashSec = document.getElementById('dashboardSection');
+        if (!loginSec || !dashSec) return;
+        if (!dashSec.classList.contains('d-none')) return; // already shown
+        loginSec.classList.add('d-none');
+        dashSec.classList.remove('d-none');
+        var lastTab = localStorage.getItem('wingsfly_active_tab') || 'dashboard';
+        setTimeout(function() {
+            if (typeof loadDashboard === 'function') loadDashboard();
+            else if (typeof switchTab === 'function') switchTab(lastTab, true);
+        }, 350);
+        // Restore auto lockout
+        var lkMins = (window.globalData && window.globalData.settings && window.globalData.settings.autoLockoutMinutes) || 0;
+        if (lkMins > 0) window.wfInitAutoLockout(lkMins);
+        console.log('[MasterPatch] Session restored on refresh → tab:', lastTab);
+    }
+
+    // ── Run after DOM ready ──
+    if (document.readyState === 'loading') {
+        document.addEventListener('DOMContentLoaded', function() {
+            setTimeout(function() { patchKeepRecords(); restoreSession(); }, 800);
+        });
+    } else {
+        setTimeout(function() { patchKeepRecords(); restoreSession(); }, 800);
+    }
+
+    // ── Re-patch after 3s (catch race conditions) ──
+    setTimeout(patchKeepRecords, 3000);
+
+})();
+</script>
+
+</body>
 </html>
