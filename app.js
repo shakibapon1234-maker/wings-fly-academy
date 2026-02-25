@@ -577,7 +577,7 @@ function handleResetAllData() {
 // Global exposure
 window.handleResetAllData = handleResetAllData;
 window.checkPersonBalance = checkPersonBalance;
-// window.handleSettingsSubmit → moved to sections/accounts-ui.js
+// handleSettingsSubmit → moved to sections/accounts-ui.js
 // ===================================
 // CHART JS ANALYTICS
 // ===================================
@@ -740,9 +740,7 @@ function updateCharts() {
     }
   });
 }
-// NOTE: deleteIncomeCategory, addExpenseCategory, deleteExpenseCategory,
-// addPaymentMethod, deletePaymentMethod, addCourseName, deleteCourseName
-// → Moved to sections/ledger-render.js
+// deleteIncomeCategory, addExpenseCategory etc → moved to sections/ledger-render.js
 window.downloadLedgerExcel = downloadLedgerExcel;
 window.mailLedgerReport = mailLedgerReport;
 window.downloadAccountDetailsExcel = downloadAccountDetailsExcel;
@@ -1518,7 +1516,7 @@ function switchTab(tab, refreshStats = true) {
 // LOAN MANAGEMENT
 // ===================================
 
-let currentLoanPerson = null;
+if (typeof currentLoanPerson === "undefined") var currentLoanPerson = null; // loan-management.js may also declare this
 
 function renderLoanSummary() {
   const container = document.getElementById('loanSummaryContainer');

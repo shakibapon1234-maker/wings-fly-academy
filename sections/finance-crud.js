@@ -342,9 +342,13 @@ window.openStudentModal = function (index) {
   }
   new bootstrap.Modal(el).show();
 };
-window.saveStudent = handleStudentSubmit; // form submit handler
-window.renderStudents = render;              // main student render function
-window.saveEmployee = handleEmployeeSubmit; // employee form submit handler
+// NOTE: handleStudentSubmit, render, handleEmployeeSubmit are defined in app.js
+// They load after this file, so we use lazy window references
+document.addEventListener('DOMContentLoaded', function() {
+  if (typeof handleStudentSubmit !== 'undefined') window.saveStudent = handleStudentSubmit;
+  if (typeof render !== 'undefined') window.renderStudents = render;
+  if (typeof handleEmployeeSubmit !== 'undefined') window.saveEmployee = handleEmployeeSubmit;
+});
 
 async function handleFinanceSubmit(e) {
   e.preventDefault();
