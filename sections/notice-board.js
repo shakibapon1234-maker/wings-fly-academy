@@ -119,31 +119,33 @@ function hideNoticeBanner() {
   }
 }
 
+let _countdownExpiresAt = null;
+
+function updateCountdown() {
+  const remaining = (_countdownExpiresAt || 0) - Date.now();
+  if (remaining <= 0) {
+    clearInterval(noticeCountdownInterval);
+    localStorage.removeItem(NOTICE_STORAGE_KEY);
+    hideNoticeBanner();
+    return;
+  }
+  const d = Math.floor(remaining / 86400000);
+  const h = Math.floor((remaining % 86400000) / 3600000);
+  const m = Math.floor((remaining % 3600000) / 60000);
+  const s = Math.floor((remaining % 60000) / 1000);
+
+  let label = '';
+  if (d > 0) label = `${d}দ ${h}ঘ ${m}মি`;
+  else if (h > 0) label = `${h}ঘ ${m}মি ${s}সে`;
+  else label = `${m}মি ${s}সে`;
+
+  const el = document.getElementById('noticeTimeLeft');
+  if (el) el.textContent = label;
+}
+
 function startCountdown(expiresAt) {
   if (noticeCountdownInterval) clearInterval(noticeCountdownInterval);
-
-  function updateCountdown() {
-    const remaining = expiresAt - Date.now();
-    if (remaining <= 0) {
-      clearInterval(noticeCountdownInterval);
-      localStorage.removeItem(NOTICE_STORAGE_KEY);
-      hideNoticeBanner();
-      return;
-    }
-    const d = Math.floor(remaining / 86400000);
-    const h = Math.floor((remaining % 86400000) / 3600000);
-    const m = Math.floor((remaining % 3600000) / 60000);
-    const s = Math.floor((remaining % 60000) / 1000);
-
-    let label = '';
-    if (d > 0) label = `${d}দ ${h}ঘ ${m}মি`;
-    else if (h > 0) label = `${h}ঘ ${m}মি ${s}সে`;
-    else label = `${m}মি ${s}সে`;
-
-    const el = document.getElementById('noticeTimeLeft');
-    if (el) el.textContent = label;
-  }
-
+  _countdownExpiresAt = expiresAt;
   updateCountdown();
   noticeCountdownInterval = setInterval(updateCountdown, 1000);
 }

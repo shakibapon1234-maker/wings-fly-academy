@@ -230,6 +230,11 @@ document.addEventListener('DOMContentLoaded', function () {
       setInterval(_runHeal, 60000);
     }, 2500);
   });
+
+  // Expose heal functions globally from within IIFE scope
+  window._healLog = _healLog;
+  window._updateUI = _updateUI;
+  window._runHeal = _runHeal;
 })();
 
 // ===================================
@@ -826,9 +831,6 @@ window.exportBatchReportExcel = exportBatchReportExcel;
 
 // === GLOBAL EXPOSURE ===
 window.getSnapshots = getSnapshots;
-window._healLog = _healLog;
-window._updateUI = _updateUI;
-window._runHeal = _runHeal;
 window.initIdCardSection = initIdCardSection;
 window.previewIdCard = previewIdCard;
 window.buildIdCardHTML = buildIdCardHTML;
