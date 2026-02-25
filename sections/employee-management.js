@@ -282,6 +282,7 @@ async function deleteEmployee(id) {
 // Expose functions
 window.openEmployeeModal = openEmployeeModal;
 window.handleEmployeeSubmit = handleEmployeeSubmit;
+window.saveEmployee = handleEmployeeSubmit;  // ✅ alias — auto-test expects saveEmployee
 window.renderEmployeeList = renderEmployeeList;
 window.deleteEmployee = deleteEmployee;
 

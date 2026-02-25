@@ -487,3 +487,135 @@ function deleteLoanTransaction(id) {
   if (typeof showSuccessToast === 'function') showSuccessToast('✅ Deleted! Recycle Bin-এ পাঠানো হয়েছে।');
 }
 window.deleteLoanTransaction = deleteLoanTransaction;
+
+// =====================================================
+// editTransaction — Finance Ledger Edit Modal খোলে
+// loan-management.js এ রাখা হয়েছে কারণ Loan Detail
+// এ edit button এখানেই আছে
+// =====================================================
+
+function editTransaction(txId) {
+  const sid = String(txId);
+  const tx = (window.globalData.finance || []).find(f => String(f.id) === sid);
+  if (!tx) {
+    if (typeof showErrorToast === 'function') showErrorToast('Transaction not found.');
+    return;
+  }
+
+  const modal = document.getElementById('editTransactionModal');
+  const form = document.getElementById('editTransactionForm');
+  if (!modal || !form) {
+    if (typeof showErrorToast === 'function') showErrorToast('Edit modal not found in HTML.');
+    return;
+  }
+
+  // Populate form fields
+  form.elements['transactionId'].value = sid;
+  form.elements['type'].value = tx.type || 'Income';
+  form.elements['date'].value = tx.date || '';
+  form.elements['amount'].value = tx.amount || '';
+  form.elements['category'].value = tx.category || '';
+  form.elements['description'].value = tx.description || tx.notes || '';
+
+  // Populate method dropdown dynamically
+  const methodSelect = document.getElementById('editTransMethodSelect');
+  if (methodSelect) {
+    methodSelect.innerHTML = '';
+
+    // Add Cash
+    const cashOpt = document.createElement('option');
+    cashOpt.value = 'Cash';
+    cashOpt.textContent = 'Cash';
+    methodSelect.appendChild(cashOpt);
+
+    // Add bank accounts
+    (window.globalData.accounts || []).forEach(acc => {
+      const opt = document.createElement('option');
+      opt.value = acc.name;
+      opt.textContent = acc.name;
+      methodSelect.appendChild(opt);
+    });
+
+    // Add mobile banking
+    (window.globalData.mobileBanking || []).forEach(mb => {
+      const opt = document.createElement('option');
+      opt.value = mb.name;
+      opt.textContent = mb.name;
+      methodSelect.appendChild(opt);
+    });
+
+    methodSelect.value = tx.method || 'Cash';
+  }
+
+  // Show modal
+  try {
+    const bsModal = new bootstrap.Modal(modal);
+    bsModal.show();
+  } catch (err) {
+    console.error('editTransaction modal error:', err);
+  }
+}
+
+async function handleEditTransactionSubmit(e) {
+  e.preventDefault();
+  const form = e.target;
+  const fd = new FormData(form);
+
+  const txId = String(fd.get('transactionId'));
+  const idx = (window.globalData.finance || []).findIndex(f => String(f.id) === txId);
+  if (idx === -1) {
+    if (typeof showErrorToast === 'function') showErrorToast('Transaction not found to update.');
+    return;
+  }
+
+  const oldTx = window.globalData.finance[idx];
+
+  // Reverse old balance effect
+  if (typeof updateAccountBalance === 'function') {
+    updateAccountBalance(oldTx.method, oldTx.amount, oldTx.type, false);
+  }
+
+  // Update transaction
+  const updatedTx = {
+    ...oldTx,
+    type: fd.get('type'),
+    method: fd.get('method'),
+    date: fd.get('date'),
+    amount: parseFloat(fd.get('amount')) || 0,
+    category: fd.get('category') || oldTx.category,
+    description: fd.get('description') || '',
+    notes: fd.get('description') || oldTx.notes || '',
+    lastEdited: new Date().toISOString()
+  };
+
+  window.globalData.finance[idx] = updatedTx;
+
+  // Apply new balance effect
+  if (typeof updateAccountBalance === 'function') {
+    updateAccountBalance(updatedTx.method, updatedTx.amount, updatedTx.type, true);
+  }
+
+  // Save
+  if (typeof saveToStorage === 'function') await saveToStorage();
+
+  // Close modal
+  const modalEl = document.getElementById('editTransactionModal');
+  if (modalEl) {
+    const bsModal = bootstrap.Modal.getInstance(modalEl);
+    if (bsModal) bsModal.hide();
+  }
+
+  // Refresh UI
+  if (typeof renderLedger === 'function') renderLedger(window.globalData.finance);
+  if (typeof updateGlobalStats === 'function') updateGlobalStats();
+  if (typeof renderLoanSummary === 'function') renderLoanSummary();
+  if (window.currentLoanPerson && typeof openLoanDetail === 'function') {
+    openLoanDetail(window.currentLoanPerson);
+  }
+
+  if (typeof showSuccessToast === 'function') showSuccessToast('✅ Transaction updated successfully!');
+}
+
+// Global expose
+window.editTransaction = editTransaction;
+window.handleEditTransactionSubmit = handleEditTransactionSubmit;

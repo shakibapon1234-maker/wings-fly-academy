@@ -6934,3 +6934,269 @@ window.keepRecord = keepRecord;
   };
   console.log('✅ Safety net applied — Wings Fly Academy');
 })();
+
+// =====================================================
+// MISSING FUNCTIONS FIX — যোগ করা হয়েছে (Feb 2026)
+// openStudentModal, deleteStudent, openStudentPaymentModal
+// openEditStudentModal — এগুলো refactor-এ হারিয়ে গিয়েছিল
+// =====================================================
+
+// ── openStudentModal — Add New Student modal খোলে ──
+function openStudentModal() {
+  const form = document.getElementById('studentForm');
+  if (form) {
+    form.reset();
+    const rowIndex = document.getElementById('studentRowIndex');
+    if (rowIndex) rowIndex.value = '';
+  }
+
+  // Reset photo
+  if (typeof removeStudentPhoto === 'function') removeStudentPhoto();
+
+  // Set today's date as default
+  const enrollDateInput = document.querySelector('#studentForm input[name="enrollDate"]');
+  if (enrollDateInput && !enrollDateInput.value) {
+    enrollDateInput.value = new Date().toISOString().split('T')[0];
+  }
+
+  // Update modal title
+  const title = document.querySelector('#studentModal .modal-title');
+  if (title) title.innerHTML = '<span class="me-2">👨‍🎓</span>Add New Student';
+
+  const modalEl = document.getElementById('studentModal');
+  if (modalEl) {
+    try {
+      const modal = new bootstrap.Modal(modalEl);
+      modal.show();
+    } catch (err) {
+      console.error('openStudentModal error:', err);
+    }
+  }
+}
+window.openStudentModal = openStudentModal;
+
+// ── openEditStudentModal — Edit existing student ──
+function openEditStudentModal(index) {
+  const students = window.globalData.students || [];
+  const student = students[index];
+  if (!student) { console.error('Student not found at index:', index); return; }
+
+  const form = document.getElementById('studentForm');
+  if (!form) return;
+
+  form.reset();
+  document.getElementById('studentRowIndex').value = index;
+
+  // Fill form fields
+  const setVal = (name, val) => { const el = form.querySelector(`[name="${name}"]`); if (el) el.value = val || ''; };
+  setVal('name', student.name);
+  setVal('phone', student.phone);
+  setVal('fatherName', student.fatherName);
+  setVal('motherName', student.motherName);
+  setVal('bloodGroup', student.bloodGroup);
+  setVal('course', student.course);
+  setVal('batch', student.batch);
+  setVal('enrollDate', student.enrollDate);
+  setVal('reminderDate', student.reminderDate);
+  setVal('totalPayment', student.totalPayment);
+  setVal('payment', student.paid);
+  setVal('due', student.due);
+  setVal('method', student.method);
+  setVal('remarks', student.remarks);
+
+  // Photo hidden field
+  const photoInput = form.querySelector('[name="photoURL"]');
+  if (photoInput) photoInput.value = student.photo || '';
+
+  // Update title
+  const title = document.querySelector('#studentModal .modal-title');
+  if (title) title.innerHTML = `<span class="me-2">✏️</span>Edit Student — ${student.name}`;
+
+  const modalEl = document.getElementById('studentModal');
+  if (modalEl) {
+    try {
+      const modal = new bootstrap.Modal(modalEl);
+      modal.show();
+    } catch (err) { console.error('openEditStudentModal error:', err); }
+  }
+}
+window.openEditStudentModal = openEditStudentModal;
+
+// ── deleteStudent — Student মুছে দেয় ──
+async function deleteStudent(index) {
+  const students = window.globalData.students || [];
+  const student = students[index];
+  if (!student) return;
+
+  if (!confirm(`Delete student "${student.name}"? This action cannot be undone.`)) return;
+
+  // Log to trash
+  if (typeof moveToTrash === 'function') moveToTrash('student', student);
+  if (typeof logActivity === 'function') {
+    logActivity('student', 'DELETE', `Student deleted: ${student.name} | Batch: ${student.batch}`, student);
+  }
+
+  // Remove from array
+  window.globalData.students.splice(index, 1);
+
+  // Save & refresh
+  if (typeof saveToStorage === 'function') await saveToStorage();
+  if (typeof render === 'function') render(window.globalData.students);
+  if (typeof updateGlobalStats === 'function') updateGlobalStats();
+  if (typeof updateStudentCount === 'function') updateStudentCount();
+  if (typeof showSuccessToast === 'function') showSuccessToast(`✅ Student "${student.name}" deleted.`);
+}
+window.deleteStudent = deleteStudent;
+
+// ── openStudentPaymentModal — Payment history modal খোলে ──
+function openStudentPaymentModal(index) {
+  const students = window.globalData.students || [];
+  const student = students[index];
+  if (!student) { console.error('Student not found at index:', index); return; }
+
+  // Store current student index for installment handler
+  window.currentPaymentStudentIndex = index;
+
+  // Display summary
+  const totalFeeEl = document.getElementById('pmtTotalFee');
+  const totalPaidEl = document.getElementById('pmtTotalPaid');
+  const totalDueEl = document.getElementById('pmtTotalDue');
+  if (totalFeeEl) totalFeeEl.textContent = '৳' + formatNumber(student.totalPayment || 0);
+  if (totalPaidEl) totalPaidEl.textContent = '৳' + formatNumber(student.paid || 0);
+  if (totalDueEl) totalDueEl.textContent = '৳' + formatNumber(student.due || 0);
+
+  // Populate payment history
+  const historyBody = document.getElementById('pmtHistoryBody');
+  if (historyBody) {
+    const installments = student.installments || [];
+    if (installments.length === 0) {
+      historyBody.innerHTML = `<tr><td colspan="5" class="text-center text-muted py-3">No installments recorded yet.</td></tr>`;
+    } else {
+      historyBody.innerHTML = installments.map((inst, i) => `
+        <tr>
+          <td>${i + 1}</td>
+          <td>${inst.date || '-'}</td>
+          <td>${inst.method || 'Cash'}</td>
+          <td class="text-end fw-bold text-success">৳${formatNumber(inst.amount || 0)}</td>
+          <td class="text-end">
+            <button class="btn btn-sm btn-outline-danger" onclick="deleteInstallment(${index}, ${i})">
+              <i class="bi bi-trash"></i>
+            </button>
+          </td>
+        </tr>
+      `).join('');
+    }
+  }
+
+  // Reset add installment form
+  const pmtForm = document.getElementById('pmtAddForm');
+  if (pmtForm) pmtForm.reset();
+
+  // Populate payment method dropdown
+  const pmtMethodSelect = document.getElementById('pmtNewMethod');
+  if (pmtMethodSelect) {
+    pmtMethodSelect.innerHTML = '<option value="Cash">Cash</option>';
+    (window.globalData.accounts || []).forEach(acc => {
+      pmtMethodSelect.innerHTML += `<option value="${acc.name}">${acc.name}</option>`;
+    });
+    (window.globalData.mobileBanking || []).forEach(mb => {
+      pmtMethodSelect.innerHTML += `<option value="${mb.name}">${mb.name}</option>`;
+    });
+  }
+
+  // Show modal
+  const modalEl = document.getElementById('studentPaymentModal');
+  if (modalEl) {
+    try {
+      const modal = new bootstrap.Modal(modalEl);
+      modal.show();
+    } catch (err) { console.error('openStudentPaymentModal error:', err); }
+  }
+}
+window.openStudentPaymentModal = openStudentPaymentModal;
+
+// ── handleAddInstallment — নতুন installment যোগ করে ──
+async function handleAddInstallment() {
+  const index = window.currentPaymentStudentIndex;
+  if (index === undefined || index === null) return;
+
+  const students = window.globalData.students || [];
+  const student = students[index];
+  if (!student) return;
+
+  const amount = parseFloat(document.getElementById('pmtNewAmount')?.value) || 0;
+  const method = document.getElementById('pmtNewMethod')?.value || 'Cash';
+
+  if (amount <= 0) {
+    if (typeof showErrorToast === 'function') showErrorToast('❌ Enter a valid amount.');
+    return;
+  }
+
+  const today = new Date().toISOString().split('T')[0];
+
+  // Add installment record
+  if (!student.installments) student.installments = [];
+  student.installments.push({ amount, date: today, method });
+
+  // Update totals
+  student.paid = (parseFloat(student.paid) || 0) + amount;
+  student.due = Math.max(0, (parseFloat(student.totalPayment) || 0) - student.paid);
+
+  // Add to finance ledger
+  const financeEntry = {
+    id: Date.now().toString(),
+    type: 'Income',
+    method: method,
+    date: today,
+    category: 'Student Fee',
+    person: student.name,
+    amount: amount,
+    description: `Installment payment — ${student.name} | Batch: ${student.batch}`,
+    timestamp: new Date().toISOString()
+  };
+  window.globalData.finance.push(financeEntry);
+  if (typeof updateAccountBalance === 'function') {
+    updateAccountBalance(method, amount, 'Income', true);
+  }
+
+  // Save
+  if (typeof saveToStorage === 'function') await saveToStorage();
+
+  // Refresh payment modal
+  openStudentPaymentModal(index);
+
+  // Refresh main UI
+  if (typeof render === 'function') render(window.globalData.students);
+  if (typeof updateGlobalStats === 'function') updateGlobalStats();
+  if (typeof showSuccessToast === 'function') showSuccessToast('✅ Payment added successfully!');
+}
+window.handleAddInstallment = handleAddInstallment;
+
+// ── deleteInstallment — Installment মুছে দেয় ──
+async function deleteInstallment(studentIndex, instIndex) {
+  if (!confirm('Delete this installment?')) return;
+
+  const student = (window.globalData.students || [])[studentIndex];
+  if (!student || !student.installments) return;
+
+  const inst = student.installments[instIndex];
+  if (!inst) return;
+
+  // Reverse finance effect
+  student.paid = Math.max(0, (parseFloat(student.paid) || 0) - inst.amount);
+  student.due = Math.max(0, (parseFloat(student.totalPayment) || 0) - student.paid);
+  student.installments.splice(instIndex, 1);
+
+  if (typeof saveToStorage === 'function') await saveToStorage();
+  openStudentPaymentModal(studentIndex);
+  if (typeof render === 'function') render(window.globalData.students);
+  if (typeof updateGlobalStats === 'function') updateGlobalStats();
+  if (typeof showSuccessToast === 'function') showSuccessToast('Installment removed.');
+}
+window.deleteInstallment = deleteInstallment;
+
+// =====================================================
+// ADDITIONAL WINDOW EXPOSURES — previously missing
+// =====================================================
+window.switchTab = switchTab;
+window.calcDue = calcDue;
