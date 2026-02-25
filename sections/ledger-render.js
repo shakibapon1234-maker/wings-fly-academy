@@ -318,7 +318,7 @@ function addPaymentMethod() {
   if (!val) return;
 
   if (!window.globalData.paymentMethods) {
-    window.globalData.paymentMethods = ['Cash', 'Bkash', 'Nogod'];
+    window.globalData.paymentMethods = ['Cash', 'Bkash', 'Nagad'];
   }
 
   if (window.globalData.paymentMethods.includes(val)) { alert('Exists!'); return; }

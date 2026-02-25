@@ -291,6 +291,11 @@
         localStorage.setItem('lastSyncTime', cloudTimestamp.toString());
         localStorage.setItem('wings_local_version', cloudVersion.toString());
 
+        // ✅ FIX: Clean payment methods after cloud pull to remove spelling inconsistencies
+        if (typeof window.cleanupPaymentMethods === 'function') {
+          window.cleanupPaymentMethods();
+        }
+
         localVersion = cloudVersion;
         lastPullTime = Date.now();
         window.initialSyncComplete = true; // ✅ V31

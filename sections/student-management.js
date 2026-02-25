@@ -2441,3 +2441,4 @@ window.populateBatchFilter = populateBatchFilter;
 window.applyAdvancedSearch = applyAdvancedSearch;
 window.clearAdvancedSearch = clearAdvancedSearch;
 window.quickFilterStudents = quickFilterStudents;
+window.renderLedger = renderLedger;        // ✅ FIX: was missing - app.js needs this

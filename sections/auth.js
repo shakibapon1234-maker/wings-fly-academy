@@ -209,9 +209,9 @@ function loadDashboard() {
       updateGlobalStats();
       updateStudentCount();
 
-      // Populate unified search dropdown
-      if (typeof populateAccountDropdown === 'function') {
-        populateAccountDropdown();
+      // Populate dropdowns with account data
+      if (typeof populateDropdowns === 'function') {
+        populateDropdowns(); // ✅ FIX: was populateAccountDropdown() — function doesn't exist
       }
     } catch (err) {
       console.error("Dashboard Load Error:", err);

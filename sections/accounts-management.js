@@ -572,8 +572,13 @@ function syncPaymentMethodsWithAccounts() {
     globalData.bankAccounts = [];
   }
 
-  // Only bank account names
-  globalData.paymentMethods = globalData.bankAccounts.map(acc => acc.name);
+  // ✅ FIX: Keep core methods + bank accounts + mobile banking
+  // Old code was: globalData.paymentMethods = bankAccounts.map(acc => acc.name)
+  // This was DELETING Cash, Nagad, Bkash etc. — critical bug!
+  const coreMethods = ['Cash', 'Bkash', 'Nagad', 'Bank Transfer'];
+  const bankNames = globalData.bankAccounts.map(acc => acc.name);
+  const mobileNames = (globalData.mobileBanking || []).map(acc => acc.name);
+  globalData.paymentMethods = [...new Set([...coreMethods, ...bankNames, ...mobileNames])];
 
   saveToStorage(true);
 

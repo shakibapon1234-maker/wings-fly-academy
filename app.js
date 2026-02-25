@@ -21,7 +21,7 @@ if (typeof window.globalData === 'undefined') {
     settings: {},
     incomeCategories: ['Direct Income', 'Other Income'],
     expenseCategories: ['Rent', 'Salaries', 'Utilities'],
-    paymentMethods: ['Cash', 'Bkash', 'Nogad', 'Bank'],
+    paymentMethods: ['Cash', 'Bkash', 'Nagad', 'Bank'],
     cashBalance: 0,
     bankAccounts: [],
     mobileBanking: [],
@@ -247,23 +247,7 @@ async function saveToStorage(skipCloudSync = false) {
   }
 }
 
-// Master Refresh Function
-window.renderFullUI = function () {
-  console.log('🔄 Performing Global UI Refresh...');
-  try {
-    if (typeof updateGlobalStats === 'function') updateGlobalStats();
-    if (typeof render === 'function') render(window.globalData.students || []);
-    if (typeof renderLedger === 'function') renderLedger(window.globalData.finance || []);
-    if (typeof renderDashboard === 'function') renderDashboard();
-    if (typeof renderCashBalance === 'function') renderCashBalance();
-    if (typeof renderRecentAdmissions === 'function') renderRecentAdmissions();
-    if (typeof updateGrandTotal === 'function') updateGrandTotal();
-    if (typeof populateDropdowns === 'function') populateDropdowns();
-    if (typeof populateBatchFilter === 'function') populateBatchFilter();
-  } catch (e) {
-    console.warn('UI Refresh partially skipped:', e);
-  }
-};
+// renderFullUI defined once at the end in ensureCriticalExports — see below
 
 // Toggle Auto-Sync
 function toggleAutoSync(enabled) {
@@ -280,6 +264,7 @@ function toggleAutoSync(enabled) {
   }
 }
 
+window.loadFromStorage = loadFromStorage; // ✅ FIX: was missing
 window.toggleAutoSync = toggleAutoSync;
 
 
@@ -297,7 +282,7 @@ function loadFromStorage() {
       ensureStudentIds();
 
       if (!window.globalData.employees) window.globalData.employees = [];
-      ensureStudentIds();
+      // ✅ FIX: removed duplicate ensureStudentIds() call
 
       // Ensure users array always exists with default admin
       if (!window.globalData.users || !Array.isArray(window.globalData.users) || window.globalData.users.length === 0) {
@@ -309,8 +294,9 @@ function loadFromStorage() {
 
       // ⚡ FORCE CLEANUP: Clean payment methods immediately
       const bankAccountNames = (window.globalData.bankAccounts || []).map(acc => acc.name);
+      const mobileAccountNames = (window.globalData.mobileBanking || []).map(acc => acc.name); // ✅ FIX: was missing
       const coreMethods = ['Cash', 'Bkash', 'Nagad', 'Bank Transfer'];
-      window.globalData.paymentMethods = [...new Set([...coreMethods, ...bankAccountNames])];
+      window.globalData.paymentMethods = [...new Set([...coreMethods, ...bankAccountNames, ...mobileAccountNames])];
       console.log('🧹 Force cleaned payment methods:', window.globalData.paymentMethods);
 
       console.log("💾 Local data loaded:", window.globalData.students.length, "students found.");
@@ -322,7 +308,7 @@ function loadFromStorage() {
         finance: [],
         incomeCategories: ['Tuition Fees', 'Loan Received', 'Other'],
         expenseCategories: ['Salary', 'Rent', 'Utilities', 'Loan Given', 'Other'],
-        paymentMethods: ['Cash', 'Bkash', 'Nogod'],
+        paymentMethods: ['Cash', 'Bkash', 'Nagad'],
         cashBalance: 0,
         bankAccounts: [
           { sl: 1, name: 'CITY BANK', branch: 'BONOSREE', bankName: 'CITY BANK', accountNo: '1493888742001', balance: 0 },
@@ -364,7 +350,7 @@ function loadFromStorage() {
 
     // Payment Method Migration: Ensure defaults exist if missing
     // This fixes the issue where only custom methods (Brac, Islami) were showing
-    const defaultMethods = ['Cash', 'Bkash', 'Nogad', 'Bank'];
+    const defaultMethods = ['Cash', 'Bkash', 'Nagad', 'Bank'];
     if (!globalData.paymentMethods) {
       globalData.paymentMethods = [...defaultMethods];
       migrationNeeded = true;
@@ -476,10 +462,11 @@ function cleanupPaymentMethods() {
   }
 
   const bankAccountNames = globalData.bankAccounts.map(acc => acc.name);
+  const mobileAccountNames = (globalData.mobileBanking || []).map(acc => acc.name); // ✅ FIX: was missing
   const coreMethods = ['Cash', 'Bkash', 'Nagad', 'Bank Transfer'];
 
-  // FORCE CLEAN: Only keep core methods and current bank account names
-  const cleanMethods = [...new Set([...coreMethods, ...bankAccountNames])];
+  // FORCE CLEAN: Only keep core methods and current bank + mobile account names
+  const cleanMethods = [...new Set([...coreMethods, ...bankAccountNames, ...mobileAccountNames])];
 
   // Always update to clean list
   const oldCount = (globalData.paymentMethods || []).length;
@@ -504,9 +491,10 @@ function cleanupPaymentMethods() {
 window.resetPaymentMethods = function () {
   console.log('🔄 Manually resetting payment methods...');
   const bankAccountNames = (globalData.bankAccounts || []).map(acc => acc.name);
+  const mobileAccountNames = (globalData.mobileBanking || []).map(acc => acc.name); // ✅ FIX: was missing
   const coreMethods = ['Cash', 'Bkash', 'Nagad', 'Bank Transfer'];
   const oldCount = (globalData.paymentMethods || []).length;
-  globalData.paymentMethods = [...new Set([...coreMethods, ...bankAccountNames])];
+  globalData.paymentMethods = [...new Set([...coreMethods, ...bankAccountNames, ...mobileAccountNames])];
   saveToStorage(true);
   populateDropdowns();
   console.log('✅ Payment methods reset!');
@@ -591,7 +579,7 @@ function addEmployeeRole() {
     globalData.employeeRoles.push(val);
     inp.value = '';
     saveToStorage();
-    renderSettings();
+    if (typeof renderSettingsLists === 'function') renderSettingsLists(); // ✅ FIX: was renderSettings() — function doesn't exist
     showSuccessToast('Role added');
   }
 }
@@ -600,7 +588,7 @@ function deleteEmployeeRole(index) {
   if (confirm('Delete this role?')) {
     globalData.employeeRoles.splice(index, 1);
     saveToStorage();
-    renderSettings();
+    if (typeof renderSettingsLists === 'function') renderSettingsLists(); // ✅ FIX: was renderSettings()
   }
 }
 
@@ -744,32 +732,15 @@ window.checkDailyBackup = checkDailyBackup;
 // window.filterData → sections/student-management.js
 // handleEmployeeSubmit → exposed in sections/employee-management.js
 
-// Core UI Refresh Functions for Auto-Sync
-window.renderFullUI = function () {
-  console.log('🔄 Global UI Refresh Triggered');
-  try {
-    if (typeof render === 'function') render(window.globalData.students || []);
-    if (typeof renderLedger === 'function') renderLedger(window.globalData.finance || []);
-    if (typeof updateGlobalStats === 'function') updateGlobalStats();
-    if (typeof renderDashboard === 'function') renderDashboard();
-    if (typeof renderCashBalance === 'function') renderCashBalance();
-    if (typeof renderRecentAdmissions === 'function') renderRecentAdmissions();
-    if (typeof updateGrandTotal === 'function') updateGrandTotal();
-    if (typeof populateDropdowns === 'function') populateDropdowns();
-    if (typeof populateBatchFilter === 'function') populateBatchFilter();
-    if (typeof initNoticeBoard === 'function') initNoticeBoard();
-  } catch (e) {
-    console.warn('UI Refresh partially skipped:', e);
-  }
-};
+// ✅ FIX: renderFullUI defined once only — in ensureCriticalExports below
 // Auto-populate dropdown when data loads
 if (document.readyState === 'loading') {
   document.addEventListener('DOMContentLoaded', () => {
-    setTimeout(populateAccountDropdown, 1000);
+    setTimeout(populateDropdowns, 1000);           // ✅ FIX: was populateAccountDropdown (doesn't exist)
     setTimeout(attachMethodBalanceListeners, 1200);
   });
 } else {
-  setTimeout(populateAccountDropdown, 1000);
+  setTimeout(populateDropdowns, 1000);             // ✅ FIX: was populateAccountDropdown
   setTimeout(attachMethodBalanceListeners, 1200);
 }
 
