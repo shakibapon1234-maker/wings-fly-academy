@@ -124,8 +124,9 @@ function showDashboard(username) {
   const userEl = document.getElementById('sidebarUser') || document.getElementById('currentUser');
   if (userEl) userEl.innerText = username;
 
-  // ✅ FIX: নতুন login-এ সবসময় dashboard এ যাবে — আগের tab restore হবে না
+  // ✅ LOGIN: সবসময় dashboard-এ যাবে (refresh restore আলাদা — নিচে)
   localStorage.setItem('wingsfly_active_tab', 'dashboard');
+  sessionStorage.setItem('wf_just_logged_in', 'true'); // flag: এটা fresh login
 
   // ✅ FIX: নতুন PC/login-এ cloud থেকে latest data pull করে তারপর dashboard render করো
   // এতে করে পুরানো local data দিয়ে dashboard দেখানো বন্ধ হবে
@@ -166,7 +167,8 @@ function logout() {
   if (typeof logActivity === 'function') logActivity('login', 'LOGOUT', 'User logged out: ' + (sessionStorage.getItem('username') || 'Admin'));
   sessionStorage.removeItem('isLoggedIn');
   sessionStorage.removeItem('username');
-  localStorage.setItem('wingsfly_active_tab', 'dashboard'); // লগইনের পরে সবসময় Dashboard-এ যাবে
+  sessionStorage.removeItem('wf_just_logged_in');
+  localStorage.setItem('wingsfly_active_tab', 'dashboard'); // next login always dashboard
 
   document.getElementById('dashboardSection').classList.add('d-none');
   document.getElementById('loginSection').classList.remove('d-none');
@@ -201,8 +203,20 @@ function loadDashboard() {
         if (mainEnd) mainEnd.value = '';
       }
 
-      // Restore last active tab (or default to dashboard)
-      const activeTab = localStorage.getItem('wingsfly_active_tab') || 'dashboard';
+      // ✅ REFRESH RESTORE: login এ dashboard, refresh এ same page
+      // wf_just_logged_in = true মানে fresh login → dashboard
+      // wf_just_logged_in = false/absent মানে page refresh → last tab
+      const justLoggedIn = sessionStorage.getItem('wf_just_logged_in') === 'true';
+      let activeTab = 'dashboard';
+      if (!justLoggedIn) {
+        // Refresh: last tab restore করো
+        activeTab = localStorage.getItem('wingsfly_active_tab') || 'dashboard';
+      } else {
+        // Fresh login: dashboard এ যাও এবং flag clear করো
+        activeTab = 'dashboard';
+        sessionStorage.removeItem('wf_just_logged_in');
+        localStorage.setItem('wingsfly_active_tab', 'dashboard');
+      }
 
       switchTab(activeTab, false);
 
@@ -367,3 +381,157 @@ window.showDashboard = showDashboard;
 window.logout = logout;
 window.loadDashboard = loadDashboard;
 window.switchTab = switchTab;
+
+// ═══════════════════════════════════════════════════════════
+// AUTO LOCKOUT SYSTEM
+// নির্ধারিত সময় নিষ্ক্রিয় থাকলে auto logout
+// ═══════════════════════════════════════════════════════════
+(function () {
+  let _lockoutTimer = null;
+  let _lockoutMinutes = 0;
+
+  window.wfInitAutoLockout = function (minutes) {
+    _lockoutMinutes = parseInt(minutes) || 0;
+    clearTimeout(_lockoutTimer);
+    if (_lockoutMinutes <= 0) return;
+    _resetLockoutTimer();
+    // User activity এ timer reset করো
+    ['mousemove','keydown','mousedown','touchstart','scroll'].forEach(function(evt) {
+      document.removeEventListener(evt, _resetLockoutTimer);
+      document.addEventListener(evt, _resetLockoutTimer, { passive: true });
+    });
+    console.log('[AutoLockout] Enabled:', _lockoutMinutes, 'min');
+  };
+
+  window._resetLockoutTimer = _resetLockoutTimer;
+
+  function _resetLockoutTimer() {
+    if (_lockoutMinutes <= 0) return;
+    clearTimeout(_lockoutTimer);
+    _lockoutTimer = setTimeout(function () {
+      if (sessionStorage.getItem('isLoggedIn') === 'true') {
+        console.log('[AutoLockout] Inactive timeout → logging out');
+        if (typeof logout === 'function') logout();
+        if (typeof showErrorToast === 'function') showErrorToast('⏰ ' + _lockoutMinutes + ' মিনিট নিষ্ক্রিয় — Auto logout হয়েছে');
+      }
+    }, _lockoutMinutes * 60 * 1000);
+  }
+
+  // Page load এ settings থেকে lockout initialize করো
+  document.addEventListener('DOMContentLoaded', function () {
+    const gd = window.globalData;
+    const mins = gd?.settings?.autoLockoutMinutes || 0;
+    if (mins > 0 && sessionStorage.getItem('isLoggedIn') === 'true') {
+      window.wfInitAutoLockout(mins);
+    }
+  });
+})();
+
+// ═══════════════════════════════════════════════════════════
+// FORGOT PASSWORD / RECOVERY SYSTEM
+// Login পেজে "Forgot Password?" দিয়ে recovery
+// ═══════════════════════════════════════════════════════════
+window.wfShowForgotPassword = function () {
+  const gd = window.globalData;
+  if (!gd?.settings?.recoveryQuestion) {
+    alert('⚠️ কোনো Recovery Question সেট করা নেই।\nSettings → Security তে গিয়ে প্রথমে Question সেট করুন।');
+    return;
+  }
+
+  const question = gd.settings.recoveryQuestion;
+  const answer = prompt('🔐 Recovery Question:\n\n' + question + '\n\nউত্তর লিখুন:');
+  if (!answer) return;
+
+  hashPassword(answer.trim().toLowerCase()).then(function (hashedAns) {
+    if (hashedAns === gd.settings.recoveryAnswer) {
+      const newPw = prompt('✅ উত্তর সঠিক!\n\nনতুন password লিখুন (min 4 chars):');
+      if (!newPw || newPw.length < 4) { alert('❌ Password কমপক্ষে 4 অক্ষর হতে হবে।'); return; }
+      hashPassword(newPw).then(function (hashedPw) {
+        if (gd.users && gd.users[0]) gd.users[0].password = hashedPw;
+        if (gd.credentials) gd.credentials.password = hashedPw;
+        localStorage.setItem('wingsfly_data', JSON.stringify(gd));
+        if (typeof saveToStorage === 'function') saveToStorage();
+        alert('✅ Password পরিবর্তন সফল হয়েছে!\n\nনতুন password দিয়ে Login করুন।');
+      });
+    } else {
+      alert('❌ উত্তর সঠিক নয়। আবার চেষ্টা করুন।');
+    }
+  });
+};
+
+// ═══════════════════════════════════════════════════════════
+// PAGE REFRESH SESSION RESTORE
+// Refresh দিলে login page-এ না গিয়ে same tab-এ থাকবে
+// ═══════════════════════════════════════════════════════════
+(function restoreSessionOnRefresh() {
+  const isLoggedIn = sessionStorage.getItem('isLoggedIn') === 'true';
+  if (!isLoggedIn) return;
+
+  document.addEventListener('DOMContentLoaded', function () {
+    const loginSection = document.getElementById('loginSection');
+    const dashboardSection = document.getElementById('dashboardSection');
+    if (!loginSection || !dashboardSection) return;
+    if (!dashboardSection.classList.contains('d-none')) return;
+
+    loginSection.classList.add('d-none');
+    dashboardSection.classList.remove('d-none');
+
+    // Refresh: last tab restore (wf_just_logged_in is NOT set here)
+    const lastTab = localStorage.getItem('wingsfly_active_tab') || 'dashboard';
+
+    setTimeout(function () {
+      if (typeof loadDashboard === 'function') {
+        loadDashboard();
+      } else if (typeof switchTab === 'function') {
+        switchTab(lastTab, true);
+      }
+    }, 300);
+
+    // Auto lockout re-initialize after refresh
+    const gd = window.globalData;
+    const mins = gd?.settings?.autoLockoutMinutes || 0;
+    if (mins > 0 && typeof window.wfInitAutoLockout === 'function') {
+      window.wfInitAutoLockout(mins);
+    }
+
+    console.log('[Auth] ✅ Session restored on refresh → tab:', lastTab);
+  });
+})();
+
+// ═══════════════════════════════════════════════════════════
+// PAGE REFRESH SESSION RESTORE
+// Refresh দিলে login page-এ না গিয়ে same tab-এ থাকবে
+// ═══════════════════════════════════════════════════════════
+(function restoreSessionOnRefresh() {
+  // sessionStorage isLoggedIn আছে = same browser tab, refresh হয়েছে
+  const isLoggedIn = sessionStorage.getItem('isLoggedIn') === 'true';
+  if (!isLoggedIn) return; // Not logged in, normal login flow
+
+  // Already logged in → hide login, show dashboard at same tab
+  document.addEventListener('DOMContentLoaded', function () {
+    const loginSection = document.getElementById('loginSection');
+    const dashboardSection = document.getElementById('dashboardSection');
+    if (!loginSection || !dashboardSection) return;
+
+    // Skip if dashboard already visible
+    if (!dashboardSection.classList.contains('d-none')) return;
+
+    loginSection.classList.add('d-none');
+    dashboardSection.classList.remove('d-none');
+
+    // Restore the tab that was active before refresh
+    // (wf_just_logged_in is NOT set here — this is a refresh, not fresh login)
+    const lastTab = localStorage.getItem('wingsfly_active_tab') || 'dashboard';
+
+    // Wait for all sections to render before switching
+    setTimeout(function () {
+      if (typeof loadDashboard === 'function') {
+        loadDashboard(); // this will call switchTab(lastTab)
+      } else if (typeof switchTab === 'function') {
+        switchTab(lastTab, true);
+      }
+    }, 300);
+
+    console.log('[Auth] ✅ Session restored on refresh → tab:', lastTab);
+  });
+})();
