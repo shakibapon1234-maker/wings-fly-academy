@@ -448,6 +448,9 @@ document.addEventListener('DOMContentLoaded', function() {
       <p style="color:rgba(0,200,255,0.48);font-size:0.73rem;margin:0;">Secret Recovery Question দিয়ে password reset করুন</p>
     </div>
     <div style="padding:20px 24px 24px;">
+      <!-- Chrome autocomplete trap - prevents username/password autofill -->
+      <input type="text" style="display:none" tabindex="-1" aria-hidden="true" autocomplete="username">
+      <input type="password" style="display:none" tabindex="-1" aria-hidden="true" autocomplete="current-password">
       <!-- Step 1 -->
       <div id="wfFS1">
         <div style="background:rgba(0,217,255,0.05);border:1px solid rgba(0,217,255,0.16);border-radius:10px;padding:12px 14px;margin-bottom:14px;">
@@ -455,8 +458,8 @@ document.addEventListener('DOMContentLoaded', function() {
           <div id="wfFQ" style="color:#c8e4ff;font-weight:600;font-size:0.86rem;">লোড হচ্ছে...</div>
         </div>
         <label style="display:block;font-size:0.67rem;font-weight:700;letter-spacing:1.3px;text-transform:uppercase;color:rgba(0,200,255,0.6);margin-bottom:5px;">✅ আপনার উত্তর</label>
-        <input type="text" id="wfFA" style="width:100%;background:rgba(3,8,30,0.8);border:1.5px solid rgba(0,217,255,0.2);border-radius:9px;color:#deeeff;padding:11px 14px;font-size:0.87rem;outline:none;box-sizing:border-box;-webkit-text-security:disc;"
-          autocomplete="off" data-lpignore="true" placeholder="গোপন উত্তর লিখুন"
+        <input type="search" id="wfFA" name="wf_recovery_ans_x7k" style="width:100%;background:rgba(3,8,30,0.8);border:1.5px solid rgba(0,217,255,0.2);border-radius:9px;color:#deeeff;padding:11px 14px;font-size:0.87rem;outline:none;box-sizing:border-box;-webkit-text-security:disc;"
+          autocomplete="new-password" data-lpignore="true" data-form-type="other" placeholder="গোপন উত্তর লিখুন"
           onfocus="this.style.borderColor='#00d9ff'" onblur="this.style.borderColor='rgba(0,217,255,0.2)'"
           onkeydown="if(event.key==='Enter')wfFV()">
         <div id="wfFE" style="font-size:0.7rem;color:#ff4455;min-height:16px;margin-top:4px;font-weight:600;"></div>
@@ -514,7 +517,15 @@ window.wfShowForgotModal = function() {
   document.getElementById('wfFS1').style.display = 'block';
   document.getElementById('wfFS2').style.display = 'none';
   overlay.style.display = 'flex';
-  setTimeout(function() { document.getElementById('wfFA').focus(); }, 100);
+  // ✅ FIX: Chrome autocomplete এর পরে field clear করো (Chrome delay করে autofill করে)
+  setTimeout(function() {
+    var fa = document.getElementById('wfFA');
+    if (fa) { fa.value = ''; fa.focus(); }
+  }, 100);
+  setTimeout(function() {
+    var fa = document.getElementById('wfFA');
+    if (fa && fa.value) { fa.value = ''; } // Chrome 300ms delay autofill trap
+  }, 350);
 };
 window.wfShowForgotPassword = window.wfShowForgotModal;
 

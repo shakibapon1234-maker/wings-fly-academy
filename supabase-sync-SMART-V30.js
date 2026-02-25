@@ -283,7 +283,12 @@
           visitors: data.visitors || [],
           employeeRoles: data.employee_roles || [],
           deletedItems: _preservedDeleted,
-          activityHistory: _preservedActivity
+          activityHistory: _preservedActivity,
+          // ✅ V32 FIX: Missing data types — recycle bin restore এর জন্য
+          keepRecords: data.keep_records || [],
+          loans: data.loans || [],
+          idCards: data.id_cards || [],
+          notices: data.notices || [],
         };
 
         // Save to localStorage
@@ -487,6 +492,11 @@
         // ✅ V29 NEW: deletedItems ও activityHistory এখন cloud এ save হবে
         deleted_items: window.globalData.deletedItems || [],
         activity_history: window.globalData.activityHistory || [],
+        // ✅ V32 FIX: Missing data types — recycle bin restore কাজ করার জন্য
+        keep_records: window.globalData.keepRecords || [],
+        loans: window.globalData.loans || [],
+        id_cards: window.globalData.idCards || [],
+        notices: window.globalData.notices || [],
         version: localVersion,
         last_updated: new Date(timestamp).toISOString(),
         last_device: DEVICE_ID,
@@ -525,6 +535,11 @@
           payload.visitors = window.globalData.visitors || [];
           payload.deleted_items = window.globalData.deletedItems || [];
           payload.activity_history = window.globalData.activityHistory || [];
+          // ✅ V32 FIX: Missing data types refresh
+          payload.keep_records = window.globalData.keepRecords || [];
+          payload.loans = window.globalData.loans || [];
+          payload.id_cards = window.globalData.idCards || [];
+          payload.notices = window.globalData.notices || [];
           payload.version = localVersion;
           payload.last_updated = new Date().toISOString();
         }
