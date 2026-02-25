@@ -77,17 +77,31 @@
               </tr>
             `).join('')}
           </tbody>
-          <tfoot>
-            <tr style="background:#dce8f5; border-top:2px solid #1a3a5c;">
-              <td colspan="4" style="padding:6px 4px; border:1px solid #aac; text-align:right; font-weight:800; font-size:11px; color:#1a3a5c;">TOTAL →</td>
-              <td style="padding:6px 4px; border:1px solid #aac; text-align:right; font-weight:800; font-size:11px; color:#1a3a5c; word-break:break-all;">৳${fmt(grandTotal)}</td>
-              <td style="padding:6px 4px; border:1px solid #aac; text-align:right; font-weight:800; font-size:11px; color:#007744; word-break:break-all;">৳${fmt(grandPaid)}</td>
-              <td style="padding:6px 4px; border:1px solid #aac; text-align:right; font-weight:800; font-size:11px; color:#c0001a; word-break:break-all;">৳${fmt(grandDue)}</td>
-            </tr>
-          </tfoot>
         </table>
-        <div style="margin-top:8px; font-size:10px; color:#666; text-align:right; padding-right:4px;">
-          Total Students: <strong style="color:#1a3a5c;">${students.length}</strong>
+
+        <!-- ✅ Summary Box — table এর নিচে আলাদা, সুন্দর ডিজাইন -->
+        <div style="margin-top:14px; display:flex; justify-content:space-between; align-items:flex-start; gap:10px; flex-wrap:wrap;">
+          
+          <!-- Left: Student count -->
+          <div style="font-size:11px; color:#555; padding-top:6px;">
+            Total Students: <strong style="color:#1a3a5c; font-size:13px;">${students.length}</strong>
+          </div>
+
+          <!-- Right: Summary Cards -->
+          <div style="display:flex; gap:8px;">
+            <div style="background:#eaf0fb; border:1.5px solid #1a3a5c; border-radius:6px; padding:8px 14px; text-align:center; min-width:90px;">
+              <div style="font-size:9px; color:#555; font-weight:600; letter-spacing:0.5px; text-transform:uppercase; margin-bottom:3px;">Total Fee</div>
+              <div style="font-size:13px; font-weight:800; color:#1a3a5c;">৳${fmt(grandTotal)}</div>
+            </div>
+            <div style="background:#e6f9f0; border:1.5px solid #007744; border-radius:6px; padding:8px 14px; text-align:center; min-width:90px;">
+              <div style="font-size:9px; color:#555; font-weight:600; letter-spacing:0.5px; text-transform:uppercase; margin-bottom:3px;">Total Paid</div>
+              <div style="font-size:13px; font-weight:800; color:#007744;">৳${fmt(grandPaid)}</div>
+            </div>
+            <div style="background:#fff0f2; border:1.5px solid #c0001a; border-radius:6px; padding:8px 14px; text-align:center; min-width:90px;">
+              <div style="font-size:9px; color:#555; font-weight:600; letter-spacing:0.5px; text-transform:uppercase; margin-bottom:3px;">Total Due</div>
+              <div style="font-size:13px; font-weight:800; color:#c0001a;">৳${fmt(grandDue)}</div>
+            </div>
+          </div>
         </div>
       `;
 
