@@ -244,8 +244,10 @@ function restoreDeletedItem(trashId) {
   } else if (type === 'finance') {
     if (!window.globalData.finance) window.globalData.finance = [];
     window.globalData.finance.push(item);
-    logActivity('finance', 'ADD', `Restored transaction: ${item.description || item.category || ''}`, item);
+    if (typeof updateAccountBalance === 'function') updateAccountBalance(item.method, item.amount, item.type, true);
+    logActivity('finance', 'ADD', 'Transaction restore করা হয়েছে: ' + (item.description || item.category || ''), item);
     if (typeof renderLedger === 'function') renderLedger(window.globalData.finance);
+    if (typeof updateGlobalStats === 'function') updateGlobalStats();
 
   } else if (type === 'employee') {
     if (!window.globalData.employees) window.globalData.employees = [];
@@ -270,6 +272,38 @@ function restoreDeletedItem(trashId) {
     logActivity('exam', 'ADD', 'Exam registration restore করা হয়েছে: "' + (item.studentName || item.regId || 'Unknown') + '"', item);
     if (typeof searchExamResults === 'function') searchExamResults();
     if (typeof renderExamDashboard === 'function') renderExamDashboard();
+
+  } else if (type === 'bankAccount') {
+    // Bank Account restore
+    if (!window.globalData.bankAccounts) window.globalData.bankAccounts = [];
+    window.globalData.bankAccounts.push(item);
+    logActivity('bankAccount', 'ADD', 'Bank Account restore করা হয়েছে: ' + (item.name || 'Unknown'), item);
+    if (typeof renderAccountList === 'function') renderAccountList();
+    if (typeof populateDropdowns === 'function') populateDropdowns();
+
+  } else if (type === 'mobileAccount') {
+    // Mobile Account restore
+    if (!window.globalData.mobileBanking) window.globalData.mobileBanking = [];
+    window.globalData.mobileBanking.push(item);
+    logActivity('mobileAccount', 'ADD', 'Mobile Account restore করা হয়েছে: ' + (item.name || 'Unknown'), item);
+    if (typeof renderMobileBankingList === 'function') renderMobileBankingList();
+    if (typeof updateGlobalStats === 'function') updateGlobalStats();
+
+  } else if (type === 'visitor') {
+    // Visitor restore
+    if (!window.globalData.visitors) window.globalData.visitors = [];
+    window.globalData.visitors.push(item);
+    logActivity('visitor', 'ADD', 'Visitor restore করা হয়েছে: ' + (item.name || item.visitorName || 'Unknown'), item);
+    if (typeof renderVisitors === 'function') renderVisitors();
+
+  } else if (type === 'notice') {
+    // Notice restore
+    try {
+      if (!window.globalData.settings) window.globalData.settings = {};
+      window.globalData.settings.activeNotice = item;
+      logActivity('notice', 'ADD', 'নোটিস restore করা হয়েছে: "' + (item.title || 'Notice') + '"', item);
+      if (typeof initNoticeBoard === 'function') initNoticeBoard();
+    } catch(e) {}
   }
 
   // Remove from trash
@@ -4428,7 +4462,6 @@ async function handleTransferSubmit(e) {
 
 function deleteTransaction(id) {
 
-
   // Handle both string and number IDs (localStorage/Supabase can change types)
   const sid = String(id);
   const txToDelete = globalData.finance.find(f => String(f.id) === sid);
@@ -4439,6 +4472,12 @@ function deleteTransaction(id) {
     renderAccountDetails && renderAccountDetails();
     return;
   }
+
+  // ✅ Recycle Bin
+  if (typeof moveToTrash === 'function') moveToTrash('finance', txToDelete);
+  // ✅ Activity Log
+  if (typeof logActivity === 'function') logActivity('finance', 'DELETE',
+    'Transaction মুছে ফেলা হয়েছে: ' + (txToDelete.description || txToDelete.category || String(id)), txToDelete);
 
   if (typeof updateAccountBalance === "function") {
     updateAccountBalance(txToDelete.method, txToDelete.amount, txToDelete.type, false);
@@ -7441,7 +7480,15 @@ async function handleAccountSubmit(e) {
 async function deleteAccount(index) {
   if (!confirm('Are you sure you want to delete this bank account?')) return;
 
-  const accName = globalData.bankAccounts[index].name;
+  const accToDelete = globalData.bankAccounts[index];
+  const accName = accToDelete ? accToDelete.name : 'Unknown';
+
+  // ✅ Recycle Bin
+  if (accToDelete && typeof moveToTrash === 'function') moveToTrash('bankAccount', accToDelete);
+  // ✅ Activity Log
+  if (typeof logActivity === 'function') logActivity('bankAccount', 'DELETE',
+    'Bank Account মুছে ফেলা হয়েছে: ' + accName, accToDelete);
+
   globalData.bankAccounts.splice(index, 1);
 
   // No need to remove from paymentMethods - handled dynamically in populateDropdowns
@@ -7960,7 +8007,15 @@ async function handleMobileSubmit(e) {
 async function deleteMobileAccount(index) {
   if (!confirm('Are you sure you want to delete this mobile banking account?')) return;
 
-  const accName = globalData.mobileBanking[index].name;
+  const mobileToDelete = globalData.mobileBanking[index];
+  const accName = mobileToDelete ? mobileToDelete.name : 'Unknown';
+
+  // ✅ Recycle Bin
+  if (mobileToDelete && typeof moveToTrash === 'function') moveToTrash('mobileAccount', mobileToDelete);
+  // ✅ Activity Log
+  if (typeof logActivity === 'function') logActivity('mobileAccount', 'DELETE',
+    'Mobile Account মুছে ফেলা হয়েছে: ' + accName, mobileToDelete);
+
   globalData.mobileBanking.splice(index, 1);
 
   await saveToStorage();
@@ -9456,6 +9511,15 @@ async function deleteVisitor(index) {
   if (!confirm('Delete this visitor record?')) return;
   const visitors = window.globalData.visitors || [];
   if (!visitors[index]) return;
+
+  const visitorToDelete = visitors[index];
+
+  // ✅ Recycle Bin
+  if (typeof moveToTrash === 'function') moveToTrash('visitor', visitorToDelete);
+  // ✅ Activity Log
+  if (typeof logActivity === 'function') logActivity('visitor', 'DELETE',
+    'Visitor মুছে ফেলা হয়েছে: ' + (visitorToDelete.name || visitorToDelete.visitorName || 'Unknown'), visitorToDelete);
+
   visitors.splice(index, 1);
   await saveToStorage();
   showSuccessToast('🗑️ Visitor deleted.');
@@ -9865,6 +9929,15 @@ function publishNotice() {
   noticeToast(`✅ নোটিস প্রকাশিত! মেয়াদ: ${dLabel}`, 'success');
 }
 function deleteNotice() {
+  // ✅ Activity Log (Notice ছোট data, Recycle Bin এ রাখা দরকার নেই)
+  try {
+    const curNotice = window.globalData.settings && window.globalData.settings.activeNotice;
+    if (curNotice && typeof logActivity === 'function') {
+      logActivity('notice', 'DELETE', 'নোটিস মুছে ফেলা হয়েছে: "' + (curNotice.title || 'Notice') + '"', curNotice);
+    }
+    // ✅ Recycle Bin এও রাখো
+    if (curNotice && typeof moveToTrash === 'function') moveToTrash('notice', curNotice);
+  } catch(e) {}
   _noticeSave(null);
   hideNoticeBanner();
   closeNoticeModal();
