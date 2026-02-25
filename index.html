@@ -3318,7 +3318,7 @@
                     <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
                 </div>
                 <div class="modal-body p-0">
-                    <form id="settingsForm" onsubmit="handleSettingsSubmit(event)" class="h-100">
+                    <div id="settingsForm" class="h-100">
                         <div class="d-flex h-100 flex-column flex-lg-row">
                             <!-- Sidebar Navigation -->
                             <div class="border-end p-3 settings-nav"
@@ -4212,7 +4212,7 @@
                             </div><!-- /tab-content -->
                         </div><!-- /flex-grow-1 content area -->
                 </div><!-- /d-flex row -->
-                </form>
+                </div><!-- /settingsForm -->
             </div><!-- /modal-body -->
         </div><!-- /modal-content -->
     </div><!-- /modal-dialog -->
@@ -6163,8 +6163,8 @@
                             + '<div style="font-size:0.71rem;color:#806060;">By: ' + (d.deletedBy || 'Admin') + '</div></td>'
                             + '<td style="white-space:nowrap;font-size:0.75rem;color:#906060;">' + dateStr + '<br>' + timeStr + '</td>'
                             + '<td><div class="wf-bin-actions">'
-                            + '<button class="wf-bin-restore" onclick="window._wfRestore(\'' + d.id + '\')">↩️ Restore</button>'
-                            + '<button class="wf-bin-del"     onclick="window._wfPermDel(\'' + d.id + '\')">❌</button>'
+                            + '<button type="button" class="wf-bin-restore" onclick="event.stopPropagation();window._wfRestore(\'' + d.id + '\')">↩️ Restore</button>'
+                            + '<button type="button" class="wf-bin-del"     onclick="event.stopPropagation();window._wfPermDel(\'' + d.id + '\')">❌</button>'
                             + '</div></td>'
                             + '</tr>';
                     }).join('');
@@ -6206,36 +6206,149 @@
                 if (typeof window.restoreDeletedItem === 'function') {
                     window.restoreDeletedItem(id);
                     setTimeout(renderRecycleBin, 300);
-                } else {
-                    if (!confirm('Restore করবেন?')) return;
-                    var d = (window.globalData.deletedItems || []).find(function (x) { return x.id === id; });
-                    if (!d) { alert('Item পাওয়া যায়নি!'); return; }
-                    var t = (d.type || '').toLowerCase();
-                    if (t === 'student') { if (!window.globalData.students) window.globalData.students = []; window.globalData.students.push(d.item); }
-                    if (t === 'finance') { if (!window.globalData.finance) window.globalData.finance = []; window.globalData.finance.push(d.item); }
-                    if (t === 'employee') { if (!window.globalData.employees) window.globalData.employees = []; window.globalData.employees.push(d.item); }
-                    window.globalData.deletedItems = (window.globalData.deletedItems || []).filter(function (x) { return x.id !== id; });
-                    localStorage.setItem('wingsfly_data', JSON.stringify(window.globalData));
-                    renderRecycleBin();
-                    if (typeof window.showSuccessToast === 'function') window.showSuccessToast('✅ Restored!');
+                    return;
                 }
+                // Fallback restore
+                if (!confirm('Restore করবেন?')) return;
+                var gd = window.globalData;
+                if (!gd) return;
+                var d = (gd.deletedItems || []).find(function (x) { return x.id === id; });
+                if (!d) { alert('Item পাওয়া যায়নি!'); return; }
+                var t = (d.type || '').toLowerCase();
+                var typeMap = {
+                    'student': 'students',
+                    'finance': 'finance',
+                    'employee': 'employees',
+                    'bankaccount': 'bankAccounts',
+                    'mobileaccount': 'mobileBanking',
+                    'visitor': 'visitors',
+                    'keeprecord': 'keepRecords',
+                    'keep_record': 'keepRecords',
+                    'notice': 'notices',
+                    'examregistration': 'examRegistrations',
+                };
+                var arrKey = typeMap[t];
+                if (arrKey) {
+                    if (!Array.isArray(gd[arrKey])) gd[arrKey] = [];
+                    gd[arrKey].push(d.item);
+                }
+                gd.deletedItems = (gd.deletedItems || []).filter(function (x) { return x.id !== id; });
+                localStorage.setItem('wingsfly_data', JSON.stringify(gd));
+                localStorage.setItem('wingsfly_deleted_backup', JSON.stringify(gd.deletedItems));
+                renderRecycleBin();
+                // UI refresh
+                if (typeof window.renderFullUI === 'function') setTimeout(window.renderFullUI, 100);
+                else {
+                    if (t === 'keeprecord' || t === 'keep_record') {
+                        if (typeof window.renderKeepRecordNotes === 'function') setTimeout(window.renderKeepRecordNotes, 100);
+                    }
+                    if (t === 'student' && typeof window.renderStudents === 'function') setTimeout(window.renderStudents, 100);
+                    if (t === 'finance' && typeof window.renderLedger === 'function') setTimeout(window.renderLedger, 100);
+                }
+                if (typeof window.showSuccessToast === 'function') window.showSuccessToast('✅ ' + (d.item.name || d.item.studentName || 'Item') + ' restored!');
             };
 
             window._wfPermDel = function (id) {
                 if (typeof window.permanentDelete === 'function') {
                     window.permanentDelete(id);
                     setTimeout(renderRecycleBin, 300);
-                } else {
-                    if (!confirm('চিরতরে মুছবেন?')) return;
-                    window.globalData.deletedItems = (window.globalData.deletedItems || []).filter(function (x) { return x.id !== id; });
-                    localStorage.setItem('wingsfly_data', JSON.stringify(window.globalData));
-                    renderRecycleBin();
+                    return;
                 }
+                if (!confirm('চিরতরে মুছে ফেলবেন? এটা undo করা যাবে না।')) return;
+                var gd = window.globalData;
+                if (!gd) return;
+                gd.deletedItems = (gd.deletedItems || []).filter(function (x) { return x.id !== id; });
+                localStorage.setItem('wingsfly_data', JSON.stringify(gd));
+                localStorage.setItem('wingsfly_deleted_backup', JSON.stringify(gd.deletedItems));
+                renderRecycleBin();
+                if (typeof window.showSuccessToast === 'function') window.showSuccessToast('🗑️ চিরতরে মুছে ফেলা হয়েছে!');
             };
 
             // ══════════════════════════════════════════════════════════
             // MISSING FUNCTIONS (index.html বাটনগুলো এগুলো call করে)
             // ══════════════════════════════════════════════════════════
+
+            // handleSettingsSubmit — form এর বদলে div হওয়াতে আর call হবে না
+            // তবু section file এ না থাকলে error এড়াতে fallback রাখো
+            if (typeof window.handleSettingsSubmit !== 'function') {
+                window.handleSettingsSubmit = function(e) {
+                    if (e) { e.preventDefault(); e.stopPropagation(); }
+                    return false;
+                };
+            }
+
+            // ── moveToTrash: sections/keep-records.js বা অন্য section এ না থাকলে fallback ──
+            if (typeof window.moveToTrash !== 'function') {
+                window.moveToTrash = function (type, item) {
+                    var gd = window.globalData;
+                    if (!gd) return;
+                    if (!Array.isArray(gd.deletedItems)) gd.deletedItems = [];
+                    var entry = {
+                        id: 'TRASH_' + Date.now() + '_' + Math.random().toString(36).slice(2, 6),
+                        type: type,
+                        item: JSON.parse(JSON.stringify(item)), // deep copy
+                        deletedAt: new Date().toISOString(),
+                        deletedBy: sessionStorage.getItem('username') || 'Admin'
+                    };
+                    gd.deletedItems.unshift(entry);
+                    if (gd.deletedItems.length > 200) gd.deletedItems = gd.deletedItems.slice(0, 200);
+                    localStorage.setItem('wingsfly_data', JSON.stringify(gd));
+                    localStorage.setItem('wingsfly_deleted_backup', JSON.stringify(gd.deletedItems));
+                    if (typeof window.logActivity === 'function') {
+                        window.logActivity('delete', type, (item.name || item.studentName || item.title || item.id || 'Item') + ' deleted', item);
+                    }
+                    console.log('[moveToTrash] ✓ Moved to recycle bin:', type, item.name || item.title || item.id || '');
+                };
+                console.log('[SafetyNet] moveToTrash fallback defined ✓');
+            }
+
+            // ── restoreDeletedItem: section file এ না থাকলে fallback ──
+            if (typeof window.restoreDeletedItem !== 'function') {
+                window.restoreDeletedItem = function (id) {
+                    var gd = window.globalData;
+                    if (!gd) return;
+                    var d = (gd.deletedItems || []).find(function(x) { return x.id === id; });
+                    if (!d) { console.warn('restoreDeletedItem: id not found', id); return; }
+                    var t = (d.type || '').toLowerCase();
+                    var typeMap = {
+                        'student': 'students', 'finance': 'finance', 'employee': 'employees',
+                        'bankaccount': 'bankAccounts', 'mobileaccount': 'mobileBanking',
+                        'visitor': 'visitors', 'keeprecord': 'keepRecords',
+                        'keep_record': 'keepRecords', 'notice': 'notices',
+                        'examregistration': 'examRegistrations',
+                    };
+                    var arrKey = typeMap[t];
+                    if (arrKey) {
+                        if (!Array.isArray(gd[arrKey])) gd[arrKey] = [];
+                        gd[arrKey].push(d.item);
+                    }
+                    gd.deletedItems = (gd.deletedItems || []).filter(function(x) { return x.id !== id; });
+                    localStorage.setItem('wingsfly_data', JSON.stringify(gd));
+                    localStorage.setItem('wingsfly_deleted_backup', JSON.stringify(gd.deletedItems));
+                    if (typeof window.renderFullUI === 'function') setTimeout(window.renderFullUI, 100);
+                    else {
+                        if ((t === 'keeprecord' || t === 'keep_record') && typeof window.renderKeepRecordNotes === 'function') setTimeout(window.renderKeepRecordNotes, 100);
+                        if (t === 'student' && typeof window.renderStudents === 'function') setTimeout(window.renderStudents, 100);
+                        if (t === 'finance' && typeof window.renderLedger === 'function') setTimeout(window.renderLedger, 100);
+                    }
+                    if (typeof window.showSuccessToast === 'function') window.showSuccessToast('✅ ' + (d.item.name || d.item.studentName || d.item.title || 'Item') + ' restored!');
+                    console.log('[restoreDeletedItem] ✓ Restored:', t, d.item.name || d.item.title || '');
+                };
+                console.log('[SafetyNet] restoreDeletedItem fallback defined ✓');
+            }
+
+            // ── permanentDelete: fallback ──
+            if (typeof window.permanentDelete !== 'function') {
+                window.permanentDelete = function (id) {
+                    var gd = window.globalData;
+                    if (!gd) return;
+                    gd.deletedItems = (gd.deletedItems || []).filter(function(x) { return x.id !== id; });
+                    localStorage.setItem('wingsfly_data', JSON.stringify(gd));
+                    localStorage.setItem('wingsfly_deleted_backup', JSON.stringify(gd.deletedItems));
+                    if (typeof window.showSuccessToast === 'function') window.showSuccessToast('🗑️ চিরতরে মুছে ফেলা হয়েছে!');
+                };
+                console.log('[SafetyNet] permanentDelete fallback defined ✓');
+            }
             window.clearActivityLog = function () {
                 if (!confirm('সব Activity History মুছে ফেলবেন?')) return;
                 if (!window.globalData) window.globalData = {};
