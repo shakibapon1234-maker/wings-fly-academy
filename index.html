@@ -2632,24 +2632,45 @@
                 <div id="accountsSection" class="d-none">
 
                     <!-- ========== CASH SECTION (HIGHLIGHTED AT TOP) ========== -->
-                    <div class="card border-0 shadow-lg mb-5"
-                        style="background: linear-gradient(135deg, #f093fb 0%, #f5576c 100%); border-radius: 20px;">
-                        <div class="card-body p-4">
-                            <div class="d-flex justify-content-between align-items-center">
+                    <div class="card border-0 shadow-lg mb-5" style="
+                        background: linear-gradient(135deg, #0d0d2b 0%, #1a0533 50%, #0a1535 100%);
+                        border-radius: 22px;
+                        border: 1.5px solid rgba(240,147,251,0.35) !important;
+                        position: relative; overflow: hidden;">
+                        <!-- Glow blob -->
+                        <div style="position:absolute;top:-40px;left:-40px;width:220px;height:220px;
+                            background:radial-gradient(circle,rgba(240,147,251,0.18) 0%,transparent 70%);pointer-events:none;"></div>
+                        <div style="position:absolute;bottom:-40px;right:-40px;width:200px;height:200px;
+                            background:radial-gradient(circle,rgba(245,87,108,0.15) 0%,transparent 70%);pointer-events:none;"></div>
+                        <div class="card-body p-4" style="position:relative;z-index:1;">
+                            <div class="d-flex justify-content-between align-items-center flex-wrap gap-3">
                                 <div>
-                                    <h4 class="fw-bold m-0 text-white">
-                                        <span class="me-2" style="font-size: 2rem;">💵</span> CASH
+                                    <h4 class="fw-bold m-0" style="
+                                        background: linear-gradient(90deg, #f093fb, #f5576c);
+                                        -webkit-background-clip: text; -webkit-text-fill-color: transparent;
+                                        background-clip: text; font-size: 1.6rem; letter-spacing: 1px;">
+                                        <span class="me-2" style="font-size: 2rem; -webkit-text-fill-color: initial;">💵</span> CASH
                                     </h4>
-                                    <p class="text-white opacity-75 mb-0 mt-2">Physical cash on hand</p>
+                                    <p style="color:rgba(240,147,251,0.6); margin-bottom:0; margin-top:6px; font-size:0.85rem; font-weight:600;">Physical cash on hand</p>
                                 </div>
                                 <div class="text-end">
-                                    <h2 class="fw-bold text-white mb-0" id="cashBalance">৳0</h2>
-                                    <div class="mt-2 d-flex gap-2 justify-content-end">
-                                        <button class="btn btn-light btn-sm rounded-pill px-3 fw-bold"
+                                    <h2 class="fw-bold mb-0" id="cashBalance" style="
+                                        font-size: 2.4rem;
+                                        background: linear-gradient(90deg, #f093fb, #f5576c);
+                                        -webkit-background-clip: text; -webkit-text-fill-color: transparent;
+                                        background-clip: text; text-shadow: none;">৳0</h2>
+                                    <div class="mt-3 d-flex gap-2 justify-content-end">
+                                        <button class="btn btn-sm rounded-pill px-4 fw-bold" style="
+                                            background: linear-gradient(135deg, #f093fb, #f5576c);
+                                            border: none; color: #fff;
+                                            box-shadow: 0 4px 18px rgba(240,147,251,0.4);"
                                             onclick="openCashModal()">
                                             <i class="bi bi-pencil-fill me-1"></i> Update Cash
                                         </button>
-                                        <button class="btn btn-outline-light btn-sm rounded-pill px-3 fw-bold"
+                                        <button class="btn btn-sm rounded-pill px-4 fw-bold" style="
+                                            background: transparent;
+                                            border: 1.5px solid rgba(240,147,251,0.5);
+                                            color: #f093fb;"
                                             onclick="recalculateCashBalanceFromTransactions(); showSuccessToast('💰 Cash balance recalculated from transactions!');"
                                             title="Recalculate from transactions">
                                             <i class="bi bi-arrow-clockwise me-1"></i> Sync
@@ -2661,11 +2682,19 @@
                     </div>
 
                     <!-- ========== UNIFIED ACCOUNT SEARCH (Cash + Bank + Mobile) ========== -->
-                    <div class="card border-0 shadow-lg mb-5"
-                        style="background: linear-gradient(135deg, #667eea 0%, #764ba2 100%); border-radius: 20px;">
-                        <div class="card-body p-4">
-                            <h5 class="text-white fw-bold mb-3">
-                                <i class="bi bi-search me-2"></i>Search All Accounts (💵 Cash + 🏦 Bank + 📱 Mobile
+                    <div class="card border-0 shadow-lg mb-5" style="
+                        background: linear-gradient(135deg, #080d2a 0%, #0f1a3e 50%, #0a0f2a 100%);
+                        border-radius: 22px;
+                        border: 1.5px solid rgba(102,126,234,0.35) !important;
+                        position: relative; overflow: hidden;">
+                        <div style="position:absolute;top:-60px;right:-60px;width:250px;height:250px;
+                            background:radial-gradient(circle,rgba(118,75,162,0.2) 0%,transparent 70%);pointer-events:none;"></div>
+                        <div class="card-body p-4" style="position:relative;z-index:1;">
+                            <h5 class="fw-bold mb-3" style="
+                                background: linear-gradient(90deg, #667eea, #c084fc);
+                                -webkit-background-clip: text; -webkit-text-fill-color: transparent;
+                                background-clip: text; font-size: 1rem; letter-spacing: 0.5px;">
+                                <i class="bi bi-search me-2" style="-webkit-text-fill-color: #667eea;"></i>Search All Accounts (💵 Cash + 🏦 Bank + 📱 Mobile
                                 Banking)
                             </h5>
                             <div class="row g-3 align-items-end">
@@ -2871,10 +2900,17 @@
                     <!-- ========== BANK DETAILS SECTION ========== -->
                     <div class="mb-5">
                         <div class="d-flex justify-content-between align-items-center mb-4">
-                            <h4 class="fw-bold m-0">
-                                <span class="me-2" style="font-size: 1.5rem;">🏦</span> BANK DETAILS
+                            <h4 class="fw-bold m-0" style="
+                                background: linear-gradient(90deg, #4facfe, #00f2fe);
+                                -webkit-background-clip: text; -webkit-text-fill-color: transparent;
+                                background-clip: text; font-size: 1.4rem; letter-spacing: 0.5px;">
+                                <span class="me-2" style="-webkit-text-fill-color: initial; font-size: 1.5rem;">🏦</span> BANK DETAILS
                             </h4>
-                            <button class="btn btn-primary fw-bold px-4 rounded-3" onclick="openAccountModal()">
+                            <button class="btn fw-bold px-4 rounded-3" onclick="openAccountModal()" style="
+                                background: linear-gradient(135deg, #0066ff, #00d4ff);
+                                border: none; color: #fff;
+                                box-shadow: 0 4px 18px rgba(0,180,255,0.35);
+                                transition: all 0.3s;">
                                 <i class="bi bi-plus-circle-fill me-2"></i>Add New Bank Account
                             </button>
                         </div>
@@ -2882,25 +2918,24 @@
                         <!-- Bank Accounts Table -->
                         <div class="card border-0 shadow-sm overflow-hidden rounded-4">
                             <div class="table-responsive">
-                                <table class="table table-hover align-middle modern-table mb-0">
-                                    <thead style="background: #f1f5f9;">
+                                <table class="table table-hover align-middle modern-table mb-0" style="background:transparent;">
+                                    <thead style="background: linear-gradient(90deg, rgba(0,102,255,0.25), rgba(0,212,255,0.15));">
                                         <tr>
-                                            <th style="padding: 1rem;">SL.</th>
-                                            <th style="padding: 1rem;">Name</th>
-                                            <th style="padding: 1rem;">Branch</th>
-                                            <th style="padding: 1rem;">Bank Name</th>
-                                            <th style="padding: 1rem;">Account No.</th>
-                                            <th style="padding: 1rem; text-align: right;">Balance</th>
-                                            <th style="padding: 1rem; text-align: end;">Action</th>
+                                            <th style="padding:0.85rem 1rem;color:#00d4ff;font-size:0.78rem;text-transform:uppercase;letter-spacing:1px;border-color:rgba(0,212,255,0.15);font-weight:700;">SL.</th>
+                                            <th style="padding:0.85rem 1rem;color:#00d4ff;font-size:0.78rem;text-transform:uppercase;letter-spacing:1px;border-color:rgba(0,212,255,0.15);font-weight:700;">Name</th>
+                                            <th style="padding:0.85rem 1rem;color:#00d4ff;font-size:0.78rem;text-transform:uppercase;letter-spacing:1px;border-color:rgba(0,212,255,0.15);font-weight:700;">Branch</th>
+                                            <th style="padding:0.85rem 1rem;color:#00d4ff;font-size:0.78rem;text-transform:uppercase;letter-spacing:1px;border-color:rgba(0,212,255,0.15);font-weight:700;">Bank Name</th>
+                                            <th style="padding:0.85rem 1rem;color:#00d4ff;font-size:0.78rem;text-transform:uppercase;letter-spacing:1px;border-color:rgba(0,212,255,0.15);font-weight:700;">Account No.</th>
+                                            <th style="padding:0.85rem 1rem;color:#00d4ff;font-size:0.78rem;text-transform:uppercase;letter-spacing:1px;border-color:rgba(0,212,255,0.15);font-weight:700;text-align:right;">Balance</th>
+                                            <th style="padding:0.85rem 1rem;color:#00d4ff;font-size:0.78rem;text-transform:uppercase;letter-spacing:1px;border-color:rgba(0,212,255,0.15);font-weight:700;text-align:end;">Action</th>
                                         </tr>
                                     </thead>
                                     <tbody id="accountTableBody"></tbody>
-                                    <tfoot style="font-weight: 800;">
-                                        <tr>
-                                            <td colspan="5" style="padding: 1rem;">Total Bank Balance</td>
-                                            <td id="totalAccountBalance" style="padding: 1rem; text-align: right;">৳0
-                                            </td>
-                                            <td></td>
+                                    <tfoot>
+                                        <tr style="background:linear-gradient(90deg,rgba(0,200,100,0.12),rgba(0,255,136,0.06));border-top:2px solid rgba(0,200,100,0.3);">
+                                            <td colspan="5" style="padding:0.9rem 1rem;color:#00ff88;font-weight:800;font-size:0.95rem;border-color:rgba(0,200,100,0.15);">🏦 Total Bank Balance</td>
+                                            <td id="totalAccountBalance" style="padding:0.9rem 1rem;text-align:right;color:#00ff88;font-weight:900;font-size:1.1rem;border-color:rgba(0,200,100,0.15);">৳0</td>
+                                            <td style="border-color:rgba(0,200,100,0.15);"></td>
                                         </tr>
                                     </tfoot>
                                 </table>
@@ -2918,10 +2953,17 @@
 
                     <div class="mb-5">
                         <div class="d-flex justify-content-between align-items-center mb-4">
-                            <h4 class="fw-bold m-0">
-                                <span class="me-2" style="font-size: 1.5rem;">📱</span> MOBILE BANKING
+                            <h4 class="fw-bold m-0" style="
+                                background: linear-gradient(90deg, #11998e, #38ef7d);
+                                -webkit-background-clip: text; -webkit-text-fill-color: transparent;
+                                background-clip: text; font-size: 1.4rem; letter-spacing: 0.5px;">
+                                <span class="me-2" style="-webkit-text-fill-color: initial; font-size: 1.5rem;">📱</span> MOBILE BANKING
                             </h4>
-                            <button class="btn btn-success fw-bold px-4 rounded-3" onclick="openMobileModal()">
+                            <button class="btn fw-bold px-4 rounded-3" onclick="openMobileModal()" style="
+                                background: linear-gradient(135deg, #11998e, #38ef7d);
+                                border: none; color: #0a2010;
+                                box-shadow: 0 4px 18px rgba(17,153,142,0.4);
+                                transition: all 0.3s;">
                                 <i class="bi bi-plus-circle-fill me-2"></i>Add Mobile Account
                             </button>
                         </div>
@@ -2929,23 +2971,22 @@
                         <!-- Mobile Banking Table -->
                         <div class="card border-0 shadow-sm overflow-hidden rounded-4">
                             <div class="table-responsive">
-                                <table class="table table-hover align-middle modern-table mb-0">
-                                    <thead style="background: #f1f5f9;">
+                                <table class="table table-hover align-middle modern-table mb-0" style="background:transparent;">
+                                    <thead style="background: linear-gradient(90deg, rgba(17,153,142,0.25), rgba(56,239,125,0.15));">
                                         <tr>
-                                            <th style="padding: 1rem;">SL.</th>
-                                            <th style="padding: 1rem;">Account Name</th>
-                                            <th style="padding: 1rem;">Account No.</th>
-                                            <th style="padding: 1rem; text-align: right;">Balance</th>
-                                            <th style="padding: 1rem; text-align: end;">Action</th>
+                                            <th style="padding:0.85rem 1rem;color:#38ef7d;font-size:0.78rem;text-transform:uppercase;letter-spacing:1px;border-color:rgba(56,239,125,0.15);font-weight:700;">SL.</th>
+                                            <th style="padding:0.85rem 1rem;color:#38ef7d;font-size:0.78rem;text-transform:uppercase;letter-spacing:1px;border-color:rgba(56,239,125,0.15);font-weight:700;">Account Name</th>
+                                            <th style="padding:0.85rem 1rem;color:#38ef7d;font-size:0.78rem;text-transform:uppercase;letter-spacing:1px;border-color:rgba(56,239,125,0.15);font-weight:700;">Account No.</th>
+                                            <th style="padding:0.85rem 1rem;color:#38ef7d;font-size:0.78rem;text-transform:uppercase;letter-spacing:1px;border-color:rgba(56,239,125,0.15);font-weight:700;text-align:right;">Balance</th>
+                                            <th style="padding:0.85rem 1rem;color:#38ef7d;font-size:0.78rem;text-transform:uppercase;letter-spacing:1px;border-color:rgba(56,239,125,0.15);font-weight:700;text-align:end;">Action</th>
                                         </tr>
                                     </thead>
                                     <tbody id="mobileTableBody"></tbody>
-                                    <tfoot style="font-weight: 800;">
-                                        <tr>
-                                            <td colspan="3" style="padding: 1rem;">Total Mobile Balance</td>
-                                            <td id="totalMobileBalance" style="padding: 1rem; text-align: right;">৳0
-                                            </td>
-                                            <td></td>
+                                    <tfoot>
+                                        <tr style="background:linear-gradient(90deg,rgba(17,153,142,0.15),rgba(56,239,125,0.08));border-top:2px solid rgba(56,239,125,0.3);">
+                                            <td colspan="3" style="padding:0.9rem 1rem;color:#38ef7d;font-weight:800;font-size:0.95rem;border-color:rgba(56,239,125,0.15);">📱 Total Mobile Balance</td>
+                                            <td id="totalMobileBalance" style="padding:0.9rem 1rem;text-align:right;color:#38ef7d;font-weight:900;font-size:1.1rem;border-color:rgba(56,239,125,0.15);">৳0</td>
+                                            <td style="border-color:rgba(56,239,125,0.15);"></td>
                                         </tr>
                                     </tfoot>
                                 </table>
