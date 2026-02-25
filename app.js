@@ -2233,11 +2233,14 @@ function mailLedgerReport() {
     return matchSearch && matchDate && matchType && matchCategory && matchMethod;
   });
 
-  let inc = 0, exp = 0;
+  let inc = 0, exp = 0, loanIn = 0, loanOut = 0;
   filtered.forEach(f => {
     const amt = parseFloat(f.amount) || 0;
-    if (f.type === 'Income' || f.type === 'Loan Received') inc += amt;
-    else if (f.type === 'Expense' || f.type === 'Loan Given') exp += amt;
+    if (f.type === 'Income') inc += amt;
+    else if (f.type === 'Expense') exp += amt;
+    // Loan types: affect account balance, NOT income/expense stats
+    else if (f.type === 'Loan Received' || f.type === 'Loan Receiving') loanIn += amt;
+    else if (f.type === 'Loan Given' || f.type === 'Loan Giving') loanOut += amt;
   });
   const balance = inc - exp;
 
@@ -2638,7 +2641,7 @@ function updateRecentActions() {
 
   list.innerHTML = '';
   transactions.forEach(f => {
-    const isIncome = (f.type === 'Income' || f.type === 'Loan Received' || f.type === 'Transfer In');
+    const isIncome = (f.type === 'Income' || f.type === 'Loan Received' || f.type === 'Loan Receiving' || f.type === 'Transfer In');
     const amountClass = isIncome ? 'text-success' : 'text-danger';
     const symbol = isIncome ? '+' : '-';
 
@@ -3100,11 +3103,12 @@ window.calcBatchProfit = function () {
     if (!dateMatch) return;
 
     const amt = parseFloat(f.amount) || 0;
-    if (f.type === 'Income' || f.type === 'Loan Received') {
+    if (f.type === 'Income') {
       bIncome += amt;
-    } else if (f.type === 'Expense' || f.type === 'Loan Given') {
+    } else if (f.type === 'Expense') {
       bExpense += amt;
     }
+    // Loan Received/Given affect account balance only, not income/expense
   });
 
   const bProfit = bIncome - bExpense;
@@ -5931,13 +5935,13 @@ function applyFinanceToBankAccount(entry) {
 
   const amount = parseFloat(entry.amount) || 0;
 
-  if (entry.type === 'Income' || entry.type === 'Loan Received') {
+  if (entry.type === 'Income' || entry.type === 'Loan Received' || entry.type === 'Loan Receiving') {
     account.balance = (parseFloat(account.balance) || 0) + amount;
   }
 
   if (
     entry.type === 'Expense' ||
-    entry.type === 'Loan Given' ||
+    entry.type === 'Loan Given' || entry.type === 'Loan Giving' ||
     entry.type === 'Salary' ||
     entry.type === 'Rent' ||
     entry.type === 'Utilities'
@@ -5952,14 +5956,18 @@ function applyFinanceToBankAccount(entry) {
 
 /* 5️⃣ Hook into Finance Save (AUTO APPLY) */
 (function hookFinanceSave() {
-  const originalPush = globalData.finance.push.bind(globalData.finance);
-
-  globalData.finance.push = function () {
-    for (let i = 0; i < arguments.length; i++) {
-      applyFinanceToBankAccount(arguments[i]);
-    }
-    return originalPush(...arguments);
-  };
+  try {
+    if (!window.globalData || !Array.isArray(window.globalData.finance)) return;
+    const originalPush = globalData.finance.push.bind(globalData.finance);
+    globalData.finance.push = function () {
+      for (let i = 0; i < arguments.length; i++) {
+        try {
+          if (typeof applyFinanceToBankAccount === 'function') applyFinanceToBankAccount(arguments[i]);
+        } catch(hookErr) { console.warn('Finance hook error:', hookErr); }
+      }
+      return originalPush(...arguments);
+    };
+  } catch(e) { console.warn('⚠️ hookFinanceSave failed:', e); }
 })();
 
 
@@ -5992,7 +6000,7 @@ function rebuildBankBalancesFromFinance() {
 
     const amount = parseFloat(entry.amount) || 0;
 
-    if (entry.type === 'Income' || entry.type === 'Loan Received') {
+    if (entry.type === 'Income' || entry.type === 'Loan Received' || entry.type === 'Loan Receiving') {
       account.balance += amount;
     }
 
@@ -6243,17 +6251,18 @@ function recalculateCashBalanceFromTransactions() {
   }
 
   // Add/subtract all Cash transactions
+  // Note: Loan Received/Giving DO affect cash balance (physical cash moves)
+  // But they are NOT counted as income/expense in stats
   const cashTransactions = (globalData.finance || []).filter(f => f.method === 'Cash');
 
   cashTransactions.forEach(trans => {
     const amount = parseFloat(trans.amount) || 0;
-
-    // Income types: add to balance
-    if (trans.type === 'Income' || trans.type === 'Loan Received' || trans.type === 'Transfer In') {
+    // Money coming INTO cash account
+    if (['Income', 'Loan Received', 'Loan Receiving', 'Transfer In'].includes(trans.type)) {
       calculatedCashBalance += amount;
     }
-    // Expense types: subtract from balance
-    else if (trans.type === 'Expense' || trans.type === 'Loan Given' || trans.type === 'Transfer Out') {
+    // Money going OUT of cash account
+    else if (['Expense', 'Loan Given', 'Loan Giving', 'Transfer Out'].includes(trans.type)) {
       calculatedCashBalance -= amount;
     }
   });
@@ -6361,7 +6370,7 @@ function showAllAccountsSearch(dateFrom, dateTo) {
   let rows = '';
   allTx.forEach(f => {
     const amt = parseFloat(f.amount) || 0;
-    const isIncome = ['Income', 'Loan Received', 'Transfer In'].includes(f.type);
+    const isIncome = ['Income', 'Loan Received', 'Loan Receiving', 'Transfer In'].includes(f.type);
     rows += `<tr>
       <td style="padding:8px;font-size:0.82rem;">${f.date || '-'}</td>
       <td style="padding:8px;"><span style="background:${isIncome ? 'rgba(0,255,136,0.15)' : 'rgba(255,59,92,0.15)'};color:${isIncome ? '#00ff88' : '#ff3b5c'};padding:2px 8px;border-radius:20px;font-size:0.75rem;font-weight:700;">${f.type || '-'}</span></td>
@@ -6600,17 +6609,22 @@ function displayTransactionHistory(transactions, accountData) {
   reversedTransactions.forEach(record => {
     const amount = parseFloat(record.amount) || 0;
 
-    // Check if this is an incoming transaction (positive)
+    // Check if this is an incoming transaction (positive to account balance)
     const isPositive = record.type === 'Income' ||
-      record.type === 'Loan Received' ||
+      record.type === 'Loan Received' || record.type === 'Loan Receiving' ||
       record.type === 'Transfer In';
+    const isNegative = record.type === 'Expense' ||
+      record.type === 'Loan Given' || record.type === 'Loan Giving' ||
+      record.type === 'Transfer Out';
 
     if (isPositive) {
       runningBalance += amount;
-      totalIncome += amount;
-    } else {
+      // Only count actual income (not loans) in totalIncome stat
+      if (record.type === 'Income') totalIncome += amount;
+    } else if (isNegative) {
       runningBalance -= amount;
-      totalExpense += amount;
+      // Only count actual expenses (not loans) in totalExpense stat
+      if (record.type === 'Expense') totalExpense += amount;
     }
   });
 
@@ -6618,9 +6632,9 @@ function displayTransactionHistory(transactions, accountData) {
   transactions.forEach(record => {
     const amount = parseFloat(record.amount) || 0;
 
-    // Check if this is an incoming transaction (positive)
+    // Positive to account balance (includes loans - they move money)
     const isIncome = record.type === 'Income' ||
-      record.type === 'Loan Received' ||
+      record.type === 'Loan Received' || record.type === 'Loan Receiving' ||
       record.type === 'Transfer In';
 
     const amountClass = isIncome ? 'text-success' : 'text-danger';
@@ -7076,6 +7090,210 @@ window.attachMethodBalanceListeners = attachMethodBalanceListeners;
 
 
 // ===================================
+
+// ===================================
+// KEEP RECORD — Personal Notes System
+// ===================================
+
+const KEEP_RECORD_KEY = 'wingsfly_keep_records';
+
+function getKeepRecords() {
+  try {
+    return JSON.parse(localStorage.getItem(KEEP_RECORD_KEY) || '[]');
+  } catch(e) { return []; }
+}
+
+function saveKeepRecords(records) {
+  localStorage.setItem(KEEP_RECORD_KEY, JSON.stringify(records));
+}
+
+function openNewNoteModal(editId = null) {
+  const today = new Date().toISOString().split('T')[0];
+  document.getElementById('noteDate').value = today;
+  document.getElementById('noteTitle').value = '';
+  document.getElementById('noteTag').value = '';
+  document.getElementById('noteContent').value = '';
+  document.getElementById('editingNoteId').value = '';
+  document.getElementById('noteModalTitle').textContent = 'নতুন নোট';
+
+  if (editId) {
+    const records = getKeepRecords();
+    const note = records.find(r => r.id === editId);
+    if (note) {
+      document.getElementById('noteDate').value = note.date || today;
+      document.getElementById('noteTitle').value = note.title || '';
+      document.getElementById('noteTag').value = note.tag || '';
+      document.getElementById('noteContent').value = note.content || '';
+      document.getElementById('editingNoteId').value = editId;
+      document.getElementById('noteModalTitle').textContent = 'নোট সম্পাদনা';
+    }
+  }
+
+  const modal = new bootstrap.Modal(document.getElementById('newNoteModal'));
+  modal.show();
+}
+window.openNewNoteModal = openNewNoteModal;
+
+function saveNote() {
+  const date = document.getElementById('noteDate').value;
+  const title = document.getElementById('noteTitle').value.trim();
+  const tag = document.getElementById('noteTag').value.trim();
+  const content = document.getElementById('noteContent').value.trim();
+  const editId = document.getElementById('editingNoteId').value;
+
+  if (!title && !content) {
+    showErrorToast('❌ শিরোনাম বা নোট দিতে হবে।');
+    return;
+  }
+
+  const records = getKeepRecords();
+
+  if (editId) {
+    // Update existing note
+    const idx = records.findIndex(r => r.id === editId);
+    if (idx >= 0) {
+      records[idx] = { ...records[idx], date, title, tag, content, updatedAt: new Date().toISOString() };
+    }
+  } else {
+    // New note
+    records.unshift({
+      id: 'note_' + Date.now(),
+      date: date || new Date().toISOString().split('T')[0],
+      title,
+      tag,
+      content,
+      createdAt: new Date().toISOString()
+    });
+  }
+
+  saveKeepRecords(records);
+
+  // Close modal
+  const modal = bootstrap.Modal.getInstance(document.getElementById('newNoteModal'));
+  if (modal) modal.hide();
+
+  showSuccessToast('✅ নোট সেভ হয়েছে!');
+  renderKeepRecordNotes();
+
+  // Refresh tag dropdown
+  updateNoteTagDropdown();
+}
+window.saveNote = saveNote;
+
+function deleteNote(id) {
+  if (!confirm('এই নোটটি মুছে ফেলবেন?')) return;
+  const records = getKeepRecords().filter(r => r.id !== id);
+  saveKeepRecords(records);
+  showSuccessToast('🗑️ নোট মুছে গেছে।');
+  renderKeepRecordNotes();
+  updateNoteTagDropdown();
+}
+window.deleteNote = deleteNote;
+
+function clearNoteFilters() {
+  const dateEl = document.getElementById('noteFilterDate');
+  const tagEl = document.getElementById('noteFilterTag');
+  const searchEl = document.getElementById('noteSearchInput');
+  if (dateEl) dateEl.value = '';
+  if (tagEl) tagEl.value = '';
+  if (searchEl) searchEl.value = '';
+  renderKeepRecordNotes();
+}
+window.clearNoteFilters = clearNoteFilters;
+
+function updateNoteTagDropdown() {
+  const sel = document.getElementById('noteFilterTag');
+  if (!sel) return;
+  const records = getKeepRecords();
+  const tags = [...new Set(records.map(r => r.tag).filter(Boolean))].sort();
+  const current = sel.value;
+  sel.innerHTML = '<option value="">সব ট্যাগ</option>';
+  tags.forEach(t => {
+    const opt = document.createElement('option');
+    opt.value = t; opt.textContent = t;
+    sel.appendChild(opt);
+  });
+  if (current && tags.includes(current)) sel.value = current;
+}
+
+function renderKeepRecordNotes() {
+  const container = document.getElementById('keepRecordNotesList');
+  if (!container) return;
+
+  updateNoteTagDropdown();
+
+  let records = getKeepRecords();
+
+  // Apply filters
+  const dateFilter = document.getElementById('noteFilterDate')?.value;
+  const tagFilter = document.getElementById('noteFilterTag')?.value;
+  const searchFilter = document.getElementById('noteSearchInput')?.value.trim().toLowerCase();
+
+  if (dateFilter) records = records.filter(r => r.date === dateFilter);
+  if (tagFilter) records = records.filter(r => r.tag === tagFilter);
+  if (searchFilter) records = records.filter(r =>
+    (r.title || '').toLowerCase().includes(searchFilter) ||
+    (r.content || '').toLowerCase().includes(searchFilter) ||
+    (r.tag || '').toLowerCase().includes(searchFilter)
+  );
+
+  if (records.length === 0) {
+    container.innerHTML = `
+      <div class="text-center py-5" style="color:#4a6080;">
+        <div style="font-size:2.5rem; margin-bottom:12px;">🚩</div>
+        <div style="font-size:1rem;">কোনো নোট পাওয়া যায়নি</div>
+        <small>নতুন নোট যোগ করতে উপরের বাটনে ক্লিক করুন</small>
+      </div>`;
+    return;
+  }
+
+  // Tag color map
+  const tagColors = {
+    'গুরুত্বপূর্ণ': '#ff4d6d', 'important': '#ff4d6d',
+    'ব্যক্তিগত': '#7c3aed', 'personal': '#7c3aed',
+    'কাজ': '#0ea5e9', 'work': '#0ea5e9',
+    'ফাইন্যান্স': '#22c55e', 'finance': '#22c55e',
+  };
+  function tagColor(tag) {
+    return tagColors[tag?.toLowerCase()] || '#64748b';
+  }
+
+  container.innerHTML = records.map(note => `
+    <div style="background:rgba(255,255,255,0.04); border:1px solid rgba(0,217,255,0.12);
+      border-radius:12px; padding:16px; margin-bottom:12px; transition:border-color 0.2s;"
+      onmouseover="this.style.borderColor='rgba(0,217,255,0.3)'"
+      onmouseout="this.style.borderColor='rgba(0,217,255,0.12)'">
+      <div style="display:flex; justify-content:space-between; align-items:flex-start; margin-bottom:8px;">
+        <div>
+          ${note.title ? `<div style="font-size:1rem; font-weight:700; color:#e2f0ff; margin-bottom:4px;">${escapeHtml(note.title)}</div>` : ''}
+          <div style="display:flex; gap:8px; align-items:center; flex-wrap:wrap;">
+            <span style="color:#7aa0c4; font-size:0.78rem;">📅 ${note.date || 'তারিখ নেই'}</span>
+            ${note.tag ? `<span style="background:${tagColor(note.tag)}22; color:${tagColor(note.tag)}; border:1px solid ${tagColor(note.tag)}55; padding:1px 10px; border-radius:20px; font-size:0.72rem; font-weight:700;">${escapeHtml(note.tag)}</span>` : ''}
+          </div>
+        </div>
+        <div style="display:flex; gap:6px;">
+          <button onclick="openNewNoteModal('${note.id}')"
+            style="background:rgba(0,217,255,0.1); color:#00d9ff; border:1px solid rgba(0,217,255,0.3); border-radius:8px; padding:4px 10px; font-size:0.8rem; cursor:pointer;">
+            ✏️ Edit
+          </button>
+          <button onclick="deleteNote('${note.id}')"
+            style="background:rgba(255,59,92,0.1); color:#ff3b5c; border:1px solid rgba(255,59,92,0.3); border-radius:8px; padding:4px 10px; font-size:0.8rem; cursor:pointer;">
+            🗑️
+          </button>
+        </div>
+      </div>
+      ${note.content ? `<div style="color:#9ab; font-size:0.875rem; line-height:1.6; white-space:pre-wrap;">${escapeHtml(note.content)}</div>` : ''}
+    </div>
+  `).join('');
+}
+window.renderKeepRecordNotes = renderKeepRecordNotes;
+
+function escapeHtml(str) {
+  if (!str) return '';
+  return str.replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;').replace(/"/g,'&quot;');
+}
+
+
 // ===================================
 // VISITOR MANAGEMENT
 // Moved to: sections/visitor-management.js
@@ -7091,3 +7309,62 @@ window.attachMethodBalanceListeners = attachMethodBalanceListeners;
 // Moved to: sections/snapshot-system.js
 // ===================================
 
+
+// ===================================
+// KEEP RECORD — Snapshot Backup Button
+// ===================================
+function keepRecord() {
+  try {
+    const snapshot = {
+      timestamp: new Date().toISOString(),
+      label: 'Manual Keep Record - ' + new Date().toLocaleString('bn-BD'),
+      data: JSON.parse(JSON.stringify(window.globalData))
+    };
+    localStorage.setItem('wings_keep_record_latest', JSON.stringify(snapshot));
+    if (typeof takeSnapshot === 'function') takeSnapshot();
+    if (typeof showSuccessToast === 'function') {
+      showSuccessToast('📦 Record kept! সমস্ত ডেটার একটি snapshot সেভ হয়েছে।');
+    }
+    console.log('📦 Keep Record saved:', snapshot.timestamp);
+  } catch (err) {
+    console.error('Keep Record error:', err);
+    if (typeof showErrorToast === 'function') showErrorToast('❌ Keep Record ব্যর্থ: ' + err.message);
+  }
+}
+window.keepRecord = keepRecord;
+
+// ===================================
+// FINAL SAFETY NET — Critical Window Exports
+// ===================================
+(function ensureCriticalExports() {
+  if (typeof handleStudentSubmit === 'function') { window.saveStudent = handleStudentSubmit; window.handleStudentSubmit = handleStudentSubmit; }
+  if (typeof render === 'function') { window.renderStudents = render; window.render = render; }
+  if (typeof exportData === 'function') window.exportData = exportData;
+  if (typeof importData === 'function') window.importData = importData;
+  if (typeof handleImportFile === 'function') window.handleImportFile = handleImportFile;
+  if (typeof renderLedger === 'function') window.renderLedger = renderLedger;
+  if (typeof filterData === 'function') window.filterData = filterData;
+  if (typeof openAccountModal === 'function') window.openAccountModal = openAccountModal;
+  if (typeof renderAccountList === 'function') window.renderAccountList = renderAccountList;
+  if (typeof renderDashboard === 'function') window.renderDashboard = renderDashboard;
+  if (typeof updateGlobalStats === 'function') window.updateGlobalStats = updateGlobalStats;
+  if (typeof recalculateCashBalanceFromTransactions === 'function') window.recalculateCashBalanceFromTransactions = recalculateCashBalanceFromTransactions;
+  if (typeof renderKeepRecordNotes === 'function') window.renderKeepRecordNotes = renderKeepRecordNotes;
+
+  window.renderFullUI = function () {
+    console.log('🔄 Global UI Refresh');
+    try {
+      if (typeof updateGlobalStats === 'function') updateGlobalStats();
+      if (typeof render === 'function') render(window.globalData.students || []);
+      if (typeof renderLedger === 'function') renderLedger(window.globalData.finance || []);
+      if (typeof renderDashboard === 'function') renderDashboard();
+      if (typeof renderCashBalance === 'function') renderCashBalance();
+      if (typeof renderRecentAdmissions === 'function') renderRecentAdmissions();
+      if (typeof updateGrandTotal === 'function') updateGrandTotal();
+      if (typeof populateDropdowns === 'function') populateDropdowns();
+      if (typeof populateBatchFilter === 'function') populateBatchFilter();
+      if (typeof initNoticeBoard === 'function') initNoticeBoard();
+    } catch (e) { console.warn('renderFullUI partial error:', e); }
+  };
+  console.log('✅ Safety net applied — Wings Fly Academy');
+})();

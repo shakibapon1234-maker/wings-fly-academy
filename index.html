@@ -3352,6 +3352,10 @@
                                         onclick="switchSettingsTab('tab-diagnostic', this)">
                                         <span>🔍</span> Sync Diagnostic
                                     </button>
+                                    <button class="nav-link" type="button"
+                                        onclick="switchSettingsTab('tab-keeprecord', this); renderKeepRecordNotes()">
+                                        <span>📝</span> Keep Record
+                                    </button>
                                 </div>
                                 <div class="mt-auto pt-4 text-center">
                                     <button type="submit" class="btn btn-primary w-100 py-2 shadow-sm">
@@ -4153,6 +4157,58 @@
                                     </div><!-- /diag-wrap -->
                                 </div><!-- /tab-diagnostic -->
 
+                                <!-- =============================================== -->
+                                <!-- TAB: KEEP RECORD (Personal Notes)              -->
+                                <!-- =============================================== -->
+                                <div class="settings-tab-pane" id="tab-keeprecord" style="display:none; padding:24px;">
+                                    <div style="display:flex; justify-content:space-between; align-items:center; margin-bottom:20px; flex-wrap:wrap; gap:12px;">
+                                        <div>
+                                            <h5 class="fw-bold mb-1" style="color:#00d9ff;">📝 Keep Record</h5>
+                                            <small class="text-muted">ব্যক্তিগত নোট ও রেকর্ড — তারিখ অনুযায়ী সেভ থাকে</small>
+                                        </div>
+                                        <button type="button" class="btn btn-primary fw-bold px-4 rounded-pill"
+                                            style="background:linear-gradient(135deg,#667eea,#764ba2); border:none;"
+                                            onclick="openNewNoteModal()">
+                                            <i class="bi bi-plus-circle-fill me-2"></i>+ নতুন নোট
+                                        </button>
+                                    </div>
+
+                                    <!-- Filters -->
+                                    <div class="row g-2 mb-3">
+                                        <div class="col-auto">
+                                            <input type="date" id="noteFilterDate" class="form-control form-control-sm"
+                                                onchange="renderKeepRecordNotes()"
+                                                style="background:var(--bg-card); color:var(--text-primary); border-color:rgba(255,255,255,0.1);">
+                                        </div>
+                                        <div class="col-auto">
+                                            <select id="noteFilterTag" class="form-select form-select-sm"
+                                                onchange="renderKeepRecordNotes()"
+                                                style="background:var(--bg-card); color:var(--text-primary); border-color:rgba(255,255,255,0.1); min-width:140px;">
+                                                <option value="">সব ট্যাগ</option>
+                                            </select>
+                                        </div>
+                                        <div class="col">
+                                            <div class="input-group input-group-sm">
+                                                <span class="input-group-text" style="background:var(--bg-card); border-color:rgba(255,255,255,0.1);">🔍</span>
+                                                <input type="text" id="noteSearchInput" class="form-control"
+                                                    placeholder="সার্চ করুন..."
+                                                    oninput="renderKeepRecordNotes()"
+                                                    style="background:var(--bg-card); color:var(--text-primary); border-color:rgba(255,255,255,0.1);">
+                                                <button class="btn btn-outline-secondary btn-sm" type="button"
+                                                    onclick="clearNoteFilters()">× ক্লিয়ার</button>
+                                            </div>
+                                        </div>
+                                    </div>
+
+                                    <!-- Notes List -->
+                                    <div id="keepRecordNotesList">
+                                        <div class="text-center text-muted py-5">
+                                            <div style="font-size:2rem; margin-bottom:8px;">🚩</div>
+                                            <div>কোনো নোট পাওয়া যায়নি</div>
+                                        </div>
+                                    </div>
+                                </div><!-- /tab-keeprecord -->
+
                             </div><!-- /tab-content -->
                         </div><!-- /flex-grow-1 content area -->
                 </div><!-- /d-flex row -->
@@ -4161,6 +4217,52 @@
         </div><!-- /modal-content -->
     </div><!-- /modal-dialog -->
     </div><!-- /settingsModal -->
+
+    <!-- Keep Record - New Note Modal -->
+    <div class="modal fade" id="newNoteModal" tabindex="-1">
+        <div class="modal-dialog modal-dialog-centered">
+            <div class="modal-content border-0 shadow-lg"
+                style="background:linear-gradient(135deg,#07091c,#0e0a28); border:1px solid rgba(0,217,255,0.2) !important;">
+                <div class="modal-header border-0 pb-0">
+                    <h5 class="modal-title fw-bold" style="color:#00d9ff;">
+                        <i class="bi bi-journal-plus me-2"></i>
+                        <span id="noteModalTitle">নতুন নোট</span>
+                    </h5>
+                    <button type="button" class="btn-close btn-close-white" data-bs-dismiss="modal"></button>
+                </div>
+                <div class="modal-body pt-3">
+                    <input type="hidden" id="editingNoteId" value="">
+                    <div class="mb-3">
+                        <label class="form-label small fw-bold" style="color:#7aa0c4; letter-spacing:1px; text-transform:uppercase;">তারিখ</label>
+                        <input type="date" id="noteDate" class="form-control"
+                            style="background:rgba(255,255,255,0.05); color:#e2f0ff; border-color:rgba(0,217,255,0.2);">
+                    </div>
+                    <div class="mb-3">
+                        <label class="form-label small fw-bold" style="color:#7aa0c4; letter-spacing:1px; text-transform:uppercase;">শিরোনাম</label>
+                        <input type="text" id="noteTitle" class="form-control" placeholder="নোটের শিরোনাম..."
+                            style="background:rgba(255,255,255,0.05); color:#e2f0ff; border-color:rgba(0,217,255,0.2);">
+                    </div>
+                    <div class="mb-3">
+                        <label class="form-label small fw-bold" style="color:#7aa0c4; letter-spacing:1px; text-transform:uppercase;">ট্যাগ (ঐচ্ছিক)</label>
+                        <input type="text" id="noteTag" class="form-control" placeholder="যেমন: গুরুত্বপূর্ণ, ব্যক্তিগত, কাজ..."
+                            style="background:rgba(255,255,255,0.05); color:#e2f0ff; border-color:rgba(0,217,255,0.2);">
+                    </div>
+                    <div class="mb-3">
+                        <label class="form-label small fw-bold" style="color:#7aa0c4; letter-spacing:1px; text-transform:uppercase;">নোট</label>
+                        <textarea id="noteContent" rows="5" class="form-control" placeholder="আপনার নোট এখানে লিখুন..."
+                            style="background:rgba(255,255,255,0.05); color:#e2f0ff; border-color:rgba(0,217,255,0.2); resize:vertical;"></textarea>
+                    </div>
+                </div>
+                <div class="modal-footer border-0 pt-0">
+                    <button type="button" class="btn btn-secondary rounded-pill px-4" data-bs-dismiss="modal">বাতিল</button>
+                    <button type="button" class="btn rounded-pill px-4 fw-bold" onclick="saveNote()"
+                        style="background:linear-gradient(135deg,#667eea,#764ba2); color:#fff; border:none;">
+                        <i class="bi bi-check-lg me-1"></i> সেভ করুন
+                    </button>
+                </div>
+            </div>
+        </div>
+    </div>
 
     <!-- Edit Transaction Modal -->
     <div class="modal fade" id="editTransactionModal" tabindex="-1">
