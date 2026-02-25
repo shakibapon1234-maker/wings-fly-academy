@@ -1,5 +1,5 @@
 // ====================================
-// WINGS FLY AVIATION ACADEMY
+// WINGS FLY AVIATION ACADEMY  
 // LEDGER RENDER — DROPDOWNS, SETTINGS LISTS, CATEGORY MANAGEMENT
 // Extracted from app.js (Phase 2)
 // ====================================
@@ -9,7 +9,12 @@
 // ===================================
 
 function populateDropdowns() {
-  const courses = globalData.courseNames || [];
+  const courses = window.globalData.courseNames || [];
+
+  // BUILD CLEAN PAYMENT METHODS LIST:
+  // 1. Core methods (always present)
+  // 2. Payment Methods (ONLY from bank accounts - NO hardcoded methods)
+  const methods = [];
 
   const courseSelects = [
     'studentCourseSelect',
@@ -83,7 +88,7 @@ function populateDropdowns() {
       cashOpt.style.color = '#00ff88';
       el.appendChild(cashOpt);
 
-      // Add ONLY bank accounts
+      // Add ONLY bank accounts (no traditional methods)
       const bankAccounts = window.globalData.bankAccounts || [];
       bankAccounts.forEach(account => {
         const bal = parseFloat(account.balance) || 0;
@@ -115,11 +120,11 @@ function populateDropdowns() {
 
   if (typeof renderSettingsLists === 'function') renderSettingsLists();
 }
-window.populateDropdowns = populateDropdowns;
 
 function renderSettingsLists() {
   const incCats = window.globalData.incomeCategories || [];
   const expCats = window.globalData.expenseCategories || [];
+  const methods = window.globalData.paymentMethods || [];
 
   // Income List
   const incList = document.getElementById('settingsIncomeCatList');
@@ -185,6 +190,7 @@ function renderSettingsLists() {
     if (balanceContainer) {
       balanceContainer.innerHTML = '';
 
+      // Define allMethods before using it
       const allMethods = ['Cash'];
       const bankAccounts = window.globalData.bankAccounts || [];
       const mobileAccounts = window.globalData.mobileBanking || [];
@@ -197,7 +203,7 @@ function renderSettingsLists() {
         div.className = 'col-6 mb-2';
         div.innerHTML = `
           <label class="form-label small fw-bold text-muted mb-1">${m} Starting ৳</label>
-          <input type="number" name="startBalance_${m}" class="form-control form-control-sm"
+          <input type="number" name="startBalance_${m}" class="form-control form-control-sm" 
                  value="${window.globalData.settings.startBalances?.[m] || 0}" placeholder="0">
         `;
         balanceContainer.appendChild(div);
@@ -206,6 +212,7 @@ function renderSettingsLists() {
       if (document.getElementById('settingsUsername')) {
         document.getElementById('settingsUsername').value = (window.globalData.credentials && window.globalData.credentials.username) || 'admin';
       }
+      // ✅ Security: never pre-fill password field — user must type new one to change it
       if (document.getElementById('settingsPassword')) {
         document.getElementById('settingsPassword').value = '';
         document.getElementById('settingsPassword').placeholder = 'Type new password to change...';
@@ -213,7 +220,6 @@ function renderSettingsLists() {
     }
   }
 }
-window.renderSettingsLists = renderSettingsLists;
 
 // --- Category Management ---
 
@@ -229,7 +235,6 @@ function addIncomeCategory() {
   updateFinanceCategoryOptions();
   input.value = '';
 }
-window.addIncomeCategory = addIncomeCategory;
 
 function deleteIncomeCategory(name) {
   if (!confirm(`Delete Income Category "${name}"?`)) return;
@@ -238,7 +243,6 @@ function deleteIncomeCategory(name) {
   renderSettingsLists();
   updateFinanceCategoryOptions();
 }
-window.deleteIncomeCategory = deleteIncomeCategory;
 
 function addExpenseCategory() {
   const input = document.getElementById('newExpenseCatInput');
@@ -252,7 +256,6 @@ function addExpenseCategory() {
   updateFinanceCategoryOptions();
   input.value = '';
 }
-window.addExpenseCategory = addExpenseCategory;
 
 function deleteExpenseCategory(name) {
   if (!confirm(`Delete Expense Category "${name}"?`)) return;
@@ -261,7 +264,6 @@ function deleteExpenseCategory(name) {
   renderSettingsLists();
   updateFinanceCategoryOptions();
 }
-window.deleteExpenseCategory = deleteExpenseCategory;
 
 function updateFinanceCategoryOptions() {
   const typeSelect = document.querySelector('#financeForm select[name="type"]');
@@ -285,27 +287,33 @@ function updateFinanceCategoryOptions() {
     catSelect.appendChild(opt);
   });
 
-  // Toggle Person/Counterparty visibility based on TYPE
+  // ✅ FIXED: Toggle Person/Counterparty visibility based on TYPE
   const personContainer = document.getElementById('financePersonContainer');
   const personInput = document.getElementById('financePersonInput');
 
   if (personContainer && personInput) {
+    // Show ONLY for Loan Given and Loan Received
     if (type === 'Loan Given' || type === 'Loan Received') {
       personContainer.classList.remove('d-none');
       personInput.required = true;
+      console.log('✅ Person field: VISIBLE + REQUIRED (Type:', type + ')');
     } else {
       personContainer.classList.add('d-none');
       personInput.required = false;
-      personInput.value = '';
+      personInput.value = ''; // Clear value when hidden
+      console.log('ℹ️ Person field: HIDDEN (Type:', type + ')');
     }
   }
 }
-window.updateFinanceCategoryOptions = updateFinanceCategoryOptions;
+
+// ✅ Remove old togglePersonField function - not needed anymore
 
 // --- Payment Method Management ---
+// NOTE: Payment methods are now automatically synced from Bank Accounts
+// These functions kept for backward compatibility
 function addPaymentMethod() {
   const input = document.getElementById('newMethodInput');
-  if (!input) return;
+  if (!input) return; // Element doesn't exist in UI anymore
   const val = input.value.trim();
   if (!val) return;
 
@@ -320,7 +328,6 @@ function addPaymentMethod() {
   populateDropdowns();
   input.value = '';
 }
-window.addPaymentMethod = addPaymentMethod;
 
 function deletePaymentMethod(name) {
   if (!confirm(`Delete payment method "${name}"?`)) return;
@@ -329,7 +336,6 @@ function deletePaymentMethod(name) {
   saveToStorage();
   populateDropdowns();
 }
-window.deletePaymentMethod = deletePaymentMethod;
 
 // --- Course Management ---
 function addCourseName() {
@@ -346,25 +352,27 @@ function addCourseName() {
   window.globalData.courseNames.push(val);
   saveToStorage();
   populateDropdowns();
-  if (typeof populateBatchFilter === 'function') populateBatchFilter();
+  if (typeof populateBatchFilter === 'function') populateBatchFilter(); // ✅ Filter dropdown sync
   input.value = '';
 }
-window.addCourseName = addCourseName;
 
 function deleteCourseName(name) {
   if (!confirm(`Delete course "${name}"?`)) return;
   window.globalData.courseNames = window.globalData.courseNames.filter(c => c !== name);
   saveToStorage();
   populateDropdowns();
-  if (typeof populateBatchFilter === 'function') populateBatchFilter();
+  if (typeof populateBatchFilter === 'function') populateBatchFilter(); // ✅ Filter dropdown sync
 }
-window.deleteCourseName = deleteCourseName;
 
+
+
+// Override updateCategoryDropdown to use globalData
 function updateCategoryDropdown() {
   const select = document.getElementById('ledgerCategoryFilter');
   if (!select) return;
 
   const currentVal = select.value;
+  // Use global categories + any legacy categories found in transactions
   const legacyCats = new Set(window.globalData.finance.map(f => f.category));
   const incCats = window.globalData.incomeCategories || [];
   const expCats = window.globalData.expenseCategories || [];
@@ -380,4 +388,17 @@ function updateCategoryDropdown() {
   });
   select.value = currentVal;
 }
+
+
+window.populateDropdowns = populateDropdowns;
+window.renderSettingsLists = renderSettingsLists;
+window.addIncomeCategory = addIncomeCategory;
+window.deleteIncomeCategory = deleteIncomeCategory;
+window.addExpenseCategory = addExpenseCategory;
+window.deleteExpenseCategory = deleteExpenseCategory;
+window.updateFinanceCategoryOptions = updateFinanceCategoryOptions;
+window.addPaymentMethod = addPaymentMethod;
+window.deletePaymentMethod = deletePaymentMethod;
+window.addCourseName = addCourseName;
+window.deleteCourseName = deleteCourseName;
 window.updateCategoryDropdown = updateCategoryDropdown;

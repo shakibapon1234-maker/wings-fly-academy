@@ -576,8 +576,11 @@ function handleResetAllData() {
 
 // Global exposure
 window.handleResetAllData = handleResetAllData;
+
+// Global exposure
+window.handleResetAllData = handleResetAllData;
 window.checkPersonBalance = checkPersonBalance;
-// handleSettingsSubmit → moved to sections/accounts-ui.js
+// handleSettingsSubmit exposed in sections/accounts-ui.js
 // ===================================
 // CHART JS ANALYTICS
 // ===================================
@@ -740,7 +743,6 @@ function updateCharts() {
     }
   });
 }
-// deleteIncomeCategory, addExpenseCategory etc → moved to sections/ledger-render.js
 window.downloadLedgerExcel = downloadLedgerExcel;
 window.mailLedgerReport = mailLedgerReport;
 window.downloadAccountDetailsExcel = downloadAccountDetailsExcel;
@@ -1516,7 +1518,7 @@ function switchTab(tab, refreshStats = true) {
 // LOAN MANAGEMENT
 // ===================================
 
-if (typeof currentLoanPerson === "undefined") var currentLoanPerson = null; // loan-management.js may also declare this
+if (typeof currentLoanPerson === "undefined") var currentLoanPerson = null;
 
 function renderLoanSummary() {
   const container = document.getElementById('loanSummaryContainer');
@@ -3335,6 +3337,12 @@ async function handleStudentSubmit(e) {
     showErrorToast("❌ An error occurred: " + error.message);
   }
 }
+
+// Global exposures for cross-file access
+window.handleStudentSubmit = handleStudentSubmit;
+window.saveStudent = handleStudentSubmit;
+window.render = render;
+window.renderStudents = render;
 
 
 // ===================================
@@ -6938,6 +6946,18 @@ window.populateAccountDropdown = populateAccountDropdown;
 window.exportAccountToPDF = exportAccountToPDF;
 window.exportAccountToExcel = exportAccountToExcel;
 window.printAccountReport = printAccountReport;
+
+
+// ===================================
+// CRITICAL GLOBAL EXPOSURES
+// Required by sections and sync system
+// ===================================
+window.renderLedger = renderLedger;
+window.updateGlobalStats = updateGlobalStats;
+window.checkDailyBackup = checkDailyBackup;
+window.updateStudentCount = updateStudentCount;
+window.filterData = filterData;
+// handleEmployeeSubmit → exposed in sections/employee-management.js
 
 // Core UI Refresh Functions for Auto-Sync
 window.renderFullUI = function () {

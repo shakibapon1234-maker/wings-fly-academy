@@ -342,8 +342,7 @@ window.openStudentModal = function (index) {
   }
   new bootstrap.Modal(el).show();
 };
-// NOTE: handleStudentSubmit, render, handleEmployeeSubmit are defined in app.js
-// They load after this file, so we use lazy window references
+// These functions are in app.js (loads after), so use deferred assignment
 document.addEventListener('DOMContentLoaded', function() {
   if (typeof handleStudentSubmit !== 'undefined') window.saveStudent = handleStudentSubmit;
   if (typeof render !== 'undefined') window.renderStudents = render;

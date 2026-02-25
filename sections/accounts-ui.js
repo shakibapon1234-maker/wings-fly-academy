@@ -1,6 +1,6 @@
 // ====================================
 // WINGS FLY AVIATION ACADEMY
-// ACCOUNTS UI — ACCOUNT DETAILS MODAL, PRINT RECEIPT, PRINT REPORT, SETTINGS
+// ACCOUNTS UI — ACCOUNT DETAILS MODAL, PRINT, SETTINGS
 // Extracted from app.js (Phase 2)
 // ====================================
 
@@ -626,10 +626,15 @@ window.printAccountDetails = printAccountDetails;
 window.resetDemoData = resetDemoData;
 
 
-// Global exposures
 window.showAccountDetails = showAccountDetails;
 window.resetDetailFilters = resetDetailFilters;
 window.renderAccountDetails = renderAccountDetails;
 window.updateDetailCategoryDropdown = updateDetailCategoryDropdown;
 window.handleSettingsSubmit = handleSettingsSubmit;
 window.handleRefresh = handleRefresh;
+window.getPrintHeader = getPrintHeader;
+window.getPrintFooter = getPrintFooter;
+window.printReceipt = printReceipt;
+window.printReport = printReport;
+window.printAccountDetails = printAccountDetails;
+window.resetDemoData = resetDemoData;
