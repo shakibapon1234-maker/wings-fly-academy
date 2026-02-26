@@ -263,12 +263,24 @@
           (_savedActivity ? JSON.parse(_savedActivity) :
             (window.globalData && window.globalData.activityHistory) || []);
 
+        // ✅ FIX: Settings merge — local security settings preserve করো
+        const _cloudSettings = data.settings || {};
+        const _localSettingsBackup = (() => { try { return JSON.parse(localStorage.getItem("wingsfly_settings_backup") || "null"); } catch(e) { return null; } })();
+        const _mergedSettings = Object.assign({}, _cloudSettings);
+        if (_localSettingsBackup) {
+          if (_localSettingsBackup.recoveryQuestion) _mergedSettings.recoveryQuestion = _localSettingsBackup.recoveryQuestion;
+          if (_localSettingsBackup.recoveryAnswer) _mergedSettings.recoveryAnswer = _localSettingsBackup.recoveryAnswer;
+          if (_localSettingsBackup.adminUsername) _mergedSettings.adminUsername = _localSettingsBackup.adminUsername;
+          if (_localSettingsBackup.autoLockoutMinutes !== undefined) _mergedSettings.autoLockoutMinutes = _localSettingsBackup.autoLockoutMinutes;
+        }
+        const _usersBackup = (() => { try { return JSON.parse(localStorage.getItem("wingsfly_users_backup") || "null"); } catch(e) { return null; } })();
+        const _mergedUsers = (_usersBackup && _usersBackup.length > 0) ? _usersBackup : (data.users || []);
         // Update global data
         window.globalData = {
           students: cloudStudents,
           employees: data.employees || [],
           finance: cloudFinance,
-          settings: data.settings || {},
+          settings: _mergedSettings,
           incomeCategories: data.income_categories || [],
           expenseCategories: data.expense_categories || [],
           paymentMethods: data.payment_methods || [],
@@ -278,7 +290,7 @@
           courseNames: data.course_names || [],
           attendance: data.attendance || {},
           nextId: data.next_id || 1001,
-          users: data.users || [],
+          users: _mergedUsers,
           examRegistrations: data.exam_registrations || [],
           visitors: data.visitors || [],
           employeeRoles: data.employee_roles || [],

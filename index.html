@@ -3683,6 +3683,9 @@
                                                 <div id="scPwMatchTxt" style="font-size:0.68rem;margin-top:4px;font-weight:600;"></div>
                                             </div>
                                             <div class="sc-tip"><span>💡</span><span>Password পরিবর্তনের পর উভয় PC-তে নতুন password ব্যবহার করুন এবং <strong style="color:#00d9ff;">Push to Cloud</strong> করুন।</span></div>
+                                            <div style="text-align:right;margin-top:14px;">
+                                                <button class="sc-sv" type="button" onclick="scSave()">💾 Save Credentials</button>
+                                            </div>
                                         </div>
                                         <!-- ② Secret Recovery -->
                                         <div class="sc">
@@ -3691,9 +3694,9 @@
                                                     <div class="sc-ic pu">🛡️</div>
                                                     <div><p class="sc-t">Secret Recovery Question</p><p class="sc-s">পাসওয়ার্ড ভুলে গেলে এই প্রশ্ন দিয়ে reset করতে পারবেন</p></div>
                                                 </div>
-                                                <span class="sc-ar" id="scRecArrow">▼</span>
+                                                <span class="sc-ar op" id="scRecArrow">▼</span>
                                             </div>
-                                            <div class="sc-rb" id="scRecBody">
+                                            <div class="sc-rb op" id="scRecBody">
                                                 <div class="sc-dv"></div>
                                                 <div style="margin-bottom:13px;">
                                                     <label class="sc-lb">❓ আপনার প্রশ্ন লিখুন</label>
@@ -3706,12 +3709,13 @@
                                                     <label class="sc-lb">✅ গোপন উত্তর</label>
                                                     <!-- type=number trick prevents Chrome username/password detection -->
                                                     <div class="sc-g">
-                                                        <input type="search" id="settingsRecoveryAnswer" class="sc-in"
+                                                        <input type="password" id="settingsRecoveryAnswer" class="sc-in"
                                                             placeholder="গোপন উত্তর লিখুন"
                                                             autocomplete="new-password" data-form-type="other" data-lpignore="true"
-                                                            style="-webkit-text-security:disc;-moz-text-security:disc;"
-                                                            onfocus="this.setAttribute('data-focused','1')"
-                                                            onblur="this.removeAttribute('data-focused')">
+                                                            name="wf_rec_answer"
+                                                            onfocus="this.type='text'"
+                                                            onblur="this.type='password'"
+                                                            style="font-family:inherit;">
                                                         <button class="sc-ey" type="button" id="scRecEyeBtn"
                                                             onclick="scTogRecAns()">👁️</button>
                                                     </div>
@@ -3746,6 +3750,7 @@
                                     function scPwStr(v){const f=document.getElementById('scPwBar'),t=document.getElementById('scPwTxt');if(!f)return;if(!v){f.style.width='0';if(t)t.textContent='';return;}let s=0;if(v.length>=8)s++;if(v.length>=12)s++;if(/[A-Z]/.test(v))s++;if(/[0-9]/.test(v))s++;if(/[^A-Za-z0-9]/.test(v))s++;const L=[{w:'20%',c:'#ff3b5c',l:'Too weak'},{w:'40%',c:'#ff8c00',l:'Weak'},{w:'60%',c:'#ffcc00',l:'Fair'},{w:'80%',c:'#00d9ff',l:'Good'},{w:'100%',c:'#00ff88',l:'Strong 💪'}];const lv=L[Math.min(s,4)];f.style.width=lv.w;f.style.background=lv.c;if(t){t.textContent=lv.l;t.style.color=lv.c;}}
                                     function scPwMatch(){const p1=document.getElementById('settingsPassword')?.value||'',p2=document.getElementById('settingsPasswordConfirm')?.value||'',mt=document.getElementById('scPwMatchTxt');if(!mt)return;if(!p2){mt.textContent='';return;}mt.textContent=p1===p2?'✅ Password মিলে গেছে':'❌ Password মিলছে না';mt.style.color=p1===p2?'#00ff88':'#ff4455';}
                                     function scTogRec(){const b=document.getElementById('scRecBody'),a=document.getElementById('scRecArrow');if(!b)return;b.classList.toggle('op');if(a)a.classList.toggle('op');}
+                                    window.scTogRec=scTogRec;window.scTogRecAns=scTogRecAns;
                                     function scTogRecAns(){const p=document.getElementById('settingsRecoveryAnswer'),b=document.getElementById('scRecEyeBtn');if(!p)return;const vis=p.style.webkitTextSecurity==='none';p.style.webkitTextSecurity=vis?'disc':'none';p.style.mozTextSecurity=vis?'disc':'none';if(b)b.textContent=vis?'👁️':'🙈';}
                                     function scLockBadge(){const v=parseInt(document.getElementById('settingsAutoLockout')?.value||0),b=document.getElementById('scLockBadge');if(!b)return;b.textContent=v===0?'🔓 Disabled':v<60?'🔒 '+v+'min':'🔒 '+(v/60)+'h auto-lock';}
                                     function scLoad(){
@@ -3772,14 +3777,27 @@
                                         if(rq)gd.settings.recoveryQuestion=rq;
                                         if(ra){const hA=typeof hashPassword==='function'?await hashPassword(ra.toLowerCase()):ra;gd.settings.recoveryAnswer=hA;}
                                         gd.settings.autoLockoutMinutes=lk;
-                                        if(typeof saveToStorage==='function')saveToStorage();
+                                        // ✅ FIX: আগে localStorage এ save করো
                                         localStorage.setItem('wingsfly_data',JSON.stringify(gd));
+                                        // ✅ FIX: Settings আলাদাভাবেও backup রাখো — cloud pull override করতে পারবে না
+                                        localStorage.setItem('wingsfly_settings_backup',JSON.stringify(gd.settings));
+                                        if(gd.users&&gd.users[0])localStorage.setItem('wingsfly_users_backup',JSON.stringify(gd.users));
+                                        if(typeof saveToStorage==='function')saveToStorage();
                                         if(typeof wfInitAutoLockout==='function')wfInitAutoLockout(lk);
                                         ['settingsPassword','settingsPasswordConfirm','settingsRecoveryAnswer'].forEach(function(id){const el=document.getElementById(id);if(el)el.value='';});
-                                        document.getElementById('scPwBar').style.width='0';
-                                        document.getElementById('scPwTxt').textContent='';
-                                        document.getElementById('scPwMatchTxt').textContent='';
-                                        if(typeof showSuccessToast==='function')showSuccessToast('✅ Security Settings সংরক্ষিত হয়েছে!');
+                                        const pb=document.getElementById('scPwBar');if(pb)pb.style.width='0';
+                                        const pt=document.getElementById('scPwTxt');if(pt)pt.textContent='';
+                                        const pm=document.getElementById('scPwMatchTxt');if(pm)pm.textContent='';
+                                        // ✅ Toast — showSuccessToast না থাকলে নিজস্ব toast দেখাও
+                                        if(typeof showSuccessToast==='function'){
+                                            showSuccessToast('✅ Security Settings সংরক্ষিত হয়েছে!');
+                                        } else {
+                                            var t=document.createElement('div');
+                                            t.textContent='✅ Security Settings সংরক্ষিত হয়েছে!';
+                                            t.style.cssText='position:fixed;top:20px;right:20px;z-index:999999;background:linear-gradient(135deg,#00d9ff,#00ff88);color:#050a1e;padding:12px 20px;border-radius:10px;font-weight:700;font-size:0.85rem;box-shadow:0 4px 20px rgba(0,217,255,0.4);animation:wfTI .3s ease;';
+                                            document.body.appendChild(t);
+                                            setTimeout(function(){t.remove();},3000);
+                                        }
                                     }
                                     window.scLoad=scLoad;window.scSave=scSave;
                                     (function(){
@@ -6760,6 +6778,70 @@
             };
         })();
     </script>
+
+
+<script>
+// ✅ FIX: Category & Method Dropdown Population
+window.updateFinanceCategoryOptions = function() {
+    var typeEl = document.querySelector('#financeForm select[name="type"]');
+    var catEl = document.getElementById('financeCategorySelect');
+    if (!catEl || !typeEl) return;
+    var type = typeEl.value;
+    var gd = window.globalData;
+    if (!gd) return;
+    var cats = [];
+    if (type === 'Income' || type === 'Loan Received') {
+        cats = gd.incomeCategories || [];
+    } else {
+        cats = gd.expenseCategories || [];
+    }
+    catEl.innerHTML = '<option value="">-- Select Category --</option>';
+    cats.forEach(function(c) {
+        var o = document.createElement('option');
+        o.value = c; o.textContent = c;
+        catEl.appendChild(o);
+    });
+};
+
+window.populateDropdowns = function() {
+    var gd = window.globalData;
+    if (!gd) return;
+    // Payment Method dropdowns
+    var methods = gd.paymentMethods || ['Cash', 'Bkash', 'Nagad'];
+    ['financeMethodSelect','studentMethodSelect','editTransMethodSelect','examPaymentMethodSelect'].forEach(function(id) {
+        var el = document.getElementById(id);
+        if (!el) return;
+        var cur = el.value;
+        el.innerHTML = '<option value="">Select Payment Method</option>';
+        methods.forEach(function(m) {
+            var o = document.createElement('option');
+            o.value = m; o.textContent = m;
+            el.appendChild(o);
+        });
+        if (cur) el.value = cur;
+    });
+    // Category dropdown — default Income
+    window.updateFinanceCategoryOptions();
+};
+
+// Finance Modal খুললে auto-populate করো
+document.addEventListener('DOMContentLoaded', function() {
+    var fm = document.getElementById('financeModal');
+    if (fm) {
+        fm.addEventListener('show.bs.modal', function() {
+            setTimeout(function() {
+                window.populateDropdowns && window.populateDropdowns();
+                // Date default today
+                var dateEl = document.querySelector('#financeForm input[name="date"]');
+                if (dateEl && !dateEl.value) {
+                    var now = new Date();
+                    dateEl.value = now.toISOString().split('T')[0];
+                }
+            }, 50);
+        });
+    }
+});
+</script>
 
 </body>
 
