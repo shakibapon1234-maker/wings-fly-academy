@@ -1150,18 +1150,9 @@
                 </div>
                 <div class="mb-3">
                     <label class="form-label">Password</label>
-                    <div style="position:relative; display:flex; align-items:center;">
-                        <input type="password" id="loginPasswordField" class="form-control"
-                            placeholder="Enter password" required
-                            autocomplete="off" data-form-type="other" data-lpignore="true"
-                            style="padding-right:48px;">
-                        <button type="button"
-                            onclick="const f=document.getElementById('loginPasswordField');const b=document.getElementById('loginPwEye');f.type=f.type==='password'?'text':'password';b.textContent=f.type==='password'?'👁️':'🙈';"
-                            id="loginPwEye"
-                            style="position:absolute;right:0;top:0;bottom:0;width:46px;background:rgba(255,255,255,0.12);border:none;border-radius:0 12px 12px 0;cursor:pointer;font-size:1.1rem;display:flex;align-items:center;justify-content:center;transition:background 0.2s;"
-                            onmouseover="this.style.background='rgba(0,217,255,0.18)'"
-                            onmouseout="this.style.background='rgba(255,255,255,0.12)'">👁️</button>
-                    </div>
+                    <input type="password" id="loginPasswordField" class="form-control"
+                        placeholder="Enter password" required
+                        autocomplete="off" data-form-type="other" data-lpignore="true">
                 </div>
                 <button type="submit" class="btn btn-primary w-100" id="loginBtn">
                     <span>Login</span>
@@ -2670,36 +2661,36 @@
                     <!-- ========== BANK DETAILS SECTION ========== -->
                     <div class="mb-5">
                         <div class="d-flex justify-content-between align-items-center mb-4">
-                            <h4 class="fw-bold m-0" style="background:linear-gradient(90deg,#00c6ff,#0072ff);-webkit-background-clip:text;-webkit-text-fill-color:transparent;">
-                                <span class="me-2" style="font-size: 1.5rem;-webkit-text-fill-color:initial;">🏦</span> BANK DETAILS
+                            <h4 class="fw-bold m-0">
+                                <span class="me-2" style="font-size: 1.5rem;">🏦</span> BANK DETAILS
                             </h4>
-                            <button class="btn fw-bold px-4 rounded-3" style="background:linear-gradient(135deg,#00c6ff,#0072ff);color:#fff;border:none;" onclick="openAccountModal()">
+                            <button class="btn btn-primary fw-bold px-4 rounded-3" onclick="openAccountModal()">
                                 <i class="bi bi-plus-circle-fill me-2"></i>Add New Bank Account
                             </button>
                         </div>
 
                         <!-- Bank Accounts Table -->
-                        <div class="card border-0 shadow-sm overflow-hidden rounded-4" style="background:rgba(0,30,60,0.7);border:1.5px solid rgba(0,170,255,0.2)!important;">
+                        <div class="card border-0 shadow-sm overflow-hidden rounded-4">
                             <div class="table-responsive">
-                                <table class="table table-hover align-middle modern-table mb-0" style="color:#deeeff;">
-                                    <thead style="background:rgba(0,100,200,0.15);">
+                                <table class="table table-hover align-middle modern-table mb-0">
+                                    <thead style="background: #f1f5f9;">
                                         <tr>
-                                            <th style="padding:1rem;color:#00c6ff;border-color:rgba(0,170,255,0.15);">SL.</th>
-                                            <th style="padding:1rem;color:#00c6ff;border-color:rgba(0,170,255,0.15);">Name</th>
-                                            <th style="padding:1rem;color:#00c6ff;border-color:rgba(0,170,255,0.15);">Branch</th>
-                                            <th style="padding:1rem;color:#00c6ff;border-color:rgba(0,170,255,0.15);">Bank Name</th>
-                                            <th style="padding:1rem;color:#00c6ff;border-color:rgba(0,170,255,0.15);">Account No.</th>
-                                            <th style="padding:1rem;color:#00c6ff;border-color:rgba(0,170,255,0.15);text-align:right;">Balance</th>
-                                            <th style="padding:1rem;color:#00c6ff;border-color:rgba(0,170,255,0.15);text-align:end;">Action</th>
+                                            <th style="padding: 1rem;">SL.</th>
+                                            <th style="padding: 1rem;">Name</th>
+                                            <th style="padding: 1rem;">Branch</th>
+                                            <th style="padding: 1rem;">Bank Name</th>
+                                            <th style="padding: 1rem;">Account No.</th>
+                                            <th style="padding: 1rem; text-align: right;">Balance</th>
+                                            <th style="padding: 1rem; text-align: end;">Action</th>
                                         </tr>
                                     </thead>
                                     <tbody id="accountTableBody"></tbody>
-                                    <tfoot style="font-weight:800;background:rgba(0,100,200,0.1);">
+                                    <tfoot style="font-weight: 800;">
                                         <tr>
-                                            <td colspan="5" style="padding:1rem;color:#00c6ff;border-color:rgba(0,170,255,0.15);">💰 Total Bank Balance</td>
-                                            <td id="totalAccountBalance" style="padding:1rem;text-align:right;color:#00c6ff;border-color:rgba(0,170,255,0.15);">৳0
+                                            <td colspan="5" style="padding: 1rem;">Total Bank Balance</td>
+                                            <td id="totalAccountBalance" style="padding: 1rem; text-align: right;">৳0
                                             </td>
-                                            <td style="border-color:rgba(0,170,255,0.15);"></td>
+                                            <td></td>
                                         </tr>
                                     </tfoot>
                                 </table>
@@ -2717,34 +2708,34 @@
 
                     <div class="mb-5">
                         <div class="d-flex justify-content-between align-items-center mb-4">
-                            <h4 class="fw-bold m-0" style="background:linear-gradient(90deg,#00f2a9,#00b09b);-webkit-background-clip:text;-webkit-text-fill-color:transparent;">
-                                <span class="me-2" style="font-size: 1.5rem;-webkit-text-fill-color:initial;">📱</span> MOBILE BANKING
+                            <h4 class="fw-bold m-0">
+                                <span class="me-2" style="font-size: 1.5rem;">📱</span> MOBILE BANKING
                             </h4>
-                            <button class="btn fw-bold px-4 rounded-3" style="background:linear-gradient(135deg,#00f2a9,#00b09b);color:#fff;border:none;" onclick="openMobileModal()">
+                            <button class="btn btn-success fw-bold px-4 rounded-3" onclick="openMobileModal()">
                                 <i class="bi bi-plus-circle-fill me-2"></i>Add Mobile Account
                             </button>
                         </div>
 
                         <!-- Mobile Banking Table -->
-                        <div class="card border-0 shadow-sm overflow-hidden rounded-4" style="background:rgba(0,40,30,0.7);border:1.5px solid rgba(0,220,130,0.2)!important;">
+                        <div class="card border-0 shadow-sm overflow-hidden rounded-4">
                             <div class="table-responsive">
-                                <table class="table table-hover align-middle modern-table mb-0" style="color:#deeeff;">
-                                    <thead style="background:rgba(0,180,100,0.12);">
+                                <table class="table table-hover align-middle modern-table mb-0">
+                                    <thead style="background: #f1f5f9;">
                                         <tr>
-                                            <th style="padding:1rem;color:#00f2a9;border-color:rgba(0,220,130,0.15);">SL.</th>
-                                            <th style="padding:1rem;color:#00f2a9;border-color:rgba(0,220,130,0.15);">Account Name</th>
-                                            <th style="padding:1rem;color:#00f2a9;border-color:rgba(0,220,130,0.15);">Account No.</th>
-                                            <th style="padding:1rem;color:#00f2a9;border-color:rgba(0,220,130,0.15);text-align:right;">Balance</th>
-                                            <th style="padding:1rem;color:#00f2a9;border-color:rgba(0,220,130,0.15);text-align:end;">Action</th>
+                                            <th style="padding: 1rem;">SL.</th>
+                                            <th style="padding: 1rem;">Account Name</th>
+                                            <th style="padding: 1rem;">Account No.</th>
+                                            <th style="padding: 1rem; text-align: right;">Balance</th>
+                                            <th style="padding: 1rem; text-align: end;">Action</th>
                                         </tr>
                                     </thead>
                                     <tbody id="mobileTableBody"></tbody>
-                                    <tfoot style="font-weight:800;background:rgba(0,180,100,0.1);">
+                                    <tfoot style="font-weight: 800;">
                                         <tr>
-                                            <td colspan="3" style="padding:1rem;color:#00f2a9;border-color:rgba(0,220,130,0.15);">📱 Total Mobile Balance</td>
-                                            <td id="totalMobileBalance" style="padding:1rem;text-align:right;color:#00f2a9;border-color:rgba(0,220,130,0.15);">৳0
+                                            <td colspan="3" style="padding: 1rem;">Total Mobile Balance</td>
+                                            <td id="totalMobileBalance" style="padding: 1rem; text-align: right;">৳0
                                             </td>
-                                            <td style="border-color:rgba(0,220,130,0.15);"></td>
+                                            <td></td>
                                         </tr>
                                     </tfoot>
                                 </table>
@@ -2758,59 +2749,55 @@
 
                     <!-- ========== TOTAL BALANCE SUMMARY (BOTTOM) ========== -->
                     <div class="card border-0 shadow-lg mb-4"
-                        style="background: linear-gradient(135deg, #0a0f2e 0%, #130a2e 50%, #0a1a2e 100%); border-radius: 24px; border: 2px solid rgba(0,217,255,0.3) !important; box-shadow: 0 0 40px rgba(0,217,255,0.1), 0 20px 60px rgba(0,0,0,0.5) !important;">
+                        style="background:linear-gradient(135deg,#060a1a 0%,#0a0f2e 50%,#050d1a 100%);border-radius:24px;border:2px solid rgba(0,217,255,0.25)!important;box-shadow:0 0 50px rgba(0,0,0,0.6),0 0 30px rgba(0,100,200,0.1)!important;">
                         <div class="card-body p-4 p-md-5">
-                            <!-- Header -->
                             <div class="text-center mb-4">
-                                <div style="display:inline-flex;align-items:center;gap:10px;background:rgba(0,217,255,0.08);border:1px solid rgba(0,217,255,0.2);border-radius:50px;padding:8px 24px;margin-bottom:10px;">
-                                    <span style="font-size:1.5rem;">💰</span>
-                                    <span style="font-size:1.1rem;font-weight:800;background:linear-gradient(90deg,#00d9ff,#b537f2);-webkit-background-clip:text;-webkit-text-fill-color:transparent;letter-spacing:1.5px;">TOTAL BALANCE OVERVIEW</span>
-                                </div>
-                                <p style="color:rgba(160,200,255,0.6);font-size:0.82rem;margin:0;">Cash + Bank + Mobile Banking Combined</p>
+                                <h4 class="fw-bold mb-1" style="background:linear-gradient(90deg,#00d9ff,#b537f2);-webkit-background-clip:text;-webkit-text-fill-color:transparent;letter-spacing:1px;">
+                                    <span class="me-2" style="-webkit-text-fill-color:initial;">💰</span> TOTAL BALANCE OVERVIEW
+                                </h4>
+                                <p style="color:rgba(160,200,255,0.55);font-size:0.82rem;" class="mb-0">Cash + Bank + Mobile Banking Combined</p>
                             </div>
-                            <!-- 3 Cards -->
                             <div class="row g-4 text-center mb-4">
                                 <!-- CASH -->
                                 <div class="col-md-4">
                                     <div class="p-4 rounded-4 h-100"
-                                        style="background:linear-gradient(145deg,rgba(240,50,120,0.18),rgba(180,20,80,0.1));border:1.5px solid rgba(240,80,140,0.4);transition:transform 0.2s,box-shadow 0.2s;cursor:default;"
-                                        onmouseover="this.style.transform='translateY(-4px)';this.style.boxShadow='0 12px 30px rgba(240,80,140,0.25)'"
-                                        onmouseout="this.style.transform='translateY(0)';this.style.boxShadow='none'">
-                                        <div style="font-size:2rem;margin-bottom:8px;">💵</div>
-                                        <div style="font-size:0.68rem;font-weight:800;letter-spacing:2px;color:rgba(255,150,180,0.8);text-transform:uppercase;margin-bottom:8px;">CASH</div>
-                                        <div style="font-size:1.6rem;font-weight:900;background:linear-gradient(90deg,#ff6b9d,#ff3d7f);-webkit-background-clip:text;-webkit-text-fill-color:transparent;"
+                                        style="background:linear-gradient(145deg,#4a0020,#2d0015,#1a000d);border:2px solid rgba(255,60,120,0.6);box-shadow:inset 0 0 30px rgba(200,0,60,0.2);transition:transform 0.2s,box-shadow 0.2s;"
+                                        onmouseover="this.style.transform='translateY(-5px)';this.style.boxShadow='inset 0 0 30px rgba(200,0,60,0.25),0 16px 40px rgba(220,0,80,0.4)'"
+                                        onmouseout="this.style.transform='translateY(0)';this.style.boxShadow='inset 0 0 30px rgba(200,0,60,0.2)'">
+                                        <div style="font-size:2.2rem;margin-bottom:10px;">💵</div>
+                                        <div style="font-size:0.68rem;font-weight:800;letter-spacing:2.5px;color:rgba(255,130,165,0.9);text-transform:uppercase;margin-bottom:10px;">CASH</div>
+                                        <div style="font-size:1.7rem;font-weight:900;background:linear-gradient(90deg,#ff6b9d,#ff1a6e);-webkit-background-clip:text;-webkit-text-fill-color:transparent;filter:drop-shadow(0 0 8px rgba(255,60,120,0.5));"
                                             id="totalBalanceCash">৳0</div>
                                     </div>
                                 </div>
                                 <!-- BANK -->
                                 <div class="col-md-4">
                                     <div class="p-4 rounded-4 h-100"
-                                        style="background:linear-gradient(145deg,rgba(0,160,255,0.18),rgba(0,100,200,0.1));border:1.5px solid rgba(0,170,255,0.4);transition:transform 0.2s,box-shadow 0.2s;cursor:default;"
-                                        onmouseover="this.style.transform='translateY(-4px)';this.style.boxShadow='0 12px 30px rgba(0,160,255,0.25)'"
-                                        onmouseout="this.style.transform='translateY(0)';this.style.boxShadow='none'">
-                                        <div style="font-size:2rem;margin-bottom:8px;">🏦</div>
-                                        <div style="font-size:0.68rem;font-weight:800;letter-spacing:2px;color:rgba(100,190,255,0.8);text-transform:uppercase;margin-bottom:8px;">BANK</div>
-                                        <div style="font-size:1.6rem;font-weight:900;background:linear-gradient(90deg,#00c6ff,#0072ff);-webkit-background-clip:text;-webkit-text-fill-color:transparent;"
+                                        style="background:linear-gradient(145deg,#001a40,#000d26,#000816);border:2px solid rgba(0,150,255,0.6);box-shadow:inset 0 0 30px rgba(0,100,220,0.2);transition:transform 0.2s,box-shadow 0.2s;"
+                                        onmouseover="this.style.transform='translateY(-5px)';this.style.boxShadow='inset 0 0 30px rgba(0,100,220,0.25),0 16px 40px rgba(0,120,255,0.4)'"
+                                        onmouseout="this.style.transform='translateY(0)';this.style.boxShadow='inset 0 0 30px rgba(0,100,220,0.2)'">
+                                        <div style="font-size:2.2rem;margin-bottom:10px;">🏦</div>
+                                        <div style="font-size:0.68rem;font-weight:800;letter-spacing:2.5px;color:rgba(80,180,255,0.9);text-transform:uppercase;margin-bottom:10px;">BANK</div>
+                                        <div style="font-size:1.7rem;font-weight:900;background:linear-gradient(90deg,#00c6ff,#005bea);-webkit-background-clip:text;-webkit-text-fill-color:transparent;filter:drop-shadow(0 0 8px rgba(0,120,255,0.5));"
                                             id="totalBalanceBank">৳0</div>
                                     </div>
                                 </div>
                                 <!-- MOBILE BANKING -->
                                 <div class="col-md-4">
                                     <div class="p-4 rounded-4 h-100"
-                                        style="background:linear-gradient(145deg,rgba(0,220,120,0.18),rgba(0,160,80,0.1));border:1.5px solid rgba(0,220,130,0.4);transition:transform 0.2s,box-shadow 0.2s;cursor:default;"
-                                        onmouseover="this.style.transform='translateY(-4px)';this.style.boxShadow='0 12px 30px rgba(0,220,120,0.25)'"
-                                        onmouseout="this.style.transform='translateY(0)';this.style.boxShadow='none'">
-                                        <div style="font-size:2rem;margin-bottom:8px;">📱</div>
-                                        <div style="font-size:0.68rem;font-weight:800;letter-spacing:2px;color:rgba(80,230,160,0.8);text-transform:uppercase;margin-bottom:8px;">MOBILE BANKING</div>
-                                        <div style="font-size:1.6rem;font-weight:900;background:linear-gradient(90deg,#00f2a9,#00b09b);-webkit-background-clip:text;-webkit-text-fill-color:transparent;"
+                                        style="background:linear-gradient(145deg,#003320,#001a10,#000e08);border:2px solid rgba(0,210,110,0.6);box-shadow:inset 0 0 30px rgba(0,160,80,0.2);transition:transform 0.2s,box-shadow 0.2s;"
+                                        onmouseover="this.style.transform='translateY(-5px)';this.style.boxShadow='inset 0 0 30px rgba(0,160,80,0.25),0 16px 40px rgba(0,200,100,0.4)'"
+                                        onmouseout="this.style.transform='translateY(0)';this.style.boxShadow='inset 0 0 30px rgba(0,160,80,0.2)'">
+                                        <div style="font-size:2.2rem;margin-bottom:10px;">📱</div>
+                                        <div style="font-size:0.68rem;font-weight:800;letter-spacing:2.5px;color:rgba(60,220,140,0.9);text-transform:uppercase;margin-bottom:10px;">MOBILE BANKING</div>
+                                        <div style="font-size:1.7rem;font-weight:900;background:linear-gradient(90deg,#00ff87,#00b09b);-webkit-background-clip:text;-webkit-text-fill-color:transparent;filter:drop-shadow(0 0 8px rgba(0,200,100,0.5));"
                                             id="totalBalanceMobile">৳0</div>
                                     </div>
                                 </div>
                             </div>
-                            <!-- Grand Total -->
-                            <div class="text-center pt-4" style="border-top: 1px solid rgba(0,217,255,0.15);">
-                                <div style="font-size:0.68rem;font-weight:800;letter-spacing:3px;color:rgba(255,210,80,0.7);text-transform:uppercase;margin-bottom:10px;">⭐ GRAND TOTAL</div>
-                                <div style="font-size:3rem;font-weight:900;background:linear-gradient(90deg,#ffd700,#ffaa00,#ff8c00);-webkit-background-clip:text;-webkit-text-fill-color:transparent;text-shadow:none;filter:drop-shadow(0 0 15px rgba(255,200,0,0.4));"
+                            <div class="text-center pt-4" style="border-top:1px solid rgba(0,217,255,0.15);">
+                                <div style="font-size:0.68rem;font-weight:800;letter-spacing:3px;color:rgba(255,210,80,0.8);text-transform:uppercase;margin-bottom:10px;">⭐ GRAND TOTAL</div>
+                                <div style="font-size:3rem;font-weight:900;background:linear-gradient(90deg,#ffd700,#ffaa00,#ff8c00);-webkit-background-clip:text;-webkit-text-fill-color:transparent;filter:drop-shadow(0 0 15px rgba(255,180,0,0.5));"
                                     id="totalBalanceGrand">৳0</div>
                             </div>
                         </div>
@@ -3202,21 +3189,21 @@
                 <div class="modal-body p-4">
                     <div class="row g-3 mb-4">
                         <div class="col-md-4">
-                            <div class="p-3 bg-light rounded-3 text-center">
-                                <small class="text-muted text-uppercase fw-bold">Total Fee</small>
-                                <h4 class="fw-bold mb-0 text-dark" id="pmtTotalFee">৳0</h4>
+                            <div class="p-3 rounded-3 text-center" style="background:rgba(0,217,255,0.08);border:1px solid rgba(0,217,255,0.2);">
+                                <small class="fw-bold text-uppercase" style="color:#00d9ff;font-size:0.7rem;letter-spacing:1px;">Total Fee</small>
+                                <h4 class="fw-bold mb-0 mt-1" style="color:#deeeff;" id="pmtTotalFee">৳0</h4>
                             </div>
                         </div>
                         <div class="col-md-4">
-                            <div class="p-3 bg-success-subtle rounded-3 text-center">
-                                <small class="text-success text-uppercase fw-bold">Paid to Date</small>
-                                <h4 class="fw-bold mb-0 text-success" id="pmtTotalPaid">৳0</h4>
+                            <div class="p-3 rounded-3 text-center" style="background:rgba(0,200,100,0.08);border:1px solid rgba(0,200,100,0.2);">
+                                <small class="fw-bold text-uppercase" style="color:#00c864;font-size:0.7rem;letter-spacing:1px;">Paid to Date</small>
+                                <h4 class="fw-bold mb-0 mt-1" style="color:#00c864;" id="pmtTotalPaid">৳0</h4>
                             </div>
                         </div>
                         <div class="col-md-4">
-                            <div class="p-3 bg-danger-subtle rounded-3 text-center">
-                                <small class="text-danger text-uppercase fw-bold">Outstanding Due</small>
-                                <h4 class="fw-bold mb-0 text-danger" id="pmtTotalDue">৳0</h4>
+                            <div class="p-3 rounded-3 text-center" style="background:rgba(255,60,60,0.08);border:1px solid rgba(255,60,60,0.2);">
+                                <small class="fw-bold text-uppercase" style="color:#ff4444;font-size:0.7rem;letter-spacing:1px;">Outstanding Due</small>
+                                <h4 class="fw-bold mb-0 mt-1" style="color:#ff4444;" id="pmtTotalDue">৳0</h4>
                             </div>
                         </div>
                     </div>
@@ -3280,33 +3267,35 @@
                 </div>
                 <div class="modal-body">
                     <form id="financeForm" onsubmit="handleFinanceSubmit(event)">
-                        <div class="row">
-                            <div class="col-4 mb-3">
-                                <label class="form-label fw-semibold">Type</label>
-                                <select name="type" class="form-select" onchange="updateFinanceCategoryOptions()">
+                        <div class="row g-2">
+                            <div class="col-6 mb-2">
+                                <label class="form-label fw-semibold small">📂 Type</label>
+                                <select name="type" class="form-select form-select-sm" onchange="updateFinanceCategoryOptions()">
                                     <option value="Income">Income (+)</option>
                                     <option value="Expense">Expense (-)</option>
                                     <option value="Loan Given">Loan Giving (Money Out)</option>
                                     <option value="Loan Received">Loan Receiving (Money In)</option>
                                 </select>
                             </div>
-                            <div class="col-4 mb-3">
-                                <label class="form-label fw-semibold">Method</label>
-                                <select name="method" class="form-select" id="financeMethodSelect">
+                            <div class="col-6 mb-2">
+                                <label class="form-label fw-semibold small">💳 Method</label>
+                                <select name="method" class="form-select form-select-sm" id="financeMethodSelect">
                                     <!-- Populated dynamically -->
                                 </select>
                             </div>
-                            <div class="col-4 mb-3">
-                                <label class="form-label fw-semibold">Date</label>
-                                <input type="date" name="date" class="form-control" required>
+                            <div class="col-6 mb-2">
+                                <label class="form-label fw-semibold small">📅 Date</label>
+                                <input type="date" name="date" class="form-control form-control-sm" required
+                                    style="color-scheme:dark;">
+                            </div>
+                            <div class="col-6 mb-2">
+                                <label class="form-label fw-semibold small">🏷️ Category</label>
+                                <select name="category" class="form-select form-select-sm" id="financeCategorySelect">
+                                    <!-- Populated dynamically -->
+                                </select>
                             </div>
                         </div>
-                        <div class="mb-3">
-                            <label class="form-label fw-semibold">Category</label>
-                            <select name="category" class="form-select" id="financeCategorySelect">
-                                <!-- Populated dynamically -->
-                            </select>
-                        </div>
+
                         <div class="mb-3" id="financePersonContainer">
                             <label class="form-label fw-semibold">Person / Counterparty</label>
                             <input type="text" name="person" class="form-control" id="financePersonInput"

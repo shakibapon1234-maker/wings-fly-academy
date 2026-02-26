@@ -10,6 +10,25 @@ function renderDashboard() {
 }
 window.renderDashboard = renderDashboard;
 
+// ✅ Counter animation — number 0 থেকে target এ count up করে
+function animateCount(el, target, prefix = '', isFloat = false, duration = 900) {
+  if (!el) return;
+  const start = 0;
+  const startTime = performance.now();
+  function step(now) {
+    const elapsed = now - startTime;
+    const progress = Math.min(elapsed / duration, 1);
+    // Ease-out cubic
+    const ease = 1 - Math.pow(1 - progress, 3);
+    const current = Math.round(start + (target - start) * ease);
+    el.innerText = prefix + formatNumber(current);
+    if (progress < 1) requestAnimationFrame(step);
+    else el.innerText = prefix + formatNumber(target);
+  }
+  requestAnimationFrame(step);
+}
+window.animateCount = animateCount; // ✅ FIX: export করতে হবে নইলে কাজ করে না
+
 function updateGlobalStats() {
   let income = 0;
   let expense = 0;
@@ -50,23 +69,23 @@ function updateGlobalStats() {
   // 1. Total Students
   const dashStudentEl = document.getElementById('dashTotalStudents');
   const dashStudentCenter = document.getElementById('dashTotalStudentsCenter');
-  if (dashStudentEl) dashStudentEl.innerText = globalData.students.length;
-  if (dashStudentCenter) dashStudentCenter.innerText = globalData.students.length;
+  if (dashStudentEl) animateCount(dashStudentEl, globalData.students.length, '', false, 800);
+  if (dashStudentCenter) animateCount(dashStudentCenter, globalData.students.length, '', false, 800);
 
   // 2. Total Income
   const dashIncomeEl = document.getElementById('dashTotalIncome');
-  if (dashIncomeEl) dashIncomeEl.innerText = '৳' + formatNumber(income);
+  if (dashIncomeEl) animateCount(dashIncomeEl, income, '৳', false, 1000);
 
   // 3. Total Expense
   const dashExpenseEl = document.getElementById('dashTotalExpense');
-  if (dashExpenseEl) dashExpenseEl.innerText = '৳' + formatNumber(expense);
+  if (dashExpenseEl) animateCount(dashExpenseEl, expense, '৳', false, 1000);
 
   // 4. Net Profit / Loss
   const dashProfitEl = document.getElementById('dashTotalProfit');
   const dashProfitStatus = document.getElementById('dashProfitStatus');
 
   if (dashProfitEl) {
-    dashProfitEl.innerText = '৳' + formatNumber(Math.abs(profit));
+    animateCount(dashProfitEl, Math.abs(profit), '৳', false, 1000);
     if (profit >= 0) {
       dashProfitEl.className = "av-card-value text-success";
       if (dashProfitStatus) dashProfitStatus.innerText = "Profit Growth";
