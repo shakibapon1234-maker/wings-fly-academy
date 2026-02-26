@@ -1,149 +1,22 @@
 // sections/finance-helpers.js
 // Wings Fly Aviation Academy
 // ─────────────────────────────────────────────────────────────
-// এই ফাইলে আছে:
-//  1. updateFinanceCategoryOptions()  — Add Transaction modal category dropdown
-//  2. addIncomeCategory / addExpenseCategory / renderSettingsLists — Settings sync
-//  3. Auto-test alias fixes: renderEmployees, openVisitorModal, renderNoticeBoard
-//  4. Warning Details Panel — data integrity warnings বিস্তারিত দেখায়
+// এই ফাইলে শুধু সেই functions আছে যেগুলো অন্য কোনো ফাইলে নেই:
+//  1. Auto-test alias fixes: renderEmployees, openVisitorModal, renderNoticeBoard
+//  2. openEditStudentModal — Edit Profile button
+//  3. Warning Details Panel — data integrity warnings বিস্তারিত দেখায়
+//  4. Warning floating button inject
+//
+// NOTE: renderSettingsLists, addCourseName, addIncomeCategory ইত্যাদি
+//       ledger-render.js এ আছে — এখানে নেই (conflict এড়াতে)
 // ─────────────────────────────────────────────────────────────
 
 
 // =============================================
-// 1. FINANCE MODAL — CATEGORY DROPDOWN
+// 1. AUTO-TEST ALIAS FIXES
 // =============================================
 
-function updateFinanceCategoryOptions() {
-  const typeSelect = document.querySelector('#financeForm select[name="type"]');
-  const catSelect  = document.getElementById('financeCategorySelect');
-  if (!typeSelect || !catSelect) return;
-
-  const type = typeSelect.value;
-  const gd   = window.globalData || {};
-  let categories = [];
-
-  if (type === 'Income') {
-    categories = gd.incomeCategories || [];
-  } else if (type === 'Expense') {
-    categories = gd.expenseCategories || [];
-  } else if (type === 'Loan Given') {
-    categories = ['Loan Given'];
-  } else if (type === 'Loan Received') {
-    categories = ['Loan Received'];
-  } else {
-    categories = (gd.incomeCategories || []).concat(gd.expenseCategories || []);
-  }
-
-  catSelect.innerHTML = categories.length
-    ? categories.map(c => `<option value="${c}">${c}</option>`).join('')
-    : '<option value="">— No categories —</option>';
-}
-
-window.updateFinanceCategoryOptions = updateFinanceCategoryOptions;
-
-document.addEventListener('DOMContentLoaded', function () {
-  const financeModal = document.getElementById('financeModal');
-  if (financeModal) {
-    financeModal.addEventListener('show.bs.modal', function () {
-      setTimeout(updateFinanceCategoryOptions, 50);
-    });
-  }
-});
-
-
-// =============================================
-// 2. SETTINGS — INCOME / EXPENSE CATEGORIES
-// =============================================
-
-function renderSettingsLists() {
-  const gd = window.globalData || {};
-
-  const incomeList = document.getElementById('settingsIncomeCatList');
-  if (incomeList) {
-    const cats = gd.incomeCategories || [];
-    incomeList.innerHTML = cats.length
-      ? cats.map((c, i) => `
-          <li class="d-flex justify-content-between align-items-center mb-1 px-2 py-1 rounded" style="background:rgba(255,255,255,0.05);">
-            <span>${c}</span>
-            <button class="btn btn-sm btn-outline-danger border-0 py-0 px-1" onclick="removeIncomeCategory(${i})" title="Remove">✕</button>
-          </li>`).join('')
-      : '<li class="text-muted small px-2">কোনো category নেই</li>';
-  }
-
-  const expenseList = document.getElementById('settingsExpenseCatList');
-  if (expenseList) {
-    const cats = gd.expenseCategories || [];
-    expenseList.innerHTML = cats.length
-      ? cats.map((c, i) => `
-          <li class="d-flex justify-content-between align-items-center mb-1 px-2 py-1 rounded" style="background:rgba(255,255,255,0.05);">
-            <span>${c}</span>
-            <button class="btn btn-sm btn-outline-danger border-0 py-0 px-1" onclick="removeExpenseCategory(${i})" title="Remove">✕</button>
-          </li>`).join('')
-      : '<li class="text-muted small px-2">কোনো category নেই</li>';
-  }
-}
-
-function addIncomeCategory() {
-  const input = document.getElementById('newIncomeCatInput');
-  if (!input) return;
-  const val = input.value.trim();
-  if (!val) { if (typeof showErrorToast === 'function') showErrorToast('Category name লিখুন!'); return; }
-  if (!window.globalData.incomeCategories) window.globalData.incomeCategories = [];
-  if (window.globalData.incomeCategories.includes(val)) {
-    if (typeof showErrorToast === 'function') showErrorToast('এই category আগেই আছে!'); return;
-  }
-  window.globalData.incomeCategories.push(val);
-  input.value = '';
-  if (typeof saveToStorage === 'function') saveToStorage();
-  renderSettingsLists();
-  updateFinanceCategoryOptions();
-  if (typeof showSuccessToast === 'function') showSuccessToast('✅ Income category যোগ হয়েছে!');
-}
-
-function removeIncomeCategory(index) {
-  if (!window.globalData.incomeCategories) return;
-  window.globalData.incomeCategories.splice(index, 1);
-  if (typeof saveToStorage === 'function') saveToStorage();
-  renderSettingsLists();
-  updateFinanceCategoryOptions();
-}
-
-function addExpenseCategory() {
-  const input = document.getElementById('newExpenseCatInput');
-  if (!input) return;
-  const val = input.value.trim();
-  if (!val) { if (typeof showErrorToast === 'function') showErrorToast('Category name লিখুন!'); return; }
-  if (!window.globalData.expenseCategories) window.globalData.expenseCategories = [];
-  if (window.globalData.expenseCategories.includes(val)) {
-    if (typeof showErrorToast === 'function') showErrorToast('এই category আগেই আছে!'); return;
-  }
-  window.globalData.expenseCategories.push(val);
-  input.value = '';
-  if (typeof saveToStorage === 'function') saveToStorage();
-  renderSettingsLists();
-  updateFinanceCategoryOptions();
-  if (typeof showSuccessToast === 'function') showSuccessToast('✅ Expense category যোগ হয়েছে!');
-}
-
-function removeExpenseCategory(index) {
-  if (!window.globalData.expenseCategories) return;
-  window.globalData.expenseCategories.splice(index, 1);
-  if (typeof saveToStorage === 'function') saveToStorage();
-  renderSettingsLists();
-  updateFinanceCategoryOptions();
-}
-
-window.renderSettingsLists   = renderSettingsLists;
-window.addIncomeCategory     = addIncomeCategory;
-window.removeIncomeCategory  = removeIncomeCategory;
-window.addExpenseCategory    = addExpenseCategory;
-window.removeExpenseCategory = removeExpenseCategory;
-
-
-// =============================================
-// 3. AUTO-TEST ALIAS FIXES
-// =============================================
-
+// renderEmployees → renderEmployeeList (employee-management.js এ আছে)
 if (!window.renderEmployees) {
   window.renderEmployees = function () {
     if (typeof window.renderEmployeeList === 'function') return window.renderEmployeeList();
@@ -151,6 +24,7 @@ if (!window.renderEmployees) {
   };
 }
 
+// openVisitorModal → visitorModal Bootstrap modal open
 window.openVisitorModal = function () {
   const el = document.getElementById('visitorModal');
   if (!el) { console.warn('visitorModal element not found'); return; }
@@ -165,32 +39,121 @@ window.openVisitorModal = function () {
   new bootstrap.Modal(el).show();
 };
 
+// renderNoticeBoard → notice-board.js এর functions call করে
 window.renderNoticeBoard = function () {
   if (typeof window.getActiveNotice === 'function') window.getActiveNotice();
   if (typeof window.updateSidebarNoticeDot === 'function') window.updateSidebarNoticeDot();
 };
 
-document.addEventListener('DOMContentLoaded', function () {
-  const configTab = document.querySelector('[data-settings-tab="config"], [onclick*="tab-config"]');
-  if (configTab) {
-    configTab.addEventListener('click', function () {
-      setTimeout(renderSettingsLists, 100);
-    });
+
+// =============================================
+// 2. openEditStudentModal — Edit Profile button fix
+// =============================================
+
+function openEditStudentModal(index) {
+  const students = window.globalData.students || [];
+  const s = students[index];
+  if (!s) { console.warn('Student not found at index', index); return; }
+
+  const form = document.getElementById('studentForm');
+  const modalEl = document.getElementById('studentModal');
+  if (!form || !modalEl) { console.warn('studentForm or studentModal not found'); return; }
+
+  // Form reset
+  form.reset();
+
+  // Hidden index
+  const rowIdx = document.getElementById('studentRowIndex');
+  if (rowIdx) rowIdx.value = index;
+
+  // Photo
+  const photoURLField = document.getElementById('studentPhotoURL');
+  if (photoURLField) photoURLField.value = s.photo || '';
+  if (s.photo) {
+    const photoPreview = document.getElementById('photoPreview');
+    const photoContainer = document.getElementById('photoPreviewContainer');
+    const uploadInput = document.getElementById('photoUploadInput');
+    if (photoPreview && photoContainer && uploadInput) {
+      photoPreview.src = s.photo;
+      photoContainer.style.display = 'block';
+      uploadInput.style.display = 'none';
+    }
   }
-});
+
+  // Basic fields helper
+  const setField = (name, val) => {
+    const el = form.querySelector(`[name="${name}"]`);
+    if (el) el.value = val || '';
+  };
+
+  setField('name',         s.name);
+  setField('phone',        s.phone);
+  setField('fatherName',   s.fatherName);
+  setField('motherName',   s.motherName);
+  setField('bloodGroup',   s.bloodGroup);
+  setField('batch',        s.batch);
+  setField('enrollDate',   s.enrollDate);
+  setField('reminderDate', s.reminderDate);
+  setField('totalPayment', s.totalPayment);
+  setField('payment',      s.paid);
+  setField('due',          s.due);
+  setField('notes',        s.notes || s.remarks);
+  setField('nid',          s.nid);
+  setField('address',      s.address);
+
+  // Course select — populateDropdowns আগে call হয়ে থাকলে options আছে
+  // তবুও নিশ্চিত করো current value set হচ্ছে
+  const courseSelect = document.getElementById('studentCourseSelect');
+  if (courseSelect) {
+    // যদি current course option না থাকে, add করো
+    if (s.course && ![...courseSelect.options].some(o => o.value === s.course)) {
+      const opt = document.createElement('option');
+      opt.value = s.course;
+      opt.text = s.course;
+      courseSelect.appendChild(opt);
+    }
+    courseSelect.value = s.course || '';
+  }
+
+  // Method select
+  const methodSelect = document.getElementById('studentMethodSelect');
+  if (methodSelect) {
+    // populateDropdowns already filled this, just set value
+    if (s.method && ![...methodSelect.options].some(o => o.value === s.method)) {
+      const opt = document.createElement('option');
+      opt.value = s.method;
+      opt.text = s.method;
+      methodSelect.appendChild(opt);
+    }
+    methodSelect.value = s.method || '';
+  }
+
+  // Modal title "Edit" mode
+  const modalTitle = modalEl.querySelector('.modal-title');
+  if (modalTitle) modalTitle.innerHTML = `<span class="me-2">✏️</span>Edit Student Profile`;
+
+  // Modal খোলো
+  const modal = bootstrap.Modal.getOrCreateInstance(modalEl);
+  modal.show();
+}
+
+window.openEditStudentModal = openEditStudentModal;
+
+// warnEditStudent এর জন্যও alias
+window.editStudent = openEditStudentModal;
 
 
 // =============================================
-// 4. WARNING DETAILS PANEL
+// 3. WARNING DETAILS PANEL
 // =============================================
 
 function getDataWarnings() {
   const gd = window.globalData || {};
-  const finance      = gd.finance      || [];
-  const students     = gd.students     || [];
-  const courseNames  = gd.courseNames  || [];
-  const bankAccounts = gd.bankAccounts || [];
-  const mobileBanking= gd.mobileBanking|| [];
+  const finance       = gd.finance       || [];
+  const students      = gd.students      || [];
+  const courseNames   = gd.courseNames   || [];
+  const bankAccounts  = gd.bankAccounts  || [];
+  const mobileBanking = gd.mobileBanking || [];
 
   const studentNames = students.map(s => (s.name || '').trim().toLowerCase());
   const validMethods = ['Cash',
@@ -200,15 +163,12 @@ function getDataWarnings() {
 
   const warnings = { orphanedPayments: [], invalidCourses: [], unknownMethods: [] };
 
-  // 1. Orphaned payments
+  // 1. Orphaned payments — auto-test এর exact same logic
   finance.forEach((f, i) => {
-    const person   = (f.person || '').trim();
-    if (!person) return;
-    const category = (f.category || '').toLowerCase();
-    const isStudentPayment = ['student installment','student fee','tuition','course fee']
-      .some(k => category.includes(k));
-    if (isStudentPayment && !studentNames.includes(person.toLowerCase())) {
-      warnings.orphanedPayments.push({ index: i, entry: f, person });
+    if (!f.person && !f.studentName) return;
+    const person = ((f.person || f.studentName || '')).trim().toLowerCase();
+    if (person && !studentNames.includes(person)) {
+      warnings.orphanedPayments.push({ index: i, entry: f, person: f.person || f.studentName });
     }
   });
 
@@ -225,7 +185,7 @@ function getDataWarnings() {
   finance.forEach((f, i) => {
     const method = (f.method || '').trim();
     if (!method) return;
-    if (!validMethods.includes(method)) {
+    if (!validMethods.some(m => m.toLowerCase() === method.toLowerCase())) {
       warnings.unknownMethods.push({ index: i, entry: f, method });
     }
   });
@@ -245,7 +205,6 @@ function showWarningDetailsModal() {
     return;
   }
 
-  // Section builder
   function makeSection(title, color, icon, items, rowFn) {
     if (!items.length) return '';
     return `
@@ -263,7 +222,7 @@ function showWarningDetailsModal() {
     ({ entry, index }) => `
       <tr style="border-bottom:1px solid rgba(255,255,255,0.06);">
         <td style="padding:8px 10px; color:rgba(255,255,255,0.88);">
-          <div><strong>${entry.person || '—'}</strong> <span style="color:rgba(255,255,255,0.35); font-size:0.78rem;">— এই নামে কোনো student নেই</span></div>
+          <div><strong>${entry.person || '—'}</strong> <span style="color:rgba(255,255,255,0.35); font-size:0.78rem;">— এই নামে student নেই</span></div>
           <div style="color:rgba(255,255,255,0.45); font-size:0.78rem;">${entry.date||'—'} | ${entry.category||'—'} | ৳${entry.amount||0}</div>
         </td>
         <td style="padding:8px 10px; text-align:right; white-space:nowrap; vertical-align:middle;">
@@ -278,16 +237,15 @@ function showWarningDetailsModal() {
       <tr style="border-bottom:1px solid rgba(255,255,255,0.06);">
         <td style="padding:8px 10px; color:rgba(255,255,255,0.88);">
           <div><strong>${student.name||'—'}</strong></div>
-          <div style="color:#f87171; font-size:0.78rem;">Course: "${course}" — course list-এ নেই</div>
+          <div style="color:#f87171; font-size:0.78rem;">Course: "${course}" — list-এ নেই</div>
         </td>
         <td style="padding:8px 10px; text-align:right; white-space:nowrap; vertical-align:middle;">
           <button class="btn btn-sm btn-outline-primary border-0 rounded-pill px-2 py-0 me-1" style="font-size:0.78rem;" onclick="warnAddCourse('${course.replace(/'/g,"\\'")}')">➕ Course যোগ</button>
-          <button class="btn btn-sm btn-outline-warning border-0 rounded-pill px-2 py-0" style="font-size:0.78rem;" onclick="warnEditStudent(${index})">✏️ Edit</button>
+          <button class="btn btn-sm btn-outline-warning border-0 rounded-pill px-2 py-0" style="font-size:0.78rem;" onclick="openEditStudentModal(${index})">✏️ Edit</button>
         </td>
       </tr>`
   );
 
-  // Unknown methods — group করো
   const methodGroups = {};
   w.unknownMethods.forEach(({ entry, method }) => {
     if (!methodGroups[method]) methodGroups[method] = [];
@@ -307,7 +265,7 @@ function showWarningDetailsModal() {
                   <td style="padding:8px 10px; color:rgba(255,255,255,0.88);">
                     <div><strong>"${method}"</strong> — ${entries.length}টি transaction</div>
                     <div style="color:rgba(255,255,255,0.4); font-size:0.78rem;">
-                      ${entries.slice(0,3).map(e => `${e.date||'—'} ৳${e.amount||0}`).join(' · ')}${entries.length>3?` · আরো ${entries.length-3}টি`:''}
+                      ${entries.slice(0,3).map(e=>`${e.date||'—'} ৳${e.amount||0}`).join(' · ')}${entries.length>3?` · আরো ${entries.length-3}টি`:''}
                     </div>
                   </td>
                   <td style="padding:8px 10px; text-align:right; white-space:nowrap; vertical-align:middle;">
@@ -350,8 +308,7 @@ function showWarningDetailsModal() {
   modalEl.addEventListener('hidden.bs.modal', () => modalEl.remove());
 }
 
-// Action handlers
-
+// ── Action Handlers ──
 function warnEditFinance(financeIndex) {
   const m = bootstrap.Modal.getInstance(document.getElementById('warnDetailsModal'));
   if (m) m.hide();
@@ -368,8 +325,7 @@ function warnEditFinance(financeIndex) {
 function warnAskOrphan(financeIndex, personName) {
   const tx = (window.globalData.finance || [])[financeIndex];
   if (!tx) return;
-  const msg = `"${personName}" নামের student আর নেই।\n\nEntry:\nDate: ${tx.date||'—'}\nCategory: ${tx.category||'—'}\nAmount: ৳${tx.amount||0}\n\nএই entry টি delete করবেন?`;
-  if (confirm(msg)) {
+  if (confirm(`"${personName}" নামের student আর নেই।\n\nDate: ${tx.date||'—'} | Category: ${tx.category||'—'} | ৳${tx.amount||0}\n\nDelete করবেন?`)) {
     window.globalData.finance.splice(financeIndex, 1);
     if (typeof saveToStorage === 'function') saveToStorage();
     if (typeof showSuccessToast === 'function') showSuccessToast('🗑️ Entry deleted!');
@@ -392,18 +348,8 @@ function warnAddCourse(courseName) {
   setTimeout(showWarningDetailsModal, 350);
 }
 
-function warnEditStudent(studentIndex) {
-  const m = bootstrap.Modal.getInstance(document.getElementById('warnDetailsModal'));
-  if (m) m.hide();
-  setTimeout(() => {
-    if (typeof openEditStudentModal === 'function') openEditStudentModal(studentIndex);
-    else if (typeof editStudent === 'function') editStudent(studentIndex);
-    else alert('Students section-এ গিয়ে student টি edit করুন।');
-  }, 400);
-}
-
 function warnAddMethod(methodName) {
-  alert(`"${methodName}" method টি কোনো account-এ নেই।\n\nদুটো option আছে:\n\n1️⃣ Settings → Accounts-এ "${methodName}" নামে account যোগ করুন\n\n2️⃣ Finance ledger-এ গিয়ে এই entries edit করে বিদ্যমান কোনো method দিন`);
+  alert(`"${methodName}" method টি কোনো account-এ নেই।\n\nদুটো option:\n\n1️⃣ Settings → Accounts-এ "${methodName}" নামে account যোগ করুন\n\n2️⃣ Finance ledger-এ গিয়ে এই entries edit করে বিদ্যমান কোনো method দিন`);
 }
 
 window.showWarningDetailsModal = showWarningDetailsModal;
@@ -411,243 +357,61 @@ window.getDataWarnings         = getDataWarnings;
 window.warnEditFinance         = warnEditFinance;
 window.warnAskOrphan           = warnAskOrphan;
 window.warnAddCourse           = warnAddCourse;
-window.warnEditStudent         = warnEditStudent;
 window.warnAddMethod           = warnAddMethod;
 
-console.log('✅ finance-helpers.js loaded — category dropdown, settings sync, auto-test aliases & warning details ready');
-
 
 // =============================================
-// 5. WARNING BUTTON — AUTO-TEST PANEL-এ INJECT
+// 4. WARNING FLOATING BUTTON
 // =============================================
-// auto-test.js এর warning section render হওয়ার পর
-// "বিস্তারিত দেখুন" button inject করো
 
 function injectWarnDetailsButton() {
-  // আগে থাকলে skip
   if (document.getElementById('warnDetailsBtn')) return;
-
   const w = getDataWarnings();
   const total = w.orphanedPayments.length + w.invalidCourses.length + w.unknownMethods.length;
   if (total === 0) return;
 
-  // Warning section খোঁজো — auto-test render করা warn block
-  // auto-test.js সাধারণত warning গুলো একটা div-এ রাখে
-  const warnBlocks = document.querySelectorAll('[class*="warn"], [id*="warn"], [class*="test-warn"]');
+  // Auto-test warning block-এ "বিস্তারিত" button inject করার চেষ্টা
+  const allElements = document.querySelectorAll('*');
   let targetEl = null;
-  warnBlocks.forEach(el => {
-    if (el.textContent.includes('orphaned') || el.textContent.includes('course name invalid') || el.textContent.includes('method অপরিচিত')) {
-      targetEl = el;
+  allElements.forEach(el => {
+    if (el.children.length === 0 && el.textContent.includes('orphaned payment')) {
+      // parent container খোঁজো
+      let parent = el.parentElement;
+      for (let i = 0; i < 4; i++) {
+        if (parent && parent.parentElement) parent = parent.parentElement;
+      }
+      targetEl = parent;
     }
   });
 
-  // targetEl না পেলে body-তে fixed button দাও
-  if (!targetEl) {
-    const btn = document.createElement('button');
-    btn.id = 'warnDetailsBtn';
-    btn.className = 'btn btn-sm btn-warning rounded-pill shadow';
-    btn.style.cssText = 'position:fixed; bottom:80px; right:20px; z-index:9000; font-size:0.8rem; padding:6px 14px;';
-    btn.innerHTML = `⚠️ ${total}টি Warning — বিস্তারিত`;
-    btn.onclick = showWarningDetailsModal;
-    document.body.appendChild(btn);
-    return;
-  }
-
-  // Warning block-এর শেষে button যোগ করো
+  // "Fix করুন" button তৈরি করো
   const btn = document.createElement('button');
   btn.id = 'warnDetailsBtn';
-  btn.className = 'btn btn-sm btn-warning rounded-pill mt-2 ms-2';
-  btn.style.cssText = 'font-size:0.8rem;';
-  btn.innerHTML = '🔍 বিস্তারিত দেখুন';
+  btn.className = 'btn btn-warning rounded-pill shadow';
+  btn.innerHTML = `🔍 বিস্তারিত দেখুন ও Fix করুন`;
+  btn.style.cssText = 'font-size:0.82rem; padding:5px 14px; margin-top:8px; display:block;';
   btn.onclick = showWarningDetailsModal;
-  targetEl.appendChild(btn);
+
+  if (targetEl) {
+    targetEl.appendChild(btn);
+  } else {
+    // fallback: fixed floating button
+    btn.style.cssText = 'position:fixed; bottom:80px; right:20px; z-index:9000; font-size:0.8rem; padding:6px 14px;';
+    document.body.appendChild(btn);
+  }
 }
 
-// Page load-এর পরে এবং কিছুক্ষণ পরে চেষ্টা করো
-document.addEventListener('DOMContentLoaded', () => setTimeout(injectWarnDetailsButton, 3000));
-setTimeout(injectWarnDetailsButton, 5000);
+// Auto-test শেষ হওয়ার পরে inject করো
+document.addEventListener('DOMContentLoaded', () => setTimeout(injectWarnDetailsButton, 4000));
+setTimeout(injectWarnDetailsButton, 6000);
+
+// Auto-test button click করলে পরেও inject করো
+document.addEventListener('click', function(e) {
+  if (e.target && (e.target.textContent || '').includes('Tests')) {
+    setTimeout(injectWarnDetailsButton, 3000);
+  }
+});
 
 window.injectWarnDetailsButton = injectWarnDetailsButton;
 
-
-// =============================================
-// 6. openEditStudentModal — Edit Profile button fix
-// =============================================
-
-function openEditStudentModal(index) {
-  const students = window.globalData.students || [];
-  const s = students[index];
-  if (!s) { console.warn('Student not found at index', index); return; }
-
-  const form = document.getElementById('studentForm');
-  const modalEl = document.getElementById('studentModal');
-  if (!form || !modalEl) { console.warn('studentForm or studentModal not found'); return; }
-
-  // Form reset
-  form.reset();
-
-  // Hidden index set করো
-  const rowIdx = document.getElementById('studentRowIndex');
-  if (rowIdx) rowIdx.value = index;
-
-  // Photo
-  const photoURL = document.getElementById('studentPhotoURL');
-  if (photoURL) photoURL.value = s.photo || '';
-  const photoPreview = document.getElementById('photoPreview');
-  const photoContainer = document.getElementById('photoPreviewContainer');
-  const uploadInput = document.getElementById('photoUploadInput');
-  if (s.photo && photoPreview && photoContainer && uploadInput) {
-    photoPreview.src = s.photo;
-    photoContainer.style.display = 'block';
-    uploadInput.style.display = 'none';
-  }
-
-  // Basic fields
-  const setField = (name, val) => {
-    const el = form.querySelector(`[name="${name}"]`);
-    if (el) el.value = val || '';
-  };
-
-  setField('name',         s.name);
-  setField('phone',        s.phone);
-  setField('fatherName',   s.fatherName);
-  setField('motherName',   s.motherName);
-  setField('bloodGroup',   s.bloodGroup);
-  setField('batch',        s.batch);
-  setField('enrollDate',   s.enrollDate);
-  setField('reminderDate', s.reminderDate);
-  setField('totalPayment', s.totalPayment);
-  setField('payment',      s.paid);
-  setField('due',          s.due);
-  setField('notes',        s.notes || s.remarks);
-  setField('nid',          s.nid);
-  setField('address',      s.address);
-
-  // Course select — populate করো তারপর value set করো
-  const courseSelect = document.getElementById('studentCourseSelect');
-  if (courseSelect) {
-    const courses = window.globalData.courseNames || [];
-    const current = s.course || '';
-    // current course যদি list-এ না থাকে সেটাও add করো
-    const allCourses = courses.includes(current) || !current
-      ? courses : [...courses, current];
-    courseSelect.innerHTML = '<option value="">Select Course</option>' +
-      allCourses.map(c => `<option value="${c}" ${c === current ? 'selected' : ''}>${c}</option>`).join('');
-  }
-
-  // Method select
-  const methodSelect = document.getElementById('studentMethodSelect');
-  if (methodSelect) {
-    const gd = window.globalData;
-    const methods = ['Cash',
-      ...(gd.bankAccounts || []).map(a => a.name),
-      ...(gd.mobileBanking || []).map(a => a.name)
-    ];
-    const currentMethod = s.method || '';
-    methodSelect.innerHTML = '<option value="">Select Method</option>' +
-      methods.map(m => `<option value="${m}" ${m === currentMethod ? 'selected' : ''}>${m}</option>`).join('');
-  }
-
-  // Modal title "Edit" mode
-  const modalTitle = modalEl.querySelector('.modal-title');
-  if (modalTitle) modalTitle.innerHTML = `<span class="me-2">✏️</span>Edit Student Profile`;
-
-  // Modal খোলো
-  const modal = bootstrap.Modal.getOrCreateInstance(modalEl);
-  modal.show();
-}
-
-window.openEditStudentModal = openEditStudentModal;
-
-
-// =============================================
-// 7. addCourseName / removeCourseName — Settings Course tab fix
-// =============================================
-
-function addCourseName() {
-  const input = document.getElementById('newCourseInput');
-  if (!input) return;
-  const val = input.value.trim();
-  if (!val) { if (typeof showErrorToast === 'function') showErrorToast('Course name লিখুন!'); return; }
-
-  if (!window.globalData.courseNames) window.globalData.courseNames = [];
-  if (window.globalData.courseNames.includes(val)) {
-    if (typeof showErrorToast === 'function') showErrorToast('এই course আগেই আছে!'); return;
-  }
-
-  window.globalData.courseNames.push(val);
-  input.value = '';
-  if (typeof saveToStorage === 'function') saveToStorage();
-  renderSettingsLists();
-  if (typeof showSuccessToast === 'function') showSuccessToast('✅ Course যোগ হয়েছে!');
-}
-
-function removeCourseName(index) {
-  if (!window.globalData.courseNames) return;
-  const course = window.globalData.courseNames[index];
-  if (!confirm(`"${course}" course delete করবেন?`)) return;
-  window.globalData.courseNames.splice(index, 1);
-  if (typeof saveToStorage === 'function') saveToStorage();
-  renderSettingsLists();
-  if (typeof showSuccessToast === 'function') showSuccessToast('Course removed.');
-}
-
-window.addCourseName    = addCourseName;
-window.removeCourseName = removeCourseName;
-
-
-// =============================================
-// 8. renderSettingsLists — Course ও Employee Role সহ পূর্ণ version
-// (আগের income/expense এর সাথে মিলিয়ে override করো)
-// =============================================
-
-const _origRenderSettingsLists = window.renderSettingsLists;
-window.renderSettingsLists = function() {
-  // আগের income/expense lists render করো
-  if (_origRenderSettingsLists) _origRenderSettingsLists();
-
-  const gd = window.globalData || {};
-
-  // Course list
-  const courseList = document.getElementById('settingsCourseList');
-  if (courseList) {
-    const courses = gd.courseNames || [];
-    courseList.innerHTML = courses.length
-      ? courses.map((c, i) => `
-          <li class="d-flex justify-content-between align-items-center mb-1 px-2 py-1 rounded" style="background:rgba(255,255,255,0.05);">
-            <span>${c}</span>
-            <button class="btn btn-sm btn-outline-danger border-0 py-0 px-1" onclick="removeCourseName(${i})" title="Remove">✕</button>
-          </li>`).join('')
-      : '<li class="text-muted small px-2">কোনো course নেই</li>';
-  }
-
-  // Employee Role list
-  const roleList = document.getElementById('settingsEmployeeRoleList');
-  if (roleList) {
-    const roles = gd.employeeRoles || [];
-    roleList.innerHTML = roles.length
-      ? roles.map((r, i) => `
-          <li class="d-flex justify-content-between align-items-center mb-1 px-2 py-1 rounded" style="background:rgba(255,255,255,0.05);">
-            <span>${r}</span>
-            <button class="btn btn-sm btn-outline-danger border-0 py-0 px-1" onclick="deleteEmployeeRole(${i})" title="Remove">✕</button>
-          </li>`).join('')
-      : '<li class="text-muted small px-2">কোনো role নেই</li>';
-  }
-};
-
-// Settings খুললে auto render করো
-document.addEventListener('DOMContentLoaded', function() {
-  // Settings modal open হলে renderSettingsLists call করো
-  const settingsModal = document.getElementById('settingsModal');
-  if (settingsModal) {
-    settingsModal.addEventListener('show.bs.modal', function() {
-      setTimeout(window.renderSettingsLists, 200);
-    });
-  }
-  // Settings tab click
-  document.querySelectorAll('[onclick*="tab-config"], [data-settings-tab="config"]').forEach(el => {
-    el.addEventListener('click', () => setTimeout(window.renderSettingsLists, 100));
-  });
-});
-
-console.log('✅ finance-helpers.js v2 — openEditStudentModal, addCourseName & full renderSettingsLists ready');
+console.log('✅ finance-helpers.js loaded — aliases, openEditStudentModal & warning details ready');

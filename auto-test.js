@@ -796,7 +796,25 @@
       return person && !studentNames.has(person);
     });
     if (orphaned.length === 0) { pass('No orphaned payments', 'সব payment-এর student আছে'); }
-    else { warn(`${orphaned.length}টি orphaned payment`, 'Finance-এ student নেই এমন entry আছে'); }
+    else {
+      warn(`${orphaned.length}টি orphaned payment`, 'Finance-এ student নেই এমন entry আছে');
+      // Fix button inject করো
+      setTimeout(() => {
+        if (typeof window.showWarningDetailsModal === 'function' && !document.getElementById('orphanFixBtn')) {
+          const allDivs = document.querySelectorAll('div, li');
+          let target = null;
+          allDivs.forEach(el => {
+            if (el.textContent.trim().includes('orphaned payment') && el.children.length <= 3) target = el;
+          });
+          const fixBtn = document.createElement('button');
+          fixBtn.id = 'orphanFixBtn';
+          fixBtn.innerHTML = '🔍 বিস্তারিত দেখুন ও Fix করুন';
+          fixBtn.style.cssText = 'background:#f59e0b; color:#000; border:none; border-radius:20px; padding:4px 12px; font-size:0.78rem; cursor:pointer; margin-top:6px; font-weight:700; display:block;';
+          fixBtn.onclick = window.showWarningDetailsModal;
+          if (target) target.appendChild(fixBtn);
+        }
+      }, 500);
+    }
 
     // --- 10c: Duplicate finance entries (same person+amount+date+type) ---
     // person name ও include করো নয়তো আলাদা student এর same amount false positive দেয়
@@ -1964,9 +1982,13 @@
       : warn((vPhones.length - vUnique.size) + 'টি duplicate visitor phone');
 
     // 23h: Finance method validation
-    const validMethods = ['Cash', 'Bkash', 'Nagad', 'Bank', 'Rocket', 'Card', 'Cheque', 'Other', 'Transfer'];
+    // Dynamic valid methods: hardcoded base + actual account names from globalData
+    const baseValidMethods = ['Cash', 'Bkash', 'Nagad', 'Bank', 'Rocket', 'Card', 'Cheque', 'Other', 'Transfer'];
+    const _bankNames = (gd.bankAccounts || []).map(a => a.name);
+    const _mobileNames = (gd.mobileBanking || []).map(a => a.name);
+    const validMethods = [...new Set([...baseValidMethods, ..._bankNames, ..._mobileNames])];
     const unknownMethod = (gd.finance || []).filter(f =>
-      f.method && !validMethods.some(m => (f.method || '').toLowerCase().includes(m.toLowerCase()))
+      f.method && !validMethods.some(m => (f.method || '').toLowerCase() === m.toLowerCase())
     ).length;
     unknownMethod === 0
       ? pass('✅ Finance payment methods সব valid')
