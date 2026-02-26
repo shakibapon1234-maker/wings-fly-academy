@@ -286,3 +286,6 @@ window.saveEmployee = handleEmployeeSubmit;  // ✅ alias — auto-test expects 
 window.renderEmployeeList = renderEmployeeList;
 window.deleteEmployee = deleteEmployee;
 
+
+// ✅ AUTO-TEST ALIAS
+window.renderEmployees = window.renderEmployeeList;
