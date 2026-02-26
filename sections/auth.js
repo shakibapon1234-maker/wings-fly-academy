@@ -379,36 +379,59 @@ window.loadDashboard = loadDashboard;
 window.switchTab = switchTab;
 
 // ═══════════════════════════════════════════════════
-// PAGE REFRESH → Same Tab Restore
+// PAGE REFRESH → Same Tab Restore (NO FLASH)
 // ═══════════════════════════════════════════════════
 (function() {
+  // ✅ STEP 1: Immediately hide login & show dash BEFORE DOMContentLoaded
+  // <head> এ inline style দিয়ে এটা করা যায় না, তাই script চলতেই করো
   if (sessionStorage.getItem('isLoggedIn') !== 'true') return;
+
+  var lastTab = localStorage.getItem('wingsfly_active_tab') || 'dashboard';
+
+  // ✅ STEP 2: DOMContentLoaded এ সাথেসাথে (0ms) correct tab দেখাও
   document.addEventListener('DOMContentLoaded', function() {
     var login = document.getElementById('loginSection');
     var dash  = document.getElementById('dashboardSection');
     if (!login || !dash) return;
-    if (!dash.classList.contains('d-none')) return;
 
-    // ✅ FIX: Flash রোধ করতে login section সাথে সাথে hide করো
-    // loader show করো যাতে blank flash না দেখায়
-    login.classList.add('d-none');
+    // Instantly switch sections
+    login.style.display = 'none';
+    dash.style.display = 'block';
     dash.classList.remove('d-none');
+    login.classList.add('d-none');
+
+    // loader/content flicker বন্ধ করো — সরাসরি content দেখাও
     var loader = document.getElementById('loader');
     var contentEl = document.getElementById('content');
-    if (loader) loader.style.display = 'block';
-    if (contentEl) contentEl.style.display = 'none';
+    if (loader) loader.style.display = 'none';
+    if (contentEl) { contentEl.style.display = 'block'; contentEl.style.opacity = '0'; }
 
-    var lastTab = localStorage.getItem('wingsfly_active_tab') || 'dashboard';
-    console.log('[Auth] Refresh restore → tab:', lastTab);
+    // ✅ সাথেসাথে correct tab এ যাও — 0ms delay
+    if (typeof switchTab === 'function') {
+      switchTab(lastTab, false);
+    } else {
+      // switchTab এখনো load না হলে 50ms retry
+      var retries = 0;
+      var iv = setInterval(function() {
+        retries++;
+        if (typeof switchTab === 'function') {
+          clearInterval(iv);
+          switchTab(lastTab, false);
+        } else if (retries > 20) clearInterval(iv);
+      }, 50);
+    }
 
-    // ✅ FIX: loadDashboard() বাদ — সরাসরি lastTab এ যাও (dashboard flash হবে না)
-    setTimeout(function() {
+    // Stats ও dropdowns update করো
+    requestAnimationFrame(function() {
       if (typeof updateGlobalStats === 'function') updateGlobalStats();
       if (typeof populateDropdowns === 'function') populateDropdowns();
-      if (typeof switchTab === 'function') switchTab(lastTab, false);
-      if (loader) loader.style.display = 'none';
-      if (contentEl) contentEl.style.display = 'block';
-    }, 300);
+      if (contentEl) {
+        contentEl.style.transition = 'opacity 0.15s';
+        contentEl.style.opacity = '1';
+      }
+    });
+
+    console.log('[Auth] Refresh restore → tab:', lastTab);
   });
 })();
 
@@ -453,6 +476,9 @@ document.addEventListener('DOMContentLoaded', function() {
   // Inject modal HTML
   var modalHtml = `
 <div id="wfForgotOverlay" style="display:none;position:fixed;inset:0;z-index:99999;align-items:center;justify-content:center;background:rgba(2,5,20,0.85);backdrop-filter:blur(10px);">
+<!-- Dummy fields: Chrome password manager কে block করে -->
+<input type="text" style="display:none" tabindex="-1" autocomplete="username">
+<input type="password" style="display:none" tabindex="-1" autocomplete="current-password">
   <div style="background:linear-gradient(145deg,#080d28,#120830);border:1.5px solid rgba(0,217,255,0.25);border-radius:22px;width:92%;max-width:400px;overflow:hidden;box-shadow:0 20px 60px rgba(0,0,0,0.7),0 0 40px rgba(0,217,255,0.08);animation:wfFI .3s ease;">
     <style>@keyframes wfFI{from{opacity:0;transform:scale(0.9) translateY(20px)}to{opacity:1;transform:scale(1) translateY(0)}}</style>
     <div style="background:linear-gradient(135deg,rgba(0,217,255,0.1),rgba(181,55,242,0.1));padding:20px 24px 16px;border-bottom:1px solid rgba(0,217,255,0.1);text-align:center;">
@@ -468,9 +494,9 @@ document.addEventListener('DOMContentLoaded', function() {
           <div id="wfFQ" style="color:#c8e4ff;font-weight:600;font-size:0.86rem;">লোড হচ্ছে...</div>
         </div>
         <label style="display:block;font-size:0.67rem;font-weight:700;letter-spacing:1.3px;text-transform:uppercase;color:rgba(0,200,255,0.6);margin-bottom:5px;">✅ আপনার উত্তর</label>
-        <input type="text" id="wfFA" style="width:100%;background:rgba(3,8,30,0.8);border:1.5px solid rgba(0,217,255,0.2);border-radius:9px;color:#deeeff;padding:11px 14px;font-size:0.87rem;outline:none;box-sizing:border-box;-webkit-text-security:disc;"
-          autocomplete="off" data-lpignore="true" placeholder="গোপন উত্তর লিখুন"
-          onfocus="this.style.borderColor='#00d9ff'" onblur="this.style.borderColor='rgba(0,217,255,0.2)'"
+        <input type="password" id="wfFA" style="width:100%;background:rgba(3,8,30,0.8);border:1.5px solid rgba(0,217,255,0.2);border-radius:9px;color:#deeeff;padding:11px 14px;font-size:0.87rem;outline:none;box-sizing:border-box;font-family:inherit;letter-spacing:normal;"
+          autocomplete="new-password" data-lpignore="true" data-form-type="other" name="wf_recovery_ans" placeholder="গোপন উত্তর লিখুন"
+          onfocus="this.type='text';this.style.borderColor='#00d9ff'" onblur="this.type='password';this.style.borderColor='rgba(0,217,255,0.2)'"
           onkeydown="if(event.key==='Enter')wfFV()">
         <div id="wfFE" style="font-size:0.7rem;color:#ff4455;min-height:16px;margin-top:4px;font-weight:600;"></div>
         <div style="display:flex;gap:10px;margin-top:14px;">
@@ -487,7 +513,7 @@ document.addEventListener('DOMContentLoaded', function() {
         </div>
         <label style="display:block;font-size:0.67rem;font-weight:700;letter-spacing:1.3px;text-transform:uppercase;color:rgba(0,200,255,0.6);margin-bottom:5px;">🔑 নতুন Password</label>
         <input type="password" id="wfFP1" style="width:100%;background:rgba(3,8,30,0.8);border:1.5px solid rgba(0,217,255,0.2);border-radius:9px;color:#deeeff;padding:11px 14px;font-size:0.87rem;outline:none;box-sizing:border-box;margin-bottom:10px;"
-          autocomplete="new-password" placeholder="New password (min 4 chars)"
+          autocomplete="new-password" data-lpignore="true" data-form-type="other" placeholder="New password (min 4 chars)"
           onfocus="this.style.borderColor='#00d9ff'" onblur="this.style.borderColor='rgba(0,217,255,0.2)'"
           onkeydown="if(event.key==='Enter')wfFSP()">
         <label style="display:block;font-size:0.67rem;font-weight:700;letter-spacing:1.3px;text-transform:uppercase;color:rgba(0,200,255,0.6);margin-bottom:5px;">🔁 Confirm Password</label>
@@ -534,6 +560,12 @@ window.wfShowForgotPassword = window.wfShowForgotModal;
 window.wfFC = function() {
   var o = document.getElementById('wfForgotOverlay');
   if (o) o.style.display = 'none';
+  // ✅ FIX: Modal বন্ধ হলে login fields clear - browser autofill username এ না যায়
+  setTimeout(function() {
+    var uf = document.getElementById('loginUsernameField');
+    var pf = document.getElementById('loginPasswordField');
+    if (uf && !uf.value.includes('@') && uf.value.length > 20) uf.value = '';
+  }, 200);
 };
 
 window.wfFV = async function() {
@@ -545,6 +577,12 @@ window.wfFV = async function() {
   if (!stored) { err.textContent = '❌ Recovery Answer সেট করা নেই'; return; }
   var inputHash = typeof hashPassword === 'function' ? await hashPassword(ans.toLowerCase()) : ans.toLowerCase();
   if (inputHash === stored) {
+    // ✅ FIX: login fields clear করো যাতে autofill username এ না যায়
+    var uf = document.getElementById('loginUsernameField');
+    var pf = document.getElementById('loginPasswordField');
+    if (uf) { uf.value = ''; uf.blur(); }
+    if (pf) { pf.value = ''; pf.blur(); }
+    document.getElementById('wfFA').value = '';
     document.getElementById('wfFS1').style.display = 'none';
     document.getElementById('wfFS2').style.display = 'block';
     setTimeout(function() { document.getElementById('wfFP1').focus(); }, 100);
@@ -568,7 +606,16 @@ window.wfFSP = async function() {
   localStorage.setItem('wingsfly_data', JSON.stringify(gd));
   if (typeof saveToStorage === 'function') saveToStorage();
   wfFC();
+  // ✅ FIX: username/password fields clear করো যাতে browser autofill না হয়
+  var uf = document.getElementById('loginUsernameField');
+  var pf = document.getElementById('loginPasswordField');
+  if (uf) uf.value = '';
+  if (pf) pf.value = '';
   if (typeof showSuccessToast === 'function')
     showSuccessToast('✅ Password সফলভাবে পরিবর্তন হয়েছে! নতুন password দিয়ে Login করুন।');
   else alert('✅ Password পরিবর্তন সফল! নতুন password দিয়ে Login করুন।');
 };
+
+// ✅ AUTO-TEST ALIASES — direct function wrappers
+window.checkSecretAnswer = async function() { return window.wfFV && window.wfFV(); };
+window.resetPasswordFromModal = async function() { return window.wfFSP && window.wfFSP(); };
