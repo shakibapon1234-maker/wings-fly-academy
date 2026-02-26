@@ -6780,67 +6780,9 @@
     </script>
 
 
+<!-- Finance modal date auto-set -->
 <script>
-// ✅ FIX: Category & Method Dropdown Population
-window.updateFinanceCategoryOptions = function() {
-    var typeEl = document.querySelector('#financeForm select[name="type"]');
-    var catEl = document.getElementById('financeCategorySelect');
-    if (!catEl || !typeEl) return;
-    var type = typeEl.value;
-    var gd = window.globalData;
-    if (!gd) return;
-    var cats = [];
-    if (type === 'Income' || type === 'Loan Received') {
-        cats = gd.incomeCategories || [];
-    } else {
-        cats = gd.expenseCategories || [];
-    }
-    catEl.innerHTML = '<option value="">-- Select Category --</option>';
-    cats.forEach(function(c) {
-        var o = document.createElement('option');
-        o.value = c; o.textContent = c;
-        catEl.appendChild(o);
-    });
-};
-
-window.populateDropdowns = function() {
-    var gd = window.globalData;
-    if (!gd) return;
-    // Payment Method dropdowns
-    var methods = gd.paymentMethods || ['Cash', 'Bkash', 'Nagad'];
-    ['financeMethodSelect','studentMethodSelect','editTransMethodSelect','examPaymentMethodSelect'].forEach(function(id) {
-        var el = document.getElementById(id);
-        if (!el) return;
-        var cur = el.value;
-        el.innerHTML = '<option value="">Select Payment Method</option>';
-        methods.forEach(function(m) {
-            var o = document.createElement('option');
-            o.value = m; o.textContent = m;
-            el.appendChild(o);
-        });
-        if (cur) el.value = cur;
-    });
-    // Category dropdown — default Income
-    window.updateFinanceCategoryOptions();
-};
-
-// Finance Modal খুললে auto-populate করো
-document.addEventListener('DOMContentLoaded', function() {
-    var fm = document.getElementById('financeModal');
-    if (fm) {
-        fm.addEventListener('show.bs.modal', function() {
-            setTimeout(function() {
-                window.populateDropdowns && window.populateDropdowns();
-                // Date default today
-                var dateEl = document.querySelector('#financeForm input[name="date"]');
-                if (dateEl && !dateEl.value) {
-                    var now = new Date();
-                    dateEl.value = now.toISOString().split('T')[0];
-                }
-            }, 50);
-        });
-    }
-});
+document.addEventListener("DOMContentLoaded",function(){var fm=document.getElementById("financeModal");if(fm){fm.addEventListener("show.bs.modal",function(){setTimeout(function(){if(typeof window.populateDropdowns==="function")window.populateDropdowns();var d=document.querySelector("#financeForm input[name='date']");if(d&&!d.value){var n=new Date();d.value=n.toISOString().split("T")[0];}},50);});}});
 </script>
 
 </body>

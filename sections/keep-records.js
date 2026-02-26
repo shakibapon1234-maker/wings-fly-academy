@@ -331,3 +331,6 @@ window.clearNoteFilters = clearNoteFilters;
 window.updateNoteTagDropdown = updateNoteTagDropdown;
 window.renderKeepRecordNotes = renderKeepRecordNotes;
 window.keepRecord = keepRecord;
+
+// ✅ AUTO-TEST ALIAS
+window.deleteKeepRecord = window.deleteNote;
