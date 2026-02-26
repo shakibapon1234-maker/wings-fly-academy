@@ -468,3 +468,186 @@ document.addEventListener('DOMContentLoaded', () => setTimeout(injectWarnDetails
 setTimeout(injectWarnDetailsButton, 5000);
 
 window.injectWarnDetailsButton = injectWarnDetailsButton;
+
+
+// =============================================
+// 6. openEditStudentModal — Edit Profile button fix
+// =============================================
+
+function openEditStudentModal(index) {
+  const students = window.globalData.students || [];
+  const s = students[index];
+  if (!s) { console.warn('Student not found at index', index); return; }
+
+  const form = document.getElementById('studentForm');
+  const modalEl = document.getElementById('studentModal');
+  if (!form || !modalEl) { console.warn('studentForm or studentModal not found'); return; }
+
+  // Form reset
+  form.reset();
+
+  // Hidden index set করো
+  const rowIdx = document.getElementById('studentRowIndex');
+  if (rowIdx) rowIdx.value = index;
+
+  // Photo
+  const photoURL = document.getElementById('studentPhotoURL');
+  if (photoURL) photoURL.value = s.photo || '';
+  const photoPreview = document.getElementById('photoPreview');
+  const photoContainer = document.getElementById('photoPreviewContainer');
+  const uploadInput = document.getElementById('photoUploadInput');
+  if (s.photo && photoPreview && photoContainer && uploadInput) {
+    photoPreview.src = s.photo;
+    photoContainer.style.display = 'block';
+    uploadInput.style.display = 'none';
+  }
+
+  // Basic fields
+  const setField = (name, val) => {
+    const el = form.querySelector(`[name="${name}"]`);
+    if (el) el.value = val || '';
+  };
+
+  setField('name',         s.name);
+  setField('phone',        s.phone);
+  setField('fatherName',   s.fatherName);
+  setField('motherName',   s.motherName);
+  setField('bloodGroup',   s.bloodGroup);
+  setField('batch',        s.batch);
+  setField('enrollDate',   s.enrollDate);
+  setField('reminderDate', s.reminderDate);
+  setField('totalPayment', s.totalPayment);
+  setField('payment',      s.paid);
+  setField('due',          s.due);
+  setField('notes',        s.notes || s.remarks);
+  setField('nid',          s.nid);
+  setField('address',      s.address);
+
+  // Course select — populate করো তারপর value set করো
+  const courseSelect = document.getElementById('studentCourseSelect');
+  if (courseSelect) {
+    const courses = window.globalData.courseNames || [];
+    const current = s.course || '';
+    // current course যদি list-এ না থাকে সেটাও add করো
+    const allCourses = courses.includes(current) || !current
+      ? courses : [...courses, current];
+    courseSelect.innerHTML = '<option value="">Select Course</option>' +
+      allCourses.map(c => `<option value="${c}" ${c === current ? 'selected' : ''}>${c}</option>`).join('');
+  }
+
+  // Method select
+  const methodSelect = document.getElementById('studentMethodSelect');
+  if (methodSelect) {
+    const gd = window.globalData;
+    const methods = ['Cash',
+      ...(gd.bankAccounts || []).map(a => a.name),
+      ...(gd.mobileBanking || []).map(a => a.name)
+    ];
+    const currentMethod = s.method || '';
+    methodSelect.innerHTML = '<option value="">Select Method</option>' +
+      methods.map(m => `<option value="${m}" ${m === currentMethod ? 'selected' : ''}>${m}</option>`).join('');
+  }
+
+  // Modal title "Edit" mode
+  const modalTitle = modalEl.querySelector('.modal-title');
+  if (modalTitle) modalTitle.innerHTML = `<span class="me-2">✏️</span>Edit Student Profile`;
+
+  // Modal খোলো
+  const modal = bootstrap.Modal.getOrCreateInstance(modalEl);
+  modal.show();
+}
+
+window.openEditStudentModal = openEditStudentModal;
+
+
+// =============================================
+// 7. addCourseName / removeCourseName — Settings Course tab fix
+// =============================================
+
+function addCourseName() {
+  const input = document.getElementById('newCourseInput');
+  if (!input) return;
+  const val = input.value.trim();
+  if (!val) { if (typeof showErrorToast === 'function') showErrorToast('Course name লিখুন!'); return; }
+
+  if (!window.globalData.courseNames) window.globalData.courseNames = [];
+  if (window.globalData.courseNames.includes(val)) {
+    if (typeof showErrorToast === 'function') showErrorToast('এই course আগেই আছে!'); return;
+  }
+
+  window.globalData.courseNames.push(val);
+  input.value = '';
+  if (typeof saveToStorage === 'function') saveToStorage();
+  renderSettingsLists();
+  if (typeof showSuccessToast === 'function') showSuccessToast('✅ Course যোগ হয়েছে!');
+}
+
+function removeCourseName(index) {
+  if (!window.globalData.courseNames) return;
+  const course = window.globalData.courseNames[index];
+  if (!confirm(`"${course}" course delete করবেন?`)) return;
+  window.globalData.courseNames.splice(index, 1);
+  if (typeof saveToStorage === 'function') saveToStorage();
+  renderSettingsLists();
+  if (typeof showSuccessToast === 'function') showSuccessToast('Course removed.');
+}
+
+window.addCourseName    = addCourseName;
+window.removeCourseName = removeCourseName;
+
+
+// =============================================
+// 8. renderSettingsLists — Course ও Employee Role সহ পূর্ণ version
+// (আগের income/expense এর সাথে মিলিয়ে override করো)
+// =============================================
+
+const _origRenderSettingsLists = window.renderSettingsLists;
+window.renderSettingsLists = function() {
+  // আগের income/expense lists render করো
+  if (_origRenderSettingsLists) _origRenderSettingsLists();
+
+  const gd = window.globalData || {};
+
+  // Course list
+  const courseList = document.getElementById('settingsCourseList');
+  if (courseList) {
+    const courses = gd.courseNames || [];
+    courseList.innerHTML = courses.length
+      ? courses.map((c, i) => `
+          <li class="d-flex justify-content-between align-items-center mb-1 px-2 py-1 rounded" style="background:rgba(255,255,255,0.05);">
+            <span>${c}</span>
+            <button class="btn btn-sm btn-outline-danger border-0 py-0 px-1" onclick="removeCourseName(${i})" title="Remove">✕</button>
+          </li>`).join('')
+      : '<li class="text-muted small px-2">কোনো course নেই</li>';
+  }
+
+  // Employee Role list
+  const roleList = document.getElementById('settingsEmployeeRoleList');
+  if (roleList) {
+    const roles = gd.employeeRoles || [];
+    roleList.innerHTML = roles.length
+      ? roles.map((r, i) => `
+          <li class="d-flex justify-content-between align-items-center mb-1 px-2 py-1 rounded" style="background:rgba(255,255,255,0.05);">
+            <span>${r}</span>
+            <button class="btn btn-sm btn-outline-danger border-0 py-0 px-1" onclick="deleteEmployeeRole(${i})" title="Remove">✕</button>
+          </li>`).join('')
+      : '<li class="text-muted small px-2">কোনো role নেই</li>';
+  }
+};
+
+// Settings খুললে auto render করো
+document.addEventListener('DOMContentLoaded', function() {
+  // Settings modal open হলে renderSettingsLists call করো
+  const settingsModal = document.getElementById('settingsModal');
+  if (settingsModal) {
+    settingsModal.addEventListener('show.bs.modal', function() {
+      setTimeout(window.renderSettingsLists, 200);
+    });
+  }
+  // Settings tab click
+  document.querySelectorAll('[onclick*="tab-config"], [data-settings-tab="config"]').forEach(el => {
+    el.addEventListener('click', () => setTimeout(window.renderSettingsLists, 100));
+  });
+});
+
+console.log('✅ finance-helpers.js v2 — openEditStudentModal, addCourseName & full renderSettingsLists ready');
