@@ -626,127 +626,259 @@ window.resetPasswordFromModal = async function() { return window.wfFSP && window
 (function () {
   function addPasswordEyeToggle() {
     var pwField = document.getElementById('loginPasswordField');
-    if (!pwField) return;
-    if (document.getElementById('loginPasswordToggle')) return;
-
+    if (!pwField || document.getElementById('loginPasswordToggle')) return;
     var parent = pwField.parentNode;
     var wrapper = document.createElement('div');
     wrapper.style.cssText = 'position:relative;';
     parent.insertBefore(wrapper, pwField);
     wrapper.appendChild(pwField);
-
     var btn = document.createElement('button');
-    btn.type = 'button';
-    btn.id = 'loginPasswordToggle';
-    btn.setAttribute('tabindex', '-1');
-    btn.setAttribute('aria-label', 'Show/hide password');
-    btn.title = 'পাসওয়ার্ড দেখুন';
-    btn.style.cssText = [
-      'position:absolute',
-      'right:10px',
-      'top:50%',
-      'transform:translateY(-50%)',
-      'background:none',
-      'border:none',
-      'cursor:pointer',
-      'padding:4px 6px',
-      'color:#1a1a2e',
-      'font-size:1.15rem',
-      'line-height:1',
-      'z-index:5',
-      'opacity:0.85',
-      'transition:opacity 0.2s, color 0.2s'
-    ].join(';');
+    btn.type = 'button'; btn.id = 'loginPasswordToggle';
+    btn.setAttribute('tabindex', '-1'); btn.title = 'পাসওয়ার্ড দেখুন';
+    btn.style.cssText = 'position:absolute;right:10px;top:50%;transform:translateY(-50%);background:none;border:none;cursor:pointer;padding:4px 6px;color:#1a1a2e;font-size:1.15rem;line-height:1;z-index:5;opacity:0.85;transition:opacity 0.2s,color 0.2s;';
     btn.innerHTML = '<i class="bi bi-eye" id="loginPasswordEyeIcon" style="filter:drop-shadow(0 0 2px rgba(0,217,255,0.4));"></i>';
-
-    btn.addEventListener('mouseenter', function () { btn.style.opacity = '1'; btn.style.color = '#0d6efd'; });
-    btn.addEventListener('mouseleave', function () { btn.style.opacity = '0.85'; btn.style.color = '#1a1a2e'; });
-
+    btn.addEventListener('mouseenter', function () { btn.style.opacity='1'; btn.style.color='#0d6efd'; });
+    btn.addEventListener('mouseleave', function () { btn.style.opacity='0.85'; btn.style.color='#1a1a2e'; });
     btn.addEventListener('click', function () {
       var icon = document.getElementById('loginPasswordEyeIcon');
-      if (pwField.type === 'password') {
-        pwField.type = 'text';
-        icon.className = 'bi bi-eye-slash';
-        btn.title = 'পাসওয়ার্ড লুকান';
-      } else {
-        pwField.type = 'password';
-        icon.className = 'bi bi-eye';
-        btn.title = 'পাসওয়ার্ড দেখুন';
-      }
+      if (pwField.type === 'password') { pwField.type='text'; icon.className='bi bi-eye-slash'; btn.title='পাসওয়ার্ড লুকান'; }
+      else { pwField.type='password'; icon.className='bi bi-eye'; btn.title='পাসওয়ার্ড দেখুন'; }
       pwField.focus();
     });
-
     pwField.style.paddingRight = '40px';
     wrapper.appendChild(btn);
-    console.log('[Auth] Password eye toggle added ✓');
   }
-
-  if (document.readyState === 'loading') {
-    document.addEventListener('DOMContentLoaded', addPasswordEyeToggle);
-  } else {
+  if (document.readyState === 'loading') document.addEventListener('DOMContentLoaded', addPasswordEyeToggle);
+  else {
     addPasswordEyeToggle();
-    if (!document.getElementById('loginPasswordToggle')) {
-      var retry = setInterval(function () {
-        addPasswordEyeToggle();
-        if (document.getElementById('loginPasswordToggle')) clearInterval(retry);
-      }, 300);
-      setTimeout(function () { clearInterval(retry); }, 5000);
-    }
+    var r = setInterval(function(){ addPasswordEyeToggle(); if(document.getElementById('loginPasswordToggle')) clearInterval(r); }, 300);
+    setTimeout(function(){ clearInterval(r); }, 5000);
   }
 })();
 
 // ═══════════════════════════════════════════════════
-// EXAM DELETE → RECYCLE BIN FIX
-// exam-fix.js সহ সব file load হওয়ার পরে patch করে
+// LOGOUT BUTTON — Sidebar + TopBar Dropdown
 // ═══════════════════════════════════════════════════
 (function () {
+  function addLogoutUI() {
+    var sidebarProfile = document.querySelector('.sidebar-footer .user-profile');
+    if (sidebarProfile && !document.getElementById('sidebarLogoutBtn')) {
+      var lb = document.createElement('button');
+      lb.id = 'sidebarLogoutBtn'; lb.title = 'Logout';
+      lb.style.cssText = 'background:rgba(255,60,60,0.12);border:1.5px solid rgba(255,80,80,0.3);border-radius:8px;color:#ff6b6b;cursor:pointer;padding:6px 10px;font-size:1rem;transition:all 0.2s;margin-left:auto;flex-shrink:0;';
+      lb.innerHTML = '<i class="bi bi-box-arrow-right"></i>';
+      lb.addEventListener('mouseenter', function(){ lb.style.background='rgba(255,60,60,0.25)'; lb.style.borderColor='rgba(255,80,80,0.6)'; });
+      lb.addEventListener('mouseleave', function(){ lb.style.background='rgba(255,60,60,0.12)'; lb.style.borderColor='rgba(255,80,80,0.3)'; });
+      lb.addEventListener('click', function(){ if(typeof logout==='function') logout(); });
+      sidebarProfile.style.cssText += ';display:flex;align-items:center;gap:8px;width:100%;';
+      sidebarProfile.appendChild(lb);
+    }
+    var topUserArea = null;
+    document.querySelectorAll('.top-bar .d-flex.align-items-center').forEach(function(el){
+      if(el.querySelector('.user-avatar') && !el.id) topUserArea = el;
+    });
+    if (topUserArea && !document.getElementById('topbarUserDropdown')) {
+      topUserArea.style.cssText += ';position:relative;cursor:pointer;';
+      var dd = document.createElement('div');
+      dd.id = 'topbarUserDropdown';
+      dd.style.cssText = 'display:none;position:absolute;top:calc(100% + 10px);right:0;min-width:160px;background:linear-gradient(145deg,#080d28,#120830);border:1.5px solid rgba(0,217,255,0.2);border-radius:12px;overflow:hidden;box-shadow:0 8px 30px rgba(0,0,0,0.5);z-index:9999;';
+      dd.innerHTML = '<div style="padding:10px 14px 6px;border-bottom:1px solid rgba(0,217,255,0.1);"><div style="font-size:0.68rem;font-weight:700;letter-spacing:1px;text-transform:uppercase;color:rgba(0,200,255,0.5);">Logged in as</div><div id="topbarDropdownUser" style="color:#deeeff;font-weight:700;font-size:0.85rem;margin-top:2px;">Admin</div></div>'
+        + '<button id="topbarLogoutBtn" style="width:100%;background:none;border:none;padding:10px 14px;display:flex;align-items:center;gap:8px;color:#ff6b6b;font-size:0.85rem;font-weight:600;cursor:pointer;" onmouseenter="this.style.background=\'rgba(255,60,60,0.12)\'" onmouseleave="this.style.background=\'none\'"><i class="bi bi-box-arrow-right"></i> Logout</button>';
+      topUserArea.appendChild(dd);
+      topUserArea.addEventListener('click', function(e){
+        e.stopPropagation();
+        dd.style.display = dd.style.display === 'block' ? 'none' : 'block';
+        var uEl = document.getElementById('topbarDropdownUser');
+        if(uEl) uEl.textContent = sessionStorage.getItem('username') || 'Admin';
+      });
+      document.addEventListener('click', function(e){
+        if(!topUserArea.contains(e.target)) dd.style.display = 'none';
+        if(e.target && (e.target.id==='topbarLogoutBtn' || (e.target.closest && e.target.closest('#topbarLogoutBtn')))){
+          if(typeof logout==='function') logout();
+        }
+      });
+    }
+  }
+  if(document.readyState==='loading') document.addEventListener('DOMContentLoaded', addLogoutUI);
+  else addLogoutUI();
+  setTimeout(addLogoutUI, 800);
+  setTimeout(addLogoutUI, 2000);
+})();
+
+// ═══════════════════════════════════════════════════
+// EXAM DELETE → RECYCLE BIN + ACTIVITY LOG
+// ✅ Delete   → RecycleBin + logActivity('delete')
+// ✅ Restore  → examRegistrations + logActivity('restore')
+// ✅ Perm Del → logActivity('permanent_delete')
+// Structure: { id, type:'examregistration', item, deletedAt, deletedBy }
+// ═══════════════════════════════════════════════════
+(function () {
+
+  // ── Activity log helper (safe wrapper) ──────────────────
+  function wfLog(action, category, message, data) {
+    try {
+      if (typeof window.logActivity === 'function') {
+        window.logActivity(action, category, message, data || {});
+      } else {
+        // Fallback: directly push to activityHistory
+        if (!window.globalData) return;
+        if (!window.globalData.activityHistory) window.globalData.activityHistory = [];
+        window.globalData.activityHistory.unshift({
+          action: action,
+          category: category,
+          message: message,
+          timestamp: new Date().toISOString(),
+          user: sessionStorage.getItem('username') || 'Admin'
+        });
+        try { localStorage.setItem('wingsfly_activity_backup', JSON.stringify(window.globalData.activityHistory)); } catch(e){}
+      }
+    } catch(e) { console.warn('[wfLog] error:', e); }
+  }
+
+  // ── Exam → Recycle Bin ───────────────────────────────────
   function sendExamToRecycleBin(entry) {
     if (!window.globalData) return;
     if (!window.globalData.deletedItems) window.globalData.deletedItems = [];
-    var trashed = Object.assign({}, entry, {
-      _deletedAt: new Date().toISOString(),
-      _deletedType: 'exam',
-      _label: 'Exam — ' + (entry.studentName || entry.studentId || entry.regId || 'Entry')
-    });
+
+    var trashId = 'TRASH_' + Date.now() + '_' + Math.random().toString(36).slice(2, 6);
+    var trashed = {
+      id: trashId,
+      type: 'examregistration',
+      item: JSON.parse(JSON.stringify(entry)),  // deep copy
+      deletedAt: new Date().toISOString(),
+      deletedBy: sessionStorage.getItem('username') || 'Admin'
+    };
+
     window.globalData.deletedItems.unshift(trashed);
-    try {
-      localStorage.setItem('wingsfly_deleted_backup', JSON.stringify(window.globalData.deletedItems));
-    } catch (e) { }
-    if (typeof logActivity === 'function') {
-      logActivity('delete', 'EXAM_DELETE', 'Exam entry moved to recycle bin: ' + (entry.studentName || entry.regId || 'Unknown'));
+    if (window.globalData.deletedItems.length > 200) {
+      window.globalData.deletedItems = window.globalData.deletedItems.slice(0, 200);
     }
+
+    try {
+      localStorage.setItem('wingsfly_data', JSON.stringify(window.globalData));
+      localStorage.setItem('wingsfly_deleted_backup', JSON.stringify(window.globalData.deletedItems));
+    } catch(e) {}
+
+    // ✅ Activity Log — DELETE
+    wfLog('delete', 'EXAM', 
+      '🗑️ Exam deleted → Recycle Bin: ' + (entry.studentName || entry.regId || 'Unknown'),
+      entry
+    );
+    console.log('[Auth] Exam → RecycleBin ✓ | trashId:', trashId);
   }
   window.sendExamToRecycleBin = sendExamToRecycleBin;
 
-  function patchDeleteExamEntry() {
-    var origDelete = window.deleteExamEntry;
-    if (typeof origDelete !== 'function') return false;
-    if (origDelete._recyclePatched) return true;
+  // ── restoreDeletedItem patch → Activity Log যোগ করো ─────
+  function patchRestoreDeletedItem() {
+    var origRestore = window.restoreDeletedItem;
+    if (typeof origRestore !== 'function' || origRestore._activityPatched) return false;
 
-    window.deleteExamEntry = function (id) {
+    window.restoreDeletedItem = function (id) {
+      // Restore হওয়ার আগে item খুঁজে নাও log এর জন্য
       var gd = window.globalData;
-      var entry = null;
-      if (gd && gd.examRegistrations) {
-        entry = gd.examRegistrations.find(function (e) {
-          return String(e.id) === String(id) || String(e.regId) === String(id);
-        });
+      var d = gd ? (gd.deletedItems || []).find(function(x){ return x.id === id; }) : null;
+
+      // Original restore চালাও
+      origRestore.call(this, id);
+
+      // ✅ Activity Log — RESTORE
+      if (d) {
+        var label = '';
+        if (d.item) label = d.item.studentName || d.item.name || d.item.title || d.item.regId || d.item.id || 'Item';
+        wfLog('restore', (d.type || 'item').toUpperCase(),
+          '♻️ Restored from Recycle Bin: ' + label + ' [' + (d.type || '') + ']',
+          d.item || {}
+        );
+        console.log('[Auth] Restore logged ✓', d.type, label);
       }
-      if (entry) sendExamToRecycleBin(entry);
-      return origDelete.call(this, id);
     };
-    window.deleteExamEntry._recyclePatched = true;
-    console.log('[Auth] deleteExamEntry patched → recycle bin ✓');
+    window.restoreDeletedItem._activityPatched = true;
+    console.log('[Auth] restoreDeletedItem → activity log patched ✓');
     return true;
   }
 
-  // DOMContentLoaded এর পরে সব JS load হয়, তখন window.load এ patch করো
-  window.addEventListener('load', function () {
-    if (!patchDeleteExamEntry()) {
-      var attempts = 0;
-      var iv = setInterval(function () {
-        attempts++;
-        if (patchDeleteExamEntry() || attempts > 40) clearInterval(iv);
-      }, 250);
+  // ── permanentDelete patch → Activity Log যোগ করো ────────
+  function patchPermanentDelete() {
+    var origDel = window.permanentDelete || window._wfPermDel;
+    if (typeof origDel !== 'function' || origDel._activityPatched) return false;
+    var fnName = window.permanentDelete ? 'permanentDelete' : '_wfPermDel';
+
+    window[fnName] = function (id) {
+      var gd = window.globalData;
+      var d = gd ? (gd.deletedItems || []).find(function(x){ return x.id === id; }) : null;
+
+      origDel.call(this, id);
+
+      // ✅ Activity Log — PERMANENT DELETE
+      if (d) {
+        var label = '';
+        if (d.item) label = d.item.studentName || d.item.name || d.item.title || d.item.regId || d.item.id || 'Item';
+        wfLog('permanent_delete', (d.type || 'item').toUpperCase(),
+          '❌ Permanently deleted: ' + label + ' [' + (d.type || '') + ']',
+          d.item || {}
+        );
+        console.log('[Auth] PermanentDelete logged ✓', d.type, label);
+      }
+    };
+    window[fnName]._activityPatched = true;
+    console.log('[Auth] ' + fnName + ' → activity log patched ✓');
+    return true;
+  }
+
+  // ── deleteExamRegistration/deleteExamEntry patch ─────────
+  function patchExamDelete() {
+    var patched = false;
+
+    var origReg = window.deleteExamRegistration;
+    if (typeof origReg === 'function' && !origReg._recyclePatched) {
+      window.deleteExamRegistration = function (id) {
+        var gd = window.globalData;
+        if (gd && gd.examRegistrations) {
+          var entry = gd.examRegistrations.find(function(e){
+            return String(e.id)===String(id) || String(e.regId)===String(id);
+          });
+          if (entry) sendExamToRecycleBin(entry);
+        }
+        return origReg.call(this, id);
+      };
+      window.deleteExamRegistration._recyclePatched = true;
+      patched = true;
+      console.log('[Auth] deleteExamRegistration patched ✓');
     }
+
+    var origEntry = window.deleteExamEntry;
+    if (typeof origEntry === 'function' && !origEntry._recyclePatched) {
+      window.deleteExamEntry = function (id) {
+        var gd = window.globalData;
+        if (gd && gd.examRegistrations) {
+          var entry = gd.examRegistrations.find(function(e){
+            return String(e.id)===String(id) || String(e.regId)===String(id);
+          });
+          if (entry) sendExamToRecycleBin(entry);
+        }
+        return origEntry.call(this, id);
+      };
+      window.deleteExamEntry._recyclePatched = true;
+      patched = true;
+    }
+
+    return patched;
+  }
+
+  // ── সব patch একসাথে run করো ─────────────────────────────
+  function runAllPatches() {
+    patchExamDelete();
+    patchRestoreDeletedItem();
+    patchPermanentDelete();
+  }
+
+  window.addEventListener('load', function () {
+    runAllPatches();
+    var attempts = 0;
+    var iv = setInterval(function () {
+      runAllPatches();
+      if (++attempts > 20) clearInterval(iv);
+    }, 500);
   });
+
 })();
