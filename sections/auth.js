@@ -619,3 +619,146 @@ window.wfFSP = async function() {
 // ✅ AUTO-TEST ALIASES — direct function wrappers
 window.checkSecretAnswer = async function() { return window.wfFV && window.wfFV(); };
 window.resetPasswordFromModal = async function() { return window.wfFSP && window.wfFSP(); };
+
+// ═══════════════════════════════════════════════════
+// PASSWORD EYE TOGGLE — Login Form
+// ═══════════════════════════════════════════════════
+(function () {
+  function addPasswordEyeToggle() {
+    var pwField = document.getElementById('loginPasswordField');
+    if (!pwField) return;
+    // Already added?
+    if (document.getElementById('loginPasswordToggle')) return;
+
+    // Wrap input in position-relative div
+    var parent = pwField.parentNode;
+    var wrapper = document.createElement('div');
+    wrapper.style.cssText = 'position:relative;';
+    parent.insertBefore(wrapper, pwField);
+    wrapper.appendChild(pwField);
+
+    // Create eye button
+    var btn = document.createElement('button');
+    btn.type = 'button';
+    btn.id = 'loginPasswordToggle';
+    btn.setAttribute('tabindex', '-1');
+    btn.setAttribute('aria-label', 'Show/hide password');
+    btn.style.cssText = [
+      'position:absolute',
+      'right:10px',
+      'top:50%',
+      'transform:translateY(-50%)',
+      'background:none',
+      'border:none',
+      'cursor:pointer',
+      'padding:4px 6px',
+      'color:rgba(0,217,255,0.6)',
+      'font-size:1.1rem',
+      'line-height:1',
+      'z-index:5',
+      'transition:color 0.2s'
+    ].join(';');
+    btn.innerHTML = '<i class="bi bi-eye" id="loginPasswordEyeIcon"></i>';
+
+    // Hover effect
+    btn.addEventListener('mouseenter', function () { btn.style.color = '#00d9ff'; });
+    btn.addEventListener('mouseleave', function () {
+      btn.style.color = pwField.type === 'text' ? '#00d9ff' : 'rgba(0,217,255,0.6)';
+    });
+
+    // Toggle logic
+    btn.addEventListener('click', function () {
+      var icon = document.getElementById('loginPasswordEyeIcon');
+      if (pwField.type === 'password') {
+        pwField.type = 'text';
+        icon.className = 'bi bi-eye-slash';
+        btn.style.color = '#00d9ff';
+        btn.title = 'পাসওয়ার্ড লুকান';
+      } else {
+        pwField.type = 'password';
+        icon.className = 'bi bi-eye';
+        btn.style.color = 'rgba(0,217,255,0.6)';
+        btn.title = 'পাসওয়ার্ড দেখুন';
+      }
+      pwField.focus();
+    });
+
+    // Padding right so text doesn't go under button
+    pwField.style.paddingRight = '40px';
+    wrapper.appendChild(btn);
+    console.log('[Auth] Password eye toggle added ✓');
+  }
+
+  if (document.readyState === 'loading') {
+    document.addEventListener('DOMContentLoaded', addPasswordEyeToggle);
+  } else {
+    addPasswordEyeToggle();
+    // Retry if login section is hidden/not yet rendered
+    if (!document.getElementById('loginPasswordToggle')) {
+      var retry = setInterval(function () {
+        addPasswordEyeToggle();
+        if (document.getElementById('loginPasswordToggle')) clearInterval(retry);
+      }, 300);
+      setTimeout(function () { clearInterval(retry); }, 5000);
+    }
+  }
+})();
+
+// ═══════════════════════════════════════════════════
+// EXAM DELETE → RECYCLE BIN FIX
+// deleteExamEntry() কে patch করো — recycle bin এ যাবে
+// ═══════════════════════════════════════════════════
+(function () {
+  // Helper: exam entry কে recycle bin এ পাঠাও
+  function sendExamToRecycleBin(entry) {
+    if (!window.globalData) return;
+    if (!window.globalData.deletedItems) window.globalData.deletedItems = [];
+    var trashed = Object.assign({}, entry, {
+      _deletedAt: new Date().toISOString(),
+      _deletedType: 'exam',
+      _label: 'Exam — ' + (entry.studentName || entry.studentId || entry.regId || 'Entry')
+    });
+    window.globalData.deletedItems.unshift(trashed);
+    // Backup
+    try {
+      localStorage.setItem('wingsfly_deleted_backup', JSON.stringify(window.globalData.deletedItems));
+    } catch (e) { }
+    if (typeof logActivity === 'function') {
+      logActivity('delete', 'EXAM_DELETE',
+        'Exam entry moved to recycle bin: ' + (entry.studentName || entry.regId || 'Unknown'));
+    }
+  }
+  window.sendExamToRecycleBin = sendExamToRecycleBin;
+
+  // Patch: যদি deleteExamEntry function already defined থাকে, সেটাকে wrap করো
+  function patchDeleteExamEntry() {
+    var origDelete = window.deleteExamEntry;
+    if (typeof origDelete !== 'function') return false;
+    if (origDelete._recyclePatched) return true; // Already patched
+
+    window.deleteExamEntry = function (id) {
+      // Find the entry before deleting
+      var gd = window.globalData;
+      var entry = null;
+      if (gd && gd.examRegistrations) {
+        entry = gd.examRegistrations.find(function (e) {
+          return e.id == id || e.regId == id;
+        });
+      }
+      if (entry) sendExamToRecycleBin(entry);
+      return origDelete.call(this, id);
+    };
+    window.deleteExamEntry._recyclePatched = true;
+    console.log('[Auth] deleteExamEntry patched → recycle bin ✓');
+    return true;
+  }
+
+  // Try immediately, retry if exam-fix.js loads later
+  if (!patchDeleteExamEntry()) {
+    var attempts = 0;
+    var iv = setInterval(function () {
+      attempts++;
+      if (patchDeleteExamEntry() || attempts > 30) clearInterval(iv);
+    }, 300);
+  }
+})();
