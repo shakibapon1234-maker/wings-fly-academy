@@ -627,22 +627,20 @@ window.resetPasswordFromModal = async function() { return window.wfFSP && window
   function addPasswordEyeToggle() {
     var pwField = document.getElementById('loginPasswordField');
     if (!pwField) return;
-    // Already added?
     if (document.getElementById('loginPasswordToggle')) return;
 
-    // Wrap input in position-relative div
     var parent = pwField.parentNode;
     var wrapper = document.createElement('div');
     wrapper.style.cssText = 'position:relative;';
     parent.insertBefore(wrapper, pwField);
     wrapper.appendChild(pwField);
 
-    // Create eye button
     var btn = document.createElement('button');
     btn.type = 'button';
     btn.id = 'loginPasswordToggle';
     btn.setAttribute('tabindex', '-1');
     btn.setAttribute('aria-label', 'Show/hide password');
+    btn.title = 'পাসওয়ার্ড দেখুন';
     btn.style.cssText = [
       'position:absolute',
       'right:10px',
@@ -652,38 +650,32 @@ window.resetPasswordFromModal = async function() { return window.wfFSP && window
       'border:none',
       'cursor:pointer',
       'padding:4px 6px',
-      'color:rgba(0,217,255,0.6)',
-      'font-size:1.1rem',
+      'color:#1a1a2e',
+      'font-size:1.15rem',
       'line-height:1',
       'z-index:5',
-      'transition:color 0.2s'
+      'opacity:0.85',
+      'transition:opacity 0.2s, color 0.2s'
     ].join(';');
-    btn.innerHTML = '<i class="bi bi-eye" id="loginPasswordEyeIcon"></i>';
+    btn.innerHTML = '<i class="bi bi-eye" id="loginPasswordEyeIcon" style="filter:drop-shadow(0 0 2px rgba(0,217,255,0.4));"></i>';
 
-    // Hover effect
-    btn.addEventListener('mouseenter', function () { btn.style.color = '#00d9ff'; });
-    btn.addEventListener('mouseleave', function () {
-      btn.style.color = pwField.type === 'text' ? '#00d9ff' : 'rgba(0,217,255,0.6)';
-    });
+    btn.addEventListener('mouseenter', function () { btn.style.opacity = '1'; btn.style.color = '#0d6efd'; });
+    btn.addEventListener('mouseleave', function () { btn.style.opacity = '0.85'; btn.style.color = '#1a1a2e'; });
 
-    // Toggle logic
     btn.addEventListener('click', function () {
       var icon = document.getElementById('loginPasswordEyeIcon');
       if (pwField.type === 'password') {
         pwField.type = 'text';
         icon.className = 'bi bi-eye-slash';
-        btn.style.color = '#00d9ff';
         btn.title = 'পাসওয়ার্ড লুকান';
       } else {
         pwField.type = 'password';
         icon.className = 'bi bi-eye';
-        btn.style.color = 'rgba(0,217,255,0.6)';
         btn.title = 'পাসওয়ার্ড দেখুন';
       }
       pwField.focus();
     });
 
-    // Padding right so text doesn't go under button
     pwField.style.paddingRight = '40px';
     wrapper.appendChild(btn);
     console.log('[Auth] Password eye toggle added ✓');
@@ -693,7 +685,6 @@ window.resetPasswordFromModal = async function() { return window.wfFSP && window
     document.addEventListener('DOMContentLoaded', addPasswordEyeToggle);
   } else {
     addPasswordEyeToggle();
-    // Retry if login section is hidden/not yet rendered
     if (!document.getElementById('loginPasswordToggle')) {
       var retry = setInterval(function () {
         addPasswordEyeToggle();
@@ -706,10 +697,9 @@ window.resetPasswordFromModal = async function() { return window.wfFSP && window
 
 // ═══════════════════════════════════════════════════
 // EXAM DELETE → RECYCLE BIN FIX
-// deleteExamEntry() কে patch করো — recycle bin এ যাবে
+// exam-fix.js সহ সব file load হওয়ার পরে patch করে
 // ═══════════════════════════════════════════════════
 (function () {
-  // Helper: exam entry কে recycle bin এ পাঠাও
   function sendExamToRecycleBin(entry) {
     if (!window.globalData) return;
     if (!window.globalData.deletedItems) window.globalData.deletedItems = [];
@@ -719,30 +709,26 @@ window.resetPasswordFromModal = async function() { return window.wfFSP && window
       _label: 'Exam — ' + (entry.studentName || entry.studentId || entry.regId || 'Entry')
     });
     window.globalData.deletedItems.unshift(trashed);
-    // Backup
     try {
       localStorage.setItem('wingsfly_deleted_backup', JSON.stringify(window.globalData.deletedItems));
     } catch (e) { }
     if (typeof logActivity === 'function') {
-      logActivity('delete', 'EXAM_DELETE',
-        'Exam entry moved to recycle bin: ' + (entry.studentName || entry.regId || 'Unknown'));
+      logActivity('delete', 'EXAM_DELETE', 'Exam entry moved to recycle bin: ' + (entry.studentName || entry.regId || 'Unknown'));
     }
   }
   window.sendExamToRecycleBin = sendExamToRecycleBin;
 
-  // Patch: যদি deleteExamEntry function already defined থাকে, সেটাকে wrap করো
   function patchDeleteExamEntry() {
     var origDelete = window.deleteExamEntry;
     if (typeof origDelete !== 'function') return false;
-    if (origDelete._recyclePatched) return true; // Already patched
+    if (origDelete._recyclePatched) return true;
 
     window.deleteExamEntry = function (id) {
-      // Find the entry before deleting
       var gd = window.globalData;
       var entry = null;
       if (gd && gd.examRegistrations) {
         entry = gd.examRegistrations.find(function (e) {
-          return e.id == id || e.regId == id;
+          return String(e.id) === String(id) || String(e.regId) === String(id);
         });
       }
       if (entry) sendExamToRecycleBin(entry);
@@ -753,12 +739,14 @@ window.resetPasswordFromModal = async function() { return window.wfFSP && window
     return true;
   }
 
-  // Try immediately, retry if exam-fix.js loads later
-  if (!patchDeleteExamEntry()) {
-    var attempts = 0;
-    var iv = setInterval(function () {
-      attempts++;
-      if (patchDeleteExamEntry() || attempts > 30) clearInterval(iv);
-    }, 300);
-  }
+  // DOMContentLoaded এর পরে সব JS load হয়, তখন window.load এ patch করো
+  window.addEventListener('load', function () {
+    if (!patchDeleteExamEntry()) {
+      var attempts = 0;
+      var iv = setInterval(function () {
+        attempts++;
+        if (patchDeleteExamEntry() || attempts > 40) clearInterval(iv);
+      }, 250);
+    }
+  });
 })();
