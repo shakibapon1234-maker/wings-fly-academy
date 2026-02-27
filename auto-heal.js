@@ -279,8 +279,39 @@
     const data = window.globalData;
     if (!data || !data.finance || !data.students) return 0;
 
+    // এই categories/types গুলো student-linked নয়, তাই orphaned check থেকে বাদ
+    const NON_STUDENT_CATEGORIES = new Set([
+      'Loan', 'loan', 'Loan Given', 'Loan Taken', 'Loan Repay', 'Loan Received',
+      'লোন', 'ঋণ', 'ঋণ প্রদান', 'ঋণ গ্রহণ',
+      'Salary', 'Expense', 'ব্যয়', 'Rent', 'Utility', 'Other Expense',
+      'Other Income', 'অন্যান্য আয়', 'অন্যান্য ব্যয়',
+      'Bank Transfer', 'Mobile Banking', 'Investment'
+    ]);
+
     const studentNames = new Set(data.students.map(s => (s.name || '').trim().toLowerCase()));
+
     const orphaned = data.finance.filter(f => {
+      // Loan বা non-student category হলে skip — এগুলো orphaned নয়
+      const category = (f.category || '').trim();
+      const subType = (f.subType || f.sub_type || '').trim().toLowerCase();
+
+      if (NON_STUDENT_CATEGORIES.has(category)) return false;
+      if (subType === 'loan' || subType === 'লোন' || subType === 'ঋণ') return false;
+      if (category.toLowerCase().includes('loan') || category.toLowerCase().includes('লোন')) return false;
+
+      // শুধু Student Fee / Student Installment / Admission Fee type check করো
+      const isStudentPayment = (
+        f.type === 'Income' &&
+        (
+          category === 'Student Fee' ||
+          category === 'Student Installment' ||
+          category === 'Admission Fee' ||
+          category === 'ভর্তি ফি' ||
+          category === 'টিউশন ফি'
+        )
+      );
+      if (!isStudentPayment) return false;
+
       const person = ((f.person || f.studentName || '')).trim().toLowerCase();
       return person && !studentNames.has(person);
     });
