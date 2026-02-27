@@ -790,7 +790,10 @@
 
     // --- 10b: Orphaned payments (finance-এ student নেই) ---
     const studentNames = new Set((gd.students || []).map(s => (s.name || '').trim().toLowerCase()));
+    // ✅ FIX: Loan Received/Given এ person = loan দাতার নাম, student নয় — skip করো
+    const loanTypes = new Set(['Loan Received','Loan Receiving','Loan Given','Loan Giving','Transfer In','Transfer Out']);
     const orphaned = finance.filter(f => {
+      if (loanTypes.has(f.type)) return false; // Loan entries skip
       if (!f.person && !f.studentName) return false;
       const person = ((f.person || f.studentName || '')).trim().toLowerCase();
       return person && !studentNames.has(person);
@@ -834,8 +837,12 @@
     finance.forEach(f => {
       if (f.method !== 'Cash') return;
       const amt = parseFloat(f.amount) || 0;
-      if (f.type === 'Income' || f.type === 'আয়') calcCash += amt;
-      else if (f.type === 'Expense' || f.type === 'ব্যয়') calcCash -= amt;
+      // ✅ FIX: Loan Received = money IN to cash, Loan Given = money OUT from cash
+      if (f.type === 'Income' || f.type === 'আয়' || f.type === 'Loan Received' || f.type === 'Loan Receiving') calcCash += amt;
+      else if (f.type === 'Expense' || f.type === 'ব্যয়' || f.type === 'Loan Given' || f.type === 'Loan Giving') calcCash -= amt;
+      // Transfer In/Out also affects cash
+      else if (f.type === 'Transfer In') calcCash += amt;
+      else if (f.type === 'Transfer Out') calcCash -= amt;
     });
     const storedCash = parseFloat(gd.cashBalance) || 0;
     const gap = Math.abs(calcCash - storedCash);
@@ -1298,10 +1305,12 @@
       deleted.forEach(d => { byType[d.type] = (byType[d.type] || 0) + 1; });
       pass('Recycle Bin has items', Object.entries(byType).map(([k, v]) => k + ':' + v).join(', '));
 
-      // ✅ Exam entries in recycle bin? (type: 'examregistration')
-      (byType['examregistration'] || byType['exam'])
-        ? pass('Recycle Bin: exam entries আছে ✅', (byType['examregistration'] || byType['exam']) + 'টি')
-        : warn('Recycle Bin: কোনো exam entry নেই', 'exam delete হলে recycle bin এ যাওয়া উচিত');
+      // ✅ Exam entries in recycle bin? — শুধু skip, warn নয়
+      if (byType['examregistration'] || byType['exam']) {
+        pass('Recycle Bin: exam entries আছে ✅', (byType['examregistration'] || byType['exam']) + 'টি');
+      } else {
+        skip('Recycle Bin: exam entry নেই', 'exam delete করলে recycle bin এ যাবে');
+      }
 
       // deleted items এর required fields check
       const badEntries = deleted.filter(d => !d.type || !d.item || !d.deletedAt);

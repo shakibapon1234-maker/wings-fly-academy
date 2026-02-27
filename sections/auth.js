@@ -621,33 +621,68 @@ window.checkSecretAnswer = async function() { return window.wfFV && window.wfFV(
 window.resetPasswordFromModal = async function() { return window.wfFSP && window.wfFSP(); };
 
 // ═══════════════════════════════════════════════════
-// PASSWORD EYE TOGGLE — Login Form
+// PASSWORD EYE TOGGLE — Auto-hide after 3s
 // ═══════════════════════════════════════════════════
 (function () {
   function addPasswordEyeToggle() {
     var pwField = document.getElementById('loginPasswordField');
     if (!pwField || document.getElementById('loginPasswordToggle')) return;
+
     var parent = pwField.parentNode;
     var wrapper = document.createElement('div');
     wrapper.style.cssText = 'position:relative;';
     parent.insertBefore(wrapper, pwField);
     wrapper.appendChild(pwField);
+
+    var autoHideTimer = null;
+
     var btn = document.createElement('button');
     btn.type = 'button'; btn.id = 'loginPasswordToggle';
     btn.setAttribute('tabindex', '-1'); btn.title = 'পাসওয়ার্ড দেখুন';
     btn.style.cssText = 'position:absolute;right:10px;top:50%;transform:translateY(-50%);background:none;border:none;cursor:pointer;padding:4px 6px;color:#1a1a2e;font-size:1.15rem;line-height:1;z-index:5;opacity:0.85;transition:opacity 0.2s,color 0.2s;';
     btn.innerHTML = '<i class="bi bi-eye" id="loginPasswordEyeIcon" style="filter:drop-shadow(0 0 2px rgba(0,217,255,0.4));"></i>';
+
+    function hidePassword() {
+      pwField.type = 'password';
+      var icon = document.getElementById('loginPasswordEyeIcon');
+      if (icon) icon.className = 'bi bi-eye';
+      btn.title = 'পাসওয়ার্ড দেখুন';
+      btn.style.opacity = '0.85';
+      btn.style.color = '#1a1a2e';
+    }
+
     btn.addEventListener('mouseenter', function () { btn.style.opacity='1'; btn.style.color='#0d6efd'; });
-    btn.addEventListener('mouseleave', function () { btn.style.opacity='0.85'; btn.style.color='#1a1a2e'; });
+    btn.addEventListener('mouseleave', function () {
+      if (pwField.type === 'password') btn.style.opacity='0.85';
+      btn.style.color = pwField.type === 'text' ? '#0d6efd' : '#1a1a2e';
+    });
+
     btn.addEventListener('click', function () {
       var icon = document.getElementById('loginPasswordEyeIcon');
-      if (pwField.type === 'password') { pwField.type='text'; icon.className='bi bi-eye-slash'; btn.title='পাসওয়ার্ড লুকান'; }
-      else { pwField.type='password'; icon.className='bi bi-eye'; btn.title='পাসওয়ার্ড দেখুন'; }
+      if (pwField.type === 'password') {
+        // দেখাও
+        pwField.type = 'text';
+        icon.className = 'bi bi-eye-slash';
+        btn.title = 'পাসওয়ার্ড লুকান';
+        btn.style.color = '#0d6efd';
+        // ✅ 3 সেকেন্ড পরে auto-hide
+        clearTimeout(autoHideTimer);
+        autoHideTimer = setTimeout(function () {
+          hidePassword();
+        }, 3000);
+      } else {
+        // লুকাও (manual)
+        clearTimeout(autoHideTimer);
+        hidePassword();
+      }
       pwField.focus();
     });
+
     pwField.style.paddingRight = '40px';
     wrapper.appendChild(btn);
+    console.log('[Auth] Eye toggle ✓');
   }
+
   if (document.readyState === 'loading') document.addEventListener('DOMContentLoaded', addPasswordEyeToggle);
   else {
     addPasswordEyeToggle();
@@ -657,10 +692,12 @@ window.resetPasswordFromModal = async function() { return window.wfFSP && window
 })();
 
 // ═══════════════════════════════════════════════════
-// LOGOUT BUTTON — Sidebar + TopBar Dropdown
+// LOGOUT BUTTON — Sidebar + TopBar Dropdown (FIXED)
 // ═══════════════════════════════════════════════════
 (function () {
   function addLogoutUI() {
+
+    // ── 1. Sidebar footer ──
     var sidebarProfile = document.querySelector('.sidebar-footer .user-profile');
     if (sidebarProfile && !document.getElementById('sidebarLogoutBtn')) {
       var lb = document.createElement('button');
@@ -669,36 +706,88 @@ window.resetPasswordFromModal = async function() { return window.wfFSP && window
       lb.innerHTML = '<i class="bi bi-box-arrow-right"></i>';
       lb.addEventListener('mouseenter', function(){ lb.style.background='rgba(255,60,60,0.25)'; lb.style.borderColor='rgba(255,80,80,0.6)'; });
       lb.addEventListener('mouseleave', function(){ lb.style.background='rgba(255,60,60,0.12)'; lb.style.borderColor='rgba(255,80,80,0.3)'; });
-      lb.addEventListener('click', function(){ if(typeof logout==='function') logout(); });
+      lb.addEventListener('click', function(){ if(typeof window.logout==='function') window.logout(); });
       sidebarProfile.style.cssText += ';display:flex;align-items:center;gap:8px;width:100%;';
       sidebarProfile.appendChild(lb);
+      console.log('[Auth] Sidebar logout ✓');
     }
+
+    // ── 2. TopBar dropdown ──
     var topUserArea = null;
     document.querySelectorAll('.top-bar .d-flex.align-items-center').forEach(function(el){
-      if(el.querySelector('.user-avatar') && !el.id) topUserArea = el;
+      if (el.querySelector('.user-avatar') && !el.id) topUserArea = el;
     });
-    if (topUserArea && !document.getElementById('topbarUserDropdown')) {
-      topUserArea.style.cssText += ';position:relative;cursor:pointer;';
-      var dd = document.createElement('div');
-      dd.id = 'topbarUserDropdown';
-      dd.style.cssText = 'display:none;position:absolute;top:calc(100% + 10px);right:0;min-width:160px;background:linear-gradient(145deg,#080d28,#120830);border:1.5px solid rgba(0,217,255,0.2);border-radius:12px;overflow:hidden;box-shadow:0 8px 30px rgba(0,0,0,0.5);z-index:9999;';
-      dd.innerHTML = '<div style="padding:10px 14px 6px;border-bottom:1px solid rgba(0,217,255,0.1);"><div style="font-size:0.68rem;font-weight:700;letter-spacing:1px;text-transform:uppercase;color:rgba(0,200,255,0.5);">Logged in as</div><div id="topbarDropdownUser" style="color:#deeeff;font-weight:700;font-size:0.85rem;margin-top:2px;">Admin</div></div>'
-        + '<button id="topbarLogoutBtn" style="width:100%;background:none;border:none;padding:10px 14px;display:flex;align-items:center;gap:8px;color:#ff6b6b;font-size:0.85rem;font-weight:600;cursor:pointer;" onmouseenter="this.style.background=\'rgba(255,60,60,0.12)\'" onmouseleave="this.style.background=\'none\'"><i class="bi bi-box-arrow-right"></i> Logout</button>';
-      topUserArea.appendChild(dd);
-      topUserArea.addEventListener('click', function(e){
-        e.stopPropagation();
-        dd.style.display = dd.style.display === 'block' ? 'none' : 'block';
+    if (!topUserArea) return;
+    if (document.getElementById('topbarUserDropdown')) return;
+
+    topUserArea.style.position = 'relative';
+    topUserArea.style.cursor = 'pointer';
+    topUserArea.id = 'topbarUserArea';
+
+    var dd = document.createElement('div');
+    dd.id = 'topbarUserDropdown';
+    dd.style.cssText = [
+      'display:none',
+      'position:absolute',
+      'top:calc(100% + 10px)',
+      'right:0',
+      'min-width:170px',
+      'background:linear-gradient(145deg,#080d28,#120830)',
+      'border:1.5px solid rgba(0,217,255,0.2)',
+      'border-radius:12px',
+      'overflow:hidden',
+      'box-shadow:0 8px 30px rgba(0,0,0,0.6)',
+      'z-index:99999'
+    ].join(';');
+
+    dd.innerHTML =
+      '<div style="padding:10px 14px 6px;border-bottom:1px solid rgba(0,217,255,0.1);">' +
+        '<div style="font-size:0.68rem;font-weight:700;letter-spacing:1px;text-transform:uppercase;color:rgba(0,200,255,0.5);">Logged in as</div>' +
+        '<div id="topbarDropdownUser" style="color:#deeeff;font-weight:700;font-size:0.85rem;margin-top:2px;">Admin</div>' +
+      '</div>' +
+      '<div id="topbarLogoutBtn" style="padding:10px 14px;display:flex;align-items:center;gap:8px;color:#ff6b6b;font-size:0.85rem;font-weight:600;cursor:pointer;user-select:none;">' +
+        '<i class="bi bi-box-arrow-right"></i> Logout' +
+      '</div>';
+
+    topUserArea.appendChild(dd);
+
+    // Hover on logout item
+    var logoutItem = dd.querySelector('#topbarLogoutBtn');
+    logoutItem.addEventListener('mouseenter', function(){ logoutItem.style.background='rgba(255,60,60,0.15)'; });
+    logoutItem.addEventListener('mouseleave', function(){ logoutItem.style.background='none'; });
+
+    // ✅ Logout click — directly on the div
+    logoutItem.addEventListener('click', function(e) {
+      e.stopPropagation();
+      dd.style.display = 'none';
+      if (typeof window.logout === 'function') {
+        window.logout();
+      } else {
+        // fallback
+        sessionStorage.removeItem('isLoggedIn');
+        location.reload();
+      }
+    });
+
+    // Toggle dropdown
+    topUserArea.addEventListener('click', function(e) {
+      e.stopPropagation();
+      var isOpen = dd.style.display === 'block';
+      dd.style.display = isOpen ? 'none' : 'block';
+      if (!isOpen) {
         var uEl = document.getElementById('topbarDropdownUser');
-        if(uEl) uEl.textContent = sessionStorage.getItem('username') || 'Admin';
-      });
-      document.addEventListener('click', function(e){
-        if(!topUserArea.contains(e.target)) dd.style.display = 'none';
-        if(e.target && (e.target.id==='topbarLogoutBtn' || (e.target.closest && e.target.closest('#topbarLogoutBtn')))){
-          if(typeof logout==='function') logout();
-        }
-      });
-    }
+        if (uEl) uEl.textContent = sessionStorage.getItem('username') || 'Admin';
+      }
+    });
+
+    // Close on outside click
+    document.addEventListener('click', function() {
+      dd.style.display = 'none';
+    });
+
+    console.log('[Auth] TopBar dropdown logout ✓');
   }
+
   if(document.readyState==='loading') document.addEventListener('DOMContentLoaded', addLogoutUI);
   else addLogoutUI();
   setTimeout(addLogoutUI, 800);
@@ -707,165 +796,99 @@ window.resetPasswordFromModal = async function() { return window.wfFSP && window
 
 // ═══════════════════════════════════════════════════
 // EXAM DELETE → RECYCLE BIN + ACTIVITY LOG
-// ✅ Delete   → RecycleBin + logActivity('delete')
-// ✅ Restore  → examRegistrations + logActivity('restore')
-// ✅ Perm Del → logActivity('permanent_delete')
-// Structure: { id, type:'examregistration', item, deletedAt, deletedBy }
 // ═══════════════════════════════════════════════════
 (function () {
 
-  // ── Activity log helper (safe wrapper) ──────────────────
   function wfLog(action, category, message, data) {
     try {
       if (typeof window.logActivity === 'function') {
         window.logActivity(action, category, message, data || {});
       } else {
-        // Fallback: directly push to activityHistory
         if (!window.globalData) return;
         if (!window.globalData.activityHistory) window.globalData.activityHistory = [];
         window.globalData.activityHistory.unshift({
-          action: action,
-          category: category,
-          message: message,
+          action: action, category: category, message: message,
           timestamp: new Date().toISOString(),
           user: sessionStorage.getItem('username') || 'Admin'
         });
         try { localStorage.setItem('wingsfly_activity_backup', JSON.stringify(window.globalData.activityHistory)); } catch(e){}
       }
-    } catch(e) { console.warn('[wfLog] error:', e); }
+    } catch(e) {}
   }
 
-  // ── Exam → Recycle Bin ───────────────────────────────────
   function sendExamToRecycleBin(entry) {
     if (!window.globalData) return;
     if (!window.globalData.deletedItems) window.globalData.deletedItems = [];
-
     var trashId = 'TRASH_' + Date.now() + '_' + Math.random().toString(36).slice(2, 6);
     var trashed = {
       id: trashId,
       type: 'examregistration',
-      item: JSON.parse(JSON.stringify(entry)),  // deep copy
+      item: JSON.parse(JSON.stringify(entry)),
       deletedAt: new Date().toISOString(),
       deletedBy: sessionStorage.getItem('username') || 'Admin'
     };
-
     window.globalData.deletedItems.unshift(trashed);
-    if (window.globalData.deletedItems.length > 200) {
-      window.globalData.deletedItems = window.globalData.deletedItems.slice(0, 200);
-    }
-
+    if (window.globalData.deletedItems.length > 200) window.globalData.deletedItems = window.globalData.deletedItems.slice(0, 200);
     try {
       localStorage.setItem('wingsfly_data', JSON.stringify(window.globalData));
       localStorage.setItem('wingsfly_deleted_backup', JSON.stringify(window.globalData.deletedItems));
     } catch(e) {}
-
-    // ✅ Activity Log — DELETE
-    wfLog('delete', 'EXAM', 
-      '🗑️ Exam deleted → Recycle Bin: ' + (entry.studentName || entry.regId || 'Unknown'),
-      entry
-    );
-    console.log('[Auth] Exam → RecycleBin ✓ | trashId:', trashId);
+    wfLog('delete', 'EXAM', '🗑️ Exam deleted → Recycle Bin: ' + (entry.studentName || entry.regId || 'Unknown'), entry);
+    console.log('[Auth] Exam → RecycleBin ✓ id:', trashId);
   }
   window.sendExamToRecycleBin = sendExamToRecycleBin;
 
-  // ── restoreDeletedItem patch → Activity Log যোগ করো ─────
   function patchRestoreDeletedItem() {
-    var origRestore = window.restoreDeletedItem;
-    if (typeof origRestore !== 'function' || origRestore._activityPatched) return false;
-
+    var orig = window.restoreDeletedItem;
+    if (typeof orig !== 'function' || orig._activityPatched) return false;
     window.restoreDeletedItem = function (id) {
-      // Restore হওয়ার আগে item খুঁজে নাও log এর জন্য
       var gd = window.globalData;
-      var d = gd ? (gd.deletedItems || []).find(function(x){ return x.id === id; }) : null;
-
-      // Original restore চালাও
-      origRestore.call(this, id);
-
-      // ✅ Activity Log — RESTORE
+      var d = gd ? (gd.deletedItems || []).find(function(x){ return x.id===id; }) : null;
+      orig.call(this, id);
       if (d) {
-        var label = '';
-        if (d.item) label = d.item.studentName || d.item.name || d.item.title || d.item.regId || d.item.id || 'Item';
-        wfLog('restore', (d.type || 'item').toUpperCase(),
-          '♻️ Restored from Recycle Bin: ' + label + ' [' + (d.type || '') + ']',
-          d.item || {}
-        );
-        console.log('[Auth] Restore logged ✓', d.type, label);
+        var label = d.item ? (d.item.studentName||d.item.name||d.item.title||d.item.regId||d.item.id||'Item') : 'Item';
+        wfLog('restore', (d.type||'item').toUpperCase(), '♻️ Restored: ' + label + ' [' + (d.type||'') + ']', d.item||{});
       }
     };
     window.restoreDeletedItem._activityPatched = true;
-    console.log('[Auth] restoreDeletedItem → activity log patched ✓');
     return true;
   }
 
-  // ── permanentDelete patch → Activity Log যোগ করো ────────
   function patchPermanentDelete() {
-    var origDel = window.permanentDelete || window._wfPermDel;
-    if (typeof origDel !== 'function' || origDel._activityPatched) return false;
-    var fnName = window.permanentDelete ? 'permanentDelete' : '_wfPermDel';
-
-    window[fnName] = function (id) {
-      var gd = window.globalData;
-      var d = gd ? (gd.deletedItems || []).find(function(x){ return x.id === id; }) : null;
-
-      origDel.call(this, id);
-
-      // ✅ Activity Log — PERMANENT DELETE
-      if (d) {
-        var label = '';
-        if (d.item) label = d.item.studentName || d.item.name || d.item.title || d.item.regId || d.item.id || 'Item';
-        wfLog('permanent_delete', (d.type || 'item').toUpperCase(),
-          '❌ Permanently deleted: ' + label + ' [' + (d.type || '') + ']',
-          d.item || {}
-        );
-        console.log('[Auth] PermanentDelete logged ✓', d.type, label);
-      }
-    };
-    window[fnName]._activityPatched = true;
-    console.log('[Auth] ' + fnName + ' → activity log patched ✓');
+    ['permanentDelete','_wfPermDel'].forEach(function(fnName) {
+      var orig = window[fnName];
+      if (typeof orig !== 'function' || orig._activityPatched) return;
+      window[fnName] = function (id) {
+        var gd = window.globalData;
+        var d = gd ? (gd.deletedItems||[]).find(function(x){ return x.id===id; }) : null;
+        orig.call(this, id);
+        if (d) {
+          var label = d.item ? (d.item.studentName||d.item.name||d.item.title||d.item.regId||d.item.id||'Item') : 'Item';
+          wfLog('permanent_delete', (d.type||'item').toUpperCase(), '❌ Permanently deleted: ' + label, d.item||{});
+        }
+      };
+      window[fnName]._activityPatched = true;
+    });
     return true;
   }
 
-  // ── deleteExamRegistration/deleteExamEntry patch ─────────
   function patchExamDelete() {
-    var patched = false;
-
-    var origReg = window.deleteExamRegistration;
-    if (typeof origReg === 'function' && !origReg._recyclePatched) {
-      window.deleteExamRegistration = function (id) {
+    ['deleteExamRegistration','deleteExamEntry'].forEach(function(fnName) {
+      var orig = window[fnName];
+      if (typeof orig !== 'function' || orig._recyclePatched) return;
+      window[fnName] = function (id) {
         var gd = window.globalData;
         if (gd && gd.examRegistrations) {
-          var entry = gd.examRegistrations.find(function(e){
-            return String(e.id)===String(id) || String(e.regId)===String(id);
-          });
+          var entry = gd.examRegistrations.find(function(e){ return String(e.id)===String(id)||String(e.regId)===String(id); });
           if (entry) sendExamToRecycleBin(entry);
         }
-        return origReg.call(this, id);
+        return orig.call(this, id);
       };
-      window.deleteExamRegistration._recyclePatched = true;
-      patched = true;
-      console.log('[Auth] deleteExamRegistration patched ✓');
-    }
-
-    var origEntry = window.deleteExamEntry;
-    if (typeof origEntry === 'function' && !origEntry._recyclePatched) {
-      window.deleteExamEntry = function (id) {
-        var gd = window.globalData;
-        if (gd && gd.examRegistrations) {
-          var entry = gd.examRegistrations.find(function(e){
-            return String(e.id)===String(id) || String(e.regId)===String(id);
-          });
-          if (entry) sendExamToRecycleBin(entry);
-        }
-        return origEntry.call(this, id);
-      };
-      window.deleteExamEntry._recyclePatched = true;
-      patched = true;
-    }
-
-    return patched;
+      window[fnName]._recyclePatched = true;
+      console.log('[Auth] ' + fnName + ' patched ✓');
+    });
   }
 
-  // ── সব patch একসাথে run করো ─────────────────────────────
   function runAllPatches() {
     patchExamDelete();
     patchRestoreDeletedItem();
@@ -874,11 +897,7 @@ window.resetPasswordFromModal = async function() { return window.wfFSP && window
 
   window.addEventListener('load', function () {
     runAllPatches();
-    var attempts = 0;
-    var iv = setInterval(function () {
-      runAllPatches();
-      if (++attempts > 20) clearInterval(iv);
-    }, 500);
+    var i = 0;
+    var iv = setInterval(function(){ runAllPatches(); if(++i>20) clearInterval(iv); }, 500);
   });
-
 })();

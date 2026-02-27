@@ -365,8 +365,8 @@ function updateRecentActions() {
       <div class="d-flex align-items-center gap-2 overflow-hidden">
         <span class="flex-shrink-0 fs-5">${actionIcon}</span>
         <div class="text-truncate">
-          <div class="fw-bold text-dark text-truncate">${actionTitle}</div>
-          <div class="text-muted" style="font-size: 0.7rem;">
+          <div class="fw-bold text-truncate" style="color:#deeeff;">${actionTitle}</div>
+          <div style="font-size: 0.7rem; color:#94a3c4;">
             ${f.description || f.category} • ${f.date}
           </div>
         </div>
