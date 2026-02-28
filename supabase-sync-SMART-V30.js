@@ -561,7 +561,7 @@
 
       const { error } = await supabaseClient
         .from(TABLE_NAME)
-        .upsert(payload, { onConflict: 'id' });
+        .upsert(payload);
 
       if (error) throw error;
 
@@ -815,7 +815,7 @@
           // fire-and-forget — fail হলেও problem নেই, localStorage backup আছে
           supabaseClient
             .from('academy_backups') // আলাদা backup table
-            .upsert(backupPayload, { onConflict: 'id' })
+            .upsert(backupPayload)
             .then(({ error }) => {
               if (!error) {
                 log('☁️', `Daily backup saved to cloud: ${today}`);
