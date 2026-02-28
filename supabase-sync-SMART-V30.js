@@ -367,6 +367,8 @@
         if (!silent) {
           log('ℹ️', 'Local data is current ✓');
         }
+        // ✅ FIX: Local data current হলেও pull সম্পন্ন — push allow করো
+        window.initialSyncComplete = true;
       }
 
       isPulling = false;
