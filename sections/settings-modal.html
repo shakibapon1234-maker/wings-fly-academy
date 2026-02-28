@@ -1,0 +1,1049 @@
+    <!-- Settings Modal (Redesigned) -->
+    <div class="modal fade" id="settingsModal" tabindex="-1">
+        <div class="modal-dialog modal-xl modal-dialog-centered modal-dialog-scrollable">
+            <div class="modal-content custom-modal" style="min-height: 500px;">
+                <div class="modal-header border-bottom">
+                    <h5 class="modal-title fw-bold">
+                        <span class="me-2 header-icon-circle bg-primary-light">⚙️</span>System Settings
+                    </h5>
+                    <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
+                </div>
+                <div class="modal-body p-0">
+                    <div id="settingsForm" class="h-100">
+                        <div class="d-flex h-100 flex-column flex-lg-row">
+                            <!-- Sidebar Navigation -->
+                            <div class="border-end p-3 settings-nav"
+                                style="min-width: 260px; background: var(--bg-card);">
+                                <div class="nav flex-column nav-pills" role="tablist">
+                                    <button class="nav-link active" type="button"
+                                        onclick="switchSettingsTab('tab-general', this)">
+                                        <span>🏢</span> General Settings
+                                    </button>
+                                    <button class="nav-link" type="button"
+                                        onclick="switchSettingsTab('tab-config', this)">
+                                        <span>🏷️</span> Categories & Courses
+                                    </button>
+                                    <button class="nav-link" type="button"
+                                        onclick="switchSettingsTab('tab-data', this)">
+                                        <span>💾</span> Data Management
+                                    </button>
+                                    <button class="nav-link" type="button"
+                                        onclick="switchSettingsTab('tab-security', this)">
+                                        <span>🔒</span> Security & Access
+                                    </button>
+                                    <button class="nav-link" type="button"
+                                        onclick="switchSettingsTab('tab-activitylog', this); renderActivityLog()">
+                                        <span>📋</span> Activity Log
+                                    </button>
+                                    <button class="nav-link" type="button"
+                                        onclick="switchSettingsTab('tab-recyclebin', this); renderRecycleBin()">
+                                        <span>🗑️</span> Recycle Bin
+                                    </button>
+                                    <button class="nav-link" type="button"
+                                        onclick="switchSettingsTab('tab-diagnostic', this)">
+                                        <span>🔍</span> Sync Diagnostic
+                                    </button>
+                                    <button class="nav-link" type="button"
+                                        onclick="switchSettingsTab('tab-keeprecord', this); renderKeepRecordNotes()">
+                                        <span>📝</span> Keep Record
+                                    </button>
+                                </div>
+                                <div class="mt-auto pt-4 text-center">
+                                    <button type="submit" class="btn btn-primary w-100 py-2 shadow-sm">
+                                        Save All Changes
+                                    </button>
+                                </div>
+                            </div>
+
+                            <!-- Main Content Area -->
+                            <div class="flex-grow-1 overflow-auto" style="background: var(--bg-app);">
+                                <div id="settingsTabContent">
+                                    <!-- Tab 1: General Settings -->
+                                    <div class="settings-tab-pane active" id="tab-general"
+                                        style="display:block; padding:24px;">
+                                        <h6 class="settings-section-title">Academy Information</h6>
+                                        <div class="mb-4">
+                                            <label class="form-label fw-semibold">Academy Name</label>
+                                            <input type="text" name="academyName"
+                                                class="form-control premium-input-modern"
+                                                placeholder="Enter Academy Name">
+                                        </div>
+                                        <div class="mb-4">
+                                            <label class="form-label fw-semibold">🎯 Monthly Target Income
+                                                (BDT)</label>
+                                            <input type="number" name="monthlyTarget"
+                                                class="form-control premium-input-modern" placeholder="e.g., 200000">
+                                            <small class="text-muted">This sets the goal for your monthly progress
+                                                bar.</small>
+                                        </div>
+
+                                        <!-- ===== AUTO SNAPSHOT SECTION ===== -->
+                                        <h6 class="settings-section-title mt-4">📸 Auto Snapshots</h6>
+                                        <div class="p-3 rounded-3 mb-2"
+                                            style="background: rgba(0,217,255,0.06); border: 1.5px solid rgba(0,217,255,0.2);">
+                                            <div class="d-flex align-items-center justify-content-between mb-2">
+                                                <div>
+                                                    <span style="color:#00d9ff;font-size:0.85rem;font-weight:600;">প্রতি
+                                                        ১ ঘন্টায় auto snapshot</span>
+                                                    <span class="ms-2 badge"
+                                                        style="background:rgba(0,255,100,0.2);color:#00ff88;font-size:0.7rem;">Last
+                                                        7 রাখা হয়</span>
+                                                </div>
+                                                <button class="btn btn-sm" type="button"
+                                                    onclick="takeSnapshot(); setTimeout(renderSnapshotList, 200);"
+                                                    style="background:rgba(0,217,255,0.2);color:#00d9ff;border:1px solid #00d9ff;font-size:0.75rem;">
+                                                    📸 এখনই নিন
+                                                </button>
+                                            </div>
+                                            <div id="snapshotListContainer">
+                                                <div class="text-center py-3" style="color:#888;font-size:0.85rem;">
+                                                    Loading...</div>
+                                            </div>
+                                        </div>
+
+                                    </div>
+
+                                    <!-- Tab 2: Configurations -->
+                                    <div class="settings-tab-pane" id="tab-config" style="display:none; padding:24px;">
+                                        <div class="row g-4">
+                                            <!-- Income Categories -->
+                                            <div class="col-md-6">
+                                                <h6 class="settings-section-title">Income Categories
+                                                </h6>
+                                                <div class="input-group input-group-sm mb-2">
+                                                    <input type="text" id="newIncomeCatInput"
+                                                        class="form-control premium-input-modern"
+                                                        placeholder="Add new category...">
+                                                    <button class="btn btn-success" type="button"
+                                                        onclick="addIncomeCategory()">+ Add</button>
+                                                </div>
+                                                <div class="settings-list-container">
+                                                    <ul class="list-unstyled mb-0" id="settingsIncomeCatList">
+                                                        <!-- Populated dynamically -->
+                                                    </ul>
+                                                </div>
+                                            </div>
+
+                                            <!-- Expense Categories -->
+                                            <div class="col-md-6">
+                                                <h6 class="settings-section-title">Expense Categories
+                                                </h6>
+                                                <div class="input-group input-group-sm mb-2">
+                                                    <input type="text" id="newExpenseCatInput"
+                                                        class="form-control premium-input-modern"
+                                                        placeholder="Add new category...">
+                                                    <button class="btn btn-danger" type="button"
+                                                        onclick="addExpenseCategory()">+ Add</button>
+                                                </div>
+                                                <div class="settings-list-container">
+                                                    <ul class="list-unstyled mb-0" id="settingsExpenseCatList">
+                                                        <!-- Populated dynamically -->
+                                                    </ul>
+                                                </div>
+                                            </div>
+
+                                            <!-- Course Names -->
+                                            <div class="col-md-6">
+                                                <h6 class="settings-section-title">Course / Program
+                                                    Names</h6>
+                                                <div class="input-group input-group-sm mb-2">
+                                                    <input type="text" id="newCourseInput"
+                                                        class="form-control premium-input-modern"
+                                                        placeholder="Add new course...">
+                                                    <button class="btn btn-primary" type="button"
+                                                        onclick="addCourseName()">+ Add</button>
+                                                </div>
+                                                <div class="settings-list-container">
+                                                    <ul class="list-unstyled mb-0" id="settingsCourseList">
+                                                        <!-- Populated dynamically -->
+                                                    </ul>
+                                                </div>
+                                            </div>
+
+                                            <!-- Employee Roles -->
+                                            <div class="col-md-6">
+                                                <h6 class="settings-section-title">Employee Roles / Designations</h6>
+                                                <div class="input-group input-group-sm mb-2">
+                                                    <input type="text" id="newEmployeeRoleInput"
+                                                        class="form-control premium-input-modern"
+                                                        placeholder="Add new role...">
+                                                    <button class="btn btn-secondary" type="button"
+                                                        onclick="addEmployeeRole()">+ Add</button>
+                                                </div>
+                                                <div class="settings-list-container">
+                                                    <ul class="list-unstyled mb-0" id="settingsEmployeeRoleList">
+                                                        <!-- Populated dynamically -->
+                                                    </ul>
+                                                </div>
+                                            </div>
+                                        </div>
+                                    </div>
+
+                                    <!-- Tab 3: Data Management -->
+                                    <div class="settings-tab-pane" id="tab-data" style="display:none; padding:24px;">
+                                        <div class="row justify-content-center">
+                                            <div class="col-md-8">
+                                                <!-- Backup & Restore -->
+                                                <div class="card border-0 shadow-sm mb-4">
+                                                    <div class="card-body p-4">
+                                                        <div class="d-flex align-items-center mb-3">
+                                                            <div class="icon-box bg-light text-primary me-3"
+                                                                style="width: 40px; height: 40px; border-radius: 10px; display: flex; align-items: center; justify-content: center;">
+                                                                💾</div>
+                                                            <div>
+                                                                <h6 class="fw-bold mb-0">Backup &
+                                                                    Restore</h6>
+                                                                <small class="text-muted">Save your data
+                                                                    locally or
+                                                                    restore from a file.</small>
+                                                            </div>
+                                                        </div>
+                                                        <div class="row g-2">
+                                                            <div class="col-6">
+                                                                <button type="button"
+                                                                    class="btn btn-outline-primary w-100 py-2"
+                                                                    onclick="exportData()">
+                                                                    💾 Export Data
+                                                                </button>
+                                                            </div>
+                                                            <div class="col-6">
+                                                                <button type="button"
+                                                                    class="btn btn-outline-secondary w-100 py-2"
+                                                                    onclick="importData()">
+                                                                    📤 Import Data
+                                                                </button>
+                                                                <input type="file" id="importFile" accept=".json"
+                                                                    style="display: none;"
+                                                                    onchange="handleImportFile(event)">
+                                                            </div>
+                                                            <div class="col-12 mt-2">
+                                                                <button type="button" class="btn btn-success w-100 py-2"
+                                                                    onclick="manualCloudSync()">
+                                                                    ☁️ Sync with Cloud Now
+                                                                </button>
+                                                                <small class="text-muted d-block mt-1 text-center">
+                                                                    Auto-syncs every 30 seconds
+                                                                </small>
+                                                            </div>
+                                                        </div>
+                                                    </div>
+                                                </div>
+
+                                                <!-- Tools -->
+                                                <div class="card border-0 shadow-sm mb-4">
+                                                    <div class="card-body p-4">
+                                                        <div class="d-flex align-items-center mb-3">
+                                                            <div class="icon-box bg-light text-info me-3"
+                                                                style="width: 40px; height: 40px; border-radius: 10px; display: flex; align-items: center; justify-content: center;">
+                                                                📊</div>
+                                                            <div>
+                                                                <h6 class="fw-bold mb-0">Account Details
+                                                                </h6>
+                                                                <small class="text-muted">View detailed
+                                                                    breakdown of
+                                                                    incomes and expenses.</small>
+                                                            </div>
+                                                        </div>
+                                                        <button type="button" class="btn btn-outline-info w-100 py-2"
+                                                            onclick="showAccountDetails()">
+                                                            View Account Analytics
+                                                        </button>
+                                                    </div>
+                                                </div>
+
+                                                <!-- Danger Zone -->
+                                                <div class="card border border-danger bg-danger-light">
+                                                    <div class="card-body p-4">
+                                                        <div class="d-flex align-items-center mb-3">
+                                                            <div class="icon-box bg-transparent text-danger me-3"
+                                                                style="width: 40px; height: 40px; border-radius: 10px; display: flex; align-items: center; justify-content: center;">
+                                                                ⚠️</div>
+                                                            <div>
+                                                                <h6 class="fw-bold text-danger mb-0">
+                                                                    Danger Zone
+                                                                </h6>
+                                                                <small class="text-danger">This action
+                                                                    cannot be
+                                                                    undone.</small>
+                                                            </div>
+                                                        </div>
+                                                        <div class="d-grid gap-2">
+                                                            <button type="button" class="btn btn-outline-danger py-2"
+                                                                onclick="handleDataReset()">
+                                                                🗑️ Reset Data Only (Keep Settings)
+                                                            </button>
+                                                            <button type="button" class="btn btn-danger py-2"
+                                                                onclick="handleResetAllData()">
+                                                                ⚠️ Factory Reset (Delete Everything)
+                                                            </button>
+                                                        </div>
+                                                        <small class="text-muted d-block mt-2">
+                                                            <strong>Data Reset:</strong> Deletes students &
+                                                            transactions, keeps categories & settings.<br>
+                                                            <strong>Factory Reset:</strong> Deletes everything including
+                                                            all settings.
+                                                        </small>
+                                                    </div>
+                                                </div>
+                                            </div>
+                                        </div>
+                                    </div>
+
+                                    <!-- Tab 4: Security & Access -->
+                                    <div class="settings-tab-pane" id="tab-security" style="display:none; padding:28px 22px;">
+                                    <style>
+                                    .sc{background:linear-gradient(145deg,rgba(8,12,38,0.95),rgba(18,8,45,0.95));border:1.5px solid rgba(0,217,255,0.16);border-radius:18px;padding:22px 24px;margin-bottom:18px;position:relative;overflow:hidden;}
+                                    .sc::after{content:'';position:absolute;top:0;left:0;right:0;height:2px;background:linear-gradient(90deg,#00d9ff,#b537f2,#00ffaa,#00d9ff);background-size:300%;animation:scg 5s linear infinite;}
+                                    @keyframes scg{0%{background-position:0%}100%{background-position:300%}}
+                                    .sc-h{display:flex;align-items:center;gap:13px;margin-bottom:18px;}
+                                    .sc-ic{width:44px;height:44px;border-radius:12px;display:flex;align-items:center;justify-content:center;font-size:1.25rem;flex-shrink:0;}
+                                    .sc-ic.cy{background:rgba(0,217,255,0.1);border:1.5px solid rgba(0,217,255,0.28);}
+                                    .sc-ic.pu{background:rgba(181,55,242,0.1);border:1.5px solid rgba(181,55,242,0.28);}
+                                    .sc-ic.gr{background:rgba(0,255,136,0.1);border:1.5px solid rgba(0,255,136,0.28);}
+                                    .sc-t{font-size:0.96rem;font-weight:700;color:#deeeff;margin:0 0 2px;}
+                                    .sc-s{font-size:0.74rem;color:rgba(0,200,255,0.52);margin:0;}
+                                    .sc-lb{display:block;font-size:0.68rem;font-weight:700;letter-spacing:1.4px;text-transform:uppercase;color:rgba(0,200,255,0.65);margin-bottom:6px;}
+                                    .sc-in{width:100%;background:rgba(3,8,30,0.8)!important;border:1.5px solid rgba(0,217,255,0.2)!important;border-radius:9px!important;color:#deeeff!important;padding:10px 14px!important;font-size:0.86rem!important;outline:none!important;transition:border-color .2s,box-shadow .2s;box-sizing:border-box;}
+                                    .sc-in:focus{border-color:#00d9ff!important;box-shadow:0 0 0 3px rgba(0,217,255,0.09)!important;}
+                                    .sc-in::placeholder{color:rgba(80,120,180,0.38)!important;}
+                                    .sc-g{display:flex;border:1.5px solid rgba(0,217,255,0.2);border-radius:9px;overflow:hidden;}
+                                    .sc-g .sc-in{border:none!important;border-radius:0!important;flex:1;}
+                                    .sc-ey{background:rgba(0,217,255,0.06);border:none;border-left:1.5px solid rgba(0,217,255,0.16);color:#00d9ff;padding:0 14px;cursor:pointer;font-size:0.9rem;transition:background .18s;}
+                                    .sc-ey:hover{background:rgba(0,217,255,0.15);}
+                                    .sc-br{height:4px;background:rgba(255,255,255,0.07);border-radius:2px;margin-top:6px;overflow:hidden;}
+                                    .sc-bf{height:100%;border-radius:2px;transition:width .3s,background .3s;width:0;}
+                                    .sc-st{font-size:0.68rem;font-weight:600;margin-top:3px;}
+                                    .sc-tip{background:rgba(0,217,255,0.05);border:1px solid rgba(0,217,255,0.14);border-radius:9px;padding:10px 13px;font-size:0.76rem;color:rgba(170,205,255,0.7);margin-top:13px;display:flex;gap:8px;}
+                                    .sc-dv{height:1px;background:rgba(255,255,255,0.06);margin:16px 0;}
+                                    .sc-tg{display:flex;align-items:center;justify-content:space-between;cursor:pointer;user-select:none;}
+                                    .sc-ar{color:rgba(0,200,255,0.45);transition:transform .25s;font-size:0.78rem;}
+                                    .sc-ar.op{transform:rotate(180deg);}
+                                    .sc-rb{max-height:0;overflow:hidden;opacity:0;transition:max-height .35s ease,opacity .25s;}
+                                    .sc-rb.op{max-height:500px;opacity:1;}
+                                    .sc-bk{display:inline-flex;align-items:center;gap:5px;background:rgba(255,140,0,0.09);border:1px solid rgba(255,140,0,0.26);border-radius:20px;padding:4px 11px;font-size:0.69rem;font-weight:600;color:#ffaa00;}
+                                    .sc-sv{background:linear-gradient(135deg,#00d9ff,#b537f2);color:#050a1e;border:none;border-radius:10px;padding:11px 24px;font-weight:700;font-size:0.84rem;cursor:pointer;display:inline-flex;align-items:center;gap:7px;transition:all .22s;box-shadow:0 3px 14px rgba(0,217,255,0.22);}
+                                    .sc-sv:hover{transform:translateY(-2px);box-shadow:0 6px 20px rgba(0,217,255,0.38);}
+                                    </style>
+                                    <div style="max-width:640px;margin:0 auto;">
+                                        <!-- ① Credentials -->
+                                        <div class="sc">
+                                            <div class="sc-h"><div class="sc-ic cy">🔒</div><div><p class="sc-t">Login Credentials</p><p class="sc-s">Username ও Password পরিবর্তন করুন</p></div></div>
+                                            <div style="margin-bottom:13px;">
+                                                <label class="sc-lb">👤 Admin Username</label>
+                                                <input type="text" id="settingsUsername" class="sc-in" placeholder="Enter username"
+                                                    autocomplete="off" data-form-type="other" data-lpignore="true">
+                                            </div>
+                                            <div style="margin-bottom:13px;">
+                                                <label class="sc-lb">🔑 New Password</label>
+                                                <div class="sc-g">
+                                                    <input type="password" id="settingsPassword" class="sc-in" placeholder="Enter new password"
+                                                        autocomplete="off" data-form-type="other" data-lpignore="true" oninput="scPwStr(this.value)">
+                                                    <button class="sc-ey" type="button"
+                                                        onclick="const p=document.getElementById('settingsPassword');p.type=p.type==='password'?'text':'password';this.textContent=p.type==='password'?'👁️':'🙈';">👁️</button>
+                                                </div>
+                                                <div class="sc-br"><div class="sc-bf" id="scPwBar"></div></div>
+                                                <div class="sc-st" id="scPwTxt" style="color:#555;"></div>
+                                            </div>
+                                            <div>
+                                                <label class="sc-lb">🔁 Confirm Password</label>
+                                                <div class="sc-g">
+                                                    <input type="password" id="settingsPasswordConfirm" class="sc-in" placeholder="Re-enter new password"
+                                                        autocomplete="off" data-form-type="other" data-lpignore="true" oninput="scPwMatch()">
+                                                    <button class="sc-ey" type="button"
+                                                        onclick="const p=document.getElementById('settingsPasswordConfirm');p.type=p.type==='password'?'text':'password';this.textContent=p.type==='password'?'👁️':'🙈';">👁️</button>
+                                                </div>
+                                                <div id="scPwMatchTxt" style="font-size:0.68rem;margin-top:4px;font-weight:600;"></div>
+                                            </div>
+                                            <div class="sc-tip"><span>💡</span><span>Password পরিবর্তনের পর উভয় PC-তে নতুন password ব্যবহার করুন এবং <strong style="color:#00d9ff;">Push to Cloud</strong> করুন।</span></div>
+                                            <div style="text-align:right;margin-top:14px;">
+                                                <button class="sc-sv" type="button" onclick="scSave()">💾 Save Credentials</button>
+                                            </div>
+                                        </div>
+                                        <!-- ② Secret Recovery -->
+                                        <div class="sc">
+                                            <div class="sc-tg" onclick="scTogRec()">
+                                                <div style="display:flex;align-items:center;gap:13px;">
+                                                    <div class="sc-ic pu">🛡️</div>
+                                                    <div><p class="sc-t">Secret Recovery Question</p><p class="sc-s">পাসওয়ার্ড ভুলে গেলে এই প্রশ্ন দিয়ে reset করতে পারবেন</p></div>
+                                                </div>
+                                                <span class="sc-ar op" id="scRecArrow">▼</span>
+                                            </div>
+                                            <div class="sc-rb op" id="scRecBody">
+                                                <div class="sc-dv"></div>
+                                                <div style="margin-bottom:13px;">
+                                                    <label class="sc-lb">❓ আপনার প্রশ্ন লিখুন</label>
+                                                    <input type="text" id="settingsRecoveryQuestion" class="sc-in"
+                                                        placeholder="যেমন: আপনার মায়ের নাম কী?"
+                                                        autocomplete="off" data-form-type="other" data-lpignore="true">
+                                                    <div style="font-size:0.69rem;color:rgba(90,130,190,0.5);margin-top:4px;">এমন প্রশ্ন লিখুন যার উত্তর শুধু আপনি জানেন</div>
+                                                </div>
+                                                <div>
+                                                    <label class="sc-lb">✅ গোপন উত্তর</label>
+                                                    <!-- type=number trick prevents Chrome username/password detection -->
+                                                    <div class="sc-g">
+                                                        <input type="password" id="settingsRecoveryAnswer" class="sc-in"
+                                                            placeholder="গোপন উত্তর লিখুন"
+                                                            autocomplete="new-password" data-form-type="other" data-lpignore="true"
+                                                            name="wf_rec_answer"
+                                                            onfocus="this.type='text'"
+                                                            onblur="this.type='password'"
+                                                            style="font-family:inherit;">
+                                                        <button class="sc-ey" type="button" id="scRecEyeBtn"
+                                                            onclick="scTogRecAns()">👁️</button>
+                                                    </div>
+                                                </div>
+                                                <div class="sc-tip" style="background:rgba(181,55,242,0.05);border-color:rgba(181,55,242,0.16);margin-top:12px;">
+                                                    <span>🔐</span><span>উত্তর encrypted করে সংরক্ষণ করা হবে। Login পেজে "🔑 Forgot Password?" বাটন দিয়ে recovery করা যাবে।</span>
+                                                </div>
+                                            </div>
+                                        </div>
+                                        <!-- ③ Auto Lockout -->
+                                        <div class="sc">
+                                            <div class="sc-h"><div class="sc-ic gr">⏱️</div><div><p class="sc-t">Session & Auto Lockout</p><p class="sc-s">নিষ্ক্রিয় থাকলে স্বয়ংক্রিয়ভাবে লগআউট হবে</p></div></div>
+                                            <label class="sc-lb">🔒 Auto Lockout Time</label>
+                                            <div style="display:flex;align-items:center;gap:12px;flex-wrap:wrap;">
+                                                <select id="settingsAutoLockout" class="sc-in" style="max-width:230px;cursor:pointer;" onchange="scLockBadge()">
+                                                    <option value="0">❌ Disabled (Never)</option>
+                                                    <option value="15">⏱️ 15 minutes</option>
+                                                    <option value="30">⏱️ 30 minutes</option>
+                                                    <option value="60">🕐 1 hour</option>
+                                                    <option value="120">🕑 2 hours</option>
+                                                    <option value="480">🕗 8 hours</option>
+                                                </select>
+                                                <span class="sc-bk" id="scLockBadge">🔓 Disabled</span>
+                                            </div>
+                                            <div style="font-size:0.7rem;color:rgba(90,130,190,0.48);margin-top:7px;">নির্ধারিত সময় নিষ্ক্রিয় থাকলে সিস্টেম স্বয়ংক্রিয়ভাবে লগআউট করবে</div>
+                                        </div>
+                                        <div style="text-align:right;">
+                                            <button class="sc-sv" type="button" onclick="scSave()">💾 Save Security Settings</button>
+                                        </div>
+                                    </div>
+                                    <script>
+                                    function scPwStr(v){const f=document.getElementById('scPwBar'),t=document.getElementById('scPwTxt');if(!f)return;if(!v){f.style.width='0';if(t)t.textContent='';return;}let s=0;if(v.length>=8)s++;if(v.length>=12)s++;if(/[A-Z]/.test(v))s++;if(/[0-9]/.test(v))s++;if(/[^A-Za-z0-9]/.test(v))s++;const L=[{w:'20%',c:'#ff3b5c',l:'Too weak'},{w:'40%',c:'#ff8c00',l:'Weak'},{w:'60%',c:'#ffcc00',l:'Fair'},{w:'80%',c:'#00d9ff',l:'Good'},{w:'100%',c:'#00ff88',l:'Strong 💪'}];const lv=L[Math.min(s,4)];f.style.width=lv.w;f.style.background=lv.c;if(t){t.textContent=lv.l;t.style.color=lv.c;}}
+                                    function scPwMatch(){const p1=document.getElementById('settingsPassword')?.value||'',p2=document.getElementById('settingsPasswordConfirm')?.value||'',mt=document.getElementById('scPwMatchTxt');if(!mt)return;if(!p2){mt.textContent='';return;}mt.textContent=p1===p2?'✅ Password মিলে গেছে':'❌ Password মিলছে না';mt.style.color=p1===p2?'#00ff88':'#ff4455';}
+                                    function scTogRec(){const b=document.getElementById('scRecBody'),a=document.getElementById('scRecArrow');if(!b)return;b.classList.toggle('op');if(a)a.classList.toggle('op');}
+                                    window.scTogRec=scTogRec;window.scTogRecAns=scTogRecAns;
+                                    function scTogRecAns(){const p=document.getElementById('settingsRecoveryAnswer'),b=document.getElementById('scRecEyeBtn');if(!p)return;const vis=p.style.webkitTextSecurity==='none';p.style.webkitTextSecurity=vis?'disc':'none';p.style.mozTextSecurity=vis?'disc':'none';if(b)b.textContent=vis?'👁️':'🙈';}
+                                    function scLockBadge(){const v=parseInt(document.getElementById('settingsAutoLockout')?.value||0),b=document.getElementById('scLockBadge');if(!b)return;b.textContent=v===0?'🔓 Disabled':v<60?'🔒 '+v+'min':'🔒 '+(v/60)+'h auto-lock';}
+                                    function scLoad(){
+                                        const gd=window.globalData;if(!gd)return;const s=gd.settings||{};
+                                        const uEl=document.getElementById('settingsUsername');
+                                        if(uEl){uEl.value=s.adminUsername||(gd.users&&gd.users[0]?gd.users[0].username:'');}
+                                        const lEl=document.getElementById('settingsAutoLockout');
+                                        if(lEl&&s.autoLockoutMinutes!==undefined)lEl.value=s.autoLockoutMinutes;
+                                        const rqEl=document.getElementById('settingsRecoveryQuestion');
+                                        if(rqEl&&s.recoveryQuestion)rqEl.value=s.recoveryQuestion;
+                                        scLockBadge();
+                                    }
+                                    async function scSave(){
+                                        const gd=window.globalData;if(!gd)return;if(!gd.settings)gd.settings={};
+                                        const u=document.getElementById('settingsUsername')?.value.trim();
+                                        const pw=document.getElementById('settingsPassword')?.value;
+                                        const pw2=document.getElementById('settingsPasswordConfirm')?.value;
+                                        const rq=document.getElementById('settingsRecoveryQuestion')?.value.trim();
+                                        const ra=document.getElementById('settingsRecoveryAnswer')?.value.trim();
+                                        const lk=parseInt(document.getElementById('settingsAutoLockout')?.value||'0');
+                                        if(pw&&pw!==pw2){if(typeof showErrorToast==='function')showErrorToast('❌ Password দুটি মিলছে না!');return;}
+                                        if(u){gd.settings.adminUsername=u;if(gd.users&&gd.users[0])gd.users[0].username=u;}
+                                        if(pw&&pw.length>=4){const h=typeof hashPassword==='function'?await hashPassword(pw):pw;if(gd.users&&gd.users[0])gd.users[0].password=h;if(gd.credentials)gd.credentials.password=h;}
+                                        if(rq)gd.settings.recoveryQuestion=rq;
+                                        if(ra){const hA=typeof hashPassword==='function'?await hashPassword(ra.toLowerCase()):ra;gd.settings.recoveryAnswer=hA;}
+                                        gd.settings.autoLockoutMinutes=lk;
+                                        // ✅ FIX: আগে localStorage এ save করো
+                                        localStorage.setItem('wingsfly_data',JSON.stringify(gd));
+                                        // ✅ FIX: Settings আলাদাভাবেও backup রাখো — cloud pull override করতে পারবে না
+                                        localStorage.setItem('wingsfly_settings_backup',JSON.stringify(gd.settings));
+                                        if(gd.users&&gd.users[0])localStorage.setItem('wingsfly_users_backup',JSON.stringify(gd.users));
+                                        if(typeof saveToStorage==='function')saveToStorage();
+                                        if(typeof wfInitAutoLockout==='function')wfInitAutoLockout(lk);
+                                        ['settingsPassword','settingsPasswordConfirm','settingsRecoveryAnswer'].forEach(function(id){const el=document.getElementById(id);if(el)el.value='';});
+                                        const pb=document.getElementById('scPwBar');if(pb)pb.style.width='0';
+                                        const pt=document.getElementById('scPwTxt');if(pt)pt.textContent='';
+                                        const pm=document.getElementById('scPwMatchTxt');if(pm)pm.textContent='';
+                                        // ✅ Toast — showSuccessToast না থাকলে নিজস্ব toast দেখাও
+                                        if(typeof showSuccessToast==='function'){
+                                            showSuccessToast('✅ Security Settings সংরক্ষিত হয়েছে!');
+                                        } else {
+                                            var t=document.createElement('div');
+                                            t.textContent='✅ Security Settings সংরক্ষিত হয়েছে!';
+                                            t.style.cssText='position:fixed;top:20px;right:20px;z-index:999999;background:linear-gradient(135deg,#00d9ff,#00ff88);color:#050a1e;padding:12px 20px;border-radius:10px;font-weight:700;font-size:0.85rem;box-shadow:0 4px 20px rgba(0,217,255,0.4);animation:wfTI .3s ease;';
+                                            document.body.appendChild(t);
+                                            setTimeout(function(){t.remove();},3000);
+                                        }
+                                    }
+                                    window.scLoad=scLoad;window.scSave=scSave;
+                                    (function(){
+                                        const orig=window.switchSettingsTab;
+                                        if(typeof orig==='function'){
+                                            window.switchSettingsTab=function(id,btn){orig(id,btn);if(id==='tab-security')setTimeout(scLoad,80);};
+                                        }
+                                        document.addEventListener('DOMContentLoaded',function(){
+                                            setTimeout(function(){const t=document.getElementById('tab-security');if(t&&t.style.display!=='none')scLoad();},700);
+                                        });
+                                    })();
+                                    </script>
+                                    </div>
+                                </div>
+
+                                <!-- Tab 5: Activity Log -->
+                                <div class="settings-tab-pane" id="tab-activitylog" style="display:none; padding:24px;">
+                                    <div class="d-flex justify-content-between align-items-center mb-3">
+                                        <h6 class="settings-section-title mb-0">📋 Full Activity Log</h6>
+                                        <button type="button" class="btn btn-sm btn-outline-danger rounded-pill px-3"
+                                            onclick="clearActivityLog()">🗑️ Clear All</button>
+                                    </div>
+                                    <div class="d-flex gap-2 mb-3 flex-wrap">
+                                        <select id="logFilterType"
+                                            class="form-select form-select-sm premium-input-modern"
+                                            style="max-width:160px;" onchange="renderActivityLog()">
+                                            <option value="all">All Actions</option>
+                                            <option value="ADD">➕ Add</option>
+                                            <option value="EDIT">✏️ Edit</option>
+                                            <option value="DELETE">🗑️ Delete</option>
+                                            <option value="LOGIN">🔐 Login</option>
+                                            <option value="PAYMENT">💰 Payment</option>
+                                            <option value="SETTINGS">⚙️ Settings</option>
+                                            <option value="RESTORE">♻️ Restore</option>
+                                        </select>
+                                        <input type="text" id="logSearch"
+                                            class="form-control form-control-sm premium-input-modern"
+                                            style="max-width:200px;" placeholder="🔍 Search..."
+                                            oninput="renderActivityLog()">
+                                    </div>
+                                    <div id="activityLogContainer" style="max-height:480px; overflow-y:auto;">
+
+                                    </div>
+                                </div>
+
+                                <!-- Tab 6: Recycle Bin -->
+                                <div class="settings-tab-pane" id="tab-recyclebin" style="display:none; padding:24px;">
+                                    <div class="d-flex justify-content-between align-items-center mb-3">
+                                        <h6 class="settings-section-title mb-0">🗑️ Recycle Bin</h6>
+                                        <button type="button" class="btn btn-sm btn-outline-danger rounded-pill px-3"
+                                            onclick="clearRecycleBin()">🗑️ Empty Bin</button>
+                                    </div>
+                                    <p class="text-muted small mb-3">Deleted items — Restore করুন বা স্থায়ীভাবে মুছে
+                                        দিন।</p>
+                                    <div class="mb-3">
+                                        <select id="binFilterType"
+                                            class="form-select form-select-sm premium-input-modern"
+                                            style="max-width:160px;" onchange="renderRecycleBin()">
+                                            <option value="all">All Types</option>
+                                            <option value="Student">Student</option>
+                                            <option value="Employee">Employee</option>
+                                            <option value="Finance">Finance</option>
+                                            <option value="Visitor">Visitor</option>
+                                        </select>
+                                    </div>
+                                    <div id="recycleBinContainer" style="max-height:350px; overflow-y:auto;">
+
+                                    </div>
+                                </div>
+
+                                <!-- Tab: Sync Diagnostic & Function Test -->
+                                <div class="settings-tab-pane" id="tab-diagnostic" style="display:none; padding:0;">
+                                    <style>
+                                        /* ── Dark Glassmorphism theme for Diagnostic tab ── */
+                                        .diag-wrap {
+                                            background: linear-gradient(135deg, #0d1b2e 0%, #0a1628 60%, #0d1f35 100%);
+                                            border-radius: 0;
+                                            padding: 20px;
+                                            min-height: 100%;
+                                            height: 100%;
+                                        }
+
+                                        .diag-title {
+                                            color: #00d4ff;
+                                            font-size: 1rem;
+                                            font-weight: 700;
+                                            letter-spacing: 1px;
+                                            margin-bottom: 2px;
+                                        }
+
+                                        .diag-subtitle {
+                                            color: #7aa0c4;
+                                            font-size: 0.78rem;
+                                            margin-bottom: 14px;
+                                        }
+
+                                        /* glass card */
+                                        .diag-card {
+                                            background: rgba(255, 255, 255, 0.05);
+                                            border: 1px solid rgba(255, 255, 255, 0.10);
+                                            border-radius: 12px;
+                                            backdrop-filter: blur(10px);
+                                            padding: 14px 16px;
+                                            margin-bottom: 12px;
+                                        }
+
+                                        .diag-card-title {
+                                            color: #00d4ff;
+                                            font-size: 0.78rem;
+                                            font-weight: 700;
+                                            letter-spacing: 1.5px;
+                                            text-transform: uppercase;
+                                            margin-bottom: 12px;
+                                            display: flex;
+                                            align-items: center;
+                                            gap: 6px;
+                                        }
+
+                                        /* stat boxes */
+                                        .diag-stat {
+                                            border-radius: 10px;
+                                            padding: 10px 14px;
+                                            text-align: center;
+                                            border: 1px solid rgba(255, 255, 255, 0.12);
+                                        }
+
+                                        .diag-stat-blue {
+                                            background: linear-gradient(135deg, #1a3a6e, #0e2347);
+                                        }
+
+                                        .diag-stat-green {
+                                            background: linear-gradient(135deg, #0d4a2a, #083320);
+                                        }
+
+                                        .diag-stat-red {
+                                            background: linear-gradient(135deg, #5a1a1a, #3d0f0f);
+                                        }
+
+                                        .diag-stat-purple {
+                                            background: linear-gradient(135deg, #2d1a5a, #1d0f3d);
+                                        }
+
+                                        .diag-stat-teal {
+                                            background: linear-gradient(135deg, #0d3d3d, #072828);
+                                        }
+
+                                        .diag-stat-orange {
+                                            background: linear-gradient(135deg, #4a2a0a, #2d1a04);
+                                        }
+
+                                        .diag-stat label {
+                                            display: block;
+                                            color: #7aa0c4;
+                                            font-size: 0.7rem;
+                                            margin-bottom: 2px;
+                                        }
+
+                                        .diag-stat .val {
+                                            color: #fff;
+                                            font-size: 1.1rem;
+                                            font-weight: 700;
+                                        }
+
+                                        .diag-stat .val-sm {
+                                            color: #e2f0ff;
+                                            font-size: 0.82rem;
+                                            font-weight: 600;
+                                        }
+
+                                        /* table rows */
+                                        .diag-row {
+                                            display: flex;
+                                            justify-content: space-between;
+                                            align-items: center;
+                                            padding: 6px 0;
+                                            border-bottom: 1px solid rgba(255, 255, 255, 0.06);
+                                            font-size: 0.82rem;
+                                        }
+
+                                        .diag-row:last-child {
+                                            border-bottom: none;
+                                        }
+
+                                        .diag-row .lbl {
+                                            color: #7aa0c4;
+                                        }
+
+                                        .diag-row .rv {
+                                            color: #e2f0ff;
+                                            font-weight: 600;
+                                        }
+
+                                        /* check badges */
+                                        .diag-check {
+                                            display: flex;
+                                            justify-content: space-between;
+                                            align-items: center;
+                                            padding: 6px 10px;
+                                            border-radius: 8px;
+                                            font-size: 0.78rem;
+                                            margin-bottom: 4px;
+                                        }
+
+                                        .diag-check-ok {
+                                            background: rgba(0, 255, 136, 0.10);
+                                            border: 1px solid rgba(0, 255, 136, 0.25);
+                                        }
+
+                                        .diag-check-warn {
+                                            background: rgba(255, 200, 0, 0.10);
+                                            border: 1px solid rgba(255, 200, 0, 0.25);
+                                        }
+
+                                        .diag-check .chk-lbl {
+                                            color: #c8d8f0;
+                                        }
+
+                                        .diag-check .chk-ok {
+                                            color: #00ff88;
+                                            font-weight: 700;
+                                        }
+
+                                        .diag-check .chk-warn {
+                                            color: #ffcc00;
+                                            font-weight: 700;
+                                        }
+
+                                        /* buttons */
+                                        .diag-btn-primary {
+                                            background: linear-gradient(135deg, #0070cc, #0050a0);
+                                            color: #fff;
+                                            border: none;
+                                            border-radius: 8px;
+                                            padding: 6px 16px;
+                                            font-size: 0.8rem;
+                                            font-weight: 600;
+                                            cursor: pointer;
+                                            transition: opacity 0.2s;
+                                        }
+
+                                        .diag-btn-primary:hover {
+                                            opacity: 0.85;
+                                        }
+
+                                        .diag-btn-green {
+                                            background: linear-gradient(135deg, #00a060, #007040);
+                                            color: #fff;
+                                            border: none;
+                                            border-radius: 8px;
+                                            padding: 6px 16px;
+                                            font-size: 0.8rem;
+                                            font-weight: 600;
+                                            cursor: pointer;
+                                            transition: opacity 0.2s;
+                                        }
+
+                                        .diag-btn-green:hover {
+                                            opacity: 0.85;
+                                        }
+
+                                        .diag-btn-outline {
+                                            background: transparent;
+                                            color: #7aa0c4;
+                                            border: 1px solid rgba(255, 255, 255, 0.2);
+                                            border-radius: 8px;
+                                            padding: 6px 14px;
+                                            font-size: 0.8rem;
+                                            font-weight: 600;
+                                            cursor: pointer;
+                                            text-decoration: none;
+                                            display: inline-block;
+                                            transition: all 0.2s;
+                                        }
+
+                                        .diag-btn-outline:hover {
+                                            color: #00d4ff;
+                                            border-color: #00d4ff;
+                                        }
+
+                                        /* overall bar */
+                                        #diag-overall {
+                                            border-radius: 10px;
+                                            padding: 12px 16px;
+                                            border: 1px solid rgba(255, 255, 255, 0.12);
+                                            margin-bottom: 12px;
+                                        }
+
+                                        /* log area */
+                                        .diag-log-area {
+                                            background: #05090f;
+                                            border-radius: 8px;
+                                            padding: 10px 12px;
+                                            font-family: monospace;
+                                            font-size: 0.73rem;
+                                            max-height: 130px;
+                                            overflow-y: auto;
+                                            border: 1px solid rgba(255, 255, 255, 0.08);
+                                        }
+
+                                        /* heal log */
+                                        #heal-log-container>div {
+                                            background: rgba(255, 255, 255, 0.04) !important;
+                                            border: 1px solid rgba(255, 255, 255, 0.08) !important;
+                                            color: #c8d8f0 !important;
+                                        }
+
+                                        /* functest rows */
+                                        .ft-row {
+                                            display: flex;
+                                            align-items: flex-start;
+                                            gap: 8px;
+                                            padding: 7px 10px;
+                                            border-bottom: 1px solid rgba(255, 255, 255, 0.06);
+                                            font-size: 0.78rem;
+                                        }
+
+                                        .ft-row .ft-name {
+                                            color: #c8d8f0;
+                                            flex: 1;
+                                        }
+
+                                        .ft-row .ft-detail {
+                                            color: #7aa0c4;
+                                            font-size: 0.72rem;
+                                        }
+
+                                        .ft-badge-pass {
+                                            background: rgba(0, 255, 136, 0.15);
+                                            color: #00ff88;
+                                            border: 1px solid #00ff8844;
+                                            padding: 2px 8px;
+                                            border-radius: 20px;
+                                            font-size: 0.7rem;
+                                            font-weight: 700;
+                                        }
+
+                                        .ft-badge-fail {
+                                            background: rgba(255, 68, 68, 0.15);
+                                            color: #ff4466;
+                                            border: 1px solid #ff446644;
+                                            padding: 2px 8px;
+                                            border-radius: 20px;
+                                            font-size: 0.7rem;
+                                            font-weight: 700;
+                                        }
+
+                                        .ft-badge-warn {
+                                            background: rgba(255, 200, 0, 0.15);
+                                            color: #ffcc00;
+                                            border: 1px solid #ffcc0044;
+                                            padding: 2px 8px;
+                                            border-radius: 20px;
+                                            font-size: 0.7rem;
+                                            font-weight: 700;
+                                        }
+                                    </style>
+
+                                    <div class="diag-wrap">
+                                        <div class="diag-title">⚡ System Diagnostic Center</div>
+                                        <div class="diag-subtitle">Data, Sync ও সব function ঠিকঠাক আছে কিনা এখানে দেখুন
+                                        </div>
+
+                                        <!-- ── ROW 1: Auto-Heal ── -->
+                                        <div class="diag-card">
+                                            <div class="diag-card-title">🛡️ Auto-Heal Engine</div>
+                                            <div
+                                                style="display:flex;justify-content:space-between;align-items:center;margin-bottom:10px;flex-wrap:wrap;gap:8px;">
+                                                <span style="color:#7aa0c4;font-size:0.8rem;">Background-এ নিজে নিজে
+                                                    সমস্যা খুঁজে fix করে — প্রতি ৬০ সেকেন্ডে</span>
+                                                <button type="button" class="diag-btn-green"
+                                                    onclick="window.autoHeal?.runNow()">⚡ এখনই Run করুন</button>
+                                            </div>
+                                            <div
+                                                style="display:grid;grid-template-columns:1fr 1fr 1fr 1fr;gap:8px;margin-bottom:10px;">
+                                                <div class="diag-stat diag-stat-green">
+                                                    <label>মোট Check</label>
+                                                    <div class="val" id="heal-stats-total-runs">0</div>
+                                                </div>
+                                                <div class="diag-stat diag-stat-blue">
+                                                    <label>Auto Fix</label>
+                                                    <div class="val" id="heal-stats-total-fixes">0</div>
+                                                </div>
+                                                <div class="diag-stat diag-stat-teal">
+                                                    <label>শেষ Check</label>
+                                                    <div class="val-sm" id="heal-stats-last-run">—</div>
+                                                </div>
+                                                <div class="diag-stat diag-stat-purple">
+                                                    <label>শেষ Fix</label>
+                                                    <div class="val-sm" id="heal-stats-last-fix">—</div>
+                                                </div>
+                                            </div>
+                                            <div
+                                                style="color:#7aa0c4;font-size:0.72rem;font-weight:700;text-transform:uppercase;letter-spacing:1px;margin-bottom:6px;">
+                                                🔧 Heal Log</div>
+                                            <div id="heal-log-container" class="diag-log-area"
+                                                style="background:#05090f;">
+                                                <span style="color:#4a6080;">Engine চালু হলে এখানে log দেখাবে...</span>
+                                            </div>
+                                        </div>
+
+                                        <!-- ── ROW 2: Sync Diagnostic ── -->
+                                        <div class="diag-card">
+                                            <div
+                                                style="display:flex;justify-content:space-between;align-items:center;margin-bottom:10px;flex-wrap:wrap;gap:8px;">
+                                                <div class="diag-card-title" style="margin-bottom:0;">📊 Sync & Data
+                                                    Check</div>
+                                                <div style="display:flex;gap:8px;">
+                                                    <button type="button" class="diag-btn-primary"
+                                                        onclick="runDiagnosticInline()">🔍 পরীক্ষা চালান</button>
+                                                    <a class="diag-btn-outline" href="sync-diagnostic.html"
+                                                        target="_blank">↗ Full Screen</a>
+                                                </div>
+                                            </div>
+
+                                            <!-- Overall status -->
+                                            <div id="diag-overall"
+                                                style="display:none;background:rgba(0,200,100,0.08);border:1px solid rgba(0,200,100,0.2);">
+                                                <div
+                                                    style="display:flex;justify-content:space-between;align-items:center;">
+                                                    <span style="color:#e2f0ff;font-weight:700;"
+                                                        id="diag-overall-label">—</span>
+                                                    <span id="diag-overall-badge"
+                                                        style="font-size:0.85rem;font-weight:700;"></span>
+                                                </div>
+                                                <div
+                                                    style="height:5px;background:rgba(255,255,255,0.1);border-radius:3px;margin-top:8px;overflow:hidden;">
+                                                    <div id="diag-progress"
+                                                        style="height:100%;border-radius:3px;transition:width 0.5s;width:0%;">
+                                                    </div>
+                                                </div>
+                                            </div>
+
+                                            <!-- Local vs Cloud -->
+                                            <div id="diag-grid" style="display:none;">
+                                                <div
+                                                    style="display:grid;grid-template-columns:1fr 1fr;gap:8px;margin-bottom:8px;">
+                                                    <!-- Local -->
+                                                    <div
+                                                        style="background:rgba(0,80,180,0.15);border:1px solid rgba(0,120,255,0.2);border-radius:10px;padding:12px;">
+                                                        <div
+                                                            style="color:#00d4ff;font-size:0.72rem;font-weight:700;text-transform:uppercase;letter-spacing:1px;margin-bottom:8px;">
+                                                            📦 লোকাল ডেটা</div>
+                                                        <div class="diag-row"><span class="lbl">Students</span><span
+                                                                class="rv" id="d-localStudents">—</span></div>
+                                                        <div class="diag-row"><span class="lbl">Finance</span><span
+                                                                class="rv" id="d-localFinance">—</span></div>
+                                                        <div class="diag-row"><span class="lbl">Cash</span><span
+                                                                class="rv" id="d-localCash">—</span></div>
+                                                        <div class="diag-row"><span class="lbl">Version</span><span
+                                                                class="rv" id="d-localVer">—</span></div>
+                                                    </div>
+                                                    <!-- Cloud -->
+                                                    <div
+                                                        style="background:rgba(0,120,80,0.15);border:1px solid rgba(0,200,100,0.2);border-radius:10px;padding:12px;">
+                                                        <div
+                                                            style="color:#00ff88;font-size:0.72rem;font-weight:700;text-transform:uppercase;letter-spacing:1px;margin-bottom:8px;">
+                                                            ☁️ Cloud ডেটা</div>
+                                                        <div class="diag-row"><span class="lbl">Students</span><span
+                                                                class="rv" id="d-cloudStudents">—</span></div>
+                                                        <div class="diag-row"><span class="lbl">Finance</span><span
+                                                                class="rv" id="d-cloudFinance">—</span></div>
+                                                        <div class="diag-row"><span class="lbl">Cash</span><span
+                                                                class="rv" id="d-cloudCash">—</span></div>
+                                                        <div class="diag-row"><span class="lbl">Version</span><span
+                                                                class="rv" id="d-cloudVer">—</span></div>
+                                                    </div>
+                                                </div>
+
+                                                <!-- Integrity checks -->
+                                                <div
+                                                    style="background:rgba(255,255,255,0.03);border:1px solid rgba(255,255,255,0.08);border-radius:10px;padding:12px;margin-bottom:8px;">
+                                                    <div
+                                                        style="color:#00d4ff;font-size:0.72rem;font-weight:700;text-transform:uppercase;letter-spacing:1px;margin-bottom:8px;">
+                                                        ✅ Integrity Checks</div>
+                                                    <div id="d-checks"></div>
+                                                </div>
+
+                                                <!-- Accounting audit -->
+                                                <div
+                                                    style="background:rgba(255,255,255,0.03);border:1px solid rgba(255,255,255,0.08);border-radius:10px;padding:12px;margin-bottom:8px;">
+                                                    <div
+                                                        style="color:#00d4ff;font-size:0.72rem;font-weight:700;text-transform:uppercase;letter-spacing:1px;margin-bottom:8px;">
+                                                        🧮 Accounting Audit</div>
+                                                    <div id="d-accounting"
+                                                        style="display:grid;grid-template-columns:repeat(3,1fr);gap:6px;">
+                                                    </div>
+                                                </div>
+                                            </div>
+
+                                            <!-- Diag log -->
+                                            <div id="diag-log" class="diag-log-area"
+                                                style="display:none;margin-top:8px;"></div>
+                                        </div>
+
+                                        <!-- ── ROW 3: Function Test ── -->
+                                        <div class="diag-card" style="margin-bottom:0;">
+                                            <div
+                                                style="display:flex;justify-content:space-between;align-items:center;margin-bottom:10px;flex-wrap:wrap;gap:8px;">
+                                                <div class="diag-card-title" style="margin-bottom:0;">🧪 Auto Function
+                                                    Test</div>
+                                                <div style="display:flex;gap:8px;">
+                                                    <button type="button" class="diag-btn-green"
+                                                        onclick="runFunctionTests()">▶ Tests চালান</button>
+                                                    <a class="diag-btn-outline" href="test.html" target="_blank">↗ Full
+                                                        Screen</a>
+                                                </div>
+                                            </div>
+                                            <div id="functest-summary"
+                                                style="display:none;gap:8px;margin-bottom:8px;flex-wrap:wrap;"></div>
+                                            <div id="functest-results" style="max-height:220px;overflow-y:auto;"></div>
+                                        </div>
+
+                                    </div><!-- /diag-wrap -->
+                                </div><!-- /tab-diagnostic -->
+
+                                <!-- =============================================== -->
+                                <!-- TAB: KEEP RECORD (Personal Notes)              -->
+                                <!-- =============================================== -->
+                                <div class="settings-tab-pane" id="tab-keeprecord" style="display:none; padding:24px;">
+                                    <div style="display:flex; justify-content:space-between; align-items:center; margin-bottom:20px; flex-wrap:wrap; gap:12px;">
+                                        <div>
+                                            <h5 class="fw-bold mb-1" style="color:#00d9ff;">📝 Keep Record</h5>
+                                            <small class="text-muted">ব্যক্তিগত নোট ও রেকর্ড — তারিখ অনুযায়ী সেভ থাকে</small>
+                                        </div>
+                                        <button type="button" class="btn btn-primary fw-bold px-4 rounded-pill"
+                                            style="background:linear-gradient(135deg,#667eea,#764ba2); border:none;"
+                                            onclick="openNewNoteModal()">
+                                            <i class="bi bi-plus-circle-fill me-2"></i>+ নতুন নোট
+                                        </button>
+                                    </div>
+
+                                    <!-- Filters -->
+                                    <div class="row g-2 mb-3">
+                                        <div class="col-auto">
+                                            <input type="date" id="noteFilterDate" class="form-control form-control-sm"
+                                                onchange="renderKeepRecordNotes()"
+                                                style="background:var(--bg-card); color:var(--text-primary); border-color:rgba(255,255,255,0.1);">
+                                        </div>
+                                        <div class="col-auto">
+                                            <select id="noteFilterTag" class="form-select form-select-sm"
+                                                onchange="renderKeepRecordNotes()"
+                                                style="background:var(--bg-card); color:var(--text-primary); border-color:rgba(255,255,255,0.1); min-width:140px;">
+                                                <option value="">সব ট্যাগ</option>
+                                            </select>
+                                        </div>
+                                        <div class="col">
+                                            <div class="input-group input-group-sm">
+                                                <span class="input-group-text" style="background:var(--bg-card); border-color:rgba(255,255,255,0.1);">🔍</span>
+                                                <input type="text" id="noteSearchInput" class="form-control"
+                                                    placeholder="সার্চ করুন..."
+                                                    oninput="renderKeepRecordNotes()"
+                                                    style="background:var(--bg-card); color:var(--text-primary); border-color:rgba(255,255,255,0.1);">
+                                                <button class="btn btn-outline-secondary btn-sm" type="button"
+                                                    onclick="clearNoteFilters()">× ক্লিয়ার</button>
+                                            </div>
+                                        </div>
+                                    </div>
+
+                                    <!-- Notes List -->
+                                    <div id="keepRecordNotesList">
+                                        <div class="text-center text-muted py-5">
+                                            <div style="font-size:2rem; margin-bottom:8px;">🚩</div>
+                                            <div>কোনো নোট পাওয়া যায়নি</div>
+                                        </div>
+                                    </div>
+                                </div><!-- /tab-keeprecord -->
+
+                            </div><!-- /tab-content -->
+                        </div><!-- /flex-grow-1 content area -->
+                </div><!-- /d-flex row -->
+                </div><!-- /settingsForm -->
+            </div><!-- /modal-body -->
+        </div><!-- /modal-content -->
+    </div><!-- /modal-dialog -->
+    </div><!-- /settingsModal -->
+
+    <!-- Keep Record - New Note Modal -->
