@@ -138,20 +138,20 @@ document.addEventListener('DOMContentLoaded', function () {
   }, 5 * 60 * 1000);
 
   // Settings Modal খোলার সময় সব refresh
-  var settingsEl = document.getElementById('settingsModal');
-  if (settingsEl) {
-    settingsEl.addEventListener('shown.bs.modal', function () {
-      try {
-        var raw = localStorage.getItem('wingsfly_data');
-        if (raw) window.globalData = JSON.parse(raw);
-        if (!window.globalData.deletedItems) window.globalData.deletedItems = [];
-        if (!window.globalData.activityHistory) window.globalData.activityHistory = [];
-      } catch (e) { }
-      if (typeof renderSnapshotList === 'function') renderSnapshotList();
-      if (typeof renderActivityLog === 'function') renderActivityLog();
-      if (typeof renderRecycleBin === 'function') renderRecycleBin();
-    });
-  }
+  // ✅ FIX: Lazy-loaded modal এর জন্য document level এ delegate করো
+  // settingsModal DOM এ না থাকলেও কাজ করবে
+  document.addEventListener('shown.bs.modal', function (e) {
+    if (!e.target || e.target.id !== 'settingsModal') return;
+    try {
+      var raw = localStorage.getItem('wingsfly_data');
+      if (raw) window.globalData = JSON.parse(raw);
+      if (!window.globalData.deletedItems) window.globalData.deletedItems = [];
+      if (!window.globalData.activityHistory) window.globalData.activityHistory = [];
+    } catch (e) { }
+    if (typeof renderSnapshotList === 'function') renderSnapshotList();
+    if (typeof renderActivityLog === 'function') renderActivityLog();
+    if (typeof renderRecycleBin === 'function') renderRecycleBin();
+  });
 });
 
 
