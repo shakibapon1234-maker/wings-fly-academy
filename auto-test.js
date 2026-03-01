@@ -479,7 +479,6 @@
       if (el) {
         pass(`#${id} modal exists`);
       } else {
-        // Lazy load হলে placeholder আছে কিনা চেক করো
         const hasStudentPh  = document.getElementById('__modalPlaceholderStudents');
         const hasSettingsPh = document.getElementById('__modalPlaceholderSettings');
         const isLazy = (id === 'studentModal' && hasStudentPh) ||
@@ -1690,9 +1689,9 @@
     // ─── 19k: Recycle Bin entries by type ───
     const byType = {};
     (gd.deletedItems || []).forEach(d => { byType[d.type] = (byType[d.type] || 0) + 1; });
-    const knownTypes = ['student', 'finance', 'employee', 'bankAccount', 'mobileAccount',
-                        'visitor', 'keepRecord', 'exam', 'notice'];
-    const unknownTypes = Object.keys(byType).filter(t => !knownTypes.includes(t));
+    const knownTypes = ['student', 'finance', 'employee', 'bankaccount', 'mobileaccount',
+                        'visitor', 'keeprecord', 'keep_record', 'keeprecord', 'exam', 'notice', 'breakdown'];
+    const unknownTypes = Object.keys(byType).filter(t => !knownTypes.includes(t.toLowerCase()));
     if (Object.keys(byType).length === 0) {
       skip('Recycle Bin type check', 'Recycle Bin এখনো empty');
     } else {
