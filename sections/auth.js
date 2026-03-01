@@ -43,38 +43,59 @@ async function handleLogin(e) {
   const password = document.getElementById('loginPasswordField')?.value || form.password?.value || '';
 
   try {
-    // CRITICAL: Ensure globalData exists and has users array
+    // CRITICAL: Ensure globalData exists
     if (!window.globalData) {
-      window.globalData = {
-        students: [],
-        finance: [],
-        employees: [],
-        users: [
-          { username: 'admin', password: 'e7d3bfb67567c3d94bcecb2ce65ef146eac83e50dc3f3b89e81bb647a8bada4c', role: 'admin', name: 'Admin' }
-        ]
-      };
+      window.globalData = { students: [], finance: [], employees: [], users: [] };
+    }
+
+    // ✅ FIX: users array empty হলে Supabase থেকে pull করো
+    if (!Array.isArray(window.globalData.users) || window.globalData.users.length === 0) {
+      console.log('[Auth] Users array empty — pulling from Supabase...');
+      btn.innerHTML = '<span class="spinner-border spinner-border-sm me-2"></span>Syncing...';
+      if (typeof window.wingsSync?.pullNow === 'function') {
+        await window.wingsSync.pullNow();
+      } else if (typeof window.loadFromCloud === 'function') {
+        await window.loadFromCloud();
+      }
     }
 
     // 1. Check against User List
     let validUser = null;
 
-    // Safety check for users array
-    if (!globalData.users || !Array.isArray(globalData.users)) {
-      globalData.users = [
-        {
-          username: 'admin',
-          password: 'e7d3bfb67567c3d94bcecb2ce65ef146eac83e50dc3f3b89e81bb647a8bada4c',
-          role: 'admin',
-          name: 'Admin'
+    // Safety check for users array — still empty হলে localStorage backup check
+    if (!Array.isArray(window.globalData.users) || window.globalData.users.length === 0) {
+      try {
+        const usersBackup = JSON.parse(localStorage.getItem('wingsfly_users_backup') || 'null');
+        if (usersBackup && usersBackup.length > 0) {
+          window.globalData.users = usersBackup;
+          console.log('[Auth] Users loaded from localStorage backup');
         }
-      ];
+      } catch(e) {}
+    }
+
+    // ✅ FIX: globalData.users empty হলে Supabase থেকে live pull করো
+    if (!globalData.users || globalData.users.length === 0) {
+      try {
+        const _sc = window.supabase?.createClient?.(
+          (window.SUPABASE_CONFIG?.URL || 'https://gtoldrltxjrwshubplfp.supabase.co'),
+          (window.SUPABASE_CONFIG?.KEY || 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6Imd0b2xkcmx0eGpyd3NodWJwbGZwIiwicm9sZSI6ImFub24iLCJpYXQiOjE3NzEwOTk5MTksImV4cCI6MjA4NjY3NTkxOX0.7NTx3tzU1C5VaewNZZHTaJf2WJ_GtjhQPKOymkxRsUk')
+        );
+        if (_sc) {
+          const { data: _cr } = await _sc.from('academy_data').select('users').eq('id', 'wingsfly_main').single();
+          if (_cr?.users && _cr.users.length > 0) {
+            globalData.users = _cr.users;
+            localStorage.setItem('wingsfly_users_backup', JSON.stringify(_cr.users));
+            console.log('[Auth] Users pulled from cloud:', _cr.users.length);
+          }
+        }
+      } catch (_e) { console.warn('[Auth] Cloud user pull failed:', _e); }
     }
 
     // A. Hash the input password for secure comparison
     const hashedInput = await hashPassword(password);
 
     // B. Check Local Users — hash compare (new) OR plain text compare (backward compat)
-    validUser = globalData.users.find(u =>
+    validUser = (window.globalData.users || []).find(u =>
       u.username === username &&
       (u.password === hashedInput || u.password === password)
     );
@@ -83,8 +104,6 @@ async function handleLogin(e) {
     if (validUser) {
       await migratePasswordIfNeeded(validUser, password);
     }
-
-    // Emergency fallback removed — use Settings to reset password if locked out
 
     // 3. Final validation
     if (validUser) {
@@ -379,59 +398,36 @@ window.loadDashboard = loadDashboard;
 window.switchTab = switchTab;
 
 // ═══════════════════════════════════════════════════
-// PAGE REFRESH → Same Tab Restore (NO FLASH)
+// PAGE REFRESH → Same Tab Restore
 // ═══════════════════════════════════════════════════
 (function() {
-  // ✅ STEP 1: Immediately hide login & show dash BEFORE DOMContentLoaded
-  // <head> এ inline style দিয়ে এটা করা যায় না, তাই script চলতেই করো
   if (sessionStorage.getItem('isLoggedIn') !== 'true') return;
-
-  var lastTab = localStorage.getItem('wingsfly_active_tab') || 'dashboard';
-
-  // ✅ STEP 2: DOMContentLoaded এ সাথেসাথে (0ms) correct tab দেখাও
   document.addEventListener('DOMContentLoaded', function() {
     var login = document.getElementById('loginSection');
     var dash  = document.getElementById('dashboardSection');
     if (!login || !dash) return;
+    if (!dash.classList.contains('d-none')) return;
 
-    // Instantly switch sections
-    login.style.display = 'none';
-    dash.style.display = 'block';
-    dash.classList.remove('d-none');
+    // ✅ FIX: Flash রোধ করতে login section সাথে সাথে hide করো
+    // loader show করো যাতে blank flash না দেখায়
     login.classList.add('d-none');
-
-    // loader/content flicker বন্ধ করো — সরাসরি content দেখাও
+    dash.classList.remove('d-none');
     var loader = document.getElementById('loader');
     var contentEl = document.getElementById('content');
-    if (loader) loader.style.display = 'none';
-    if (contentEl) { contentEl.style.display = 'block'; contentEl.style.opacity = '0'; }
+    if (loader) loader.style.display = 'block';
+    if (contentEl) contentEl.style.display = 'none';
 
-    // ✅ সাথেসাথে correct tab এ যাও — 0ms delay
-    if (typeof switchTab === 'function') {
-      switchTab(lastTab, false);
-    } else {
-      // switchTab এখনো load না হলে 50ms retry
-      var retries = 0;
-      var iv = setInterval(function() {
-        retries++;
-        if (typeof switchTab === 'function') {
-          clearInterval(iv);
-          switchTab(lastTab, false);
-        } else if (retries > 20) clearInterval(iv);
-      }, 50);
-    }
+    var lastTab = localStorage.getItem('wingsfly_active_tab') || 'dashboard';
+    console.log('[Auth] Refresh restore → tab:', lastTab);
 
-    // Stats ও dropdowns update করো
-    requestAnimationFrame(function() {
+    // ✅ FIX: loadDashboard() বাদ — সরাসরি lastTab এ যাও (dashboard flash হবে না)
+    setTimeout(function() {
       if (typeof updateGlobalStats === 'function') updateGlobalStats();
       if (typeof populateDropdowns === 'function') populateDropdowns();
-      if (contentEl) {
-        contentEl.style.transition = 'opacity 0.15s';
-        contentEl.style.opacity = '1';
-      }
-    });
-
-    console.log('[Auth] Refresh restore → tab:', lastTab);
+      if (typeof switchTab === 'function') switchTab(lastTab, false);
+      if (loader) loader.style.display = 'none';
+      if (contentEl) contentEl.style.display = 'block';
+    }, 300);
   });
 })();
 
@@ -476,9 +472,6 @@ document.addEventListener('DOMContentLoaded', function() {
   // Inject modal HTML
   var modalHtml = `
 <div id="wfForgotOverlay" style="display:none;position:fixed;inset:0;z-index:99999;align-items:center;justify-content:center;background:rgba(2,5,20,0.85);backdrop-filter:blur(10px);">
-<!-- Dummy fields: Chrome password manager কে block করে -->
-<input type="text" style="display:none" tabindex="-1" autocomplete="username">
-<input type="password" style="display:none" tabindex="-1" autocomplete="current-password">
   <div style="background:linear-gradient(145deg,#080d28,#120830);border:1.5px solid rgba(0,217,255,0.25);border-radius:22px;width:92%;max-width:400px;overflow:hidden;box-shadow:0 20px 60px rgba(0,0,0,0.7),0 0 40px rgba(0,217,255,0.08);animation:wfFI .3s ease;">
     <style>@keyframes wfFI{from{opacity:0;transform:scale(0.9) translateY(20px)}to{opacity:1;transform:scale(1) translateY(0)}}</style>
     <div style="background:linear-gradient(135deg,rgba(0,217,255,0.1),rgba(181,55,242,0.1));padding:20px 24px 16px;border-bottom:1px solid rgba(0,217,255,0.1);text-align:center;">
@@ -513,7 +506,7 @@ document.addEventListener('DOMContentLoaded', function() {
         </div>
         <label style="display:block;font-size:0.67rem;font-weight:700;letter-spacing:1.3px;text-transform:uppercase;color:rgba(0,200,255,0.6);margin-bottom:5px;">🔑 নতুন Password</label>
         <input type="password" id="wfFP1" style="width:100%;background:rgba(3,8,30,0.8);border:1.5px solid rgba(0,217,255,0.2);border-radius:9px;color:#deeeff;padding:11px 14px;font-size:0.87rem;outline:none;box-sizing:border-box;margin-bottom:10px;"
-          autocomplete="new-password" data-lpignore="true" data-form-type="other" placeholder="New password (min 4 chars)"
+          autocomplete="new-password" placeholder="New password (min 4 chars)"
           onfocus="this.style.borderColor='#00d9ff'" onblur="this.style.borderColor='rgba(0,217,255,0.2)'"
           onkeydown="if(event.key==='Enter')wfFSP()">
         <label style="display:block;font-size:0.67rem;font-weight:700;letter-spacing:1.3px;text-transform:uppercase;color:rgba(0,200,255,0.6);margin-bottom:5px;">🔁 Confirm Password</label>
@@ -615,289 +608,3 @@ window.wfFSP = async function() {
     showSuccessToast('✅ Password সফলভাবে পরিবর্তন হয়েছে! নতুন password দিয়ে Login করুন।');
   else alert('✅ Password পরিবর্তন সফল! নতুন password দিয়ে Login করুন।');
 };
-
-// ✅ AUTO-TEST ALIASES — direct function wrappers
-window.checkSecretAnswer = async function() { return window.wfFV && window.wfFV(); };
-window.resetPasswordFromModal = async function() { return window.wfFSP && window.wfFSP(); };
-
-// ═══════════════════════════════════════════════════
-// PASSWORD EYE TOGGLE — Auto-hide after 3s
-// ═══════════════════════════════════════════════════
-(function () {
-  function addPasswordEyeToggle() {
-    var pwField = document.getElementById('loginPasswordField');
-    if (!pwField || document.getElementById('loginPasswordToggle')) return;
-
-    var parent = pwField.parentNode;
-    var wrapper = document.createElement('div');
-    wrapper.style.cssText = 'position:relative;';
-    parent.insertBefore(wrapper, pwField);
-    wrapper.appendChild(pwField);
-
-    var autoHideTimer = null;
-
-    var btn = document.createElement('button');
-    btn.type = 'button'; btn.id = 'loginPasswordToggle';
-    btn.setAttribute('tabindex', '-1'); btn.title = 'পাসওয়ার্ড দেখুন';
-    btn.style.cssText = 'position:absolute;right:10px;top:50%;transform:translateY(-50%);background:none;border:none;cursor:pointer;padding:4px 6px;color:#1a1a2e;font-size:1.15rem;line-height:1;z-index:5;opacity:0.85;transition:opacity 0.2s,color 0.2s;';
-    btn.innerHTML = '<i class="bi bi-eye" id="loginPasswordEyeIcon" style="filter:drop-shadow(0 0 2px rgba(0,217,255,0.4));"></i>';
-
-    function hidePassword() {
-      pwField.type = 'password';
-      var icon = document.getElementById('loginPasswordEyeIcon');
-      if (icon) icon.className = 'bi bi-eye';
-      btn.title = 'পাসওয়ার্ড দেখুন';
-      btn.style.opacity = '0.85';
-      btn.style.color = '#1a1a2e';
-    }
-
-    btn.addEventListener('mouseenter', function () { btn.style.opacity='1'; btn.style.color='#0d6efd'; });
-    btn.addEventListener('mouseleave', function () {
-      if (pwField.type === 'password') btn.style.opacity='0.85';
-      btn.style.color = pwField.type === 'text' ? '#0d6efd' : '#1a1a2e';
-    });
-
-    btn.addEventListener('click', function () {
-      var icon = document.getElementById('loginPasswordEyeIcon');
-      if (pwField.type === 'password') {
-        // দেখাও
-        pwField.type = 'text';
-        icon.className = 'bi bi-eye-slash';
-        btn.title = 'পাসওয়ার্ড লুকান';
-        btn.style.color = '#0d6efd';
-        // ✅ 3 সেকেন্ড পরে auto-hide
-        clearTimeout(autoHideTimer);
-        autoHideTimer = setTimeout(function () {
-          hidePassword();
-        }, 3000);
-      } else {
-        // লুকাও (manual)
-        clearTimeout(autoHideTimer);
-        hidePassword();
-      }
-      pwField.focus();
-    });
-
-    pwField.style.paddingRight = '40px';
-    wrapper.appendChild(btn);
-    console.log('[Auth] Eye toggle ✓');
-  }
-
-  if (document.readyState === 'loading') document.addEventListener('DOMContentLoaded', addPasswordEyeToggle);
-  else {
-    addPasswordEyeToggle();
-    var r = setInterval(function(){ addPasswordEyeToggle(); if(document.getElementById('loginPasswordToggle')) clearInterval(r); }, 300);
-    setTimeout(function(){ clearInterval(r); }, 5000);
-  }
-})();
-
-// ═══════════════════════════════════════════════════
-// LOGOUT BUTTON — Sidebar + TopBar Dropdown (FIXED)
-// ═══════════════════════════════════════════════════
-(function () {
-  function addLogoutUI() {
-
-    // ── 1. Sidebar footer ──
-    var sidebarProfile = document.querySelector('.sidebar-footer .user-profile');
-    if (sidebarProfile && !document.getElementById('sidebarLogoutBtn')) {
-      var lb = document.createElement('button');
-      lb.id = 'sidebarLogoutBtn'; lb.title = 'Logout';
-      lb.style.cssText = 'background:rgba(255,60,60,0.12);border:1.5px solid rgba(255,80,80,0.3);border-radius:8px;color:#ff6b6b;cursor:pointer;padding:6px 10px;font-size:1rem;transition:all 0.2s;margin-left:auto;flex-shrink:0;';
-      lb.innerHTML = '<i class="bi bi-box-arrow-right"></i>';
-      lb.addEventListener('mouseenter', function(){ lb.style.background='rgba(255,60,60,0.25)'; lb.style.borderColor='rgba(255,80,80,0.6)'; });
-      lb.addEventListener('mouseleave', function(){ lb.style.background='rgba(255,60,60,0.12)'; lb.style.borderColor='rgba(255,80,80,0.3)'; });
-      lb.addEventListener('click', function(){ if(typeof window.logout==='function') window.logout(); });
-      sidebarProfile.style.cssText += ';display:flex;align-items:center;gap:8px;width:100%;';
-      sidebarProfile.appendChild(lb);
-      console.log('[Auth] Sidebar logout ✓');
-    }
-
-    // ── 2. TopBar dropdown ──
-    var topUserArea = null;
-    document.querySelectorAll('.top-bar .d-flex.align-items-center').forEach(function(el){
-      if (el.querySelector('.user-avatar') && !el.id) topUserArea = el;
-    });
-    if (!topUserArea) return;
-    if (document.getElementById('topbarUserDropdown')) return;
-
-    topUserArea.style.position = 'relative';
-    topUserArea.style.cursor = 'pointer';
-    topUserArea.id = 'topbarUserArea';
-
-    var dd = document.createElement('div');
-    dd.id = 'topbarUserDropdown';
-    dd.style.cssText = [
-      'display:none',
-      'position:absolute',
-      'top:calc(100% + 10px)',
-      'right:0',
-      'min-width:170px',
-      'background:linear-gradient(145deg,#080d28,#120830)',
-      'border:1.5px solid rgba(0,217,255,0.2)',
-      'border-radius:12px',
-      'overflow:hidden',
-      'box-shadow:0 8px 30px rgba(0,0,0,0.6)',
-      'z-index:99999'
-    ].join(';');
-
-    dd.innerHTML =
-      '<div style="padding:10px 14px 6px;border-bottom:1px solid rgba(0,217,255,0.1);">' +
-        '<div style="font-size:0.68rem;font-weight:700;letter-spacing:1px;text-transform:uppercase;color:rgba(0,200,255,0.5);">Logged in as</div>' +
-        '<div id="topbarDropdownUser" style="color:#deeeff;font-weight:700;font-size:0.85rem;margin-top:2px;">Admin</div>' +
-      '</div>' +
-      '<div id="topbarLogoutBtn" style="padding:10px 14px;display:flex;align-items:center;gap:8px;color:#ff6b6b;font-size:0.85rem;font-weight:600;cursor:pointer;user-select:none;">' +
-        '<i class="bi bi-box-arrow-right"></i> Logout' +
-      '</div>';
-
-    topUserArea.appendChild(dd);
-
-    // Hover on logout item
-    var logoutItem = dd.querySelector('#topbarLogoutBtn');
-    logoutItem.addEventListener('mouseenter', function(){ logoutItem.style.background='rgba(255,60,60,0.15)'; });
-    logoutItem.addEventListener('mouseleave', function(){ logoutItem.style.background='none'; });
-
-    // ✅ Logout click — directly on the div
-    logoutItem.addEventListener('click', function(e) {
-      e.stopPropagation();
-      dd.style.display = 'none';
-      if (typeof window.logout === 'function') {
-        window.logout();
-      } else {
-        // fallback
-        sessionStorage.removeItem('isLoggedIn');
-        location.reload();
-      }
-    });
-
-    // Toggle dropdown
-    topUserArea.addEventListener('click', function(e) {
-      e.stopPropagation();
-      var isOpen = dd.style.display === 'block';
-      dd.style.display = isOpen ? 'none' : 'block';
-      if (!isOpen) {
-        var uEl = document.getElementById('topbarDropdownUser');
-        if (uEl) uEl.textContent = sessionStorage.getItem('username') || 'Admin';
-      }
-    });
-
-    // Close on outside click
-    document.addEventListener('click', function() {
-      dd.style.display = 'none';
-    });
-
-    console.log('[Auth] TopBar dropdown logout ✓');
-  }
-
-  if(document.readyState==='loading') document.addEventListener('DOMContentLoaded', addLogoutUI);
-  else addLogoutUI();
-  setTimeout(addLogoutUI, 800);
-  setTimeout(addLogoutUI, 2000);
-})();
-
-// ═══════════════════════════════════════════════════
-// EXAM DELETE → RECYCLE BIN + ACTIVITY LOG
-// ═══════════════════════════════════════════════════
-(function () {
-
-  function wfLog(action, category, message, data) {
-    try {
-      if (typeof window.logActivity === 'function') {
-        window.logActivity(action, category, message, data || {});
-      } else {
-        if (!window.globalData) return;
-        if (!window.globalData.activityHistory) window.globalData.activityHistory = [];
-        window.globalData.activityHistory.unshift({
-          action: action, category: category, message: message,
-          timestamp: new Date().toISOString(),
-          user: sessionStorage.getItem('username') || 'Admin'
-        });
-        try { localStorage.setItem('wingsfly_activity_backup', JSON.stringify(window.globalData.activityHistory)); } catch(e){}
-      }
-    } catch(e) {}
-  }
-
-  function sendExamToRecycleBin(entry) {
-    if (!window.globalData) return;
-    if (!window.globalData.deletedItems) window.globalData.deletedItems = [];
-    var trashId = 'TRASH_' + Date.now() + '_' + Math.random().toString(36).slice(2, 6);
-    var trashed = {
-      id: trashId,
-      type: 'examregistration',
-      item: JSON.parse(JSON.stringify(entry)),
-      deletedAt: new Date().toISOString(),
-      deletedBy: sessionStorage.getItem('username') || 'Admin'
-    };
-    window.globalData.deletedItems.unshift(trashed);
-    if (window.globalData.deletedItems.length > 200) window.globalData.deletedItems = window.globalData.deletedItems.slice(0, 200);
-    try {
-      localStorage.setItem('wingsfly_data', JSON.stringify(window.globalData));
-      localStorage.setItem('wingsfly_deleted_backup', JSON.stringify(window.globalData.deletedItems));
-    } catch(e) {}
-    wfLog('delete', 'EXAM', '🗑️ Exam deleted → Recycle Bin: ' + (entry.studentName || entry.regId || 'Unknown'), entry);
-    console.log('[Auth] Exam → RecycleBin ✓ id:', trashId);
-  }
-  window.sendExamToRecycleBin = sendExamToRecycleBin;
-
-  function patchRestoreDeletedItem() {
-    var orig = window.restoreDeletedItem;
-    if (typeof orig !== 'function' || orig._activityPatched) return false;
-    window.restoreDeletedItem = function (id) {
-      var gd = window.globalData;
-      var d = gd ? (gd.deletedItems || []).find(function(x){ return x.id===id; }) : null;
-      orig.call(this, id);
-      if (d) {
-        var label = d.item ? (d.item.studentName||d.item.name||d.item.title||d.item.regId||d.item.id||'Item') : 'Item';
-        wfLog('restore', (d.type||'item').toUpperCase(), '♻️ Restored: ' + label + ' [' + (d.type||'') + ']', d.item||{});
-      }
-    };
-    window.restoreDeletedItem._activityPatched = true;
-    return true;
-  }
-
-  function patchPermanentDelete() {
-    ['permanentDelete','_wfPermDel'].forEach(function(fnName) {
-      var orig = window[fnName];
-      if (typeof orig !== 'function' || orig._activityPatched) return;
-      window[fnName] = function (id) {
-        var gd = window.globalData;
-        var d = gd ? (gd.deletedItems||[]).find(function(x){ return x.id===id; }) : null;
-        orig.call(this, id);
-        if (d) {
-          var label = d.item ? (d.item.studentName||d.item.name||d.item.title||d.item.regId||d.item.id||'Item') : 'Item';
-          wfLog('permanent_delete', (d.type||'item').toUpperCase(), '❌ Permanently deleted: ' + label, d.item||{});
-        }
-      };
-      window[fnName]._activityPatched = true;
-    });
-    return true;
-  }
-
-  function patchExamDelete() {
-    ['deleteExamRegistration','deleteExamEntry'].forEach(function(fnName) {
-      var orig = window[fnName];
-      if (typeof orig !== 'function' || orig._recyclePatched) return;
-      window[fnName] = function (id) {
-        var gd = window.globalData;
-        if (gd && gd.examRegistrations) {
-          var entry = gd.examRegistrations.find(function(e){ return String(e.id)===String(id)||String(e.regId)===String(id); });
-          if (entry) sendExamToRecycleBin(entry);
-        }
-        return orig.call(this, id);
-      };
-      window[fnName]._recyclePatched = true;
-      console.log('[Auth] ' + fnName + ' patched ✓');
-    });
-  }
-
-  function runAllPatches() {
-    patchExamDelete();
-    patchRestoreDeletedItem();
-    patchPermanentDelete();
-  }
-
-  window.addEventListener('load', function () {
-    runAllPatches();
-    var i = 0;
-    var iv = setInterval(function(){ runAllPatches(); if(++i>20) clearInterval(iv); }, 500);
-  });
-})();
