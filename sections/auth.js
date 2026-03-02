@@ -189,11 +189,11 @@ function loadDashboard() {
   const loader = document.getElementById('loader');
   const content = document.getElementById('content');
 
-  // ✅ FIX: সাথে সাথে content hide + loader show — dashboard flash রোধ
+  // ✅ FIX: সাথে সাথে hide — dashboard এক মুহূর্তও দেখাবে না
   if (loader) loader.style.display = 'block';
   if (content) content.style.display = 'none';
 
-  // ✅ LOGIN → Dashboard, REFRESH → Same Tab (delay এর বাইরে আগেই ঠিক করো)
+  // ✅ FIX: delay এর বাইরে আগেই ঠিক করো — LOGIN vs REFRESH
   var justLoggedIn = sessionStorage.getItem('wf_just_logged_in') === 'true';
   var activeTab = 'dashboard';
   if (justLoggedIn) {
@@ -220,9 +220,8 @@ function loadDashboard() {
       updateGlobalStats();
       updateStudentCount();
 
-      // Populate dropdowns with account data
       if (typeof populateDropdowns === 'function') {
-        populateDropdowns(); // ✅ FIX: was populateAccountDropdown() — function doesn't exist
+        populateDropdowns();
       }
     } catch (err) {
       console.error("Dashboard Load Error:", err);
@@ -230,7 +229,7 @@ function loadDashboard() {
       if (loader) loader.style.display = 'none';
       if (content) content.style.display = 'block';
     }
-  }, 80); // ✅ 500ms → 80ms
+  }, 80); // ✅ 500ms → 80ms: loader দেখাবে, dashboard flash হবে না
 }
 
 // ===================================
@@ -380,16 +379,19 @@ window.loadDashboard = loadDashboard;
 window.switchTab = switchTab;
 
 // ═══════════════════════════════════════════════════
+// PAGE REFRESH → Same Tab Restore
+// ═══════════════════════════════════════════════════
 // PAGE REFRESH → Same Tab Restore (Flash-Free)
 // ═══════════════════════════════════════════════════
 (function() {
   if (sessionStorage.getItem('isLoggedIn') !== 'true') return;
 
-  // ✅ FIX: DOM parse হওয়ার সাথে সাথে inline style inject — browser আঁকার আগেই hide
+  // ✅ FIX: script parse হওয়ার সাথে সাথেই style inject
+  // Browser paint করার আগেই login hide + content hide — zero flash
   var style = document.createElement('style');
   style.id = 'wf-flash-prevent';
   style.textContent = '#loginSection{display:none!important}#dashboardSection{display:block!important}#content{display:none!important}';
-  document.head && document.head.appendChild(style);
+  (document.head || document.documentElement).appendChild(style);
 
   document.addEventListener('DOMContentLoaded', function() {
     var login = document.getElementById('loginSection');
@@ -406,14 +408,14 @@ window.switchTab = switchTab;
     var lastTab = localStorage.getItem('wingsfly_active_tab') || 'dashboard';
     console.log('[Auth] Refresh restore → tab:', lastTab);
 
-    // ✅ 300ms → 50ms: সরাসরি সঠিক tab এ যাও
+    // ✅ 300ms → 50ms
     setTimeout(function() {
       if (typeof updateGlobalStats === 'function') updateGlobalStats();
       if (typeof populateDropdowns === 'function') populateDropdowns();
       if (typeof switchTab === 'function') switchTab(lastTab, false);
       if (loader) loader.style.display = 'none';
       if (contentEl) contentEl.style.display = 'block';
-      // ✅ Inline style সরাও — এরপর normal CSS কাজ করবে
+      // inline style সরাও
       var s = document.getElementById('wf-flash-prevent');
       if (s) s.remove();
     }, 50);
