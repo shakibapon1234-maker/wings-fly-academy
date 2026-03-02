@@ -43,59 +43,38 @@ async function handleLogin(e) {
   const password = document.getElementById('loginPasswordField')?.value || form.password?.value || '';
 
   try {
-    // CRITICAL: Ensure globalData exists
+    // CRITICAL: Ensure globalData exists and has users array
     if (!window.globalData) {
-      window.globalData = { students: [], finance: [], employees: [], users: [] };
-    }
-
-    // ✅ FIX: users array empty হলে Supabase থেকে pull করো
-    if (!Array.isArray(window.globalData.users) || window.globalData.users.length === 0) {
-      console.log('[Auth] Users array empty — pulling from Supabase...');
-      btn.innerHTML = '<span class="spinner-border spinner-border-sm me-2"></span>Syncing...';
-      if (typeof window.wingsSync?.pullNow === 'function') {
-        await window.wingsSync.pullNow();
-      } else if (typeof window.loadFromCloud === 'function') {
-        await window.loadFromCloud();
-      }
+      window.globalData = {
+        students: [],
+        finance: [],
+        employees: [],
+        users: [
+          { username: 'admin', password: 'e7d3bfb67567c3d94bcecb2ce65ef146eac83e50dc3f3b89e81bb647a8bada4c', role: 'admin', name: 'Admin' }
+        ]
+      };
     }
 
     // 1. Check against User List
     let validUser = null;
 
-    // Safety check for users array — still empty হলে localStorage backup check
-    if (!Array.isArray(window.globalData.users) || window.globalData.users.length === 0) {
-      try {
-        const usersBackup = JSON.parse(localStorage.getItem('wingsfly_users_backup') || 'null');
-        if (usersBackup && usersBackup.length > 0) {
-          window.globalData.users = usersBackup;
-          console.log('[Auth] Users loaded from localStorage backup');
+    // Safety check for users array
+    if (!globalData.users || !Array.isArray(globalData.users)) {
+      globalData.users = [
+        {
+          username: 'admin',
+          password: 'e7d3bfb67567c3d94bcecb2ce65ef146eac83e50dc3f3b89e81bb647a8bada4c',
+          role: 'admin',
+          name: 'Admin'
         }
-      } catch(e) {}
-    }
-
-    // ✅ FIX: globalData.users empty হলে Supabase থেকে live pull করো
-    if (!globalData.users || globalData.users.length === 0) {
-      try {
-        const _sc = window.supabase?.createClient?.(
-          (window.SUPABASE_CONFIG?.URL || 'https://gtoldrltxjrwshubplfp.supabase.co'),
-          (window.SUPABASE_CONFIG?.KEY || 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6Imd0b2xkcmx0eGpyd3NodWJwbGZwIiwicm9sZSI6ImFub24iLCJpYXQiOjE3NzEwOTk5MTksImV4cCI6MjA4NjY3NTkxOX0.7NTx3tzU1C5VaewNZZHTaJf2WJ_GtjhQPKOymkxRsUk')
-        );
-        if (_sc) {
-          const { data: _cr } = await _sc.from('academy_data').select('users').eq('id', 'wingsfly_main').single();
-          if (_cr?.users && _cr.users.length > 0) {
-            globalData.users = _cr.users;
-            localStorage.setItem('wingsfly_users_backup', JSON.stringify(_cr.users));
-            console.log('[Auth] Users pulled from cloud:', _cr.users.length);
-          }
-        }
-      } catch (_e) { console.warn('[Auth] Cloud user pull failed:', _e); }
+      ];
     }
 
     // A. Hash the input password for secure comparison
     const hashedInput = await hashPassword(password);
 
     // B. Check Local Users — hash compare (new) OR plain text compare (backward compat)
-    validUser = (window.globalData.users || []).find(u =>
+    validUser = globalData.users.find(u =>
       u.username === username &&
       (u.password === hashedInput || u.password === password)
     );
@@ -104,6 +83,8 @@ async function handleLogin(e) {
     if (validUser) {
       await migratePasswordIfNeeded(validUser, password);
     }
+
+    // Emergency fallback removed — use Settings to reset password if locked out
 
     // 3. Final validation
     if (validUser) {
@@ -208,8 +189,20 @@ function loadDashboard() {
   const loader = document.getElementById('loader');
   const content = document.getElementById('content');
 
+  // ✅ FIX: সাথে সাথে content hide + loader show — dashboard flash রোধ
   if (loader) loader.style.display = 'block';
   if (content) content.style.display = 'none';
+
+  // ✅ LOGIN → Dashboard, REFRESH → Same Tab (delay এর বাইরে আগেই ঠিক করো)
+  var justLoggedIn = sessionStorage.getItem('wf_just_logged_in') === 'true';
+  var activeTab = 'dashboard';
+  if (justLoggedIn) {
+    sessionStorage.removeItem('wf_just_logged_in');
+    activeTab = 'dashboard';
+    localStorage.setItem('wingsfly_active_tab', 'dashboard');
+  } else {
+    activeTab = localStorage.getItem('wingsfly_active_tab') || 'dashboard';
+  }
 
   setTimeout(() => {
     try {
@@ -220,17 +213,6 @@ function loadDashboard() {
         const mainEnd = document.getElementById('mainEndDate');
         if (mainStart) mainStart.value = '';
         if (mainEnd) mainEnd.value = '';
-      }
-
-      // ✅ LOGIN → Dashboard সবসময়, REFRESH → Same Tab
-      var justLoggedIn = sessionStorage.getItem('wf_just_logged_in') === 'true';
-      var activeTab = 'dashboard';
-      if (justLoggedIn) {
-        sessionStorage.removeItem('wf_just_logged_in');
-        activeTab = 'dashboard';
-        localStorage.setItem('wingsfly_active_tab', 'dashboard');
-      } else {
-        activeTab = localStorage.getItem('wingsfly_active_tab') || 'dashboard';
       }
 
       switchTab(activeTab, false);
@@ -248,7 +230,7 @@ function loadDashboard() {
       if (loader) loader.style.display = 'none';
       if (content) content.style.display = 'block';
     }
-  }, 500);
+  }, 80); // ✅ 500ms → 80ms
 }
 
 // ===================================
@@ -398,18 +380,22 @@ window.loadDashboard = loadDashboard;
 window.switchTab = switchTab;
 
 // ═══════════════════════════════════════════════════
-// PAGE REFRESH → Same Tab Restore
+// PAGE REFRESH → Same Tab Restore (Flash-Free)
 // ═══════════════════════════════════════════════════
 (function() {
   if (sessionStorage.getItem('isLoggedIn') !== 'true') return;
+
+  // ✅ FIX: DOM parse হওয়ার সাথে সাথে inline style inject — browser আঁকার আগেই hide
+  var style = document.createElement('style');
+  style.id = 'wf-flash-prevent';
+  style.textContent = '#loginSection{display:none!important}#dashboardSection{display:block!important}#content{display:none!important}';
+  document.head && document.head.appendChild(style);
+
   document.addEventListener('DOMContentLoaded', function() {
     var login = document.getElementById('loginSection');
     var dash  = document.getElementById('dashboardSection');
     if (!login || !dash) return;
-    if (!dash.classList.contains('d-none')) return;
 
-    // ✅ FIX: Flash রোধ করতে login section সাথে সাথে hide করো
-    // loader show করো যাতে blank flash না দেখায়
     login.classList.add('d-none');
     dash.classList.remove('d-none');
     var loader = document.getElementById('loader');
@@ -420,14 +406,17 @@ window.switchTab = switchTab;
     var lastTab = localStorage.getItem('wingsfly_active_tab') || 'dashboard';
     console.log('[Auth] Refresh restore → tab:', lastTab);
 
-    // ✅ FIX: loadDashboard() বাদ — সরাসরি lastTab এ যাও (dashboard flash হবে না)
+    // ✅ 300ms → 50ms: সরাসরি সঠিক tab এ যাও
     setTimeout(function() {
       if (typeof updateGlobalStats === 'function') updateGlobalStats();
       if (typeof populateDropdowns === 'function') populateDropdowns();
       if (typeof switchTab === 'function') switchTab(lastTab, false);
       if (loader) loader.style.display = 'none';
       if (contentEl) contentEl.style.display = 'block';
-    }, 300);
+      // ✅ Inline style সরাও — এরপর normal CSS কাজ করবে
+      var s = document.getElementById('wf-flash-prevent');
+      if (s) s.remove();
+    }, 50);
   });
 })();
 
