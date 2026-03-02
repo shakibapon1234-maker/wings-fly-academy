@@ -379,15 +379,16 @@
                                                 </div>
                                                 <div>
                                                     <label class="sc-lb">✅ গোপন উত্তর</label>
-                                                    <!-- type=number trick prevents Chrome username/password detection -->
+                                                    <!-- Prevent Chrome from detecting this as a password field -->
                                                     <div class="sc-g">
-                                                        <input type="password" id="settingsRecoveryAnswer" class="sc-in"
+                                                        <input type="text" id="settingsRecoveryAnswer" class="sc-in"
                                                             placeholder="গোপন উত্তর লিখুন"
-                                                            autocomplete="new-password" data-form-type="other" data-lpignore="true"
-                                                            name="wf_rec_answer"
-                                                            onfocus="this.type='text'"
-                                                            onblur="this.type='password'"
-                                                            style="font-family:inherit;">
+                                                            autocomplete="off" data-form-type="other" data-lpignore="true"
+                                                            data-1p-ignore="true" data-bwignore="true"
+                                                            name="wf_recovery_secret_ans"
+                                                            style="font-family:inherit;-webkit-text-security:disc;"
+                                                            onfocus="this.style.webkitTextSecurity='none'"
+                                                            onblur="this.style.webkitTextSecurity='disc'">
                                                         <button class="sc-ey" type="button" id="scRecEyeBtn"
                                                             onclick="scTogRecAns()">👁️</button>
                                                     </div>
