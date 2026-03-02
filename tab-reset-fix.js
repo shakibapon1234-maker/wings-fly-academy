@@ -2,7 +2,90 @@
 // TAB RESET FIX — Wings Fly Aviation Academy
 // Fix 1: Dashboard date — dynamic current date
 // Fix 2: Accounts tab — reset to initial state on tab switch
+// Fix 3: Refresh Flash Prevention — সরাসরি সঠিক tab এ যাও
 // ============================================================
+
+// ── Fix 3: Refresh Flash Prevention ──────────────────────────
+// renderFullUI() এবং loadDashboard() intercept করো
+// Supabase sync শেষে renderFullUI() call হয় — সেটা dashboard reset করে দেয়
+(function() {
+    if (sessionStorage.getItem('isLoggedIn') !== 'true') return;
+
+    function getTargetTab() {
+        return localStorage.getItem('wingsfly_active_tab') || 'dashboard';
+    }
+
+    function isRefresh() {
+        return sessionStorage.getItem('wf_just_logged_in') !== 'true';
+    }
+
+    function goToCorrectTab() {
+        var tab = getTargetTab();
+        if (tab === 'dashboard') return; // dashboard হলে কিছু করার নেই
+        if (typeof switchTab === 'function') {
+            switchTab(tab, false);
+            console.log('[TabResetFix] Redirected to tab:', tab);
+        }
+    }
+
+    // ✅ renderFullUI intercept — supabase sync এর পরে dashboard reset রোধ
+    function interceptRenderFullUI() {
+        var original = window.renderFullUI;
+        if (typeof original !== 'function') return false;
+
+        window.renderFullUI = function() {
+            original.apply(this, arguments); // আগে run করতে দাও (data render)
+            if (isRefresh()) {
+                // Refresh এ — data render হওয়ার পরে সঠিক tab এ যাও
+                setTimeout(goToCorrectTab, 30);
+            }
+        };
+        console.log('[TabResetFix] renderFullUI intercepted ✓');
+        return true;
+    }
+
+    // ✅ loadDashboard intercept — সরাসরি loadDashboard call হলেও ধরো
+    function interceptLoadDashboard() {
+        var original = window.loadDashboard;
+        if (typeof original !== 'function') return false;
+
+        window.loadDashboard = function() {
+            if (!isRefresh()) {
+                // Fresh login — স্বাভাবিকভাবে চলুক
+                return original.apply(this, arguments);
+            }
+            // Refresh — loader দেখাও, সঠিক tab এ যাও
+            var loader = document.getElementById('loader');
+            var content = document.getElementById('content');
+            var login = document.getElementById('loginSection');
+            var dash = document.getElementById('dashboardSection');
+            if (login) login.classList.add('d-none');
+            if (dash) dash.classList.remove('d-none');
+            if (loader) loader.style.display = 'block';
+            if (content) content.style.display = 'none';
+            setTimeout(function() {
+                if (typeof updateGlobalStats === 'function') updateGlobalStats();
+                if (typeof populateDropdowns === 'function') populateDropdowns();
+                goToCorrectTab();
+                if (loader) loader.style.display = 'none';
+                if (content) content.style.display = 'block';
+            }, 80);
+        };
+        console.log('[TabResetFix] loadDashboard intercepted ✓');
+        return true;
+    }
+
+    // DOMContentLoaded এর আগে এবং পরে দুটোই try করো
+    var rdAttempts = 0, ldAttempts = 0;
+    var rdDone = false, ldDone = false;
+
+    var retry = setInterval(function() {
+        if (!rdDone) rdDone = interceptRenderFullUI();
+        if (!ldDone) ldDone = interceptLoadDashboard();
+        rdAttempts++;
+        if ((rdDone && ldDone) || rdAttempts > 50) clearInterval(retry);
+    }, 100);
+})();
 
 (function () {
 
