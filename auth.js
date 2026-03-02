@@ -189,8 +189,20 @@ function loadDashboard() {
   const loader = document.getElementById('loader');
   const content = document.getElementById('content');
 
+  // ✅ FIX: সাথে সাথে content hide + loader show — dashboard flash রোধ
   if (loader) loader.style.display = 'block';
   if (content) content.style.display = 'none';
+
+  // ✅ LOGIN → Dashboard, REFRESH → Same Tab (check করো আগেই, delay এর বাইরে)
+  var justLoggedIn = sessionStorage.getItem('wf_just_logged_in') === 'true';
+  var activeTab = 'dashboard';
+  if (justLoggedIn) {
+    sessionStorage.removeItem('wf_just_logged_in');
+    activeTab = 'dashboard';
+    localStorage.setItem('wingsfly_active_tab', 'dashboard');
+  } else {
+    activeTab = localStorage.getItem('wingsfly_active_tab') || 'dashboard';
+  }
 
   setTimeout(() => {
     try {
@@ -203,17 +215,6 @@ function loadDashboard() {
         if (mainEnd) mainEnd.value = '';
       }
 
-      // ✅ LOGIN → Dashboard সবসময়, REFRESH → Same Tab
-      var justLoggedIn = sessionStorage.getItem('wf_just_logged_in') === 'true';
-      var activeTab = 'dashboard';
-      if (justLoggedIn) {
-        sessionStorage.removeItem('wf_just_logged_in');
-        activeTab = 'dashboard';
-        localStorage.setItem('wingsfly_active_tab', 'dashboard');
-      } else {
-        activeTab = localStorage.getItem('wingsfly_active_tab') || 'dashboard';
-      }
-
       switchTab(activeTab, false);
 
       updateGlobalStats();
@@ -221,7 +222,7 @@ function loadDashboard() {
 
       // Populate dropdowns with account data
       if (typeof populateDropdowns === 'function') {
-        populateDropdowns(); // ✅ FIX: was populateAccountDropdown() — function doesn't exist
+        populateDropdowns();
       }
     } catch (err) {
       console.error("Dashboard Load Error:", err);
@@ -229,7 +230,7 @@ function loadDashboard() {
       if (loader) loader.style.display = 'none';
       if (content) content.style.display = 'block';
     }
-  }, 500);
+  }, 80); // ✅ 500ms → 80ms: loader দেখাবে, dashboard flash হবে না
 }
 
 // ===================================
@@ -379,18 +380,22 @@ window.loadDashboard = loadDashboard;
 window.switchTab = switchTab;
 
 // ═══════════════════════════════════════════════════
-// PAGE REFRESH → Same Tab Restore
+// PAGE REFRESH → Same Tab Restore (Flash-Free)
 // ═══════════════════════════════════════════════════
 (function() {
   if (sessionStorage.getItem('isLoggedIn') !== 'true') return;
+
+  // ✅ FIX: DOM load হওয়ার আগেই inline style inject করো — zero flash
+  var style = document.createElement('style');
+  style.id = 'wf-flash-prevent';
+  style.textContent = '#loginSection{display:none!important}#dashboardSection{display:block!important}#content{display:none!important}';
+  document.head && document.head.appendChild(style);
+
   document.addEventListener('DOMContentLoaded', function() {
     var login = document.getElementById('loginSection');
     var dash  = document.getElementById('dashboardSection');
     if (!login || !dash) return;
-    if (!dash.classList.contains('d-none')) return;
 
-    // ✅ FIX: Flash রোধ করতে login section সাথে সাথে hide করো
-    // loader show করো যাতে blank flash না দেখায়
     login.classList.add('d-none');
     dash.classList.remove('d-none');
     var loader = document.getElementById('loader');
@@ -401,14 +406,17 @@ window.switchTab = switchTab;
     var lastTab = localStorage.getItem('wingsfly_active_tab') || 'dashboard';
     console.log('[Auth] Refresh restore → tab:', lastTab);
 
-    // ✅ FIX: loadDashboard() বাদ — সরাসরি lastTab এ যাও (dashboard flash হবে না)
+    // ✅ FIX: 300ms → 50ms: যত দ্রুত সম্ভব সঠিক tab এ যাও
     setTimeout(function() {
       if (typeof updateGlobalStats === 'function') updateGlobalStats();
       if (typeof populateDropdowns === 'function') populateDropdowns();
       if (typeof switchTab === 'function') switchTab(lastTab, false);
       if (loader) loader.style.display = 'none';
       if (contentEl) contentEl.style.display = 'block';
-    }, 300);
+      // ✅ Inline style সরিয়ে দাও — এরপর normal CSS কাজ করবে
+      var preventStyle = document.getElementById('wf-flash-prevent');
+      if (preventStyle) preventStyle.remove();
+    }, 50);
   });
 })();
 
