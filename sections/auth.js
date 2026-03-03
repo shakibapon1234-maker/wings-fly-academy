@@ -497,12 +497,14 @@ document.addEventListener('DOMContentLoaded', function () {
         </div>
         <label style="display:block;font-size:0.67rem;font-weight:700;letter-spacing:1.3px;text-transform:uppercase;color:rgba(0,200,255,0.6);margin-bottom:5px;">🔑 নতুন Password</label>
         <input type="password" id="wfFP1" style="width:100%;background:rgba(3,8,30,0.8);border:1.5px solid rgba(0,217,255,0.2);border-radius:9px;color:#deeeff;padding:11px 14px;font-size:0.87rem;outline:none;box-sizing:border-box;margin-bottom:10px;"
-          autocomplete="new-password" placeholder="New password (min 4 chars)"
+          autocomplete="new-password" placeholder="New password (min 4 chars)" name="wf_np_a"
+          data-lpignore="true" data-form-type="other" data-1p-ignore="true"
           onfocus="this.style.borderColor='#00d9ff'" onblur="this.style.borderColor='rgba(0,217,255,0.2)'"
           onkeydown="if(event.key==='Enter')wfFSP()">
         <label style="display:block;font-size:0.67rem;font-weight:700;letter-spacing:1.3px;text-transform:uppercase;color:rgba(0,200,255,0.6);margin-bottom:5px;">🔁 Confirm Password</label>
         <input type="password" id="wfFP2" style="width:100%;background:rgba(3,8,30,0.8);border:1.5px solid rgba(0,217,255,0.2);border-radius:9px;color:#deeeff;padding:11px 14px;font-size:0.87rem;outline:none;box-sizing:border-box;"
-          autocomplete="new-password" placeholder="Re-enter new password"
+          autocomplete="new-password" placeholder="Re-enter new password" name="wf_np_b"
+          data-lpignore="true" data-form-type="other" data-1p-ignore="true"
           onfocus="this.style.borderColor='#00d9ff'" onblur="this.style.borderColor='rgba(0,217,255,0.2)'"
           onkeydown="if(event.key==='Enter')wfFSP()">
         <div id="wfFE2" style="font-size:0.7rem;color:#ff4455;min-height:16px;margin-top:4px;font-weight:600;"></div>
@@ -589,6 +591,12 @@ window.wfFSP = async function () {
   if (gd.credentials) gd.credentials.password = hashed;
   localStorage.setItem('wingsfly_data', JSON.stringify(gd));
   if (typeof saveToStorage === 'function') saveToStorage();
+  // ✅ FIX: fields আগেই clear করো যাতে Chrome ‘Update password?’ popup না আসে
+  var fp1 = document.getElementById('wfFP1'), fp2 = document.getElementById('wfFP2');
+  if (fp1) { fp1.value = ''; fp1.blur(); }
+  if (fp2) { fp2.value = ''; fp2.blur(); }
+  var faEl = document.getElementById('wfFA');
+  if (faEl) { faEl.value = ''; }
   wfFC();
   // ✅ FIX: username/password fields clear করো যাতে browser autofill না হয়
   var uf = document.getElementById('loginUsernameField');

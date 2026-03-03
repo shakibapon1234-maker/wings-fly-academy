@@ -115,6 +115,36 @@
         }, 80);
       });
     };
+
+    // ✅ Add Transaction: financeModal is also in modals-student.html
+    window.openAddTransaction = function () {
+      if (_loaded.has('studentModal')) {
+        // Already loaded — just open financeModal
+        _openModal('financeModal');
+        // Date auto-fill
+        setTimeout(function () {
+          var d = document.querySelector('#financeForm input[name="date"]');
+          if (d && !d.value) { var n = new Date(); d.value = n.toISOString().split('T')[0]; }
+          if (typeof window.populateDropdowns === 'function') window.populateDropdowns();
+        }, 60);
+        return;
+      }
+      loadAndOpen(
+        '__modalPlaceholderStudents',
+        'sections/modals-student.html',
+        'studentModal', // load tracker দিয়ে
+        function () {
+          console.log('[SectionLoader] Finance modals ready');
+        }
+      ).then(function () {
+        setTimeout(function () {
+          if (typeof window.populateDropdowns === 'function') window.populateDropdowns();
+          var d = document.querySelector('#financeForm input[name="date"]');
+          if (d && !d.value) { var n = new Date(); d.value = n.toISOString().split('T')[0]; }
+          _openModal('financeModal');
+        }, 80);
+      });
+    };
   }
 
   function _fillStudentForm(studentId) {
@@ -162,6 +192,24 @@
         }
       };
     });
+
+    // ✅ openExamRegistration: exam modal is in modals-other.html
+    window.openExamRegistration = function () {
+      var orig = window.openExamModal || function () { _openModal('examRegistrationModal'); };
+      if (_loaded.has('__other_modals_loaded')) {
+        _openModal('examRegistrationModal');
+        return;
+      }
+      loadAndOpen(
+        '__modalPlaceholderOther',
+        'sections/modals-other.html',
+        '__other_modals_loaded',
+        null
+      ).then(function () {
+        setTimeout(function () { _openModal('examRegistrationModal'); }, 60);
+      });
+    };
+
     console.log('[SectionLoader] Other modal functions patched');
   }
 
