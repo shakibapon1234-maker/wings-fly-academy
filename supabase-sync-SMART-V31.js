@@ -514,10 +514,11 @@
         localStorage.setItem('lastSyncTime', String(cloudTimestamp));
         _save();
 
-        // Partial tables থেকে incremental pull
-        if (_partialTablesReady) {
-          await _pullPartial(silent);
-        }
+        // ✅ FIX: Full sync এর সময় wf_* merge করব না!
+        // academy_data থেকে full sync হলে wf_* tables-এর data ignore করো।
+        // _pullPartial() শুধু তখনই ডাকো যখন local data already current (else branch)
+        // এটা prevent করে snowball effect: wf_* old records + academy_data records = বাড়তে থাকা student count
+        log('✅', `Full sync from academy_data complete. Skipping wf_* merge to prevent duplicates.`);
 
         if (typeof window.renderFullUI === 'function') window.renderFullUI();
         if (!silent) showNotification('📥 Synced from cloud', 'success');
@@ -525,7 +526,7 @@
       } else {
         if (!silent) log('ℹ️', 'Local data is current ✓');
 
-        // Partial pull চালাও (নতুন records থাকতে পারে)
+        // ✅ Incremental pull শুধু এখানে — local up-to-date হলেই নতুন records দেখো
         if (_partialTablesReady) {
           await _pullPartial(true);
         }
