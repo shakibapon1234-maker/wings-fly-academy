@@ -34,7 +34,21 @@
       const html = await res.text();
 
       const el = document.getElementById(placeholderId);
-      if (el) el.innerHTML = html;
+      if (el) {
+        el.innerHTML = html;
+        // ✅ FIX: innerHTML দিয়ে inject করা <script> ট্যাগ browser execute করে না
+        // তাই manually সব inline script খুঁজে re-create করতে হবে
+        var scripts = el.querySelectorAll('script');
+        scripts.forEach(function (oldScript) {
+          var newScript = document.createElement('script');
+          if (oldScript.src) {
+            newScript.src = oldScript.src;
+          } else {
+            newScript.textContent = oldScript.textContent;
+          }
+          oldScript.parentNode.replaceChild(newScript, oldScript);
+        });
+      }
 
       _loaded.add(modalId);
 
@@ -224,7 +238,15 @@
         if (!res.ok) throw new Error('HTTP ' + res.status);
         const html = await res.text();
         const el = document.getElementById(placeholderId);
-        if (el) el.innerHTML = html;
+        if (el) {
+          el.innerHTML = html;
+          var scripts = el.querySelectorAll('script');
+          scripts.forEach(function (oldScript) {
+            var newScript = document.createElement('script');
+            if (oldScript.src) { newScript.src = oldScript.src; } else { newScript.textContent = oldScript.textContent; }
+            oldScript.parentNode.replaceChild(newScript, oldScript);
+          });
+        }
         _loaded.add(modalId);
         if (typeof onLoaded === 'function') try { onLoaded(); } catch (e) { }
       } catch (err) {
@@ -243,7 +265,16 @@
       .then(function (r) { return r.text(); })
       .then(function (html) {
         var el = document.getElementById('__modalPlaceholderOther');
-        if (el) { el.innerHTML = html; _loaded.add('__other_modals_loaded'); }
+        if (el) {
+          el.innerHTML = html;
+          _loaded.add('__other_modals_loaded');
+          var scripts = el.querySelectorAll('script');
+          scripts.forEach(function (oldScript) {
+            var newScript = document.createElement('script');
+            if (oldScript.src) { newScript.src = oldScript.src; } else { newScript.textContent = oldScript.textContent; }
+            oldScript.parentNode.replaceChild(newScript, oldScript);
+          });
+        }
         console.log('[SectionLoader] Other modals preloaded silently');
       })
       .catch(function () { });
@@ -283,7 +314,16 @@
         .then(function (r) { return r.text(); })
         .then(function (html) {
           var el = document.getElementById('__modalPlaceholderSettings');
-          if (el) { el.innerHTML = html; _loaded.add('settingsModal'); }
+          if (el) {
+            el.innerHTML = html;
+            _loaded.add('settingsModal');
+            var scripts = el.querySelectorAll('script');
+            scripts.forEach(function (oldScript) {
+              var newScript = document.createElement('script');
+              if (oldScript.src) { newScript.src = oldScript.src; } else { newScript.textContent = oldScript.textContent; }
+              oldScript.parentNode.replaceChild(newScript, oldScript);
+            });
+          }
         }).catch(function () { });
     }
   };
