@@ -480,12 +480,13 @@
           try { return JSON.parse(localStorage.getItem('wingsfly_users_backup') || 'null'); } catch (e) { return null; }
         })();
 
-        // Partial tables থেকে students/finance/employees নেব, meta থেকে বাকি সব
+        // ✅ FIX: academy_data কে BASE হিসেবে ব্যবহার করো
+        // wf_* tables শুধু newer/updated records যোগ করবে অথবা override করবে
+        // এটা prevent করে wf_* tables-এ থাকা পুরোনো/ভুল data দিয়ে সঠিক data মুছে যাওয়া
         window.globalData = Object.assign(gd, {
-          // শুধু partial tables না থাকলে meta থেকে students নাও
-          students: _partialTablesReady ? (gd.students || []) : (data.students || []),
-          employees: _partialTablesReady ? (gd.employees || []) : (data.employees || []),
-          finance: _partialTablesReady ? (gd.finance || []) : (data.finance || []),
+          students: data.students || gd.students || [],  // academy_data is base
+          employees: data.employees || gd.employees || [],
+          finance: data.finance || gd.finance || [],
           settings: mergedSettings,
           incomeCategories: data.income_categories || [],
           expenseCategories: data.expense_categories || [],
