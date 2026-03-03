@@ -492,13 +492,70 @@
   }
   window.updatePaidFinanceStatusBadge = updatePaidFinanceStatusBadge;
 
-  // ⛔ DISABLED: V31 sync চলার সময় এই function data loop তৈরি করে
-  // auto-heal এখন cloud count দেখে pull করবে না
-  // V31 নিজেই sync manage করে
+  // ============================================
+  // HEAL 4: Cloud vs Local Sync Mismatch (VERSION-BASED)
+  // Multi-PC sync: অন্য PC push করলে এই PC pull করবে
+  // ✅ VERSION দিয়ে compare করো — COUNT নয় (count misleading হয়)
+  // ============================================
   async function healSyncMismatch() {
-    hLog('info', 'healSyncMismatch skipped — V31 manages sync');
-    return 0;
+    if (!navigator.onLine) {
+      hLog('info', 'Offline — sync check skip');
+      return 0;
+    }
+
+    let fixed = 0;
+
+    try {
+      const res = await fetch(API_URL, { headers: HEADERS, signal: AbortSignal.timeout(8000) });
+      if (!res.ok) {
+        hLog('warn', `Cloud check failed: HTTP ${res.status}`);
+        return 0;
+      }
+
+      const arr = await res.json();
+      const cloud = arr[0];
+
+      if (!cloud) {
+        // Cloud-এ কোনো data নেই — push করো
+        hLog('fix', 'Cloud-এ data নেই — local data push করা হচ্ছে');
+        if (typeof window.scheduleSyncPush === 'function') window.scheduleSyncPush('Heal: Cloud empty push');
+        else if (typeof window.saveToCloud === 'function') await window.saveToCloud();
+        healToast('Cloud empty ছিল — data push করা হয়েছে', 'fix');
+        fixed++;
+        return fixed;
+      }
+
+      const localVer = parseInt(localStorage.getItem('wings_local_version')) || 0;
+      const cloudVer = parseInt(cloud.version) || 0;
+
+      // ✅ VERSION-BASED: শুধু cloud VERSION বড় হলেই pull করো
+      // এটা multi-PC sync নিশ্চিত করে: PC-A push করে v100, PC-B local v99 → pull
+      if (cloudVer > localVer + 1) {
+        // +1 tolerance: মাত্র ১ version পার্থক্য হলে V31 নিজেই handle করবে
+        hLog('fix', `Cloud v${cloudVer} > Local v${localVer} (gap: ${cloudVer - localVer}) — অন্য PC থেকে নতুন data আছে, pull করা হচ্ছে`);
+        if (typeof window.loadFromCloud === 'function') {
+          await window.loadFromCloud(true);
+          if (typeof window.renderFullUI === 'function') window.renderFullUI();
+        }
+        healToast(`Multi-PC sync: Cloud v${cloudVer} pull করা হয়েছে`, 'fix');
+        fixed++;
+      } else if (cloudVer > localVer) {
+        // ছোট gap — V31 next sync-এই handle করবে
+        hLog('info', `Minor version gap: Cloud v${cloudVer} vs Local v${localVer} — V31 will handle`);
+      } else if (localVer > cloudVer + 2) {
+        // Local-এ অনেক বেশি version → push করো
+        hLog('fix', `Local v${localVer} >> Cloud v${cloudVer} — push করা হচ্ছে`);
+        if (typeof window.scheduleSyncPush === 'function') window.scheduleSyncPush('Heal: Local version ahead, push');
+        fixed++;
+      }
+
+    } catch (e) {
+      hLog('err', 'Sync heal error: ' + e.message);
+    }
+
+    return fixed;
   }
+
 
 
   // ============================================
