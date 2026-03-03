@@ -593,9 +593,9 @@
                                                             পারবেন</p>
                                                     </div>
                                                 </div>
-                                                <span class="sc-ar op" id="scRecArrow">▼</span>
+                                                <span class="sc-ar" id="scRecArrow">▼</span>
                                             </div>
-                                            <div class="sc-rb op" id="scRecBody">
+                                            <div class="sc-rb" id="scRecBody">
                                                 <div class="sc-dv"></div>
                                                 <div style="margin-bottom:13px;">
                                                     <label class="sc-lb">❓ আপনার প্রশ্ন লিখুন</label>
@@ -615,11 +615,9 @@
                                                             data-form-type="other" data-lpignore="true"
                                                             data-1p-ignore="true" data-bwignore="true"
                                                             name="wf_recovery_secret_ans"
-                                                            style="font-family:inherit;-webkit-text-security:disc;"
-                                                            onfocus="this.style.webkitTextSecurity='none'"
-                                                            onblur="this.style.webkitTextSecurity='disc'">
+                                                            style="font-family:inherit;-webkit-text-security:disc;-moz-text-security:disc;">
                                                         <button class="sc-ey" type="button" id="scRecEyeBtn"
-                                                            onclick="scTogRecAns()">👁️</button>
+                                                            onclick="scTogRecAns()">🙈</button>
                                                     </div>
                                                 </div>
                                                 <div class="sc-tip"
@@ -664,17 +662,46 @@
                                         function scPwStr(v) { const f = document.getElementById('scPwBar'), t = document.getElementById('scPwTxt'); if (!f) return; if (!v) { f.style.width = '0'; if (t) t.textContent = ''; return; } let s = 0; if (v.length >= 8) s++; if (v.length >= 12) s++; if (/[A-Z]/.test(v)) s++; if (/[0-9]/.test(v)) s++; if (/[^A-Za-z0-9]/.test(v)) s++; const L = [{ w: '20%', c: '#ff3b5c', l: 'Too weak' }, { w: '40%', c: '#ff8c00', l: 'Weak' }, { w: '60%', c: '#ffcc00', l: 'Fair' }, { w: '80%', c: '#00d9ff', l: 'Good' }, { w: '100%', c: '#00ff88', l: 'Strong 💪' }]; const lv = L[Math.min(s, 4)]; f.style.width = lv.w; f.style.background = lv.c; if (t) { t.textContent = lv.l; t.style.color = lv.c; } }
                                         function scPwMatch() { const p1 = document.getElementById('settingsPassword')?.value || '', p2 = document.getElementById('settingsPasswordConfirm')?.value || '', mt = document.getElementById('scPwMatchTxt'); if (!mt) return; if (!p2) { mt.textContent = ''; return; } mt.textContent = p1 === p2 ? '✅ Password মিলে গেছে' : '❌ Password মিলছে না'; mt.style.color = p1 === p2 ? '#00ff88' : '#ff4455'; }
                                         function scTogRec() { const b = document.getElementById('scRecBody'), a = document.getElementById('scRecArrow'); if (!b) return; b.classList.toggle('op'); if (a) a.classList.toggle('op'); }
+                                        function scTogRecAns() {
+                                            const p = document.getElementById('settingsRecoveryAnswer');
+                                            const btn = document.getElementById('scRecEyeBtn');
+                                            if (!p) return;
+                                            const isHidden = (p.style.webkitTextSecurity !== 'none');
+                                            if (isHidden) {
+                                                p.style.webkitTextSecurity = 'none';
+                                                p.style.mozTextSecurity = 'none';
+                                                if (btn) btn.textContent = '👁️';
+                                            } else {
+                                                p.style.webkitTextSecurity = 'disc';
+                                                p.style.mozTextSecurity = 'disc';
+                                                if (btn) btn.textContent = '🙈';
+                                            }
+                                        }
                                         window.scTogRec = scTogRec; window.scTogRecAns = scTogRecAns;
-                                        function scTogRecAns() { const p = document.getElementById('settingsRecoveryAnswer'), b = document.getElementById('scRecEyeBtn'); if (!p) return; const vis = p.style.webkitTextSecurity === 'none'; p.style.webkitTextSecurity = vis ? 'disc' : 'none'; p.style.mozTextSecurity = vis ? 'disc' : 'none'; if (b) b.textContent = vis ? '👁️' : '🙈'; }
                                         function scLockBadge() { const v = parseInt(document.getElementById('settingsAutoLockout')?.value || 0), b = document.getElementById('scLockBadge'); if (!b) return; b.textContent = v === 0 ? '🔓 Disabled' : v < 60 ? '🔒 ' + v + 'min' : '🔒 ' + (v / 60) + 'h auto-lock'; }
                                         function scLoad() {
                                             const gd = window.globalData; if (!gd) return; const s = gd.settings || {};
                                             const uEl = document.getElementById('settingsUsername');
                                             if (uEl) { uEl.value = s.adminUsername || (gd.users && gd.users[0] ? gd.users[0].username : ''); }
+                                            // ✅ Password fields সবসময় খালি থাকবে (security)
+                                            const pwEl = document.getElementById('settingsPassword');
+                                            const pw2El = document.getElementById('settingsPasswordConfirm');
+                                            if (pwEl) pwEl.value = '';
+                                            if (pw2El) pw2El.value = '';
                                             const lEl = document.getElementById('settingsAutoLockout');
                                             if (lEl && s.autoLockoutMinutes !== undefined) lEl.value = s.autoLockoutMinutes;
                                             const rqEl = document.getElementById('settingsRecoveryQuestion');
                                             if (rqEl && s.recoveryQuestion) rqEl.value = s.recoveryQuestion;
+                                            // ✅ Recovery Answer: সবসময় খালি ও masked — কখনো pre-filled দেখাবে না
+                                            const raEl = document.getElementById('settingsRecoveryAnswer');
+                                            if (raEl) { raEl.value = ''; raEl.style.webkitTextSecurity = 'disc'; raEl.style.mozTextSecurity = 'disc'; }
+                                            const recEyeBtn = document.getElementById('scRecEyeBtn');
+                                            if (recEyeBtn) recEyeBtn.textContent = '🙈';
+                                            // ✅ Recovery section closed by default on each load
+                                            const scRecBody2 = document.getElementById('scRecBody');
+                                            const scRecArrow2 = document.getElementById('scRecArrow');
+                                            if (scRecBody2 && scRecBody2.classList.contains('op')) { scRecBody2.classList.remove('op'); }
+                                            if (scRecArrow2 && scRecArrow2.classList.contains('op')) { scRecArrow2.classList.remove('op'); }
                                             scLockBadge();
                                         }
                                         async function scSave() {
@@ -699,6 +726,16 @@
                                             if (typeof saveToStorage === 'function') saveToStorage();
                                             if (typeof wfInitAutoLockout === 'function') wfInitAutoLockout(lk);
                                             ['settingsPassword', 'settingsPasswordConfirm', 'settingsRecoveryAnswer'].forEach(function (id) { const el = document.getElementById(id); if (el) el.value = ''; });
+                                            // ✅ Answer field reset to hidden state
+                                            const recAnsEl = document.getElementById('settingsRecoveryAnswer');
+                                            if (recAnsEl) { recAnsEl.style.webkitTextSecurity = 'disc'; recAnsEl.style.mozTextSecurity = 'disc'; }
+                                            const recEyeBtn = document.getElementById('scRecEyeBtn');
+                                            if (recEyeBtn) recEyeBtn.textContent = '🙈';
+                                            // ✅ Collapse the Secret Recovery section after save
+                                            const scRecBody = document.getElementById('scRecBody');
+                                            const scRecArrow = document.getElementById('scRecArrow');
+                                            if (scRecBody && scRecBody.classList.contains('op')) { scRecBody.classList.remove('op'); }
+                                            if (scRecArrow && scRecArrow.classList.contains('op')) { scRecArrow.classList.remove('op'); }
                                             const pb = document.getElementById('scPwBar'); if (pb) pb.style.width = '0';
                                             const pt = document.getElementById('scPwTxt'); if (pt) pt.textContent = '';
                                             const pm = document.getElementById('scPwMatchTxt'); if (pm) pm.textContent = '';

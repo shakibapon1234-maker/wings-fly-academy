@@ -1,7 +1,11 @@
 // ====================================
+// ⚠️ IMPORTANT: এই ফাইলটি index.html লোড করে না!
+// ✅ ACTIVE FILE: sections/auth.js (index.html এটাই ব্যবহার করে)
+// ❌ এই root/auth.js ফাইল অব্যবহৃত — শুধু backup হিসেবে আছে
+// যেকোনো পরিবর্তন sections/auth.js তে করুন!
+// ====================================
 // WINGS FLY AVIATION ACADEMY
 // AUTH — Login, Logout, Dashboard Load, Tab Switch
-// Extracted from app.js (Phase 5)
 // ====================================
 
 async function hashPassword(password) {
