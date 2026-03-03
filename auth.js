@@ -382,7 +382,7 @@ window.switchTab = switchTab;
 // ═══════════════════════════════════════════════════
 // PAGE REFRESH → Same Tab Restore (Flash-Free)
 // ═══════════════════════════════════════════════════
-(function() {
+(function () {
   if (sessionStorage.getItem('isLoggedIn') !== 'true') return;
 
   // ✅ FIX: DOM load হওয়ার আগেই inline style inject করো — zero flash
@@ -391,9 +391,9 @@ window.switchTab = switchTab;
   style.textContent = '#loginSection{display:none!important}#dashboardSection{display:block!important}#content{display:none!important}';
   document.head && document.head.appendChild(style);
 
-  document.addEventListener('DOMContentLoaded', function() {
+  document.addEventListener('DOMContentLoaded', function () {
     var login = document.getElementById('loginSection');
-    var dash  = document.getElementById('dashboardSection');
+    var dash = document.getElementById('dashboardSection');
     if (!login || !dash) return;
 
     login.classList.add('d-none');
@@ -407,7 +407,7 @@ window.switchTab = switchTab;
     console.log('[Auth] Refresh restore → tab:', lastTab);
 
     // ✅ FIX: 300ms → 50ms: যত দ্রুত সম্ভব সঠিক tab এ যাও
-    setTimeout(function() {
+    setTimeout(function () {
       if (typeof updateGlobalStats === 'function') updateGlobalStats();
       if (typeof populateDropdowns === 'function') populateDropdowns();
       if (typeof switchTab === 'function') switchTab(lastTab, false);
@@ -423,12 +423,12 @@ window.switchTab = switchTab;
 // ═══════════════════════════════════════════════════
 // AUTO LOCKOUT
 // ═══════════════════════════════════════════════════
-(function() {
+(function () {
   var _t = null, _m = 0;
   function reset() {
     if (_m <= 0) return;
     clearTimeout(_t);
-    _t = setTimeout(function() {
+    _t = setTimeout(function () {
       if (sessionStorage.getItem('isLoggedIn') === 'true') {
         if (typeof logout === 'function') logout();
         if (typeof showErrorToast === 'function')
@@ -436,17 +436,17 @@ window.switchTab = switchTab;
       }
     }, _m * 60000);
   }
-  window.wfInitAutoLockout = function(mins) {
+  window.wfInitAutoLockout = function (mins) {
     _m = parseInt(mins) || 0;
     clearTimeout(_t);
     if (_m <= 0) return;
     reset();
-    ['mousemove','keydown','mousedown','touchstart','scroll'].forEach(function(e) {
+    ['mousemove', 'keydown', 'mousedown', 'touchstart', 'scroll'].forEach(function (e) {
       document.removeEventListener(e, reset);
-      document.addEventListener(e, reset, {passive: true});
+      document.addEventListener(e, reset, { passive: true });
     });
   };
-  document.addEventListener('DOMContentLoaded', function() {
+  document.addEventListener('DOMContentLoaded', function () {
     var mins = window.globalData?.settings?.autoLockoutMinutes || 0;
     if (mins > 0 && sessionStorage.getItem('isLoggedIn') === 'true')
       window.wfInitAutoLockout(mins);
@@ -456,7 +456,7 @@ window.switchTab = switchTab;
 // ═══════════════════════════════════════════════════
 // FORGOT PASSWORD — Beautiful Custom Modal
 // ═══════════════════════════════════════════════════
-document.addEventListener('DOMContentLoaded', function() {
+document.addEventListener('DOMContentLoaded', function () {
 
   // Inject modal HTML
   var modalHtml = `
@@ -515,12 +515,12 @@ document.addEventListener('DOMContentLoaded', function() {
   document.body.insertAdjacentHTML('beforeend', modalHtml);
 
   // Click outside to close
-  document.getElementById('wfForgotOverlay').addEventListener('click', function(e) {
+  document.getElementById('wfForgotOverlay').addEventListener('click', function (e) {
     if (e.target === this) wfFC();
   });
 });
 
-window.wfShowForgotModal = function() {
+window.wfShowForgotModal = function () {
   var gd = window.globalData;
   var overlay = document.getElementById('wfForgotOverlay');
   if (!overlay) { setTimeout(window.wfShowForgotModal, 200); return; }
@@ -535,22 +535,22 @@ window.wfShowForgotModal = function() {
   document.getElementById('wfFS1').style.display = 'block';
   document.getElementById('wfFS2').style.display = 'none';
   overlay.style.display = 'flex';
-  setTimeout(function() { document.getElementById('wfFA').focus(); }, 100);
+  setTimeout(function () { document.getElementById('wfFA').focus(); }, 100);
 };
 window.wfShowForgotPassword = window.wfShowForgotModal;
 
-window.wfFC = function() {
+window.wfFC = function () {
   var o = document.getElementById('wfForgotOverlay');
   if (o) o.style.display = 'none';
   // ✅ FIX: Modal বন্ধ হলে login fields clear - browser autofill username এ না যায়
-  setTimeout(function() {
+  setTimeout(function () {
     var uf = document.getElementById('loginUsernameField');
     var pf = document.getElementById('loginPasswordField');
     if (uf && !uf.value.includes('@') && uf.value.length > 20) uf.value = '';
   }, 200);
 };
 
-window.wfFV = async function() {
+window.wfFV = async function () {
   var ans = document.getElementById('wfFA').value.trim();
   var err = document.getElementById('wfFE');
   if (!ans) { err.textContent = '❌ উত্তর লিখুন'; return; }
@@ -567,7 +567,7 @@ window.wfFV = async function() {
     document.getElementById('wfFA').value = '';
     document.getElementById('wfFS1').style.display = 'none';
     document.getElementById('wfFS2').style.display = 'block';
-    setTimeout(function() { document.getElementById('wfFP1').focus(); }, 100);
+    setTimeout(function () { document.getElementById('wfFP1').focus(); }, 100);
   } else {
     err.textContent = '❌ উত্তর সঠিক নয়। আবার চেষ্টা করুন।';
     document.getElementById('wfFA').value = '';
@@ -575,7 +575,7 @@ window.wfFV = async function() {
   }
 };
 
-window.wfFSP = async function() {
+window.wfFSP = async function () {
   var pw = document.getElementById('wfFP1').value;
   var pw2 = document.getElementById('wfFP2').value;
   var err = document.getElementById('wfFE2');
@@ -597,3 +597,6 @@ window.wfFSP = async function() {
     showSuccessToast('✅ Password সফলভাবে পরিবর্তন হয়েছে! নতুন password দিয়ে Login করুন।');
   else alert('✅ Password পরিবর্তন সফল! নতুন password দিয়ে Login করুন।');
 };
+// ✅ Auto-test compatibility aliases
+window.checkSecretAnswer = window.wfFV;     // alias: auto-test expects this name
+window.resetPasswordFromModal = window.wfFSP;  // alias: auto-test expects this name
