@@ -159,13 +159,9 @@ function updateCharts() {
     }
   });
 }
-window.downloadLedgerExcel = downloadLedgerExcel;
-window.mailLedgerReport = mailLedgerReport;
-window.downloadAccountDetailsExcel = downloadAccountDetailsExcel;
-window.mailAccountDetailsReport = mailAccountDetailsReport;
-window.exportData = exportData;
-window.importData = importData;
-window.handleImportFile = handleImportFile;
+// NOTE: downloadLedgerExcel, mailLedgerReport etc. are defined in student-management.js
+// NOTE: exportData, importData, handleImportFile are defined in data-export.js
+// Do NOT re-assign them here as they load after charts.js
 
 // ⚠️ NOTE: globalData is initialized at the top of this file (line 10)
 // using localStorage data. Do NOT re-initialize here — it would

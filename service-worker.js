@@ -4,14 +4,16 @@
 // Version বাড়ালে নতুন files আবার download হবে
 // ================================================================
 
-const CACHE_NAME = 'wingsfly-cache-v1';
+const CACHE_NAME = 'wingsfly-cache-v4'; // ✅ Updated: forces old cache clear
 
 // এই files গুলো offline-এও কাজ করবে
 const FILES_TO_CACHE = [
   './',
   './index.html',
   './app.js',
-  './supabase-sync-SMART-V26.js',
+  './supabase-sync-SMART-V31.js',
+  './supabase-config.js',
+  './styles.css',
   './manifest.json',
   // Bootstrap (CDN fallback)
   'https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/css/bootstrap.min.css',
@@ -21,20 +23,20 @@ const FILES_TO_CACHE = [
 ];
 
 // ── Install: সব file cache করো ──
-self.addEventListener('install', function(event) {
+self.addEventListener('install', function (event) {
   console.log('[SW] Installing Wings Fly Service Worker...');
   event.waitUntil(
-    caches.open(CACHE_NAME).then(function(cache) {
+    caches.open(CACHE_NAME).then(function (cache) {
       console.log('[SW] Caching app files...');
       // প্রতিটা file আলাদাভাবে cache করি, একটা fail করলে বাকিগুলো থাকবে
       return Promise.allSettled(
-        FILES_TO_CACHE.map(function(url) {
-          return cache.add(url).catch(function(err) {
+        FILES_TO_CACHE.map(function (url) {
+          return cache.add(url).catch(function (err) {
             console.warn('[SW] Failed to cache:', url, err);
           });
         })
       );
-    }).then(function() {
+    }).then(function () {
       console.log('[SW] ✅ Installation complete');
       return self.skipWaiting(); // নতুন SW সাথে সাথে active হবে
     })
@@ -42,19 +44,19 @@ self.addEventListener('install', function(event) {
 });
 
 // ── Activate: পুরনো cache মুছো ──
-self.addEventListener('activate', function(event) {
+self.addEventListener('activate', function (event) {
   console.log('[SW] Activating new Service Worker...');
   event.waitUntil(
-    caches.keys().then(function(keyList) {
+    caches.keys().then(function (keyList) {
       return Promise.all(
-        keyList.map(function(key) {
+        keyList.map(function (key) {
           if (key !== CACHE_NAME) {
             console.log('[SW] Removing old cache:', key);
             return caches.delete(key);
           }
         })
       );
-    }).then(function() {
+    }).then(function () {
       console.log('[SW] ✅ Activation complete');
       return self.clients.claim();
     })
@@ -63,7 +65,7 @@ self.addEventListener('activate', function(event) {
 
 // ── Fetch: Network first, Cache fallback ──
 // Internet থাকলে নতুন version নাও, না থাকলে cache থেকে দাও
-self.addEventListener('fetch', function(event) {
+self.addEventListener('fetch', function (event) {
   // POST request cache করা যায় না
   if (event.request.method !== 'GET') return;
 
@@ -75,19 +77,19 @@ self.addEventListener('fetch', function(event) {
 
   event.respondWith(
     fetch(event.request)
-      .then(function(networkResponse) {
+      .then(function (networkResponse) {
         // Network থেকে পেলে cache-ও update করো
         if (networkResponse && networkResponse.status === 200) {
           const responseClone = networkResponse.clone();
-          caches.open(CACHE_NAME).then(function(cache) {
+          caches.open(CACHE_NAME).then(function (cache) {
             cache.put(event.request, responseClone);
           });
         }
         return networkResponse;
       })
-      .catch(function() {
+      .catch(function () {
         // Network নেই — cache থেকে দাও
-        return caches.match(event.request).then(function(cachedResponse) {
+        return caches.match(event.request).then(function (cachedResponse) {
           if (cachedResponse) {
             console.log('[SW] Serving from cache (offline):', event.request.url);
             return cachedResponse;
@@ -102,7 +104,7 @@ self.addEventListener('fetch', function(event) {
 });
 
 // ── Background Sync: Internet আসলে Supabase sync করো ──
-self.addEventListener('sync', function(event) {
+self.addEventListener('sync', function (event) {
   if (event.tag === 'wingsfly-sync') {
     console.log('[SW] Background sync triggered');
     // app.js-এর pushToCloud() call হবে যখন net আসবে

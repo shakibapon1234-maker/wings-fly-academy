@@ -20,33 +20,33 @@
   'use strict';
 
   // ── CONFIGURATION ─────────────────────────────────────────
-  const SUPABASE_URL  = window.SUPABASE_CONFIG?.URL   || 'https://gtoldrltxjrwshubplfp.supabase.co';
-  const SUPABASE_KEY  = window.SUPABASE_CONFIG?.KEY   || 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6Imd0b2xkcmx0eGpyd3NodWJwbGZwIiwicm9sZSI6ImFub24iLCJpYXQiOjE3NzEwOTk5MTksImV4cCI6MjA4NjY3NTkxOX0.7NTx3tzU1C5VaewNZZHTaJf2WJ_GtjhQPKOymkxRsUk';
-  const TABLE_NAME    = window.SUPABASE_CONFIG?.TABLE || 'academy_data';
-  const RECORD_ID     = window.SUPABASE_CONFIG?.MAIN_RECORD || 'wingsfly_main';
-  const PULL_INTERVAL     = 15000; // 15s
-  const PUSH_DEBOUNCE     = 1500;  // 1.5s debounce
-  const DEVICE_ID         = _getDeviceId();
+  const SUPABASE_URL = window.SUPABASE_CONFIG?.URL || 'https://gtoldrltxjrwshubplfp.supabase.co';
+  const SUPABASE_KEY = window.SUPABASE_CONFIG?.KEY || 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6Imd0b2xkcmx0eGpyd3NodWJwbGZwIiwicm9sZSI6ImFub24iLCJpYXQiOjE3NzEwOTk5MTksImV4cCI6MjA4NjY3NTkxOX0.7NTx3tzU1C5VaewNZZHTaJf2WJ_GtjhQPKOymkxRsUk';
+  const TABLE_NAME = window.SUPABASE_CONFIG?.TABLE || 'academy_data';
+  const RECORD_ID = window.SUPABASE_CONFIG?.MAIN_RECORD || 'wingsfly_main';
+  const PULL_INTERVAL = 15000; // 15s
+  const PUSH_DEBOUNCE = 1500;  // 1.5s debounce
+  const DEVICE_ID = _getDeviceId();
 
   // ── Partial sync table names ───────────────────────────────
-  const TBL_STUDENTS  = 'wf_students';
-  const TBL_FINANCE   = 'wf_finance';
+  const TBL_STUDENTS = 'wf_students';
+  const TBL_FINANCE = 'wf_finance';
   const TBL_EMPLOYEES = 'wf_employees';
-  const ACADEMY_ID    = 'wingsfly_main';
+  const ACADEMY_ID = 'wingsfly_main';
 
   // ── STATE ─────────────────────────────────────────────────
-  let supabaseClient        = null;
-  let isInitialized         = false;
-  let isPushing             = false;
-  let isPulling             = false;
-  let isOnline              = navigator.onLine;
-  let localVersion          = 0;
-  let lastPushTime          = 0;
-  let lastPullTime          = 0;
-  let pushDebounceTimer     = null;
-  let pullIntervalId        = null;
-  let pendingPushReason     = null;
-  let realtimeChannel       = null;
+  let supabaseClient = null;
+  let isInitialized = false;
+  let isPushing = false;
+  let isPulling = false;
+  let isOnline = navigator.onLine;
+  let localVersion = 0;
+  let lastPushTime = 0;
+  let lastPullTime = 0;
+  let pushDebounceTimer = null;
+  let pullIntervalId = null;
+  let pendingPushReason = null;
+  let realtimeChannel = null;
   let realtimeReconnectCount = 0;
 
   window.initialSyncComplete = false;
@@ -56,8 +56,8 @@
 
   // ── Last pull timestamps (incremental pull এর জন্য) ──────
   const _lastPull = {
-    students:  localStorage.getItem('wf_lastpull_students')  || null,
-    finance:   localStorage.getItem('wf_lastpull_finance')   || null,
+    students: localStorage.getItem('wf_lastpull_students') || null,
+    finance: localStorage.getItem('wf_lastpull_finance') || null,
     employees: localStorage.getItem('wf_lastpull_employees') || null,
   };
 
@@ -167,11 +167,11 @@
     if (!records || records.length === 0) return;
     const now = new Date().toISOString();
     const rows = records.map(r => ({
-      id:         r.id || r.rowIndex || ('tmp_' + Date.now() + Math.random()),
+      id: r.id || r.rowIndex || ('tmp_' + Date.now() + Math.random()),
       academy_id: ACADEMY_ID,
-      data:       r,
+      data: r,
       updated_at: now,
-      deleted:    false,
+      deleted: false,
     }));
 
     // Batch এ পাঠাও (max 100)
@@ -194,33 +194,33 @@
     if (!gd) return;
 
     const metaPayload = {
-      id:                RECORD_ID,
-      settings:          gd.settings || {},
+      id: RECORD_ID,
+      settings: gd.settings || {},
       income_categories: gd.incomeCategories || [],
-      expense_categories:gd.expenseCategories || [],
-      payment_methods:   gd.paymentMethods || [],
-      cash_balance:      gd.cashBalance || 0,
-      bank_accounts:     gd.bankAccounts || [],
-      mobile_banking:    gd.mobileBanking || [],
-      course_names:      gd.courseNames || [],
-      attendance:        gd.attendance || {},
-      next_id:           gd.nextId || 1001,
-      users:             gd.users || [],
-      exam_registrations:gd.examRegistrations || [],
-      visitors:          gd.visitors || [],
-      employee_roles:    gd.employeeRoles || [],
-      deleted_items:     gd.deletedItems || [],
-      activity_history:  gd.activityHistory || [],
-      keep_records:      gd.keepRecords || [],
-      loans:             gd.loans || [],
-      id_cards:          gd.idCards || [],
-      notices:           gd.notices || [],
-      version:           localVersion,
-      last_updated:      new Date().toISOString(),
-      last_device:       DEVICE_ID,
-      last_action:       'partial-sync-meta',
-      updated_by:        sessionStorage.getItem('username') || 'Admin',
-      device_id:         DEVICE_ID,
+      expense_categories: gd.expenseCategories || [],
+      payment_methods: gd.paymentMethods || [],
+      cash_balance: gd.cashBalance || 0,
+      bank_accounts: gd.bankAccounts || [],
+      mobile_banking: gd.mobileBanking || [],
+      course_names: gd.courseNames || [],
+      attendance: gd.attendance || {},
+      next_id: gd.nextId || 1001,
+      users: gd.users || [],
+      exam_registrations: gd.examRegistrations || [],
+      visitors: gd.visitors || [],
+      employee_roles: gd.employeeRoles || [],
+      deleted_items: gd.deletedItems || [],
+      activity_history: gd.activityHistory || [],
+      keep_records: gd.keepRecords || [],
+      loans: gd.loans || [],
+      id_cards: gd.idCards || [],
+      notices: gd.notices || [],
+      version: localVersion,
+      last_updated: new Date().toISOString(),
+      last_device: DEVICE_ID,
+      last_action: 'partial-sync-meta',
+      updated_by: sessionStorage.getItem('username') || 'Admin',
+      device_id: DEVICE_ID,
     };
 
     const { error } = await supabaseClient
@@ -343,35 +343,35 @@
 
     const payload = {
       id: RECORD_ID,
-      students:           gd.students || [],
-      employees:          gd.employees || [],
-      finance:            gd.finance || [],
-      settings:           gd.settings || {},
-      income_categories:  gd.incomeCategories || [],
+      students: gd.students || [],
+      employees: gd.employees || [],
+      finance: gd.finance || [],
+      settings: gd.settings || {},
+      income_categories: gd.incomeCategories || [],
       expense_categories: gd.expenseCategories || [],
-      payment_methods:    gd.paymentMethods || [],
-      cash_balance:       gd.cashBalance || 0,
-      bank_accounts:      gd.bankAccounts || [],
-      mobile_banking:     gd.mobileBanking || [],
-      course_names:       gd.courseNames || [],
-      attendance:         gd.attendance || {},
-      next_id:            gd.nextId || 1001,
-      users:              gd.users || [],
+      payment_methods: gd.paymentMethods || [],
+      cash_balance: gd.cashBalance || 0,
+      bank_accounts: gd.bankAccounts || [],
+      mobile_banking: gd.mobileBanking || [],
+      course_names: gd.courseNames || [],
+      attendance: gd.attendance || {},
+      next_id: gd.nextId || 1001,
+      users: gd.users || [],
       exam_registrations: gd.examRegistrations || [],
-      visitors:           gd.visitors || [],
-      employee_roles:     gd.employeeRoles || [],
-      deleted_items:      gd.deletedItems || [],
-      activity_history:   gd.activityHistory || [],
-      keep_records:       gd.keepRecords || [],
-      loans:              gd.loans || [],
-      id_cards:           gd.idCards || [],
-      notices:            gd.notices || [],
-      version:            localVersion,
-      last_updated:       new Date().toISOString(),
-      last_device:        DEVICE_ID,
-      last_action:        reason,
-      updated_by:         sessionStorage.getItem('username') || 'Admin',
-      device_id:          DEVICE_ID,
+      visitors: gd.visitors || [],
+      employee_roles: gd.employeeRoles || [],
+      deleted_items: gd.deletedItems || [],
+      activity_history: gd.activityHistory || [],
+      keep_records: gd.keepRecords || [],
+      loans: gd.loans || [],
+      id_cards: gd.idCards || [],
+      notices: gd.notices || [],
+      version: localVersion,
+      last_updated: new Date().toISOString(),
+      last_device: DEVICE_ID,
+      last_action: reason,
+      updated_by: sessionStorage.getItem('username') || 'Admin',
+      device_id: DEVICE_ID,
     };
 
     const { error } = await supabaseClient.from(TABLE_NAME).upsert(payload);
@@ -471,7 +471,7 @@
         })();
         const mergedSettings = Object.assign({}, data.settings || {});
         if (localSettings) {
-          ['recoveryQuestion','recoveryAnswer','adminUsername','autoLockoutMinutes'].forEach(k => {
+          ['recoveryQuestion', 'recoveryAnswer', 'adminUsername', 'autoLockoutMinutes'].forEach(k => {
             if (localSettings[k] !== undefined) mergedSettings[k] = localSettings[k];
           });
         }
@@ -483,29 +483,29 @@
         // Partial tables থেকে students/finance/employees নেব, meta থেকে বাকি সব
         window.globalData = Object.assign(gd, {
           // শুধু partial tables না থাকলে meta থেকে students নাও
-          students:          _partialTablesReady ? (gd.students || [])  : (data.students || []),
-          employees:         _partialTablesReady ? (gd.employees || []) : (data.employees || []),
-          finance:           _partialTablesReady ? (gd.finance || [])   : (data.finance || []),
-          settings:          mergedSettings,
-          incomeCategories:  data.income_categories || [],
+          students: _partialTablesReady ? (gd.students || []) : (data.students || []),
+          employees: _partialTablesReady ? (gd.employees || []) : (data.employees || []),
+          finance: _partialTablesReady ? (gd.finance || []) : (data.finance || []),
+          settings: mergedSettings,
+          incomeCategories: data.income_categories || [],
           expenseCategories: data.expense_categories || [],
-          paymentMethods:    data.payment_methods || [],
-          cashBalance:       data.cash_balance || 0,
-          bankAccounts:      data.bank_accounts || [],
-          mobileBanking:     data.mobile_banking || [],
-          courseNames:       data.course_names || [],
-          attendance:        data.attendance || {},
-          nextId:            data.next_id || 1001,
-          users:             (usersBackup && usersBackup.length > 0) ? usersBackup : (data.users || []),
+          paymentMethods: data.payment_methods || [],
+          cashBalance: data.cash_balance || 0,
+          bankAccounts: data.bank_accounts || [],
+          mobileBanking: data.mobile_banking || [],
+          courseNames: data.course_names || [],
+          attendance: data.attendance || {},
+          nextId: data.next_id || 1001,
+          users: (usersBackup && usersBackup.length > 0) ? usersBackup : (data.users || []),
           examRegistrations: data.exam_registrations || [],
-          visitors:          data.visitors || [],
-          employeeRoles:     data.employee_roles || [],
-          deletedItems:      data.deleted_items || gd.deletedItems || [],
-          activityHistory:   data.activity_history || gd.activityHistory || [],
-          keepRecords:       data.keep_records || [],
-          loans:             data.loans || [],
-          idCards:           data.id_cards || [],
-          notices:           data.notices || [],
+          visitors: data.visitors || [],
+          employeeRoles: data.employee_roles || [],
+          deletedItems: data.deleted_items || gd.deletedItems || [],
+          activityHistory: data.activity_history || gd.activityHistory || [],
+          keepRecords: data.keep_records || [],
+          loans: data.loans || [],
+          idCards: data.id_cards || [],
+          notices: data.notices || [],
         });
 
         localVersion = cloudVersion;
@@ -639,15 +639,21 @@
       try {
         const beaconUrl = `${SUPABASE_URL}/rest/v1/${TABLE_NAME}?on_conflict=id`;
         const payload = JSON.stringify(Object.assign(
-          { id: RECORD_ID, version: localVersion + 1, last_updated: new Date().toISOString(),
-            last_device: DEVICE_ID, last_action: 'page-close' },
-          { students: window.globalData.students || [], finance: window.globalData.finance || [],
-            employees: window.globalData.employees || [] }
+          {
+            id: RECORD_ID, version: localVersion + 1, last_updated: new Date().toISOString(),
+            last_device: DEVICE_ID, last_action: 'page-close'
+          },
+          {
+            students: window.globalData.students || [], finance: window.globalData.finance || [],
+            employees: window.globalData.employees || []
+          }
         ));
         fetch(beaconUrl, {
           method: 'POST',
-          headers: { 'Content-Type': 'application/json', 'apikey': SUPABASE_KEY,
-            'Authorization': `Bearer ${SUPABASE_KEY}`, 'Prefer': 'resolution=merge-duplicates' },
+          headers: {
+            'Content-Type': 'application/json', 'apikey': SUPABASE_KEY,
+            'Authorization': `Bearer ${SUPABASE_KEY}`, 'Prefer': 'resolution=merge-duplicates'
+          },
           body: payload, keepalive: true,
         }).catch(() => navigator.sendBeacon(beaconUrl, new Blob([payload], { type: 'application/json' })));
       } catch (e) { }
@@ -693,10 +699,10 @@
   // ── PUBLIC API ────────────────────────────────────────────
   window.wingsSync = {
     fullSync,
-    pushNow:      (reason) => pushToCloud(reason || 'Manual'),
-    pullNow:      ()       => pullFromCloud(false),
-    markDirty:    (field)  => window.markDirty(field),
-    getStatus:    ()       => ({
+    pushNow: (reason) => pushToCloud(reason || 'Manual'),
+    pullNow: () => pullFromCloud(false),
+    markDirty: (field) => window.markDirty(field),
+    getStatus: () => ({
       version: localVersion,
       online: isOnline,
       partialReady: _partialTablesReady,
@@ -706,9 +712,15 @@
   };
 
   // Legacy aliases
-  window.saveToCloud    = () => pushToCloud('Legacy saveToCloud');
-  window.loadFromCloud  = () => pullFromCloud(false);
+  window.saveToCloud = () => pushToCloud('Legacy saveToCloud');
+  window.loadFromCloud = () => pullFromCloud(false);
   window.manualCloudSync = fullSync;
+
+  // ✅ scheduleSyncPush — V30 compatible alias (many modules use this)
+  window.scheduleSyncPush = function (reason) {
+    if (window.markDirty) window.markDirty(); // mark all dirty
+    schedulePush(reason || 'scheduleSyncPush');
+  };
 
   // Startup
   if (document.readyState === 'loading') {
