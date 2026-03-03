@@ -492,76 +492,14 @@
   }
   window.updatePaidFinanceStatusBadge = updatePaidFinanceStatusBadge;
 
-  // Cloud-এ বেশি data থাকলে pull করো
-  // ============================================
+  // ⛔ DISABLED: V31 sync চলার সময় এই function data loop তৈরি করে
+  // auto-heal এখন cloud count দেখে pull করবে না
+  // V31 নিজেই sync manage করে
   async function healSyncMismatch() {
-    if (!navigator.onLine) {
-      hLog('info', 'Offline — sync check skip');
-      return 0;
-    }
-
-    let fixed = 0;
-
-    try {
-      const res = await fetch(API_URL, { headers: HEADERS, signal: AbortSignal.timeout(8000) });
-      if (!res.ok) {
-        hLog('warn', `Cloud check failed: HTTP ${res.status}`);
-        return 0;
-      }
-
-      const arr = await res.json();
-      const cloud = arr[0];
-
-      if (!cloud) {
-        // Cloud-এ কোনো data নেই — push করো
-        hLog('fix', 'Cloud-এ data নেই — local data push করা হচ্ছে');
-        if (typeof window.scheduleSyncPush === 'function') window.scheduleSyncPush('Heal: Cloud empty push');
-        else if (typeof window.saveToCloud === 'function') await window.saveToCloud();
-        healToast('Cloud empty ছিল — data push করা হয়েছে', 'fix');
-        fixed++;
-        return fixed;
-      }
-
-      const localStudents = (window.globalData?.students || []).length;
-      const localFinance = (window.globalData?.finance || []).length;
-      const cloudStudents = (cloud.students || []).length;
-      const cloudFinance = (cloud.finance || []).length;
-      const localVer = parseInt(localStorage.getItem('wings_local_version')) || 0;
-      const cloudVer = parseInt(cloud.version) || 0;
-
-      // Case A: Local-এ বেশি data → push to cloud
-      if (localStudents > cloudStudents || localFinance > cloudFinance) {
-        hLog('fix', `Local বেশি data আছে (students: ${localStudents} vs ${cloudStudents}) — cloud push করা হচ্ছে`);
-        if (typeof window.scheduleSyncPush === 'function') window.scheduleSyncPush('Heal: Local more data push');
-        else if (typeof window.saveToCloud === 'function') await window.saveToCloud();
-        healToast(`Cloud sync: ${localStudents} students push করা হয়েছে`, 'fix');
-        fixed++;
-      }
-
-      // Case B: Cloud-এ বেশি data → safe pull (local data কমবে না)
-      else if (cloudStudents > localStudents || cloudFinance > localFinance) {
-        hLog('fix', `Cloud-এ বেশি data (students: ${cloudStudents} vs ${localStudents}) — pull করা হচ্ছে`);
-        if (typeof window.loadFromCloud === 'function') {
-          await window.loadFromCloud(true);
-          if (typeof window.renderFullUI === 'function') window.renderFullUI();
-        }
-        healToast(`Cloud থেকে latest data pull করা হয়েছে`, 'fix');
-        fixed++;
-      }
-
-      // Case C: Version mismatch কিন্তু count same — re-push নিজের version বাড়াতে
-      else if (localVer < cloudVer) {
-        hLog('info', `Version: Local v${localVer} < Cloud v${cloudVer} — updating local version`);
-        localStorage.setItem('wings_local_version', cloudVer.toString());
-        fixed++;
-      }
-
-    } catch (e) {
-      hLog('err', 'Sync heal error: ' + e.message);
-    }
-
-    return fixed;
+    hLog('info', 'healSyncMismatch skipped — V31 manages sync');
+    return 0;
   }
+
 
   // ============================================
   // HEAL 5: UI Refresh যদি dashboard 0 দেখায়

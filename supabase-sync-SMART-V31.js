@@ -516,8 +516,6 @@
 
         // ✅ FIX: Full sync এর সময় wf_* merge করব না!
         // academy_data থেকে full sync হলে wf_* tables-এর data ignore করো।
-        // _pullPartial() শুধু তখনই ডাকো যখন local data already current (else branch)
-        // এটা prevent করে snowball effect: wf_* old records + academy_data records = বাড়তে থাকা student count
         log('✅', `Full sync from academy_data complete. Skipping wf_* merge to prevent duplicates.`);
 
         if (typeof window.renderFullUI === 'function') window.renderFullUI();
@@ -526,10 +524,10 @@
       } else {
         if (!silent) log('ℹ️', 'Local data is current ✓');
 
-        // ✅ Incremental pull শুধু এখানে — local up-to-date হলেই নতুন records দেখো
-        if (_partialTablesReady) {
-          await _pullPartial(true);
-        }
+        // ⛔ DISABLED: wf_* incremental pull বন্ধ — data snowball এবং page freeze সমস্যার কারণে
+        // V31 pulls ALWAYS use academy_data (authoritative source)
+        // V31 PUSH is still partial (bandwidth saving)
+        // if (_partialTablesReady) { await _pullPartial(true); }
       }
 
       window.initialSyncComplete = true; // ✅ Always set after pull
