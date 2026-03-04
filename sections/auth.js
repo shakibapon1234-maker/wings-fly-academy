@@ -387,10 +387,12 @@ window.switchTab = switchTab;
   if (sessionStorage.getItem('isLoggedIn') !== 'true') return;
 
   // ✅ FIX: script parse হওয়ার সাথে সাথেই style inject
-  // Browser paint করার আগেই login hide + content hide — zero flash
+  // Browser paint করার আগেই login hide + content hide + dashboardOverview hide
+  var lastTab = localStorage.getItem('wingsfly_active_tab') || 'dashboard';
   var style = document.createElement('style');
   style.id = 'wf-flash-prevent';
-  style.textContent = '#loginSection{display:none!important}#dashboardSection{display:block!important}#content{display:none!important}';
+  // ✅ Dashboard overview ও সব section default hide — শুধু সঠিক tab DOM ready হলে show হবে
+  style.textContent = '#loginSection{display:none!important}#dashboardSection{display:block!important}#content{display:none!important}#dashboardOverview{display:none!important}';
   (document.head || document.documentElement).appendChild(style);
 
   document.addEventListener('DOMContentLoaded', function () {
@@ -405,20 +407,23 @@ window.switchTab = switchTab;
     if (loader) loader.style.display = 'block';
     if (contentEl) contentEl.style.display = 'none';
 
-    var lastTab = localStorage.getItem('wingsfly_active_tab') || 'dashboard';
     console.log('[Auth] Refresh restore → tab:', lastTab);
 
-    // ✅ 300ms → 50ms
-    setTimeout(function () {
+    // ✅ FIX: switchTab synchronously কল — কোনো delay নেই
+    // এতে dashboard flash হবে না
+    try {
+      if (typeof switchTab === 'function') switchTab(lastTab, false);
       if (typeof updateGlobalStats === 'function') updateGlobalStats();
       if (typeof populateDropdowns === 'function') populateDropdowns();
-      if (typeof switchTab === 'function') switchTab(lastTab, false);
-      if (loader) loader.style.display = 'none';
-      if (contentEl) contentEl.style.display = 'block';
-      // inline style সরাও
-      var s = document.getElementById('wf-flash-prevent');
-      if (s) s.remove();
-    }, 50);
+    } catch (e) {
+      console.warn('[Auth] Tab restore error:', e);
+    }
+
+    // ✅ Content show + loader hide + flash-prevent CSS remove
+    if (loader) loader.style.display = 'none';
+    if (contentEl) contentEl.style.display = 'block';
+    var s = document.getElementById('wf-flash-prevent');
+    if (s) s.remove();
   });
 })();
 
