@@ -678,6 +678,20 @@
                                             }
                                         }
                                         window.scTogRec = scTogRec; window.scTogRecAns = scTogRecAns;
+                                        // ✅ Full Screen toggle — Settings Modal কে fullscreen/normal modal এ toggle করে
+                                        function toggleDiagFullscreen() {
+                                            var dlg = document.querySelector('#settingsModal .modal-dialog');
+                                            if (!dlg) return;
+                                            var isFS = dlg.classList.contains('modal-fullscreen');
+                                            if (isFS) {
+                                                dlg.classList.remove('modal-fullscreen');
+                                                dlg.classList.add('modal-xl');
+                                            } else {
+                                                dlg.classList.remove('modal-xl', 'modal-lg');
+                                                dlg.classList.add('modal-fullscreen');
+                                            }
+                                        }
+                                        window.toggleDiagFullscreen = toggleDiagFullscreen;
                                         function scLockBadge() { const v = parseInt(document.getElementById('settingsAutoLockout')?.value || 0), b = document.getElementById('scLockBadge'); if (!b) return; b.textContent = v === 0 ? '🔓 Disabled' : v < 60 ? '🔒 ' + v + 'min' : '🔒 ' + (v / 60) + 'h auto-lock'; }
                                         function scLoad() {
                                             const gd = window.globalData; if (!gd) return; const s = gd.settings || {};
@@ -1159,8 +1173,8 @@
                                             <div style="display:flex;gap:8px;">
                                                 <button type="button" class="diag-btn-primary"
                                                     onclick="runDiagnosticInline()">🔍 পরীক্ষা চালান</button>
-                                                <a class="diag-btn-outline" href="sync-diagnostic.html"
-                                                    target="_blank">↗ Full Screen</a>
+                                                <button type="button" class="diag-btn-outline"
+                                                    onclick="toggleDiagFullscreen()">↗ Full Screen</button>
                                             </div>
                                         </div>
 
