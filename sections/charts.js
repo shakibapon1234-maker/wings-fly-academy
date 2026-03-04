@@ -163,12 +163,6 @@ function updateCharts() {
 // NOTE: exportData, importData, handleImportFile are defined in data-export.js
 // Do NOT re-assign them here as they load after charts.js
 
-// ⚠️ NOTE: globalData is initialized at the top of this file (line 10)
-// using localStorage data. Do NOT re-initialize here — it would
-// overwrite saved data with empty arrays every time the script loads.
-// globalData is already set via: if (typeof window.globalData === 'undefined') { ... }
-// at the very top of app.js. This block has been intentionally removed.
-
 let currentStudentForProfile = null;
 
 // ===================================
@@ -176,92 +170,35 @@ let currentStudentForProfile = null;
 // ===================================
 
 document.addEventListener('DOMContentLoaded', function () {
-  // Load data from localStorage
-  loadFromStorage();
+  // ✅ FIX: loadFromStorage শুধু একবার দরকার — data load করার জন্য
+  if (typeof loadFromStorage === 'function') loadFromStorage();
 
-  // Set today's date as default for both forms
-  const today = new Date().toISOString().split('T')[0];
-
-  const financeDate = document.querySelector('#financeModal input[name="date"]');
-  if (financeDate) financeDate.value = today;
-
-  const studentDate = document.getElementById('studentEnrollDate');
-  if (studentDate) studentDate.value = today;
-
-  // Check if user is already logged in
-  const isLoggedIn = sessionStorage.getItem('isLoggedIn');
-  if (isLoggedIn === 'true') {
-    const username = sessionStorage.getItem('username') || 'Admin';
-    showDashboard(username);
-
-    // Cloud sync is handled automatically by supabase-sync-SMART-V28.js
-    // No duplicate sync call needed here.
-    console.log('🔄 Cloud sync handled by Smart Sync V28 system.');
-  }
-
+  // ✅ FIX: showDashboard() এখানে কল করা যাবে না!
+  // কারণ auth.js IIFE ইতিমধ্যে refresh-এ সঠিক tab restore করে।
+  // আগে এখানে showDashboard() ছিল যা refresh-এও dashboard-এ নিয়ে যেত (jumping bug)।
+  // নতুন login-এ handleLogin() → showDashboard() কল করে — সেটাই যথেষ্ট।
 
   // Populate dropdowns initially
-  populateDropdowns();
+  if (typeof populateDropdowns === 'function') populateDropdowns();
 
-  // ✅ AUTO-POPULATE BATCH FILTER ON PAGE LOAD
-  setTimeout(() => {
-    if (typeof populateBatchFilter === 'function') {
-      populateBatchFilter();
-    }
+  // Auto-populate batch filter
+  setTimeout(function () {
+    if (typeof populateBatchFilter === 'function') populateBatchFilter();
   }, 500);
 
   // Render cash balance and grand total on page load
-  if (typeof renderCashBalance === 'function') {
-    renderCashBalance();
-  }
-  if (typeof updateGrandTotal === 'function') {
-    updateGrandTotal();
-  }
+  if (typeof renderCashBalance === 'function') renderCashBalance();
+  if (typeof updateGrandTotal === 'function') updateGrandTotal();
 
-  // Settings Modal Listener to populate data
-  const settingsModal = document.getElementById('settingsModal');
-  if (settingsModal) {
-    settingsModal.addEventListener('show.bs.modal', function () {
-      const form = document.getElementById('settingsForm');
-      if (!form) return;
+  // Set Monthly Target default range
+  var now = new Date();
+  var firstDay = new Date(now.getFullYear(), now.getMonth(), 1).toISOString().split('T')[0];
+  var lastDay = new Date(now.getFullYear(), now.getMonth() + 1, 0).toISOString().split('T')[0];
 
-      renderSettingsLists();
-      // Snapshot list refresh
-      setTimeout(function () {
-        if (typeof renderSnapshotList === 'function') renderSnapshotList();
-      }, 200);
-    });
-  }
-
-  // Finance Modal Type Change Listener
-  const financeTypeSelect = document.querySelector('#financeForm select[name="type"]');
-  if (financeTypeSelect) {
-    financeTypeSelect.addEventListener('change', updateFinanceCategoryOptions);
-  }
-
-  // Finance Modal Show Listener
-  const financeModal = document.getElementById('financeModal');
-  if (financeModal) {
-    financeModal.addEventListener('show.bs.modal', updateFinanceCategoryOptions);
-  }
-
-  // Set Monthly Target default range (Start of month to end of month)
-  const now = new Date();
-  const firstDay = new Date(now.getFullYear(), now.getMonth(), 1).toISOString().split('T')[0];
-  const lastDay = new Date(now.getFullYear(), now.getMonth() + 1, 0).toISOString().split('T')[0];
-
-  const targetStart = document.getElementById('targetStartDate');
-  const targetEnd = document.getElementById('targetEndDate');
+  var targetStart = document.getElementById('targetStartDate');
+  var targetEnd = document.getElementById('targetEndDate');
   if (targetStart) targetStart.value = firstDay;
   if (targetEnd) targetEnd.value = lastDay;
-
 });
-
-// ===================================
-// LOCAL STORAGE MANAGEMENT
-// ===================================
-
-// ===================================
-// LOCAL STORAGE MANAGEMENT
 
 window.updateCharts = updateCharts;
