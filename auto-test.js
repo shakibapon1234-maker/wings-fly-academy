@@ -479,10 +479,10 @@
       if (el) {
         pass(`#${id} modal exists`);
       } else {
-        const hasStudentPh  = document.getElementById('__modalPlaceholderStudents');
+        const hasStudentPh = document.getElementById('__modalPlaceholderStudents');
         const hasSettingsPh = document.getElementById('__modalPlaceholderSettings');
         const isLazy = (id === 'studentModal' && hasStudentPh) ||
-                       (id === 'settingsModal' && hasSettingsPh);
+          (id === 'settingsModal' && hasSettingsPh);
         if (isLazy) {
           pass(`#${id} lazy-loaded ✓ (placeholder ready)`);
         } else {
@@ -589,7 +589,7 @@
       } else {
         const errJson = await writeRes.json().catch(() => ({}));
         const errCode = errJson.code || writeRes.status;
-        
+
         if (errCode === '42501') {
           warn('Supabase WRITE Restricted (RLS)', 'ডাটাবেস সুরক্ষিত! শুধু মেইন রেকর্ড লিখতে পারবেন। এটি কোনো এরর নয়।');
         } else {
@@ -768,16 +768,34 @@
     pass('Student total paid calculated', `৳${totalPaidFromStudents.toLocaleString('en-IN')}`);
 
     // --- 10a2: ✅ Loan income এ যাচ্ছে কিনা (যাওয়া উচিত নয়) ---
-    const loanAsIncome = finance.filter(f =>
-      f.type === 'Income' && (
-        (f.category || '').toLowerCase().includes('loan') ||
-        f.type === 'Loan Received' || f.type === 'Loan Receiving'
-      )
+    const loanEntries = finance.filter(f =>
+      f.type === 'Loan Received' || f.type === 'Loan Receiving' ||
+      f.type === 'Loan Given' || f.type === 'Loan Giving'
     );
+    const loanAsIncome = loanEntries.filter(f => f.type === 'Income');
+
     if (loanAsIncome.length === 0) {
       pass('✅ Loan income এ নেই (সঠিক)', 'Loan শুধু account balance এ যাচ্ছে');
     } else {
       fail('❌ ' + loanAsIncome.length + 'টি Loan Income হিসেবে আছে!', 'Loan income এ যাওয়া উচিত নয়');
+    }
+
+    // --- 10a5: ✅ Account Balance Consistency Check (CRITICAL) ---
+    // Calculate expected cash balance from all transactions
+    let calcCash = 0;
+    if (gd.settings?.startBalances?.Cash) calcCash = parseFloat(gd.settings.startBalances.Cash) || 0;
+
+    finance.filter(f => f.method === 'Cash').forEach(f => {
+      const amt = parseFloat(f.amount) || 0;
+      if (['Income', 'Loan Received', 'Loan Receiving', 'Transfer In'].includes(f.type)) calcCash += amt;
+      else if (['Expense', 'Loan Given', 'Loan Giving', 'Transfer Out'].includes(f.type)) calcCash -= amt;
+    });
+
+    const diff = Math.abs(calcCash - (parseFloat(gd.cashBalance) || 0));
+    if (diff < 1) {
+      pass('✅ Cash Balance matches transactions', `৳${formatNumber(calcCash)}`);
+    } else {
+      fail('❌ Cash Balance Mismatch!', `Calculated: ৳${formatNumber(calcCash)} | Stored: ৳${formatNumber(gd.cashBalance)} (Diff: ৳${formatNumber(diff)})`);
     }
 
     // --- 10a3: ✅ Exam Fee income এ যাচ্ছে ---
@@ -802,7 +820,7 @@
     // --- 10b: Orphaned payments (finance-এ student নেই) ---
     const studentNames = new Set((gd.students || []).map(s => (s.name || '').trim().toLowerCase()));
     // ✅ FIX: Loan Received/Given এ person = loan দাতার নাম, student নয় — skip করো
-    const loanTypes = new Set(['Loan Received','Loan Receiving','Loan Given','Loan Giving','Transfer In','Transfer Out']);
+    const loanTypes = new Set(['Loan Received', 'Loan Receiving', 'Loan Given', 'Loan Giving', 'Transfer In', 'Transfer Out']);
     const orphaned = finance.filter(f => {
       if (loanTypes.has(f.type)) return false; // Loan entries skip
       if (!f.person && !f.studentName) return false;
@@ -1206,9 +1224,9 @@
     const gd2 = window.globalData;
     // ✅ FIX: globalData এবং localStorage backup উভয়ই চেক করো
     const _secretQ = (gd2 && gd2.credentials && gd2.credentials.secretQuestion) ||
-                     localStorage.getItem('wingsfly_secret_q') || '';
+      localStorage.getItem('wingsfly_secret_q') || '';
     const _secretA = (gd2 && gd2.credentials && gd2.credentials.secretAnswer) ||
-                     localStorage.getItem('wingsfly_secret_a') || '';
+      localStorage.getItem('wingsfly_secret_a') || '';
     // ✅ FIX: globalData এ না থাকলে backup থেকে restore করো (লগআউটের পরেও কাজ করবে)
     if (_secretQ && gd2) {
       if (!gd2.credentials) gd2.credentials = {};
@@ -1220,7 +1238,7 @@
     // ✅ AUTO-FIX: credentials object না থাকলে তৈরি করো
     if (gd2 && !gd2.credentials) {
       gd2.credentials = { username: 'admin' };
-      try { localStorage.setItem('wingsfly_data', JSON.stringify(gd2)); } catch(e) {}
+      try { localStorage.setItem('wingsfly_data', JSON.stringify(gd2)); } catch (e) { }
     }
 
     if (gd2 && gd2.credentials) {
@@ -1533,7 +1551,7 @@
       const ft = finance.filter(f => {
         const fPerson = (f.person || '').trim().toLowerCase();
         return fPerson === sName &&
-          ['Student Fee','Student Installment'].includes(f.category) &&
+          ['Student Fee', 'Student Installment'].includes(f.category) &&
           f.type === 'Income';
       }).reduce((sum, f) => sum + (parseFloat(f.amount) || 0), 0);
       // ft===0 মানে finance entry নেই কিন্তু paid আছে — এটাও mismatch
@@ -1690,12 +1708,12 @@
     const byType = {};
     (gd.deletedItems || []).forEach(d => { byType[d.type] = (byType[d.type] || 0) + 1; });
     const knownTypes = ['student', 'finance', 'employee', 'bankaccount', 'mobileaccount',
-                        'visitor', 'keeprecord', 'keep_record', 'keeprecord', 'exam', 'notice', 'breakdown'];
+      'visitor', 'keeprecord', 'keep_record', 'keeprecord', 'exam', 'notice', 'breakdown'];
     const unknownTypes = Object.keys(byType).filter(t => !knownTypes.includes(t.toLowerCase()));
     if (Object.keys(byType).length === 0) {
       skip('Recycle Bin type check', 'Recycle Bin এখনো empty');
     } else {
-      pass('Recycle Bin types: ' + Object.entries(byType).map(([k,v]) => k+':'+v).join(', '));
+      pass('Recycle Bin types: ' + Object.entries(byType).map(([k, v]) => k + ':' + v).join(', '));
       if (unknownTypes.length > 0) {
         warn('Unknown trash types: ' + unknownTypes.join(', '), 'Restore করা যাবে না এই types এর items');
       }
@@ -1921,18 +1939,18 @@
 
     // প্রতিটি section file এর expected functions
     const sectionChecks = {
-      'loan-management.js':    ['renderLoanSummary', 'openLoanDetail', 'closeLoanDetail', 'filterLoanSummary', 'deleteLoanTransaction'],
-      'employee-management.js':['renderEmployees', 'openEmployeeModal', 'saveEmployee', 'deleteEmployee'],
+      'loan-management.js': ['renderLoanSummary', 'openLoanDetail', 'closeLoanDetail', 'filterLoanSummary', 'deleteLoanTransaction'],
+      'employee-management.js': ['renderEmployees', 'openEmployeeModal', 'saveEmployee', 'deleteEmployee'],
       'visitor-management.js': ['renderVisitors', 'openVisitorModal', 'deleteVisitor'],
-      'notice-board.js':       ['renderNoticeBoard', 'publishNotice', 'deleteNotice'],
-      'finance-crud.js':       ['deleteTransaction', 'editTransaction', 'handleEditTransactionSubmit'],
-      'accounts-ui.js':        ['updateAccountBalance'],
+      'notice-board.js': ['renderNoticeBoard', 'publishNotice', 'deleteNotice'],
+      'finance-crud.js': ['deleteTransaction', 'editTransaction', 'handleEditTransactionSubmit'],
+      'accounts-ui.js': ['updateAccountBalance'],
       'student-management.js': ['renderStudents', 'openStudentModal', 'saveStudent', 'deleteStudent'],
-      'keep-records.js':       ['renderKeepRecordNotes', 'saveNote', 'openNewNoteModal'],
-      'activity-log.js':       ['logActivity', 'loadActivityHistory'],
-      'auth.js':               ['checkSecretAnswer', 'resetPasswordFromModal'],
-      'dashboard-stats.js':    ['renderDashboard'],
-      'accounts-management.js':['openAccountModal', 'deleteAccount', 'deleteMobileAccount'],
+      'keep-records.js': ['renderKeepRecordNotes', 'saveNote', 'openNewNoteModal'],
+      'activity-log.js': ['logActivity', 'loadActivityHistory'],
+      'auth.js': ['checkSecretAnswer', 'resetPasswordFromModal'],
+      'dashboard-stats.js': ['renderDashboard'],
+      'accounts-management.js': ['openAccountModal', 'deleteAccount', 'deleteMobileAccount'],
     };
 
     let totalMissing = 0;

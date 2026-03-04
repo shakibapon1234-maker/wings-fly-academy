@@ -454,16 +454,42 @@ window.checkPersonBalance = checkPersonBalance;
 // ===================================
 function deleteLoanTransaction(id) {
   if (!id) return;
-  if (!confirm('এই Loan transaction টি delete করতে চান?\n(Recycle Bin-এ পাঠানো হবে, পরে Restore করা যাবে)')) return;
+  if (!confirm('এই Loan transaction টি delete করতে চান?\n(অ্যাকাউন্ট ব্যালেন্স অটো-অ্যাডজাস্ট হবে এবং Recycle Bin-এ পাঠানো হবে)')) return;
 
   const sid = String(id);
   const tx = (window.globalData.finance || []).find(f => String(f.id) === sid);
-  if (!tx) { if (typeof showErrorToast === 'function') showErrorToast('Transaction not found.'); return; }
 
-  // ✅ Recycle Bin এ পাঠাও
+  if (!tx) {
+    console.error('[LoanDelete] ID not found:', sid);
+    // Fallback: try numeric match if sid is numeric
+    const numericId = Number(id);
+    if (!isNaN(numericId)) {
+      const tx2 = (window.globalData.finance || []).find(f => Number(f.id) === numericId);
+      if (tx2) {
+        _executeLoanDeletion(tx2);
+        return;
+      }
+    }
+    if (typeof showErrorToast === 'function') showErrorToast('Transaction not found or already deleted.');
+    return;
+  }
+
+  _executeLoanDeletion(tx);
+}
+
+function _executeLoanDeletion(tx) {
+  const sid = String(tx.id);
+
+  // 1. Reverse the Balance Effect before deleting
+  if (typeof updateAccountBalance === 'function') {
+    // isAddition = false means REVERSE the transaction effect
+    updateAccountBalance(tx.method, tx.amount, tx.type, false);
+  }
+
+  // 2. Move to Trash
   if (typeof moveToTrash === 'function') moveToTrash('finance', tx);
 
-  // ✅ Activity Log এ রেকর্ড করো
+  // 3. Activity Log
   if (typeof logActivity === 'function') {
     logActivity('finance', 'DELETE',
       `Loan Transaction Deleted: ${tx.description || tx.type} — ৳${tx.amount} | Person: ${tx.person || '-'}`,
@@ -471,22 +497,24 @@ function deleteLoanTransaction(id) {
     );
   }
 
-  // ✅ Finance list থেকে সরাও (Income affect হবে না)
+  // 4. Remove from Finance list
   window.globalData.finance = window.globalData.finance.filter(f => String(f.id) !== sid);
 
-  localStorage.setItem('wingsfly_data', JSON.stringify(window.globalData));
-  if (typeof window.scheduleSyncPush === 'function') {
-    window.scheduleSyncPush('Delete Loan Tx: ' + (tx.description || tx.type));
-  } else if (typeof saveToStorage === 'function') {
+  // 5. Save
+  if (typeof saveToStorage === 'function') {
     saveToStorage();
+  } else {
+    localStorage.setItem('wingsfly_data', JSON.stringify(window.globalData));
   }
 
+  // 6. Refresh UI
   if (typeof updateGlobalStats === 'function') updateGlobalStats();
   if (typeof renderLoanSummary === 'function') renderLoanSummary();
   if (window.currentLoanPerson) openLoanDetail(window.currentLoanPerson);
 
-  if (typeof showSuccessToast === 'function') showSuccessToast('✅ Deleted! Recycle Bin-এ পাঠানো হয়েছে।');
+  if (typeof showSuccessToast === 'function') showSuccessToast('✅ Loan deleted and balance adjusted!');
 }
+
 window.deleteLoanTransaction = deleteLoanTransaction;
 
 // =====================================================
