@@ -793,9 +793,9 @@
 
     const diff = Math.abs(calcCash - (parseFloat(gd.cashBalance) || 0));
     if (diff < 1) {
-      pass('✅ Cash Balance matches transactions', `৳${formatNumber(calcCash)}`);
+      pass('✅ Cash Balance matches transactions', `৳${window.formatNumber ? window.formatNumber(calcCash) : calcCash}`);
     } else {
-      fail('❌ Cash Balance Mismatch!', `Calculated: ৳${formatNumber(calcCash)} | Stored: ৳${formatNumber(gd.cashBalance)} (Diff: ৳${formatNumber(diff)})`);
+      fail('❌ Cash Balance Mismatch!', `Calculated: ৳${window.formatNumber ? window.formatNumber(calcCash) : calcCash} | Stored: ৳${window.formatNumber ? window.formatNumber(gd.cashBalance) : gd.cashBalance} (Diff: ৳${window.formatNumber ? window.formatNumber(diff) : diff})`);
     }
 
     // --- 10a3: ✅ Exam Fee income এ যাচ্ছে ---
