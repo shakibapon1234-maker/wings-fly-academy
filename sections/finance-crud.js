@@ -193,29 +193,38 @@ function deleteInstallment(rowIndex, instIndex) {
 
   // 1. Student installments array থেকে সরাও
   if (!inst.isMigrated) {
-    // Normal installment — directly from student.installments
-    student.installments = (student.installments || []).filter((_, i) => {
-      // instIndex match করে সেটা বাদ দাও
-      return i !== instIndex;
-    });
+    // Normal installment — student.installments থেকে সরাও
+    // ⚠️ FIX: getStudentInstallments() migrated entry আগে unshift করে,
+    // তাই actual index = instIndex - (migrated entries count)
+    const displayList = getStudentInstallments(student);
+    const migratedCount = displayList.filter(i => i.isMigrated).length;
+    const realIndex = instIndex - migratedCount;
+    if (realIndex >= 0 && student.installments && realIndex < student.installments.length) {
+      student.installments.splice(realIndex, 1);
+    }
   } else {
     // Migrated (initial payment) — paid field থেকে বাদ দাও
-    // এটা student.payment field এ আছে, installments এ নেই
-    // তাই শুধু paid/due adjust করব
+    // এটা student.installments এ নেই, শুধু paid/due adjust করব
   }
 
   // 2. Student paid/due update করো
   student.paid = Math.max(0, (parseFloat(student.paid) || 0) - amount);
   student.due = Math.max(0, (parseFloat(student.totalPayment) || 0) - student.paid);
 
-  // 3. Finance ledger থেকেও সরাও (matching entry)
+  // 3. Finance ledger থেকেও সরাও (শুধু FIRST matching entry)
   const beforeCount = (globalData.finance || []).length;
+  let deletedOne = false;
   globalData.finance = (globalData.finance || []).filter(f => {
+    if (deletedOne) return true; // already removed one, keep rest
     const sameAmount = parseFloat(f.amount) === amount;
     const samePerson = f.person === student.name || (f.description && f.description.includes(student.name));
     const sameMethod = !f.method || f.method === method;
     const sameDate = !inst.date || f.date === inst.date;
-    return !(sameAmount && samePerson && sameDate);
+    if (sameAmount && samePerson && sameDate) {
+      deletedOne = true;
+      return false; // remove this one
+    }
+    return true;
   });
 
   // 4. Account balance reverse করো
@@ -343,7 +352,7 @@ window.openStudentModal = function (index) {
   new bootstrap.Modal(el).show();
 };
 // These functions are in app.js (loads after), so use deferred assignment
-document.addEventListener('DOMContentLoaded', function() {
+document.addEventListener('DOMContentLoaded', function () {
   if (typeof handleStudentSubmit !== 'undefined') window.saveStudent = handleStudentSubmit;
   if (typeof render !== 'undefined') window.renderStudents = render;
   if (typeof handleEmployeeSubmit !== 'undefined') window.saveEmployee = handleEmployeeSubmit;
