@@ -2253,8 +2253,24 @@ function openStudentActionsModal(index) {
   if (!items[index]) return;
   const s = items[index];
 
+  // ✅ FIX: actionsModal lazy-loaded modals-student.html এ আছে
+  // DOM-এ না থাকলে প্রথমে load করো, তারপর retry
   const body = document.getElementById('actionsModalBody');
-  if (!body) return;
+  if (!body) {
+    console.log('[MANAGE] actionsModal not in DOM — loading modals-student.html...');
+    if (window.sectionLoader && typeof window.sectionLoader.loadAndOpen === 'function') {
+      window.sectionLoader.loadAndOpen(
+        '__modalPlaceholderStudents',
+        'sections/modals-student.html',
+        'studentModal',
+        null
+      ).then(function () {
+        // Load হওয়ার পর retry
+        setTimeout(function () { openStudentActionsModal(index); }, 100);
+      });
+    }
+    return;
+  }
 
   body.innerHTML = `
   <div class='text-center mb-3'>
