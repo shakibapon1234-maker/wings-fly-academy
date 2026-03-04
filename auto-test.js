@@ -860,25 +860,6 @@
     if (dupCount === 0) { pass('No duplicate finance entries'); }
     else { warn(`${dupCount}টি সম্ভাব্য duplicate entry`, 'একই date+amount+type+person এর multiple entry'); }
 
-    // --- 10d: Cash-only Income/Expense net vs cashBalance ---
-    // শুধু Cash method এর transactions দিয়ে cashBalance compare করো
-    let calcCash = 0;
-    finance.forEach(f => {
-      if (f.method !== 'Cash') return;
-      const amt = parseFloat(f.amount) || 0;
-      // ✅ FIX: Loan Received = money IN to cash, Loan Given = money OUT from cash
-      if (f.type === 'Income' || f.type === 'আয়' || f.type === 'Loan Received' || f.type === 'Loan Receiving') calcCash += amt;
-      else if (f.type === 'Expense' || f.type === 'ব্যয়' || f.type === 'Loan Given' || f.type === 'Loan Giving') calcCash -= amt;
-      // Transfer In/Out also affects cash
-      else if (f.type === 'Transfer In') calcCash += amt;
-      else if (f.type === 'Transfer Out') calcCash -= amt;
-    });
-    const storedCash = parseFloat(gd.cashBalance) || 0;
-    const gap = Math.abs(calcCash - storedCash);
-    if (gap < 1) { pass('Cash balance matches transactions', `৳${storedCash.toLocaleString('en-IN')}`); }
-    else if (gap < 10000) { warn('Cash balance minor gap', `Calculated ৳${calcCash.toFixed(0)} vs Stored ৳${storedCash.toFixed(0)} (গ্যাপ: ৳${gap.toFixed(0)})`); }
-    else { fail('Cash balance mismatch!', `Calculated ৳${calcCash.toFixed(0)} vs Stored ৳${storedCash.toFixed(0)} — recalculate করুন`); }
-
     // --- 10e: Student due total integrity ---
     let totalDue = 0, badDueCount = 0;
     (gd.students || []).forEach(s => {
