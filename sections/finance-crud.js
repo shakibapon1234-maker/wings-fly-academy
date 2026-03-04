@@ -79,7 +79,9 @@ function openStudentPaymentModal(rowIndex) {
     });
   }
 
-  const modal = new bootstrap.Modal(document.getElementById('studentPaymentModal'));
+  const el = document.getElementById('studentPaymentModal');
+  if (!el) return;
+  const modal = bootstrap.Modal.getOrCreateInstance(el);
   modal.show();
 }
 
@@ -400,7 +402,7 @@ async function handleFinanceSubmit(e) {
 
   // Close modal
   const modal = bootstrap.Modal.getInstance(document.getElementById('financeModal'));
-  modal.hide();
+  if (modal) modal.hide();
 
   // Reset form and reload
   form.reset();
@@ -546,7 +548,9 @@ function editTransaction(id) {
   form.category.value = transaction.category || '';
   form.description.value = transaction.description || '';
 
-  const modal = new bootstrap.Modal(document.getElementById('editTransactionModal'));
+  const el = document.getElementById('editTransactionModal');
+  if (!el) return;
+  const modal = bootstrap.Modal.getOrCreateInstance(el);
   modal.show();
 }
 
@@ -581,7 +585,7 @@ async function handleEditTransactionSubmit(e) {
     await saveToStorage();
 
     const modal = bootstrap.Modal.getInstance(document.getElementById('editTransactionModal'));
-    modal.hide();
+    if (modal) modal.hide();
 
     showSuccessToast('Transaction updated successfully!');
 
