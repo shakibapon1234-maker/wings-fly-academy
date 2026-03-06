@@ -44,24 +44,34 @@ function updateGlobalStats() {
   const currentYear = new Date().getFullYear();
   let monthIncome = 0;
 
-  // Calculate Income and Expense from finance transactions ONLY
-  // DO NOT calculate account balances from transactions!
+  // Calculate Income from Students array (Source of truth for collections)
+  const totalStudentIncome = (globalData.students || []).reduce((sum, s) => sum + (parseFloat(s.paid) || 0), 0);
+
+  // Calculate Other Income and Total Expense from finance transactions
+  let nonStudentIncome = 0;
   (globalData.finance || []).forEach(f => {
     const amt = parseFloat(f.amount) || 0;
-    const d = new Date(f.date);
+    const cat = (f.category || '').toLowerCase();
+    const desc = (f.description || '').toLowerCase();
 
     if (f.type === 'Income') {
-      income += amt;
-      // Check for current month income
-      if (d.getMonth() === currentMonth && d.getFullYear() === currentYear) {
-        monthIncome += amt;
+      // Exclude transactions already counted via students array
+      const isStudentRelated = cat.includes('student') ||
+        cat.includes('installment') ||
+        cat.includes('admission') ||
+        cat.includes('fee') ||
+        desc.includes('installment') ||
+        desc.includes('enrollment fee');
+
+      if (!isStudentRelated) {
+        nonStudentIncome += amt;
       }
     } else if (f.type === 'Expense') {
       expense += amt;
     }
-    // Note: Loans and Transfers do NOT affect Income/Expense
   });
 
+  income = totalStudentIncome + nonStudentIncome;
   const profit = income - expense;
 
   // --- AVIATION PREMIUM DASHBOARD METRICS ---
