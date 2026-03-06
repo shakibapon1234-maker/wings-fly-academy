@@ -308,9 +308,10 @@ function deleteStudent(rowIndex) {
   localStorage.setItem('wings_total_deleted', _delCount.toString());
 
   // CRITICAL: Reverse all account balances from this student's payments
-  // Find all finance transactions related to this student
-  if (student.installments && student.installments.length > 0) {
-    student.installments.forEach(inst => {
+  // (Including the initial payment gap)
+  const allPayments = getStudentInstallments(student);
+  if (allPayments.length > 0) {
+    allPayments.forEach(inst => {
       const amount = parseFloat(inst.amount) || 0;
       const method = inst.method || 'Cash';
 
@@ -548,8 +549,7 @@ function deleteTransaction(id) {
       const txAmount = parseFloat(txToDelete.amount) || 0;
       const txDate = txToDelete.date;
 
-      // ✅ শুধু student.installments array-তে matching entry থাকলেই paid কমাও
-      // এতে Auto-heal বা legacy finance entry ডিলিট করলে paid অপরিবর্তিত থাকবে
+      // ✅ matching entry থাকলেই paid কমাও (Installments array-তে)
       let foundMatchingInstallment = false;
       if (student.installments && student.installments.length > 0) {
         for (let i = 0; i < student.installments.length; i++) {
@@ -563,15 +563,35 @@ function deleteTransaction(id) {
         }
       }
 
-      if (foundMatchingInstallment) {
-        // ✅ Matching installment পাওয়া গেছে — paid/due reverse করো
+      // ✅ Gap Check: যদি installments এ না থাকে, তবে কি এটি "Initial Payment" (gap)?
+      let isInitialGap = false;
+      if (!foundMatchingInstallment) {
+        const currentSum = (student.installments || []).reduce((s, x) => s + (parseFloat(x.amount) || 0), 0);
+        const gap = (parseFloat(student.paid) || 0) - currentSum;
+        // ৳1 এর কম পার্থক্য থাকলে match ধরো (rounding error এর জন্য)
+        if (gap > 0 && Math.abs(gap - txAmount) < 1) {
+          isInitialGap = true;
+        }
+      }
+
+      if (foundMatchingInstallment || isInitialGap) {
+        // ✅ Matching entry বা Gap পাওয়া গেছে — paid/due reverse করো
         student.paid = Math.max(0, (parseFloat(student.paid) || 0) - txAmount);
         student.due = Math.max(0, (parseFloat(student.totalPayment) || 0) - student.paid);
-        console.log(`✅ Student "${studentName}" reverse: paid=৳${student.paid}, due=৳${student.due}`);
+        console.log(`✅ Student "${studentName}" update: paid=৳${student.paid}, due=৳${student.due} (Gap: ${isInitialGap})`);
+
+        // ⛔ USER REQUEST: যদি প্রথম/ইনিশিয়াল পেমেন্ট ডিলিট হয় এবং আর কোনো পেমেন্ট না থাকে, তবে স্টুডেন্ট ডিলিট করো
+        if (student.paid <= 0 && (!student.installments || student.installments.length === 0)) {
+          const sIdx = globalData.students.indexOf(student);
+          if (sIdx !== -1) {
+            if (typeof moveToTrash === 'function') moveToTrash('student', student);
+            globalData.students.splice(sIdx, 1);
+            console.log(`🗑️ Student "${studentName}" auto-deleted because all payments were removed.`);
+          }
+        }
       } else {
         // ⚠️ Matching installment নেই — Auto-heal entry বা legacy entry
-        // student.paid ছোঁয়া হবে না, শুধু finance entry ডিলিট হবে
-        console.log(`ℹ️ Finance entry for "${studentName}" deleted (no matching installment — student.paid unchanged)`);
+        console.log(`ℹ️ Finance entry for "${studentName}" deleted (no matching installment/gap — student.paid unchanged)`);
       }
     }
   }

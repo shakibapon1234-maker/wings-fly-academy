@@ -287,73 +287,7 @@
     </div>
 </div>
 
-<div class="modal fade" id="financeModal" tabindex="-1">
-    <div class="modal-dialog modal-dialog-centered">
-        <div class="modal-content custom-modal">
-            <div class="modal-header">
-                <h5 class="modal-title fw-bold">
-                    <span class="me-2">💰</span>Add Transaction
-                </h5>
-                <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
-            </div>
-            <div class="modal-body">
-                <form id="financeForm" onsubmit="handleFinanceSubmit(event)">
-                    <div class="row g-2">
-                        <div class="col-6 mb-2">
-                            <label class="form-label fw-semibold small">📂 Type</label>
-                            <select name="type" class="form-select form-select-sm"
-                                onchange="updateFinanceCategoryOptions()">
-                                <option value="Income">Income (+)</option>
-                                <option value="Expense">Expense (-)</option>
-                                <option value="Loan Given">Loan Giving (Money Out)</option>
-                                <option value="Loan Received">Loan Receiving (Money In)</option>
-                            </select>
-                        </div>
-                        <div class="col-6 mb-2">
-                            <label class="form-label fw-semibold small">💳 Method</label>
-                            <select name="method" class="form-select form-select-sm" id="financeMethodSelect">
-                                <!-- Populated dynamically -->
-                            </select>
-                        </div>
-                        <div class="col-6 mb-2">
-                            <label class="form-label fw-semibold small">📅 Date</label>
-                            <input type="date" name="date" class="form-control form-control-sm" required
-                                style="color-scheme:dark;">
-                        </div>
-                        <div class="col-6 mb-2">
-                            <label class="form-label fw-semibold small">🏷️ Category</label>
-                            <select name="category" class="form-select form-select-sm" id="financeCategorySelect">
-                                <!-- Populated dynamically -->
-                            </select>
-                        </div>
-                    </div>
 
-                    <div class="mb-3 d-none" id="financePersonContainer">
-                        <label class="form-label fw-semibold">Person / Counterparty</label>
-                        <input type="text" name="person" class="form-control" id="financePersonInput"
-                            placeholder="Name of person (required for Salary/Loans)" onkeyup="checkPersonBalance()">
-                        <div id="personBalanceDisplay" class="form-text fw-bold mt-1"></div>
-                    </div>
-                    <div class="mb-3">
-                        <label class="form-label fw-semibold">Amount</label>
-                        <div class="input-group">
-                            <span class="input-group-text bg-dark border-end-0">৳</span>
-                            <input type="number" name="amount" class="form-control border-start-0" placeholder="0"
-                                required>
-                        </div>
-                    </div>
-                    <div class="mb-3">
-                        <label class="form-label fw-semibold">Description</label>
-                        <textarea name="description" class="form-control" rows="2"
-                            placeholder="Optional notes"></textarea>
-                    </div>
-                    <button type="submit" class="btn btn-success w-100 fw-semibold">Save
-                        Transaction</button>
-                </form>
-            </div>
-        </div>
-    </div>
-</div>
 
 
 

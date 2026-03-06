@@ -88,9 +88,73 @@
         var typeSelect = document.querySelector('#financeForm select[name="type"]') ||
             document.querySelector('#financeModal select[name="type"]');
         if (!typeSelect) return;
-        populateCategoryDropdown(typeSelect.value);
+
+        var typeValue = typeSelect.value;
+        populateCategoryDropdown(typeValue);
+
+        // Person / Counterparty field visibility
+        var personContainer = document.getElementById('financePersonContainer');
+        if (personContainer) {
+            if (typeValue === 'Loan Given' || typeValue === 'Loan Received') {
+                personContainer.classList.remove('d-none');
+                var personInput = document.getElementById('financePersonInput');
+                if (personInput) personInput.setAttribute('required', 'required');
+            } else {
+                personContainer.classList.add('d-none');
+                var personInput = document.getElementById('financePersonInput');
+                if (personInput) personInput.removeAttribute('required');
+            }
+        }
     }
     window.updateFinanceCategoryOptions = updateFinanceCategoryOptions;
+
+    // ── Student Dropdowns populate ───────────────────────────
+    function populateStudentDropdowns() {
+        var courseSelect = document.getElementById('studentCourseSelect');
+        var methodSelect = document.getElementById('studentMethodSelect');
+        var gd = window.globalData;
+        if (!gd) return;
+
+        // 1. Course populate
+        if (courseSelect) {
+            var currentCourse = courseSelect.value;
+            // globalData.courseNames or extract from students
+            var courses = gd.courseNames || [];
+            if (gd.students && Array.isArray(gd.students)) {
+                var existing = gd.students.map(function (s) { return s.course; }).filter(Boolean);
+                courses = [...new Set([...courses, ...existing])];
+            }
+            courses.sort();
+
+            courseSelect.innerHTML = '<option value="">Select Course...</option>';
+            courses.forEach(function (c) {
+                var opt = document.createElement('option');
+                opt.value = c;
+                opt.textContent = c;
+                courseSelect.appendChild(opt);
+            });
+            if (currentCourse) courseSelect.value = currentCourse;
+        }
+
+        // 2. Method populate
+        if (methodSelect) {
+            var currentMethod = methodSelect.value;
+            var methods = ['Cash'];
+            (gd.bankAccounts || []).forEach(function (acc) { if (acc && acc.name) methods.push(acc.name); });
+            (gd.mobileBanking || []).forEach(function (acc) { if (acc && acc.name) methods.push(acc.name); });
+            methods = [...new Set(methods)];
+
+            methodSelect.innerHTML = '<option value="">Select Method...</option>';
+            methods.forEach(function (m) {
+                var opt = document.createElement('option');
+                opt.value = m;
+                opt.textContent = m;
+                methodSelect.appendChild(opt);
+            });
+            if (currentMethod) methodSelect.value = currentMethod;
+        }
+    }
+    window.populateStudentDropdowns = populateStudentDropdowns;
 
     // ── populateDropdowns — global function patch ─────────────
     // যদি finance-crud.js এ populateDropdowns আগে থেকে আছে সেটাকে wrap করো
@@ -159,15 +223,46 @@
         return true;
     }
 
+    function attachStudentModalListener() {
+        var sm = document.getElementById('studentModal');
+        if (!sm) return false;
+
+        sm.addEventListener('show.bs.modal', function () {
+            setTimeout(populateStudentDropdowns, 50);
+
+            // Default enrollment date set if empty
+            setTimeout(function () {
+                var dateInput = document.getElementById('studentEnrollDate');
+                if (dateInput && !dateInput.value) {
+                    dateInput.value = new Date().toISOString().split('T')[0];
+                }
+            }, 100);
+        });
+
+        console.log('[CategoryFix] Student modal listener attached ✓');
+        return true;
+    }
+
     // ── Initialize ────────────────────────────────────────────
     function init() {
         setupPopulateDropdowns();
+
+        // Finance Modal
         if (!attachModalListener()) {
             var attempts = 0;
             var iv = setInterval(function () {
                 attempts++;
                 if (attachModalListener() || attempts > 20) clearInterval(iv);
             }, 200);
+        }
+
+        // Student Modal
+        if (!attachStudentModalListener()) {
+            var sAttempts = 0;
+            var sIv = setInterval(function () {
+                sAttempts++;
+                if (attachStudentModalListener() || sAttempts > 20) clearInterval(sIv);
+            }, 250);
         }
     }
 
