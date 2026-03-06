@@ -424,7 +424,6 @@
     if (!data || !data.students || !data.finance) return 0;
 
     // ✅ CRITICAL: Recent delete হলে cooldown দাও — ৩ মিনিট
-    // যাতে user ডিলিট করার পরে auto-heal আবার re-add না করে
     const currentDeleteCount = parseInt(localStorage.getItem('wings_total_deleted') || '0');
     if (currentDeleteCount > _lastDeleteCount) {
       _lastDeleteCount = currentDeleteCount;
@@ -432,7 +431,6 @@
       hLog('info', 'Recent delete detected — Paid-Finance heal cooldown ৩ মিনিট');
       return 0;
     }
-    // Cooldown period: 3 minutes after last delete
     if (_lastDeleteTime > 0 && (Date.now() - _lastDeleteTime) < 180000) {
       hLog('info', 'Paid-Finance heal in cooldown (' + Math.round((180000 - (Date.now() - _lastDeleteTime)) / 1000) + 's remaining)');
       return 0;
@@ -448,26 +446,35 @@
       const studentPaid = parseFloat(student.paid) || 0;
       if (studentPaid === 0) return;
 
-      // ✅ Case-insensitive person name match
       const finRecords = finance.filter(f =>
         (f.person || '').trim().toLowerCase() === nameLower &&
         (f.category === 'Student Fee' || f.category === 'Student Installment') &&
         f.type === 'Income'
       );
       const finTotal = finRecords.reduce((sum, f) => sum + (parseFloat(f.amount) || 0), 0);
+
+      // ✅ v3.3 SAFE FIX:
+      // Finance-এ entry না থাকলে (finTotal === 0) কোনো action নেওয়া হবে না
+      // কারণ: legacy student-দের payment finance tracking চালু হওয়ার আগে নেওয়া হয়েছিল
+      // Finance entry নেই মানে এই নয় যে paid ভুল — এটা legacy gap
+      if (finTotal === 0) {
+        // Legacy student — finance entry নেই, paid ছোঁয়া হবে না
+        return;
+      }
+
       const diff = studentPaid - finTotal;
 
-      // ✅ v3.2 FIX: Mismatch থাকলে সবসময় student.paid কে finance total এ align করো
-      // কখনো নতুন finance entry তৈরি করো না — finance ledger ই source of truth
-      // কারণ: user ডিলিট করার পরে paid > finTotal, পুরনো code re-add করতো
-      if (Math.abs(diff) > 1) {
-        // ✅ Finance total ই source of truth — student.paid কে finance total এ match করাও
-        // এতে ডিলিট করলে paid ও কমে যাবে, নতুন phantom entry তৈরি হবে না
+      // শুধু paid < finTotal হলে paid বাড়াও (finance-এ বেশি আছে)
+      // paid > finTotal হলে কিছু করবে না (হয়তো finance entry ডিলিট করা হয়েছে
+      // অথবা paid সঠিক কিন্তু finance entry সব আসেনি)
+      if (diff < -1) {
+        // Finance-এ বেশি — paid কে finance total-এ নিয়ে আসো
         student.paid = Math.round(finTotal * 100) / 100;
         student.due = Math.max(0, (parseFloat(student.totalPayment) || 0) - student.paid);
-        hLog('fix', 'Paid-Finance fix (' + name + '): paid aligned to ৳' + student.paid + ' (finance total: ৳' + finTotal.toFixed(0) + ')');
+        hLog('fix', 'Paid-Finance fix (' + name + '): paid UP to ৳' + student.paid + ' (finance: ৳' + finTotal.toFixed(0) + ')');
         fixed++;
       }
+      // diff > 1 (paid > finTotal): ডিলিটের কারণে হতে পারে — কিছু করবে না
     });
 
     if (fixed > 0) {

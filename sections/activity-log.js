@@ -128,19 +128,20 @@ function loadDeletedItems() {
     return;
   }
 
-  const icons = { student: '🎓', finance: '💰', employee: '👤' };
+  const icons = { student: '🎓', finance: '💰', employee: '👤', installment: '💳' };
 
   container.innerHTML = filtered.map((d, idx) => {
     const date = new Date(d.deletedAt);
     const dateStr = date.toLocaleString('en-BD', { day: '2-digit', month: 'short', year: 'numeric', hour: '2-digit', minute: '2-digit' });
-    const typeIconMap = { student: '🎓', finance: '💰', employee: '👤', keeprecord: '📝', keep_record: '📝', visitor: '🧑', notice: '📢', loan: '💳', idcard: '🪪' };
-    const icon = typeIconMap[(d.type||'').toLowerCase()] || '📄';
+    const typeIconMap = { student: '🎓', finance: '💰', employee: '👤', keeprecord: '📝', keep_record: '📝', visitor: '🧑', notice: '📢', loan: '💳', idcard: '🪪', installment: '💳' };
+    const icon = typeIconMap[(d.type || '').toLowerCase()] || '📄';
 
     // Build display name
     let name = '';
     const t = (d.type || '').toLowerCase();
     if (t === 'student') name = d.item.name || d.item.studentName || 'Unknown Student';
     else if (t === 'finance') name = (d.item.description || d.item.category || 'Transaction') + ' — ৳' + (d.item.amount || 0);
+    else if (t === 'installment') name = (d.item.description || ('Installment: ' + (d.item.studentName || '') + ' — ৳' + (d.item.amount || 0)));
     else if (t === 'employee') name = d.item.name || 'Unknown Employee';
     else if (t === 'keeprecord' || t === 'keep_record') name = '📝 ' + (d.item.title || d.item.content || 'Note').substring(0, 50);
     else if (t === 'visitor') name = d.item.name || d.item.visitorName || 'Visitor';
@@ -192,6 +193,49 @@ function restoreDeletedItem(trashId) {
     if (typeof render === 'function') setTimeout(() => render(window.globalData.students), 100);
     if (typeof renderStudents === 'function') setTimeout(renderStudents, 100);
 
+  } else if (type === 'installment') {
+    // ✅ Installment restore — student.installments এ ফিরিয়ে দাও + paid বাড়াও + finance entry তৈরি করো
+    const studentName = (item.studentName || '').trim();
+    const restoreAmount = parseFloat(item.amount) || 0;
+    const restoreMethod = item.method || 'Cash';
+    const restoreDate = item.date || new Date().toISOString().split('T')[0];
+    const student = studentName ? (window.globalData.students || []).find(s => (s.name || '').trim() === studentName) : null;
+
+    if (student) {
+      // installments array তে ফিরিয়ে দাও
+      if (!student.installments) student.installments = [];
+      student.installments.push({ amount: restoreAmount, date: restoreDate, method: restoreMethod });
+
+      // paid/due update
+      student.paid = (parseFloat(student.paid) || 0) + restoreAmount;
+      student.due = Math.max(0, (parseFloat(student.totalPayment) || 0) - student.paid);
+
+      // Finance entry ফিরিয়ে দাও
+      if (!window.globalData.finance) window.globalData.finance = [];
+      window.globalData.finance.push({
+        id: Date.now(),
+        type: 'Income',
+        method: restoreMethod,
+        date: restoreDate,
+        category: 'Student Installment',
+        person: studentName,
+        amount: restoreAmount,
+        description: `[Restored] Installment for ${studentName}`,
+        timestamp: new Date().toISOString()
+      });
+
+      // Account balance update
+      if (typeof updateAccountBalance === 'function') {
+        updateAccountBalance(restoreMethod, restoreAmount, 'Income', true);
+      }
+
+      logActivity('finance', 'ADD', `✅ Restored installment: ৳${restoreAmount} | ${studentName}`, item);
+      if (typeof render === 'function') setTimeout(() => render(window.globalData.students), 100);
+      if (typeof renderLedger === 'function') setTimeout(() => renderLedger(window.globalData.finance), 100);
+    } else {
+      logActivity('finance', 'ADD', `⚠️ Installment restored but student "${studentName}" not found`, item);
+    }
+
   } else if (type === 'finance') {
     if (!window.globalData.finance) window.globalData.finance = [];
     window.globalData.finance.push(item);
@@ -215,7 +259,7 @@ function restoreDeletedItem(trashId) {
       }
       logActivity('keeprecord', 'ADD', `✅ Restored note: ${item.title || item.content || 'Note'}`, item);
       if (typeof renderKeepRecordNotes === 'function') setTimeout(renderKeepRecordNotes, 100);
-    } catch(e) { console.warn('Keep record restore error:', e); }
+    } catch (e) { console.warn('Keep record restore error:', e); }
 
   } else if (type === 'visitor') {
     if (!window.globalData.visitors) window.globalData.visitors = [];

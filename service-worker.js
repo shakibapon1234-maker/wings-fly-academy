@@ -4,7 +4,7 @@
 // Version বাড়ালে নতুন files আবার download হবে
 // ================================================================
 
-const CACHE_NAME = 'wingsfly-cache-v5'; // ✅ v5: force re-cache after payment delete sync fix
+const CACHE_NAME = 'wingsfly-cache-v6'; // ✅ v6: safe delete fix + recycle bin support
 
 // এই files গুলো offline-এও কাজ করবে
 const FILES_TO_CACHE = [
