@@ -1221,6 +1221,14 @@
                         <span class="nav-icon"><i class="bi bi-check2-square icon-exam"></i></span>
                         <span class="nav-text">Exams</span>
                     </button>
+                    <button class="nav-item-link" id="tabPayroll" onclick="switchTab('payroll')">
+                        <span class="nav-icon"><i class="bi bi-cash-stack" style="color:#10b981;"></i></span>
+                        <span class="nav-text">Payroll</span>
+                    </button>
+                    <button class="nav-item-link" id="tabAnalytics" onclick="switchTab('analytics')">
+                        <span class="nav-icon"><i class="bi bi-graph-up-arrow" style="color:#6366f1;"></i></span>
+                        <span class="nav-text">Analytics</span>
+                    </button>
                     <button class="nav-item-link" onclick="openAttendanceModal()">
                         <span class="nav-icon"><i class="bi bi-calendar-check icon-exam"></i></span>
                         <span class="nav-text">Attendance</span>
@@ -2468,6 +2476,106 @@
                     </div>
                 </div>
 
+                <!-- PAYROLL MANAGEMENT SECTION -->
+                <div id="payrollSection" class="d-none">
+                    <div class="d-flex justify-content-between align-items-center mb-4">
+                        <h4 class="fw-bold m-0"><span class="me-2">💰</span> Payroll Management</h4>
+                        <div class="d-flex gap-2">
+                            <button class="btn btn-success fw-bold px-4 rounded-3" onclick="generateMonthlyPayroll()">
+                                <i class="bi bi-calendar-check me-2"></i>Generate Monthly Payroll
+                            </button>
+                            <button class="btn btn-outline-primary fw-bold px-4 rounded-3"
+                                onclick="printPayrollReport()">
+                                <i class="bi bi-printer-fill me-2"></i>Print Report
+                            </button>
+                        </div>
+                    </div>
+
+                    <div class="card border-0 shadow-sm mb-4 bg-glass-card">
+                        <div class="card-body">
+                            <div class="row g-3">
+                                <div class="col-md-4">
+                                    <label class="form-label small fw-bold">Select Month/Year</label>
+                                    <input type="month" id="payrollMonthFilter"
+                                        class="form-control premium-input-modern" onchange="renderPayrollList()">
+                                </div>
+                                <div class="col-md-8 text-end d-flex align-items-end justify-content-end gap-3">
+                                    <div class="payroll-stat-item">
+                                        <div class="small text-muted">Total Salary</div>
+                                        <div class="h5 fw-bold text-primary mb-0" id="payrollTotalSalary">৳0</div>
+                                    </div>
+                                    <div class="payroll-stat-item border-start ps-3">
+                                        <div class="small text-muted">Paid Count</div>
+                                        <div class="h5 fw-bold text-success mb-0" id="payrollPaidCount">0</div>
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+
+                    <div class="card border-0 shadow-sm overflow-hidden rounded-4">
+                        <div class="table-responsive">
+                            <table class="table table-hover align-middle modern-table mb-0">
+                                <thead class="bg-light">
+                                    <tr>
+                                        <th>Employee</th>
+                                        <th>Role</th>
+                                        <th>Base Salary</th>
+                                        <th>Allowances</th>
+                                        <th>Deductions</th>
+                                        <th>Net Payable</th>
+                                        <th>Status</th>
+                                        <th class="text-end">Action</th>
+                                    </tr>
+                                </thead>
+                                <tbody id="payrollTableBody"></tbody>
+                            </table>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- ADVANCED ANALYTICS SECTION -->
+                <div id="analyticsSection" class="d-none">
+                    <div class="d-flex justify-content-between align-items-center mb-4">
+                        <h4 class="fw-bold m-0"><span class="me-2">📊</span> Advanced Analytics</h4>
+                        <div class="d-flex gap-2">
+                            <button class="btn btn-light btn-sm" onclick="refreshAnalytics()">
+                                <i class="bi bi-arrow-clockwise me-1"></i>Refresh Data
+                            </button>
+                        </div>
+                    </div>
+
+                    <div class="row g-4 mb-4">
+                        <div class="col-md-12">
+                            <div class="card border-0 shadow-sm rounded-4 p-4 bg-glass-card">
+                                <h6 class="fw-bold text-primary mb-4">📈 Income vs Expense Trends (Last 6 Months)</h6>
+                                <div style="height: 350px;">
+                                    <canvas id="analyticsTrendChart"></canvas>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+
+                    <div class="row g-4">
+                        <div class="col-md-6">
+                            <div class="card border-0 shadow-sm rounded-4 p-4 bg-glass-card">
+                                <h6 class="fw-bold text-success mb-3">🎓 Batch-wise Enrollment Growth</h6>
+                                <div style="height: 300px;">
+                                    <canvas id="analyticsBatchGrowthChart"></canvas>
+                                </div>
+                            </div>
+                        </div>
+                        <div class="col-md-6">
+                            <div class="card border-0 shadow-sm rounded-4 p-4 bg-glass-card">
+                                <h6 class="fw-bold text-warning mb-3">💳 Payment Method Distribution</h6>
+                                <div style="height: 300px;">
+                                    <canvas id="analyticsPaymentDistributionChart"></canvas>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+
                 <!-- =============================================== -->
                 <!-- ACCOUNT MANAGEMENT SECTION -->
                 <!-- Cash, Bank Details, Mobile Banking -->
@@ -3092,6 +3200,8 @@
     <script src="sections/photo-manager.js?v=20260226_2000"></script>
     <script src="sections/charts.js?v=20260304_1204"></script>
     <script src="sections/data-export.js?v=20260226_2000"></script>
+    <script src="sections/payroll-management.js?v=20260307_01"></script>
+    <script src="sections/advanced-analytics.js?v=20260307_01"></script>
     <script src="app.js?v=20260226_2000"></script>
 
 

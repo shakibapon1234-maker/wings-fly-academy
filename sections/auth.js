@@ -244,6 +244,8 @@ function switchTab(tab, refreshStats = true) {
   const visitorBtn = document.getElementById('tabVisitors');
   const employeeBtn = document.getElementById('tabEmployees');
   const examBtn = document.getElementById('tabExamResults');
+  const payrollBtn = document.getElementById('tabPayroll');
+  const analyticsBtn = document.getElementById('tabAnalytics');
 
   const studentSection = document.getElementById('studentSection');
   const ledgerSection = document.getElementById('ledgerSection');
@@ -252,6 +254,8 @@ function switchTab(tab, refreshStats = true) {
   const visitorSection = document.getElementById('visitorSection');
   const employeeSection = document.getElementById('employeeSection');
   const accountsSection = document.getElementById('accountsSection');
+  const payrollSection = document.getElementById('payrollSection');
+  const analyticsSection = document.getElementById('analyticsSection');
   const certificateSection = document.getElementById('certificateSection');
   const idcardsSection = document.getElementById('idcardsSection');
   const idCardsBtn = document.getElementById('tabIdCards');
@@ -262,7 +266,7 @@ function switchTab(tab, refreshStats = true) {
   // Reset all
   const accountsBtn = document.getElementById('tabAccounts');
   const certBtn = document.getElementById('tabCertificates');
-  const allBtns = [dashboardBtn, studentBtn, ledgerBtn, loansBtn, visitorBtn, employeeBtn, examBtn, accountsBtn, certBtn, idCardsBtn];
+  const allBtns = [dashboardBtn, studentBtn, ledgerBtn, loansBtn, visitorBtn, employeeBtn, examBtn, accountsBtn, certBtn, idCardsBtn, payrollBtn, analyticsBtn];
   allBtns.forEach(btn => {
     if (btn) {
       btn.classList.remove('active');
@@ -277,6 +281,8 @@ function switchTab(tab, refreshStats = true) {
   if (tab === 'visitors') if (visitorBtn) visitorBtn.classList.add('av-sidebar-active');
   if (tab === 'employees') if (employeeBtn) employeeBtn.classList.add('av-sidebar-active');
   if (tab === 'examResults') if (examBtn) examBtn.classList.add('av-sidebar-active');
+  if (tab === 'payroll') if (payrollBtn) payrollBtn.classList.add('av-sidebar-active');
+  if (tab === 'analytics') if (analyticsBtn) analyticsBtn.classList.add('av-sidebar-active');
 
   const dashboardOverview = document.getElementById('dashboardOverview');
   if (dashboardOverview) dashboardOverview.classList.add('d-none');
@@ -287,6 +293,8 @@ function switchTab(tab, refreshStats = true) {
   if (visitorSection) visitorSection.classList.add('d-none');
   if (employeeSection) employeeSection.classList.add('d-none');
   if (accountsSection) accountsSection.classList.add('d-none');
+  if (payrollSection) payrollSection.classList.add('d-none');
+  if (analyticsSection) analyticsSection.classList.add('d-none');
   if (certificateSection) certificateSection.classList.add('d-none');
   if (idcardsSection) idcardsSection.classList.add('d-none');
   if (batchSummaryCard) batchSummaryCard.classList.add('d-none');
@@ -362,6 +370,18 @@ function switchTab(tab, refreshStats = true) {
     const pageTitle = document.querySelector('.page-title');
     if (pageTitle) pageTitle.textContent = 'Certificate Generator';
     if (typeof initCertificateSection === 'function') initCertificateSection();
+  } else if (tab === 'payroll') {
+    if (payrollBtn) payrollBtn.classList.add('active');
+    if (payrollSection) payrollSection.classList.remove('d-none');
+    const pageTitle = document.querySelector('.page-title');
+    if (pageTitle) pageTitle.textContent = 'Payroll Management';
+    if (typeof initPayroll === 'function') initPayroll();
+  } else if (tab === 'analytics') {
+    if (analyticsBtn) analyticsBtn.classList.add('active');
+    if (analyticsSection) analyticsSection.classList.remove('d-none');
+    const pageTitle = document.querySelector('.page-title');
+    if (pageTitle) pageTitle.textContent = 'Advanced Analytics';
+    if (typeof initAdvancedAnalytics === 'function') initAdvancedAnalytics();
   }
 
   if (refreshStats) {
