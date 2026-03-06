@@ -246,10 +246,12 @@
     var arrKey = typeMap[t];
     if (arrKey) {
       if (!Array.isArray(gd[arrKey])) gd[arrKey] = [];
-      // Duplicate check: same id এ already আছে কিনা
-      var existingId = d.item.id || d.item._id || d.item._trash_tmp_id;
+      // Duplicate check: same id / _id / rowIndex এ already আছে কিনা
+      var existingId = d.item.id || d.item._id || d.item.rowIndex || d.item._trash_tmp_id;
       var alreadyExists = existingId && gd[arrKey].some(function (x) {
-        return (x.id === existingId) || (x._id === existingId);
+        return (x.id !== undefined && x.id === d.item.id)
+          || (x._id !== undefined && x._id === d.item._id)
+          || (x.rowIndex !== undefined && x.rowIndex === d.item.rowIndex);
       });
       if (!alreadyExists) {
         // _trash_tmp_id ছিলে remove করো
@@ -271,9 +273,24 @@
     // UI Refresh based on type
     setTimeout(function () {
       if (t === 'student' || t === 'students') {
+        // Student restore — সব possible render function call করো
         if (typeof window.render === 'function') window.render(gd.students || []);
         if (typeof window.renderStudents === 'function') window.renderStudents();
+        if (typeof window.renderStudentList === 'function') window.renderStudentList();
+        if (typeof window.loadStudents === 'function') window.loadStudents();
         if (typeof window.updateGlobalStats === 'function') window.updateGlobalStats();
+        if (typeof window.updateDashboard === 'function') window.updateDashboard();
+        if (typeof window.renderDashboard === 'function') window.renderDashboard();
+        if (typeof window.renderFullUI === 'function') window.renderFullUI();
+        console.log('[RecycleFix] ✓ Student restored & UI refreshed, total students:', (gd.students || []).length);
+
+        // 2nd refresh — অন্য scripts override করলেও catch করবে
+        setTimeout(function () {
+          if (typeof window.render === 'function') window.render(gd.students || []);
+          if (typeof window.renderStudents === 'function') window.renderStudents();
+          if (typeof window.updateGlobalStats === 'function') window.updateGlobalStats();
+        }, 400);
+
       } else if (t === 'finance') {
         // Finance restore হলে account balance ও ফিরিয়ে দাও
         if (d.item && typeof window.updateAccountBalance === 'function') {
@@ -336,6 +353,11 @@
 
     if (typeof window.showSuccessToast === 'function') {
       window.showSuccessToast('✅ ' + name + ' Recycle Bin থেকে Restore হয়েছে!');
+    }
+
+    // Cloud sync
+    if (typeof window.scheduleSyncPush === 'function') {
+      window.scheduleSyncPush('Restore ' + d.type + ': ' + name);
     }
 
     // Refresh recycle bin view
@@ -416,33 +438,93 @@
     window.deleteStudent = function (id) {
       var gd = window.globalData;
       if (!gd || !Array.isArray(gd.students)) { if (typeof orig === 'function') return orig(id); return; }
-      var student = gd.students.find(function (s) { return String(s.id) === String(id) || String(s._id) === String(id); });
-      if (!student) { if (typeof orig === 'function') return orig(id); return; }
-      if (!confirm('Student টি Recycle Bin-এ পাঠাবেন?')) return;
+
+      // rowIndex, id, _id — যেকোনো একটা দিয়ে খোঁজো
+      var student = gd.students.find(function (s) {
+        return String(s.rowIndex) === String(id)
+          || String(s.id) === String(id)
+          || String(s._id) === String(id)
+          || String(s.studentId) === String(id);
+      });
+
+      if (!student) {
+        // patch এ পেলাম না — original চালাও
+        if (typeof orig === 'function') return orig(id);
+        return;
+      }
+
+      if (!confirm('"' + student.name + '" কে Recycle Bin-এ পাঠাবেন?')) return;
+
       window.moveToTrash('Student', student);
-      gd.students = gd.students.filter(function (s) { return String(s.id) !== String(id) && String(s._id) !== String(id); });
+
+      // rowIndex, id, _id সব দিয়ে filter করো
+      gd.students = gd.students.filter(function (s) {
+        return String(s.rowIndex) !== String(id)
+          && String(s.id) !== String(id)
+          && String(s._id) !== String(id)
+          && String(s.studentId) !== String(id);
+      });
+
       _save();
+
       if (typeof window.render === 'function') window.render(gd.students);
+      if (typeof window.renderStudents === 'function') window.renderStudents();
       if (typeof window.updateGlobalStats === 'function') window.updateGlobalStats();
       if (typeof window.showSuccessToast === 'function') window.showSuccessToast('🗑️ ' + student.name + ' Recycle Bin-এ গেছে');
+      console.log('[RecycleFix] ✓ Student moved to trash:', student.name);
     };
-    console.log('[RecycleFix] ✓ deleteStudent patched');
+    console.log('[RecycleFix] ✓ deleteStudent patched (rowIndex-aware)');
   };
 
   // ═══════════════════════════════════════════════
   // 7. PATCH: Finance Delete
   // ═══════════════════════════════════════════════
   var _patchFinanceDelete = function () {
-    var orig = window.deleteTransaction || window.deleteFinance;
+    var origDeleteTransaction = window.deleteTransaction;
+    var origDeleteFinance = window.deleteFinance;
+
     var patchFn = function (id) {
-      if (typeof orig === 'function') {
-        if (!confirm('Transaction টি Recycle Bin-এ পাঠাবেন?')) return;
-        return orig(id);
+      var gd = window.globalData;
+      if (!gd || !Array.isArray(gd.finance)) {
+        // fallback to original
+        if (typeof origDeleteTransaction === 'function') return origDeleteTransaction(id);
+        return;
       }
+
+      var entry = gd.finance.find(function (f) {
+        return String(f.id) === String(id) || String(f._id) === String(id);
+      });
+
+      if (!entry) {
+        if (typeof origDeleteTransaction === 'function') return origDeleteTransaction(id);
+        return;
+      }
+
+      if (!confirm('Transaction টি Recycle Bin-এ পাঠাবেন?')) return;
+
+      // Account balance কমাও (income হলে কমাও, expense হলে বাড়াও)
+      if (typeof window.updateAccountBalance === 'function') {
+        var isIncome = (entry.type === 'Income' || entry.type === 'আয়');
+        window.updateAccountBalance(entry.method, parseFloat(entry.amount) || 0, entry.type, false);
+      }
+
+      window.moveToTrash('Finance', entry);
+      gd.finance = gd.finance.filter(function (f) {
+        return String(f.id) !== String(id) && String(f._id) !== String(id);
+      });
+      _save();
+
+      if (typeof window.renderLedger === 'function') window.renderLedger(gd.finance || []);
+      if (typeof window.renderAccountList === 'function') window.renderAccountList();
+      if (typeof window.renderCashBalance === 'function') window.renderCashBalance();
+      if (typeof window.updateGrandTotal === 'function') window.updateGrandTotal();
+      if (typeof window.showSuccessToast === 'function') window.showSuccessToast('🗑️ Transaction Recycle Bin-এ গেছে');
+      console.log('[RecycleFix] ✓ Finance entry moved to trash:', entry.category, entry.amount);
     };
+
     window.deleteTransaction = patchFn;
     window.deleteFinance = patchFn;
-    console.log('[RecycleFix] ✓ deleteTransaction/deleteFinance patched');
+    console.log('[RecycleFix] ✓ deleteTransaction/deleteFinance patched (trash-aware)');
   };
 
   // ═══════════════════════════════════════════════
