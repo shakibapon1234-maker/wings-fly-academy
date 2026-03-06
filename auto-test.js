@@ -114,7 +114,15 @@
 
   function appendResult(r) {
     const el = document.getElementById('functest-results');
-    if (!el) return;
+    if (!el) {
+      // console fallback — live output
+      const icons = { pass: '✅', fail: '❌', warn: '⚠️', skip: '⏭' };
+      const style = r.s === 'fail' ? 'color:#ff4466' : r.s === 'warn' ? 'color:#ffcc00' : r.s === 'pass' ? 'color:#00ff88' : 'color:#888';
+      if (r.s === 'fail') console.error(`❌ ${r.name}` + (r.detail ? ` — ${r.detail}` : ''));
+      else if (r.s === 'warn') console.warn(`⚠️ ${r.name}` + (r.detail ? ` — ${r.detail}` : ''));
+      // pass/skip শুধু final summary তে দেখাবে (console spam কমাতে)
+      return;
+    }
     const colors = { pass: '#00ff88', fail: '#ff4466', warn: '#ffcc00', skip: '#888' };
     const icons = { pass: '✅', fail: '❌', warn: '⚠️', skip: '⏭' };
     const isFail = r.s === 'fail';
@@ -2059,6 +2067,14 @@
 
     const resultsEl = document.getElementById('functest-results');
     const summaryEl = document.getElementById('functest-summary');
+
+    // ── DOM MISSING গেলে console-only mode ──
+    const consoleFallback = !resultsEl;
+    if (consoleFallback) {
+      console.group('%c🧬 Wings Fly Test Suite v' + SUITE_VERSION + ' — Console Mode', 'color:#00d4ff;font-weight:bold');
+      console.warn('⚠️ functest-results / functest-summary DOM element পাওয়া যায়নি — Console-only mode চালু');
+    }
+
     if (resultsEl) { resultsEl.innerHTML = ''; resultsEl.style.display = 'block'; }
     if (summaryEl) { summaryEl.style.display = 'none'; summaryEl.innerHTML = ''; }
 
@@ -2163,6 +2179,18 @@
     results.filter(r => r.s === 'fail').forEach(r => console.error(`❌ ${r.name}`, r.detail));
     results.filter(r => r.s === 'warn').forEach(r => console.warn(`⚠️ ${r.name}`, r.detail));
     console.groupEnd();
+
+    // Console-only mode এ সব result console এ দেখাও
+    if (consoleFallback) {
+      console.log('\n%c── সব Results ──', 'color:#888;font-weight:bold');
+      results.forEach(r => {
+        const icons = { pass: '✅', fail: '❌', warn: '⚠️', skip: '⏭' };
+        const style = r.s === 'fail' ? 'color:#ff4466' : r.s === 'warn' ? 'color:#ffcc00' : r.s === 'pass' ? 'color:#00ff88' : 'color:#888';
+        console.log(`%c${icons[r.s]} ${r.name}` + (r.detail ? ` — ${r.detail}` : ''), style);
+      });
+      console.log(`\n%c📊 Final: ${passed}/${total} Pass | ${failed} Fail | ${warned} Warn`, 'color:#00d4ff;font-weight:bold;font-size:1.1em');
+      console.groupEnd();
+    }
 
     return { total, passed, failed, warned };
   }
