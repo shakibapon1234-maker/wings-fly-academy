@@ -548,12 +548,12 @@
 
     // --- 7e: Supabase WRITE test (separate test record) ---
     // শুধু actual column names ব্যবহার করো যেগুলো table-এ আছে
-    const testRecordId = 'wingsfly_test_probe';
+    const testDeviceId = 'probe_' + Date.now();
     const testPayload = {
       id: testRecordId,
       version: 1,
       last_updated: new Date().toISOString(),
-      last_device: 'test_suite_v3',
+      last_device: testDeviceId,
       students: [],
       finance: []
     };
@@ -575,8 +575,11 @@
           if (verRes.ok) {
             const verArr = await verRes.json();
             const rec = verArr[0];
-            if (rec && rec.last_device === 'test_suite_v3') { pass('Supabase READ-BACK OK', 'লেখা data সঠিকভাবে পড়া গেছে'); }
-            else { fail('Supabase read-back mismatch', 'লেখা data পড়া গেলেও content মিলছে না'); }
+            if (rec && rec.last_device === testDeviceId) {
+              pass('Supabase READ-BACK OK', 'লেখা data সঠিকভাবে পড়া গেছে ✓');
+            } else {
+              fail('Supabase read-back mismatch', `Expected device: ${testDeviceId}, Found: ${rec?.last_device || 'none'}`);
+            }
           }
         } catch (e2) { warn('Supabase read-back error', e2.message); }
 
@@ -1689,7 +1692,7 @@
     const byType = {};
     (gd.deletedItems || []).forEach(d => { byType[d.type] = (byType[d.type] || 0) + 1; });
     const knownTypes = ['student', 'finance', 'employee', 'bankaccount', 'mobileaccount',
-      'visitor', 'keeprecord', 'keep_record', 'keeprecord', 'exam', 'notice', 'breakdown'];
+      'visitor', 'keeprecord', 'keep_record', 'keeprecord', 'exam', 'notice', 'breakdown', 'installment'];
     const unknownTypes = Object.keys(byType).filter(t => !knownTypes.includes(t.toLowerCase()));
     if (Object.keys(byType).length === 0) {
       skip('Recycle Bin type check', 'Recycle Bin এখনো empty');

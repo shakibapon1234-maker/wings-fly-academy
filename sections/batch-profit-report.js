@@ -176,8 +176,7 @@ function printBatchProfitReport() {
         </tr>
     `).join('');
 
-    printWindow.document.write(`
-        <!DOCTYPE html>
+    printWindow.document.write(`<!DOCTYPE html>
         <html>
         <head>
             <title>Detailed Batch Report - ${reportData.batch}</title>

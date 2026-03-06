@@ -419,24 +419,25 @@
   let _lastDeleteCount = parseInt(localStorage.getItem('wings_total_deleted') || '0');
   let _lastDeleteTime = 0;
 
-  function healPaidFinanceMismatch() {
+  function healPaidFinanceMismatch(manual = false) {
     const data = window.globalData;
     if (!data || !data.students || !data.finance) return 0;
 
-    // ✅ CRITICAL: Recent delete হলে cooldown দাও — ৩ মিনিট
-    const currentDeleteCount = parseInt(localStorage.getItem('wings_total_deleted') || '0');
-    if (currentDeleteCount > _lastDeleteCount) {
-      _lastDeleteCount = currentDeleteCount;
-      _lastDeleteTime = Date.now();
-      hLog('info', 'Recent delete detected — Paid-Finance heal cooldown ৩ মিনিট');
-      return 0;
-    }
-    if (_lastDeleteTime > 0 && (Date.now() - _lastDeleteTime) < 180000) {
-      hLog('info', 'Paid-Finance heal in cooldown (' + Math.round((180000 - (Date.now() - _lastDeleteTime)) / 1000) + 's remaining)');
-      return 0;
+    // ✅ CRITICAL: Recent delete হলে cooldown দাও — ৩ মিনিট (manual ছাড়া)
+    if (!manual) {
+      const currentDeleteCount = parseInt(localStorage.getItem('wings_total_deleted') || '0');
+      if (currentDeleteCount > _lastDeleteCount) {
+        _lastDeleteCount = currentDeleteCount;
+        _lastDeleteTime = Date.now();
+        return 0;
+      }
+      if (_lastDeleteTime > 0 && (Date.now() - _lastDeleteTime) < 180000) {
+        return 0;
+      }
     }
 
     let fixed = 0;
+    let mismatchCount = 0;
     const finance = data.finance;
 
     data.students.forEach(student => {
@@ -453,35 +454,37 @@
       );
       const finTotal = finRecords.reduce((sum, f) => sum + (parseFloat(f.amount) || 0), 0);
 
-      // ✅ v3.3 SAFE FIX:
-      // Finance-এ entry না থাকলে (finTotal === 0) কোনো action নেওয়া হবে না
-      // কারণ: legacy student-দের payment finance tracking চালু হওয়ার আগে নেওয়া হয়েছিল
-      // Finance entry নেই মানে এই নয় যে paid ভুল — এটা legacy gap
-      if (finTotal === 0) {
-        // Legacy student — finance entry নেই, paid ছোঁয়া হবে না
-        return;
-      }
+      if (finTotal === 0) return;
 
       const diff = studentPaid - finTotal;
 
-      // শুধু paid < finTotal হলে paid বাড়াও (finance-এ বেশি আছে)
-      // paid > finTotal হলে কিছু করবে না (হয়তো finance entry ডিলিট করা হয়েছে
-      // অথবা paid সঠিক কিন্তু finance entry সব আসেনি)
-      if (diff < -1) {
-        // Finance-এ বেশি — paid কে finance total-এ নিয়ে আসো
-        student.paid = Math.round(finTotal * 100) / 100;
-        student.due = Math.max(0, (parseFloat(student.totalPayment) || 0) - student.paid);
-        hLog('fix', 'Paid-Finance fix (' + name + '): paid UP to ৳' + student.paid + ' (finance: ৳' + finTotal.toFixed(0) + ')');
-        fixed++;
+      if (Math.abs(diff) > 1) {
+        mismatchCount++;
+
+        // Manual trigger হলে অথবা paid < finance হলে fix করো
+        // paid > finance হলে manual trigger ছাড়া fix করবে না (intentional হতে পারে)
+        if (manual || diff < -1) {
+          student.paid = Math.round(finTotal * 100) / 100;
+          student.due = Math.max(0, (parseFloat(student.totalPayment) || 0) - student.paid);
+          hLog('fix', `Paid-Finance fix (${name}): ৳${studentPaid} → ৳${student.paid}`);
+          fixed++;
+        }
       }
-      // diff > 1 (paid > finTotal): ডিলিটের কারণে হতে পারে — কিছু করবে না
     });
 
     if (fixed > 0) {
       localStorage.setItem('wingsfly_data', JSON.stringify(data));
-      healToast(fixed + ' student Paid-Finance sync fix হয়েছে', 'fix');
+      healToast(`${fixed} জন student-এর payment mismatch fix করা হয়েছে।`, 'fix');
       if (typeof window.updatePaidFinanceStatusBadge === 'function') window.updatePaidFinanceStatusBadge();
+
+      // Sync
+      if (typeof window.scheduleSyncPush === 'function') window.scheduleSyncPush(`Auto-Heal: Paid fix (${fixed})`);
+    } else if (manual && mismatchCount === 0) {
+      healToast('হুররে! সব data একদম নিখুঁত আছে। ✅', 'ok');
+    } else if (manual && fixed === 0 && mismatchCount > 0) {
+      healToast(`${mismatchCount}টি mismatch পাওয়া গেছে কিন্তু fix করা যায়নি।`, 'warn');
     }
+
     return fixed;
   }
 
@@ -744,12 +747,25 @@
     }, HEAL_INTERVAL);
   }
 
+  // Manual trigger wrapper
+  window.runAutoHealRepair = async function () {
+    hLog('info', 'Manual Data Repair শুরু হচ্ছে...');
+    const fixed = healPaidFinanceMismatch(true);
+    if (fixed > 0) {
+      if (typeof window.renderFullUI === 'function') window.renderFullUI();
+      if (typeof window.showSuccessToast === 'function') window.showSuccessToast(`✅ ${fixed}টি data mismatch সফলভাবে fix হয়েছে!`);
+    } else {
+      hLog('ok', 'Data already stable. No fixes needed.');
+    }
+  };
+
   // Public API
   window.autoHeal = {
     runNow: runHealCycle,
     getStats: () => healStats,
     getLogs: () => healStats.log,
     fixPaidFinance: healPaidFinanceMismatch,  // direct access
+    repairNow: window.runAutoHealRepair
   };
 
   // DOM ready হলে start করো
