@@ -511,6 +511,18 @@
       return 0;
     }
 
+    // ✅ CRITICAL: Recent delete হলে sync pull skip করো
+    // ডিলিটের পরে push হচ্ছে, এই সময় pull করলে পুরনো ডাটা ফিরে আসবে
+    const currentDelCount = parseInt(localStorage.getItem('wings_total_deleted') || '0');
+    if (currentDelCount > _lastDeleteCount) {
+      _lastDeleteCount = currentDelCount;
+      _lastDeleteTime = Date.now();
+    }
+    if (_lastDeleteTime > 0 && (Date.now() - _lastDeleteTime) < 180000) {
+      hLog('info', 'Recent delete — sync pull skip (' + Math.round((180000 - (Date.now() - _lastDeleteTime)) / 1000) + 's cooldown)');
+      return 0;
+    }
+
     let fixed = 0;
 
     try {
@@ -535,6 +547,14 @@
 
       const localVer = parseInt(localStorage.getItem('wings_local_version')) || 0;
       const cloudVer = parseInt(cloud.version) || 0;
+
+      // ✅ যদি cloud এর last_action 'Delete' দিয়ে শুরু হয়, সেটা আমাদেরই push
+      // তাই pull করার দরকার নেই
+      const cloudAction = (cloud.last_action || '').toLowerCase();
+      if (cloudAction.includes('delete') && cloudVer >= localVer) {
+        hLog('info', `Cloud action is delete — skip pull (v${cloudVer})`);
+        return 0;
+      }
 
       // ✅ VERSION-BASED: শুধু cloud VERSION বড় হলেই pull করো
       // এটা multi-PC sync নিশ্চিত করে: PC-A push করে v100, PC-B local v99 → pull

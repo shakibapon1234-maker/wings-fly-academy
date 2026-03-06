@@ -247,9 +247,13 @@ function deleteInstallment(rowIndex, instIndex) {
   const _delCount = parseInt(localStorage.getItem('wings_total_deleted') || '0') + 1;
   localStorage.setItem('wings_total_deleted', _delCount.toString());
 
-  // 6. Save immediately to localStorage + cloud
+  // 6. Save immediately to localStorage + cloud (IMMEDIATE push — debounce নয়)
   localStorage.setItem('wingsfly_data', JSON.stringify(window.globalData));
-  if (typeof window.scheduleSyncPush === 'function') {
+  if (typeof window.pushToCloud === 'function') {
+    // ✅ IMMEDIATE push — ডিলিটের পরে সাথে সাথে cloud update হবে
+    // debounce ব্যবহার করলে pull আগে হয়ে পুরনো ডাটা ফিরে আসতে পারে
+    window.pushToCloud('Delete Installment: ' + student.name + ' ৳' + amount);
+  } else if (typeof window.scheduleSyncPush === 'function') {
     window.scheduleSyncPush('Delete Installment: ' + student.name + ' ৳' + amount);
   } else {
     saveToStorage();
@@ -557,7 +561,10 @@ function deleteTransaction(id) {
   const _dc = parseInt(localStorage.getItem('wings_total_deleted') || '0') + 1;
   localStorage.setItem('wings_total_deleted', _dc.toString());
   localStorage.setItem('wingsfly_data', JSON.stringify(window.globalData));
-  if (typeof window.scheduleSyncPush === 'function') {
+  if (typeof window.pushToCloud === 'function') {
+    // ✅ IMMEDIATE push — ডিলিটের পরে সাথে সাথে cloud update হবে
+    window.pushToCloud('Delete Transaction: ' + (txToDelete.description || txToDelete.category || String(id)));
+  } else if (typeof window.scheduleSyncPush === 'function') {
     window.scheduleSyncPush('Delete Transaction: ' + (txToDelete.description || txToDelete.category || String(id)));
   } else {
     saveToStorage();
