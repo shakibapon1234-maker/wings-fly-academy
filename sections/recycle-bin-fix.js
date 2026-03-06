@@ -277,17 +277,10 @@
   var _patchFinanceDelete = function () {
     var orig = window.deleteTransaction || window.deleteFinance;
     var patchFn = function (id) {
-      var gd = window.globalData;
-      if (!gd || !Array.isArray(gd.finance)) { if (typeof orig === 'function') return orig(id); return; }
-      var txn = gd.finance.find(function (f) { return String(f.id) === String(id) || String(f._id) === String(id); });
-      if (!txn) { if (typeof orig === 'function') return orig(id); return; }
-      if (!confirm('Transaction টি Recycle Bin-এ পাঠাবেন?')) return;
-      window.moveToTrash('Finance', txn);
-      gd.finance = gd.finance.filter(function (f) { return String(f.id) !== String(id) && String(f._id) !== String(id); });
-      _save();
-      if (typeof window.renderLedger === 'function') window.renderLedger(gd.finance);
-      if (typeof window.updateGlobalStats === 'function') window.updateGlobalStats();
-      if (typeof window.showSuccessToast === 'function') window.showSuccessToast('🗑️ Transaction Recycle Bin-এ গেছে');
+      if (typeof orig === 'function') {
+        if (!confirm('Transaction টি Recycle Bin-এ পাঠাবেন?')) return;
+        return orig(id);
+      }
     };
     window.deleteTransaction = patchFn;
     window.deleteFinance = patchFn;
