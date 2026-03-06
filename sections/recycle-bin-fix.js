@@ -670,16 +670,22 @@
   // 9c. PATCH: Notice Delete
   // ═══════════════════════════════════════════════
   var _patchNoticeDelete = function () {
-    var orig = window.deleteNotice;
-    window.deleteNotice = function (id) {
+    // notice-board.js এর deleteNotice() → activeNotice/banner clear করে
+    // recycle-bin-fix এর deleteNotice → notices[] array items Recycle Bin এ পাঠায়
+    // দুটো আলাদা — conflict এড়াতে আলাদা function নাম ব্যবহার করো
+
+    var origDeleteNotice = window.deleteNotice;
+
+    // deleteNoticeItem = notices[] থেকে Recycle Bin এ পাঠানো
+    window.deleteNoticeItem = function (id) {
       var gd = window.globalData;
       var noticeArr = gd && (gd.notices || gd.noticeBoard);
       if (!gd || !Array.isArray(noticeArr)) {
-        if (typeof orig === 'function') return orig(id);
+        if (typeof origDeleteNotice === 'function') return origDeleteNotice(id);
         return;
       }
       var notice = noticeArr.find(function (n) { return String(n.id) === String(id) || String(n._id) === String(id); });
-      if (!notice) { if (typeof orig === 'function') return orig(id); return; }
+      if (!notice) { if (typeof origDeleteNotice === 'function') return origDeleteNotice(id); return; }
       if (!confirm('Notice টি Recycle Bin-এ পাঠাবেন?')) return;
       window.moveToTrash('Notice', notice);
       if (gd.notices) {
@@ -692,7 +698,15 @@
       if (typeof window.renderNoticeBoard === 'function') window.renderNoticeBoard();
       if (typeof window.showSuccessToast === 'function') window.showSuccessToast('🗑️ Notice Recycle Bin-এ গেছে');
     };
-    console.log('[RecycleFix] ✓ deleteNotice patched');
+
+    // deleteNotice এর original (notice-board banner) কে preserve করো
+    // শুধু যদি orig না থাকে তাহলে alias দাও
+    if (typeof origDeleteNotice !== 'function') {
+      window.deleteNotice = window.deleteNoticeItem;
+    }
+    // নাহলে origDeleteNotice (notice-board.js এর) ই থাকবে
+
+    console.log('[RecycleFix] ✓ deleteNoticeItem created (notices[] → Recycle Bin, no conflict with notice-board.js)');
   };
 
   // ═══════════════════════════════════════════════
@@ -987,6 +1001,165 @@
     // finance-helpers এর Warning Details modal এর DELETE? বাটন
     // সরাসরি delete না করে Recycle Bin এ পাঠাবে
     _patchWarningDeleteButtons();
+
+    // ── Dropdown Populate Patch ─────────────────────────────
+    // Settings এর courses/paymentMethods → Student modal dropdown
+    _patchDropdownPopulate();
+  }
+
+  // ═══════════════════════════════════════════════
+  // 16. PATCH: Settings → Dropdown Sync
+  // Settings এ যেসব courses/methods আছে সেগুলো
+  // Student modal এর dropdown এ populate করবে
+  // ═══════════════════════════════════════════════
+  function _getSettingCourses() {
+    var gd = window.globalData;
+    if (!gd) return [];
+    // Settings এ তিনটা জায়গায় থাকতে পারে
+    var arr = (gd.settings && gd.settings.courses)
+      || (gd.settings && gd.settings.courseNames)
+      || gd.courseNames
+      || [];
+    if (!Array.isArray(arr)) arr = [];
+    return arr.map(function (c) { return typeof c === 'string' ? c : (c.name || c.value || String(c)); }).filter(Boolean);
+  }
+
+  function _getSettingPaymentMethods() {
+    var gd = window.globalData;
+    if (!gd) return ['Cash', 'Bkash', 'Nagad', 'Bank', 'Rocket'];
+    var methods = (gd.settings && gd.settings.paymentMethods) || [];
+    if (!Array.isArray(methods) || methods.length === 0) {
+      // Build from bank + mobile accounts
+      methods = ['Cash'];
+      (gd.bankAccounts || []).forEach(function (a) { if (a.name) methods.push(a.name); });
+      (gd.mobileBanking || []).forEach(function (a) { if (a.name) methods.push(a.name); });
+      if (!methods.includes('Bkash')) methods.push('Bkash');
+      if (!methods.includes('Nagad')) methods.push('Nagad');
+    }
+    return methods.map(function (m) { return typeof m === 'string' ? m : (m.name || String(m)); }).filter(Boolean);
+  }
+
+  function _populateSelectEl(selectEl, options, currentVal) {
+    if (!selectEl) return;
+    var prev = selectEl.value || currentVal || '';
+    selectEl.innerHTML = '<option value="">-- বেছে নিন --</option>';
+    options.forEach(function (opt) {
+      var o = document.createElement('option');
+      o.value = opt;
+      o.textContent = opt;
+      if (opt === prev) o.selected = true;
+      selectEl.appendChild(o);
+    });
+    // Restore previous value
+    if (prev) selectEl.value = prev;
+  }
+
+  function _patchDropdownPopulate() {
+    // openStudentModal কে wrap করো
+    var origOpenStudent = window.openStudentModal || window.openEditStudentModal;
+    var origOpenAdd = window.openAddStudentModal;
+
+    function afterOpenFill() {
+      setTimeout(function () {
+        var courses = _getSettingCourses();
+        var methods = _getSettingPaymentMethods();
+
+        // Course dropdown — বিভিন্ন ID দিয়ে থাকতে পারে
+        var courseSelIds = ['studentCourse', 'editStudentCourse', 'courseSelect', 'student-course', 'addStudentCourse'];
+        courseSelIds.forEach(function (id) {
+          var el = document.getElementById(id);
+          if (el && el.tagName === 'SELECT' && courses.length > 0) {
+            _populateSelectEl(el, courses, el.value);
+          }
+        });
+
+        // Payment method dropdown
+        var paySelIds = ['studentPaymentMethod', 'editPaymentMethod', 'paymentMethodSelect', 'payment-method', 'addPaymentMethod', 'studentPayMethod'];
+        paySelIds.forEach(function (id) {
+          var el = document.getElementById(id);
+          if (el && el.tagName === 'SELECT' && methods.length > 0) {
+            _populateSelectEl(el, methods, el.value);
+          }
+        });
+
+        // Generic fallback: modal এ যেকোনো select যেটা courses/payment সংক্রান্ত
+        var allModals = document.querySelectorAll('.modal.show, [id*="student"][id*="modal"], [id*="Student"][id*="Modal"]');
+        allModals.forEach(function (modal) {
+          modal.querySelectorAll('select').forEach(function (sel) {
+            var id = (sel.id || '').toLowerCase();
+            var name = (sel.name || '').toLowerCase();
+            var label = '';
+            var prevLabel = sel.previousElementSibling;
+            if (prevLabel) label = (prevLabel.textContent || '').toLowerCase();
+
+            if ((id.includes('course') || name.includes('course') || label.includes('course')) && courses.length > 0) {
+              _populateSelectEl(sel, courses, sel.value);
+            } else if ((id.includes('payment') || id.includes('method') || name.includes('method') || label.includes('method')) && methods.length > 0) {
+              _populateSelectEl(sel, methods, sel.value);
+            }
+          });
+        });
+
+        console.log('[RecycleFix] ✓ Dropdowns populated — courses:', courses.length, '| methods:', methods.length);
+      }, 150);
+    }
+
+    // openStudentModal patch
+    if (typeof window.openStudentModal === 'function') {
+      var origSM = window.openStudentModal;
+      window.openStudentModal = function () {
+        var r = origSM.apply(this, arguments);
+        afterOpenFill();
+        return r;
+      };
+    }
+    // openEditStudentModal patch
+    if (typeof window.openEditStudentModal === 'function') {
+      var origESM = window.openEditStudentModal;
+      window.openEditStudentModal = function () {
+        var r = origESM.apply(this, arguments);
+        afterOpenFill();
+        return r;
+      };
+    }
+    // openAddStudentModal patch (যদি থাকে)
+    if (typeof window.openAddStudentModal === 'function') {
+      var origASM = window.openAddStudentModal;
+      window.openAddStudentModal = function () {
+        var r = origASM.apply(this, arguments);
+        afterOpenFill();
+        return r;
+      };
+    }
+
+    // Global MutationObserver — Student modal খুললেই dropdown fill
+    try {
+      var observer = new MutationObserver(function (mutations) {
+        mutations.forEach(function (m) {
+          m.addedNodes && m.addedNodes.forEach && m.addedNodes.forEach(function (node) {
+            if (node.nodeType !== 1) return;
+            var id = (node.id || '').toLowerCase();
+            if (id.includes('student') && (id.includes('modal') || node.classList.contains('modal'))) {
+              afterOpenFill();
+            }
+          });
+          // class change: modal becoming 'show'
+          if (m.type === 'attributes' && m.attributeName === 'class') {
+            var target = m.target;
+            var targetId = (target.id || '').toLowerCase();
+            if (target.classList.contains('show') && targetId.includes('student')) {
+              afterOpenFill();
+            }
+          }
+        });
+      });
+      observer.observe(document.body, { childList: true, subtree: true, attributes: true, attributeFilter: ['class'] });
+    } catch (e) { /* observer not critical */ }
+
+    // Expose so manual call possible
+    window.populateStudentDropdowns = afterOpenFill;
+
+    console.log('[RecycleFix] ✓ Dropdown populate patch applied');
   }
 
   // ═══════════════════════════════════════════════
