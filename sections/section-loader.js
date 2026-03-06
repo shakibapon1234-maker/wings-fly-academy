@@ -29,7 +29,7 @@
     }
 
     try {
-      const res = await fetch(htmlFile + '?v=20260306_2210');
+      const res = await fetch(htmlFile + '?v=20260306_2325');
       if (!res.ok) throw new Error('HTTP ' + res.status);
       const html = await res.text();
 
@@ -62,9 +62,8 @@
 
     } catch (err) {
       console.error('[SectionLoader] Failed to load:', htmlFile, err);
-      // Fallback: error জানাও
       if (typeof window.showErrorToast === 'function') {
-        window.showErrorToast('❌ Modal লোড ব্যর্থ। পেজ রিফ্রেশ করুন।');
+        window.showErrorToast('❌ Modal লোড ব্যর্থ: ' + err.message);
       }
     }
   }
@@ -268,7 +267,7 @@
   function _preloadOtherModals() {
     if (_loaded.has('__other_modals_loaded')) return;
     // Background এ quietly load করো — user কিছু দেখবে না
-    fetch('sections/modals-other.html?v=20260226_2000')
+    fetch('sections/modals-other.html?v=20260306_2325')
       .then(function (r) { return r.text(); })
       .then(function (html) {
         var el = document.getElementById('__modalPlaceholderOther');
@@ -317,7 +316,7 @@
     isLoaded: function (id) { return _loaded.has(id); },
     preloadAll: function () {
       _preloadOtherModals();
-      fetch('sections/settings-modal.html?v=20260226_2000')
+      fetch('sections/settings-modal.html?v=20260306_2325')
         .then(function (r) { return r.text(); })
         .then(function (html) {
           var el = document.getElementById('__modalPlaceholderSettings');

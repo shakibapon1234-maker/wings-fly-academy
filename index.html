@@ -1582,71 +1582,95 @@
                         <!-- AVIATION PREMIUM TOP ROW -->
                         <div class="row g-4 mb-4">
                             <!-- 1. Total Students -->
-                            <div class="col-md-6 col-lg-3">
-                                <div class="aviation-metric-card">
-                                    <div class="av-card-header av-bg-blue">
-                                        <h6 class="av-card-title">Total Students</h6>
-                                        <i class="bi bi-people-fill fs-5"></i>
+                            <div class="col-md-6 col-lg-4 col-xl-2-4">
+                                <div class="aviation-metric-card metric-card-blue">
+                                    <div class="av-card-header">
+                                        <h6 class="av-card-label">Total Students</h6>
+                                        <div class="av-card-icon av-card-icon-blue">
+                                            <i class="bi bi-people-fill"></i>
+                                        </div>
                                     </div>
                                     <div class="av-card-body">
-                                        <h3 class="av-card-value" id="dashTotalStudents">0</h3>
-                                        <p class="av-card-subtitle">Active Students</p>
-                                        <div class="av-card-trend av-trend-up">
-                                            <i class="bi bi-arrow-up-short"></i> +12% <span
-                                                class="text-muted opacity-50 fw-normal">from last month</span>
+                                        <h3 class="av-card-value value-blue" id="dashTotalStudents">0</h3>
+                                        <p class="av-card-subtitle">Active Enrollment</p>
+                                        <div class="av-card-trend trend-positive">
+                                            <i class="bi bi-arrow-up-short"></i> +12%
                                         </div>
                                     </div>
                                 </div>
                             </div>
 
-                            <!-- 2. Total Income -->
-                            <div class="col-md-6 col-lg-3">
-                                <div class="aviation-metric-card">
-                                    <div class="av-card-header av-bg-green">
-                                        <h6 class="av-card-title">Total Income</h6>
-                                        <i class="bi bi-wallet2 fs-5"></i>
+                            <!-- 2. Student Collection (Renamed from Total Income) -->
+                            <div class="col-md-6 col-lg-4 col-xl-2-4">
+                                <div class="aviation-metric-card metric-card-green">
+                                    <div class="av-card-header">
+                                        <h6 class="av-card-label">Student Collection</h6>
+                                        <div class="av-card-icon av-card-icon-green">
+                                            <i class="bi bi-wallet2"></i>
+                                        </div>
                                     </div>
                                     <div class="av-card-body">
-                                        <h3 class="av-card-value text-success" id="dashTotalIncome">৳0</h3>
-                                        <p class="av-card-subtitle">Revenue Growth</p>
-                                        <div class="av-card-trend av-trend-up">
-                                            <i class="bi bi-arrow-up-short"></i> +8% <span
-                                                class="text-muted opacity-50 fw-normal">from last month</span>
+                                        <h3 class="av-card-value value-green" id="dashTotalIncome">৳0</h3>
+                                        <p class="av-card-subtitle">Course Fees Only</p>
+                                        <div class="av-card-trend trend-positive">
+                                            <i class="bi bi-arrow-up-short"></i> +8%
+                                        </div>
+                                    </div>
+                                </div>
+                            </div>
+
+                            <!-- 2b. Exam Income (NEW) -->
+                            <div class="col-md-6 col-lg-4 col-xl-2-4">
+                                <div class="aviation-metric-card metric-card-indigo">
+                                    <div class="av-card-header">
+                                        <h6 class="av-card-label">Exam Income</h6>
+                                        <div class="av-card-icon av-card-icon-indigo">
+                                            <i class="bi bi-journal-check"></i>
+                                        </div>
+                                    </div>
+                                    <div class="av-card-body">
+                                        <h3 class="av-card-value value-indigo" id="dashTotalExam">৳0</h3>
+                                        <p class="av-card-subtitle">Registration Fees</p>
+                                        <div class="av-card-trend trend-positive">
+                                            <i class="bi bi-check-circle"></i> Exam Reg
                                         </div>
                                     </div>
                                 </div>
                             </div>
 
                             <!-- 3. Total Expense -->
-                            <div class="col-md-6 col-lg-3">
-                                <div class="aviation-metric-card">
-                                    <div class="av-card-header av-bg-orange">
-                                        <h6 class="av-card-title">Total Expense</h6>
-                                        <i class="bi bi-graph-down-arrow fs-5"></i>
+                            <div class="col-md-6 col-lg-4 col-xl-2-4">
+                                <div class="aviation-metric-card metric-card-orange">
+                                    <div class="av-card-header">
+                                        <h6 class="av-card-label">Total Expense</h6>
+                                        <div class="av-card-icon av-card-icon-orange">
+                                            <i class="bi bi-graph-down-arrow"></i>
+                                        </div>
                                     </div>
                                     <div class="av-card-body">
-                                        <h3 class="av-card-value text-danger" id="dashTotalExpense">৳0</h3>
-                                        <p class="av-card-subtitle">Operational Costs</p>
-                                        <div class="av-card-trend av-trend-down">
-                                            <i class="bi bi-arrow-down-short"></i> -3% <span
-                                                class="text-muted opacity-50 fw-normal">vs target</span>
+                                        <h3 class="av-card-value value-orange" id="dashTotalExpense">৳0</h3>
+                                        <p class="av-card-subtitle">Operating Costs</p>
+                                        <div class="av-card-trend trend-negative">
+                                            <i class="bi bi-arrow-down-short"></i> -3%
                                         </div>
                                     </div>
                                 </div>
                             </div>
 
                             <!-- 4. Net Profit/Loss -->
-                            <div class="col-md-6 col-lg-3">
-                                <div class="aviation-metric-card">
-                                    <div class="av-card-header av-bg-purple">
-                                        <h6 class="av-card-title">Net Profit/Loss</h6>
-                                        <i class="bi bi-calculator fs-5"></i>
+                            <div class="col-md-6 col-lg-4 col-xl-2-4">
+                                <div class="aviation-metric-card metric-card-purple">
+                                    <div class="av-card-header">
+                                        <h6 class="av-card-label">Net Profit/Loss</h6>
+                                        <div class="av-card-icon av-card-icon-purple">
+                                            <i class="bi bi-calculator"></i>
+                                        </div>
                                     </div>
                                     <div class="av-card-body">
-                                        <h3 class="av-card-value text-success" id="dashTotalProfit">৳0</h3>
+                                        <h3 class="av-card-value value-purple" id="dashTotalProfit">৳0</h3>
                                         <p class="av-card-subtitle" id="dashProfitStatus">Business Health</p>
-                                        <div class="av-card-trend text-primary">
-                                            <i class="bi bi-check-circle"></i> Healthy performance
+                                        <div class="av-card-trend trend-positive">
+                                            <i class="bi bi-check-all"></i> Healthy
                                         </div>
                                     </div>
                                 </div>
@@ -3074,6 +3098,7 @@
     <script src="quick-fix.js?v=20260225_1642"></script>
     <script src="symbol-fix.js?v=20260225_1642"></script>
     <script src="tab-reset-fix.js?v=20260302_0001"></script>
+    <script src="sections/batch-profit-report.js?v=20260306_2330"></script>
 
     <!-- Auto Test Suite -->
     <script src="auto-test.js?v=20260225_1642"></script>
@@ -3081,7 +3106,7 @@
     <!-- Inline init scripts (extracted from index.html) -->
     <script src="sections/inline-scripts.js"></script>
     <!-- Modal Lazy Loader -->
-    <script src="sections/section-loader.js?v=20260306_2211"></script>
+    <script src="sections/section-loader.js?v=20260306_2330"></script>
 
 </body>
 

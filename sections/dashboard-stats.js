@@ -47,15 +47,18 @@ function updateGlobalStats() {
   // Calculate Income from Students array (Source of truth for collections)
   const totalStudentIncome = (globalData.students || []).reduce((sum, s) => sum + (parseFloat(s.paid) || 0), 0);
 
-  // Calculate Other Income and Total Expense from finance transactions
+  // Calculate Other Income, Exam Income, and Total Expense from finance transactions
   let nonStudentIncome = 0;
+  let totalExamIncome = 0;
   (globalData.finance || []).forEach(f => {
     const amt = parseFloat(f.amount) || 0;
     const cat = (f.category || '').toLowerCase();
     const desc = (f.description || '').toLowerCase();
 
+    // ⛔ EXPLICIT LOAN EXCLUSION: Only process 'Income' and 'Expense' types
     if (f.type === 'Income') {
-      // Exclude transactions already counted via students array
+      const isExamRelated = cat.includes('exam') || desc.includes('exam fee') || desc.includes('exam reg');
+
       const isStudentRelated = cat.includes('student') ||
         cat.includes('installment') ||
         cat.includes('admission') ||
@@ -63,7 +66,9 @@ function updateGlobalStats() {
         desc.includes('installment') ||
         desc.includes('enrollment fee');
 
-      if (!isStudentRelated) {
+      if (isExamRelated) {
+        totalExamIncome += amt;
+      } else if (!isStudentRelated) {
         nonStudentIncome += amt;
       }
     } else if (f.type === 'Expense') {
@@ -71,8 +76,16 @@ function updateGlobalStats() {
     }
   });
 
-  income = totalStudentIncome + nonStudentIncome;
-  const profit = income - expense;
+  // Display Total for the 'Student Collection' card (as requested: "Total Income only from students")
+  income = totalStudentIncome;
+
+  // Overall Income for Profit calculation (everything)
+  const overallIncome = totalStudentIncome + totalExamIncome + nonStudentIncome;
+  const profit = overallIncome - expense;
+
+  // Update Exam Card UI
+  const examEl = document.getElementById('dashTotalExam');
+  if (examEl) examEl.textContent = '৳' + (totalExamIncome > 0 ? (typeof formatNumber === 'function' ? formatNumber(totalExamIncome) : totalExamIncome) : '0');
 
   // --- AVIATION PREMIUM DASHBOARD METRICS ---
 
@@ -97,11 +110,11 @@ function updateGlobalStats() {
   if (dashProfitEl) {
     animateCount(dashProfitEl, Math.abs(profit), '৳', false, 1000);
     if (profit >= 0) {
-      dashProfitEl.className = "av-card-value text-success";
-      if (dashProfitStatus) dashProfitStatus.innerText = "Profit Growth";
+      dashProfitEl.className = "av-card-value value-purple";
+      if (dashProfitStatus) dashProfitStatus.innerText = "Net Profit";
     } else {
-      dashProfitEl.className = "av-card-value text-danger";
-      if (dashProfitStatus) dashProfitStatus.innerText = "Current Loss";
+      dashProfitEl.className = "av-card-value value-red";
+      if (dashProfitStatus) dashProfitStatus.innerText = "Net Loss";
     }
   }
 
