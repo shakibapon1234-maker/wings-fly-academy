@@ -58,50 +58,52 @@
 
                         <!-- Main Content Area -->
                         <div class="flex-grow-1 overflow-auto" style="background: var(--bg-app);">
-                            <div id="settingsTabContent">
+                            <div id="settingsTabContent" class="h-100">
                                 <!-- Tab 1: General Settings -->
                                 <div class="settings-tab-pane active" id="tab-general"
                                     style="display:block; padding:24px;">
-                                    <h6 class="settings-section-title">Academy Information</h6>
-                                    <div class="mb-4">
-                                        <label class="form-label fw-semibold">Academy Name</label>
-                                        <input type="text" name="academyName" class="form-control premium-input-modern"
-                                            placeholder="Enter Academy Name">
-                                    </div>
-                                    <div class="mb-4">
-                                        <label class="form-label fw-semibold">🎯 Monthly Target Income
-                                            (BDT)</label>
-                                        <input type="number" name="monthlyTarget"
-                                            class="form-control premium-input-modern" placeholder="e.g., 200000">
-                                        <small class="text-muted">This sets the goal for your monthly progress
-                                            bar.</small>
-                                    </div>
+                                    <h5 class="fw-bold mb-4" style="color:var(--primary);">🏢 Academy Information</h5>
+                                    <div class="row g-4">
+                                        <div class="mb-4">
+                                            <label class="form-label fw-semibold">Academy Name</label>
+                                            <input type="text" name="academyName"
+                                                class="form-control premium-input-modern"
+                                                placeholder="Enter Academy Name">
+                                        </div>
+                                        <div class="mb-4">
+                                            <label class="form-label fw-semibold">🎯 Monthly Target Income
+                                                (BDT)</label>
+                                            <input type="number" name="monthlyTarget"
+                                                class="form-control premium-input-modern" placeholder="e.g., 200000">
+                                            <small class="text-muted">This sets the goal for your monthly progress
+                                                bar.</small>
+                                        </div>
 
-                                    <!-- ===== AUTO SNAPSHOT SECTION ===== -->
-                                    <h6 class="settings-section-title mt-4">📸 Auto Snapshots</h6>
-                                    <div class="p-3 rounded-3 mb-2"
-                                        style="background: rgba(0,217,255,0.06); border: 1.5px solid rgba(0,217,255,0.2);">
-                                        <div class="d-flex align-items-center justify-content-between mb-2">
-                                            <div>
-                                                <span style="color:#00d9ff;font-size:0.85rem;font-weight:600;">প্রতি
-                                                    ১ ঘন্টায় auto snapshot</span>
-                                                <span class="ms-2 badge"
-                                                    style="background:rgba(0,255,100,0.2);color:#00ff88;font-size:0.7rem;">Last
-                                                    7 রাখা হয়</span>
+                                        <!-- ===== AUTO SNAPSHOT SECTION ===== -->
+                                        <h6 class="settings-section-title mt-4">📸 Auto Snapshots</h6>
+                                        <div class="p-3 rounded-3 mb-2"
+                                            style="background: rgba(0,217,255,0.06); border: 1.5px solid rgba(0,217,255,0.2);">
+                                            <div class="d-flex align-items-center justify-content-between mb-2">
+                                                <div>
+                                                    <span style="color:#00d9ff;font-size:0.85rem;font-weight:600;">প্রতি
+                                                        ১ ঘন্টায় auto snapshot</span>
+                                                    <span class="ms-2 badge"
+                                                        style="background:rgba(0,255,100,0.2);color:#00ff88;font-size:0.7rem;">Last
+                                                        7 রাখা হয়</span>
+                                                </div>
+                                                <button class="btn btn-sm" type="button"
+                                                    onclick="takeSnapshot(); setTimeout(renderSnapshotList, 200);"
+                                                    style="background:rgba(0,217,255,0.2);color:#00d9ff;border:1px solid #00d9ff;font-size:0.75rem;">
+                                                    📸 এখনই নিন
+                                                </button>
                                             </div>
-                                            <button class="btn btn-sm" type="button"
-                                                onclick="takeSnapshot(); setTimeout(renderSnapshotList, 200);"
-                                                style="background:rgba(0,217,255,0.2);color:#00d9ff;border:1px solid #00d9ff;font-size:0.75rem;">
-                                                📸 এখনই নিন
-                                            </button>
+                                            <div id="snapshotListContainer">
+                                                <div class="text-center py-3" style="color:#888;font-size:0.85rem;">
+                                                    Loading...</div>
+                                            </div>
                                         </div>
-                                        <div id="snapshotListContainer">
-                                            <div class="text-center py-3" style="color:#888;font-size:0.85rem;">
-                                                Loading...</div>
-                                        </div>
-                                    </div>
-
-                                </div>
+                                    </div> <!-- close row g-4 -->
+                                </div> <!-- close tab-general -->
 
                                 <!-- Tab 2: Configurations -->
                                 <div class="settings-tab-pane" id="tab-config" style="display:none; padding:24px;">
@@ -578,7 +580,8 @@
                                                 <div id="scPwMatchTxt"
                                                     style="font-size:0.68rem;margin-top:4px;font-weight:600;"></div>
                                             </div>
-                                            <div class="sc-tip"><span>💡</span><span>Password পরিবর্তনের পর উভয় PC-তে
+                                            <div class="sc-tip"><span>💡</span><span>Password পরিবর্তনের পর উভয়
+                                                    PC-তে
                                                     নতুন password ব্যবহার করুন এবং <strong style="color:#00d9ff;">Push
                                                         to Cloud</strong> করুন।</span></div>
                                             <div style="text-align:right;margin-top:14px;">
@@ -593,7 +596,8 @@
                                                     <div class="sc-ic pu">🛡️</div>
                                                     <div>
                                                         <p class="sc-t">Secret Recovery Question</p>
-                                                        <p class="sc-s">পাসওয়ার্ড ভুলে গেলে এই প্রশ্ন দিয়ে reset করতে
+                                                        <p class="sc-s">পাসওয়ার্ড ভুলে গেলে এই প্রশ্ন দিয়ে reset
+                                                            করতে
                                                             পারবেন</p>
                                                     </div>
                                                 </div>
@@ -626,7 +630,8 @@
                                                 </div>
                                                 <div class="sc-tip"
                                                     style="background:rgba(181,55,242,0.05);border-color:rgba(181,55,242,0.16);margin-top:12px;">
-                                                    <span>🔐</span><span>উত্তর encrypted করে সংরক্ষণ করা হবে। Login পেজে
+                                                    <span>🔐</span><span>উত্তর encrypted করে সংরক্ষণ করা হবে। Login
+                                                        পেজে
                                                         "🔑 Forgot Password?" বাটন দিয়ে recovery করা যাবে।</span>
                                                 </div>
                                             </div>
@@ -1329,160 +1334,159 @@
                                         <div style="font-size:2rem; margin-bottom:8px;">🚩</div>
                                         <div>কোনো নোট পাওয়া যায়নি</div>
                                     </div>
-                                </div><!-- /tab-keeprecord -->
+                                </div>
+                            </div><!-- /tab-keeprecord -->
 
-                                <!-- Tab 9: Batch Profit Report -->
-                                <div class="settings-tab-pane" id="tab-batchreport" style="display:none; padding:24px;">
-                                    <div class="card bg-dark border-secondary mb-4 shadow-sm"
-                                        style="border-radius:15px; border: 1.5px solid rgba(0,217,255,0.2) !important;">
-                                        <div class="card-body p-4">
-                                            <h6 class="fw-bold mb-4 text-primary d-flex align-items-center">
-                                                <i class="bi bi-graph-up-arrow me-2 fs-5"></i> Generate Batch Wise
-                                                Profit & Loss
-                                            </h6>
-                                            <div class="row g-3">
-                                                <div class="col-md-4">
-                                                    <label class="form-label small fw-bold text-muted">Select
-                                                        Batch</label>
-                                                    <select id="repBatchSelect"
-                                                        class="form-select premium-input-modern">
-                                                        <option value="">Choose Batch...</option>
-                                                    </select>
-                                                </div>
-                                                <div class="col-md-4">
-                                                    <label class="form-label small fw-bold text-muted">Expense Start
-                                                        Date</label>
-                                                    <input type="date" id="repStartDate"
-                                                        class="form-control premium-input-modern">
-                                                </div>
-                                                <div class="col-md-4">
-                                                    <label class="form-label small fw-bold text-muted">Expense End
-                                                        Date</label>
-                                                    <input type="date" id="repEndDate"
-                                                        class="form-control premium-input-modern">
-                                                </div>
-                                                <div class="col-md-6">
-                                                    <label class="form-label small fw-bold text-muted">Previous Balance
-                                                        / Profit / Due (Manual)</label>
-                                                    <div class="input-group">
-                                                        <span
-                                                            class="input-group-text bg-transparent border-end-0">৳</span>
-                                                        <input type="number" id="repPrevManual"
-                                                            class="form-control premium-input-modern border-start-0"
-                                                            placeholder="0.00">
-                                                    </div>
-                                                    <small class="text-muted opacity-50">পূর্বের কোনো ডিউ বা জমানো লাভ
-                                                        থাকলে লিখুন</small>
-                                                </div>
-                                                <div class="col-md-6 d-flex align-items-end">
-                                                    <button type="button"
-                                                        class="btn btn-primary w-100 py-2 fw-bold shadow-sm"
-                                                        onclick="generateBatchProfitReport()">
-                                                        <i class="bi bi-calculator-fill me-2"></i> Generate Profit
-                                                        Report
-                                                    </button>
-                                                </div>
-                                            </div>
-                                        </div>
-                                    </div>
-
-                                    <!-- Report Display Result -->
-                                    <div id="batchReportResult" class="d-none">
+                            <!-- Tab 9: Batch Profit Report -->
+                            <div class="settings-tab-pane" id="tab-batchreport" style="display:none; padding:24px;">
+                                <div class="card bg-dark border-secondary mb-4 shadow-sm"
+                                    style="border-radius:15px; border: 1.5px solid rgba(0,217,255,0.2) !important;">
+                                    <div class="card-body p-4">
+                                        <h6 class="fw-bold mb-4 text-primary d-flex align-items-center">
+                                            <i class="bi bi-graph-up-arrow me-2 fs-5"></i> Generate Batch Wise
+                                            Profit & Loss
+                                        </h6>
                                         <div class="row g-3">
-                                            <!-- Batch Collection Card -->
                                             <div class="col-md-4">
-                                                <div class="rounded-4 p-3 border h-100"
-                                                    style="background: rgba(0, 255, 136, 0.04); border-color: rgba(0, 255, 136, 0.2) !important;">
-                                                    <div class="small fw-semibold text-success text-uppercase mb-1">
-                                                        Batch Collection</div>
-                                                    <h4 id="repResBatchIncome" class="fw-bold text-success mb-0">৳0</h4>
-                                                    <div class="small text-muted mt-1" id="repResStudentCount">0
-                                                        Students</div>
-                                                </div>
+                                                <label class="form-label small fw-bold text-muted">Select
+                                                    Batch</label>
+                                                <select id="repBatchSelect" class="form-select premium-input-modern">
+                                                    <option value="">Choose Batch...</option>
+                                                </select>
                                             </div>
-                                            <!-- Period Expense Card -->
                                             <div class="col-md-4">
-                                                <div class="rounded-4 p-3 border h-100"
-                                                    style="background: rgba(255, 107, 53, 0.04); border-color: rgba(255, 107, 53, 0.2) !important;">
-                                                    <div class="small fw-semibold text-danger text-uppercase mb-1">
-                                                        Period Expense</div>
-                                                    <h4 id="repResExpense" class="fw-bold text-danger mb-0">৳0</h4>
-                                                    <div class="small text-muted mt-1" id="repResExpenseItems">0 Entries
-                                                    </div>
-                                                </div>
+                                                <label class="form-label small fw-bold text-muted">Expense Start
+                                                    Date</label>
+                                                <input type="date" id="repStartDate"
+                                                    class="form-control premium-input-modern">
                                             </div>
-                                            <!-- Net Profit/Loss Card -->
                                             <div class="col-md-4">
-                                                <div id="repResProfitCard" class="rounded-4 p-3 border h-100"
-                                                    style="background: rgba(181, 55, 242, 0.04); border-color: rgba(181, 55, 242, 0.2) !important;">
-                                                    <div class="small fw-semibold text-uppercase mb-1">Calculated
-                                                        Profit/Loss</div>
-                                                    <h4 id="repResProfit" class="fw-bold mb-0">৳0</h4>
-                                                    <div class="small text-muted mt-1" id="repResProfitStatus">Net
-                                                        Outcome</div>
-                                                </div>
+                                                <label class="form-label small fw-bold text-muted">Expense End
+                                                    Date</label>
+                                                <input type="date" id="repEndDate"
+                                                    class="form-control premium-input-modern">
                                             </div>
-                                        </div>
-
-                                        <div class="mt-4 p-4 rounded-4 border"
-                                            style="background: rgba(255,255,255,0.02); border-color: rgba(255,255,255,0.1) !important;">
-                                            <div
-                                                class="d-flex justify-content-between align-items-center mb-3 pb-2 border-bottom border-secondary">
-                                                <h6 class="mb-0 fw-bold text-info">Report Summary</h6>
-                                                <button type="button" class="btn btn-sm btn-outline-info"
-                                                    onclick="printBatchProfitReport()">
-                                                    <i class="bi bi-printer me-1"></i> Print Report
+                                            <div class="col-md-6">
+                                                <label class="form-label small fw-bold text-muted">Previous Balance
+                                                    / Profit / Due (Manual)</label>
+                                                <div class="input-group">
+                                                    <span class="input-group-text bg-transparent border-end-0">৳</span>
+                                                    <input type="number" id="repPrevManual"
+                                                        class="form-control premium-input-modern border-start-0"
+                                                        placeholder="0.00">
+                                                </div>
+                                                <small class="text-muted opacity-50">পূর্বের কোনো ডিউ বা জমানো লাভ
+                                                    থাকলে লিখুন</small>
+                                            </div>
+                                            <div class="col-md-6 d-flex align-items-end">
+                                                <button type="button"
+                                                    class="btn btn-primary w-100 py-2 fw-bold shadow-sm"
+                                                    onclick="generateBatchProfitReport()">
+                                                    <i class="bi bi-calculator-fill me-2"></i> Generate Profit
+                                                    Report
                                                 </button>
                                             </div>
-                                            <div class="table-responsive">
-                                                <table class="table table-dark table-borderless align-middle mb-0">
-                                                    <tbody>
-                                                        <tr>
-                                                            <td class="text-muted">Selected Batch:</td>
-                                                            <td id="repSumBatch" class="text-end fw-bold">---</td>
-                                                        </tr>
-                                                        <tr>
-                                                            <td class="text-muted">Expense Period:</td>
-                                                            <td id="repSumPeriod" class="text-end fw-bold">---</td>
-                                                        </tr>
-                                                        <tr>
-                                                            <td class="text-muted">Total Student Collection (All Time):
-                                                            </td>
-                                                            <td id="repSumIncome" class="text-end fw-bold text-success">
-                                                                ৳0</td>
-                                                        </tr>
-                                                        <tr>
-                                                            <td class="text-muted">Period Operating Expense:</td>
-                                                            <td id="repSumExpense" class="text-end fw-bold text-danger">
-                                                                ৳0</td>
-                                                        </tr>
-                                                        <tr>
-                                                            <td class="text-muted">Manual Balance Adjustment:</td>
-                                                            <td id="repSumManual" class="text-end fw-bold">৳0</td>
-                                                        </tr>
-                                                        <tr class="border-top border-secondary">
-                                                            <td class="h6 fw-bold">Final Net Result:</td>
-                                                            <td id="repSumNet" class="text-end h6 fw-bold fs-5">৳0</td>
-                                                        </tr>
-                                                    </tbody>
-                                                </table>
+                                        </div>
+                                    </div>
+                                </div>
+
+                                <!-- Report Display Result -->
+                                <div id="batchReportResult" class="d-none">
+                                    <div class="row g-3">
+                                        <!-- Batch Collection Card -->
+                                        <div class="col-md-4">
+                                            <div class="rounded-4 p-3 border h-100"
+                                                style="background: rgba(0, 255, 136, 0.04); border-color: rgba(0, 255, 136, 0.2) !important;">
+                                                <div class="small fw-semibold text-success text-uppercase mb-1">
+                                                    Batch Collection</div>
+                                                <h4 id="repResBatchIncome" class="fw-bold text-success mb-0">৳0</h4>
+                                                <div class="small text-muted mt-1" id="repResStudentCount">0
+                                                    Students</div>
+                                            </div>
+                                        </div>
+                                        <!-- Period Expense Card -->
+                                        <div class="col-md-4">
+                                            <div class="rounded-4 p-3 border h-100"
+                                                style="background: rgba(255, 107, 53, 0.04); border-color: rgba(255, 107, 53, 0.2) !important;">
+                                                <div class="small fw-semibold text-danger text-uppercase mb-1">
+                                                    Period Expense</div>
+                                                <h4 id="repResExpense" class="fw-bold text-danger mb-0">৳0</h4>
+                                                <div class="small text-muted mt-1" id="repResExpenseItems">0 Entries
+                                                </div>
+                                            </div>
+                                        </div>
+                                        <!-- Net Profit/Loss Card -->
+                                        <div class="col-md-4">
+                                            <div id="repResProfitCard" class="rounded-4 p-3 border h-100"
+                                                style="background: rgba(181, 55, 242, 0.04); border-color: rgba(181, 55, 242, 0.2) !important;">
+                                                <div class="small fw-semibold text-uppercase mb-1">Calculated
+                                                    Profit/Loss</div>
+                                                <h4 id="repResProfit" class="fw-bold mb-0">৳0</h4>
+                                                <div class="small text-muted mt-1" id="repResProfitStatus">Net
+                                                    Outcome</div>
                                             </div>
                                         </div>
                                     </div>
 
-                                    <div id="batchReportEmpty" class="text-center py-5 opacity-25">
-                                        <i class="bi bi-bar-chart-line fs-1 d-block mb-3"></i>
-                                        <h6>Select criteria and click generate to view report</h6>
+                                    <div class="mt-4 p-4 rounded-4 border"
+                                        style="background: rgba(255,255,255,0.02); border-color: rgba(255,255,255,0.1) !important;">
+                                        <div
+                                            class="d-flex justify-content-between align-items-center mb-3 pb-2 border-bottom border-secondary">
+                                            <h6 class="mb-0 fw-bold text-info">Report Summary</h6>
+                                            <button type="button" class="btn btn-sm btn-outline-info"
+                                                onclick="printBatchProfitReport()">
+                                                <i class="bi bi-printer me-1"></i> Print Report
+                                            </button>
+                                        </div>
+                                        <div class="table-responsive">
+                                            <table class="table table-dark table-borderless align-middle mb-0">
+                                                <tbody>
+                                                    <tr>
+                                                        <td class="text-muted">Selected Batch:</td>
+                                                        <td id="repSumBatch" class="text-end fw-bold">---</td>
+                                                    </tr>
+                                                    <tr>
+                                                        <td class="text-muted">Expense Period:</td>
+                                                        <td id="repSumPeriod" class="text-end fw-bold">---</td>
+                                                    </tr>
+                                                    <tr>
+                                                        <td class="text-muted">Total Student Collection (All Time):
+                                                        </td>
+                                                        <td id="repSumIncome" class="text-end fw-bold text-success">
+                                                            ৳0</td>
+                                                    </tr>
+                                                    <tr>
+                                                        <td class="text-muted">Period Operating Expense:</td>
+                                                        <td id="repSumExpense" class="text-end fw-bold text-danger">
+                                                            ৳0</td>
+                                                    </tr>
+                                                    <tr>
+                                                        <td class="text-muted">Manual Balance Adjustment:</td>
+                                                        <td id="repSumManual" class="text-end fw-bold">৳0</td>
+                                                    </tr>
+                                                    <tr class="border-top border-secondary">
+                                                        <td class="h6 fw-bold">Final Net Result:</td>
+                                                        <td id="repSumNet" class="text-end h6 fw-bold fs-5">৳0</td>
+                                                    </tr>
+                                                </tbody>
+                                            </table>
+                                        </div>
                                     </div>
-                                </div><!-- /tab-batchreport -->
+                                </div>
 
-                            </div><!-- /tab-content -->
-                        </div><!-- /flex-grow-1 content area -->
-                    </div><!-- /d-flex row -->
-                </div><!-- /settingsForm -->
-            </div><!-- /modal-body -->
-        </div><!-- /modal-content -->
-    </div><!-- /modal-dialog -->
+                                <div id="batchReportEmpty" class="text-center py-5 opacity-25">
+                                    <i class="bi bi-bar-chart-line fs-1 d-block mb-3"></i>
+                                    <h6>Select criteria and click generate to view report</h6>
+                                </div>
+                            </div><!-- /tab-batchreport -->
+
+                        </div><!-- /tab-content -->
+                    </div><!-- /flex-grow-1 content area -->
+                </div><!-- /d-flex row -->
+            </div><!-- /settingsForm -->
+        </div><!-- /modal-body -->
+    </div><!-- /modal-content -->
+</div><!-- /modal-dialog -->
 </div><!-- /settingsModal -->
 
 <!-- Keep Record - New Note Modal -->

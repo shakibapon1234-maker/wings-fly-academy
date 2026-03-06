@@ -3,44 +3,35 @@
  * WINGS FLY AVIATION ACADEMY
  * SECTION LOADER — Modal Lazy Load System
  * File: sections/section-loader.js
- *
- * কীভাবে কাজ করে:
- * - index.html এ modal HTML নেই
- * - প্রথমবার বোতাম চাপলে fetch() দিয়ে HTML load হয়
- * - দ্বিতীয়বার চাপলে already loaded → সাথে সাথে open
  * ============================================================
  */
 
 (function () {
   'use strict';
 
-  // Track কোন modals loaded হয়েছে
   const _loaded = new Set();
+  const _origValues = {};
 
-  /**
-   * HTML ফাইল fetch করে placeholder এ inject করো
-   * তারপর Bootstrap modal open করো
-   */
   async function loadAndOpen(placeholderId, htmlFile, modalId, onLoaded) {
-    // Already loaded? সরাসরি open করো
     if (_loaded.has(modalId)) {
       _openModal(modalId);
+      if (typeof onLoaded === 'function') onLoaded();
       return;
     }
 
     try {
-      const res = await fetch(htmlFile + '?v=20260306_2325');
+      console.log('[SectionLoader] Loading:', htmlFile);
+      const res = await fetch(htmlFile + '?v=' + Date.now());
       if (!res.ok) throw new Error('HTTP ' + res.status);
       const html = await res.text();
 
       const el = document.getElementById(placeholderId);
       if (el) {
         el.innerHTML = html;
-        // ✅ FIX: innerHTML দিয়ে inject করা <script> ট্যাগ browser execute করে না
-        // তাই manually সব inline script খুঁজে re-create করতে হবে
-        var scripts = el.querySelectorAll('script');
+        // Re-execute scripts
+        const scripts = el.querySelectorAll('script');
         scripts.forEach(function (oldScript) {
-          var newScript = document.createElement('script');
+          const newScript = document.createElement('script');
           if (oldScript.src) {
             newScript.src = oldScript.src;
           } else {
@@ -52,13 +43,13 @@
 
       _loaded.add(modalId);
 
-      // onLoaded callback — scripts re-init দরকার হলে
       if (typeof onLoaded === 'function') {
-        try { onLoaded(); } catch (e) { }
+        try { onLoaded(); } catch (e) { console.error('[SectionLoader] onLoaded error:', e); }
       }
 
-      // Bootstrap modal open
-      setTimeout(function () { _openModal(modalId); }, 30);
+      setTimeout(function () {
+        _openModal(modalId);
+      }, 100);
 
     } catch (err) {
       console.error('[SectionLoader] Failed to load:', htmlFile, err);
@@ -70,238 +61,106 @@
 
   function _openModal(modalId) {
     const el = document.getElementById(modalId);
-    if (!el) { console.warn('[SectionLoader] Modal not found:', modalId); return; }
+    if (!el) {
+      console.warn('[SectionLoader] Modal element not found:', modalId);
+      return;
+    }
     const modal = bootstrap.Modal.getOrCreateInstance(el);
     modal.show();
   }
 
-  // ─── সব modal open করার function গুলো patch করো ────────────
+  // --- Patching Functions ---
 
-  // 1. Settings Modal
   function _patchOpenSettings() {
-    var orig = window.openSettings || window.openSettingsModal;
     window.openSettings = window.openSettingsModal = function () {
       loadAndOpen(
         '__modalPlaceholderSettings',
         'sections/settings-modal.html',
         'settingsModal',
         function () {
-          // Settings modal লোড হলে tab intercept re-apply করো
-          if (typeof window.renderRecycleBin === 'function') { }
-          if (typeof window.switchSettingsTab === 'function') { }
-          console.log('[SectionLoader] Settings modal ready');
+          console.log('[SectionLoader] Settings modal initialized');
+          // Important: Initialize first tab
+          if (typeof window.switchSettingsTab === 'function') {
+            const activeBtn = document.querySelector('#settingsModal .nav-link.active');
+            if (activeBtn) {
+              const onclickStr = activeBtn.getAttribute('onclick') || '';
+              const match = onclickStr.match(/'([^']+)'/);
+              if (match) window.switchSettingsTab(match[1], activeBtn);
+            } else {
+              // Fallback if no active button
+              const firstBtn = document.querySelector('#settingsModal .nav-link');
+              if (firstBtn) {
+                const match = (firstBtn.getAttribute('onclick') || '').match(/'([^']+)'/);
+                if (match) window.switchSettingsTab(match[1], firstBtn);
+              }
+            }
+          }
         }
       );
     };
-
-    // Settings button এ click bind
-    var btn = document.getElementById('btnOpenSettings') ||
-      document.querySelector('[onclick*="openSettings"]') ||
-      document.querySelector('[data-target="#settingsModal"]') ||
-      document.querySelector('[data-bs-target="#settingsModal"]');
-    if (btn) {
-      btn.removeAttribute('data-bs-toggle');
-      btn.removeAttribute('data-bs-target');
-      btn.addEventListener('click', window.openSettings);
-      console.log('[SectionLoader] Settings button patched');
-    }
   }
 
-  // 2. Student Modal
+  function _patchOpenTransaction() {
+    // Finance/Transaction modals are usually in modals-other.html
+    window.openTransactionModal = function (type, id) {
+      loadAndOpen('__modalPlaceholderOther', 'sections/modals-other.html', 'transactionModal', function () {
+        if (typeof window.initTransactionModal === 'function') {
+          window.initTransactionModal(type, id);
+        }
+      });
+    };
+  }
+
   function _patchOpenStudent() {
-    var orig = window.openStudentModal;
     window.openStudentModal = function (id) {
-      loadAndOpen(
-        '__modalPlaceholderStudents',
-        'sections/modals-student.html',
-        'studentModal',
-        function () {
-          console.log('[SectionLoader] Student modals ready');
-        }
-      ).then(function () {
-        // Modal খোলার পরে original function call করো
-        setTimeout(function () {
-          if (typeof window.populateDropdowns === 'function') window.populateDropdowns();
-          if (typeof orig === 'function' && id !== undefined) {
-            // Edit mode হলে form fill করো
-            if (id) _fillStudentForm(id);
-          }
-        }, 80);
-      });
-    };
-
-    // ✅ Add Transaction: financeModal is also in modals-student.html
-    window.openAddTransaction = function () {
-      if (_loaded.has('studentModal')) {
-        // Already loaded — just open financeModal
-        _openModal('financeModal');
-        // Date auto-fill
-        setTimeout(function () {
-          var d = document.querySelector('#financeForm input[name="date"]');
-          if (d && !d.value) { var n = new Date(); d.value = n.toISOString().split('T')[0]; }
-          if (typeof window.populateDropdowns === 'function') window.populateDropdowns();
-          if (typeof window.updateFinanceCategoryOptions === 'function') window.updateFinanceCategoryOptions();
-        }, 60);
-        return;
-      }
-      loadAndOpen(
-        '__modalPlaceholderStudents',
-        'sections/modals-student.html',
-        'studentModal', // load tracker দিয়ে
-        function () {
-          console.log('[SectionLoader] Finance modals ready');
-        }
-      ).then(function () {
-        setTimeout(function () {
-          if (typeof window.populateDropdowns === 'function') window.populateDropdowns();
-          if (typeof window.updateFinanceCategoryOptions === 'function') window.updateFinanceCategoryOptions();
-          var d = document.querySelector('#financeForm input[name="date"]');
-          if (d && !d.value) { var n = new Date(); d.value = n.toISOString().split('T')[0]; }
-          _openModal('financeModal');
-        }, 80);
+      loadAndOpen('__modalPlaceholderOther', 'sections/modals-other.html', 'studentModal', function () {
+        if (typeof window.initStudentModal === 'function') window.initStudentModal(id);
       });
     };
   }
 
-  function _fillStudentForm(studentId) {
-    var gd = window.globalData;
-    if (!gd) return;
-    var student = (gd.students || []).find(function (s) {
-      return String(s.id) === String(studentId) || String(s.rowIndex) === String(studentId);
-    });
-    if (!student) return;
-    // app.js এর existing fill logic call করো
-    if (typeof window._fillStudentModalFields === 'function') {
-      window._fillStudentModalFields(student);
-    }
-  }
-
-  // 3. Other Modals (Account, Profile, Visitor, Exam etc)
-  function _patchOtherModals() {
-    // এই modals যেকোনো একটা খুলতে চাইলে প্রথমে HTML load হবে
-    var otherModalFunctions = [
-      'openAccountModal', 'openStudentProfile', 'openVisitorModal',
-      'openExamModal', 'openExamRegistration', 'openStudentPaymentModal',
-      'openMobileModal', 'addMobileAccount'
-    ];
-
-    otherModalFunctions.forEach(function (fnName) {
-      var orig = window[fnName];
-      window[fnName] = function () {
-        var args = arguments;
-        var self = this;
-        loadAndOpen(
-          '__modalPlaceholderOther',
-          'sections/modals-other.html',
-          '__other_modals_loaded', // dummy modal id — শুধু load track এর জন্য
-          null
-        ).then(function () {
-          // HTML inject হওয়ার পরে original function চালাও
-          setTimeout(function () {
-            if (typeof window.populateDropdowns === 'function') window.populateDropdowns();
-            if (typeof orig === 'function') orig.apply(self, args);
-          }, 60);
-        });
-
-        // যদি already loaded থাকে, সরাসরি original চালাও
-        if (_loaded.has('__other_modals_loaded')) {
-          if (typeof orig === 'function') orig.apply(self, args);
-        }
-      };
-    });
-
-    // ✅ openExamRegistration: exam modal is in modals-other.html
-    window.openExamRegistration = function () {
-      var orig = window.openExamModal || function () { _openModal('examRegistrationModal'); };
-      if (_loaded.has('__other_modals_loaded')) {
-        _openModal('examRegistrationModal');
-        return;
-      }
-      loadAndOpen(
-        '__modalPlaceholderOther',
-        'sections/modals-other.html',
-        '__other_modals_loaded',
-        null
-      ).then(function () {
-        setTimeout(function () {
-          if (typeof window.populateDropdowns === 'function') window.populateDropdowns();
-          _openModal('examRegistrationModal');
-        }, 60);
+  function _patchOpenEmployee() {
+    window.openEmployeeModal = function (id) {
+      loadAndOpen('__modalPlaceholderOther', 'sections/modals-other.html', 'employeeModal', function () {
+        if (typeof window.initEmployeeModal === 'function') window.initEmployeeModal(id);
       });
     };
-
-    console.log('[SectionLoader] Other modal functions patched');
   }
 
-  // ─── Load করার বিশেষ case: __other_modals_loaded ────────────
-  // এটা কোনো real modal ID নয়, তাই _openModal skip করতে হবে
-  var _origLoadAndOpen = loadAndOpen;
-  loadAndOpen = async function (placeholderId, htmlFile, modalId, onLoaded) {
-    if (modalId === '__other_modals_loaded') {
-      if (_loaded.has(modalId)) return Promise.resolve();
-      try {
-        const res = await fetch(htmlFile + '?v=20260226_2000');
-        if (!res.ok) throw new Error('HTTP ' + res.status);
-        const html = await res.text();
-        const el = document.getElementById(placeholderId);
-        if (el) {
-          el.innerHTML = html;
-          var scripts = el.querySelectorAll('script');
-          scripts.forEach(function (oldScript) {
-            var newScript = document.createElement('script');
-            if (oldScript.src) { newScript.src = oldScript.src; } else { newScript.textContent = oldScript.textContent; }
-            oldScript.parentNode.replaceChild(newScript, oldScript);
-          });
-        }
-        _loaded.add(modalId);
-        if (typeof onLoaded === 'function') try { onLoaded(); } catch (e) { }
-      } catch (err) {
-        console.error('[SectionLoader]', err);
-      }
-      return Promise.resolve();
-    }
-    return _origLoadAndOpen(placeholderId, htmlFile, modalId, onLoaded);
-  };
-
-  // ─── Preload: app লোড হওয়ার 3s পরে other modals preload ────
-  function _preloadOtherModals() {
+  function _preloadOther() {
     if (_loaded.has('__other_modals_loaded')) return;
-    // Background এ quietly load করো — user কিছু দেখবে না
-    fetch('sections/modals-other.html?v=20260306_2325')
-      .then(function (r) { return r.text(); })
-      .then(function (html) {
-        var el = document.getElementById('__modalPlaceholderOther');
+    fetch('sections/modals-other.html?v=' + Date.now())
+      .then(r => r.text())
+      .then(html => {
+        const el = document.getElementById('__modalPlaceholderOther');
         if (el) {
           el.innerHTML = html;
           _loaded.add('__other_modals_loaded');
-          var scripts = el.querySelectorAll('script');
-          scripts.forEach(function (oldScript) {
-            var newScript = document.createElement('script');
-            if (oldScript.src) { newScript.src = oldScript.src; } else { newScript.textContent = oldScript.textContent; }
-            oldScript.parentNode.replaceChild(newScript, oldScript);
+          // Re-exec scripts
+          const scripts = el.querySelectorAll('script');
+          scripts.forEach(s => {
+            const ns = document.createElement('script');
+            if (s.src) ns.src = s.src; else ns.textContent = s.textContent;
+            s.parentNode.replaceChild(ns, s);
           });
         }
-        console.log('[SectionLoader] Other modals preloaded silently');
-      })
-      .catch(function () { });
+      }).catch(e => console.error('[SectionLoader] Preload failed:', e));
   }
 
-  // ─── INIT ────────────────────────────────────────────────────
   function init() {
     _patchOpenSettings();
     _patchOpenStudent();
-    _patchOtherModals();
+    _patchOpenEmployee();
+    _patchOpenTransaction();
 
-    // 3 সেকেন্ড পরে background preload
-    setTimeout(_preloadOtherModals, 3000);
+    // Preload after 4s
+    setTimeout(_preloadOther, 4000);
 
-    // 2s পরে আবার patch (app.js override করলে)
-    setTimeout(function () {
+    // Re-patch after 2s if app.js overwrote them
+    setTimeout(() => {
       _patchOpenSettings();
-      console.log('[SectionLoader] ✅ Re-patched at 2s');
+      _patchOpenStudent();
     }, 2000);
-
-    console.log('[SectionLoader] ✅ Modal Lazy Load System ready');
   }
 
   if (document.readyState === 'loading') {
@@ -310,28 +169,9 @@
     init();
   }
 
-  // Public API
   window.sectionLoader = {
     loadAndOpen: loadAndOpen,
-    isLoaded: function (id) { return _loaded.has(id); },
-    preloadAll: function () {
-      _preloadOtherModals();
-      fetch('sections/settings-modal.html?v=20260306_2325')
-        .then(function (r) { return r.text(); })
-        .then(function (html) {
-          var el = document.getElementById('__modalPlaceholderSettings');
-          if (el) {
-            el.innerHTML = html;
-            _loaded.add('settingsModal');
-            var scripts = el.querySelectorAll('script');
-            scripts.forEach(function (oldScript) {
-              var newScript = document.createElement('script');
-              if (oldScript.src) { newScript.src = oldScript.src; } else { newScript.textContent = oldScript.textContent; }
-              oldScript.parentNode.replaceChild(newScript, oldScript);
-            });
-          }
-        }).catch(function () { });
-    }
+    isLoaded: id => _loaded.has(id)
   };
 
 })();
