@@ -9,7 +9,9 @@
 // ===================================
 
 function populateDropdowns() {
-  const courses = window.globalData.courseNames || [];
+  const settingsCourses = window.globalData.courseNames || [];
+  const studentCourses = window.globalData.students ? window.globalData.students.map(s => s.course).filter(Boolean) : [];
+  const courses = [...new Set([...settingsCourses, ...studentCourses])].sort();
 
   // BUILD CLEAN PAYMENT METHODS LIST:
   // 1. Core methods (always present)
@@ -347,12 +349,30 @@ function addCourseName() {
     window.globalData.courseNames = ['Caregiver', 'Student Visa', 'Visa (Tourist, Medical Business)', 'Air Ticketing (Basic)', 'Air Ticketing (Advance)', 'Travel Agency Business Managment', 'Language (Japanese, Korean)', 'Other'];
   }
 
-  if (window.globalData.courseNames.includes(val)) { alert('Exists!'); return; }
+  // Check if it already exists (case-insensitive)
+  const isDuplicate = window.globalData.courseNames.some(c => c.toLowerCase() === val.toLowerCase());
+
+  if (isDuplicate) {
+    if (typeof showErrorToast === 'function') {
+      showErrorToast('❌ Course already exists in Settings!');
+    } else {
+      alert('Course already exists!');
+    }
+    return;
+  }
+
+  // Also warn if it already exists in students but wasn't in settings
+  const inStudents = window.globalData.students && window.globalData.students.some(s => s.course && s.course.toLowerCase() === val.toLowerCase());
+  if (inStudents) {
+    if (typeof showSuccessToast === 'function') {
+      showSuccessToast('✅ Course merged with existing student records.');
+    }
+  }
 
   window.globalData.courseNames.push(val);
   saveToStorage();
   populateDropdowns();
-  if (typeof populateBatchFilter === 'function') populateBatchFilter(); // ✅ Filter dropdown sync
+  if (typeof populateBatchFilter === 'function') populateBatchFilter();
   input.value = '';
 }
 

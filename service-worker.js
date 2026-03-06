@@ -4,7 +4,7 @@
 // Version বাড়ালে নতুন files আবার download হবে
 // ================================================================
 
-const CACHE_NAME = 'wingsfly-cache-v6'; // ✅ v6: safe delete fix + recycle bin support
+const CACHE_NAME = 'wingsfly-cache-v7'; // ✅ v7: Fix dropdown populations for lazy modals and merge custom/student courses
 
 // এই files গুলো offline-এও কাজ করবে
 const FILES_TO_CACHE = [

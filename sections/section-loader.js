@@ -122,6 +122,7 @@
       ).then(function () {
         // Modal খোলার পরে original function call করো
         setTimeout(function () {
+          if (typeof window.populateDropdowns === 'function') window.populateDropdowns();
           if (typeof orig === 'function' && id !== undefined) {
             // Edit mode হলে form fill করো
             if (id) _fillStudentForm(id);
@@ -196,6 +197,7 @@
         ).then(function () {
           // HTML inject হওয়ার পরে original function চালাও
           setTimeout(function () {
+            if (typeof window.populateDropdowns === 'function') window.populateDropdowns();
             if (typeof orig === 'function') orig.apply(self, args);
           }, 60);
         });
@@ -220,7 +222,10 @@
         '__other_modals_loaded',
         null
       ).then(function () {
-        setTimeout(function () { _openModal('examRegistrationModal'); }, 60);
+        setTimeout(function () {
+          if (typeof window.populateDropdowns === 'function') window.populateDropdowns();
+          _openModal('examRegistrationModal');
+        }, 60);
       });
     };
 
