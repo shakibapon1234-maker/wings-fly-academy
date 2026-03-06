@@ -195,6 +195,9 @@
 
     const metaPayload = {
       id: RECORD_ID,
+      students: gd.students || [],   // Added: ensure authoritative source is updated
+      finance: gd.finance || [],     // Added: ensure authoritative source is updated
+      employees: gd.employees || [], // Added: ensure authoritative source is updated
       settings: gd.settings || {},
       income_categories: gd.incomeCategories || [],
       expense_categories: gd.expenseCategories || [],
