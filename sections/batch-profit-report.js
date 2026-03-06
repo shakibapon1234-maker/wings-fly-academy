@@ -35,6 +35,9 @@ function populateBatchReportDropdowns() {
     document.getElementById('repEndDate').value = lastDay;
 }
 
+// Global variable to store last generated report details for printing
+window._lastProfitReport = null;
+
 function generateBatchProfitReport() {
     const batch = document.getElementById('repBatchSelect').value;
     const startDate = document.getElementById('repStartDate').value;
@@ -65,20 +68,34 @@ function generateBatchProfitReport() {
     endObj.setHours(23, 59, 59, 999);
 
     let periodExpense = 0;
-    let expenseCount = 0;
+    const periodExpenseList = [];
 
     finance.forEach(f => {
         if (f.type === 'Expense') {
             const fDate = new Date(f.date);
             if (fDate >= startObj && fDate <= endObj) {
                 periodExpense += (parseFloat(f.amount) || 0);
-                expenseCount++;
+                periodExpenseList.push(f);
             }
         }
     });
 
     // 3. Final Calculation
     const netResult = (totalBatchIncome + manualAdj) - periodExpense;
+
+    // Store for printing
+    window._lastProfitReport = {
+        batch,
+        startDate,
+        endDate,
+        manualAdj,
+        students: batchStudents,
+        expenses: periodExpenseList,
+        totalIncome: totalBatchIncome,
+        totalExpense: periodExpense,
+        netResult: netResult,
+        generatedAt: new Date().toLocaleString()
+    };
 
     // Update UI
     document.getElementById('batchReportEmpty').classList.add('d-none');
@@ -89,7 +106,7 @@ function generateBatchProfitReport() {
     document.getElementById('repResStudentCount').textContent = batchStudents.length + ' Students Found';
 
     document.getElementById('repResExpense').textContent = '৳' + periodExpense.toLocaleString();
-    document.getElementById('repResExpenseItems').textContent = expenseCount + ' Expense Entries';
+    document.getElementById('repResExpenseItems').textContent = periodExpenseList.length + ' Expense Entries';
 
     const profitEl = document.getElementById('repResProfit');
     const profitCard = document.getElementById('repResProfitCard');
@@ -128,49 +145,170 @@ function generateBatchProfitReport() {
 }
 
 function printBatchProfitReport() {
-    const content = document.getElementById('batchReportResult').innerHTML;
-    const printWindow = window.open('', '_blank');
+    const reportData = window._lastProfitReport;
+    if (!reportData) {
+        alert("Please generate a report first.");
+        return;
+    }
 
     const academyName = (window.globalData.settings && window.globalData.settings.academyName) || 'Wings Fly Academy';
+    const printWindow = window.open('', '_blank');
+
+    // Generate Student List Table rows
+    const studentRows = reportData.students.map((s, index) => `
+        <tr>
+            <td>${index + 1}</td>
+            <td>${s.name}</td>
+            <td>${s.studentID || '---'}</td>
+            <td>${s.contact || '---'}</td>
+            <td class="text-end fw-bold">৳${(parseFloat(s.paid) || 0).toLocaleString()}</td>
+        </tr>
+    `).join('');
+
+    // Generate Expense List Table rows
+    const expenseRows = reportData.expenses.map((e, index) => `
+        <tr>
+            <td>${index + 1}</td>
+            <td>${e.date}</td>
+            <td>${e.category}</td>
+            <td>${e.description || '---'}</td>
+            <td class="text-end fw-bold text-danger">৳${(parseFloat(e.amount) || 0).toLocaleString()}</td>
+        </tr>
+    `).join('');
 
     printWindow.document.write(`
+        <!DOCTYPE html>
         <html>
-            <head>
-                <title>Batch Profit Report - ${academyName}</title>
-                <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/css/bootstrap.min.css" rel="stylesheet">
-                <style>
-                    body { background: white !important; color: black !important; padding: 40px; }
-                    .text-success { color: #198754 !important; }
-                    .text-danger { color: #dc3545 !important; }
-                    .border { border: 1px solid #dee2e6 !important; }
-                    .table-dark { background: white !important; color: black !important; border: 1px solid #dee2e6; }
-                    .table-dark td { border-bottom: 1px solid #eee; }
-                    .btn, .opacity-25, #batchReportEmpty, .btn-outline-info { display: none !important; }
-                    .premium-input-modern { border: none; }
-                </style>
-            </head>
-            <body>
-                <div class="text-center mb-5">
-                    <h2 class="fw-bold">${academyName}</h2>
-                    <h4 class="text-muted">Batch Wise Profit & Loss Statement</h4>
-                    <hr>
+        <head>
+            <title>Detailed Batch Report - ${reportData.batch}</title>
+            <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/css/bootstrap.min.css" rel="stylesheet">
+            <style>
+                @media print {
+                    .page-break { page-break-after: always; }
+                    body { padding: 0 !important; }
+                }
+                body { font-family: 'Inter', sans-serif; background: white; color: black; padding: 40px; }
+                .report-header { border-bottom: 3px solid #00d9ff; padding-bottom: 20px; margin-bottom: 30px; }
+                .summary-box { background: #f8f9fa; border: 1px solid #dee2e6; border-radius: 12px; padding: 25px; }
+                .net-result { font-size: 2rem; font-weight: 800; border-radius: 10px; padding: 15px; margin-top: 20px; text-align: center; }
+                .net-profit { background: #e6fffa; color: #047857; border: 1px solid #aaccc5; }
+                .net-loss { background: #fff5f5; color: #c53030; border: 1px solid #feb2b2; }
+                .section-title { background: #00d9ff; color: white; padding: 10px 20px; border-radius: 8px; font-weight: 700; margin-top: 40px; margin-bottom: 20px; display: inline-block; }
+                table { margin-bottom: 30px; }
+                th { background-color: #f1f5f9 !important; font-weight: 800; }
+                .footer-stamp { margin-top: 50px; border-top: 1px solid #eee; padding-top: 20px; font-size: 0.8rem; color: #666; }
+            </style>
+        </head>
+        <body>
+            <!-- PAGE 1: SUMMARY -->
+            <div class="page-break">
+                <div class="report-header text-center">
+                    <h1 class="fw-bold mb-1">${academyName}</h1>
+                    <h3 class="text-muted">Batch Wise Profit & Loss Statement</h3>
+                    <p class="mb-0 text-info fw-bold">Generating Date: ${reportData.generatedAt}</p>
                 </div>
-                <div>${content}</div>
-                <div class="mt-5 text-center small text-muted">
-                    Report Generated on: ${new Date().toLocaleString()}
+
+                <div class="row g-4 mb-4">
+                    <div class="col-6">
+                        <div class="summary-box h-100">
+                            <h5 class="fw-bold text-primary mb-3">Report Scope</h5>
+                            <p class="mb-1"><strong>Selected Batch:</strong> ${reportData.batch}</p>
+                            <p class="mb-1"><strong>Date Range:</strong> ${reportData.startDate} to ${reportData.endDate}</p>
+                            <p class="mb-0"><strong>Students in Batch:</strong> ${reportData.students.length}</p>
+                        </div>
+                    </div>
+                    <div class="col-6">
+                        <div class="summary-box h-100">
+                            <h5 class="fw-bold text-success mb-3">Financial Overview</h5>
+                            <p class="mb-1">Total Collections: <span class="float-end">৳${reportData.totalIncome.toLocaleString()}</span></p>
+                            <p class="mb-1">Operating Expenses: <span class="float-end">৳${reportData.totalExpense.toLocaleString()}</span></p>
+                            <p class="mb-0">Manual Adjustment: <span class="float-end">৳${reportData.manualAdj.toLocaleString()}</span></p>
+                        </div>
+                    </div>
                 </div>
-            </body>
+
+                <div class="net-result ${reportData.netResult >= 0 ? 'net-profit' : 'net-loss'}">
+                    Final Net Result: ৳${reportData.netResult.toLocaleString()}
+                    <div style="font-size: 1rem; opacity: 0.8;">(${reportData.netResult >= 0 ? 'Total Profit' : 'Total Loss'})</div>
+                </div>
+
+                <div class="mt-5 pt-4">
+                    <p class="text-center text-muted">Please find the detailed lists of students and expenses on the following pages.</p>
+                </div>
+            </div>
+
+            <!-- PAGE 2: STUDENT COLLECTIONS -->
+            <div class="page-break">
+                <div class="section-title">PAGE 02: Student Collection Details</div>
+                <table class="table table-bordered align-middle">
+                    <thead>
+                        <tr>
+                            <th width="50">#</th>
+                            <th>Student Name</th>
+                            <th>ID Number</th>
+                            <th>Contact</th>
+                            <th class="text-end">Paid Amount</th>
+                        </tr>
+                    </thead>
+                    <tbody>
+                        ${studentRows || '<tr><td colspan="5" class="text-center">No student data found for this batch.</td></tr>'}
+                    </tbody>
+                    <tfoot>
+                        <tr>
+                            <th colspan="4" class="text-end">Grand Total Collection:</th>
+                            <th class="text-end text-success">৳${reportData.totalIncome.toLocaleString()}</th>
+                        </tr>
+                    </tfoot>
+                </table>
+            </div>
+
+            <!-- PAGE 3: OPERATING EXPENSES -->
+            <div class="page-break">
+                <div class="section-title">PAGE 03: Operating Expense Details</div>
+                <table class="table table-bordered align-middle">
+                    <thead>
+                        <tr>
+                            <th width="50">#</th>
+                            <th width="120">Date</th>
+                            <th width="150">Category</th>
+                            <th>Description</th>
+                            <th class="text-end">Amount</th>
+                        </tr>
+                    </thead>
+                    <tbody>
+                        ${expenseRows || '<tr><td colspan="5" class="text-center">No expense records found for this period.</td></tr>'}
+                    </tbody>
+                    <tfoot>
+                        <tr>
+                            <th colspan="4" class="text-end">Total Operating Expense:</th>
+                            <th class="text-end text-danger">৳${reportData.totalExpense.toLocaleString()}</th>
+                        </tr>
+                    </tfoot>
+                </table>
+
+                <div class="footer-stamp text-center">
+                    <p>This is a computer-generated report for official record purposes.</p>
+                    <p>&copy; ${new Date().getFullYear()} ${academyName} Management System</p>
+                </div>
+            </div>
+
+            <script>
+                window.onload = function() {
+                    setTimeout(() => {
+                        window.print();
+                        window.close();
+                    }, 500);
+                }
+            </script>
+        </body>
         </html>
     `);
 
     printWindow.document.close();
-    setTimeout(() => {
-        printWindow.print();
-        printWindow.close();
-    }, 500);
 }
 
 // Global exposure
 window.populateBatchReportDropdowns = populateBatchReportDropdowns;
 window.generateBatchProfitReport = generateBatchProfitReport;
 window.printBatchProfitReport = printBatchProfitReport;
+
