@@ -4,7 +4,7 @@
 // Version বাড়ালে নতুন files আবার download হবে
 // ================================================================
 
-const CACHE_NAME = 'wingsfly-cache-v7'; // ✅ v7: Fix dropdown populations for lazy modals and merge custom/student courses
+const CACHE_NAME = 'wingsfly-cache-v8'; // ✅ v8: Hide Person/Counterparty field for Income/Expense by default
 
 // এই files গুলো offline-এও কাজ করবে
 const FILES_TO_CACHE = [

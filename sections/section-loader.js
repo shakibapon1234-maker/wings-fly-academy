@@ -29,7 +29,7 @@
     }
 
     try {
-      const res = await fetch(htmlFile + '?v=20260226_2000');
+      const res = await fetch(htmlFile + '?v=20260306_2210');
       if (!res.ok) throw new Error('HTTP ' + res.status);
       const html = await res.text();
 
@@ -141,6 +141,7 @@
           var d = document.querySelector('#financeForm input[name="date"]');
           if (d && !d.value) { var n = new Date(); d.value = n.toISOString().split('T')[0]; }
           if (typeof window.populateDropdowns === 'function') window.populateDropdowns();
+          if (typeof window.updateFinanceCategoryOptions === 'function') window.updateFinanceCategoryOptions();
         }, 60);
         return;
       }
@@ -154,6 +155,7 @@
       ).then(function () {
         setTimeout(function () {
           if (typeof window.populateDropdowns === 'function') window.populateDropdowns();
+          if (typeof window.updateFinanceCategoryOptions === 'function') window.updateFinanceCategoryOptions();
           var d = document.querySelector('#financeForm input[name="date"]');
           if (d && !d.value) { var n = new Date(); d.value = n.toISOString().split('T')[0]; }
           _openModal('financeModal');
