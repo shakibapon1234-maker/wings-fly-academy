@@ -1239,7 +1239,7 @@
                         <span id="sidebarNoticeActiveDot"
                             style="display:none; width:8px; height:8px; background:#22c55e; border-radius:50%; margin-left:auto; animation: noticePulse 1s infinite;"></span>
                     </button>
-                    <button class="nav-item-link" data-bs-toggle="modal" data-bs-target="#settingsModal">
+                    <button class="nav-item-link" onclick="openSettingsModal()">
                         <span class="nav-icon"><i class="bi bi-gear-fill"></i></span>
                         <span class="nav-text">Settings</span>
                     </button>
@@ -3077,6 +3077,11 @@
     <script src="sections/dashboard-stats.js?v=20260226_1800"></script>
     <script src="sections/accounts-management.js?v=20260226_1800"></script>
     <script src="sections/account-search.js?v=20260226_1800"></script>
+
+    <!-- Modal Placeholders (Required for Lazy Loading) -->
+    <div id="__modalPlaceholderSettings"></div>
+    <div id="__modalPlaceholderOther"></div>
+
     <script src="sections/keep-records.js?v=20260226_1800"></script>
     <!-- Phase 5: Activity Log, Auth, ID Card, Notifications -->
     <script src="sections/activity-log.js?v=20260306_1450"></script>
@@ -3098,15 +3103,15 @@
     <script src="quick-fix.js?v=20260225_1642"></script>
     <script src="symbol-fix.js?v=20260225_1642"></script>
     <script src="tab-reset-fix.js?v=20260302_0001"></script>
-    <script src="sections/batch-profit-report.js?v=20260307_0156"></script>
+    <script src="sections/batch-profit-report.js?v=20260307_0215"></script>
 
     <!-- Auto Test Suite -->
-    <script src="auto-test.js?v=20260307_0156"></script>
+    <script src="auto-test.js?v=20260307_0215"></script>
 
     <!-- Inline init scripts (extracted from index.html) -->
-    <script src="sections/inline-scripts.js?v=20260307_0156"></script>
+    <script src="sections/inline-scripts.js?v=20260307_0215"></script>
     <!-- Modal Lazy Loader -->
-    <script src="sections/section-loader.js?v=20260307_0156"></script>
+    <script src="sections/section-loader.js?v=20260307_0215"></script>
 
 </body>
 
