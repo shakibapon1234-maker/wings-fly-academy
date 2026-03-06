@@ -414,10 +414,30 @@
   // ============================================
   // HEAL 13: Paid vs Finance Mismatch Auto-Fix
   // Student.paid != finance ledger total হলে fix
+  // ✅ v3.2 FIX: Delete হলে re-add না করে paid কমাও
   // ============================================
+  let _lastDeleteCount = parseInt(localStorage.getItem('wings_total_deleted') || '0');
+  let _lastDeleteTime = 0;
+
   function healPaidFinanceMismatch() {
     const data = window.globalData;
     if (!data || !data.students || !data.finance) return 0;
+
+    // ✅ CRITICAL: Recent delete হলে cooldown দাও — ৩ মিনিট
+    // যাতে user ডিলিট করার পরে auto-heal আবার re-add না করে
+    const currentDeleteCount = parseInt(localStorage.getItem('wings_total_deleted') || '0');
+    if (currentDeleteCount > _lastDeleteCount) {
+      _lastDeleteCount = currentDeleteCount;
+      _lastDeleteTime = Date.now();
+      hLog('info', 'Recent delete detected — Paid-Finance heal cooldown ৩ মিনিট');
+      return 0;
+    }
+    // Cooldown period: 3 minutes after last delete
+    if (_lastDeleteTime > 0 && (Date.now() - _lastDeleteTime) < 180000) {
+      hLog('info', 'Paid-Finance heal in cooldown (' + Math.round((180000 - (Date.now() - _lastDeleteTime)) / 1000) + 's remaining)');
+      return 0;
+    }
+
     let fixed = 0;
     const finance = data.finance;
 
@@ -437,27 +457,15 @@
       const finTotal = finRecords.reduce((sum, f) => sum + (parseFloat(f.amount) || 0), 0);
       const diff = studentPaid - finTotal;
 
-      // finance নেই (finTotal===0) বা mismatch — fix করো
-      if (Math.abs(diff) > 1 || (finTotal === 0 && studentPaid > 0)) {
-        const corrAmt = studentPaid - finTotal;
-        if (corrAmt > 0) {
-          finance.push({
-            id: 'heal_' + Date.now() + '_' + Math.random().toString(36).slice(2, 5),
-            type: 'Income',
-            method: student.method || 'Cash',
-            date: student.enrollDate || new Date().toISOString().split('T')[0],
-            category: 'Student Fee',
-            person: name,
-            amount: corrAmt,
-            description: '[Auto-Heal] Paid-Finance sync for ' + name,
-            timestamp: new Date().toISOString()
-          });
-          hLog('fix', 'Paid-Finance fix (' + name + '): finance += ৳' + corrAmt.toFixed(0));
-        } else if (corrAmt < 0) {
-          student.paid = Math.round(finTotal * 100) / 100;
-          student.due = Math.max(0, (parseFloat(student.totalPayment) || 0) - student.paid);
-          hLog('fix', 'Paid-Finance fix (' + name + '): paid aligned to ৳' + student.paid);
-        }
+      // ✅ v3.2 FIX: Mismatch থাকলে সবসময় student.paid কে finance total এ align করো
+      // কখনো নতুন finance entry তৈরি করো না — finance ledger ই source of truth
+      // কারণ: user ডিলিট করার পরে paid > finTotal, পুরনো code re-add করতো
+      if (Math.abs(diff) > 1) {
+        // ✅ Finance total ই source of truth — student.paid কে finance total এ match করাও
+        // এতে ডিলিট করলে paid ও কমে যাবে, নতুন phantom entry তৈরি হবে না
+        student.paid = Math.round(finTotal * 100) / 100;
+        student.due = Math.max(0, (parseFloat(student.totalPayment) || 0) - student.paid);
+        hLog('fix', 'Paid-Finance fix (' + name + '): paid aligned to ৳' + student.paid + ' (finance total: ৳' + finTotal.toFixed(0) + ')');
         fixed++;
       }
     });

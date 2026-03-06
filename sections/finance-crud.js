@@ -214,31 +214,40 @@ function deleteInstallment(rowIndex, instIndex) {
   student.due = Math.max(0, (parseFloat(student.totalPayment) || 0) - student.paid);
 
   // 3. Finance ledger থেকেও সরাও (শুধু FIRST matching entry)
-  const beforeCount = (globalData.finance || []).length;
+  let deletedFinanceId = null;
   let deletedOne = false;
   globalData.finance = (globalData.finance || []).filter(f => {
     if (deletedOne) return true; // already removed one, keep rest
     const sameAmount = parseFloat(f.amount) === amount;
     const samePerson = f.person === student.name || (f.description && f.description.includes(student.name));
-    const sameMethod = !f.method || f.method === method;
     const sameDate = !inst.date || f.date === inst.date;
     if (sameAmount && samePerson && sameDate) {
       deletedOne = true;
+      deletedFinanceId = f.id;
       return false; // remove this one
     }
     return true;
   });
 
-  // 4. Account balance reverse করো
-  if (method === 'Cash') {
-    globalData.cashBalance = Math.max(0, (parseFloat(globalData.cashBalance) || 0) - amount);
+  // 4. Account balance reverse করো (updateAccountBalance ব্যবহার করো)
+  if (typeof updateAccountBalance === 'function') {
+    updateAccountBalance(method, amount, 'Income', false);
   } else {
-    let acc = (globalData.bankAccounts || []).find(a => a.name === method);
-    if (!acc) acc = (globalData.mobileBanking || []).find(a => a.name === method);
-    if (acc) acc.balance = Math.max(0, (parseFloat(acc.balance) || 0) - amount);
+    // Fallback: manual reverse
+    if (method === 'Cash') {
+      globalData.cashBalance = Math.max(0, (parseFloat(globalData.cashBalance) || 0) - amount);
+    } else {
+      let acc = (globalData.bankAccounts || []).find(a => a.name === method);
+      if (!acc) acc = (globalData.mobileBanking || []).find(a => a.name === method);
+      if (acc) acc.balance = Math.max(0, (parseFloat(acc.balance) || 0) - amount);
+    }
   }
 
-  // 5. Save immediately to localStorage + cloud
+  // 5. Delete tracking (sync এর জন্য)
+  const _delCount = parseInt(localStorage.getItem('wings_total_deleted') || '0') + 1;
+  localStorage.setItem('wings_total_deleted', _delCount.toString());
+
+  // 6. Save immediately to localStorage + cloud
   localStorage.setItem('wingsfly_data', JSON.stringify(window.globalData));
   if (typeof window.scheduleSyncPush === 'function') {
     window.scheduleSyncPush('Delete Installment: ' + student.name + ' ৳' + amount);
@@ -248,13 +257,15 @@ function deleteInstallment(rowIndex, instIndex) {
 
   showSuccessToast('Payment deleted successfully!');
 
-  // 6. Modal refresh করো
+  // 7. Modal refresh করো
   openStudentPaymentModal(rowIndex);
   render(globalData.students);
   updateGlobalStats();
   if (typeof renderLedger === 'function') renderLedger(globalData.finance);
   if (typeof renderAccountList === 'function') renderAccountList();
   if (typeof renderCashBalance === 'function') renderCashBalance();
+  if (typeof renderMobileBankingList === 'function') renderMobileBankingList();
+  if (typeof updateGrandTotal === 'function') updateGrandTotal();
 }
 
 window.deleteInstallment = deleteInstallment;
@@ -492,18 +503,57 @@ function deleteTransaction(id) {
     return;
   }
 
+  // 1. Account balance reverse করো
   if (typeof updateAccountBalance === "function") {
     updateAccountBalance(txToDelete.method, txToDelete.amount, txToDelete.type, false);
   }
 
+  // 2. ✅ CRITICAL FIX: যদি Student Fee/Installment হয়, student এর paid/due/installments ও reverse করো
+  const isStudentPayment = (
+    txToDelete.type === 'Income' &&
+    (txToDelete.category === 'Student Fee' || txToDelete.category === 'Student Installment')
+  );
+
+  if (isStudentPayment && txToDelete.person && globalData.students) {
+    const studentName = txToDelete.person.trim();
+    const student = globalData.students.find(s => (s.name || '').trim() === studentName);
+    if (student) {
+      const txAmount = parseFloat(txToDelete.amount) || 0;
+      const txDate = txToDelete.date;
+      const txMethod = txToDelete.method || 'Cash';
+
+      // Student paid/due reverse করো
+      student.paid = Math.max(0, (parseFloat(student.paid) || 0) - txAmount);
+      student.due = Math.max(0, (parseFloat(student.totalPayment) || 0) - student.paid);
+
+      // Student installments array থেকেও matching entry সরাও
+      if (student.installments && student.installments.length > 0) {
+        let removedFromInstallments = false;
+        for (let i = 0; i < student.installments.length; i++) {
+          const inst = student.installments[i];
+          const instAmt = parseFloat(inst.amount) || 0;
+          if (instAmt === txAmount && (!txDate || inst.date === txDate)) {
+            student.installments.splice(i, 1);
+            removedFromInstallments = true;
+            break; // শুধু FIRST matching entry সরাও
+          }
+        }
+      }
+
+      console.log(`✅ Student "${studentName}" reverse: paid=৳${student.paid}, due=৳${student.due}`);
+    }
+  }
+
+  // 3. Finance ledger থেকে সরাও
   globalData.finance = globalData.finance.filter(f => String(f.id) !== sid);
 
-  // Render FIRST so user sees the change immediately (before async cloud push)
+  // 4. Render FIRST so user sees the change immediately (before async cloud push)
   renderLedger(globalData.finance);
   updateGlobalStats();
+  if (typeof render === 'function') render(globalData.students);
   showSuccessToast('Transaction deleted successfully!');
 
-  // FIX: Delete reason পাঠাও যাতে Data Loss Prevention bypass হয়
+  // 5. Delete tracking (sync এর জন্য)
   const _dc = parseInt(localStorage.getItem('wings_total_deleted') || '0') + 1;
   localStorage.setItem('wings_total_deleted', _dc.toString());
   localStorage.setItem('wingsfly_data', JSON.stringify(window.globalData));
@@ -513,11 +563,17 @@ function deleteTransaction(id) {
     saveToStorage();
   }
 
-  // Refresh Account Details modal if open
+  // 6. Refresh Account Details modal if open
   const accModal = document.getElementById('accountDetailsModal');
   if (accModal && bootstrap.Modal.getInstance(accModal)) {
     renderAccountDetails();
   }
+
+  // 7. সব Account UI refresh করো
+  if (typeof renderAccountList === 'function') renderAccountList();
+  if (typeof renderCashBalance === 'function') renderCashBalance();
+  if (typeof renderMobileBankingList === 'function') renderMobileBankingList();
+  if (typeof updateGrandTotal === 'function') updateGrandTotal();
 }
 
 // ===================================
