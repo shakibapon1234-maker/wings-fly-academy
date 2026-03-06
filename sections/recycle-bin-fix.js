@@ -1055,111 +1055,121 @@
   }
 
   function _patchDropdownPopulate() {
-    // openStudentModal কে wrap করো
-    var origOpenStudent = window.openStudentModal || window.openEditStudentModal;
-    var origOpenAdd = window.openAddStudentModal;
-
     function afterOpenFill() {
       setTimeout(function () {
-        var courses = _getSettingCourses();
-        var methods = _getSettingPaymentMethods();
+        var gd = window.globalData;
+        if (!gd) return;
 
-        // Course dropdown — বিভিন্ন ID দিয়ে থাকতে পারে
-        var courseSelIds = ['studentCourse', 'editStudentCourse', 'courseSelect', 'student-course', 'addStudentCourse'];
-        courseSelIds.forEach(function (id) {
-          var el = document.getElementById(id);
-          if (el && el.tagName === 'SELECT' && courses.length > 0) {
-            _populateSelectEl(el, courses, el.value);
+        // ── Courses collect ─────────────────────────────────
+        var courses = [];
+        var courseSrc = [
+          gd.settings && gd.settings.courses,
+          gd.settings && gd.settings.courseNames,
+          gd.settings && gd.settings.programNames,
+          gd.courseNames, gd.courses
+        ];
+        for (var ci = 0; ci < courseSrc.length; ci++) {
+          if (Array.isArray(courseSrc[ci]) && courseSrc[ci].length > 0) {
+            courses = courseSrc[ci].map(function (c) {
+              return typeof c === 'string' ? c : (c.name || c.value || String(c));
+            }).filter(Boolean);
+            break;
           }
-        });
+        }
 
-        // Payment method dropdown
-        var paySelIds = ['studentPaymentMethod', 'editPaymentMethod', 'paymentMethodSelect', 'payment-method', 'addPaymentMethod', 'studentPayMethod'];
-        paySelIds.forEach(function (id) {
-          var el = document.getElementById(id);
-          if (el && el.tagName === 'SELECT' && methods.length > 0) {
-            _populateSelectEl(el, methods, el.value);
-          }
-        });
+        // ── Payment methods collect ──────────────────────────
+        var methods = [];
+        if (gd.settings && Array.isArray(gd.settings.paymentMethods) && gd.settings.paymentMethods.length > 0) {
+          methods = gd.settings.paymentMethods.map(function (m) {
+            return typeof m === 'string' ? m : (m.name || String(m));
+          }).filter(Boolean);
+        }
+        if (methods.length === 0) {
+          methods = ['Cash'];
+          (gd.bankAccounts || []).forEach(function (a) { if (a.name && methods.indexOf(a.name) === -1) methods.push(a.name); });
+          (gd.mobileBanking || []).forEach(function (a) { if (a.name && methods.indexOf(a.name) === -1) methods.push(a.name); });
+          if (methods.indexOf('Bkash') === -1) methods.push('Bkash');
+          if (methods.indexOf('Nagad') === -1) methods.push('Nagad');
+        }
 
-        // Generic fallback: modal এ যেকোনো select যেটা courses/payment সংক্রান্ত
-        var allModals = document.querySelectorAll('.modal.show, [id*="student"][id*="modal"], [id*="Student"][id*="Modal"]');
-        allModals.forEach(function (modal) {
-          modal.querySelectorAll('select').forEach(function (sel) {
-            var id = (sel.id || '').toLowerCase();
-            var name = (sel.name || '').toLowerCase();
-            var label = '';
-            var prevLabel = sel.previousElementSibling;
-            if (prevLabel) label = (prevLabel.textContent || '').toLowerCase();
-
-            if ((id.includes('course') || name.includes('course') || label.includes('course')) && courses.length > 0) {
-              _populateSelectEl(sel, courses, sel.value);
-            } else if ((id.includes('payment') || id.includes('method') || name.includes('method') || label.includes('method')) && methods.length > 0) {
-              _populateSelectEl(sel, methods, sel.value);
-            }
+        // ── Fill helper ──────────────────────────────────────
+        function fillSel(sel, opts) {
+          if (!sel || !opts || opts.length === 0) return;
+          var prev = sel.value;
+          sel.innerHTML = '<option value="">-- বেছে নিন --</option>';
+          opts.forEach(function (opt) {
+            var o = document.createElement('option');
+            o.value = opt; o.textContent = opt;
+            sel.appendChild(o);
           });
+          if (prev) sel.value = prev;
+        }
+
+        // ── EXACT IDs confirmed from live diagnostic ─────────
+        fillSel(document.getElementById('studentCourseSelect'), courses);
+        fillSel(document.getElementById('studentMethodSelect'), methods);
+
+        // ── Full ID scan (all possible variations) ────────────
+        var courseIds = ['studentCourseSelect','studentCourse','editStudentCourse',
+          'courseSelect','addStudentCourse','studentProgram','programSelect',
+          'courseFilterSelect','visitorCourseSelect','certCourseFilter'];
+        courseIds.forEach(function (id) {
+          var el = document.getElementById(id);
+          if (el && el.tagName === 'SELECT' && el.options.length <= 1 && courses.length > 0) fillSel(el, courses);
         });
 
-        console.log('[RecycleFix] ✓ Dropdowns populated — courses:', courses.length, '| methods:', methods.length);
+        var payIds = ['studentMethodSelect','studentPaymentMethod','editPaymentMethod',
+          'paymentMethodSelect','addPaymentMethod','studentPayMethod','payMethod',
+          'pmtNewMethod','examPaymentMethodSelect','editTransMethodSelect'];
+        payIds.forEach(function (id) {
+          var el = document.getElementById(id);
+          if (el && el.tagName === 'SELECT' && el.options.length <= 1 && methods.length > 0) fillSel(el, methods);
+        });
+
+        console.log('[RecycleFix] ✓ Dropdowns filled — courses:', courses.length, '| methods:', methods.length,
+          '| #studentCourseSelect:', (document.getElementById('studentCourseSelect') || {}).options && document.getElementById('studentCourseSelect').options.length);
       }, 150);
     }
 
-    // openStudentModal patch
+    // Wrap openStudentModal
     if (typeof window.openStudentModal === 'function') {
-      var origSM = window.openStudentModal;
+      var _origSM = window.openStudentModal;
       window.openStudentModal = function () {
-        var r = origSM.apply(this, arguments);
+        var r = _origSM.apply(this, arguments);
         afterOpenFill();
         return r;
       };
+      console.log('[RecycleFix] ✓ openStudentModal patched for dropdown fill');
     }
-    // openEditStudentModal patch
+    // Wrap openEditStudentModal
     if (typeof window.openEditStudentModal === 'function') {
-      var origESM = window.openEditStudentModal;
+      var _origESM = window.openEditStudentModal;
       window.openEditStudentModal = function () {
-        var r = origESM.apply(this, arguments);
+        var r = _origESM.apply(this, arguments);
         afterOpenFill();
         return r;
       };
-    }
-    // openAddStudentModal patch (যদি থাকে)
-    if (typeof window.openAddStudentModal === 'function') {
-      var origASM = window.openAddStudentModal;
-      window.openAddStudentModal = function () {
-        var r = origASM.apply(this, arguments);
-        afterOpenFill();
-        return r;
-      };
+      console.log('[RecycleFix] ✓ openEditStudentModal patched for dropdown fill');
     }
 
-    // Global MutationObserver — Student modal খুললেই dropdown fill
+    // MutationObserver on #studentModal class change
     try {
-      var observer = new MutationObserver(function (mutations) {
-        mutations.forEach(function (m) {
-          m.addedNodes && m.addedNodes.forEach && m.addedNodes.forEach(function (node) {
-            if (node.nodeType !== 1) return;
-            var id = (node.id || '').toLowerCase();
-            if (id.includes('student') && (id.includes('modal') || node.classList.contains('modal'))) {
+      var _sModal = document.getElementById('studentModal');
+      if (_sModal) {
+        var _obs = new MutationObserver(function (muts) {
+          muts.forEach(function (m) {
+            if (m.type === 'attributes' && m.attributeName === 'class' && m.target.classList.contains('show')) {
               afterOpenFill();
             }
           });
-          // class change: modal becoming 'show'
-          if (m.type === 'attributes' && m.attributeName === 'class') {
-            var target = m.target;
-            var targetId = (target.id || '').toLowerCase();
-            if (target.classList.contains('show') && targetId.includes('student')) {
-              afterOpenFill();
-            }
-          }
         });
-      });
-      observer.observe(document.body, { childList: true, subtree: true, attributes: true, attributeFilter: ['class'] });
-    } catch (e) { /* observer not critical */ }
+        _obs.observe(_sModal, { attributes: true, attributeFilter: ['class'] });
+        console.log('[RecycleFix] ✓ studentModal MutationObserver active');
+      }
+    } catch (e) { }
 
-    // Expose so manual call possible
     window.populateStudentDropdowns = afterOpenFill;
-
-    console.log('[RecycleFix] ✓ Dropdown populate patch applied');
+    console.log('[RecycleFix] ✓ Dropdown patch done — studentCourseSelect + studentMethodSelect');
   }
 
   // ═══════════════════════════════════════════════
