@@ -282,13 +282,63 @@
         if (typeof window.updateDashboard === 'function') window.updateDashboard();
         if (typeof window.renderDashboard === 'function') window.renderDashboard();
         if (typeof window.renderFullUI === 'function') window.renderFullUI();
+
+        // ── Warning system refresh ──────────────────────────────
+        // Student restore হলে orphaned payment warning সরিয়ে দাও
+        // কারণ এখন student আবার আছে — orphaned না
+        var restoredName = (d.item.name || '').trim().toLowerCase();
+        if (restoredName) {
+          // finance-helpers এর warning cache clear করো (যদি থাকে)
+          if (window._warningCache) delete window._warningCache;
+          if (window._orphanCache) delete window._orphanCache;
+          if (window._wfWarnings) delete window._wfWarnings;
+
+          // Warning modal যদি এই student কে নিয়ে খোলা থাকে — সেটা close করো
+          try {
+            var wModal = document.getElementById('warningDetailsModal');
+            if (wModal && wModal.classList.contains('show')) {
+              // modal এর content এ student এর নাম আছে কিনা দেখো
+              var wContent = wModal.querySelector('.modal-body, #warningDetailsBody, #warningList');
+              if (wContent && wContent.textContent.toLowerCase().includes(restoredName)) {
+                // Bootstrap modal hide
+                var bsWModal = bootstrap && bootstrap.Modal ? bootstrap.Modal.getInstance(wModal) : null;
+                if (bsWModal) bsWModal.hide();
+                else wModal.style.display = 'none';
+                console.log('[RecycleFix] ✓ Warning modal closed — student', d.item.name, 'restored');
+              }
+            }
+            // Warning details panel refresh (finance-helpers)
+            if (typeof window.refreshWarnings === 'function') window.refreshWarnings();
+            if (typeof window.updateWarningBadge === 'function') window.updateWarningBadge();
+            if (typeof window.renderWarnings === 'function') window.renderWarnings();
+            if (typeof window.checkDataWarnings === 'function') window.checkDataWarnings();
+          } catch (e) {
+            console.warn('[RecycleFix] Warning refresh error (non-critical):', e.message);
+          }
+        }
+        // ── END Warning refresh ─────────────────────────────────
+
         console.log('[RecycleFix] ✓ Student restored & UI refreshed, total students:', (gd.students || []).length);
+
+        // nextId collision fix — restored student এর rowIndex যদি nextId এর চেয়ে বড় হয়
+        try {
+          var restoredRowIdx = parseInt(d.item.rowIndex) || 0;
+          var curNextId = parseInt(gd.nextId) || 0;
+          if (restoredRowIdx >= curNextId) {
+            gd.nextId = restoredRowIdx + 1;
+            console.log('[RecycleFix] ✓ nextId updated to', gd.nextId, 'after student restore');
+          }
+        } catch (e2) { /* non-critical */ }
 
         // 2nd refresh — অন্য scripts override করলেও catch করবে
         setTimeout(function () {
           if (typeof window.render === 'function') window.render(gd.students || []);
           if (typeof window.renderStudents === 'function') window.renderStudents();
           if (typeof window.updateGlobalStats === 'function') window.updateGlobalStats();
+          // Warning badge re-check
+          if (typeof window.refreshWarnings === 'function') window.refreshWarnings();
+          if (typeof window.updateWarningBadge === 'function') window.updateWarningBadge();
+          if (typeof window.checkDataWarnings === 'function') window.checkDataWarnings();
         }, 400);
 
       } else if (t === 'finance') {
@@ -932,6 +982,52 @@
     }
 
     console.log('[RecycleFix] ✅ All patches applied — Student/Finance/Employee/Visitor/Exam/Notice/KeepRecord/Breakdown → Recycle Bin ready');
+
+    // ── Warning Modal "DELETE?" button intercept ────────────────────────
+    // finance-helpers এর Warning Details modal এর DELETE? বাটন
+    // সরাসরি delete না করে Recycle Bin এ পাঠাবে
+    _patchWarningDeleteButtons();
+  }
+
+  // ═══════════════════════════════════════════════
+  // 15. PATCH: Warning Modal "DELETE?" → Recycle Bin
+  // ═══════════════════════════════════════════════
+  function _patchWarningDeleteButtons() {
+    // DOM event delegation — warningDetailsModal এর যেকোনো DELETE? button intercept
+    document.addEventListener('click', function (e) {
+      var btn = e.target.closest
+        ? e.target.closest('[data-warning-delete],[data-orphan-delete],[onclick*="orphanDelete"],[onclick*="deleteOrphan"],[onclick*="warningDelete"]')
+        : null;
+
+      // Warning modal এর DELETE? button detect করো (text দিয়ে)
+      if (!btn) {
+        var el = e.target;
+        if (el && el.tagName === 'BUTTON'
+          && (el.textContent || '').trim().toLowerCase().includes('delete')
+          && el.closest && el.closest('#warningDetailsModal,#warningModal,[id*="warning"]')) {
+          btn = el;
+        }
+      }
+
+      if (!btn) return;
+
+      // Finance id খোঁজো — data-id বা data-finance-id
+      var finId = btn.getAttribute('data-id')
+        || btn.getAttribute('data-finance-id')
+        || btn.getAttribute('data-fid');
+
+      if (!finId) return; // id না পেলে original চলুক
+
+      // আমাদের patchFn দিয়ে Recycle Bin এ পাঠাও
+      e.preventDefault();
+      e.stopPropagation();
+
+      if (typeof window.deleteTransaction === 'function') {
+        window.deleteTransaction(finId);
+      }
+    }, true); // capture phase — অন্য handler এর আগে
+
+    console.log('[RecycleFix] ✓ Warning modal DELETE? button intercepted');
   }
 
   if (document.readyState === 'loading') {
