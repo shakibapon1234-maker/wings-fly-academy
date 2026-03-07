@@ -698,7 +698,7 @@ function recalculateCashBalanceFromTransactions() {
   cashTransactions.forEach(trans => {
     const amount = parseFloat(trans.amount) || 0;
     // Money coming INTO cash account
-    if (['Income', 'Loan Received', 'Loan Receiving', 'Transfer In'].includes(trans.type)) {
+    if (['Income', 'Loan Received', 'Loan Receiving', 'Transfer In', 'Registration', 'Refund'].includes(trans.type)) {
       calculatedCashBalance += amount;
     }
     // Money going OUT of cash account

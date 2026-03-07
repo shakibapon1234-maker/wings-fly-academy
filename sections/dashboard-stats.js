@@ -118,6 +118,22 @@ function updateGlobalStats() {
     }
   }
 
+  // --- NEW: Account Balance (Asset) Display ---
+  const totalAssets = (parseFloat(globalData.cashBalance) || 0) +
+    (globalData.bankAccounts || []).reduce((s, a) => s + (parseFloat(a.balance) || 0), 0) +
+    (globalData.mobileBanking || []).reduce((s, a) => s + (parseFloat(a.balance) || 0), 0);
+
+  const dashAssetEl = document.getElementById('dashTotalAssets');
+  if (dashAssetEl) {
+    animateCount(dashAssetEl, totalAssets, '৳', false, 1100);
+  }
+
+  // Debug: reconciliation log in console
+  const startBal = (globalData.settings?.startBalances?.Cash || 0);
+  if (Math.abs(totalAssets - (profit + startBal)) > 10) {
+    console.info(`[Stats] Assets(৳${totalAssets}) vs Profit+Start(৳${profit + startBal}) Gap: ৳${totalAssets - (profit + startBal)}`);
+  }
+
   // Update New Dashboard Widgets
   renderDashLoanSummary();
   updateRecentActions();

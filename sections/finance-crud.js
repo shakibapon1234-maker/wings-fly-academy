@@ -415,6 +415,11 @@ function deleteStudent(rowIndex) {
 
   showSuccessToast('Student deleted successfully! (Payments reversed)');
   render(globalData.students);
+
+  // ✅ FORCE REBUILD: Ensure accounts match finance ledger exactly
+  if (typeof rebuildBankBalancesFromFinance === 'function') rebuildBankBalancesFromFinance();
+  if (typeof recalculateCashBalanceFromTransactions === 'function') recalculateCashBalanceFromTransactions();
+
   updateGlobalStats();
 
   // Update account displays

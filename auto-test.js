@@ -556,6 +556,7 @@
 
     // --- 7e: Supabase WRITE test (separate test record) ---
     // শুধু actual column names ব্যবহার করো যেগুলো table-এ আছে
+    const testRecordId = 'test_conn_' + Date.now();
     const testDeviceId = 'probe_' + Date.now();
     const testPayload = {
       id: testRecordId,
