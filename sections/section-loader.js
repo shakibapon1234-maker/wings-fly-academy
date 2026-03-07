@@ -168,8 +168,61 @@
       });
     };
 
-    // 4. Employee (openStudentModal is defined in student-management.js)
-window.openEmployeeModal = function (id) {
+    // 3. Add Student (New)
+    window.openStudentModal = function () {
+      loadAndOpen(
+        '__modalPlaceholderStudents',
+        'sections/modals-student.html',
+        'studentModal',
+        function () {
+          var form = document.getElementById('studentForm');
+          if (form) form.reset();
+          var editIdx = document.getElementById('studentRowIndex') || document.querySelector('#studentForm [name="studentRowIndex"]');
+          if (editIdx) editIdx.value = '';
+          var title = document.querySelector('#studentModal .modal-title');
+          if (title) title.textContent = '👨‍🎓 Add New Student';
+          if (typeof window.populateDropdowns === 'function') setTimeout(window.populateDropdowns, 100);
+          if (typeof window.removeStudentPhoto === 'function') window.removeStudentPhoto();
+        }
+      );
+    };
+
+    // 3b. Edit Student
+    window.openEditStudentModal = function (index) {
+      loadAndOpen(
+        '__modalPlaceholderStudents',
+        'sections/modals-student.html',
+        'studentModal',
+        function () {
+          var students = window.globalData && window.globalData.students;
+          if (!students || !students[index]) return;
+          var s = students[index];
+          var form = document.getElementById('studentForm');
+          if (!form) return;
+          form.reset();
+          var rowIdx = document.getElementById('studentRowIndex') || document.querySelector('#studentForm [name="studentRowIndex"]');
+          if (rowIdx) rowIdx.value = index;
+          var title = document.querySelector('#studentModal .modal-title');
+          if (title) title.textContent = '\u270f\ufe0f Edit Student \u2014 ' + (s.name || '');
+          var fields = {
+            studentName: s.name, studentPhone: s.phone, studentEmail: s.email,
+            studentAddress: s.address, studentDOB: s.dob, studentGender: s.gender,
+            studentCourse: s.course, studentBatch: s.batch, studentFee: s.fee,
+            studentPaid: s.paid, studentPaymentMethod: s.paymentMethod,
+            studentStatus: s.status, studentNotes: s.notes, studentNID: s.nid,
+            studentGuardian: s.guardian, studentGuardianPhone: s.guardianPhone
+          };
+          Object.entries(fields).forEach(function(e) {
+            var el = document.getElementById(e[0]) || form.querySelector('[name="' + e[0] + '"]');
+            if (el && e[1] !== undefined && e[1] !== null) el.value = e[1];
+          });
+          if (typeof window.populateDropdowns === 'function') setTimeout(window.populateDropdowns, 100);
+        }
+      );
+    };
+
+    // 4. Employee
+    window.openEmployeeModal = function (id) {
   loadAndOpen('__modalPlaceholderOther', 'sections/modals.html', 'employeeModal', function () {
     if (typeof window.initEmployeeModal === 'function') window.initEmployeeModal(id);
   });
