@@ -297,8 +297,42 @@
 
         if (!alreadyExists) {
           gd[targetKey].push(item);
-          if (t === 'finance' && typeof window.updateAccountBalance === 'function') {
-            window.updateAccountBalance(item.method, parseFloat(item.amount) || 0, item.type, true);
+
+          // Finance restore: account balance + linked student payment restore
+          if (t === 'finance') {
+            var amt = parseFloat(item.amount) || 0;
+            if (typeof window.updateAccountBalance === 'function') {
+              window.updateAccountBalance(item.method, amt, item.type, true);
+            }
+
+            // If this finance entry is a student payment, also restore student.paid/due + installments
+            var isStudentPayment = (
+              item.type === 'Income' &&
+              (item.category === 'Student Fee' || item.category === 'Student Installment')
+            );
+            if (isStudentPayment && item.person && Array.isArray(gd.students)) {
+              var sName = item.person.trim();
+              var stu = gd.students.find(function (s) { return (s.name || '').trim() === sName; });
+              if (stu) {
+                var payDate = item.date || new Date().toISOString().split('T')[0];
+                if (!Array.isArray(stu.installments)) stu.installments = [];
+
+                // Duplicate guard
+                var dupInst = stu.installments.some(function (inst) {
+                  return (parseFloat(inst.amount) || 0) === amt && (inst.date || '') === payDate;
+                });
+                if (!dupInst) {
+                  stu.installments.push({
+                    amount: amt,
+                    date: payDate,
+                    method: item.method || 'Cash'
+                  });
+                }
+
+                stu.paid = (parseFloat(stu.paid) || 0) + amt;
+                stu.due = Math.max(0, (parseFloat(stu.totalPayment) || 0) - stu.paid);
+              }
+            }
           }
         }
       }
@@ -480,7 +514,7 @@
     var patchFn = function (id) {
       var gd = window.globalData;
       if (!gd || !Array.isArray(gd.finance)) {
-        // fallback to original
+        // fallback to original logic
         if (typeof origDeleteTransaction === 'function') return origDeleteTransaction(id);
         return;
       }
@@ -496,24 +530,32 @@
 
       if (!confirm('Transaction টি Recycle Bin-এ পাঠাবেন?')) return;
 
-      // Account balance কমাও (income হলে কমাও, expense হলে বাড়াও)
-      if (typeof window.updateAccountBalance === 'function') {
-        var isIncome = (entry.type === 'Income' || entry.type === 'আয়');
-        window.updateAccountBalance(entry.method, parseFloat(entry.amount) || 0, entry.type, false);
+      // 1) First, move a copy to Recycle Bin (for restore)
+      if (typeof window.moveToTrash === 'function') {
+        window.moveToTrash('Finance', entry);
       }
 
-      window.moveToTrash('Finance', entry);
+      // 2) Then delegate the actual delete logic to original deleteTransaction
+      //    This will handle: student.paid/due, installments, account balance, finance array, sync, UI.
+      if (typeof origDeleteTransaction === 'function') {
+        return origDeleteTransaction(id);
+      }
+
+      // Fallback: যদি কোনো কারণে origDeleteTransaction নাই থাকে, তখন কমপক্ষে
+      // finance array থেকে সরিয়ে দাও এবং account balance reverse করো
+      if (typeof window.updateAccountBalance === 'function') {
+        window.updateAccountBalance(entry.method, parseFloat(entry.amount) || 0, entry.type, false);
+      }
       gd.finance = gd.finance.filter(function (f) {
         return String(f.id) !== String(id) && String(f._id) !== String(id);
       });
       _save();
-
       if (typeof window.renderLedger === 'function') window.renderLedger(gd.finance || []);
       if (typeof window.renderAccountList === 'function') window.renderAccountList();
       if (typeof window.renderCashBalance === 'function') window.renderCashBalance();
       if (typeof window.updateGrandTotal === 'function') window.updateGrandTotal();
       if (typeof window.showSuccessToast === 'function') window.showSuccessToast('🗑️ Transaction Recycle Bin-এ গেছে');
-      console.log('[RecycleFix] ✓ Finance entry moved to trash:', entry.category, entry.amount);
+      console.log('[RecycleFix] ✓ Finance entry hard-deleted (fallback path):', entry.category, entry.amount);
     };
 
     window.deleteTransaction = patchFn;
