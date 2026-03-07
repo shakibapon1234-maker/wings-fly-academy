@@ -950,8 +950,9 @@ async function handleStudentSubmit(e) {
             date: student.enrollDate,
             category: 'Student Fee',
             person: student.name,
+            studentId: student.studentId, // Added for reliable tracking/deletion
             amount: student.paid,
-            description: `Enrollment fee for student: ${student.name} | Batch: ${student.batch}`,
+            description: `Enrollment fee for student: ${student.name} | ID: ${student.studentId} | Batch: ${student.batch}`,
             timestamp: new Date().toISOString()
           };
           window.globalData.finance.push(financeEntry);

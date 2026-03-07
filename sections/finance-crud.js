@@ -369,15 +369,28 @@ function deleteStudent(rowIndex) {
   // Delete related finance transactions (student payments)
   if (globalData.finance && Array.isArray(globalData.finance)) {
     const sNameLower = (student.name || '').trim().toLowerCase();
-    // Remove all finance entries where student name matches case-insensitively
+    const sId = student.studentId ? String(student.studentId).toLowerCase() : null;
+
+    // Remove all finance entries where student name or ID matches
     globalData.finance = globalData.finance.filter(f => {
       const fPersonLower = (f.person || '').trim().toLowerCase();
       const fStudentNameLower = (f.studentName || '').trim().toLowerCase();
       const fDescLower = (f.description || '').toLowerCase();
 
-      const isMatch = fPersonLower === sNameLower ||
-        fStudentNameLower === sNameLower ||
-        (fDescLower && fDescLower.includes(sNameLower));
+      // Match 1: Direct name match
+      const isDirectMatch = fPersonLower === sNameLower || fStudentNameLower === sNameLower;
+
+      // Match 2: Name in description (very likely for auto-generated fees)
+      const isDescMatch = fDescLower && fDescLower.includes(sNameLower);
+
+      // Match 3: Student ID in description (most reliable if present)
+      const isIdMatch = sId && fDescLower && fDescLower.includes(sId);
+
+      // Match 4: Name variant (Description contains just the name parts)
+      const nameParts = sNameLower.split(' ').filter(p => p.length > 3);
+      const isNamePartMatch = nameParts.length > 0 && nameParts.some(p => fDescLower.includes(p) && f.category === 'Student Fee');
+
+      const isMatch = isDirectMatch || isDescMatch || isIdMatch || isNamePartMatch;
 
       // Keep transaction if it's NOT a match
       return !isMatch;
@@ -421,7 +434,8 @@ window.openStudentModal = function (index) {
   if (index !== undefined && window.globalData && window.globalData.students[index]) {
     // edit mode — form populate করতে পারলে করো
   }
-  new bootstrap.Modal(el).show();
+  const modal = bootstrap.Modal.getOrCreateInstance(el);
+  modal.show();
 };
 // These functions are in app.js (loads after), so use deferred assignment
 document.addEventListener('DOMContentLoaded', function () {
