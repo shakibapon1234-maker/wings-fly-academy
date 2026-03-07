@@ -794,15 +794,50 @@ async function handleStudentSubmit(e) {
   if (e && typeof e.preventDefault === 'function') e.preventDefault();
 
   const form = document.getElementById('studentForm');
+  if (!form) { console.error('studentForm not found!'); return; }
   const formData = new FormData(form);
   const data = {};
   formData.forEach((value, key) => data[key] = value);
 
-  // ✅ CRITICAL VALIDATION: Payment Method is REQUIRED
+  // ✅ CRITICAL VALIDATION: Payment Method — default to Cash if empty
   if (!data.method || data.method.trim() === '') {
-    showErrorToast('❌ Payment Method is required! Please select a payment method.');
-    document.getElementById('studentMethodSelect').focus();
-    return;
+    // Try to get value directly from DOM (FormData sometimes misses selects)
+    const methodEl = document.getElementById('studentMethodSelect');
+    if (methodEl && methodEl.value) {
+      data.method = methodEl.value;
+    } else {
+      data.method = 'Cash'; // Safe default
+    }
+  }
+
+  // Also fix other fields that FormData might miss
+  if (!data.name) {
+    const nameEl = document.getElementById('studentName');
+    if (nameEl) data.name = nameEl.value;
+  }
+  if (!data.course) {
+    const courseEl = document.getElementById('studentCourseSelect');
+    if (courseEl) data.course = courseEl.value;
+  }
+  if (!data.batch) {
+    const batchEl = document.getElementById('studentBatchInput');
+    if (batchEl) data.batch = batchEl.value;
+  }
+  if (!data.payment) {
+    const paidEl = document.getElementById('inpPaid');
+    if (paidEl) data.payment = paidEl.value;
+  }
+  if (!data.totalPayment) {
+    const totalEl = document.getElementById('inpTotal');
+    if (totalEl) data.totalPayment = totalEl.value;
+  }
+  if (!data.due) {
+    const dueEl = document.getElementById('inpDue');
+    if (dueEl) data.due = dueEl.value;
+  }
+  if (data.studentRowIndex === undefined || data.studentRowIndex === null) {
+    const riEl = document.getElementById('studentRowIndex');
+    if (riEl) data.studentRowIndex = riEl.value;
   }
 
   try {

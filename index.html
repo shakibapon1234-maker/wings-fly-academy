@@ -3316,6 +3316,7 @@
         var ed = document.getElementById('studentEnrollDate');
         if (ed) ed.value = new Date().toISOString().split('T')[0];
         window.removeStudentPhoto();
+        // ✅ Populate BEFORE showing — synchronous
         _populateStudentDropdowns();
         bootstrap.Modal.getOrCreateInstance(modal).show();
       };
