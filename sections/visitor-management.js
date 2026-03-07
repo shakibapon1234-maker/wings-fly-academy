@@ -358,3 +358,5 @@ async function deleteEmployee(id) {
 
     // === GLOBAL EXPOSURE ===
     window.attachLedgerListeners = attachLedgerListeners;
+}
+}
