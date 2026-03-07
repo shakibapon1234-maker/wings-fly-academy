@@ -1,7 +1,7 @@
 // ============================================================
 // CATEGORY DROPDOWN FIX — Wings Fly Aviation Academy
-// Finance Modal এর Category dropdown কে globalData থেকে populate করে
-// finance-crud.js / finance-helpers.js এর সাথে সম্পূর্ণ compatible
+// MASTER DROPDOWN SYNC — Settings থেকে Add/Delete করলে
+// সব জায়গার dropdown automatically আপডেট হবে
 // ============================================================
 
 (function () {
@@ -22,18 +22,18 @@
         } else if (typeValue === 'Income') {
             categories = gd.incomeCategories || [];
         } else if (typeValue === 'Loan Given' || typeValue === 'Loan Received') {
-            // Loan এর জন্য একটা সাধারণ option
             categories = ['Loan'];
         } else {
-            // Fallback: income + expense সব মিলিয়ে
-            categories = [
-                ...(gd.incomeCategories || []),
-                ...(gd.expenseCategories || [])
-            ];
+            categories = [].concat(gd.incomeCategories || [], gd.expenseCategories || []);
         }
 
         // Duplicate সরাও
-        categories = [...new Set(categories)].filter(Boolean);
+        var seen = {};
+        categories = categories.filter(function (c) {
+            if (!c || seen[c]) return false;
+            seen[c] = true;
+            return true;
+        });
 
         // Clear করে নতুন options দাও
         catSelect.innerHTML = '';
@@ -59,19 +59,21 @@
         if (!gd) return;
 
         var methods = ['Cash'];
-
-        // Bank accounts
         (gd.bankAccounts || []).forEach(function (acc) {
             if (acc && acc.name) methods.push(acc.name);
         });
-        // Mobile banking
         (gd.mobileBanking || []).forEach(function (acc) {
             if (acc && acc.name) methods.push(acc.name);
         });
 
-        methods = [...new Set(methods)];
+        // Deduplicate
+        var seen = {};
+        methods = methods.filter(function (m) {
+            if (seen[m]) return false;
+            seen[m] = true;
+            return true;
+        });
 
-        // শুধু empty হলেই populate করো (existing options রেখে দাও যদি ইতিমধ্যে আছে)
         if (methodSelect.options.length === 0 || methodSelect.options.length !== methods.length) {
             methodSelect.innerHTML = '';
             methods.forEach(function (m) {
@@ -92,7 +94,6 @@
         var typeValue = typeSelect.value;
         populateCategoryDropdown(typeValue);
 
-        // Person / Counterparty field visibility
         var personContainer = document.getElementById('financePersonContainer');
         if (personContainer) {
             if (typeValue === 'Loan Given' || typeValue === 'Loan Received') {
@@ -101,8 +102,8 @@
                 if (personInput) personInput.setAttribute('required', 'required');
             } else {
                 personContainer.classList.add('d-none');
-                var personInput = document.getElementById('financePersonInput');
-                if (personInput) personInput.removeAttribute('required');
+                var personInput2 = document.getElementById('financePersonInput');
+                if (personInput2) personInput2.removeAttribute('required');
             }
         }
     }
@@ -110,78 +111,188 @@
 
     // ── Student Dropdowns populate ───────────────────────────
     function populateStudentDropdowns() {
-        var courseSelect = document.getElementById('studentCourseSelect');
-        var methodSelect = document.getElementById('studentMethodSelect');
         var gd = window.globalData;
         if (!gd) return;
 
-        // 1. Course populate
-        if (courseSelect) {
-            var currentCourse = courseSelect.value;
-            // globalData.courseNames or extract from students
-            var courses = gd.courseNames || [];
-            if (gd.students && Array.isArray(gd.students)) {
-                var existing = gd.students.map(function (s) { return s.course; }).filter(Boolean);
-                courses = [...new Set([...courses, ...existing])];
-            }
-            courses.sort();
+        // 1. Course dropdowns — সব জায়গায়
+        var courses = gd.courseNames || [];
+        if (gd.students && Array.isArray(gd.students)) {
+            var existing = gd.students.map(function (s) { return s.course; }).filter(Boolean);
+            var allC = courses.concat(existing);
+            var seenC = {};
+            courses = allC.filter(function (c) {
+                if (!c || seenC[c]) return false;
+                seenC[c] = true;
+                return true;
+            });
+        }
+        courses.sort();
 
-            courseSelect.innerHTML = '<option value="">Select Course...</option>';
+        // সব course-related dropdown IDs
+        var courseSelectIds = [
+            'studentCourseSelect', 'editStudentCourse', 'studentCourse',
+            'courseSelect', 'addStudentCourse', 'studentProgram', 'programSelect',
+            'visitorCourseSelect', 'certCourseFilter', 'examSubjectSelect'
+        ];
+
+        courseSelectIds.forEach(function (id) {
+            var el = document.getElementById(id);
+            if (!el || el.tagName !== 'SELECT') return;
+            var currentVal = el.value;
+            var firstOptText = '-- বেছে নিন --';
+            if (id === 'visitorCourseSelect') firstOptText = 'Select Interested Course...';
+            else if (id === 'examSubjectSelect') firstOptText = 'Select Course...';
+
+            el.innerHTML = '<option value="">' + firstOptText + '</option>';
             courses.forEach(function (c) {
                 var opt = document.createElement('option');
                 opt.value = c;
                 opt.textContent = c;
-                courseSelect.appendChild(opt);
+                el.appendChild(opt);
             });
-            if (currentCourse) courseSelect.value = currentCourse;
-        }
+            if (currentVal) el.value = currentVal;
+        });
 
-        // 2. Method populate
-        if (methodSelect) {
-            var currentMethod = methodSelect.value;
-            var methods = ['Cash'];
-            (gd.bankAccounts || []).forEach(function (acc) { if (acc && acc.name) methods.push(acc.name); });
-            (gd.mobileBanking || []).forEach(function (acc) { if (acc && acc.name) methods.push(acc.name); });
-            methods = [...new Set(methods)];
+        // 2. Payment method dropdowns — সব জায়গায়
+        var methods = ['Cash'];
+        (gd.bankAccounts || []).forEach(function (acc) { if (acc && acc.name) methods.push(acc.name); });
+        (gd.mobileBanking || []).forEach(function (acc) { if (acc && acc.name) methods.push(acc.name); });
+        var seenM = {};
+        methods = methods.filter(function (m) {
+            if (seenM[m]) return false;
+            seenM[m] = true;
+            return true;
+        });
 
-            methodSelect.innerHTML = '<option value="">Select Method...</option>';
+        var methodSelectIds = [
+            'studentMethodSelect', 'studentPaymentMethod', 'editPaymentMethod',
+            'paymentMethodSelect', 'addPaymentMethod', 'studentPayMethod', 'payMethod',
+            'pmtNewMethod', 'examPaymentMethodSelect', 'editTransMethodSelect'
+        ];
+
+        methodSelectIds.forEach(function (id) {
+            var el = document.getElementById(id);
+            if (!el || el.tagName !== 'SELECT') return;
+            var currentVal = el.value;
+            el.innerHTML = '<option value="">Select Method...</option>';
             methods.forEach(function (m) {
                 var opt = document.createElement('option');
                 opt.value = m;
                 opt.textContent = m;
-                methodSelect.appendChild(opt);
+                el.appendChild(opt);
             });
-            if (currentMethod) methodSelect.value = currentMethod;
+            if (currentVal) el.value = currentVal;
+        });
+
+        // 3. Employee Role dropdowns — সব জায়গায়
+        var roles = gd.employeeRoles || ['Instructor', 'Admin', 'Staff', 'Manager'];
+        var roleSelectIds = ['employeeRoleFilter'];
+        // Employee modal এর role <select> টি find করো
+        var empRoleSelect = document.querySelector('#employeeForm select[name="role"]');
+
+        if (empRoleSelect) {
+            var currentRole = empRoleSelect.value;
+            empRoleSelect.innerHTML = '';
+            roles.forEach(function (r) {
+                var opt = document.createElement('option');
+                opt.value = r;
+                opt.textContent = r;
+                empRoleSelect.appendChild(opt);
+            });
+            if (currentRole) empRoleSelect.value = currentRole;
         }
+
+        // Role filter dropdown
+        var roleFilter = document.getElementById('employeeRoleFilter');
+        if (roleFilter) {
+            var currentFilter = roleFilter.value;
+            roleFilter.innerHTML = '<option value="">All Roles</option>';
+            roles.forEach(function (r) {
+                var opt = document.createElement('option');
+                opt.value = r;
+                opt.textContent = r;
+                roleFilter.appendChild(opt);
+            });
+            if (currentFilter) roleFilter.value = currentFilter;
+        }
+
+        // 4. Course filter dropdown (students page)
+        var courseFilter = document.getElementById('courseFilterSelect');
+        if (courseFilter) {
+            var currentCF = courseFilter.value;
+            courseFilter.innerHTML = '<option value="">All Courses</option>';
+            courses.forEach(function (c) {
+                var opt = document.createElement('option');
+                opt.value = c;
+                opt.textContent = c;
+                courseFilter.appendChild(opt);
+            });
+            if (currentCF) courseFilter.value = currentCF;
+        }
+
+        console.log('[CategoryFix] ✓ All dropdowns synced — courses:', courses.length, '| methods:', methods.length, '| roles:', roles.length);
     }
     window.populateStudentDropdowns = populateStudentDropdowns;
 
+    // ══════════════════════════════════════════════════════════
+    // GLOBAL REFRESH — Settings Add/Delete এর পর সব dropdown sync
+    // ══════════════════════════════════════════════════════════
+    function refreshAllDropdowns() {
+        // 1. Finance dropdowns
+        populateMethodDropdown();
+        var typeSelect = document.querySelector('#financeForm select[name="type"]') ||
+            document.querySelector('#financeModal select[name="type"]');
+        var typeVal = typeSelect ? typeSelect.value : 'Income';
+        populateCategoryDropdown(typeVal);
+
+        // 2. Student/Employee/Visitor/Exam dropdowns
+        populateStudentDropdowns();
+
+        // 3. Original populateDropdowns (if exists from ledger-render.js)
+        // শুধু যদি আমাদের wrap করা version না হয়
+        if (typeof window._origPopulateDropdowns === 'function') {
+            window._origPopulateDropdowns();
+        }
+
+        // 4. Settings lists re-render
+        if (typeof window.renderSettingsLists === 'function') {
+            window.renderSettingsLists();
+        }
+
+        // 5. Batch filter
+        if (typeof window.populateBatchFilter === 'function') {
+            window.populateBatchFilter();
+        }
+
+        console.log('[CategoryFix] ✓ refreshAllDropdowns — all synced');
+    }
+    window.refreshAllDropdowns = refreshAllDropdowns;
+
     // ── populateDropdowns — global function patch ─────────────
-    // যদি finance-crud.js এ populateDropdowns আগে থেকে আছে সেটাকে wrap করো
-    // না থাকলে নিজেই define করো
     function setupPopulateDropdowns() {
         var original = window.populateDropdowns;
 
         if (typeof original === 'function' && !original._categoryFixed) {
-            // Wrap করো
+            window._origPopulateDropdowns = original;
             window.populateDropdowns = function () {
                 original.apply(this, arguments);
-                // Extra: category ও ঠিক করো
-                var typeSelect = document.querySelector('#financeForm select[name="type"]') ||
+                var typeSelect2 = document.querySelector('#financeForm select[name="type"]') ||
                     document.querySelector('#financeModal select[name="type"]');
-                var typeVal = typeSelect ? typeSelect.value : 'Income';
-                populateCategoryDropdown(typeVal);
+                var typeVal2 = typeSelect2 ? typeSelect2.value : 'Income';
+                populateCategoryDropdown(typeVal2);
+                // Student dropdowns ও populate করো
+                populateStudentDropdowns();
             };
             window.populateDropdowns._categoryFixed = true;
             console.log('[CategoryFix] populateDropdowns wrapped ✓');
         } else if (typeof original !== 'function') {
-            // Define করো
             window.populateDropdowns = function () {
                 populateMethodDropdown();
-                var typeSelect = document.querySelector('#financeForm select[name="type"]') ||
+                var typeSelect3 = document.querySelector('#financeForm select[name="type"]') ||
                     document.querySelector('#financeModal select[name="type"]');
-                var typeVal = typeSelect ? typeSelect.value : 'Income';
-                populateCategoryDropdown(typeVal);
+                var typeVal3 = typeSelect3 ? typeSelect3.value : 'Income';
+                populateCategoryDropdown(typeVal3);
+                populateStudentDropdowns();
             };
             window.populateDropdowns._categoryFixed = true;
             console.log('[CategoryFix] populateDropdowns defined ✓');
@@ -195,15 +306,13 @@
 
         fm.addEventListener('show.bs.modal', function () {
             setTimeout(function () {
-                // populateDropdowns call করো (existing বা নতুন)
                 if (typeof window.populateDropdowns === 'function') {
                     window.populateDropdowns();
                 } else {
                     populateMethodDropdown();
-                    var typeSelect = document.querySelector('#financeForm select[name="type"]');
-                    populateCategoryDropdown(typeSelect ? typeSelect.value : 'Income');
+                    var typeSelect4 = document.querySelector('#financeForm select[name="type"]');
+                    populateCategoryDropdown(typeSelect4 ? typeSelect4.value : 'Income');
                 }
-                // Date default set
                 var dateInput = document.querySelector('#financeForm input[name="date"]');
                 if (dateInput && !dateInput.value) {
                     var n = new Date();
@@ -212,7 +321,6 @@
             }, 30);
         });
 
-        // Type change listener
         fm.addEventListener('change', function (e) {
             if (e.target && e.target.name === 'type') {
                 populateCategoryDropdown(e.target.value);
@@ -229,8 +337,6 @@
 
         sm.addEventListener('show.bs.modal', function () {
             setTimeout(populateStudentDropdowns, 50);
-
-            // Default enrollment date set if empty
             setTimeout(function () {
                 var dateInput = document.getElementById('studentEnrollDate');
                 if (dateInput && !dateInput.value) {
@@ -240,6 +346,60 @@
         });
 
         console.log('[CategoryFix] Student modal listener attached ✓');
+        return true;
+    }
+
+    // ── Employee Modal open এ role dropdown populate করো ──────
+    function attachEmployeeModalListener() {
+        var em = document.getElementById('employeeModal');
+        if (!em) return false;
+
+        em.addEventListener('show.bs.modal', function () {
+            setTimeout(function () {
+                var gd = window.globalData;
+                if (!gd) return;
+                var roles = gd.employeeRoles || ['Instructor', 'Admin', 'Staff', 'Manager'];
+                var sel = document.querySelector('#employeeForm select[name="role"]');
+                if (!sel) return;
+                var curVal = sel.value;
+                sel.innerHTML = '';
+                roles.forEach(function (r) {
+                    var opt = document.createElement('option');
+                    opt.value = r;
+                    opt.textContent = r;
+                    sel.appendChild(opt);
+                });
+                if (curVal) sel.value = curVal;
+            }, 30);
+        });
+
+        console.log('[CategoryFix] Employee modal listener attached ✓');
+        return true;
+    }
+
+    // ── Visitor Modal open এ course dropdown populate করো ─────
+    function attachVisitorModalListener() {
+        var vm = document.getElementById('visitorModal');
+        if (!vm) return false;
+
+        vm.addEventListener('show.bs.modal', function () {
+            setTimeout(populateStudentDropdowns, 50);
+        });
+
+        console.log('[CategoryFix] Visitor modal listener attached ✓');
+        return true;
+    }
+
+    // ── Exam Modal open এ dropdown populate করো ──────────────
+    function attachExamModalListener() {
+        var em = document.getElementById('examRegistrationModal');
+        if (!em) return false;
+
+        em.addEventListener('show.bs.modal', function () {
+            setTimeout(populateStudentDropdowns, 50);
+        });
+
+        console.log('[CategoryFix] Exam modal listener attached ✓');
         return true;
     }
 
@@ -264,6 +424,35 @@
                 if (attachStudentModalListener() || sAttempts > 20) clearInterval(sIv);
             }, 250);
         }
+
+        // Employee Modal
+        if (!attachEmployeeModalListener()) {
+            var eAttempts = 0;
+            var eIv = setInterval(function () {
+                eAttempts++;
+                if (attachEmployeeModalListener() || eAttempts > 20) clearInterval(eIv);
+            }, 250);
+        }
+
+        // Visitor Modal
+        if (!attachVisitorModalListener()) {
+            var vAttempts = 0;
+            var vIv = setInterval(function () {
+                vAttempts++;
+                if (attachVisitorModalListener() || vAttempts > 20) clearInterval(vIv);
+            }, 250);
+        }
+
+        // Exam Modal
+        if (!attachExamModalListener()) {
+            var xAttempts = 0;
+            var xIv = setInterval(function () {
+                xAttempts++;
+                if (attachExamModalListener() || xAttempts > 20) clearInterval(xIv);
+            }, 250);
+        }
+
+        console.log('[CategoryFix] ✅ Master Dropdown Sync initialized — ALL modals covered');
     }
 
     // সব JS load হওয়ার পরে run করো
@@ -271,9 +460,14 @@
         init();
         // Extra safety: 1s পরে আবার
         setTimeout(init, 1000);
+        // 3s পরে populateStudentDropdowns override ফিরিয়ে আনো
+        // (recycle-bin-fix.js যদি override করে থাকে)
+        setTimeout(function () {
+            window.populateStudentDropdowns = populateStudentDropdowns;
+            console.log('[CategoryFix] ✓ populateStudentDropdowns re-claimed from any override');
+        }, 3000);
     });
 
-    // DOMContentLoaded এও try করো
     if (document.readyState === 'loading') {
         document.addEventListener('DOMContentLoaded', init);
     } else {

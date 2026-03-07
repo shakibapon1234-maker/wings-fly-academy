@@ -235,6 +235,7 @@ function addIncomeCategory() {
   saveToStorage();
   renderSettingsLists();
   updateFinanceCategoryOptions();
+  if (typeof window.refreshAllDropdowns === 'function') window.refreshAllDropdowns();
   input.value = '';
 }
 
@@ -244,6 +245,7 @@ function deleteIncomeCategory(name) {
   saveToStorage();
   renderSettingsLists();
   updateFinanceCategoryOptions();
+  if (typeof window.refreshAllDropdowns === 'function') window.refreshAllDropdowns();
 }
 
 function addExpenseCategory() {
@@ -256,6 +258,7 @@ function addExpenseCategory() {
   saveToStorage();
   renderSettingsLists();
   updateFinanceCategoryOptions();
+  if (typeof window.refreshAllDropdowns === 'function') window.refreshAllDropdowns();
   input.value = '';
 }
 
@@ -265,6 +268,7 @@ function deleteExpenseCategory(name) {
   saveToStorage();
   renderSettingsLists();
   updateFinanceCategoryOptions();
+  if (typeof window.refreshAllDropdowns === 'function') window.refreshAllDropdowns();
 }
 
 function updateFinanceCategoryOptions() {
@@ -373,6 +377,7 @@ function addCourseName() {
   saveToStorage();
   populateDropdowns();
   if (typeof populateBatchFilter === 'function') populateBatchFilter();
+  if (typeof window.refreshAllDropdowns === 'function') window.refreshAllDropdowns();
   input.value = '';
 }
 
@@ -381,7 +386,8 @@ function deleteCourseName(name) {
   window.globalData.courseNames = window.globalData.courseNames.filter(c => c !== name);
   saveToStorage();
   populateDropdowns();
-  if (typeof populateBatchFilter === 'function') populateBatchFilter(); // ✅ Filter dropdown sync
+  if (typeof populateBatchFilter === 'function') populateBatchFilter();
+  if (typeof window.refreshAllDropdowns === 'function') window.refreshAllDropdowns();
 }
 
 

@@ -580,6 +580,7 @@ function addEmployeeRole() {
     inp.value = '';
     saveToStorage();
     if (typeof renderSettingsLists === 'function') renderSettingsLists(); // ✅ FIX: was renderSettings() — function doesn't exist
+    if (typeof window.refreshAllDropdowns === 'function') window.refreshAllDropdowns();
     showSuccessToast('Role added');
   }
 }
@@ -589,6 +590,7 @@ function deleteEmployeeRole(index) {
     globalData.employeeRoles.splice(index, 1);
     saveToStorage();
     if (typeof renderSettingsLists === 'function') renderSettingsLists(); // ✅ FIX: was renderSettings()
+    if (typeof window.refreshAllDropdowns === 'function') window.refreshAllDropdowns();
   }
 }
 
