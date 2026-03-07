@@ -592,10 +592,30 @@
         // Cloud pull এ local নতুন data হারাবে না, recycle bin items ফিরে আসবে না
 
         // সব deleted IDs collect করো (local + cloud উভয় recycle bin থেকে)
-        const _deletedIds = new Set([
-          ...(gd.deletedItems || []).flatMap(d => [d.id, d.studentId, d._id].filter(Boolean).map(String)),
-          ...(data.deleted_items || []).flatMap(d => [d.id, d.studentId, d._id].filter(Boolean).map(String)),
-        ]);
+        // NOTE: recycle-bin-fix এ deletedItems এর structure:
+        // { id: 'TRASH_...', type: 'Student', item: { id/studentId/_id/rowIndex/... } }
+        // তাই এখানে d.item থেকেই আসল entity IDs নিতে হবে, d.id নয়।
+        const _deletedIds = new Set((() => {
+          const ids = [];
+          function _extract(list) {
+            (list || []).forEach(d => {
+              const item = d && (d.item || d);
+              if (!item) return;
+              [
+                item.id,
+                item._id,
+                item.studentId,
+                item.id_card_no,
+                item.rowIndex
+              ]
+                .filter(v => v !== undefined && v !== null && v !== '')
+                .forEach(v => ids.push(String(v)));
+            });
+          }
+          _extract(gd.deletedItems);
+          _extract(data.deleted_items);
+          return ids;
+        })());
 
         // MERGE: Cloud base + Local override, deleted items বাদ
         function _mergeArr(localArr, cloudArr, idFn) {
