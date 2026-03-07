@@ -113,307 +113,121 @@
     if (!d) { console.warn('[RecycleFix] restoreDeletedItem: id not found', id); return; }
 
     var t = (d.type || '').toLowerCase();
+    var item = d.item;
+    delete item._trash_tmp_id;
 
     // ═══════════════════════════════════════════════════
     // SPECIAL CASE: installment restore
-    // deleteInstallment() যেই যেই জায়গা থেকে সরিয়েছিল:
-    //  1. student.installments[] থেকে
-    //  2. student.paid / student.due থেকে
-    //  3. globalData.finance[] থেকে
-    //  4. account balance থেকে (updateAccountBalance)
-    // ───── এখন সব জায়গায় ফিরিয়ে দাও ─────────────────
+    // ═══════════════════════════════════════════════════
     if (t === 'installment') {
-      var item = d.item;
       var studentName = item.studentName;
       var amount = parseFloat(item.amount) || 0;
       var method = item.method || 'Cash';
       var instDate = item.date || '';
       var batch = item.batch || '';
 
-      // 1. Student খোঁজো (name দিয়ে — index shift হতে পারে)
       var student = (gd.students || []).find(function (s) {
         return (s.name || '').trim().toLowerCase() === studentName.trim().toLowerCase();
       });
 
       if (!student) {
-        if (typeof window.showErrorToast === 'function') {
-          window.showErrorToast('⚠️ Student "' + studentName + '" পাওয়া যায়নি! Restore সম্ভব নয়।');
-        }
-        console.warn('[RecycleFix] installment restore: student not found:', studentName);
-        // Still remove from bin
-        gd.deletedItems = (gd.deletedItems || []).filter(function (x) { return x.id !== id; });
-        _save();
+        if (typeof window.showErrorToast === 'function') window.showErrorToast('⚠️ Student "' + studentName + '" not found! Restore failed.');
         return;
       }
 
-      // 2. student.installments[] এ ফিরিয়ে দাও
+      // Add to student installments
       if (!Array.isArray(student.installments)) student.installments = [];
-      student.installments.push({
-        amount: amount,
-        date: instDate,
-        method: method
-      });
+      student.installments.push({ amount: amount, date: instDate, method: method });
 
-      // 3. student.paid এবং student.due আপডেট করো
+      // Update student paid/due
       student.paid = Math.round(((parseFloat(student.paid) || 0) + amount) * 100) / 100;
       student.due = Math.max(0, Math.round(((parseFloat(student.totalPayment) || 0) - student.paid) * 100) / 100);
 
-      // 4. finance[] এ ফিরিয়ে দাও (duplicate check সহ)
+      // Add to finance ledger
       if (!Array.isArray(gd.finance)) gd.finance = [];
-      var today = new Date().toISOString().split('T')[0];
-      var financeEntry = {
-        id: Date.now(),
-        type: 'Income',
-        method: method,
-        date: instDate || today,
-        category: 'Student Installment',
-        person: studentName,
-        amount: amount,
-        description: 'Installment payment for student: ' + studentName + ' | Batch: ' + batch,
-        timestamp: new Date().toISOString()
-      };
-
-      // Duplicate guard: একই date+amount+person এ ইতিমধ্যে আছে কিনা দেখো
       var dupExists = gd.finance.some(function (f) {
-        return f.person === studentName
-          && parseFloat(f.amount) === amount
-          && f.date === instDate
-          && (f.category === 'Student Installment' || f.category === 'Student Fee');
+        return f.person === studentName && parseFloat(f.amount) === amount && f.date === instDate && (f.category === 'Student Installment' || f.category === 'Student Fee');
       });
+
       if (!dupExists) {
-        gd.finance.push(financeEntry);
-        // 5. Account balance ফিরিয়ে দাও
+        gd.finance.push({
+          id: Date.now(),
+          type: 'Income',
+          method: method,
+          date: instDate || new Date().toISOString().split('T')[0],
+          category: 'Student Installment',
+          person: studentName,
+          amount: amount,
+          description: 'Installment payment for student: ' + studentName + ' | Batch: ' + batch,
+          timestamp: new Date().toISOString()
+        });
         if (typeof window.updateAccountBalance === 'function') {
           window.updateAccountBalance(method, amount, 'Income', true);
         }
-      } else {
-        console.warn('[RecycleFix] installment restore: finance entry already exists — skipped to prevent duplicate');
       }
 
-      // 6. Recycle Bin থেকে সরাও
-      gd.deletedItems = (gd.deletedItems || []).filter(function (x) { return x.id !== id; });
-      _save();
+    } else {
+      // ───── GENERIC RESTORE ─────────────────
+      var targetKey = {
+        'student': 'students',
+        'finance': 'finance',
+        'employee': 'employees',
+        'visitor': 'visitors',
+        'keeprecord': 'keepRecords',
+        'keep_record': 'keepRecords',
+        'keep record': 'keepRecords',
+        'notice': 'notices',
+        'examregistration': 'examRegistrations',
+        'exam': 'examRegistrations',
+        'bankaccount': 'bankAccounts',
+        'mobileaccount': 'mobileBanking',
+        'breakdown': 'breakdownRecords'
+      }[t];
 
-      // 7. Activity log
-      window.logActivity('RESTORE', 'installment',
-        'Installment restored: ৳' + amount + ' | ' + studentName + ' | ' + instDate, item);
+      if (targetKey) {
+        if (!Array.isArray(gd[targetKey])) gd[targetKey] = [];
+        var alreadyExists = gd[targetKey].some(function (x) {
+          return (x.id !== undefined && x.id === item.id) || (x._id !== undefined && x._id === item._id) || (x.rowIndex !== undefined && x.rowIndex === item.rowIndex);
+        });
 
-      // 8. UI Refresh
-      setTimeout(function () {
-        if (typeof window.render === 'function') window.render(gd.students || []);
-        if (typeof window.renderStudents === 'function') window.renderStudents();
-        if (typeof window.renderLedger === 'function') window.renderLedger(gd.finance || []);
-        if (typeof window.updateGlobalStats === 'function') window.updateGlobalStats();
-        if (typeof window.renderAccountList === 'function') window.renderAccountList();
-        if (typeof window.renderCashBalance === 'function') window.renderCashBalance();
-        if (typeof window.renderMobileBankingList === 'function') window.renderMobileBankingList();
-        if (typeof window.updateGrandTotal === 'function') window.updateGrandTotal();
-        if (typeof window.renderFullUI === 'function') window.renderFullUI();
-      }, 80);
-
-      if (typeof window.renderRecycleBin === 'function') setTimeout(window.renderRecycleBin, 150);
-      if (typeof window.showSuccessToast === 'function') {
-        window.showSuccessToast('✅ ৳' + amount + ' installment restored for ' + studentName + '! Student paid/due updated.');
-      }
-
-      // Cloud sync
-      if (typeof window.scheduleSyncPush === 'function') {
-        window.scheduleSyncPush('Restore Installment: ' + studentName + ' ৳' + amount);
-      }
-
-      console.log('[RecycleFix] ✓ Installment restored:', studentName, '৳' + amount,
-        '| New paid:', student.paid, '| due:', student.due);
-      return; // ← early return — typeMap এ যাবে না
-    }
-    // ═══ END installment special case ══════════════════
-
-    // Type → array key mapping (সব type cover করা হয়েছে)
-    var typeMap = {
-      'student': 'students',
-      'finance': 'finance',
-      'employee': 'employees',
-      'bankaccount': 'bankAccounts',
-      'mobileaccount': 'mobileBanking',
-      'visitor': 'visitors',
-      'keeprecord': 'keepRecords',
-      'keep_record': 'keepRecords',
-      'keep record': 'keepRecords',
-      'notice': 'notices',
-      'examregistration': 'examRegistrations',
-      'breakdown': 'breakdownRecords',
-    };
-
-    var arrKey = typeMap[t];
-    if (arrKey) {
-      if (!Array.isArray(gd[arrKey])) gd[arrKey] = [];
-      // Duplicate check: same id / _id / rowIndex এ already আছে কিনা
-      var existingId = d.item.id || d.item._id || d.item.rowIndex || d.item._trash_tmp_id;
-      var alreadyExists = existingId && gd[arrKey].some(function (x) {
-        return (x.id !== undefined && x.id === d.item.id)
-          || (x._id !== undefined && x._id === d.item._id)
-          || (x.rowIndex !== undefined && x.rowIndex === d.item.rowIndex);
-      });
-      if (!alreadyExists) {
-        // _trash_tmp_id ছিলে remove করো
-        var restored = JSON.parse(JSON.stringify(d.item));
-        delete restored._trash_tmp_id;
-        gd[arrKey].push(restored);
+        if (!alreadyExists) {
+          gd[targetKey].push(item);
+          if (t === 'finance' && typeof window.updateAccountBalance === 'function') {
+            window.updateAccountBalance(item.method, parseFloat(item.amount) || 0, item.type, true);
+          }
+        }
       }
     }
 
-    // Remove from bin
+    // Remove from Recycle Bin
     gd.deletedItems = (gd.deletedItems || []).filter(function (x) { return x.id !== id; });
-
     _save();
 
-    // Log restore
-    var name = d.item.name || d.item.studentName || d.item.title || d.item.description || 'Item';
-    window.logActivity('RESTORE', d.type, d.type + ' restored: ' + name, d.item);
+    // Log Activity
+    var name = item.name || item.studentName || item.title || item.description || 'Item';
+    window.logActivity('RESTORE', t, t + ' restored: ' + name, item);
 
-    // UI Refresh based on type
+    // Dynamic UI Refresh
     setTimeout(function () {
-      if (t === 'student' || t === 'students') {
-        // Student restore — সব possible render function call করো
-        if (typeof window.render === 'function') window.render(gd.students || []);
-        if (typeof window.renderStudents === 'function') window.renderStudents();
-        if (typeof window.renderStudentList === 'function') window.renderStudentList();
-        if (typeof window.loadStudents === 'function') window.loadStudents();
-        if (typeof window.updateGlobalStats === 'function') window.updateGlobalStats();
-        if (typeof window.updateDashboard === 'function') window.updateDashboard();
-        if (typeof window.renderDashboard === 'function') window.renderDashboard();
-        if (typeof window.renderFullUI === 'function') window.renderFullUI();
-
-        // ── Warning system refresh ──────────────────────────────
-        // Student restore হলে orphaned payment warning সরিয়ে দাও
-        // কারণ এখন student আবার আছে — orphaned না
-        var restoredName = (d.item.name || '').trim().toLowerCase();
-        if (restoredName) {
-          // finance-helpers এর warning cache clear করো (যদি থাকে)
-          if (window._warningCache) delete window._warningCache;
-          if (window._orphanCache) delete window._orphanCache;
-          if (window._wfWarnings) delete window._wfWarnings;
-
-          // Warning modal যদি এই student কে নিয়ে খোলা থাকে — সেটা close করো
-          try {
-            var wModal = document.getElementById('warningDetailsModal');
-            if (wModal && wModal.classList.contains('show')) {
-              // modal এর content এ student এর নাম আছে কিনা দেখো
-              var wContent = wModal.querySelector('.modal-body, #warningDetailsBody, #warningList');
-              if (wContent && wContent.textContent.toLowerCase().includes(restoredName)) {
-                // Bootstrap modal hide
-                var bsWModal = bootstrap && bootstrap.Modal ? bootstrap.Modal.getInstance(wModal) : null;
-                if (bsWModal) bsWModal.hide();
-                else wModal.style.display = 'none';
-                console.log('[RecycleFix] ✓ Warning modal closed — student', d.item.name, 'restored');
-              }
-            }
-            // Warning details panel refresh (finance-helpers)
-            if (typeof window.refreshWarnings === 'function') window.refreshWarnings();
-            if (typeof window.updateWarningBadge === 'function') window.updateWarningBadge();
-            if (typeof window.renderWarnings === 'function') window.renderWarnings();
-            if (typeof window.checkDataWarnings === 'function') window.checkDataWarnings();
-          } catch (e) {
-            console.warn('[RecycleFix] Warning refresh error (non-critical):', e.message);
-          }
-        }
-        // ── END Warning refresh ─────────────────────────────────
-
-        console.log('[RecycleFix] ✓ Student restored & UI refreshed, total students:', (gd.students || []).length);
-
-        // nextId collision fix — restored student এর rowIndex যদি nextId এর চেয়ে বড় হয়
-        try {
-          var restoredRowIdx = parseInt(d.item.rowIndex) || 0;
-          var curNextId = parseInt(gd.nextId) || 0;
-          if (restoredRowIdx >= curNextId) {
-            gd.nextId = restoredRowIdx + 1;
-            console.log('[RecycleFix] ✓ nextId updated to', gd.nextId, 'after student restore');
-          }
-        } catch (e2) { /* non-critical */ }
-
-        // 2nd refresh — অন্য scripts override করলেও catch করবে
-        setTimeout(function () {
-          if (typeof window.render === 'function') window.render(gd.students || []);
-          if (typeof window.renderStudents === 'function') window.renderStudents();
-          if (typeof window.updateGlobalStats === 'function') window.updateGlobalStats();
-          // Warning badge re-check
-          if (typeof window.refreshWarnings === 'function') window.refreshWarnings();
-          if (typeof window.updateWarningBadge === 'function') window.updateWarningBadge();
-          if (typeof window.checkDataWarnings === 'function') window.checkDataWarnings();
-        }, 400);
-
-      } else if (t === 'finance') {
-        // Finance restore হলে account balance ও ফিরিয়ে দাও
-        if (d.item && typeof window.updateAccountBalance === 'function') {
-          window.updateAccountBalance(d.item.method, parseFloat(d.item.amount) || 0, d.item.type, true);
-        }
-        if (typeof window.renderLedger === 'function') window.renderLedger(gd.finance || []);
-        if (typeof window.renderAccountList === 'function') window.renderAccountList();
-        if (typeof window.renderCashBalance === 'function') window.renderCashBalance();
-        if (typeof window.updateGrandTotal === 'function') window.updateGrandTotal();
-      } else if (t === 'employee') {
-        if (typeof window.renderEmployees === 'function') window.renderEmployees();
-      } else if (t === 'visitor') {
-        if (typeof window.renderVisitors === 'function') window.renderVisitors();
-      } else if (t === 'keeprecord' || t === 'keep_record' || t === 'keep record') {
-        if (typeof window.renderKeepRecordNotes === 'function') window.renderKeepRecordNotes();
-      } else if (t === 'breakdown') {
-        if (typeof window.renderBreakdownRecords === 'function') window.renderBreakdownRecords();
-      } else if (t === 'examregistration' || t === 'exam') {
-        // Exam restore হলে linked finance entry ও ফিরিয়ে দাও
-        if (d.item && d.item.fee && typeof window.updateAccountBalance === 'function') {
-          window.updateAccountBalance(d.item.paymentMethod || 'Cash', parseFloat(d.item.fee) || 0, 'Income', true);
-        }
-        // Exam linked finance entry restore
-        if (d.item && d.item.fee && Array.isArray(gd.finance)) {
-          var examDate = d.item.date || d.item.registrationDate || new Date().toISOString().split('T')[0];
-          var examFee = parseFloat(d.item.fee) || 0;
-          var examStudent = d.item.studentName || d.item.name || '';
-          var examRegId = d.item.regId || '';
-          var examMethod = d.item.paymentMethod || 'Cash';
-          // Duplicate guard
-          var examFinDup = gd.finance.some(function (f) {
-            return f.category === 'Exam Fee'
-              && parseFloat(f.amount) === examFee
-              && (f.person === examStudent || (f.description || '').includes(examRegId));
-          });
-          if (!examFinDup && examFee > 0) {
-            gd.finance.push({
-              id: Date.now(),
-              type: 'Income',
-              method: examMethod,
-              date: examDate,
-              category: 'Exam Fee',
-              person: examStudent,
-              amount: examFee,
-              description: 'Exam Fee restored | Student: ' + examStudent + (examRegId ? ' | Reg: ' + examRegId : ''),
-              timestamp: new Date().toISOString()
-            });
-          }
-        }
-        if (typeof window.renderExamRegistrations === 'function') window.renderExamRegistrations();
-        if (typeof window.renderLedger === 'function') window.renderLedger(gd.finance || []);
-        if (typeof window.renderAccountList === 'function') window.renderAccountList();
-        if (typeof window.updateGrandTotal === 'function') window.updateGrandTotal();
-      } else if (t === 'notice') {
-        if (typeof window.renderNoticeBoard === 'function') window.renderNoticeBoard();
-      }
-      // General full UI refresh
       if (typeof window.renderFullUI === 'function') window.renderFullUI();
-    }, 80);
+      else if (typeof window.renderDashboard === 'function') window.renderDashboard();
 
-    if (typeof window.showSuccessToast === 'function') {
-      window.showSuccessToast('✅ ' + name + ' Recycle Bin থেকে Restore হয়েছে!');
-    }
+      // Secondary refreshes
+      if (typeof window.render === 'function') window.render(gd.students || []);
+      if (typeof window.renderLedger === 'function') window.renderLedger(gd.finance || []);
+      if (typeof window.updateGlobalStats === 'function') window.updateGlobalStats();
+      if (typeof window.renderAccountList === 'function') window.renderAccountList();
+      if (typeof window.renderCashBalance === 'function') window.renderCashBalance();
+      if (typeof window.updateGrandTotal === 'function') window.updateGrandTotal();
+      if (typeof window.renderRecycleBin === 'function') window.renderRecycleBin();
+    }, 100);
 
-    // Cloud sync
+    if (typeof showSuccessToast === 'function') showSuccessToast('✅ ' + name + ' restored successfully!');
+
+    // Sync to cloud
     if (typeof window.scheduleSyncPush === 'function') {
-      window.scheduleSyncPush('Restore ' + d.type + ': ' + name);
+      window.scheduleSyncPush('Restore ' + t + ': ' + name);
     }
-
-    // Refresh recycle bin view
-    if (typeof window.renderRecycleBin === 'function') setTimeout(window.renderRecycleBin, 150);
-
-    console.log('[RecycleFix] ✓ Restored:', t, name);
   };
 
   // ═══════════════════════════════════════════════

@@ -61,6 +61,11 @@
     employees: localStorage.getItem('wf_lastpull_employees') || null,
   };
 
+  // ── Sync Cooldown (Delete Protection) ─────────────────────
+  let _lastDeleteCount = parseInt(localStorage.getItem('wings_total_deleted') || '0');
+  let _lastDeleteTime = 0;
+  const DELETE_COOLDOWN_MS = 180000; // 3 minutes
+
   // ── পুরোনো tables support আছে কিনা flag ──────────────────
   let _partialTablesReady = false; // Supabase এ wf_students আছে কিনা
 
@@ -391,6 +396,18 @@
 
     isPushing = true;
     try {
+      // ✅ Race condition check BEFORE pushing
+      const { data: cloudMeta } = await supabaseClient
+        .from(TABLE_NAME).select('version').eq('id', RECORD_ID).single();
+
+      if (cloudMeta && parseInt(cloudMeta.version) > localVersion) {
+        log('🔄', `Cloud version (${cloudMeta.version}) > Local (${localVersion}) — pulling first`);
+        isPushing = false; // Release lock
+        await pullFromCloud(true);
+        // Pull updates localVersion, so we need to restart push
+        return pushToCloud(reason + ' [re-try after pull]');
+      }
+
       localVersion++;
       localStorage.setItem('wings_local_version', String(localVersion));
 
@@ -433,6 +450,20 @@
   async function pullFromCloud(silent = false) {
     if (!isInitialized && !initialize()) return false;
     if (isPulling) return false;
+
+    // ✅ CRITICAL: Recent delete হলে sync pull skip করো
+    // ডিলিটের পরে push হচ্ছে, এই সময় pull করলে পুরনো ডাটা ফিরে আসবে
+    const currentDelCount = parseInt(localStorage.getItem('wings_total_deleted') || '0');
+    if (currentDelCount > _lastDeleteCount) {
+      _lastDeleteCount = currentDelCount;
+      _lastDeleteTime = Date.now();
+      log('🛡️', 'Local delete detected — activating sync cooldown');
+    }
+    if (_lastDeleteTime > 0 && (Date.now() - _lastDeleteTime) < DELETE_COOLDOWN_MS) {
+      if (!silent) log('🛡️', 'Sync pull skipped due to recent delete cooldown');
+      return false;
+    }
+
     isPulling = true;
 
     try {
