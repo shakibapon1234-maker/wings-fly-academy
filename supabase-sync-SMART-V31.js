@@ -469,9 +469,30 @@
         .from(TABLE_NAME).select('version').eq('id', RECORD_ID).single();
 
       if (cloudMeta && parseInt(cloudMeta.version) > localVersion) {
+        // ✅ Infinite Loop Prevention: Check if we are in delete cooldown
+        const currentDelCount = parseInt(localStorage.getItem('wings_total_deleted') || '0');
+        if (currentDelCount > _lastDeleteCount) {
+          _lastDeleteCount = currentDelCount;
+          _lastDeleteTime = Date.now();
+        }
+        const isCooldownActive = (_lastDeleteTime > 0 && (Date.now() - _lastDeleteTime) < DELETE_COOLDOWN_MS);
+
+        if (isCooldownActive) {
+          log('🛡️', `Cloud v${cloudMeta.version} > Local v${localVersion}, but delete cooldown is active. Pausing push to avoid loop & data restore.`);
+          isPushing = false;
+          // Schedule a retry after cooldown ends (e.g. 3 mins from last delete)
+          const remaining = Math.max(5000, DELETE_COOLDOWN_MS - (Date.now() - _lastDeleteTime));
+          setTimeout(() => { if (window.wingsSync) window.wingsSync.pushNow('Retry post-cooldown'); }, remaining + 1000);
+          return false;
+        }
+
         log('🔄', `Cloud version (${cloudMeta.version}) > Local (${localVersion}) — pulling first`);
         isPushing = false; // Release lock
-        await pullFromCloud(true);
+        const pullSuccess = await pullFromCloud(true);
+        if (!pullSuccess) {
+          log('❌', 'Pull failed or skipped. Cannot push safely. Breaking retry loop.');
+          return false;
+        }
         // Pull updates localVersion, so we need to restart push
         return pushToCloud(reason + ' [re-try after pull]');
       }
@@ -627,8 +648,8 @@
 
         window.globalData = Object.assign(gd, {
           // ✅ MERGE: local override cloud, deleted items বাদ
-          students:  _mergeArr(gd.students,  data.students,  s => String(s.studentId || s.id || s._id || '')),
-          finance:   _mergeArr(gd.finance,   data.finance,   f => String(f.id || f._id || f.timestamp || '')),
+          students: _mergeArr(gd.students, data.students, s => String(s.studentId || s.id || s._id || '')),
+          finance: _mergeArr(gd.finance, data.finance, f => String(f.id || f._id || f.timestamp || '')),
           employees: _mergeArr(gd.employees, data.employees, e => String(e.id || e._id || e.employeeId || '')),
           settings: mergedSettings,
           incomeCategories: data.income_categories || gd.incomeCategories || [],

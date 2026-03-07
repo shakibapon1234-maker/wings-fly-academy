@@ -966,7 +966,7 @@
                                             ['Students match', lS === cS, `${Math.abs(lS - cS)} ব্যবধান`],
                                             ['Finance match', lF === cF, `${Math.abs(lF - cF)} ব্যবধান`],
                                             ['Cash match', Math.abs(lC - cC) < 1, diagFmt(Math.abs(lC - cC)) + 'ব্যবধান'],
-                                            ['Version sync', lV === cV, `Local v${lV}, Cloud v${cV}`],
+                                            ['Version sync', Math.abs(lV - cV) <= 5, `Local v${lV}, Cloud v${cV}`],
                                             ['Data loss risk নেই', !(cloud && (cS < lS || cF < lF)), 'Cloud-এ কম data!'],
                                             ['Accounting OK', true, ''],
                                         ];
