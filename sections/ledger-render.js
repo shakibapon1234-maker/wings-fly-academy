@@ -9,19 +9,17 @@
 // ===================================
 
 function populateDropdowns() {
-  const settingsCourses = window.globalData.courseNames || [];
-  const studentCourses = window.globalData.students ? window.globalData.students.map(s => s.course).filter(Boolean) : [];
+  const gd = window.globalData || {};
+  const settingsCourses = gd.courseNames || [];
+  const studentCourses = gd.students ? gd.students.map(s => s.course).filter(Boolean) : [];
   const courses = [...new Set([...settingsCourses, ...studentCourses])].sort();
 
-  // BUILD CLEAN PAYMENT METHODS LIST:
-  // 1. Core methods (always present)
-  // 2. Payment Methods (ONLY from bank accounts - NO hardcoded methods)
-  const methods = [];
-
+  // 1. Course Dropdowns
   const courseSelects = [
     'studentCourseSelect',
     'visitorCourseSelect',
-    'examSubjectSelect'
+    'examSubjectSelect',
+    'studentCourse', 'editStudentCourse', 'addStudentCourse'
   ];
 
   courseSelects.forEach(id => {
@@ -34,21 +32,22 @@ function populateDropdowns() {
         el.innerHTML = '<option value="">Select Interested Course...</option>';
       } else if (id === 'examSubjectSelect') {
         el.innerHTML = '<option value="">Select Course...</option>';
+      } else {
+        el.innerHTML = '<option value="">Select Course</option>';
       }
 
       courses.forEach(c => {
         const opt = document.createElement('option');
         opt.value = c;
-        opt.innerText = c;
+        opt.textContent = c;
         el.appendChild(opt);
       });
 
-      if (currentVal && courses.includes(currentVal)) {
-        el.value = currentVal;
-      }
+      if (currentVal) el.value = currentVal;
     }
   });
 
+  // 2. Payment Method Dropdowns (MASTER LIST)
   const methodSelects = [
     'studentMethodSelect',
     'financeMethodSelect',
@@ -59,64 +58,69 @@ function populateDropdowns() {
     'examPaymentMethodSelect',
     'pmtNewMethod',
     'accTransferFrom',
-    'accTransferTo'
+    'accTransferTo',
+    'studentPaymentMethod',
+    'editPaymentMethod',
+    'paymentMethodSelect',
+    'addPaymentMethod',
+    'studentPayMethod',
+    'payMethod'
   ];
 
   methodSelects.forEach(id => {
     const el = document.getElementById(id);
-    if (el) {
-      const currentVal = el.value;
-      el.innerHTML = '';
+    if (!el) return;
 
-      // Add default option
-      if (id === 'ledgerMethodFilter') {
+    const currentVal = el.value;
+    el.innerHTML = '';
+
+    // Add default blank option
+    if (id === 'ledgerMethodFilter') {
+      el.innerHTML = '<option value="">All Methods</option>';
+    } else {
+      el.innerHTML = '<option value="">Select Payment Method</option>';
+    }
+
+    // A. Cash Option
+    const cashBal = parseFloat(gd.cashBalance) || 0;
+    const cashOpt = document.createElement('option');
+    cashOpt.value = 'Cash';
+    cashOpt.textContent = `💵 Cash  —  ৳${formatNumber(cashBal)}`;
+    el.appendChild(cashOpt);
+
+    // B. Bank Accounts
+    (gd.bankAccounts || []).forEach(account => {
+      const bal = parseFloat(account.balance) || 0;
+      const opt = document.createElement('option');
+      opt.value = account.name;
+      opt.textContent = `🏦 ${account.name} (${account.bankName})  —  ৳${formatNumber(bal)}`;
+      el.appendChild(opt);
+    });
+
+    // C. Mobile Banking
+    (gd.mobileBanking || []).forEach(m => {
+      const bal = parseFloat(m.balance) || 0;
+      const opt = document.createElement('option');
+      opt.value = m.name;
+      opt.textContent = `📱 ${m.name}  —  ৳${formatNumber(bal)}`;
+      el.appendChild(opt);
+    });
+
+    // D. Core Methods (Optional, if not already in accounts)
+    ['Bkash', 'Nagad'].forEach(m => {
+      // Only add if not already present in mobileBanking/bankAccounts
+      const exists = Array.from(el.options).some(o => o.value === m);
+      if (!exists) {
         const opt = document.createElement('option');
-        opt.value = '';
-        opt.innerText = 'All Methods';
-        el.appendChild(opt);
-      } else {
-        const opt = document.createElement('option');
-        opt.value = '';
-        opt.innerText = 'Select Payment Method';
+        opt.value = m;
+        opt.textContent = m;
         el.appendChild(opt);
       }
+    });
 
-      // Add Cash option FIRST
-      const cashBal = parseFloat(window.globalData.cashBalance) || 0;
-      const cashOpt = document.createElement('option');
-      cashOpt.value = 'Cash';
-      cashOpt.innerText = `💵 Cash  —  ৳${formatNumber(cashBal)}`;
-      cashOpt.style.backgroundColor = '#1a1f3a';
-      cashOpt.style.color = '#00ff88';
-      el.appendChild(cashOpt);
-
-      // Add ONLY bank accounts (no traditional methods)
-      const bankAccounts = window.globalData.bankAccounts || [];
-      bankAccounts.forEach(account => {
-        const bal = parseFloat(account.balance) || 0;
-        const opt = document.createElement('option');
-        opt.value = account.name;
-        opt.innerText = `🏦 ${account.name} (${account.bankName})  —  ৳${formatNumber(bal)}`;
-        opt.style.backgroundColor = '#1a1f3a';
-        opt.style.color = '#00d9ff';
-        el.appendChild(opt);
-      });
-
-      // Add ONLY mobile banking accounts
-      const mobileAccounts = window.globalData.mobileBanking || [];
-      mobileAccounts.forEach(account => {
-        const bal = parseFloat(account.balance) || 0;
-        const opt = document.createElement('option');
-        opt.value = account.name;
-        opt.innerText = `📱 ${account.name}  —  ৳${formatNumber(bal)}`;
-        opt.style.backgroundColor = '#1a1f3a';
-        opt.style.color = '#ff2d95';
-        el.appendChild(opt);
-      });
-
-      if (currentVal && (currentVal === 'Cash' || bankAccounts.some(a => a.name === currentVal) || mobileAccounts.some(a => a.name === currentVal) || currentVal === '')) {
-        el.value = currentVal;
-      }
+    if (currentVal) {
+      const exists = Array.from(el.options).some(o => o.value === currentVal);
+      if (exists) el.value = currentVal;
     }
   });
 

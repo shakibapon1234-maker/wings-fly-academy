@@ -52,36 +52,8 @@
 
     // ── Method (payment) dropdown populate ───────────────────
     function populateMethodDropdown() {
-        var methodSelect = document.getElementById('financeMethodSelect');
-        if (!methodSelect) return;
-
-        var gd = window.globalData;
-        if (!gd) return;
-
-        var methods = ['Cash'];
-        (gd.bankAccounts || []).forEach(function (acc) {
-            if (acc && acc.name) methods.push(acc.name);
-        });
-        (gd.mobileBanking || []).forEach(function (acc) {
-            if (acc && acc.name) methods.push(acc.name);
-        });
-
-        // Deduplicate
-        var seen = {};
-        methods = methods.filter(function (m) {
-            if (seen[m]) return false;
-            seen[m] = true;
-            return true;
-        });
-
-        if (methodSelect.options.length === 0 || methodSelect.options.length !== methods.length) {
-            methodSelect.innerHTML = '';
-            methods.forEach(function (m) {
-                var opt = document.createElement('option');
-                opt.value = m;
-                opt.textContent = m;
-                methodSelect.appendChild(opt);
-            });
+        if (typeof window.populateDropdowns === 'function') {
+            window.populateDropdowns();
         }
     }
 

@@ -658,11 +658,11 @@ function applyFinanceToBankAccount(entry) {
       for (let i = 0; i < arguments.length; i++) {
         try {
           if (typeof applyFinanceToBankAccount === 'function') applyFinanceToBankAccount(arguments[i]);
-        } catch(hookErr) { console.warn('Finance hook error:', hookErr); }
+        } catch (hookErr) { console.warn('Finance hook error:', hookErr); }
       }
       return originalPush(...arguments);
     };
-  } catch(e) { console.warn('⚠️ hookFinanceSave failed:', e); }
+  } catch (e) { console.warn('⚠️ hookFinanceSave failed:', e); }
 })();
 
 
@@ -675,45 +675,52 @@ document.addEventListener('DOMContentLoaded', () => {
    FINAL BANK ACCOUNT RECONCILIATION SYSTEM
    ========================================================= */
 
-/* 🔁 Rebuild ALL bank balances from finance data */
+/* 🔁 Rebuild ALL account balances from finance data */
 function rebuildBankBalancesFromFinance() {
-  if (!globalData.bankAccounts || !globalData.finance) return;
+  const gd = window.globalData || {};
+  if (!gd.finance) return;
 
-  // Reset all balances to 0
-  globalData.bankAccounts.forEach(acc => {
-    acc.balance = 0;
-  });
+  // Reset all balances to 0 for both Bank and Mobile accounts
+  (gd.bankAccounts || []).forEach(acc => { acc.balance = 0; });
+  (gd.mobileBanking || []).forEach(acc => { acc.balance = 0; });
 
-  // Apply all finance entries
-  globalData.finance.forEach(entry => {
+  // Apply all finance entries to matching accounts
+  (gd.finance || []).forEach(entry => {
     if (!entry.method || !entry.amount) return;
 
-    const account = globalData.bankAccounts.find(
-      acc => acc.name === entry.method
-    );
+    // Search in Bank Accounts
+    let account = (gd.bankAccounts || []).find(acc => acc.name === entry.method);
+
+    // If not found, search in Mobile Banking
+    if (!account) {
+      account = (gd.mobileBanking || []).find(acc => acc.name === entry.method);
+    }
+
     if (!account) return;
 
     const amount = parseFloat(entry.amount) || 0;
 
-    if (entry.type === 'Income' || entry.type === 'Loan Received' || entry.type === 'Loan Receiving') {
+    // Money coming IN
+    if (['Income', 'Loan Received', 'Loan Receiving', 'Transfer In', 'Registration'].includes(entry.type)) {
       account.balance += amount;
     }
-
-    if (
-      entry.type === 'Expense' ||
-      entry.type === 'Loan Given' ||
-      entry.type === 'Salary' ||
-      entry.type === 'Rent' ||
-      entry.type === 'Utilities'
+    // Money going OUT
+    else if (
+      ['Expense', 'Loan Given', 'Loan Giving', 'Salary', 'Rent', 'Utilities', 'Transfer Out'].includes(entry.type)
     ) {
       account.balance -= amount;
     }
   });
 
+  // Calculate cash separate from accounts (usually handled in app.js)
+  if (typeof recalculateCashBalanceFromTransactions === 'function') {
+    recalculateCashBalanceFromTransactions();
+  }
+
   saveToStorage(true);
   updateDashboardBankBalance();
 
-  console.log('🔄 Bank balances rebuilt from finance');
+  console.log('🔄 All account balances (Bank & Mobile) rebuilt from finance');
 }
 
 /* 🔃 Auto rebuild on app load */
@@ -757,32 +764,11 @@ document.addEventListener('DOMContentLoaded', () => {
     });
   }
 
-  // Helper function to populate payment method dropdowns
+  // Helper function to populate payment method dropdowns (now centralized in ledger-render.js)
   function populatePaymentDropdownsNow() {
-    ['studentMethodSelect', 'financeMethodSelect', 'examPaymentMethodSelect'].forEach(id => {
-      const select = document.getElementById(id);
-      if (!select) return;
-
-      select.innerHTML = '<option value="">Select Payment Method</option>';
-
-      const addOpt = (value, label) => {
-        const opt = document.createElement('option');
-        opt.value = value;
-        opt.textContent = label;
-        select.appendChild(opt);
-      };
-
-      const cashBal = parseFloat(globalData.cashBalance) || 0;
-      addOpt('Cash', `💵 Cash  —  ৳${formatNumber(cashBal)}`);
-      (globalData.bankAccounts || []).forEach(b => {
-        const bal = parseFloat(b.balance) || 0;
-        addOpt(b.name, `🏦 ${b.name}  —  ৳${formatNumber(bal)}`);
-      });
-      (globalData.mobileBanking || []).forEach(m => {
-        const bal = parseFloat(m.balance) || 0;
-        addOpt(m.name, `📱 ${m.name}  —  ৳${formatNumber(bal)}`);
-      });
-    });
+    if (typeof window.populateDropdowns === 'function') {
+      window.populateDropdowns();
+    }
   }
 
   // Expose globally

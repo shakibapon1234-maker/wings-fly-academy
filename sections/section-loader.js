@@ -145,6 +145,10 @@
     // 2. Add Transaction / Finance
     window.openAddTransaction = window.openFinanceModal = function (type) {
       loadAndOpen('__modalPlaceholderOther', 'sections/modals.html', 'financeModal', function () {
+        // ✅ FIX: Populate dropdowns (centralized in ledger-render.js)
+        if (typeof window.populateDropdowns === 'function') {
+          setTimeout(window.populateDropdowns, 100);
+        }
         if (typeof window.updateFinanceCategoryOptions === 'function') {
           if (type) {
             const typeSelect = document.querySelector('#financeModal select[name="type"]');
@@ -152,60 +156,113 @@
               typeSelect.value = type.charAt(0).toUpperCase() + type.slice(1);
               window.updateFinanceCategoryOptions();
             }
+          } else {
+            window.updateFinanceCategoryOptions();
           }
+        }
+        // ✅ Re-attach listener for subsequent opens
+        const fm = document.getElementById('financeModal');
+        if (fm && typeof window.populateDropdowns === 'function') {
+          fm.addEventListener('show.bs.modal', window.populateDropdowns);
         }
       });
     };
 
     // 3. Student
-    window.openStudentModal = function (id) {
-      loadAndOpen('__modalPlaceholderOther', 'sections/modals-student.html', 'studentModal', function () {
-        if (typeof window.initStudentModal === 'function') window.initStudentModal(id);
-      });
-    };
+    // ✅ FIX: Populate dropdowns (centralized in ledger-render.js)
+    if (typeof window.populateDropdowns === 'function') {
+      setTimeout(window.populateDropdowns, 100);
+    }
+    if (typeof window.initStudentModal === 'function') window.initStudentModal(id);
+    // ✅ Re-attach listener for subsequent opens
+    const sm = document.getElementById('studentModal');
+    if (sm && typeof window.populateDropdowns === 'function') {
+      sm.addEventListener('show.bs.modal', window.populateDropdowns);
+    }
+  });
+};
 
-    // 4. Employee
-    window.openEmployeeModal = function (id) {
-      loadAndOpen('__modalPlaceholderOther', 'sections/modals.html', 'employeeModal', function () {
-        if (typeof window.initEmployeeModal === 'function') window.initEmployeeModal(id);
-      });
-    };
+// 4. Employee
+window.openEmployeeModal = function (id) {
+  loadAndOpen('__modalPlaceholderOther', 'sections/modals.html', 'employeeModal', function () {
+    if (typeof window.initEmployeeModal === 'function') window.initEmployeeModal(id);
+  });
+};
 
-    // 5. Attendance
-    window.openAttendanceModal = function () {
-      loadAndOpen('__modalPlaceholderOther', 'sections/modals-other.html', 'attendanceModal');
-    };
+// 5. Attendance
+window.openAttendanceModal = function () {
+  loadAndOpen('__modalPlaceholderOther', 'sections/modals-other.html', 'attendanceModal', function () {
+    if (typeof window.populateDropdowns === 'function') {
+      setTimeout(window.populateDropdowns, 100);
+    }
+    // ✅ Re-attach listener
+    const am = document.getElementById('attendanceModal');
+    if (am && typeof window.populateDropdowns === 'function') {
+      am.addEventListener('show.bs.modal', window.populateDropdowns);
+    }
+  });
+};
 
-    // 6. Notice (Disabled lazy-load because it is in index.html and handled by notice-board.js)
-    // window.openNoticeModal = function () {
-    //   loadAndOpen('__modalPlaceholderOther', 'sections/modals-other.html', 'noticeModal');
-    // };
+// 7. Visitor
+window.openVisitorModal = function () {
+  loadAndOpen('__modalPlaceholderOther', 'sections/modals-other.html', 'visitorModal', function () {
+    if (typeof window.populateDropdowns === 'function') {
+      setTimeout(window.populateDropdowns, 100);
+    }
+    // ✅ Re-attach listener
+    const vm = document.getElementById('visitorModal');
+    if (vm && typeof window.populateDropdowns === 'function') {
+      vm.addEventListener('show.bs.modal', window.populateDropdowns);
+    }
+  });
+};
+
+// 6. Exam Registration
+window.openExamRegistration = function () {
+  loadAndOpen('__modalPlaceholderOther', 'sections/modals-other.html', 'examRegistrationModal', function () {
+    // ✅ Populate everything related to exams
+    if (typeof window.populateDropdowns === 'function') {
+      setTimeout(window.populateDropdowns, 100);
+    }
+    if (typeof window.populateExamModal === 'function') {
+      window.populateExamModal();
+    }
+    // ✅ Re-attach listener for subsequent opens
+    const em = document.getElementById('examRegistrationModal');
+    if (em && typeof window.populateDropdowns === 'function') {
+      em.addEventListener('show.bs.modal', window.populateDropdowns);
+    }
+    if (em && typeof window.populateExamModal === 'function') {
+      em.addEventListener('show.bs.modal', window.populateExamModal);
+    }
+  });
+};
   }
 
-  function init() {
-    console.log('[SectionLoader] 🏁 Initializing System...');
-    _patchAll();
+function init() {
+  console.log('[SectionLoader] 🏁 Initializing System...');
+  _patchAll();
 
-    // Preload
-    setTimeout(() => {
-      fetch('sections/settings-modal.html?v=' + Date.now()).catch(() => { });
-    }, 5000);
+  // Preload
+  setTimeout(() => {
+    fetch('sections/settings-modal.html?v=' + Date.now()).catch(() => { });
+  }, 5000);
 
-    console.log('[SectionLoader] 🚀 System successfully initialized');
-  }
+  console.log('[SectionLoader] 🚀 System successfully initialized');
+}
 
-  if (document.readyState === 'loading') {
-    document.addEventListener('DOMContentLoaded', init);
-  } else {
-    init();
-  }
+if (document.readyState === 'loading') {
+  document.addEventListener('DOMContentLoaded', init);
+} else {
+  init();
+}
 
-  // Backup patch
-  setTimeout(_patchAll, 2000);
+// Backup patch
+setTimeout(_patchAll, 2000);
 
-  window.sectionLoader = {
-    loadAndOpen: loadAndOpen,
-    isLoaded: id => _loaded.has(id)
-  };
+window.sectionLoader = {
+  loadAndOpen: loadAndOpen,
+  isLoaded: id => _loaded.has(id)
+};
 
-})();
+}) ();
