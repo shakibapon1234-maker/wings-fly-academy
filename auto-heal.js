@@ -79,32 +79,33 @@
   // ============================================
   function healToast(msg, type = 'info') {
     // Mini-toast for auto-heal to avoid blocking UI
+    // USER REQUEST: Make notifications very small and short
     const toast = document.createElement('div');
     const color = type === 'fix' ? '#00ff88' : (type === 'warn' ? '#ff2366' : '#00d9ff');
     const icon = type === 'fix' ? '🔧' : (type === 'warn' ? '⚠️' : 'ℹ️');
 
     toast.style.cssText = `
       position: fixed;
-      bottom: 25px;
-      right: 25px;
-      background: rgba(10, 14, 37, 0.9);
+      bottom: 10px;
+      right: 10px;
+      background: rgba(10, 14, 37, 0.8);
       color: ${color};
-      border: 1px solid ${color};
-      padding: 6px 12px;
-      border-radius: 6px;
-      font-size: 0.75rem;
-      font-weight: 600;
+      border: 1px solid ${color}44;
+      padding: 4px 8px;
+      border-radius: 4px;
+      font-size: 0.65rem;
+      font-weight: 500;
       z-index: 10000;
       display: flex;
       align-items: center;
-      gap: 8px;
-      box-shadow: 0 4px 15px rgba(0,0,0,0.5), 0 0 10px ${color}44;
+      gap: 6px;
+      box-shadow: 0 2px 5px rgba(0,0,0,0.3);
       pointer-events: none;
       transform: translateY(20px);
       opacity: 0;
-      transition: all 0.3s cubic-bezier(0.175, 0.885, 0.32, 1.275);
+      transition: all 0.2s cubic-bezier(0.175, 0.885, 0.32, 1.275);
     `;
-    toast.innerHTML = `<span>${icon}</span> <span>${msg}</span>`;
+    toast.innerHTML = `<span style="font-size: 0.7rem;">${icon}</span> <span>${msg}</span>`;
     document.body.appendChild(toast);
 
     // Animation
@@ -116,8 +117,8 @@
     setTimeout(() => {
       toast.style.transform = 'translateY(-10px)';
       toast.style.opacity = '0';
-      setTimeout(() => toast.remove(), 300);
-    }, 2500);
+      setTimeout(() => toast.remove(), 200);
+    }, 1500); // reduced from 2500ms
   }
 
   // ============================================

@@ -322,6 +322,13 @@ function deleteNotice() {
   _noticeSave(null);
   hideNoticeBanner();
   closeNoticeModal();
+
+  // ✅ FIX: Delete cooldown trigger — sync pull যেন পুরনো notice ফেরত না আনে
+  try {
+    var _delCount = parseInt(localStorage.getItem('wings_total_deleted') || '0') + 1;
+    localStorage.setItem('wings_total_deleted', _delCount.toString());
+  } catch (e) { }
+
   noticeToast('🗑️ নোটিস মুছে ফেলা হয়েছে', 'success');
 }
 // deleteActiveNotice = banner notice clear করার alias
@@ -329,6 +336,13 @@ window.deleteActiveNotice = function () {
   _noticeSave(null);
   hideNoticeBanner();
   closeNoticeModal();
+
+  // ✅ FIX: Delete cooldown trigger
+  try {
+    var _delCount = parseInt(localStorage.getItem('wings_total_deleted') || '0') + 1;
+    localStorage.setItem('wings_total_deleted', _delCount.toString());
+  } catch (e) { }
+
   noticeToast('🗑️ নোটিস মুছে ফেলা হয়েছে', 'success');
 };
 
@@ -510,3 +524,10 @@ window.updateCountdown = updateCountdown;
 window.noticeToast = noticeToast;
 window.closeNoticeModal = closeNoticeModal;
 window.refreshNoticeBoardOnLogin = refreshNoticeBoardOnLogin;
+
+// Modal Interactions
+window.openNoticeModal = openNoticeModal;
+window.toggleCustomDuration = toggleCustomDuration;
+window.previewNotice = previewNotice;
+window.publishNotice = publishNotice;
+window.deleteNotice = deleteNotice;

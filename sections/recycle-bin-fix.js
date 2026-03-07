@@ -63,6 +63,12 @@
     // Max 300 items in bin
     if (gd.deletedItems.length > 300) gd.deletedItems = gd.deletedItems.slice(0, 300);
 
+    // ✅ FIX: Sync cooldown trigger — যেকোনো ডিলিটের পর sync pull block হবে
+    try {
+      var _delCount = parseInt(localStorage.getItem('wings_total_deleted') || '0') + 1;
+      localStorage.setItem('wings_total_deleted', _delCount.toString());
+    } catch (e) { }
+
     _save();
 
     // Log to activity
@@ -163,6 +169,105 @@
         });
         if (typeof window.updateAccountBalance === 'function') {
           window.updateAccountBalance(method, amount, 'Income', true);
+        }
+      }
+
+    } else if (t === 'student') {
+      // ═══════════════════════════════════════════════════
+      // SPECIAL CASE: Student Restore (Payments ও restore হবে)
+      // ═══════════════════════════════════════════════════
+      if (!Array.isArray(gd.students)) gd.students = [];
+
+      // Check if student already exists
+      var alreadyExists = gd.students.some(function (s) {
+        return (s.id && s.id === item.id) || (s.studentId && s.studentId === item.studentId) || (s.name === item.name && s.phone === item.phone);
+      });
+
+      if (!alreadyExists) {
+        gd.students.push(item);
+
+        // ✅ Restore Payments (Finance Ledger + Account Balance)
+        if (typeof window.getStudentInstallments === 'function') {
+          var installments = window.getStudentInstallments(item);
+          if (!Array.isArray(gd.finance)) gd.finance = [];
+
+          installments.forEach(function (inst) {
+            var amount = parseFloat(inst.amount) || 0;
+            var method = inst.method || 'Cash';
+            var date = inst.date || item.enrollDate || new Date().toISOString().split('T')[0];
+
+            // Duplicate guard in finance ledger
+            var financeExists = gd.finance.some(function (f) {
+              return f.person === item.name && parseFloat(f.amount) === amount && f.date === date && (f.category === 'Student Installment' || f.category === 'Student Fee');
+            });
+
+            if (!financeExists) {
+              gd.finance.push({
+                id: Date.now() + Math.random(),
+                type: 'Income',
+                method: method,
+                date: date,
+                category: 'Student Installment',
+                person: item.name,
+                amount: amount,
+                description: 'Restored installment for student: ' + item.name + ' | Batch: ' + (item.batch || ''),
+                timestamp: new Date().toISOString()
+              });
+
+              // Un-reverse the payment (add back to account)
+              if (typeof window.updateAccountBalance === 'function') {
+                window.updateAccountBalance(method, amount, 'Income', true);
+              }
+            }
+          });
+        }
+
+        if (typeof window.showSuccessToast === 'function') {
+          window.showSuccessToast('✅ Student "' + item.name + '" ও পেমেন্ট হিস্ট্রি রিস্টোর করা হয়েছে');
+        }
+      }
+
+    } else if (t === 'exam' || t === 'examregistration') {
+      // ═══════════════════════════════════════════════════
+      // SPECIAL CASE: Exam Registration Restore (Finance entry ও restore হবে)
+      // ═══════════════════════════════════════════════════
+      if (!Array.isArray(gd.examRegistrations)) gd.examRegistrations = [];
+
+      var examExists = gd.examRegistrations.some(function (r) {
+        return r.regId === item.regId;
+      });
+
+      if (!examExists) {
+        gd.examRegistrations.push(item);
+
+        // ✅ Restore Exam Fee to Finance Ledger
+        if (item.examFee && item.paymentMethod) {
+          if (!Array.isArray(gd.finance)) gd.finance = [];
+          var feeExists = gd.finance.some(function (f) {
+            return (f.note || f.description || '').includes('Reg: ' + item.regId);
+          });
+
+          if (!feeExists) {
+            gd.finance.push({
+              id: 'FIN-' + Date.now(),
+              date: item.registrationDate || new Date().toISOString().split('T')[0],
+              type: 'Income',
+              category: 'Exam Fee',
+              amount: parseFloat(item.examFee) || 0,
+              method: item.paymentMethod,
+              note: 'Exam Fee — ' + (item.studentName || '') + ' | ' + (item.subjectName || '') + ' | Reg: ' + item.regId,
+              addedAt: new Date().toISOString()
+            });
+
+            // Account balance update
+            if (typeof window.updateAccountBalance === 'function') {
+              window.updateAccountBalance(item.paymentMethod, parseFloat(item.examFee) || 0, 'Income', true);
+            }
+          }
+        }
+
+        if (typeof window.showSuccessToast === 'function') {
+          window.showSuccessToast('✅ Exam Registration "' + (item.studentName || item.regId) + '" ও Exam Fee রিস্টোর করা হয়েছে');
         }
       }
 
@@ -319,6 +424,28 @@
 
       if (!confirm('"' + student.name + '" কে Recycle Bin-এ পাঠাবেন?')) return;
 
+      // CRITICAL: Reverse all account balances from this student's payments
+      if (typeof window.getStudentInstallments === 'function') {
+        const allPayments = window.getStudentInstallments(student);
+        if (allPayments.length > 0) {
+          allPayments.forEach(function (inst) {
+            const amount = parseFloat(inst.amount) || 0;
+            const method = inst.method || 'Cash';
+            if (typeof window.updateAccountBalance === 'function') {
+              // Reverse the payment: deduct from account since it was income
+              window.updateAccountBalance(method, amount, 'Income', false);
+            }
+          });
+        }
+      }
+
+      // Delete related finance transactions
+      if (gd.finance && Array.isArray(gd.finance)) {
+        gd.finance = gd.finance.filter(function (f) {
+          return !(f.person === student.name || (f.description && f.description.includes(student.name)));
+        });
+      }
+
       window.moveToTrash('Student', student);
 
       // rowIndex, id, _id সব দিয়ে filter করো
@@ -334,10 +461,13 @@
       if (typeof window.render === 'function') window.render(gd.students);
       if (typeof window.renderStudents === 'function') window.renderStudents();
       if (typeof window.updateGlobalStats === 'function') window.updateGlobalStats();
-      if (typeof window.showSuccessToast === 'function') window.showSuccessToast('🗑️ ' + student.name + ' Recycle Bin-এ গেছে');
+      if (typeof window.renderAccountList === 'function') window.renderAccountList();
+      if (typeof window.renderCashBalance === 'function') window.renderCashBalance();
+      if (typeof window.updateGrandTotal === 'function') window.updateGrandTotal();
+      if (typeof window.showSuccessToast === 'function') window.showSuccessToast('🗑️ ' + student.name + ' Recycle Bin-এ গেছে (পেমেন্ট রিভার্স করা হয়েছে)');
       console.log('[RecycleFix] ✓ Student moved to trash:', student.name);
     };
-    console.log('[RecycleFix] ✓ deleteStudent patched (rowIndex-aware)');
+    console.log('[RecycleFix] ✓ deleteStudent patched (rowIndex-aware & balance-correcting)');
   };
 
   // ═══════════════════════════════════════════════

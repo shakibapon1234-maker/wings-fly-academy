@@ -318,25 +318,53 @@
       if (d.item) {
         if (d.item.id) trashedIds.add(String(d.item.id));
         if (d.item._id) trashedIds.add(String(d.item._id));
-        if (d.item.rowIndex) trashedIds.add(String(d.item.rowIndex));
+        if (d.item.id_card_no) trashedIds.add(String(d.item.id_card_no));
+        if (d.item.studentId) trashedIds.add(String(d.item.studentId));
+        if (d.item.rowIndex !== undefined) trashedIds.add(String(d.item.rowIndex));
       }
     });
 
     if (trashedIds.size === 0) return;
 
-    const beforeLen = (gd.students?.length || 0) + (gd.finance?.length || 0);
+    const beforeLen = (gd.students?.length || 0) + (gd.finance?.length || 0) + (gd.notices?.length || 0);
 
+    // Filter Students
     if (Array.isArray(gd.students)) {
-      gd.students = gd.students.filter(s => !trashedIds.has(String(s.id)) && !trashedIds.has(String(s.rowIndex)) && !trashedIds.has(String(s._id)));
+      gd.students = gd.students.filter(s => !trashedIds.has(String(s.id)) && !trashedIds.has(String(s.rowIndex)) && !trashedIds.has(String(s._id)) && !trashedIds.has(String(s.studentId)));
     }
+    // Filter Finance
     if (Array.isArray(gd.finance)) {
       gd.finance = gd.finance.filter(f => !trashedIds.has(String(f.id)) && !trashedIds.has(String(f._id)));
     }
+    // Filter Employees
     if (Array.isArray(gd.employees)) {
       gd.employees = gd.employees.filter(e => !trashedIds.has(String(e.id)) && !trashedIds.has(String(e._id)));
     }
+    // Filter Notices
+    if (Array.isArray(gd.notices)) {
+      gd.notices = gd.notices.filter(n => !trashedIds.has(String(n.id)) && !trashedIds.has(String(n._id)));
+    }
+    if (Array.isArray(gd.noticeBoard)) {
+      gd.noticeBoard = gd.noticeBoard.filter(n => !trashedIds.has(String(n.id)) && !trashedIds.has(String(n._id)));
+    }
+    // Filter Exam Registrations
+    if (Array.isArray(gd.examRegistrations)) {
+      gd.examRegistrations = gd.examRegistrations.filter(r => !trashedIds.has(String(r.id)) && !trashedIds.has(String(r._id)));
+    }
+    // Filter Visitors
+    if (Array.isArray(gd.visitors)) {
+      gd.visitors = gd.visitors.filter(v => !trashedIds.has(String(v.id)) && !trashedIds.has(String(v._id)));
+    }
+    // Filter Keep Records
+    if (Array.isArray(gd.keepRecords)) {
+      gd.keepRecords = gd.keepRecords.filter(r => !trashedIds.has(String(r.id)) && !trashedIds.has(String(r._id)));
+    }
+    // Filter Breakdown Records
+    if (Array.isArray(gd.breakdownRecords)) {
+      gd.breakdownRecords = gd.breakdownRecords.filter(r => !trashedIds.has(String(r.id)) && !trashedIds.has(String(r._id)));
+    }
 
-    const afterLen = (gd.students?.length || 0) + (gd.finance?.length || 0);
+    const afterLen = (gd.students?.length || 0) + (gd.finance?.length || 0) + (gd.notices?.length || 0);
     if (beforeLen !== afterLen) {
       log('🛡️', `Trash Filter: Removed ${beforeLen - afterLen} trashed items from pulled data`);
     }
@@ -547,6 +575,15 @@
           });
         }
 
+        // ✅ FIX: activeNotice — local delete কে priority দাও
+        // যদি locally activeNotice মুছে ফেলা হয়ে থাকে, cloud এর পুরনো notice ফিরে আসবে না
+        const localActiveNotice = gd.settings?.activeNotice;
+        const localNoticeCache = localStorage.getItem('wingsfly_notice_board');
+        if (!localActiveNotice && !localNoticeCache) {
+          // Locally notice deleted — cloud notice কে ignore করো
+          delete mergedSettings.activeNotice;
+        }
+
         const usersBackup = (() => {
           try { return JSON.parse(localStorage.getItem('wingsfly_users_backup') || 'null'); } catch (e) { return null; }
         })();
@@ -572,8 +609,23 @@
           examRegistrations: data.exam_registrations || [],
           visitors: data.visitors || [],
           employeeRoles: data.employee_roles || [],
-          deletedItems: data.deleted_items || gd.deletedItems || [],
-          activityHistory: data.activity_history || gd.activityHistory || [],
+          // ✅ MERGE: Local trash ও Cloud trash এক করো যাতে pull এ local delete না মুছে যায়
+          deletedItems: (() => {
+            const local = gd.deletedItems || [];
+            const cloud = data.deleted_items || [];
+            const map = new Map();
+            cloud.forEach(item => { if (item && item.id) map.set(item.id, item); });
+            local.forEach(item => { if (item && item.id) map.set(item.id, item); });
+            return Array.from(map.values()).sort((a, b) => new Date(b.deletedAt) - new Date(a.deletedAt)).slice(0, 300);
+          })(),
+          activityHistory: (() => {
+            const local = gd.activityHistory || [];
+            const cloud = data.activity_history || [];
+            const map = new Map();
+            cloud.forEach(item => { if (item && item.id) map.set(item.id, item); });
+            local.forEach(item => { if (item && item.id) map.set(item.id, item); });
+            return Array.from(map.values()).sort((a, b) => new Date(b.timestamp) - new Date(a.timestamp)).slice(0, 500);
+          })(),
           keepRecords: data.keep_records || [],
           loans: data.loans || [],
           idCards: data.id_cards || [],
