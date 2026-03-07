@@ -230,19 +230,8 @@
   });
 };
 
-// 5. Attendance
-window.openAttendanceModal = function () {
-  loadAndOpen('__modalPlaceholderOther', 'sections/modals-other.html', 'attendanceModal', function () {
-    if (typeof window.populateDropdowns === 'function') {
-      setTimeout(window.populateDropdowns, 100);
-    }
-    // ✅ Re-attach listener
-    const am = document.getElementById('attendanceModal');
-    if (am && typeof window.populateDropdowns === 'function') {
-      am.addEventListener('show.bs.modal', window.populateDropdowns);
-    }
-  });
-};
+// 5. Attendance — handled by attendance-pro.js (AttendanceHub)
+// openAttendanceModal is defined in attendance-pro.js, do not override here
 
 // 7. Visitor
 window.openVisitorModal = function () {
