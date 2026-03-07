@@ -791,7 +791,7 @@ function calcDue() {
 
 // Student form handler
 async function handleStudentSubmit(e) {
-  e.preventDefault();
+  if (e && typeof e.preventDefault === 'function') e.preventDefault();
 
   const form = document.getElementById('studentForm');
   const formData = new FormData(form);
