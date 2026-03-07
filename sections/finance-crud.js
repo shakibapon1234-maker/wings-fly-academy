@@ -54,9 +54,9 @@ function openStudentPaymentModal(rowIndex) {
   const totalDueEl = document.getElementById('pmtTotalDue');
 
   if (!totalFeeEl || !totalPaidEl || !totalDueEl) {
-    // Try lazy-load via section-loader if available
-    if (typeof window.loadAndOpen === 'function') {
-      window.loadAndOpen(
+    // Try lazy-load via Section Loader if available
+    if (window.sectionLoader && typeof window.sectionLoader.loadAndOpen === 'function') {
+      window.sectionLoader.loadAndOpen(
         '__modalPlaceholderOther',
         'sections/modals-student.html',
         'studentPaymentModal',
@@ -65,8 +65,7 @@ function openStudentPaymentModal(rowIndex) {
       return;
     }
 
-    console.warn('[FinanceCRUD] studentPaymentModal elements missing in DOM. Check that sections/modals-student.html is included.');
-    alert('Payment modal not loaded properly. Please refresh the page.');
+    console.warn('[FinanceCRUD] studentPaymentModal elements missing in DOM, and SectionLoader not available.');
     return;
   }
 
