@@ -176,10 +176,10 @@
       loadAndOpen('__modalPlaceholderOther', 'sections/modals-other.html', 'attendanceModal');
     };
 
-    // 6. Notice
-    window.openNoticeModal = function () {
-      loadAndOpen('__modalPlaceholderOther', 'sections/modals-other.html', 'noticeModal');
-    };
+    // 6. Notice (Disabled lazy-load because it is in index.html and handled by notice-board.js)
+    // window.openNoticeModal = function () {
+    //   loadAndOpen('__modalPlaceholderOther', 'sections/modals-other.html', 'noticeModal');
+    // };
   }
 
   function init() {

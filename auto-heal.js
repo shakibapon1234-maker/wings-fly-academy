@@ -78,13 +78,46 @@
   // TOAST (অ্যাপের নিজের toast use করবে)
   // ============================================
   function healToast(msg, type = 'info') {
-    if (type === 'fix' && typeof window.showSuccessToast === 'function') {
-      window.showSuccessToast('🔧 Auto-Heal: ' + msg);
-    } else if (type === 'warn' && typeof window.showErrorToast === 'function') {
-      window.showErrorToast('⚠️ Auto-Heal: ' + msg);
-    } else {
-      console.log('[AutoHeal Toast]', msg);
-    }
+    // Mini-toast for auto-heal to avoid blocking UI
+    const toast = document.createElement('div');
+    const color = type === 'fix' ? '#00ff88' : (type === 'warn' ? '#ff2366' : '#00d9ff');
+    const icon = type === 'fix' ? '🔧' : (type === 'warn' ? '⚠️' : 'ℹ️');
+
+    toast.style.cssText = `
+      position: fixed;
+      bottom: 25px;
+      right: 25px;
+      background: rgba(10, 14, 37, 0.9);
+      color: ${color};
+      border: 1px solid ${color};
+      padding: 6px 12px;
+      border-radius: 6px;
+      font-size: 0.75rem;
+      font-weight: 600;
+      z-index: 10000;
+      display: flex;
+      align-items: center;
+      gap: 8px;
+      box-shadow: 0 4px 15px rgba(0,0,0,0.5), 0 0 10px ${color}44;
+      pointer-events: none;
+      transform: translateY(20px);
+      opacity: 0;
+      transition: all 0.3s cubic-bezier(0.175, 0.885, 0.32, 1.275);
+    `;
+    toast.innerHTML = `<span>${icon}</span> <span>${msg}</span>`;
+    document.body.appendChild(toast);
+
+    // Animation
+    requestAnimationFrame(() => {
+      toast.style.transform = 'translateY(0)';
+      toast.style.opacity = '1';
+    });
+
+    setTimeout(() => {
+      toast.style.transform = 'translateY(-10px)';
+      toast.style.opacity = '0';
+      setTimeout(() => toast.remove(), 300);
+    }, 2500);
   }
 
   // ============================================
@@ -112,7 +145,7 @@
 
     if (fixed > 0) {
       localStorage.setItem('wingsfly_data', JSON.stringify(data));
-      healToast(`${fixed} জন student-এর due auto-fix হয়েছে`, 'fix');
+      healToast(`${fixed} student dues fixed`, 'fix');
     }
     return fixed;
   }
@@ -148,7 +181,7 @@
     if (removed > 0) {
       data.finance = cleaned;
       localStorage.setItem('wingsfly_data', JSON.stringify(data));
-      healToast(`${removed}টি duplicate transaction auto-remove হয়েছে`, 'fix');
+      healToast(`${removed} dupe txns removed`, 'fix');
     }
     return removed;
   }
@@ -166,7 +199,7 @@
       hLog('fix', `Cash balance was invalid (${data.cashBalance}) → 0 সেট করা হয়েছে`);
       data.cashBalance = 0;
       localStorage.setItem('wingsfly_data', JSON.stringify(data));
-      healToast('Cash balance invalid ছিল, 0 সেট করা হয়েছে', 'warn');
+      healToast('Cash balance reset', 'warn');
       fixed++;
     }
 
@@ -218,7 +251,7 @@
     if (removed > 0) {
       data.students = toKeep;
       localStorage.setItem('wingsfly_data', JSON.stringify(data));
-      healToast(`${removed}জন duplicate student auto-remove হয়েছে`, 'fix');
+      healToast(`${removed} dupe students removed`, 'fix');
     }
     return removed;
   }
@@ -266,7 +299,7 @@
 
     if (fixed > 0) {
       localStorage.setItem('wingsfly_data', JSON.stringify(data));
-      healToast(`${fixed}টি employee/bank data fix হয়েছে`, 'fix');
+      healToast(`${fixed} data errors fixed`, 'fix');
     }
     return fixed;
   }
@@ -353,7 +386,7 @@
         localStorage.setItem('wingsfly_data', JSON.stringify(data));
         hLog('fix', `Cash balance manual recalculate: ৳${calcCash.toFixed(0)}`);
       }
-      healToast(`Cash balance auto-recalculate হয়েছে: ৳${calcCash.toFixed(0)}`, 'fix');
+      healToast(`Cash re-synced: ৳${calcCash.toFixed(0)}`, 'fix');
       return 1;
     } else if (gap > 1) {
       hLog('info', `Cash balance minor gap: ৳${gap.toFixed(0)} — monitor করা হচ্ছে`);
@@ -406,7 +439,7 @@
         hLog('warn', `Overpaid: "${s.name}" ৳${paid} paid / ৳${total} total`);
       }
     });
-    if (overpaid > 0) healToast(`${overpaid}জন student overpaid — accounts check করুন`, 'warn');
+    if (overpaid > 0) healToast(`${overpaid} overpaid students`, 'warn');
     return 0;
   }
 
@@ -474,7 +507,7 @@
 
     if (fixed > 0) {
       localStorage.setItem('wingsfly_data', JSON.stringify(data));
-      healToast(`${fixed} জন student-এর payment mismatch fix করা হয়েছে।`, 'fix');
+      healToast(`${fixed} payments synced`, 'fix');
       if (typeof window.updatePaidFinanceStatusBadge === 'function') window.updatePaidFinanceStatusBadge();
 
       // Sync

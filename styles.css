@@ -6,10 +6,11 @@
 /* Custom Toast System - Neon Style */
 .custom-toast {
   position: fixed;
-  top: 20px;
+  bottom: 20px;
   right: 20px;
-  padding: 12px 24px;
-  border-radius: 12px;
+  padding: 8px 16px;
+  border-radius: 8px;
+  font-size: 0.85rem;
   color: white;
   font-weight: 700;
   z-index: 9999;
