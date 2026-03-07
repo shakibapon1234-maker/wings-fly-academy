@@ -1239,7 +1239,8 @@
                         <span id="sidebarNoticeActiveDot"
                             style="display:none; width:8px; height:8px; background:#22c55e; border-radius:50%; margin-left:auto; animation: noticePulse 1s infinite;"></span>
                     </button>
-                    <button type="button" class="nav-item-link" id="tabSettings" onclick="openSettingsModal(); return false;">
+                    <button type="button" class="nav-item-link" id="tabSettings"
+                        onclick="openSettingsModal(); return false;">
                         <span class="nav-icon"><i class="bi bi-gear-fill"></i></span>
                         <span class="nav-text">Settings</span>
                     </button>
@@ -3071,7 +3072,7 @@
     <script src="sections/finance-helpers.js?v=20260226_1600"></script>
     <script src="sections/accounts-ui.js?v=20260226_1500"></script>
     <!-- Phase 3: Student Module -->
-    <script src="sections/student-management.js?v=20260226_1500"></script>
+    <script src="sections/student-management.js?v=20260307_2135"></script>
     <!-- Phase 4: Dashboard, Accounts, Search, Keep Records -->
     <script src="sections/dashboard-stats.js?v=20260226_1800"></script>
     <script src="sections/accounts-management.js?v=20260307_1130"></script>
@@ -3116,247 +3117,269 @@
 
     <!-- ✅ STUDENT MODAL HTML — Inline, no fetch needed -->
     <div id="studentModalInline">
-      <!-- Add/Edit Student Modal -->
-      <div class="modal fade" id="studentModal" tabindex="-1" aria-labelledby="studentModalLabel" aria-hidden="true">
-        <div class="modal-dialog modal-lg modal-dialog-centered modal-dialog-scrollable">
-          <div class="modal-content custom-modal">
-            <div class="modal-header border-bottom">
-              <h5 class="modal-title fw-bold" id="studentModalLabel">👨‍🎓 Add New Student</h5>
-              <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
+        <!-- Add/Edit Student Modal -->
+        <div class="modal fade" id="studentModal" tabindex="-1" aria-labelledby="studentModalLabel" aria-hidden="true">
+            <div class="modal-dialog modal-lg modal-dialog-centered modal-dialog-scrollable">
+                <div class="modal-content custom-modal">
+                    <div class="modal-header border-bottom">
+                        <h5 class="modal-title fw-bold" id="studentModalLabel">👨‍🎓 Add New Student</h5>
+                        <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
+                    </div>
+                    <div class="modal-body">
+                        <form id="studentForm" onsubmit="event.preventDefault(); handleStudentSubmit(event);">
+                            <input type="hidden" name="studentRowIndex" id="studentRowIndex">
+                            <input type="hidden" name="photoURL" id="photoURLInput">
+                            <div class="row g-3 mb-3">
+                                <div class="col-md-6">
+                                    <label class="form-label">Student Name <span class="text-danger">*</span></label>
+                                    <input type="text" class="form-control" name="name" id="studentName"
+                                        placeholder="Full Name" required>
+                                </div>
+                                <div class="col-md-6">
+                                    <label class="form-label">Phone <span class="text-danger">*</span></label>
+                                    <input type="tel" class="form-control" name="phone" id="studentPhone"
+                                        placeholder="01XXXXXXXXX" required>
+                                </div>
+                            </div>
+                            <div class="row g-3 mb-3">
+                                <div class="col-md-6">
+                                    <label class="form-label">Father's Name</label>
+                                    <input type="text" class="form-control" name="fatherName" id="studentFatherName"
+                                        placeholder="Father's Name">
+                                </div>
+                                <div class="col-md-6">
+                                    <label class="form-label">Mother's Name</label>
+                                    <input type="text" class="form-control" name="motherName" id="studentMotherName"
+                                        placeholder="Mother's Name">
+                                </div>
+                            </div>
+                            <div class="row g-3 mb-3">
+                                <div class="col-md-6">
+                                    <label class="form-label">Course <span class="text-danger">*</span></label>
+                                    <select class="form-select" name="course" id="studentCourseSelect" required>
+                                        <option value="">-- Select Course --</option>
+                                    </select>
+                                </div>
+                                <div class="col-md-6">
+                                    <label class="form-label">Batch <span class="text-danger">*</span></label>
+                                    <input type="text" class="form-control" name="batch" id="studentBatchInput"
+                                        placeholder="e.g. Batch-12" required>
+                                </div>
+                            </div>
+                            <div class="row g-3 mb-3">
+                                <div class="col-md-6">
+                                    <label class="form-label">Enrollment Date</label>
+                                    <input type="date" class="form-control" name="enrollDate" id="studentEnrollDate">
+                                </div>
+                                <div class="col-md-6">
+                                    <label class="form-label">Blood Group</label>
+                                    <select class="form-select" name="bloodGroup" id="studentBloodGroup">
+                                        <option value="">-- Select --</option>
+                                        <option>A+</option>
+                                        <option>A-</option>
+                                        <option>B+</option>
+                                        <option>B-</option>
+                                        <option>AB+</option>
+                                        <option>AB-</option>
+                                        <option>O+</option>
+                                        <option>O-</option>
+                                    </select>
+                                </div>
+                            </div>
+                            <div class="row g-3 mb-3">
+                                <div class="col-md-4">
+                                    <label class="form-label">Total Fee (৳)</label>
+                                    <input type="number" class="form-control" name="totalPayment" id="inpTotal"
+                                        placeholder="0" min="0" oninput="calcDue()">
+                                </div>
+                                <div class="col-md-4">
+                                    <label class="form-label">Paid (৳)</label>
+                                    <input type="number" class="form-control" name="payment" id="inpPaid"
+                                        placeholder="0" min="0" oninput="calcDue()">
+                                </div>
+                                <div class="col-md-4">
+                                    <label class="form-label">Due (৳)</label>
+                                    <input type="number" class="form-control" name="due" id="inpDue" placeholder="0"
+                                        readonly>
+                                </div>
+                            </div>
+                            <div class="row g-3 mb-3">
+                                <div class="col-md-6">
+                                    <label class="form-label">Payment Method <span class="text-danger">*</span></label>
+                                    <select class="form-select" name="method" id="studentMethodSelect" required
+                                        onchange="if(typeof showMethodBalance==='function') showMethodBalance('studentMethodSelect')">
+                                        <option value="">-- Select Method --</option>
+                                    </select>
+                                </div>
+                                <div class="col-md-6">
+                                    <label class="form-label">Reminder Date</label>
+                                    <input type="date" class="form-control" name="reminderDate"
+                                        id="studentReminderDate">
+                                </div>
+                            </div>
+                            <div class="mb-3">
+                                <label class="form-label">Remarks / Notes</label>
+                                <textarea class="form-control" name="remarks" id="studentRemarks" rows="2"
+                                    placeholder="Any notes..."></textarea>
+                            </div>
+                            <div class="mb-3">
+                                <label class="form-label">Student Photo</label>
+                                <div style="border:2px dashed rgba(0,217,255,0.4);border-radius:8px;padding:12px;text-align:center;cursor:pointer"
+                                    onclick="document.getElementById('studentPhotoInput').click()">
+                                    <p class="text-muted mb-1" id="photoUploadText">📷 Click to upload photo</p>
+                                    <img id="studentPhotoPreview" src="" alt=""
+                                        style="display:none;max-height:100px;border-radius:8px;margin-top:8px">
+                                </div>
+                                <input type="file" id="studentPhotoInput" accept="image/*" style="display:none"
+                                    onchange="previewStudentPhoto(this)">
+                                <button type="button" class="btn btn-sm btn-outline-danger mt-2" id="removePhotoBtn"
+                                    style="display:none" onclick="removeStudentPhoto()">❌ Remove Photo</button>
+                            </div>
+                        </form>
+                    </div>
+                    <div class="modal-footer border-top">
+                        <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Cancel</button>
+                        <button type="button" class="btn btn-primary fw-bold px-4"
+                            onclick="handleStudentSubmit({preventDefault:function(){}})">💾 Save Student</button>
+                    </div>
+                </div>
             </div>
-            <div class="modal-body">
-              <form id="studentForm" onsubmit="event.preventDefault(); handleStudentSubmit(event);">
-                <input type="hidden" name="studentRowIndex" id="studentRowIndex">
-                <input type="hidden" name="photoURL" id="photoURLInput">
-                <div class="row g-3 mb-3">
-                  <div class="col-md-6">
-                    <label class="form-label">Student Name <span class="text-danger">*</span></label>
-                    <input type="text" class="form-control" name="name" id="studentName" placeholder="Full Name" required>
-                  </div>
-                  <div class="col-md-6">
-                    <label class="form-label">Phone <span class="text-danger">*</span></label>
-                    <input type="tel" class="form-control" name="phone" id="studentPhone" placeholder="01XXXXXXXXX" required>
-                  </div>
-                </div>
-                <div class="row g-3 mb-3">
-                  <div class="col-md-6">
-                    <label class="form-label">Father's Name</label>
-                    <input type="text" class="form-control" name="fatherName" id="studentFatherName" placeholder="Father's Name">
-                  </div>
-                  <div class="col-md-6">
-                    <label class="form-label">Mother's Name</label>
-                    <input type="text" class="form-control" name="motherName" id="studentMotherName" placeholder="Mother's Name">
-                  </div>
-                </div>
-                <div class="row g-3 mb-3">
-                  <div class="col-md-6">
-                    <label class="form-label">Course <span class="text-danger">*</span></label>
-                    <select class="form-select" name="course" id="studentCourseSelect" required>
-                      <option value="">-- Select Course --</option>
-                    </select>
-                  </div>
-                  <div class="col-md-6">
-                    <label class="form-label">Batch <span class="text-danger">*</span></label>
-                    <input type="text" class="form-control" name="batch" id="studentBatchInput" placeholder="e.g. Batch-12" required>
-                  </div>
-                </div>
-                <div class="row g-3 mb-3">
-                  <div class="col-md-6">
-                    <label class="form-label">Enrollment Date</label>
-                    <input type="date" class="form-control" name="enrollDate" id="studentEnrollDate">
-                  </div>
-                  <div class="col-md-6">
-                    <label class="form-label">Blood Group</label>
-                    <select class="form-select" name="bloodGroup" id="studentBloodGroup">
-                      <option value="">-- Select --</option>
-                      <option>A+</option><option>A-</option><option>B+</option><option>B-</option>
-                      <option>AB+</option><option>AB-</option><option>O+</option><option>O-</option>
-                    </select>
-                  </div>
-                </div>
-                <div class="row g-3 mb-3">
-                  <div class="col-md-4">
-                    <label class="form-label">Total Fee (৳)</label>
-                    <input type="number" class="form-control" name="totalPayment" id="inpTotal" placeholder="0" min="0" oninput="calcDue()">
-                  </div>
-                  <div class="col-md-4">
-                    <label class="form-label">Paid (৳)</label>
-                    <input type="number" class="form-control" name="payment" id="inpPaid" placeholder="0" min="0" oninput="calcDue()">
-                  </div>
-                  <div class="col-md-4">
-                    <label class="form-label">Due (৳)</label>
-                    <input type="number" class="form-control" name="due" id="inpDue" placeholder="0" readonly>
-                  </div>
-                </div>
-                <div class="row g-3 mb-3">
-                  <div class="col-md-6">
-                    <label class="form-label">Payment Method <span class="text-danger">*</span></label>
-                    <select class="form-select" name="method" id="studentMethodSelect" required onchange="if(typeof showMethodBalance==='function') showMethodBalance('studentMethodSelect')">
-                      <option value="">-- Select Method --</option>
-                    </select>
-                  </div>
-                  <div class="col-md-6">
-                    <label class="form-label">Reminder Date</label>
-                    <input type="date" class="form-control" name="reminderDate" id="studentReminderDate">
-                  </div>
-                </div>
-                <div class="mb-3">
-                  <label class="form-label">Remarks / Notes</label>
-                  <textarea class="form-control" name="remarks" id="studentRemarks" rows="2" placeholder="Any notes..."></textarea>
-                </div>
-                <div class="mb-3">
-                  <label class="form-label">Student Photo</label>
-                  <div style="border:2px dashed rgba(0,217,255,0.4);border-radius:8px;padding:12px;text-align:center;cursor:pointer" onclick="document.getElementById('studentPhotoInput').click()">
-                    <p class="text-muted mb-1" id="photoUploadText">📷 Click to upload photo</p>
-                    <img id="studentPhotoPreview" src="" alt="" style="display:none;max-height:100px;border-radius:8px;margin-top:8px">
-                  </div>
-                  <input type="file" id="studentPhotoInput" accept="image/*" style="display:none" onchange="previewStudentPhoto(this)">
-                  <button type="button" class="btn btn-sm btn-outline-danger mt-2" id="removePhotoBtn" style="display:none" onclick="removeStudentPhoto()">❌ Remove Photo</button>
-                </div>
-              </form>
-            </div>
-            <div class="modal-footer border-top">
-              <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Cancel</button>
-              <button type="button" class="btn btn-primary fw-bold px-4" onclick="handleStudentSubmit({preventDefault:function(){}})">💾 Save Student</button>
-            </div>
-          </div>
         </div>
-      </div>
 
-      <!-- Student Actions Modal -->
-      <div class="modal fade" id="actionsModal" tabindex="-1">
-        <div class="modal-dialog modal-dialog-centered" style="max-width:340px">
-          <div class="modal-content custom-modal">
-            <div class="modal-header border-bottom">
-              <h6 class="modal-title fw-bold">⚡ Student Actions</h6>
-              <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
+        <!-- Student Actions Modal -->
+        <div class="modal fade" id="actionsModal" tabindex="-1">
+            <div class="modal-dialog modal-dialog-centered" style="max-width:340px">
+                <div class="modal-content custom-modal">
+                    <div class="modal-header border-bottom">
+                        <h6 class="modal-title fw-bold">⚡ Student Actions</h6>
+                        <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
+                    </div>
+                    <div class="modal-body" id="actionsModalBody"></div>
+                </div>
             </div>
-            <div class="modal-body" id="actionsModalBody"></div>
-          </div>
         </div>
-      </div>
 
-      <!-- Student Profile Modal -->
-      <div class="modal fade" id="studentProfileModal" tabindex="-1">
-        <div class="modal-dialog modal-lg modal-dialog-centered modal-dialog-scrollable">
-          <div class="modal-content custom-modal">
-            <div class="modal-header border-bottom">
-              <h5 class="modal-title fw-bold">👤 Student Profile</h5>
-              <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
+        <!-- Student Profile Modal -->
+        <div class="modal fade" id="studentProfileModal" tabindex="-1">
+            <div class="modal-dialog modal-lg modal-dialog-centered modal-dialog-scrollable">
+                <div class="modal-content custom-modal">
+                    <div class="modal-header border-bottom">
+                        <h5 class="modal-title fw-bold">👤 Student Profile</h5>
+                        <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
+                    </div>
+                    <div class="modal-body" id="studentProfileContent"></div>
+                </div>
             </div>
-            <div class="modal-body" id="studentProfileContent"></div>
-          </div>
         </div>
-      </div>
     </div>
 
     <!-- ✅ STUDENT MODAL FIX SCRIPT — runs after Bootstrap & all JS loaded -->
     <script>
-    (function () {
-      function _populateStudentDropdowns() {
-        var gd = window.globalData;
-        if (!gd) return;
-        var cs = document.getElementById('studentCourseSelect');
-        if (cs) {
-          var cv = cs.value;
-          cs.innerHTML = '<option value="">-- Select Course --</option>';
-          (gd.courseNames || []).forEach(function (c) { cs.innerHTML += '<option value="' + c + '">' + c + '</option>'; });
-          if (cv) cs.value = cv;
-        }
-        var ms = document.getElementById('studentMethodSelect');
-        if (ms) {
-          var mv = ms.value;
-          ms.innerHTML = '<option value="">-- Select Method --</option>';
-          (gd.paymentMethods || ['Cash', 'Bkash', 'Nagad', 'Bank']).forEach(function (m) { ms.innerHTML += '<option value="' + m + '">' + m + '</option>'; });
-          if (mv) ms.value = mv;
-        }
-      }
+        (function () {
+            function _populateStudentDropdowns() {
+                var gd = window.globalData;
+                if (!gd) return;
+                var cs = document.getElementById('studentCourseSelect');
+                if (cs) {
+                    var cv = cs.value;
+                    cs.innerHTML = '<option value="">-- Select Course --</option>';
+                    (gd.courseNames || []).forEach(function (c) { cs.innerHTML += '<option value="' + c + '">' + c + '</option>'; });
+                    if (cv) cs.value = cv;
+                }
+                var ms = document.getElementById('studentMethodSelect');
+                if (ms) {
+                    var mv = ms.value;
+                    ms.innerHTML = '<option value="">-- Select Method --</option>';
+                    (gd.paymentMethods || ['Cash', 'Bkash', 'Nagad', 'Bank']).forEach(function (m) { ms.innerHTML += '<option value="' + m + '">' + m + '</option>'; });
+                    if (mv) ms.value = mv;
+                }
+            }
 
-      window.calcDue = function () {
-        var t = parseFloat(document.getElementById('inpTotal') && document.getElementById('inpTotal').value) || 0;
-        var p = parseFloat(document.getElementById('inpPaid') && document.getElementById('inpPaid').value) || 0;
-        var d = document.getElementById('inpDue');
-        if (d) d.value = Math.max(0, t - p);
-      };
+            window.calcDue = function () {
+                var t = parseFloat(document.getElementById('inpTotal') && document.getElementById('inpTotal').value) || 0;
+                var p = parseFloat(document.getElementById('inpPaid') && document.getElementById('inpPaid').value) || 0;
+                var d = document.getElementById('inpDue');
+                if (d) d.value = Math.max(0, t - p);
+            };
 
-      window.previewStudentPhoto = function (input) {
-        if (!input.files || !input.files[0]) return;
-        window.selectedStudentPhotoFile = input.files[0];
-        var reader = new FileReader();
-        reader.onload = function (e) {
-          var prev = document.getElementById('studentPhotoPreview');
-          var btn = document.getElementById('removePhotoBtn');
-          if (prev) { prev.src = e.target.result; prev.style.display = 'block'; }
-          if (btn) btn.style.display = 'inline-block';
-        };
-        reader.readAsDataURL(input.files[0]);
-      };
+            window.previewStudentPhoto = function (input) {
+                if (!input.files || !input.files[0]) return;
+                window.selectedStudentPhotoFile = input.files[0];
+                var reader = new FileReader();
+                reader.onload = function (e) {
+                    var prev = document.getElementById('studentPhotoPreview');
+                    var btn = document.getElementById('removePhotoBtn');
+                    if (prev) { prev.src = e.target.result; prev.style.display = 'block'; }
+                    if (btn) btn.style.display = 'inline-block';
+                };
+                reader.readAsDataURL(input.files[0]);
+            };
 
-      window.removeStudentPhoto = function () {
-        window.selectedStudentPhotoFile = null;
-        var prev = document.getElementById('studentPhotoPreview');
-        var btn = document.getElementById('removePhotoBtn');
-        var inp = document.getElementById('studentPhotoInput');
-        var pu = document.getElementById('photoURLInput');
-        if (prev) { prev.src = ''; prev.style.display = 'none'; }
-        if (btn) btn.style.display = 'none';
-        if (inp) inp.value = '';
-        if (pu) pu.value = '';
-      };
+            window.removeStudentPhoto = function () {
+                window.selectedStudentPhotoFile = null;
+                var prev = document.getElementById('studentPhotoPreview');
+                var btn = document.getElementById('removePhotoBtn');
+                var inp = document.getElementById('studentPhotoInput');
+                var pu = document.getElementById('photoURLInput');
+                if (prev) { prev.src = ''; prev.style.display = 'none'; }
+                if (btn) btn.style.display = 'none';
+                if (inp) inp.value = '';
+                if (pu) pu.value = '';
+            };
 
-      window.openStudentModal = function () {
-        var modal = document.getElementById('studentModal');
-        if (!modal) { alert('Error: studentModal not found!'); return; }
-        var form = document.getElementById('studentForm');
-        if (form) form.reset();
-        var ri = document.getElementById('studentRowIndex');
-        if (ri) ri.value = '';
-        var title = document.getElementById('studentModalLabel');
-        if (title) title.textContent = '👨‍🎓 Add New Student';
-        var ed = document.getElementById('studentEnrollDate');
-        if (ed) ed.value = new Date().toISOString().split('T')[0];
-        window.removeStudentPhoto();
-        // ✅ Populate BEFORE showing — synchronous
-        _populateStudentDropdowns();
-        bootstrap.Modal.getOrCreateInstance(modal).show();
-      };
+            window.openStudentModal = function () {
+                var modal = document.getElementById('studentModal');
+                if (!modal) { alert('Error: studentModal not found!'); return; }
+                var form = document.getElementById('studentForm');
+                if (form) form.reset();
+                var ri = document.getElementById('studentRowIndex');
+                if (ri) ri.value = '';
+                var title = document.getElementById('studentModalLabel');
+                if (title) title.textContent = '👨‍🎓 Add New Student';
+                var ed = document.getElementById('studentEnrollDate');
+                if (ed) ed.value = new Date().toISOString().split('T')[0];
+                window.removeStudentPhoto();
+                // ✅ Populate BEFORE showing — synchronous
+                _populateStudentDropdowns();
+                bootstrap.Modal.getOrCreateInstance(modal).show();
+            };
 
-      window.openEditStudentModal = function (index) {
-        var modal = document.getElementById('studentModal');
-        if (!modal) return;
-        var s = window.globalData && window.globalData.students && window.globalData.students[index];
-        if (!s) return;
-        var form = document.getElementById('studentForm');
-        if (!form) return;
-        form.reset();
-        var set = function (id, val) { var el = document.getElementById(id); if (el && val != null) el.value = val; };
-        set('studentRowIndex', index);
-        set('studentName', s.name); set('studentPhone', s.phone);
-        set('studentFatherName', s.fatherName); set('studentMotherName', s.motherName);
-        set('studentBatchInput', s.batch); set('studentEnrollDate', s.enrollDate);
-        set('studentBloodGroup', s.bloodGroup); set('inpTotal', s.totalPayment);
-        set('inpPaid', s.paid); set('inpDue', s.due);
-        set('studentReminderDate', s.reminderDate); set('studentRemarks', s.remarks);
-        set('photoURLInput', s.photo || '');
-        _populateStudentDropdowns();
-        set('studentCourseSelect', s.course);
-        set('studentMethodSelect', s.method);
-        var title = document.getElementById('studentModalLabel');
-        if (title) title.textContent = '✏️ Edit — ' + (s.name || '');
-        if (s.photo) {
-          var prev = document.getElementById('studentPhotoPreview');
-          var btn = document.getElementById('removePhotoBtn');
-          if (prev) { prev.src = s.photo; prev.style.display = 'block'; }
-          if (btn) btn.style.display = 'inline-block';
-        }
-        bootstrap.Modal.getOrCreateInstance(modal).show();
-      };
+            window.openEditStudentModal = function (index) {
+                var modal = document.getElementById('studentModal');
+                if (!modal) return;
+                var s = window.globalData && window.globalData.students && window.globalData.students[index];
+                if (!s) return;
+                var form = document.getElementById('studentForm');
+                if (!form) return;
+                form.reset();
+                var set = function (id, val) { var el = document.getElementById(id); if (el && val != null) el.value = val; };
+                set('studentRowIndex', index);
+                set('studentName', s.name); set('studentPhone', s.phone);
+                set('studentFatherName', s.fatherName); set('studentMotherName', s.motherName);
+                set('studentBatchInput', s.batch); set('studentEnrollDate', s.enrollDate);
+                set('studentBloodGroup', s.bloodGroup); set('inpTotal', s.totalPayment);
+                set('inpPaid', s.paid); set('inpDue', s.due);
+                set('studentReminderDate', s.reminderDate); set('studentRemarks', s.remarks);
+                set('photoURLInput', s.photo || '');
+                _populateStudentDropdowns();
+                set('studentCourseSelect', s.course);
+                set('studentMethodSelect', s.method);
+                var title = document.getElementById('studentModalLabel');
+                if (title) title.textContent = '✏️ Edit — ' + (s.name || '');
+                if (s.photo) {
+                    var prev = document.getElementById('studentPhotoPreview');
+                    var btn = document.getElementById('removePhotoBtn');
+                    if (prev) { prev.src = s.photo; prev.style.display = 'block'; }
+                    if (btn) btn.style.display = 'inline-block';
+                }
+                bootstrap.Modal.getOrCreateInstance(modal).show();
+            };
 
-      // Mark studentModal as already loaded for section-loader
-      if (window.sectionLoader) window.sectionLoader._loaded && window.sectionLoader._loaded.add('studentModal');
+            // Mark studentModal as already loaded for section-loader
+            if (window.sectionLoader) window.sectionLoader._loaded && window.sectionLoader._loaded.add('studentModal');
 
-      console.log('✅ Wings Fly — openStudentModal patched successfully');
-    })();
+            console.log('✅ Wings Fly — openStudentModal patched successfully');
+        })();
     </script>
 
 </body>

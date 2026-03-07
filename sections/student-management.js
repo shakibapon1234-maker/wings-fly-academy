@@ -1193,33 +1193,66 @@ function openStudentProfile(rowIndex) {
 // ===================================
 
 function ensureStudentIds() {
+  let modified = false;
+  if (!globalData.deletedItems) globalData.deletedItems = [];
+
   globalData.students.forEach((s, index) => {
     // If ID is missing OR doesn't contain the batch number correctly, regenerate it
     // (This ensures existing students are synced with their batch numbers)
-    const batchNum = s.batch ? s.batch.toString().replace(/[^0-9]/g, '') : '';
+    const batchNum = s.batch ? s.batch.toString().replace(/[^0-9]/g, '') : '00';
     const needsUpdate = !s.studentId || (batchNum && !s.studentId.includes(batchNum));
 
     if (needsUpdate) {
-      // For migration, we use a simple serial based on position in the filtered list
-      const batchStudentsSoFar = globalData.students.slice(0, index).filter(prev => {
-        const pBatch = prev.batch ? prev.batch.toString().replace(/[^0-9]/g, '') : '';
-        return pBatch === batchNum;
-      });
-      const serial = batchStudentsSoFar.length + 1;
-      s.studentId = `WF-${batchNum}${serial.toString().padStart(3, '0')}`;
+      let serial = 1;
+      let newId = `WF-${batchNum}${serial.toString().padStart(3, '0')}`;
+
+      // ✅ FIX: Ensure generated ID is strictly unique across both active and deleted items
+      const isIdExists = (id) => {
+        // Check active students assigned before this one
+        const inActive = globalData.students.slice(0, index).some(st => st.studentId === id);
+        // Check trash bin
+        const inDeleted = globalData.deletedItems.some(d => d.item && d.item.studentId === id);
+        return inActive || inDeleted;
+      };
+
+      while (isIdExists(newId)) {
+        serial++;
+        newId = `WF-${batchNum}${serial.toString().padStart(3, '0')}`;
+      }
+
+      s.studentId = newId;
+      modified = true;
     }
   });
-  saveToStorage();
+
+  if (modified) saveToStorage();
 }
 
 function generateStudentId(batchName) {
   const batchNum = batchName ? batchName.toString().replace(/[^0-9]/g, '') : '00';
-  const batchStudents = globalData.students.filter(s => {
-    const sBatch = s.batch ? s.batch.toString().replace(/[^0-9]/g, '') : '00';
-    return sBatch === batchNum;
-  });
-  const serial = batchStudents.length + 1;
-  return `WF-${batchNum}${serial.toString().padStart(3, '0')}`;
+
+  if (!globalData.deletedItems) globalData.deletedItems = [];
+
+  // Calculate total historical students for this batch to find a safe starting point
+  const activeCount = globalData.students.filter(s => s.batch && s.batch.toString().replace(/[^0-9]/g, '') === batchNum).length;
+  const deletedCount = globalData.deletedItems.filter(d => d.item && d.item.batch && d.item.batch.toString().replace(/[^0-9]/g, '') === batchNum).length;
+
+  let serial = activeCount + deletedCount + 1;
+  let newId = `WF-${batchNum}${serial.toString().padStart(3, '0')}`;
+
+  // ✅ FIX: Verify it absolutely does not collide with active or deleted students
+  const isIdExists = (id) => {
+    const inActive = globalData.students.some(s => s.studentId === id);
+    const inDeleted = globalData.deletedItems.some(d => d.item && d.item.studentId === id);
+    return inActive || inDeleted;
+  };
+
+  while (isIdExists(newId)) {
+    serial++;
+    newId = `WF-${batchNum}${serial.toString().padStart(3, '0')}`;
+  }
+
+  return newId;
 }
 
 
