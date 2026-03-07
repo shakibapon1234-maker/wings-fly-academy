@@ -844,7 +844,8 @@
       const rows = students.map((s, i) => `
         <tr style="height:38px;">
           <td style="border:1px solid #ccc;text-align:center;font-size:12px;color:#555;">${i + 1}</td>
-          <td style="border:1px solid #ccc;padding:4px 10px;font-weight:600;">${s.name}<span style="font-size:10px;color:#2c7da0;font-weight:400;margin-left:6px;">${s.course || ''}</span></td>
+          <td style="border:1px solid #ccc;padding:4px 10px;font-weight:600;">${s.name}</td>
+          <td style="border:1px solid #ccc;padding:4px 8px;font-size:10px;color:#2c7da0;white-space:nowrap;">${s.course || ''}</td>
           <td style="border:1px solid #ccc;text-align:center;font-size:11px;color:#2c7da0;">${s.studentId || ''}</td>
           <td style="border:1px solid #ccc;"></td>
         </tr>`).join('');
@@ -854,6 +855,7 @@
             <tr style="background:#1a4d6e;">
               <th style="border:1px solid #ccc;color:#fff;padding:8px;width:40px;text-align:center;">#</th>
               <th style="border:1px solid #ccc;color:#fff;padding:8px;text-align:left;">Student Name</th>
+              <th style="border:1px solid #ccc;color:#fff;padding:8px;text-align:left;white-space:nowrap;">Course</th>
               <th style="border:1px solid #ccc;color:#fff;padding:8px;text-align:center;width:90px;">ID</th>
               <th style="border:1px solid #ccc;color:#fff;padding:8px;text-align:center;min-width:200px;">Signature</th>
             </tr>
@@ -868,7 +870,8 @@
         const cells = Array.from({ length: 31 }, () =>
           `<td style="border:1px solid #dde;height:28px;"></td>`).join('');
         return `<tr><td style="border:1px solid #bcd;text-align:center;font-size:11px;color:#555;">${i + 1}</td>
-          <td style="border:1px solid #bcd;padding:3px 8px;font-weight:600;font-size:12px;">${s.name}<span style="font-size:10px;color:#2c7da0;font-weight:400;margin-left:5px;">${s.course || ''}</span></td>
+          <td style="border:1px solid #bcd;padding:3px 8px;font-weight:600;font-size:12px;">${s.name}</td>
+          <td style="border:1px solid #bcd;padding:3px 8px;font-size:10px;color:#2c7da0;white-space:nowrap;">${s.course || ''}</td>
           ${cells}</tr>`;
       }).join('');
       tableContent = `
@@ -876,6 +879,7 @@
           <thead>
             <tr><th style="border:1px solid #bcd;background:#1a4d6e;color:#fff;width:35px;text-align:center;">#</th>
             <th style="border:1px solid #bcd;background:#1a4d6e;color:#fff;text-align:left;padding:6px;min-width:160px;">Name</th>
+            <th style="border:1px solid #bcd;background:#1a4d6e;color:#fff;text-align:left;padding:6px;white-space:nowrap;">Course</th>
             ${colH}</tr>
           </thead>
           <tbody>${rows}</tbody>
@@ -889,7 +893,8 @@
           `<td style="border:1px solid #000;height:${isPortrait ? 28 : 32}px;"></td>`).join('');
         return `<tr>
           <td style="border:1px solid #000;text-align:center;font-size:${isPortrait ? 10 : 12}px;">${i + 1}</td>
-          <td style="border:1px solid #000;padding:3px 8px;font-weight:600;font-size:${isPortrait ? 11 : 13}px;font-style:italic;color:#1a4d6e;">${s.name}<span style="font-size:${isPortrait ? 9 : 10}px;color:#2c7da0;font-weight:400;font-style:normal;margin-left:6px;">${s.course || ''}</span></td>
+          <td style="border:1px solid #000;padding:3px 8px;font-weight:600;font-size:${isPortrait ? 11 : 13}px;font-style:italic;color:#1a4d6e;">${s.name}</td>
+          <td style="border:1px solid #000;padding:3px 8px;font-size:${isPortrait ? 9 : 11}px;color:#2c7da0;white-space:nowrap;">${s.course || ''}</td>
           ${cells}
         </tr>`;
       }).join('');
@@ -899,6 +904,7 @@
             <tr>
               <th style="border:1px solid #000;background:#f0f8ff;width:40px;text-align:center;font-size:${isPortrait ? 9 : 11}px;color:#1a4d6e;">SL</th>
               <th style="border:1px solid #000;background:#f0f8ff;text-align:left;padding:5px 8px;font-size:${isPortrait ? 9 : 11}px;color:#1a4d6e;">Student Name</th>
+              <th style="border:1px solid #000;background:#f0f8ff;text-align:left;padding:5px 8px;font-size:${isPortrait ? 9 : 11}px;color:#1a4d6e;white-space:nowrap;">Course</th>
               ${colH}
             </tr>
           </thead>
