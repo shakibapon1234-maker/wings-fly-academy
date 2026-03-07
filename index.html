@@ -3328,6 +3328,93 @@
     <!-- Modal Lazy Loader -->
     <script src="sections/section-loader.js?v=20260307_1130"></script>
 
+    <!-- ✅ STUDENT MODAL FIX — Override (always runs last, no fetch needed) -->
+    <script>
+    (function() {
+      function _doOpenStudentModal() {
+        var modal = document.getElementById('studentModal');
+        if (!modal) { console.error('studentModal not in DOM!'); return; }
+        var form = document.getElementById('studentForm');
+        if (form) form.reset();
+        var ri = document.getElementById('studentRowIndex');
+        if (ri) ri.value = '';
+        var title = document.getElementById('studentModalLabel');
+        if (title) title.textContent = '👨‍🎓 Add New Student';
+        // Populate course dropdown
+        var gd = window.globalData;
+        if (gd) {
+          var cs = document.getElementById('studentCourseSelect');
+          if (cs) {
+            cs.innerHTML = '<option value="">-- Select Course --</option>';
+            (gd.courseNames || []).forEach(function(c) { cs.innerHTML += '<option value="'+c+'">'+c+'</option>'; });
+          }
+          var ms = document.getElementById('studentMethodSelect');
+          if (ms) {
+            ms.innerHTML = '<option value="">-- Select Method --</option>';
+            (gd.paymentMethods || ['Cash','Bkash','Nagad','Bank']).forEach(function(m) { ms.innerHTML += '<option value="'+m+'">'+m+'</option>'; });
+          }
+        }
+        // Today's date
+        var ed = document.getElementById('studentEnrollDate');
+        if (ed && !ed.value) ed.value = new Date().toISOString().split('T')[0];
+        if (typeof window.removeStudentPhoto === 'function') window.removeStudentPhoto();
+        bootstrap.Modal.getOrCreateInstance(modal).show();
+      }
+
+      // Hard override — runs after everything
+      window.openStudentModal = _doOpenStudentModal;
+
+      // Also override openEditStudentModal
+      window.openEditStudentModal = function(index) {
+        var modal = document.getElementById('studentModal');
+        if (!modal) return;
+        var students = window.globalData && window.globalData.students;
+        if (!students || students[index] === undefined) return;
+        var s = students[index];
+        var form = document.getElementById('studentForm');
+        if (form) {
+          form.reset();
+          var ri = document.getElementById('studentRowIndex');
+          if (ri) ri.value = index;
+          var title = document.getElementById('studentModalLabel');
+          if (title) title.textContent = '✏️ Edit — ' + (s.name || '');
+          var set = function(id, val) { var el = document.getElementById(id); if (el && val != null) el.value = val; };
+          set('studentName', s.name); set('studentPhone', s.phone);
+          set('studentFatherName', s.fatherName); set('studentMotherName', s.motherName);
+          set('studentBatchInput', s.batch); set('studentEnrollDate', s.enrollDate);
+          set('studentBloodGroup', s.bloodGroup); set('inpTotal', s.totalPayment);
+          set('inpPaid', s.paid); set('inpDue', s.due);
+          set('studentReminderDate', s.reminderDate); set('studentRemarks', s.remarks);
+          var photoIn = document.getElementById('photoURLInput');
+          if (photoIn) photoIn.value = s.photo || '';
+          // Populate dropdowns then set values
+          var gd = window.globalData;
+          var cs = document.getElementById('studentCourseSelect');
+          if (cs && gd) {
+            cs.innerHTML = '<option value="">-- Select Course --</option>';
+            (gd.courseNames||[]).forEach(function(c){cs.innerHTML+='<option value="'+c+'">'+c+'</option>';});
+            cs.value = s.course || '';
+          }
+          var ms = document.getElementById('studentMethodSelect');
+          if (ms && gd) {
+            ms.innerHTML = '<option value="">-- Select Method --</option>';
+            (gd.paymentMethods||['Cash','Bkash','Nagad','Bank']).forEach(function(m){ms.innerHTML+='<option value="'+m+'">'+m+'</option>';});
+            ms.value = s.method || '';
+          }
+          if (s.photo) {
+            var prev = document.getElementById('studentPhotoPreview');
+            var btn = document.getElementById('removePhotoBtn');
+            if (prev) { prev.src = s.photo; prev.style.display = 'block'; }
+            if (btn) btn.style.display = 'inline-block';
+          }
+        }
+        bootstrap.Modal.getOrCreateInstance(modal).show();
+      };
+
+      console.log('✅ openStudentModal & openEditStudentModal — patched inline');
+    })();
+    </script>
+
 </body>
 
 </html>
