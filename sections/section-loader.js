@@ -168,21 +168,7 @@
       });
     };
 
-    // 3. Student
-    // ✅ FIX: Populate dropdowns (centralized in ledger-render.js)
-    if (typeof window.populateDropdowns === 'function') {
-      setTimeout(window.populateDropdowns, 100);
-    }
-    if (typeof window.initStudentModal === 'function') window.initStudentModal(id);
-    // ✅ Re-attach listener for subsequent opens
-    const sm = document.getElementById('studentModal');
-    if (sm && typeof window.populateDropdowns === 'function') {
-      sm.addEventListener('show.bs.modal', window.populateDropdowns);
-    }
-  });
-};
-
-// 4. Employee
+    // 4. Employee (openStudentModal is defined in student-management.js)
 window.openEmployeeModal = function (id) {
   loadAndOpen('__modalPlaceholderOther', 'sections/modals.html', 'employeeModal', function () {
     if (typeof window.initEmployeeModal === 'function') window.initEmployeeModal(id);
