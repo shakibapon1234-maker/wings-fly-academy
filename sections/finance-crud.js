@@ -580,18 +580,18 @@ function deleteTransaction(id) {
     return;
   }
 
-  // Hard Delete: Remove installment permanently as per user request
-  // 0. ✅ Recycle Bin disabled, force hard delete
-  // if (typeof moveToTrash === 'function') {
-  //   moveToTrash('finance', txToDelete);
-  // }
+  // ✅ Recycle Bin: soft-delete (restore করা যাবে)
+  if (typeof moveToTrash === 'function') {
+    moveToTrash('finance', { ...txToDelete });
+  }
+
   if (typeof logActivity === 'function') {
     logActivity('finance', 'DELETE',
-      `Transaction deleted (Permanent): ${txToDelete.type} | ${txToDelete.category || ''} | ৳${txToDelete.amount}`,
+      `Transaction moved to trash: ${txToDelete.type} | ${txToDelete.category || ''} | ৳${txToDelete.amount}`,
       txToDelete);
   }
 
-  // 1. Account balance reverse করো
+  // 1. ✅ Account balance reverse করো (finance-engine canonical rules use হবে)
   if (typeof updateAccountBalance === "function") {
     updateAccountBalance(txToDelete.method, txToDelete.amount, txToDelete.type, false);
   }

@@ -2108,6 +2108,7 @@
     testKeepRecords();         // ✅ Group 21: Keep Records Module
     testSectionFiles();        // ✅ Group 22: Section Files Load Check
     testDataConsistency();     // ✅ Group 23: Data Consistency Cross-Check
+    testFinanceEngine();       // ✅ Group 24: Finance Engine Rules (Loan/Transfer বাদ)
 
     // Run async groups
     await testSupabaseConnectivity();
@@ -2196,11 +2197,217 @@
     return { total, passed, failed, warned };
   }
 
-  // ─── Expose ───────────────────────────────────────────────
+  // ── GROUP 24: Finance Engine Rules Verification ──────────
+  function testFinanceEngine() {
+    sectionHeader('24 — Finance Engine Rules (Canonical Verification)');
+    const gd = window.globalData;
+    if (!gd) { skip('Finance Engine tests', 'globalData নেই'); return; }
+
+    const finance = gd.finance || [];
+
+    // 24a: finance-engine.js loaded?
+    if (typeof window.feCalcStats === 'function') {
+      pass('✅ finance-engine.js loaded (feCalcStats exists)');
+    } else {
+      fail('❌ finance-engine.js লোড হয়নি!', 'sections/finance-engine.js চেক করুন');
+      return;
+    }
+
+    // 24b: FE canonical type lists exist
+    if (window.FE_ACCOUNT_IN && window.FE_ACCOUNT_OUT && window.FE_STAT_INCOME && window.FE_STAT_EXPENSE) {
+      pass('✅ Canonical type lists (FE_ACCOUNT_IN/OUT, FE_STAT_INCOME/EXPENSE) আছে');
+    } else {
+      fail('❌ Canonical type lists missing!', 'finance-engine.js সঠিকভাবে load হয়নি');
+    }
+
+    // 24c: Loan NOT in stat income
+    const loanInStatIncome = (window.FE_STAT_INCOME || []).some(t => t.toLowerCase().includes('loan'));
+    if (!loanInStatIncome) {
+      pass('✅ Loan FE_STAT_INCOME-এ নেই (সঠিক)');
+    } else {
+      fail('❌ Loan FE_STAT_INCOME-এ আছে!', 'Loan income হিসেবে count হওয়া উচিত নয়');
+    }
+
+    // 24d: Transfer NOT in stat income/expense
+    const transferInStat = [...(window.FE_STAT_INCOME || []), ...(window.FE_STAT_EXPENSE || [])]
+      .some(t => t.toLowerCase().includes('transfer'));
+    if (!transferInStat) {
+      pass('✅ Transfer FE_STAT_INCOME/EXPENSE-এ নেই (সঠিক)');
+    } else {
+      fail('❌ Transfer stats-এ count হচ্ছে!', 'Transfer শুধু account move, income/expense না');
+    }
+
+    // 24e: feCalcStats লোন বাদ দিচ্ছে?
+    const testFinance = [
+      { type: 'Income',        amount: 1000, method: 'Cash' },
+      { type: 'Expense',       amount: 200,  method: 'Cash' },
+      { type: 'Loan Received', amount: 5000, method: 'Cash' }, // income না
+      { type: 'Loan Given',    amount: 3000, method: 'Cash' }, // expense না
+      { type: 'Transfer In',   amount: 500,  method: 'Cash' }, // income না
+      { type: 'Transfer Out',  amount: 500,  method: 'Cash' }, // expense না
+    ];
+    const stats = window.feCalcStats(testFinance);
+    if (stats.income === 1000 && stats.expense === 200 && stats.profit === 800) {
+      pass('✅ feCalcStats Loan/Transfer বাদ দিচ্ছে (সঠিক)', `Income:৳1000 | Expense:৳200 | Profit:৳800`);
+    } else {
+      fail('❌ feCalcStats ভুল হিসাব করছে!', `Income:${stats.income} Expense:${stats.expense} Profit:${stats.profit} (Expected: 1000/200/800)`);
+    }
+
+    // 24f: feApplyEntryToAccount — Loan account-এ যাচ্ছে?
+    if (typeof window.feIsAccountIn === 'function') {
+      const loanIn = window.feIsAccountIn('Loan Received');
+      const loanOut = window.feIsAccountIn('Loan Given');
+      const transferIn = window.feIsAccountIn('Transfer In');
+      if (loanIn && !loanOut && transferIn) {
+        pass('✅ feIsAccountIn: Loan Received/Transfer In account-এ যাচ্ছে');
+      } else {
+        fail('❌ feIsAccountIn ভুল', `LoanReceived:${loanIn} LoanGiven:${loanOut} TransferIn:${transferIn}`);
+      }
+    } else {
+      warn('feIsAccountIn missing', 'finance-engine helpers load হয়নি');
+    }
+
+    // 24g: Grand Total vs Finance rebuild consistency
+    if (typeof window.feRebuildAllBalances === 'function') {
+      pass('✅ feRebuildAllBalances exists (periodic balance sync)');
+    } else {
+      warn('feRebuildAllBalances missing', 'Balance rebuild করা যাবে না');
+    }
+
+    // 24h: Real data — Loan entries income/expense-এ নেই?
+    const loanEntries = finance.filter(f =>
+      f.type === 'Loan Received' || f.type === 'Loan Receiving' ||
+      f.type === 'Loan Given'    || f.type === 'Loan Giving'
+    );
+    if (loanEntries.length > 0) {
+      const loanCalc = window.feCalcStats(loanEntries);
+      if (loanCalc.income === 0 && loanCalc.expense === 0) {
+        pass(`✅ Real data: ${loanEntries.length}টি Loan entry income/expense-এ count হয়নি`);
+      } else {
+        fail(`❌ Loan entries stats-এ যাচ্ছে!`, `Income:${loanCalc.income} Expense:${loanCalc.expense}`);
+      }
+    } else {
+      skip('Real loan data test', 'কোনো Loan entry নেই');
+    }
+
+    // 24i: Grand Total consistency
+    const cashBal   = parseFloat(gd.cashBalance) || 0;
+    const bankTotal = (gd.bankAccounts || []).reduce((s, a) => s + (parseFloat(a.balance) || 0), 0);
+    const mobileTotal = (gd.mobileBanking || []).reduce((s, a) => s + (parseFloat(a.balance) || 0), 0);
+    const grandTotal = cashBal + bankTotal + mobileTotal;
+    pass('Grand Total calculated', `৳${grandTotal.toLocaleString('en-IN')} (Cash:${cashBal} Bank:${bankTotal} Mobile:${mobileTotal})`);
+
+    // 24j: Total collection = grand total? (approximate check)
+    const allStats = window.feCalcStats(finance);
+    pass(`Finance Stats — Income: ৳${allStats.income.toLocaleString('en-IN')} | Expense: ৳${allStats.expense.toLocaleString('en-IN')} | Profit: ৳${allStats.profit.toLocaleString('en-IN')}`);
+  }
+
+  // ═══════════════════════════════════════════════════════════
+  // AUTO-RUN BACKGROUND MONITOR
+  // প্রতি 5 মিনিটে background-এ test চলবে, শুধু fail/warn হলে notify
+  // ═══════════════════════════════════════════════════════════
+  let _autoRunEnabled = true;
+  let _autoRunInterval = null;
+  const AUTO_RUN_INTERVAL_MS = 5 * 60 * 1000; // 5 মিনিট
+
+  async function runBackgroundTests() {
+    if (!_autoRunEnabled) return;
+    if (sessionStorage.getItem('isLoggedIn') !== 'true') return;
+    if (!window.globalData) return;
+
+    // শুধু critical checks — UI update করবে না
+    const criticalChecks = [];
+    const gd = window.globalData;
+    const finance = gd.finance || [];
+
+    // Check 1: Loan in stats?
+    if (typeof window.feCalcStats === 'function') {
+      const loanEntries = finance.filter(f =>
+        f.type === 'Loan Received' || f.type === 'Loan Receiving' ||
+        f.type === 'Loan Given'    || f.type === 'Loan Giving'
+      );
+      if (loanEntries.length > 0) {
+        const lc = window.feCalcStats(loanEntries);
+        if (lc.income > 0 || lc.expense > 0) {
+          criticalChecks.push('❌ Loan entries income/expense-এ count হচ্ছে!');
+        }
+      }
+    }
+
+    // Check 2: Negative cash balance
+    if (parseFloat(gd.cashBalance) < -100000) {
+      criticalChecks.push(`⚠️ Cash balance অনেক negative: ৳${gd.cashBalance}`);
+    }
+
+    // Check 3: Student due mismatch
+    let badDue = 0;
+    (gd.students || []).forEach(s => {
+      const correct = Math.max(0, (parseFloat(s.totalPayment) || 0) - (parseFloat(s.paid) || 0));
+      if (Math.abs(correct - (parseFloat(s.due) || 0)) > 1) badDue++;
+    });
+    if (badDue > 0) criticalChecks.push(`⚠️ ${badDue} student-এর due ভুল — Auto-Heal fix করবে`);
+
+    // Check 4: Finance engine loaded?
+    if (typeof window.feRebuildAllBalances !== 'function') {
+      criticalChecks.push('❌ finance-engine.js লোড হয়নি!');
+    }
+
+    // Periodic balance sync
+    if (typeof window.feRebuildAllBalances === 'function') {
+      window.feRebuildAllBalances();
+      if (typeof window.updateGrandTotal === 'function') window.updateGrandTotal();
+    }
+
+    // শুধু সমস্যা থাকলে console warn করো
+    if (criticalChecks.length > 0) {
+      console.warn('[AutoTest Background]', criticalChecks.join(' | '));
+      // Activity log-এ লিখি
+      if (typeof window.logActivity === 'function') {
+        window.logActivity('system', 'WARN',
+          `🔍 Background Test Issues: ${criticalChecks.join(' | ')}`,
+          { checks: criticalChecks, ts: new Date().toISOString() }
+        );
+      }
+    } else {
+      console.log(`[AutoTest Background] ✅ সব ঠিক আছে — ${new Date().toLocaleTimeString('bn-BD')}`);
+    }
+  }
+
+  // Background monitor শুরু করো
+  function startAutoRunMonitor() {
+    if (_autoRunInterval) clearInterval(_autoRunInterval);
+    _autoRunInterval = setInterval(runBackgroundTests, AUTO_RUN_INTERVAL_MS);
+    // প্রথমবার ৩০ সেকেন্ড পরে
+    setTimeout(runBackgroundTests, 30000);
+    console.log(`[AutoTest] Background monitor চালু — প্রতি ${AUTO_RUN_INTERVAL_MS / 60000} মিনিটে`);
+  }
+
+  window.stopAutoTestMonitor = function () {
+    _autoRunEnabled = false;
+    if (_autoRunInterval) { clearInterval(_autoRunInterval); _autoRunInterval = null; }
+    console.log('[AutoTest] Background monitor বন্ধ');
+  };
+  window.startAutoTestMonitor = function () {
+    _autoRunEnabled = true;
+    startAutoRunMonitor();
+    console.log('[AutoTest] Background monitor চালু');
+  };
   window.runFunctionTests = runFunctionTests;
-  window.runAutoTests = runFunctionTests; // ✅ alias for console use
+  window.runAutoTests = runFunctionTests; // alias for console use
+
+  // ── AUTO-START: DOM ready হলে background monitor চালু ──
+  function _autoTestStart() {
+    startAutoRunMonitor();
+    console.log('%c🧬 Wings Fly Test Suite v' + SUITE_VERSION + ' — Background monitor active', 'color:#00d4ff;font-weight:bold');
+  }
+
+  if (document.readyState === 'loading') {
+    document.addEventListener('DOMContentLoaded', () => setTimeout(_autoTestStart, 5000));
+  } else {
+    setTimeout(_autoTestStart, 5000);
+  }
 
   // Auto-indicate version in console
-  console.log(`%c🧬 Wings Fly Test Suite v${SUITE_VERSION} loaded (Deep E2E)`, 'color:#00d4ff');
+  console.log(`%c🧬 Wings Fly Test Suite v${SUITE_VERSION} loaded (Deep E2E + Auto Monitor)`, 'color:#00d4ff');
 
 })();

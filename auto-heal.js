@@ -373,26 +373,30 @@
       calcCash = parseFloat(data.settings.startBalances.Cash) || 0;
     }
 
+    // ── Canonical lists (finance-engine.js এর সাথে sync) ──
+    const ACCOUNT_IN  = typeof window.FE_ACCOUNT_IN  !== 'undefined' ? window.FE_ACCOUNT_IN
+      : ['Income', 'Loan Received', 'Loan Receiving', 'Transfer In', 'Registration', 'Refund'];
+    const ACCOUNT_OUT = typeof window.FE_ACCOUNT_OUT !== 'undefined' ? window.FE_ACCOUNT_OUT
+      : ['Expense', 'Loan Given', 'Loan Giving', 'Transfer Out', 'Salary', 'Rent', 'Utilities'];
+
     data.finance.forEach(f => {
-      // ✅ CRITICAL FIX: Only count 'Cash' transactions for cashBalance heal
+      if (f._deleted) return; // soft-deleted entries skip
       if (f.method !== 'Cash') return;
 
       const amt = parseFloat(f.amount) || 0;
-      if (['Income', 'Loan Received', 'Loan Receiving', 'Transfer In', 'Registration', 'Refund'].includes(f.type)) {
-        calcCash += amt;
-      } else if (['Expense', 'Loan Given', 'Loan Giving', 'Transfer Out'].includes(f.type)) {
-        calcCash -= amt;
-      }
+      if (ACCOUNT_IN.includes(f.type))       calcCash += amt;
+      else if (ACCOUNT_OUT.includes(f.type)) calcCash -= amt;
     });
 
     const stored = parseFloat(data.cashBalance) || 0;
     const gap = Math.abs(calcCash - stored);
 
-    // শুধু বড় gap হলে fix করো (৳5,000+) - user gap can be around 7k-10k
     if (gap > 5000) {
       hLog('fix', `Cash balance মিলছে না: Calculated ৳${calcCash.toFixed(0)} vs Stored ৳${stored.toFixed(0)} (gap: ৳${gap.toFixed(0)}) → recalculate`);
-      // app-এর নিজের recalculate function থাকলে সেটা call করো
-      if (typeof window.recalculateCashBalanceFromTransactions === 'function') {
+      if (typeof window.feRebuildAllBalances === 'function') {
+        window.feRebuildAllBalances();
+        hLog('fix', 'finance-engine দিয়ে সব balance rebuild হয়েছে');
+      } else if (typeof window.recalculateCashBalanceFromTransactions === 'function') {
         window.recalculateCashBalanceFromTransactions();
         hLog('fix', 'Cash balance app function দিয়ে recalculate হয়েছে');
       } else {
@@ -738,7 +742,16 @@
     // 11. Paid vs Finance mismatch fix (background auto-fix)
     totalFixed += healPaidFinanceMismatch();
 
-    // 12. Cloud sync fix (async, network)
+    // 12. ✅ Finance-engine full balance rebuild (periodic — প্রতি ৫ cycle-এ একবার)
+    if (healStats.totalRuns % 5 === 0) {
+      if (typeof window.feRebuildAllBalances === 'function') {
+        window.feRebuildAllBalances();
+        if (typeof window.updateGrandTotal === 'function') window.updateGrandTotal();
+        hLog('info', `Periodic balance rebuild (cycle #${healStats.totalRuns}) সম্পন্ন`);
+      }
+    }
+
+    // 14. Cloud sync fix (async, network)
     totalFixed += await healSyncMismatch();
 
     // Update UI stats
@@ -747,10 +760,14 @@
       healStats.lastFix = new Date().toLocaleTimeString('bn-BD');
       hLog('fix', `Heal cycle সম্পন্ন — ${totalFixed}টি সমস্যা auto-fix হয়েছে ✓`);
 
-      // ✅ V30 FIX: Local fix হলে cloud এ auto-push (data sync নিশ্চিত)
-      // healSyncMismatch নিজেই cloud handle করে, তাই এখানে শুধু local fixes এর জন্য push
-      // healSyncMismatch এর fixes (cloud pull/push) আলাদা count করা হয় না totalFixed এ
-      // তাই এখানে push করলে loop হবে না
+      // ✅ Activity Log-এ heal fix লিখি
+      if (typeof window.logActivity === 'function') {
+        window.logActivity('heal', 'FIX',
+          `🔧 Auto-Heal #${healStats.totalRuns}: ${totalFixed}টি সমস্যা fix হয়েছে`,
+          { fixes: totalFixed, run: healStats.totalRuns, time: healStats.lastFix }
+        );
+      }
+
       if (typeof window.scheduleSyncPush === 'function') {
         window.scheduleSyncPush(`Auto-Heal: ${totalFixed} fixes`);
         hLog('info', `Heal fix cloud এ push scheduled (${totalFixed} changes)`);
@@ -760,6 +777,13 @@
       }
     } else {
       hLog('ok', `Heal cycle সম্পন্ন — কোনো সমস্যা নেই ✓`);
+      // প্রতি ১০ cycle-এ একবার "all ok" activity log
+      if (healStats.totalRuns % 10 === 0 && typeof window.logActivity === 'function') {
+        window.logActivity('heal', 'TEST',
+          `✅ Auto-Heal #${healStats.totalRuns}: সব ঠিক আছে`,
+          { run: healStats.totalRuns }
+        );
+      }
     }
 
     // Settings-এ stats update

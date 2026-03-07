@@ -677,49 +677,49 @@ document.addEventListener('DOMContentLoaded', () => {
 
 /* 🔁 Rebuild ALL account balances from finance data */
 function rebuildBankBalancesFromFinance() {
+  // finance-engine.js loaded থাকলে সেটাই সব করবে (canonical, consistent)
+  if (typeof window.feRebuildAllBalances === 'function') {
+    window.feRebuildAllBalances();
+    if (typeof saveToStorage === 'function') saveToStorage(true);
+    if (typeof updateDashboardBankBalance === 'function') updateDashboardBankBalance();
+    console.log('🔄 rebuildBankBalancesFromFinance → delegated to feRebuildAllBalances');
+    return;
+  }
+
+  // ── Fallback (finance-engine.js not yet loaded) ──
   const gd = window.globalData || {};
   if (!gd.finance) return;
 
-  // Reset all balances to 0 for both Bank and Mobile accounts
-  (gd.bankAccounts || []).forEach(acc => { acc.balance = 0; });
-  (gd.mobileBanking || []).forEach(acc => { acc.balance = 0; });
+  const startBalances = (gd.settings && gd.settings.startBalances) || {};
 
-  // Apply all finance entries to matching accounts
-  (gd.finance || []).forEach(entry => {
-    if (!entry.method || !entry.amount) return;
-
-    // Search in Bank Accounts
-    let account = (gd.bankAccounts || []).find(acc => acc.name === entry.method);
-
-    // If not found, search in Mobile Banking
-    if (!account) {
-      account = (gd.mobileBanking || []).find(acc => acc.name === entry.method);
-    }
-
-    if (!account) return;
-
-    const amount = parseFloat(entry.amount) || 0;
-
-    // Money coming IN
-    if (['Income', 'Loan Received', 'Loan Receiving', 'Transfer In', 'Registration'].includes(entry.type)) {
-      account.balance += amount;
-    }
-    // Money going OUT
-    else if (
-      ['Expense', 'Loan Given', 'Loan Giving', 'Salary', 'Rent', 'Utilities', 'Transfer Out'].includes(entry.type)
-    ) {
-      account.balance -= amount;
-    }
+  // Reset to startBalances
+  (gd.bankAccounts || []).forEach(acc => {
+    acc.balance = parseFloat(startBalances[acc.name]) || 0;
+  });
+  (gd.mobileBanking || []).forEach(acc => {
+    acc.balance = parseFloat(startBalances[acc.name]) || 0;
   });
 
-  // Calculate cash separate from accounts (usually handled in app.js)
+  // Canonical lists — must match finance-engine.js
+  const MONEY_IN  = ['Income', 'Loan Received', 'Loan Receiving', 'Transfer In', 'Registration', 'Refund'];
+  const MONEY_OUT = ['Expense', 'Loan Given', 'Loan Giving', 'Salary', 'Rent', 'Utilities', 'Transfer Out'];
+
+  (gd.finance || []).forEach(entry => {
+    if (entry._deleted || !entry.method || !entry.amount) return;
+    let account = (gd.bankAccounts || []).find(acc => acc.name === entry.method);
+    if (!account) account = (gd.mobileBanking || []).find(acc => acc.name === entry.method);
+    if (!account) return;
+    const amount = parseFloat(entry.amount) || 0;
+    if (MONEY_IN.includes(entry.type))       account.balance += amount;
+    else if (MONEY_OUT.includes(entry.type)) account.balance -= amount;
+  });
+
   if (typeof recalculateCashBalanceFromTransactions === 'function') {
     recalculateCashBalanceFromTransactions();
   }
 
-  saveToStorage(true);
-  updateDashboardBankBalance();
-
+  if (typeof saveToStorage === 'function') saveToStorage(true);
+  if (typeof updateDashboardBankBalance === 'function') updateDashboardBankBalance();
   console.log('🔄 All account balances (Bank & Mobile) rebuilt from finance');
 }
 
