@@ -367,17 +367,29 @@
     if (!data || !data.finance) return 0;
 
     let calcCash = 0;
+
+    // Get starting balance if set
+    if (data.settings?.startBalances?.Cash) {
+      calcCash = parseFloat(data.settings.startBalances.Cash) || 0;
+    }
+
     data.finance.forEach(f => {
+      // ✅ CRITICAL FIX: Only count 'Cash' transactions for cashBalance heal
+      if (f.method !== 'Cash') return;
+
       const amt = parseFloat(f.amount) || 0;
-      if (f.type === 'Income' || f.type === 'আয়') calcCash += amt;
-      else if (f.type === 'Expense' || f.type === 'ব্যয়') calcCash -= amt;
+      if (['Income', 'Loan Received', 'Loan Receiving', 'Transfer In', 'Registration', 'Refund'].includes(f.type)) {
+        calcCash += amt;
+      } else if (['Expense', 'Loan Given', 'Loan Giving', 'Transfer Out'].includes(f.type)) {
+        calcCash -= amt;
+      }
     });
 
     const stored = parseFloat(data.cashBalance) || 0;
     const gap = Math.abs(calcCash - stored);
 
-    // শুধু বড় gap হলে fix করো (৳10,000+)
-    if (gap > 10000) {
+    // শুধু বড় gap হলে fix করো (৳5,000+) - user gap can be around 7k-10k
+    if (gap > 5000) {
       hLog('fix', `Cash balance মিলছে না: Calculated ৳${calcCash.toFixed(0)} vs Stored ৳${stored.toFixed(0)} (gap: ৳${gap.toFixed(0)}) → recalculate`);
       // app-এর নিজের recalculate function থাকলে সেটা call করো
       if (typeof window.recalculateCashBalanceFromTransactions === 'function') {
