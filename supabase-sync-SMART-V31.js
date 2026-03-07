@@ -588,48 +588,59 @@
           try { return JSON.parse(localStorage.getItem('wingsfly_users_backup') || 'null'); } catch (e) { return null; }
         })();
 
-        // ✅ FIX: academy_data কে BASE হিসেবে ব্যবহার করো
-        // wf_* tables শুধু newer/updated records যোগ করবে অথবা override করবে
-        // এটা prevent করে wf_* tables-এ থাকা পুরোনো/ভুল data দিয়ে সঠিক data মুছে যাওয়া
+        // ✅ V32-FIX: MERGE strategy — local is source of truth, delete protected
+        // Cloud pull এ local নতুন data হারাবে না, recycle bin items ফিরে আসবে না
+
+        // সব deleted IDs collect করো (local + cloud উভয় recycle bin থেকে)
+        const _deletedIds = new Set([
+          ...(gd.deletedItems || []).flatMap(d => [d.id, d.studentId, d._id].filter(Boolean).map(String)),
+          ...(data.deleted_items || []).flatMap(d => [d.id, d.studentId, d._id].filter(Boolean).map(String)),
+        ]);
+
+        // MERGE: Cloud base + Local override, deleted items বাদ
+        function _mergeArr(localArr, cloudArr, idFn) {
+          const map = new Map();
+          (cloudArr || []).forEach(item => { const id = idFn(item); if (id && !_deletedIds.has(id)) map.set(id, item); });
+          (localArr || []).forEach(item => { const id = idFn(item); if (!_deletedIds.has(id || '')) { if (id) map.set(id, item); else map.set('_' + Math.random(), item); } });
+          return Array.from(map.values());
+        }
+
         window.globalData = Object.assign(gd, {
-          students: data.students || gd.students || [],  // academy_data is base
-          employees: data.employees || gd.employees || [],
-          finance: data.finance || gd.finance || [],
+          // ✅ MERGE: local override cloud, deleted items বাদ
+          students:  _mergeArr(gd.students,  data.students,  s => String(s.studentId || s.id || s._id || '')),
+          finance:   _mergeArr(gd.finance,   data.finance,   f => String(f.id || f._id || f.timestamp || '')),
+          employees: _mergeArr(gd.employees, data.employees, e => String(e.id || e._id || e.employeeId || '')),
           settings: mergedSettings,
-          incomeCategories: data.income_categories || [],
-          expenseCategories: data.expense_categories || [],
-          paymentMethods: data.payment_methods || [],
-          cashBalance: data.cash_balance || 0,
-          bankAccounts: data.bank_accounts || [],
-          mobileBanking: data.mobile_banking || [],
-          courseNames: data.course_names || [],
-          attendance: data.attendance || {},
-          nextId: data.next_id || 1001,
+          incomeCategories: data.income_categories || gd.incomeCategories || [],
+          expenseCategories: data.expense_categories || gd.expenseCategories || [],
+          paymentMethods: data.payment_methods || gd.paymentMethods || [],
+          cashBalance: data.cash_balance ?? gd.cashBalance ?? 0,
+          bankAccounts: data.bank_accounts || gd.bankAccounts || [],
+          mobileBanking: data.mobile_banking || gd.mobileBanking || [],
+          courseNames: data.course_names || gd.courseNames || [],
+          attendance: data.attendance || gd.attendance || {},
+          nextId: data.next_id || gd.nextId || 1001,
           users: (usersBackup && usersBackup.length > 0) ? usersBackup : (data.users || []),
-          examRegistrations: data.exam_registrations || [],
-          visitors: data.visitors || [],
-          employeeRoles: data.employee_roles || [],
-          // ✅ MERGE: Local trash ও Cloud trash এক করো যাতে pull এ local delete না মুছে যায়
+          examRegistrations: data.exam_registrations || gd.examRegistrations || [],
+          visitors: data.visitors || gd.visitors || [],
+          employeeRoles: data.employee_roles || gd.employeeRoles || [],
+          // ✅ MERGE: Local + Cloud trash — কোনো delete হারাবে না
           deletedItems: (() => {
-            const local = gd.deletedItems || [];
-            const cloud = data.deleted_items || [];
             const map = new Map();
-            cloud.forEach(item => { if (item && item.id) map.set(item.id, item); });
-            local.forEach(item => { if (item && item.id) map.set(item.id, item); });
+            (data.deleted_items || []).forEach(item => { if (item && item.id) map.set(String(item.id), item); });
+            (gd.deletedItems || []).forEach(item => { if (item && item.id) map.set(String(item.id), item); });
             return Array.from(map.values()).sort((a, b) => new Date(b.deletedAt) - new Date(a.deletedAt)).slice(0, 300);
           })(),
           activityHistory: (() => {
-            const local = gd.activityHistory || [];
-            const cloud = data.activity_history || [];
             const map = new Map();
-            cloud.forEach(item => { if (item && item.id) map.set(item.id, item); });
-            local.forEach(item => { if (item && item.id) map.set(item.id, item); });
+            (data.activity_history || []).forEach(item => { if (item && item.id) map.set(String(item.id), item); });
+            (gd.activityHistory || []).forEach(item => { if (item && item.id) map.set(String(item.id), item); });
             return Array.from(map.values()).sort((a, b) => new Date(b.timestamp) - new Date(a.timestamp)).slice(0, 500);
           })(),
-          keepRecords: data.keep_records || [],
-          loans: data.loans || [],
-          idCards: data.id_cards || [],
-          notices: data.notices || [],
+          keepRecords: data.keep_records || gd.keepRecords || [],
+          loans: data.loans || gd.loans || [],
+          idCards: data.id_cards || gd.idCards || [],
+          notices: data.notices || gd.notices || [],
         });
 
         localVersion = cloudVersion;
