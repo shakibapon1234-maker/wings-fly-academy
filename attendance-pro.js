@@ -96,15 +96,8 @@
     console.log('✅ Modal shown, switching to Mark tab...');
     setTimeout(() => {
       switchAttTab('mark');
-      // Rebuild dropdowns with latest globalData
-      buildBatchOptions('attMarkBatch', 'Select Batch...');
-      buildBatchOptions('attMonBatch', 'Select Batch...');
-      buildBatchOptions('attYrBatch', 'Select Batch...');
-      buildBatchOptions('attCwBatch', 'All Batches');
-      buildBatchOptions('attBlankBatch', 'Select Batch...');
-      buildCourseOptions('attCwCourse');
       if (typeof window.populateDropdowns === 'function') window.populateDropdowns();
-    }, 150);
+    }, 100);
   }
   window.openAttendanceModal = openAttendanceModal;
 
@@ -417,10 +410,10 @@
 
   // ── MARK ATTENDANCE ─────────────────────────────────
   function loadAttendanceList() {
-    const batch = (document.getElementById('attMarkBatch'))?.value;
-    const date = (document.getElementById('attMarkDate'))?.value;
+    const batch = (document.getElementById('attMarkBatch') || document.getElementById('attendanceBatchSelect'))?.value;
+    const date = (document.getElementById('attMarkDate') || document.getElementById('attendanceDate'))?.value;
 
-    const container = document.getElementById('attMarkContainer');
+    const container = document.getElementById('attMarkContainer') || document.getElementById('attendanceListContainer');
     const selectAll = document.getElementById('attMarkSelectAll');
     const countBadge = document.getElementById('attMarkCountBadge');
 
@@ -488,8 +481,8 @@
   window.markAllStudents = markAllStudents;
 
   function saveAttendance() {
-    const batch = (document.getElementById('attMarkBatch'))?.value;
-    const date = (document.getElementById('attMarkDate'))?.value;
+    const batch = (document.getElementById('attMarkBatch') || document.getElementById('attendanceBatchSelect'))?.value;
+    const date = (document.getElementById('attMarkDate') || document.getElementById('attendanceDate'))?.value;
     if (!batch || !date) {
       window.showErrorToast?.('❌ Batch ও Date বেছে নিন');
       return;
@@ -851,7 +844,7 @@
       const rows = students.map((s, i) => `
         <tr style="height:38px;">
           <td style="border:1px solid #ccc;text-align:center;font-size:12px;color:#555;">${i + 1}</td>
-          <td style="border:1px solid #ccc;padding:4px 10px;font-weight:600;">${s.name}</td>
+          <td style="border:1px solid #ccc;padding:4px 10px;font-weight:600;">${s.name}<span style="font-size:10px;color:#2c7da0;font-weight:400;margin-left:6px;">${s.course || ''}</span></td>
           <td style="border:1px solid #ccc;text-align:center;font-size:11px;color:#2c7da0;">${s.studentId || ''}</td>
           <td style="border:1px solid #ccc;"></td>
         </tr>`).join('');
@@ -875,7 +868,7 @@
         const cells = Array.from({ length: 31 }, () =>
           `<td style="border:1px solid #dde;height:28px;"></td>`).join('');
         return `<tr><td style="border:1px solid #bcd;text-align:center;font-size:11px;color:#555;">${i + 1}</td>
-          <td style="border:1px solid #bcd;padding:3px 8px;font-weight:600;font-size:12px;">${s.name}</td>
+          <td style="border:1px solid #bcd;padding:3px 8px;font-weight:600;font-size:12px;">${s.name}<span style="font-size:10px;color:#2c7da0;font-weight:400;margin-left:5px;">${s.course || ''}</span></td>
           ${cells}</tr>`;
       }).join('');
       tableContent = `
@@ -896,7 +889,7 @@
           `<td style="border:1px solid #000;height:${isPortrait ? 28 : 32}px;"></td>`).join('');
         return `<tr>
           <td style="border:1px solid #000;text-align:center;font-size:${isPortrait ? 10 : 12}px;">${i + 1}</td>
-          <td style="border:1px solid #000;padding:3px 8px;font-weight:600;font-size:${isPortrait ? 11 : 13}px;font-style:italic;color:#1a4d6e;">${s.name}</td>
+          <td style="border:1px solid #000;padding:3px 8px;font-weight:600;font-size:${isPortrait ? 11 : 13}px;font-style:italic;color:#1a4d6e;">${s.name}<span style="font-size:${isPortrait ? 9 : 10}px;color:#2c7da0;font-weight:400;font-style:normal;margin-left:6px;">${s.course || ''}</span></td>
           ${cells}
         </tr>`;
       }).join('');
@@ -974,7 +967,8 @@
   window.printBlankSheet = printBlankSheet;
   // backwards compat
   window.printBlankAttendanceSheet = () => {
-    const batch = document.getElementById('attMarkBatch')?.value;
+    const batch = document.getElementById('attendanceBatchSelect')?.value ||
+      document.getElementById('attMarkBatch')?.value;
     if (!batch) { window.showErrorToast?.('❌ Batch বেছে নিন'); return; }
     // open hub at blank tab
     openAttendanceModal();
