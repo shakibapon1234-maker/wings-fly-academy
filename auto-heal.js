@@ -227,34 +227,35 @@
   }
 
   // ============================================
-  // HEAL 7: Student Duplicate Detection
-  // একই name + phone = duplicate student
+  // HEAL 7: Student Duplicate Detection (SAFE MODE)
+  // একই name + phone = সম্ভাব্য duplicate student
+  // ✅ USER REQUEST: কোনো student auto-delete করা হবে না
+  // শুধু লগ/ওয়ার্নিং দেখাবে, যাতে ম্যানুয়ালি দেখা যায়।
   // ============================================
   function healStudentDuplicates() {
     const data = window.globalData;
     if (!data || !data.students) return 0;
 
     const seen = new Map();
-    const toKeep = [];
-    let removed = 0;
+    const duplicates = [];
 
     data.students.forEach(s => {
       const key = `${(s.name || '').trim().toLowerCase()}|${(s.phone || '').trim()}`;
       if (seen.has(key) && key !== '|') {
-        hLog('fix', `Duplicate student removed: "${s.name}" (${s.phone})`);
-        removed++;
+        duplicates.push(s);
       } else {
         seen.set(key, true);
-        toKeep.push(s);
       }
     });
 
-    if (removed > 0) {
-      data.students = toKeep;
-      localStorage.setItem('wingsfly_data', JSON.stringify(data));
-      healToast(`${removed} dupe students removed`, 'fix');
+    if (duplicates.length > 0) {
+      hLog('warn', `${duplicates.length}টি সম্ভাব্য duplicate student পাওয়া গেছে (name+phone same) — কোনো auto-delete করা হয়নি।`);
+      duplicates.slice(0, 5).forEach(s => {
+        hLog('info', `Duplicate candidate: "${s.name}" (${s.phone || 'no phone'})`);
+      });
+      healToast(`${duplicates.length} duplicate students detected (no auto-delete)`, 'warn');
     }
-    return removed;
+    return 0;
   }
 
   // ============================================
