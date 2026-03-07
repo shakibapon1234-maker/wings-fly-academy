@@ -10,6 +10,14 @@ function render(students) {
   const tbody = document.getElementById('tableBody');
   tbody.innerHTML = '';
 
+  // Fallback: if caller doesn't pass an array, use globalData.students
+  if (!Array.isArray(students)) {
+    const gd = (typeof window !== 'undefined' && window.globalData)
+      ? window.globalData
+      : (typeof globalData !== 'undefined' ? globalData : null);
+    students = (gd && Array.isArray(gd.students)) ? gd.students : [];
+  }
+
   if (students.length === 0) {
     tbody.innerHTML = `
       <tr>
