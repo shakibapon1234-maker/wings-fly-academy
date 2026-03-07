@@ -37,6 +37,13 @@ if (typeof window.globalData === 'undefined') {
   };
 }
 
+// Legacy global alias for older scripts that use `globalData` directly
+// (finance-crud, student-management, etc.)
+if (typeof globalData === 'undefined') {
+  // Non-strict mode: this creates a writable global variable
+  globalData = window.globalData;
+}
+
 // সবসময় নিশ্চিত করো
 if (!window.globalData.deletedItems) window.globalData.deletedItems = [];
 if (!window.globalData.activityHistory) window.globalData.activityHistory = [];
