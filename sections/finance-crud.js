@@ -37,15 +37,43 @@ function getStudentInstallments(student) {
 
 function openStudentPaymentModal(rowIndex) {
   // Use direct index access
-  const student = globalData.students[rowIndex];
-  if (!student) { alert("Student not found!"); return; }
+  const student = (window.globalData && window.globalData.students)
+    ? window.globalData.students[rowIndex]
+    : (typeof globalData !== 'undefined' ? globalData.students[rowIndex] : null);
+
+  if (!student) {
+    alert("Student not found!");
+    return;
+  }
 
   currentPaymentStudentIndex = rowIndex;
 
+  // Ensure modal HTML is loaded (supports lazy-loaded modals via section-loader)
+  const totalFeeEl = document.getElementById('pmtTotalFee');
+  const totalPaidEl = document.getElementById('pmtTotalPaid');
+  const totalDueEl = document.getElementById('pmtTotalDue');
+
+  if (!totalFeeEl || !totalPaidEl || !totalDueEl) {
+    // Try lazy-load via section-loader if available
+    if (typeof window.loadAndOpen === 'function') {
+      window.loadAndOpen(
+        '__modalPlaceholderOther',
+        'sections/modals-student.html',
+        'studentPaymentModal',
+        function () { openStudentPaymentModal(rowIndex); }
+      );
+      return;
+    }
+
+    console.warn('[FinanceCRUD] studentPaymentModal elements missing in DOM. Check that sections/modals-student.html is included.');
+    alert('Payment modal not loaded properly. Please refresh the page.');
+    return;
+  }
+
   // Update header/summary
-  document.getElementById('pmtTotalFee').innerText = '৳' + formatNumber(student.totalPayment || 0);
-  document.getElementById('pmtTotalPaid').innerText = '৳' + formatNumber(student.paid || 0);
-  document.getElementById('pmtTotalDue').innerText = '৳' + formatNumber(student.due || 0);
+  totalFeeEl.innerText = '৳' + formatNumber(student.totalPayment || 0);
+  totalPaidEl.innerText = '৳' + formatNumber(student.paid || 0);
+  totalDueEl.innerText = '৳' + formatNumber(student.due || 0);
 
   // Suggest remaining due in amount field
   const amountField = document.getElementById('pmtNewAmount');
@@ -53,6 +81,10 @@ function openStudentPaymentModal(rowIndex) {
 
   // Populate history table
   const tbody = document.getElementById('pmtHistoryBody');
+  if (!tbody) {
+    console.warn('[FinanceCRUD] pmtHistoryBody element missing in DOM.');
+    return;
+  }
   tbody.innerHTML = '';
 
   const installments = getStudentInstallments(student);
