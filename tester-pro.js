@@ -6,6 +6,7 @@
 
 window.SimulatorPro = (function () {
     let logEl = null;
+    const DEMO_NAMES = ['Ariful Islam', 'Sabbir Ahmed', 'Mst. Jannatul', 'Tanvir Hasan', 'Rina Akter'];
 
     function log(msg, type = 'info') {
         if (!logEl) {
@@ -39,6 +40,9 @@ window.SimulatorPro = (function () {
         await delay(800);
 
         try {
+            // Always clean any previous test/demo data first
+            cleanupTestData('previous');
+
             // --- MODULE 1: STUDENTS ---
             await simulateStudentModule();
 
@@ -50,6 +54,9 @@ window.SimulatorPro = (function () {
 
             // --- MODULE 4: VISITORS ---
             await simulateVisitorModule();
+
+            // Final cleanup so no fake/demo data remains
+            cleanupTestData('current');
 
             log('TOTAL SYSTEM SIMULATION COMPLETED SUCCESSFULLY!', 'success');
             log('সবগুলো অপশন (Add, Edit, Delete, Restore) নিখুঁতভাবে কাজ করছে।', 'info');
@@ -167,6 +174,76 @@ window.SimulatorPro = (function () {
             log('Visitor manual cleanup.', 'warn');
         }
         await delay(500);
+    }
+
+    function cleanupTestData(phase) {
+        const gd = window.globalData;
+        if (!gd) return;
+
+        log(`Cleaning up ${phase === 'previous' ? 'old' : 'current'} test/demo data...`, 'info');
+
+        // 1. Students (simulation + demo)
+        if (Array.isArray(gd.students)) {
+            gd.students = gd.students.filter(s => {
+                if (!s) return false;
+                const sid = String(s.studentId || s.id || '');
+                const name = String(s.name || '');
+                if (sid.startsWith('SIM_S_')) return false;
+                if (sid.startsWith('DEMO_')) return false;
+                if (name === 'Automated Tester (S)') return false;
+                if (DEMO_NAMES.includes(name)) return false;
+                return true;
+            });
+        }
+
+        // 2. Employees (simulation + demo)
+        if (Array.isArray(gd.employees)) {
+            gd.employees = gd.employees.filter(e => {
+                if (!e) return false;
+                const id = String(e.id || '');
+                const name = String(e.name || '');
+                if (id.startsWith('EMP_SIM_')) return false;
+                if (id.startsWith('EMP_D_')) return false;
+                if (name === 'Simulator Instructor') return false;
+                // Demo staff names look like "Ariful Islam (Staff)"
+                if (DEMO_NAMES.some(n => name.startsWith(n + ' '))) return false;
+                return true;
+            });
+        }
+
+        // 3. Visitors (simulation only)
+        if (Array.isArray(gd.visitors)) {
+            gd.visitors = gd.visitors.filter(v => {
+                if (!v) return false;
+                const name = String(v.name || '');
+                if (name === 'Visitor Tester') return false;
+                return true;
+            });
+        }
+
+        // 4. Finance entries related to tests/demo
+        if (Array.isArray(gd.finance)) {
+            gd.finance = gd.finance.filter(f => {
+                if (!f) return false;
+                const desc = String(f.description || '');
+                const person = String(f.person || '');
+                if (desc.includes('[Sim]')) return false;
+                if (desc === 'Manual Demo Entry') return false;
+                if (desc === 'Demo Loan') return false;
+                if (person === 'Demo Creditor') return false;
+                if (DEMO_NAMES.includes(person)) return false;
+                if (person === 'Automated Tester (S)') return false;
+                return true;
+            });
+        }
+
+        // Persist cleaned data & refresh key views
+        if (typeof window.saveToStorage === 'function') window.saveToStorage(true);
+        if (typeof window.renderStudents === 'function') window.renderStudents();
+        if (typeof window.renderEmployeeList === 'function') window.renderEmployeeList();
+        if (typeof window.renderLoanSummary === 'function') window.renderLoanSummary();
+        if (typeof window.renderVisitors === 'function') window.renderVisitors();
+        if (typeof window.updateGlobalStats === 'function') window.updateGlobalStats();
     }
 
     function generateDemoData() {
