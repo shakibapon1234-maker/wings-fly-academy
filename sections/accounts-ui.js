@@ -353,9 +353,26 @@ window.addEventListener('afterprint', () => {
   if (printArea) printArea.innerHTML = '';
 });
 
+// Safe helper: resolve student by array index using window.globalData/globalData
+function _getStudentByRowIndex(rowIndex) {
+  const idx = parseInt(rowIndex, 10);
+  if (!isFinite(idx) || idx < 0) return null;
+
+  if (window.globalData && Array.isArray(window.globalData.students) && window.globalData.students[idx]) {
+    return window.globalData.students[idx];
+  }
+  if (typeof globalData !== 'undefined' && Array.isArray(globalData.students) && globalData.students[idx]) {
+    return globalData.students[idx];
+  }
+  return null;
+}
+
 function printReceipt(rowIndex, currentPaymentAmount = null) {
-  const student = globalData.students[rowIndex];
-  if (!student) { alert('Student not found!'); return; }
+  const student = _getStudentByRowIndex(rowIndex);
+  if (!student) {
+    console.warn('[Receipt] Student not found for rowIndex =', rowIndex);
+    return;
+  }
 
   const receiptId = 'REC-' + Math.floor(100000 + Math.random() * 900000);
   const premiumLogo = (window.APP_LOGOS && window.APP_LOGOS.premium) ? window.APP_LOGOS.premium : '';
