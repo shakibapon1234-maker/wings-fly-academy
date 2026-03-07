@@ -214,11 +214,11 @@ function deleteInstallment(rowIndex, instIndex) {
     });
   }
 
-  // 0b. Activity Log
+  // Move to trash (Activity Log)
+  if (typeof moveToTrash === 'function') moveToTrash('installment', { ...inst, studentName: student.name });
   if (typeof logActivity === 'function') {
-    logActivity('finance', 'DELETE',
-      `Installment deleted: ৳${formatNumber(amount)} | Student: ${student.name} | Method: ${method}`,
-      { amount, method, date: inst.date, studentName: student.name });
+    logActivity('installment', 'DELETE',
+      `Installment moved to trash: ৳${amount} for ${student.name}`, inst);
   }
 
   // 1. Student installments array থেকে সরাও
@@ -298,10 +298,13 @@ function deleteStudent(rowIndex) {
     return;
   }
 
-  // Move to trash before deleting
+  // 0. ✅ Move to trash before deleting (Keep a safe copy)
   if (typeof moveToTrash === 'function') moveToTrash('student', student);
-  if (typeof logActivity === 'function') logActivity('student', 'DELETE',
-    'Student deleted: ' + (student.name || 'Unknown') + ' | Batch: ' + (student.batch || '-') + ' | Course: ' + (student.course || '-'), student);
+
+  if (typeof logActivity === 'function') {
+    logActivity('student', 'DELETE',
+      'Student moved to trash: ' + (student.name || 'Unknown') + ' | Batch: ' + (student.batch || '-') + ' | Course: ' + (student.course || '-'), student);
+  }
 
   // Delete count track করো (sync এর জন্য)
   const _delCount = parseInt(localStorage.getItem('wings_total_deleted') || '0') + 1;
@@ -334,12 +337,19 @@ function deleteStudent(rowIndex) {
 
   // Delete related finance transactions (student payments)
   if (globalData.finance && Array.isArray(globalData.finance)) {
-    // Remove all finance entries where student name matches
-    // (assuming finance records might have student.name in description or person field)
+    const sNameLower = (student.name || '').trim().toLowerCase();
+    // Remove all finance entries where student name matches case-insensitively
     globalData.finance = globalData.finance.filter(f => {
-      // Keep transaction if it's not related to this student
-      return !(f.person === student.name ||
-        (f.description && f.description.includes(student.name)));
+      const fPersonLower = (f.person || '').trim().toLowerCase();
+      const fStudentNameLower = (f.studentName || '').trim().toLowerCase();
+      const fDescLower = (f.description || '').toLowerCase();
+
+      const isMatch = fPersonLower === sNameLower ||
+        fStudentNameLower === sNameLower ||
+        (fDescLower && fDescLower.includes(sNameLower));
+
+      // Keep transaction if it's NOT a match
+      return !isMatch;
     });
   }
 
@@ -351,11 +361,12 @@ function deleteStudent(rowIndex) {
     return;
   }
 
-  // ✅ Sync এ 'Delete' word পাঠাও যাতে cloud এ delete বোঝা যায়
+  // ✅ Save locally first
+  saveToStorage(true);
+
+  // ✅ Schedule cloud sync
   if (typeof window.scheduleSyncPush === 'function') {
     window.scheduleSyncPush('Delete Student: ' + (student.name || 'Unknown'));
-  } else {
-    saveToStorage();
   }
 
   showSuccessToast('Student deleted successfully! (Payments reversed)');
@@ -519,13 +530,14 @@ function deleteTransaction(id) {
     return;
   }
 
-  // 0. ✅ Recycle Bin এ সেভ করো
-  if (typeof moveToTrash === 'function') {
-    moveToTrash('finance', txToDelete);
-  }
+  // Hard Delete: Remove installment permanently as per user request
+  // 0. ✅ Recycle Bin disabled, force hard delete
+  // if (typeof moveToTrash === 'function') {
+  //   moveToTrash('finance', txToDelete);
+  // }
   if (typeof logActivity === 'function') {
     logActivity('finance', 'DELETE',
-      `Transaction deleted: ${txToDelete.type} | ${txToDelete.category || ''} | ৳${txToDelete.amount}`,
+      `Transaction deleted (Permanent): ${txToDelete.type} | ${txToDelete.category || ''} | ৳${txToDelete.amount}`,
       txToDelete);
   }
 

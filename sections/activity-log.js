@@ -295,13 +295,23 @@ function restoreDeletedItem(trashId) {
   // ✅ Remove from trash + sync backup
   window.globalData.deletedItems.splice(idx, 1);
   localStorage.setItem('wingsfly_deleted_backup', JSON.stringify(window.globalData.deletedItems));
-  saveToStorage();
+
+  // ✅ Save Locally immediately
+  if (typeof saveToStorage === 'function') {
+    saveToStorage(true);
+  } else {
+    localStorage.setItem('wingsfly_data', JSON.stringify(window.globalData));
+  }
+
   setTimeout(loadDeletedItems, 150);
 
   showSuccessToast(`✅ ${itemName} সফলভাবে restore হয়েছে!`);
   if (typeof updateGlobalStats === 'function') setTimeout(updateGlobalStats, 200);
-  // Cloud sync
-  if (typeof window.scheduleSyncPush === 'function') window.scheduleSyncPush('Restore: ' + type);
+
+  // ✅ Schedule Cloud Push
+  if (typeof window.scheduleSyncPush === 'function') {
+    window.scheduleSyncPush('Restore: ' + type);
+  }
 }
 window.restoreDeletedItem = restoreDeletedItem;
 

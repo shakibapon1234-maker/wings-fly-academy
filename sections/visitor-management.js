@@ -179,126 +179,182 @@ function editVisitor(index) {
 
 // ── Delete ──
 async function deleteVisitor(index) {
-  if (!confirm('Delete this visitor record?')) return;
   const visitors = window.globalData.visitors || [];
-  if (!visitors[index]) return;
+  const vToDelete = visitors[index];
+  if (!vToDelete) return;
+
+  if (!confirm(`Delete visitor "${vToDelete.name}"?`)) return;
+
+  // 0. Move to Trash
+  if (typeof moveToTrash === 'function') moveToTrash('visitor', vToDelete);
+
+  // 1. Log Activity
+  if (typeof logActivity === 'function') {
+    logActivity('visitor', 'DELETE', 'Visitor deleted: ' + (vToDelete.name || 'Unknown'), vToDelete);
+  }
+
+  // 2. Remove from array
   visitors.splice(index, 1);
-  await saveToStorage();
-  showSuccessToast('🗑️ Visitor deleted.');
+
+  // 3. Save locally first
+  if (typeof saveToStorage === 'function') {
+    saveToStorage(true);
+  } else {
+    localStorage.setItem('wingsfly_data', JSON.stringify(window.globalData));
+  }
+
+  // 4. Trigger Sync
+  if (typeof window.scheduleSyncPush === 'function') {
+    window.scheduleSyncPush('Visitor delete');
+  }
+
+  showSuccessToast('🗑️ Visitor deleted & moved to trash.');
   renderVisitors();
 }
 
-// ── Auto-set today's date when modal opens ──
-document.addEventListener('DOMContentLoaded', () => {
-  const visitorModal = document.getElementById('visitorModal');
-  if (visitorModal) {
-    visitorModal.addEventListener('show.bs.modal', () => {
-      const dateInput = document.getElementById('visitorDateInput');
-      const indexInput = document.getElementById('visitorRowIndex');
-      // Only set today if adding new (not editing)
-      if (dateInput && (!indexInput || indexInput.value === '')) {
-        dateInput.value = new Date().toISOString().split('T')[0];
+async function deleteEmployee(id) {
+  // Log before delete
+  const empToDelete = (window.globalData.employees || []).find(e => e.id == id);
+  if (!empToDelete) return;
+
+  if (confirm('Are you sure you want to remove this employee?')) {
+    // 0. Move to Trash
+    if (typeof moveToTrash === 'function') moveToTrash('employee', empToDelete);
+
+    // 1. Log Activity
+    if (typeof logActivity === 'function') {
+      logActivity('employee', 'DELETE',
+        'Employee deleted: ' + (empToDelete.name || 'Unknown') + ' | Role: ' + (empToDelete.role || '-'), empToDelete);
+    }
+
+    // 2. Remove from globalData
+    globalData.employees = globalData.employees.filter(e => String(e.id) !== String(id));
+
+    // 3. Save locally first (Skip cloud push to handle manually)
+    if (typeof saveToStorage === 'function') {
+      saveToStorage(true);
+    } else {
+      localStorage.setItem('wingsfly_data', JSON.stringify(globalData));
+    }
+
+    // 4. Force cloud sync
+    if (typeof window.scheduleSyncPush === 'function') {
+      window.scheduleSyncPush('Employee delete: ' + (empToDelete.name || 'Unknown'));
+    }
+
+    // 5. Refresh UI
+    renderEmployeeList();
+    // ── Auto-set today's date when modal opens ──
+    document.addEventListener('DOMContentLoaded', () => {
+      const visitorModal = document.getElementById('visitorModal');
+      if (visitorModal) {
+        visitorModal.addEventListener('show.bs.modal', () => {
+          const dateInput = document.getElementById('visitorDateInput');
+          const indexInput = document.getElementById('visitorRowIndex');
+          // Only set today if adding new (not editing)
+          if (dateInput && (!indexInput || indexInput.value === '')) {
+            dateInput.value = new Date().toISOString().split('T')[0];
+          }
+        });
       }
     });
-  }
-});
 
-// Global expose
-window.handleVisitorSubmit = handleVisitorSubmit;
-window.renderVisitors = renderVisitors;
-window.searchVisitors = searchVisitors;
-window.clearVisitorFilters = clearVisitorFilters;
-window.editVisitor = editVisitor;
-window.deleteVisitor = deleteVisitor;
+    // Global expose
+    window.handleVisitorSubmit = handleVisitorSubmit;
+    window.renderVisitors = renderVisitors;
+    window.searchVisitors = searchVisitors;
+    window.clearVisitorFilters = clearVisitorFilters;
+    window.editVisitor = editVisitor;
+    window.deleteVisitor = deleteVisitor;
 
-// ── Delete & Edit Transaction Event Delegation ───────────────────────────────
-// Uses ledgerTableBody directly to avoid document-level conflicts (GitHub Pages blocks confirm())
-function attachLedgerListeners() {
-  const tbody = document.getElementById('ledgerTableBody');
-  if (!tbody || tbody._listenersAttached) return;
-  tbody._listenersAttached = true;
+    // ── Delete & Edit Transaction Event Delegation ───────────────────────────────
+    // Uses ledgerTableBody directly to avoid document-level conflicts (GitHub Pages blocks confirm())
+    function attachLedgerListeners() {
+      const tbody = document.getElementById('ledgerTableBody');
+      if (!tbody || tbody._listenersAttached) return;
+      tbody._listenersAttached = true;
 
-  tbody.addEventListener('click', function (e) {
-    // Edit button
-    const editBtn = e.target.closest('.edit-tx-btn');
-    if (editBtn) {
-      e.stopImmediatePropagation();
-      const txId = editBtn.getAttribute('data-txid');
-      if (txId && typeof editTransaction === 'function') editTransaction(txId);
-      return;
+      tbody.addEventListener('click', function (e) {
+        // Edit button
+        const editBtn = e.target.closest('.edit-tx-btn');
+        if (editBtn) {
+          e.stopImmediatePropagation();
+          const txId = editBtn.getAttribute('data-txid');
+          if (txId && typeof editTransaction === 'function') editTransaction(txId);
+          return;
+        }
+
+        // Delete button
+        const delBtn = e.target.closest('.del-tx-btn');
+        if (!delBtn) return;
+        e.stopImmediatePropagation();
+
+        const sid = String(delBtn.getAttribute('data-txid'));
+        const tx = (window.globalData.finance || []).find(f => String(f.id) === sid);
+
+        if (tx) {
+          if (typeof moveToTrash === 'function') moveToTrash('finance', tx);
+          if (typeof logActivity === 'function') logActivity('finance', 'DELETE',
+            'Transaction deleted: ' + (tx.type || '') + ' | ' + (tx.category || '') + ' - ৳' + (tx.amount || 0), tx);
+          if (typeof updateAccountBalance === 'function') updateAccountBalance(tx.method, tx.amount, tx.type, false);
+        }
+
+        window.globalData.finance = (window.globalData.finance || []).filter(f => String(f.id) !== sid);
+        if (typeof renderLedger === 'function') renderLedger(window.globalData.finance);
+        if (typeof updateGlobalStats === 'function') updateGlobalStats();
+        if (typeof showSuccessToast === 'function') showSuccessToast('Transaction deleted!');
+        if (typeof saveToStorage === 'function') saveToStorage();
+
+        const accModal = document.getElementById('accountDetailsModal');
+        if (accModal && bootstrap.Modal.getInstance(accModal)) {
+          if (typeof renderAccountDetails === 'function') renderAccountDetails();
+        }
+      });
     }
 
-    // Delete button
-    const delBtn = e.target.closest('.del-tx-btn');
-    if (!delBtn) return;
-    e.stopImmediatePropagation();
+    // Attach on DOM ready and also after every renderLedger call
+    document.addEventListener('DOMContentLoaded', function () {
+      setTimeout(attachLedgerListeners, 500);
+    });
+    setTimeout(attachLedgerListeners, 2500);
 
-    const sid = String(delBtn.getAttribute('data-txid'));
-    const tx = (window.globalData.finance || []).find(f => String(f.id) === sid);
+    // Use event delegation on document level as fallback (always works)
+    document.addEventListener('click', function (e) {
+      // Delete button fallback
+      const delBtn = e.target.closest('.del-tx-btn');
+      if (delBtn) {
+        e.stopImmediatePropagation();
+        const sid = String(delBtn.getAttribute('data-txid'));
+        const tx = (window.globalData.finance || []).find(f => String(f.id) === sid);
+        if (tx) {
+          if (typeof moveToTrash === 'function') moveToTrash('finance', tx);
+          if (typeof logActivity === 'function') logActivity('finance', 'DELETE',
+            'Transaction deleted: ' + (tx.type || '') + ' | ' + (tx.category || '') + ' - ৳' + (tx.amount || 0), tx);
+          if (typeof updateAccountBalance === 'function') updateAccountBalance(tx.method, tx.amount, tx.type, false);
+        }
+        window.globalData.finance = (window.globalData.finance || []).filter(f => String(f.id) !== sid);
+        if (typeof renderLedger === 'function') renderLedger(window.globalData.finance);
+        if (typeof updateGlobalStats === 'function') updateGlobalStats();
+        if (typeof showSuccessToast === 'function') showSuccessToast('Transaction deleted!');
+        if (typeof saveToStorage === 'function') saveToStorage();
+        const accModal = document.getElementById('accountDetailsModal');
+        if (accModal && typeof bootstrap !== 'undefined' && bootstrap.Modal.getInstance(accModal)) {
+          if (typeof renderAccountDetails === 'function') renderAccountDetails();
+        }
+        return;
+      }
 
-    if (tx) {
-      if (typeof moveToTrash === 'function') moveToTrash('finance', tx);
-      if (typeof logActivity === 'function') logActivity('finance', 'DELETE',
-        'Transaction deleted: ' + (tx.type || '') + ' | ' + (tx.category || '') + ' - ৳' + (tx.amount || 0), tx);
-      if (typeof updateAccountBalance === 'function') updateAccountBalance(tx.method, tx.amount, tx.type, false);
-    }
-
-    window.globalData.finance = (window.globalData.finance || []).filter(f => String(f.id) !== sid);
-    if (typeof renderLedger === 'function') renderLedger(window.globalData.finance);
-    if (typeof updateGlobalStats === 'function') updateGlobalStats();
-    if (typeof showSuccessToast === 'function') showSuccessToast('Transaction deleted!');
-    if (typeof saveToStorage === 'function') saveToStorage();
-
-    const accModal = document.getElementById('accountDetailsModal');
-    if (accModal && bootstrap.Modal.getInstance(accModal)) {
-      if (typeof renderAccountDetails === 'function') renderAccountDetails();
-    }
-  });
-}
-
-// Attach on DOM ready and also after every renderLedger call
-document.addEventListener('DOMContentLoaded', function () {
-  setTimeout(attachLedgerListeners, 500);
-});
-setTimeout(attachLedgerListeners, 2500);
-
-// Use event delegation on document level as fallback (always works)
-document.addEventListener('click', function (e) {
-  // Delete button fallback
-  const delBtn = e.target.closest('.del-tx-btn');
-  if (delBtn) {
-    e.stopImmediatePropagation();
-    const sid = String(delBtn.getAttribute('data-txid'));
-    const tx = (window.globalData.finance || []).find(f => String(f.id) === sid);
-    if (tx) {
-      if (typeof moveToTrash === 'function') moveToTrash('finance', tx);
-      if (typeof logActivity === 'function') logActivity('finance', 'DELETE',
-        'Transaction deleted: ' + (tx.type || '') + ' | ' + (tx.category || '') + ' - ৳' + (tx.amount || 0), tx);
-      if (typeof updateAccountBalance === 'function') updateAccountBalance(tx.method, tx.amount, tx.type, false);
-    }
-    window.globalData.finance = (window.globalData.finance || []).filter(f => String(f.id) !== sid);
-    if (typeof renderLedger === 'function') renderLedger(window.globalData.finance);
-    if (typeof updateGlobalStats === 'function') updateGlobalStats();
-    if (typeof showSuccessToast === 'function') showSuccessToast('Transaction deleted!');
-    if (typeof saveToStorage === 'function') saveToStorage();
-    const accModal = document.getElementById('accountDetailsModal');
-    if (accModal && typeof bootstrap !== 'undefined' && bootstrap.Modal.getInstance(accModal)) {
-      if (typeof renderAccountDetails === 'function') renderAccountDetails();
-    }
-    return;
-  }
-
-  // Edit button fallback
-  const editBtn = e.target.closest('.edit-tx-btn');
-  if (editBtn) {
-    const txId = editBtn.getAttribute('data-txid');
-    if (txId && typeof editTransaction === 'function') editTransaction(txId);
-    return;
-  }
-});
+      // Edit button fallback
+      const editBtn = e.target.closest('.edit-tx-btn');
+      if (editBtn) {
+        const txId = editBtn.getAttribute('data-txid');
+        if (txId && typeof editTransaction === 'function') editTransaction(txId);
+        return;
+      }
+    });
 
 
-// =====================================================
+    // =====================================================
 
-// === GLOBAL EXPOSURE ===
-window.attachLedgerListeners = attachLedgerListeners;
+    // === GLOBAL EXPOSURE ===
+    window.attachLedgerListeners = attachLedgerListeners;

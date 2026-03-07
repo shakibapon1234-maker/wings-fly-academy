@@ -1293,7 +1293,7 @@
                                     </div>
 
                                     <!-- ── ROW 3: Function Test ── -->
-                                    <div class="diag-card" style="margin-bottom:0;">
+                                    <div class="diag-card">
                                         <div
                                             style="display:flex;justify-content:space-between;align-items:center;margin-bottom:10px;flex-wrap:wrap;gap:8px;">
                                             <div class="diag-card-title" style="margin-bottom:0;">🧪 Auto Function
@@ -1306,6 +1306,36 @@
                                         <div id="functest-summary"
                                             style="display:none;gap:8px;margin-bottom:8px;flex-wrap:wrap;"></div>
                                         <div id="functest-results" style="max-height:220px;overflow-y:auto;"></div>
+                                    </div>
+
+                                    <!-- ── ROW 4: Simulation & Demo ── -->
+                                    <div class="diag-card"
+                                        style="margin-bottom:0; border: 1px solid rgba(181, 55, 242, 0.3);">
+                                        <div
+                                            style="display:flex;justify-content:space-between;align-items:center;margin-bottom:12px;flex-wrap:wrap;gap:8px;">
+                                            <div class="diag-card-title" style="margin-bottom:0; color: #b537f2;">🚀
+                                                Full Integrity Simulation</div>
+                                            <div style="display:flex;gap:8px;">
+                                                <button type="button" class="diag-btn-green"
+                                                    style="background: rgba(181, 55, 242, 0.2); border-color: #b537f2; color: #d698ff;"
+                                                    onclick="SimulatorPro.run()">▶ Simulation শুরু করুন</button>
+                                                <button type="button" class="diag-btn-green"
+                                                    style="background: rgba(0, 217, 255, 0.1); border-color: #00d9ff; color: #00d9ff;"
+                                                    onclick="SimulatorPro.demo()">📦 Demo Data যোগ করুন</button>
+                                            </div>
+                                        </div>
+                                        <div
+                                            style="font-size: 0.75rem; color: rgba(255,255,255,0.5); margin-bottom: 10px;">
+                                            এটি একটি ফুল লাইফ-সাইকেল টেস্টিং (Add -> Edit -> Delete -> Restore ->
+                                            Verify)।
+                                            সিস্টেমের সব ড্রপডাউন, লেজার এবং সিঙ্কিং ঠিক আছে কি না তা এটি ১ মিনিটে চেক
+                                            করবে।
+                                        </div>
+                                        <div id="sim-log-container"
+                                            style="max-height:180px; overflow-y:auto; background: rgba(0,0,0,0.2); border-radius: 8px; border: 1px solid rgba(255,255,255,0.05); min-height: 40px;">
+                                            <div class="text-center text-muted py-3" style="font-size: 0.75rem;">
+                                                সিমুলেশন শুরু করতে বাটনে ক্লিক করুন...</div>
+                                        </div>
                                     </div>
 
                                 </div><!-- /diag-wrap -->
