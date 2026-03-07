@@ -96,8 +96,15 @@
     console.log('✅ Modal shown, switching to Mark tab...');
     setTimeout(() => {
       switchAttTab('mark');
+      // Rebuild dropdowns with latest globalData
+      buildBatchOptions('attMarkBatch', 'Select Batch...');
+      buildBatchOptions('attMonBatch', 'Select Batch...');
+      buildBatchOptions('attYrBatch', 'Select Batch...');
+      buildBatchOptions('attCwBatch', 'All Batches');
+      buildBatchOptions('attBlankBatch', 'Select Batch...');
+      buildCourseOptions('attCwCourse');
       if (typeof window.populateDropdowns === 'function') window.populateDropdowns();
-    }, 100);
+    }, 150);
   }
   window.openAttendanceModal = openAttendanceModal;
 
@@ -410,10 +417,10 @@
 
   // ── MARK ATTENDANCE ─────────────────────────────────
   function loadAttendanceList() {
-    const batch = (document.getElementById('attMarkBatch') || document.getElementById('attendanceBatchSelect'))?.value;
-    const date = (document.getElementById('attMarkDate') || document.getElementById('attendanceDate'))?.value;
+    const batch = (document.getElementById('attMarkBatch'))?.value;
+    const date = (document.getElementById('attMarkDate'))?.value;
 
-    const container = document.getElementById('attMarkContainer') || document.getElementById('attendanceListContainer');
+    const container = document.getElementById('attMarkContainer');
     const selectAll = document.getElementById('attMarkSelectAll');
     const countBadge = document.getElementById('attMarkCountBadge');
 
@@ -481,8 +488,8 @@
   window.markAllStudents = markAllStudents;
 
   function saveAttendance() {
-    const batch = (document.getElementById('attMarkBatch') || document.getElementById('attendanceBatchSelect'))?.value;
-    const date = (document.getElementById('attMarkDate') || document.getElementById('attendanceDate'))?.value;
+    const batch = (document.getElementById('attMarkBatch'))?.value;
+    const date = (document.getElementById('attMarkDate'))?.value;
     if (!batch || !date) {
       window.showErrorToast?.('❌ Batch ও Date বেছে নিন');
       return;
@@ -967,8 +974,7 @@
   window.printBlankSheet = printBlankSheet;
   // backwards compat
   window.printBlankAttendanceSheet = () => {
-    const batch = document.getElementById('attendanceBatchSelect')?.value ||
-      document.getElementById('attMarkBatch')?.value;
+    const batch = document.getElementById('attMarkBatch')?.value;
     if (!batch) { window.showErrorToast?.('❌ Batch বেছে নিন'); return; }
     // open hub at blank tab
     openAttendanceModal();

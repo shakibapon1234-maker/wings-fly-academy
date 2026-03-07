@@ -287,8 +287,12 @@ if (document.readyState === 'loading') {
   init();
 }
 
-// Backup patch
-setTimeout(_patchAll, 2000);
+// Backup patch (attendance-pro.js handles openAttendanceModal, do not re-patch)
+setTimeout(function() {
+  var savedAttModal = window.openAttendanceModal;
+  _patchAll();
+  if (savedAttModal) window.openAttendanceModal = savedAttModal;
+}, 2000);
 
 window.sectionLoader = {
   loadAndOpen: loadAndOpen,
