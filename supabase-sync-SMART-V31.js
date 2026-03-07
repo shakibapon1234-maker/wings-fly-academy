@@ -110,7 +110,7 @@
       supabaseClient = window.supabase.createClient(SUPABASE_URL, SUPABASE_KEY);
       localVersion = parseInt(localStorage.getItem('wings_local_version')) || 0;
       isInitialized = true;
-      log('✅', `V31 Initialized (v${localVersion})`);
+      log('✅', `V31.2 Initialized (v${localVersion})`);
       return true;
     } catch (e) { log('❌', 'Init failed:', e); return false; }
   }
@@ -220,6 +220,11 @@
       loans: gd.loans || [],
       id_cards: gd.idCards || [],
       notices: gd.notices || [],
+      // ✅ CRITICAL: Partial push হলেও academy_data তে main arrays আপডেট করো
+      // নাহলে অন্য PC পুল করলে পুরোনো ডাটা পাবে।
+      students: gd.students || [],
+      finance: gd.finance || [],
+      employees: gd.employees || [],
       version: localVersion,
       last_updated: new Date().toISOString(),
       last_device: DEVICE_ID,
@@ -233,7 +238,7 @@
       .upsert(metaPayload);
 
     if (error) { log('❌', 'Meta push error:', error); throw error; }
-    log('✅', `Meta pushed v${localVersion}`);
+    log('✅', `Meta pushed v${localVersion} (including arrays)`);
   }
 
   // ═══════════════════════════════════════════════════════════
@@ -295,11 +300,46 @@
     }
 
     if (anyUpdate) {
+      // ✅ TRASH FILTER: Pull করার পর Trash এ থাকা ডাটাগুলো ফিল্টার করো
+      _applyTrashFilter(gd);
       _save();
       if (typeof window.renderFullUI === 'function') window.renderFullUI();
     }
 
     return anyUpdate;
+  }
+
+  // ✅ Helper: Trash এ থাকা আইটেমগুলো মেইন লিস্ট থেকে সরাও
+  function _applyTrashFilter(gd) {
+    if (!gd || !Array.isArray(gd.deletedItems) || gd.deletedItems.length === 0) return;
+
+    const trashedIds = new Set();
+    gd.deletedItems.forEach(d => {
+      if (d.item) {
+        if (d.item.id) trashedIds.add(String(d.item.id));
+        if (d.item._id) trashedIds.add(String(d.item._id));
+        if (d.item.rowIndex) trashedIds.add(String(d.item.rowIndex));
+      }
+    });
+
+    if (trashedIds.size === 0) return;
+
+    const beforeLen = (gd.students?.length || 0) + (gd.finance?.length || 0);
+
+    if (Array.isArray(gd.students)) {
+      gd.students = gd.students.filter(s => !trashedIds.has(String(s.id)) && !trashedIds.has(String(s.rowIndex)) && !trashedIds.has(String(s._id)));
+    }
+    if (Array.isArray(gd.finance)) {
+      gd.finance = gd.finance.filter(f => !trashedIds.has(String(f.id)) && !trashedIds.has(String(f._id)));
+    }
+    if (Array.isArray(gd.employees)) {
+      gd.employees = gd.employees.filter(e => !trashedIds.has(String(e.id)) && !trashedIds.has(String(e._id)));
+    }
+
+    const afterLen = (gd.students?.length || 0) + (gd.finance?.length || 0);
+    if (beforeLen !== afterLen) {
+      log('🛡️', `Trash Filter: Removed ${beforeLen - afterLen} trashed items from pulled data`);
+    }
   }
 
   async function _fetchSince(tableName, sinceTimestamp) {
@@ -543,6 +583,10 @@
         localVersion = cloudVersion;
         localStorage.setItem('wings_local_version', String(cloudVersion));
         localStorage.setItem('lastSyncTime', String(cloudTimestamp));
+
+        // ✅ TRASH FILTER: ক্লাউড থেকে ডাটা আসার পর Trash এ থাকা আইটেমগুলো সরাও
+        if (typeof _applyTrashFilter === 'function') _applyTrashFilter(window.globalData);
+
         _save();
 
         // ✅ FIX: Full sync এর সময় wf_* merge করব না!
@@ -723,7 +767,7 @@
     // saveToStorage patch (dirty tracking এর জন্য)
     _patchSaveToStorage();
 
-    log('🚀', `V31 Sync ready | partial=${_partialTablesReady}`);
+    log('🚀', `V31.2 Sync ready | partial=${_partialTablesReady}`);
     showNotification('🔄 Sync ready', 'success');
   }
 
