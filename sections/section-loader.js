@@ -168,57 +168,59 @@
       });
     };
 
-    // 3. Add Student (New)
+    // 3. Add Student — modal is inline in index.html, no fetch needed
     window.openStudentModal = function () {
-      loadAndOpen(
-        '__modalPlaceholderStudents',
-        'sections/modals-student.html',
-        'studentModal',
-        function () {
-          var form = document.getElementById('studentForm');
-          if (form) form.reset();
-          var editIdx = document.getElementById('studentRowIndex') || document.querySelector('#studentForm [name="studentRowIndex"]');
-          if (editIdx) editIdx.value = '';
-          var title = document.querySelector('#studentModal .modal-title');
-          if (title) title.textContent = '👨‍🎓 Add New Student';
-          if (typeof window.populateDropdowns === 'function') setTimeout(window.populateDropdowns, 100);
-          if (typeof window.removeStudentPhoto === 'function') window.removeStudentPhoto();
-        }
-      );
+      var modal = document.getElementById('studentModal');
+      if (!modal) { console.error('[SectionLoader] studentModal not found in DOM'); return; }
+      // Reset form for new student
+      var form = document.getElementById('studentForm');
+      if (form) form.reset();
+      var rowIdx = document.getElementById('studentRowIndex');
+      if (rowIdx) rowIdx.value = '';
+      var title = document.getElementById('studentModalLabel');
+      if (title) title.textContent = '👨‍🎓 Add New Student';
+      if (typeof window.populateDropdowns === 'function') setTimeout(window.populateDropdowns, 50);
+      if (typeof window.removeStudentPhoto === 'function') window.removeStudentPhoto();
+      // Set today's date
+      var enrollDate = document.getElementById('studentEnrollDate');
+      if (enrollDate && !enrollDate.value) enrollDate.value = new Date().toISOString().split('T')[0];
+      bootstrap.Modal.getOrCreateInstance(modal).show();
     };
 
     // 3b. Edit Student
     window.openEditStudentModal = function (index) {
-      loadAndOpen(
-        '__modalPlaceholderStudents',
-        'sections/modals-student.html',
-        'studentModal',
-        function () {
-          var students = window.globalData && window.globalData.students;
-          if (!students || !students[index]) return;
-          var s = students[index];
-          var form = document.getElementById('studentForm');
-          if (!form) return;
-          form.reset();
-          var rowIdx = document.getElementById('studentRowIndex') || document.querySelector('#studentForm [name="studentRowIndex"]');
-          if (rowIdx) rowIdx.value = index;
-          var title = document.querySelector('#studentModal .modal-title');
-          if (title) title.textContent = '\u270f\ufe0f Edit Student \u2014 ' + (s.name || '');
-          var fields = {
-            studentName: s.name, studentPhone: s.phone, studentEmail: s.email,
-            studentAddress: s.address, studentDOB: s.dob, studentGender: s.gender,
-            studentCourse: s.course, studentBatch: s.batch, studentFee: s.fee,
-            studentPaid: s.paid, studentPaymentMethod: s.paymentMethod,
-            studentStatus: s.status, studentNotes: s.notes, studentNID: s.nid,
-            studentGuardian: s.guardian, studentGuardianPhone: s.guardianPhone
-          };
-          Object.entries(fields).forEach(function(e) {
-            var el = document.getElementById(e[0]) || form.querySelector('[name="' + e[0] + '"]');
-            if (el && e[1] !== undefined && e[1] !== null) el.value = e[1];
-          });
-          if (typeof window.populateDropdowns === 'function') setTimeout(window.populateDropdowns, 100);
+      var modal = document.getElementById('studentModal');
+      if (!modal) { console.error('[SectionLoader] studentModal not found in DOM'); return; }
+      var students = window.globalData && window.globalData.students;
+      if (!students || !students[index]) return;
+      var s = students[index];
+      var form = document.getElementById('studentForm');
+      if (form) {
+        form.reset();
+        var rowIdx = document.getElementById('studentRowIndex');
+        if (rowIdx) rowIdx.value = index;
+        var title = document.getElementById('studentModalLabel');
+        if (title) title.textContent = '\u270f\ufe0f Edit — ' + (s.name || '');
+        // Populate fields
+        var set = function(id, val) { var el = document.getElementById(id); if (el && val !== undefined && val !== null) el.value = val; };
+        set('studentName', s.name); set('studentPhone', s.phone);
+        set('studentFatherName', s.fatherName); set('studentMotherName', s.motherName);
+        set('studentCourseSelect', s.course); set('studentBatchInput', s.batch);
+        set('studentEnrollDate', s.enrollDate); set('studentBloodGroup', s.bloodGroup);
+        set('inpTotal', s.totalPayment); set('inpPaid', s.paid); set('inpDue', s.due);
+        set('studentMethodSelect', s.method); set('studentReminderDate', s.reminderDate);
+        set('studentRemarks', s.remarks);
+        var photoInput = document.getElementById('photoURLInput');
+        if (photoInput) photoInput.value = s.photo || '';
+        if (s.photo) {
+          var preview = document.getElementById('studentPhotoPreview');
+          var removeBtn = document.getElementById('removePhotoBtn');
+          if (preview) { preview.src = s.photo; preview.style.display = 'block'; }
+          if (removeBtn) removeBtn.style.display = 'inline-block';
         }
-      );
+        if (typeof window.populateDropdowns === 'function') setTimeout(window.populateDropdowns, 50);
+      }
+      bootstrap.Modal.getOrCreateInstance(modal).show();
     };
 
     // 4. Employee
