@@ -174,6 +174,13 @@
       });
     };
 
+    // 5. Exam Registration
+    window.openExamRegistration = function () {
+      loadAndOpen('__modalPlaceholderOther', 'sections/modals.html', 'examRegistrationModal', function () {
+        if (typeof window.initializeExamSystem === 'function') window.initializeExamSystem();
+      });
+    };
+
     // 5. & 6. Attendance & Notice Board 
     // These are handled by their respective modules (student-management.js, index.html)
     // No redundant global patching needed here.

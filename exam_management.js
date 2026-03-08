@@ -742,6 +742,19 @@ window.printExamResults = printExamResults;
 window.exportExamResultsExcel = exportExamResultsExcel;
 window.printExamReceipt = printExamReceipt;
 
+function openExamRegistration() {
+    const modalEl = document.getElementById('examRegistrationModal');
+    if (modalEl) {
+        // Initialize if first time
+        initializeExamSystem();
+        const bsModal = bootstrap.Modal.getInstance(modalEl) || new bootstrap.Modal(modalEl);
+        bsModal.show();
+    } else {
+        console.error('examRegistrationModal modal element not found!');
+    }
+}
+window.openExamRegistration = openExamRegistration;
+
 // Make sure to call this when the page loads
 document.addEventListener('DOMContentLoaded', function () {
     initializeExamSystem();

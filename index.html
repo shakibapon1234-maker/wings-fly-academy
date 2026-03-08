@@ -1160,15 +1160,79 @@
             -webkit-backdrop-filter: blur(8px) !important;
         }
 
-        /* POWERPOINT ENTRANCE: Smooth Zoom + Slide-Up 3D Effect */
-        .modal.fade .modal-dialog {
-            transform: scale(0.6) translateY(50px) perspective(1000px) rotateX(-10deg) !important;
+        /* DIVERSE ENTRANCE ANIMATIONS (PowerPoint Variety) */
+
+        /* 1. STUDENT MODAL: Slide-Up + Bounce (Wedge style) */
+        #studentModal.modal.fade .modal-dialog {
+            transform: translateY(100px) scale(0.8) !important;
+            opacity: 0;
+            transition: all 0.5s cubic-bezier(0.34, 1.56, 0.64, 1) !important;
+        }
+
+        #studentModal.modal.show .modal-dialog {
+            transform: translateY(0) scale(1) !important;
+            opacity: 1 !important;
+        }
+
+        /* 2. FINANCE/TRANSACTION MODAL: Fly-In from Left (Push style) */
+        #financeModal.modal.fade .modal-dialog {
+            transform: translateX(-200px) rotate(-5deg) !important;
+            opacity: 0;
+            transition: all 0.6s cubic-bezier(0.175, 0.885, 0.32, 1.275) !important;
+        }
+
+        #financeModal.modal.show .modal-dialog {
+            transform: translateX(0) rotate(0deg) !important;
+            opacity: 1 !important;
+        }
+
+        /* 3. EXAM REGISTRATION: Blur + Zoom In (Fade style) */
+        #examRegistrationModal.modal.fade .modal-dialog {
+            transform: scale(1.2) !important;
+            filter: blur(20px);
+            opacity: 0;
+            transition: all 0.7s ease-out !important;
+        }
+
+        #examRegistrationModal.modal.show .modal-dialog {
+            transform: scale(1) !important;
+            filter: blur(0);
+            opacity: 1 !important;
+        }
+
+        /* 4. SETTINGS MODAL: Drop from Top (Fall style) */
+        #settingsModal.modal.fade .modal-dialog {
+            transform: translateY(-200px) perspective(500px) rotateX(30deg) !important;
             opacity: 0;
             transition: all 0.6s cubic-bezier(0.34, 1.56, 0.64, 1) !important;
         }
 
+        #settingsModal.modal.show .modal-dialog {
+            transform: translateY(0) perspective(500px) rotateX(0deg) !important;
+            opacity: 1 !important;
+        }
+
+        /* 5. VISITOR MODAL: Slide from Right */
+        #visitorModal.modal.fade .modal-dialog {
+            transform: translateX(200px) !important;
+            opacity: 0;
+            transition: all 0.5s ease-out !important;
+        }
+
+        #visitorModal.modal.show .modal-dialog {
+            transform: translateX(0) !important;
+            opacity: 1 !important;
+        }
+
+        /* Generic modal transition for others */
+        .modal.fade .modal-dialog {
+            transform: scale(0.8) translateY(20px) !important;
+            opacity: 0;
+            transition: all 0.4s ease-out !important;
+        }
+
         .modal.show .modal-dialog {
-            transform: scale(1) translateY(0) perspective(1000px) rotateX(0deg) !important;
+            transform: scale(1) translateY(0) !important;
             opacity: 1 !important;
         }
 
