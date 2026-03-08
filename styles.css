@@ -3703,3 +3703,51 @@ tfoot th {
   background: radial-gradient(ellipse, rgba(79, 172, 254, 0.08) 0%, transparent 70%);
   pointer-events: none;
 }
+
+/* ===================================
+   STUDENT TABLE — STICKY HORIZONTAL SCROLLBAR
+   স্টুডেন্ট ট্যাবের table-responsive এর scrollbar
+   সবসময় viewport এর নিচে fixed থাকবে
+   =================================== */
+
+#studentSection .table-responsive {
+  overflow-x: auto;
+  overflow-y: visible;
+
+  /* Scrollbar সবসময় viewport bottom এ দেখাবে */
+  position: relative;
+}
+
+/* Sticky scrollbar trick: একটা ghost div দিয়ে scrollbar কে
+   viewport bottom এ আটকে রাখা হবে — pure CSS approach */
+#studentSection .card:has(.table-responsive) {
+  position: relative;
+}
+
+/* WebKit browsers (Chrome, Edge): scrollbar height বাড়াও যাতে ধরতে সহজ হয় */
+#studentSection .table-responsive::-webkit-scrollbar {
+  height: 10px;
+}
+
+#studentSection .table-responsive::-webkit-scrollbar-track {
+  background: rgba(0, 217, 255, 0.08);
+  border-radius: 8px;
+}
+
+#studentSection .table-responsive::-webkit-scrollbar-thumb {
+  background: linear-gradient(90deg, #00d9ff, #b537f2);
+  border-radius: 8px;
+  border: 2px solid transparent;
+  background-clip: padding-box;
+}
+
+#studentSection .table-responsive::-webkit-scrollbar-thumb:hover {
+  background: linear-gradient(90deg, #00ffea, #d400ff);
+  border-radius: 8px;
+}
+
+/* ===================================
+   STICKY SCROLLBAR — JS দিয়ে করা হবে
+   নিচের JS snippet টা inline-scripts.js বা
+   index.html এ যোগ করতে হবে (দেখুন নিচে)
+   =================================== */

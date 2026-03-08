@@ -3414,6 +3414,115 @@
         })();
     </script>
 
+    <!-- ✅ STICKY HORIZONTAL SCROLLBAR — Student Table -->
+    <script>
+    (function initStickyScrollbar() {
+        var GHOST_ID = 'studentScrollbarGhost';
+        var TABLE_WRAPPER_SEL = '#studentSection .table-responsive';
+
+        function setupStickyScrollbar() {
+            var wrapper = document.querySelector(TABLE_WRAPPER_SEL);
+            if (!wrapper) return null;
+
+            var oldGhost = document.getElementById(GHOST_ID);
+            if (oldGhost) oldGhost.remove();
+
+            var ghost = document.createElement('div');
+            ghost.id = GHOST_ID;
+            ghost.style.cssText = 'position:fixed;bottom:0;left:0;right:0;height:14px;overflow-x:auto;overflow-y:hidden;z-index:1050;background:rgba(10,15,40,0.95);border-top:2px solid rgba(0,217,255,0.3);display:none;box-shadow:0 -3px 15px rgba(0,0,0,0.5);';
+
+            var inner = document.createElement('div');
+            inner.id = GHOST_ID + '_inner';
+            inner.style.height = '1px';
+            ghost.appendChild(inner);
+            document.body.appendChild(ghost);
+
+            var style = document.createElement('style');
+            style.textContent = '#' + GHOST_ID + '::-webkit-scrollbar{height:10px;}#' + GHOST_ID + '::-webkit-scrollbar-track{background:rgba(0,217,255,0.08);}#' + GHOST_ID + '::-webkit-scrollbar-thumb{background:linear-gradient(90deg,#00d9ff,#b537f2);border-radius:8px;}#' + GHOST_ID + '::-webkit-scrollbar-thumb:hover{background:linear-gradient(90deg,#00ffea,#d400ff);}';
+            document.head.appendChild(style);
+
+            var syncing = false;
+            ghost.addEventListener('scroll', function () {
+                if (syncing) return; syncing = true;
+                wrapper.scrollLeft = ghost.scrollLeft;
+                syncing = false;
+            });
+            wrapper.addEventListener('scroll', function () {
+                if (syncing) return; syncing = true;
+                ghost.scrollLeft = wrapper.scrollLeft;
+                syncing = false;
+            });
+
+            function syncWidth() {
+                var tbl = wrapper.querySelector('table');
+                if (tbl) inner.style.width = tbl.scrollWidth + 'px';
+            }
+
+            function positionGhost() {
+                var rect = wrapper.getBoundingClientRect();
+                var viewH = window.innerHeight;
+                var needsScroll = wrapper.scrollWidth > wrapper.clientWidth + 2;
+                var tableOutOfView = rect.bottom > viewH;
+                var tableInView = rect.top < viewH && rect.bottom > 0;
+
+                if (needsScroll && tableInView && tableOutOfView) {
+                    ghost.style.left = Math.max(0, rect.left) + 'px';
+                    ghost.style.right = Math.max(0, window.innerWidth - rect.right) + 'px';
+                    ghost.style.display = 'block';
+                    ghost.scrollLeft = wrapper.scrollLeft;
+                } else {
+                    ghost.style.display = 'none';
+                }
+                syncWidth();
+            }
+
+            window.addEventListener('scroll', positionGhost, { passive: true });
+            window.addEventListener('resize', positionGhost, { passive: true });
+
+            return { positionGhost: positionGhost, syncWidth: syncWidth };
+        }
+
+        var instance = null;
+        var currentTab = 'students';
+
+        document.addEventListener('DOMContentLoaded', function () {
+            setTimeout(function () {
+                instance = setupStickyScrollbar();
+                if (instance) { instance.syncWidth(); instance.positionGhost(); }
+
+                // switchTab patch
+                var orig = window.switchTab;
+                if (typeof orig === 'function') {
+                    window.switchTab = function (tabName) {
+                        orig.call(this, tabName);
+                        currentTab = tabName;
+                        var ghost = document.getElementById(GHOST_ID);
+                        if (!ghost) return;
+                        if (tabName === 'students') {
+                            if (!instance) instance = setupStickyScrollbar();
+                            setTimeout(function () {
+                                if (instance) { instance.syncWidth(); instance.positionGhost(); }
+                            }, 300);
+                        } else {
+                            ghost.style.display = 'none';
+                        }
+                    };
+                }
+
+                // MutationObserver: table data পরিবর্তন হলে re-sync
+                var tbody = document.getElementById('tableBody');
+                if (tbody && window.MutationObserver) {
+                    new MutationObserver(function () {
+                        if (currentTab === 'students' && instance) {
+                            instance.syncWidth();
+                            instance.positionGhost();
+                        }
+                    }).observe(tbody, { childList: true });
+                }
+            }, 1200);
+        });
+    })();
+    </script>
 
 </body>
 
