@@ -3365,7 +3365,25 @@
                 var form = document.getElementById('studentForm');
                 if (!form) return;
                 form.reset();
-                var set = function (id, val) { var el = document.getElementById(id); if (el && val != null) el.value = val; };
+
+                // ✅ FIX: Dropdown আগে populate করো, তারপর সব value set করো
+                _populateStudentDropdowns();
+
+                var set = function (id, val) {
+                    var el = document.getElementById(id);
+                    if (!el || val == null) return;
+                    el.value = val;
+                    // ✅ FIX: select element এ value ঠিকমতো না বসলে option loop করে match করো
+                    if (el.tagName === 'SELECT' && el.value !== String(val)) {
+                        for (var i = 0; i < el.options.length; i++) {
+                            if (el.options[i].value === String(val) || el.options[i].text === String(val)) {
+                                el.selectedIndex = i;
+                                break;
+                            }
+                        }
+                    }
+                };
+
                 set('studentRowIndex', index);
                 set('studentName', s.name); set('studentPhone', s.phone);
                 set('studentFatherName', s.fatherName); set('studentMotherName', s.motherName);
@@ -3374,16 +3392,17 @@
                 set('inpPaid', s.paid); set('inpDue', s.due);
                 set('studentReminderDate', s.reminderDate); set('studentRemarks', s.remarks);
                 set('photoURLInput', s.photo || '');
-                _populateStudentDropdowns();
                 set('studentCourseSelect', s.course);
                 set('studentMethodSelect', s.method);
+
                 var title = document.getElementById('studentModalLabel');
                 if (title) title.textContent = '✏️ Edit — ' + (s.name || '');
                 if (s.photo) {
+                    var isBase64 = s.photo.startsWith('data:image');
                     var prev = document.getElementById('studentPhotoPreview');
                     var btn = document.getElementById('removePhotoBtn');
-                    if (prev) { prev.src = s.photo; prev.style.display = 'block'; }
-                    if (btn) btn.style.display = 'inline-block';
+                    if (prev && isBase64) { prev.src = s.photo; prev.style.display = 'block'; }
+                    if (btn && isBase64) btn.style.display = 'inline-block';
                 }
                 bootstrap.Modal.getOrCreateInstance(modal).show();
             };
