@@ -544,7 +544,7 @@ function deleteTransaction(id) {
 
   if (isStudentPayment && txToDelete.person && globalData.students) {
     const studentName = txToDelete.person.trim();
-    const student = globalData.students.find(s => (s.name || '').trim() === studentName);
+    const student = globalData.students.find(s => (s.name || '').trim().toLowerCase() === studentName.toLowerCase()); // Case-insensitive matching
     if (student) {
       const txAmount = parseFloat(txToDelete.amount) || 0;
       const txDate = txToDelete.date;
@@ -603,6 +603,13 @@ function deleteTransaction(id) {
   renderLedger(globalData.finance);
   updateGlobalStats();
   if (typeof render === 'function') render(globalData.students);
+
+  // ✅ Explicitly mark dirty for V31 sync
+  if (typeof window.markDirty === 'function') {
+    window.markDirty('finance');
+    window.markDirty('students');
+    window.markDirty('meta');
+  }
   showSuccessToast('Transaction deleted successfully!');
 
   // 5. Delete tracking (sync এর জন্য)

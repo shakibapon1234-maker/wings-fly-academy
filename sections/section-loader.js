@@ -35,7 +35,10 @@
     const loadPromise = (async () => {
       try {
         console.log('[SectionLoader] 📡 Fetching HTML:', htmlFile);
-        const res = await fetch(htmlFile + '?v=' + Date.now());
+        // FIX: file:// protocol avoids query params that can block local fetches in some browsers
+        const isFileProtocol = window.location.protocol === 'file:';
+        const url = isFileProtocol ? htmlFile : htmlFile + '?v=' + Date.now();
+        const res = await fetch(url);
         if (!res.ok) throw new Error('HTTP ' + res.status);
         const html = await res.text();
 
@@ -171,15 +174,9 @@
       });
     };
 
-    // 5. Attendance
-    window.openAttendanceModal = function () {
-      loadAndOpen('__modalPlaceholderOther', 'sections/modals-other.html', 'attendanceModal');
-    };
-
-    // 6. Notice
-    window.openNoticeModal = function () {
-      loadAndOpen('__modalPlaceholderOther', 'sections/modals-other.html', 'noticeModal');
-    };
+    // 5. & 6. Attendance & Notice Board 
+    // These are handled by their respective modules (student-management.js, index.html)
+    // No redundant global patching needed here.
   }
 
   function init() {

@@ -160,8 +160,9 @@ function printBatchProfitReport() {
             <td>${index + 1}</td>
             <td>${s.name}</td>
             <td>${s.studentID || '---'}</td>
-            <td>${s.contact || '---'}</td>
-            <td class="text-end fw-bold">৳${(parseFloat(s.paid) || 0).toLocaleString()}</td>
+            <td class="text-end">৳${(parseFloat(s.totalPayment) || 0).toLocaleString()}</td>
+            <td class="text-end text-success fw-bold">৳${(parseFloat(s.paid) || 0).toLocaleString()}</td>
+            <td class="text-end text-danger fw-bold">৳${(parseFloat(s.due) || 0).toLocaleString()}</td>
         </tr>
     `).join('');
 
@@ -236,35 +237,34 @@ function printBatchProfitReport() {
                 </div>
             </div>
 
-            <!-- PAGE 2: STUDENT COLLECTIONS -->
+            <!-- PAGE 2: DETAILED LISTS -->
             <div class="page-break">
-                <div class="section-title">PAGE 02: Student Collection Details</div>
-                <table class="table table-bordered align-middle">
+                <div class="section-title">PAGE 02: Detailed Student Collections</div>
+                <table class="table table-bordered align-middle" style="font-size: 0.85rem;">
                     <thead>
                         <tr>
                             <th width="50">#</th>
                             <th>Student Name</th>
                             <th>ID Number</th>
-                            <th>Contact</th>
+                            <th class="text-end">Total Fee</th>
                             <th class="text-end">Paid Amount</th>
+                            <th class="text-end">Due</th>
                         </tr>
                     </thead>
                     <tbody>
-                        ${studentRows || '<tr><td colspan="5" class="text-center">No student data found for this batch.</td></tr>'}
+                        ${studentRows || '<tr><td colspan="6" class="text-center">No student data found for this batch.</td></tr>'}
                     </tbody>
                     <tfoot>
                         <tr>
-                            <th colspan="4" class="text-end">Grand Total Collection:</th>
+                            <th colspan="4" class="text-end">Batch Totals:</th>
                             <th class="text-end text-success">৳${reportData.totalIncome.toLocaleString()}</th>
+                            <th class="text-end text-danger">৳${reportData.students.reduce((sum, s) => sum + (parseFloat(s.due) || 0), 0).toLocaleString()}</th>
                         </tr>
                     </tfoot>
                 </table>
-            </div>
 
-            <!-- PAGE 3: OPERATING EXPENSES -->
-            <div class="page-break">
-                <div class="section-title">PAGE 03: Operating Expense Details</div>
-                <table class="table table-bordered align-middle">
+                <div class="section-title mt-4">Operating Expense Details (Period)</div>
+                <table class="table table-bordered align-middle" style="font-size: 0.85rem;">
                     <thead>
                         <tr>
                             <th width="50">#</th>
@@ -284,6 +284,7 @@ function printBatchProfitReport() {
                         </tr>
                     </tfoot>
                 </table>
+            </div>
 
                 <div class="footer-stamp text-center">
                     <p>This is a computer-generated report for official record purposes.</p>
