@@ -170,21 +170,25 @@ function handleAddInstallment() {
     timestamp: new Date().toISOString()
   };
 
-  // DUPLICATE GUARD: Finance total for this student should equal student.paid BEFORE this entry
-  // If finance already shows more than student.paid, skip adding to finance (already counted)
+  // ✅ FIX: student.paid ইতিমধ্যে update হয়েছে (উপরে)।
+  // Finance total = student.paid - amount (এই entry যোগের আগের value)
+  // যদি finance total ইতিমধ্যে student.paid এর সমান বা বেশি হয়, তাহলে duplicate।
   const financeTotal = (globalData.finance || [])
-    .filter(f => f.person === student.name && (f.category === 'Student Installment' || f.category === 'Student Fee'))
+    .filter(f => !f._deleted && f.person === student.name &&
+      (f.category === 'Student Installment' || f.category === 'Student Fee'))
     .reduce((sum, f) => sum + (parseFloat(f.amount) || 0), 0);
-  const expectedBeforeThis = (parseFloat(student.paid) || 0); // student.paid already updated above
+  const paidBeforeThisEntry = (parseFloat(student.paid) || 0) - amount; // এই entry যোগের আগে কত ছিল
 
-  if (financeTotal < expectedBeforeThis) {
+  if (financeTotal <= paidBeforeThisEntry + 1) { // 1tk buffer for rounding
     globalData.finance.push(financeEntry);
     // 3. Update Account Balance
-    if (typeof updateAccountBalance === "function") {
+    if (typeof window.feApplyEntryToAccount === 'function') {
+      window.feApplyEntryToAccount(financeEntry, +1);
+    } else if (typeof updateAccountBalance === 'function') {
       updateAccountBalance(financeEntry.method, financeEntry.amount, financeEntry.type);
     }
   } else {
-    console.warn(`⚠️ Duplicate finance entry prevented for ${student.name}. Finance:${financeTotal} >= Expected:${expectedBeforeThis}`);
+    console.warn(`⚠️ Duplicate finance entry prevented for ${student.name}. Finance:${financeTotal} >= PaidBefore:${paidBeforeThisEntry}`);
   }
 
   // 4. Save & Refresh

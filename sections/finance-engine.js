@@ -157,6 +157,9 @@
     if (typeof renderMobileBankingList === 'function') renderMobileBankingList();
     if (typeof updateGrandTotal === 'function') updateGrandTotal();
 
+    // Student paid fields sync করো finance entries থেকে
+    window.feSyncStudentPaid();
+
     console.log('✅ feRebuildAllBalances: Cash=', gd.cashBalance,
       '| Bank total=', (gd.bankAccounts || []).reduce((s, a) => s + (parseFloat(a.balance) || 0), 0),
       '| Mobile total=', (gd.mobileBanking || []).reduce((s, a) => s + (parseFloat(a.balance) || 0), 0));
@@ -282,7 +285,46 @@
   };
 
 
-  // ── 8. AUTO-RUN ON LOAD ───────────────────────────────────
+  // ── 8. SYNC STUDENT PAID FROM FINANCE ENTRIES ────────────
+  //
+  // Finance entries = single source of truth।
+  // students[].paid এবং students[].due finance থেকে recalculate করো।
+  // এটা data inconsistency fix করে — যেমন:
+  //   - Finance entry আছে কিন্তু student.paid update হয়নি
+  //   - Student.paid আছে কিন্তু finance entry নেই
+
+  window.feSyncStudentPaid = function () {
+    const gd = window.globalData || {};
+    if (!gd.students || !gd.finance) return;
+
+    // প্রতিটি student এর জন্য finance entries থেকে total calculate করো
+    gd.students.forEach(student => {
+      if (!student || !student.name) return;
+
+      // এই student এর সব non-deleted income finance entries
+      const studentFinanceTotal = (gd.finance || [])
+        .filter(f =>
+          !f._deleted &&
+          ACCOUNT_IN_TYPES.includes(f.type) &&
+          (f.person === student.name ||
+           (f.description || '').includes(student.name))
+        )
+        .reduce((sum, f) => sum + (parseFloat(f.amount) || 0), 0);
+
+      const oldPaid = parseFloat(student.paid) || 0;
+
+      if (Math.abs(studentFinanceTotal - oldPaid) > 1) {
+        console.log(`🔄 feSyncStudentPaid: ${student.name} | old paid=৳${oldPaid} → new paid=৳${studentFinanceTotal}`);
+        student.paid = studentFinanceTotal;
+        student.due = Math.max(0, (parseFloat(student.totalPayment) || 0) - student.paid);
+      }
+    });
+
+    console.log('✅ feSyncStudentPaid: student paid fields synced from finance entries');
+  };
+
+
+  // ── 9. AUTO-RUN ON LOAD ───────────────────────────────────
 
   // globalData ready হওয়ার পরে rebuild করো
   function _runRebuild() {
