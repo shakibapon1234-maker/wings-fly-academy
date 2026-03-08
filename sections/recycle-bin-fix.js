@@ -449,26 +449,8 @@
   var _patchStudentDelete = function () {
     var orig = window.deleteStudent;
     if (typeof orig !== 'function' || orig._isRecyclePatched) return;
-    var patchFn = function (rowIndexOrId) {
+    var patchFn = function (id) {
       var gd = window.globalData;
-<<<<<<< HEAD
-      if (!gd || !Array.isArray(gd.students)) return orig(rowIndexOrId);
-      var student;
-      if (typeof rowIndexOrId === 'number' && rowIndexOrId < 1000) {
-        student = gd.students[rowIndexOrId];
-      } else {
-        var sid = String(rowIndexOrId);
-        student = gd.students.find(function (s) { return String(s.id) === sid || String(s._id) === sid; });
-      }
-      if (student) {
-        if (!confirm('এই Student টি Recycle Bin-এ পাঠাবেন?\n(Balance reverse করা হবে)')) return;
-        window.moveToTrash('Student', student);
-      }
-      return orig(rowIndexOrId);
-    };
-    patchFn._isRecyclePatched = true;
-    window.deleteStudent = patchFn;
-=======
       if (!gd || !Array.isArray(gd.students)) { if (typeof orig === 'function') return orig(id); return; }
 
       // rowIndex, id, _id — যেকোনো একটা দিয়ে খোঁজো
@@ -480,7 +462,7 @@
       });
 
       if (!student) {
-        // patch এ পেলাম না — original চালাও
+        // patch 에 পেলাম না — original চালাও
         if (typeof orig === 'function') return orig(id);
         return;
       }
@@ -530,59 +512,15 @@
       if (typeof window.showSuccessToast === 'function') window.showSuccessToast('🗑️ ' + student.name + ' Recycle Bin-এ গেছে (পেমেন্ট রিভার্স করা হয়েছে)');
       console.log('[RecycleFix] ✓ Student moved to trash:', student.name);
     };
+    patchFn._isRecyclePatched = true;
+    window.deleteStudent = patchFn;
     console.log('[RecycleFix] ✓ deleteStudent patched (rowIndex-aware & balance-correcting)');
->>>>>>> origin/main
   };
 
   // ═══════════════════════════════════════════════
   // 7. PATCH: Finance Delete
   // ═══════════════════════════════════════════════
   var _patchFinanceDelete = function () {
-<<<<<<< HEAD
-    var orig = window.deleteTransaction || window.deleteFinance;
-    if (typeof orig !== 'function' || orig._isRecyclePatched) return;
-    var patchFn = function (id) {
-      var gd = window.globalData;
-      if (!gd || !Array.isArray(gd.finance)) return orig(id);
-      var sid = String(id);
-      var tx = gd.finance.find(function (f) { return String(f.id) === sid; });
-      if (tx) {
-        if (!confirm('এই Transaction টি Recycle Bin-এ পাঠাবেন?\n' + tx.type + ': ৳' + tx.amount)) return;
-        window.moveToTrash('Finance', tx);
-      }
-      return orig(id);
-    };
-    patchFn._isRecyclePatched = true;
-    window.deleteTransaction = patchFn;
-    window.deleteFinance = patchFn;
-  };
-
-  var _patchInstallmentDelete = function () {
-    var orig = window.deleteInstallment;
-    if (typeof orig !== 'function' || orig._isRecyclePatched) return;
-    var patchFn = function (rowIndex, instIndex) {
-      var gd = window.globalData;
-      if (!gd || !gd.students) return orig(rowIndex, instIndex);
-      var student = gd.students[rowIndex];
-      if (!student) return orig(rowIndex, instIndex);
-      var installments = (typeof window.getStudentInstallments === 'function')
-        ? window.getStudentInstallments(student) : (student.installments || []);
-      var inst = installments[instIndex];
-      if (inst && !inst.isMigrated) {
-        if (!confirm('এই পেমেন্ট টি ডিলিট করবেন?\n৳' + inst.amount + ' (' + student.name + ')')) return;
-        window.moveToTrash('Installment', {
-          studentName: student.name,
-          amount: inst.amount,
-          date: inst.date,
-          method: inst.method,
-          studentIndex: rowIndex
-        });
-      }
-      return orig(rowIndex, instIndex);
-    };
-    patchFn._isRecyclePatched = true;
-    window.deleteInstallment = patchFn;
-=======
     var origDeleteTransaction = window.deleteTransaction;
     var origDeleteFinance = window.deleteFinance;
 
@@ -636,7 +574,6 @@
     window.deleteTransaction = patchFn;
     window.deleteFinance = patchFn;
     console.log('[RecycleFix] ✓ deleteTransaction/deleteFinance patched (trash-aware)');
->>>>>>> origin/main
   };
 
   // ═══════════════════════════════════════════════

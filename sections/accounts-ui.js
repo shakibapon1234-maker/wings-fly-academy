@@ -84,7 +84,7 @@ function renderAccountDetails() {
                 <td class="small text-muted">${f.description || ''}</td>
                 <td class="${amtClass} fw-bold">৳${formatNumber(amt)}</td>
                 <td class="no-print">
-                    <button class="btn btn-sm btn-outline-danger border-0" onclick="event.stopPropagation(); _handleDeleteTx('${f.id}')" title="Delete entry">
+                    <button class="btn btn-sm btn-outline-danger border-0 del-tx-btn" data-txid="${f.id}" onclick="event.stopPropagation(); _handleDeleteTx('${f.id}')" title="Delete entry">
                         🗑️ DELETE
                     </button>
                 </td>

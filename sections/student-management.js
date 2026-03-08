@@ -212,7 +212,7 @@ function renderLedger(transactions) {
             <button class="btn btn-sm btn-outline-primary edit-tx-btn" data-txid="${f.id}" title="Edit record">
               ✏️ Edit
             </button>
-            <button class="btn btn-sm btn-danger" onclick="event.stopPropagation(); _handleDeleteTx('${f.id}')" title="Delete record">
+            <button class="btn btn-sm btn-danger del-tx-btn" onclick="event.stopPropagation(); _handleDeleteTx('${f.id}')" title="Delete record">
               🗑️ Delete
             </button>
           </div>

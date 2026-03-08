@@ -205,7 +205,7 @@
         var title = document.getElementById('studentModalLabel');
         if (title) title.textContent = '\u270f\ufe0f Edit — ' + (s.name || '');
         // Populate fields
-        var set = function(id, val) { var el = document.getElementById(id); if (el && val !== undefined && val !== null) el.value = val; };
+        var set = function (id, val) { var el = document.getElementById(id); if (el && val !== undefined && val !== null) el.value = val; };
         set('studentName', s.name); set('studentPhone', s.phone);
         set('studentFatherName', s.fatherName); set('studentMotherName', s.motherName);
         set('studentCourseSelect', s.course); set('studentBatchInput', s.batch);
@@ -228,91 +228,78 @@
 
     // 4. Employee
     window.openEmployeeModal = function (id) {
-  loadAndOpen('__modalPlaceholderOther', 'sections/modals.html', 'employeeModal', function () {
-    if (typeof window.initEmployeeModal === 'function') window.initEmployeeModal(id);
-  });
-};
-
-<<<<<<< HEAD
-    // 5. Exam Registration
-    window.openExamRegistration = function () {
-      loadAndOpen('__modalPlaceholderOther', 'sections/modals.html', 'examRegistrationModal', function () {
-        if (typeof window.initializeExamSystem === 'function') window.initializeExamSystem();
+      loadAndOpen('__modalPlaceholderOther', 'sections/modals.html', 'employeeModal', function () {
+        if (typeof window.initEmployeeModal === 'function') window.initEmployeeModal(id);
       });
     };
 
-    // 5. & 6. Attendance & Notice Board 
-    // These are handled by their respective modules (student-management.js, index.html)
-    // No redundant global patching needed here.
-=======
-// 5. Attendance — handled by attendance-pro.js (AttendanceHub)
-// openAttendanceModal is defined in attendance-pro.js, do not override here
+    // 5. Attendance — handled by attendance-pro.js (AttendanceHub)
+    // openAttendanceModal is defined in attendance-pro.js, do not override here
 
-// 7. Visitor
-window.openVisitorModal = function () {
-  loadAndOpen('__modalPlaceholderOther', 'sections/modals-other.html', 'visitorModal', function () {
-    if (typeof window.populateDropdowns === 'function') {
-      setTimeout(window.populateDropdowns, 100);
-    }
-    // ✅ Re-attach listener
-    const vm = document.getElementById('visitorModal');
-    if (vm && typeof window.populateDropdowns === 'function') {
-      vm.addEventListener('show.bs.modal', window.populateDropdowns);
-    }
-  });
-};
+    // 7. Visitor
+    window.openVisitorModal = function () {
+      loadAndOpen('__modalPlaceholderOther', 'sections/modals-other.html', 'visitorModal', function () {
+        if (typeof window.populateDropdowns === 'function') {
+          setTimeout(window.populateDropdowns, 100);
+        }
+        // ✅ Re-attach listener
+        const vm = document.getElementById('visitorModal');
+        if (vm && typeof window.populateDropdowns === 'function') {
+          vm.addEventListener('show.bs.modal', window.populateDropdowns);
+        }
+      });
+    };
 
-// 6. Exam Registration
-window.openExamRegistration = function () {
-  loadAndOpen('__modalPlaceholderOther', 'sections/modals-other.html', 'examRegistrationModal', function () {
-    // ✅ Populate everything related to exams
-    if (typeof window.populateDropdowns === 'function') {
-      setTimeout(window.populateDropdowns, 100);
-    }
-    if (typeof window.populateExamModal === 'function') {
-      window.populateExamModal();
-    }
-    // ✅ Re-attach listener for subsequent opens
-    const em = document.getElementById('examRegistrationModal');
-    if (em && typeof window.populateDropdowns === 'function') {
-      em.addEventListener('show.bs.modal', window.populateDropdowns);
-    }
-    if (em && typeof window.populateExamModal === 'function') {
-      em.addEventListener('show.bs.modal', window.populateExamModal);
-    }
-  });
-};
->>>>>>> origin/main
+    // 6. Exam Registration
+    window.openExamRegistration = function () {
+      loadAndOpen('__modalPlaceholderOther', 'sections/modals-other.html', 'examRegistrationModal', function () {
+        // ✅ Populate everything related to exams
+        if (typeof window.populateDropdowns === 'function') {
+          setTimeout(window.populateDropdowns, 100);
+        }
+        if (typeof window.populateExamModal === 'function') {
+          window.populateExamModal();
+        }
+        // ✅ Re-attach listener for subsequent opens
+        const em = document.getElementById('examRegistrationModal');
+        if (em && typeof window.populateDropdowns === 'function') {
+          em.addEventListener('show.bs.modal', window.populateDropdowns);
+        }
+        if (em && typeof window.populateExamModal === 'function') {
+          em.addEventListener('show.bs.modal', window.populateExamModal);
+        }
+      });
+    };
   }
 
-function init() {
-  console.log('[SectionLoader] 🏁 Initializing System...');
-  _patchAll();
+  function init() {
+    console.log('[SectionLoader] 🏁 Initializing System...');
+    _patchAll();
 
-  // Preload
-  setTimeout(() => {
-    fetch('sections/settings-modal.html?v=' + Date.now()).catch(() => { });
-  }, 5000);
+    // Preload
+    setTimeout(() => {
+      fetch('sections/settings-modal.html?v=' + Date.now()).catch(() => { });
+    }, 5000);
 
-  console.log('[SectionLoader] 🚀 System successfully initialized');
-}
+    console.log('[SectionLoader] 🚀 System successfully initialized');
+  }
 
-if (document.readyState === 'loading') {
-  document.addEventListener('DOMContentLoaded', init);
-} else {
-  init();
-}
+  if (document.readyState === 'loading') {
+    document.addEventListener('DOMContentLoaded', init);
+  } else {
+    init();
+  }
 
-// Backup patch (attendance-pro.js handles openAttendanceModal, do not re-patch)
-setTimeout(function() {
-  var savedAttModal = window.openAttendanceModal;
-  _patchAll();
-  if (savedAttModal) window.openAttendanceModal = savedAttModal;
-}, 2000);
+  // Backup patch (attendance-pro.js handles openAttendanceModal, do not re-patch)
+  setTimeout(function () {
+    var savedAttModal = window.openAttendanceModal;
+    _patchAll();
+    if (savedAttModal) window.openAttendanceModal = savedAttModal;
+  }, 2000);
 
-window.sectionLoader = {
-  loadAndOpen: loadAndOpen,
-  isLoaded: id => _loaded.has(id)
-};
+  window.sectionLoader = {
+    loadAndOpen: loadAndOpen,
+    isLoaded: id => _loaded.has(id)
+  };
 
-}) ();
+})();

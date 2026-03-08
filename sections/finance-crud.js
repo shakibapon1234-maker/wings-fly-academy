@@ -585,19 +585,8 @@ function deleteTransaction(id) {
   if (!txToDelete) {
     showErrorToast('Transaction not found.');
     renderLedger(globalData.finance);
-    renderAccountDetails && renderAccountDetails();
+    if (typeof renderAccountDetails === 'function') renderAccountDetails();
     return;
-  }
-
-  // ✅ Recycle Bin: soft-delete (restore করা যাবে)
-  if (typeof moveToTrash === 'function') {
-    moveToTrash('finance', { ...txToDelete });
-  }
-
-  if (typeof logActivity === 'function') {
-    logActivity('finance', 'DELETE',
-      `Transaction moved to trash: ${txToDelete.type} | ${txToDelete.category || ''} | ৳${txToDelete.amount}`,
-      txToDelete);
   }
 
   // 1. ✅ Account balance reverse করো (finance-engine canonical rules use হবে)
@@ -723,9 +712,22 @@ function _handleDeleteTx(id) {
 window._handleDeleteTx = _handleDeleteTx;
 
 function editTransaction(id) {
+  // ✅ SUPPORT LAZY LOADING: If modal not in DOM, load it first
+  if (!document.getElementById('editTransactionModal')) {
+    if (window.sectionLoader && typeof window.sectionLoader.loadAndOpen === 'function') {
+      window.sectionLoader.loadAndOpen('__modalPlaceholderOther', 'sections/modals-other.html', 'editTransactionModal', function () {
+        editTransaction(id); // Re-run once loaded
+      });
+      return;
+    }
+  }
+
   const sid = String(id);
   const transaction = globalData.finance.find(f => String(f.id) === sid);
-  if (!transaction) return;
+  if (!transaction) {
+    showErrorToast('Transaction not found: ' + id);
+    return;
+  }
 
   const form = document.getElementById('editTransactionForm');
   form.transactionId.value = transaction.id;
@@ -813,3 +815,54 @@ window.getStudentInstallments = getStudentInstallments;
 window.handleFinanceSubmit = handleFinanceSubmit;
 window.handleTransferSubmit = handleTransferSubmit;
 window.handleEditTransactionSubmit = handleEditTransactionSubmit;
+window.editTransaction = editTransaction;
+window._handleDeleteTx = _handleDeleteTx;
+
+// ── Delete & Edit Transaction Event Delegation ───────────────────────────────
+// Uses ledgerTableBody directly to avoid document-level conflicts
+function attachLedgerListeners() {
+  const tbody = document.getElementById('ledgerTableBody');
+  if (!tbody || tbody._listenersAttached) return;
+  tbody._listenersAttached = true;
+
+  tbody.addEventListener('click', function (e) {
+    // Edit button
+    const editBtn = e.target.closest('.edit-tx-btn');
+    if (editBtn) {
+      const txId = editBtn.getAttribute('data-txid');
+      if (txId) editTransaction(txId);
+      return;
+    }
+
+    // Delete button
+    const delBtn = e.target.closest('.del-tx-btn');
+    if (delBtn) {
+      const txId = delBtn.getAttribute('data-txid');
+      if (txId) _handleDeleteTx(txId);
+      return;
+    }
+  });
+}
+
+// Attach on DOM ready and after every renderLedger call
+document.addEventListener('DOMContentLoaded', function () {
+  setTimeout(attachLedgerListeners, 500);
+});
+
+// Use event delegation on document level as fallback
+document.addEventListener('click', function (e) {
+  const editBtn = e.target.closest('.edit-tx-btn');
+  if (editBtn) {
+    const txId = editBtn.getAttribute('data-txid');
+    if (txId) editTransaction(txId);
+    return;
+  }
+
+  const delBtn = e.target.closest('.del-tx-btn');
+  if (delBtn) {
+    const txId = delBtn.getAttribute('data-txid');
+    if (txId) _handleDeleteTx(txId);
+  }
+});
+
+window.attachLedgerListeners = attachLedgerListeners;
