@@ -12,39 +12,108 @@
                 <div id="settingsForm">
                     <div class="d-flex flex-column flex-lg-row" style="min-height: 550px; align-items: stretch;">
                         <!-- Sidebar Navigation -->
-                        <div class="border-end p-3 settings-nav" style="min-width: 260px; background: var(--bg-card);">
+                        <div class="border-end p-3 settings-nav"
+                            style="min-width: 260px; background: rgba(8, 12, 38, 0.4);">
+                            <style>
+                                .settings-nav .nav-link {
+                                    margin-bottom: 8px;
+                                    border: 1px solid rgba(255, 255, 255, 0.08);
+                                    border-radius: 10px;
+                                    transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+                                    text-align: left;
+                                    padding: 12px 16px;
+                                    color: rgba(255, 255, 255, 0.7);
+                                    background: rgba(255, 255, 255, 0.03);
+                                }
+
+                                .settings-nav .nav-link:hover {
+                                    transform: translateX(5px);
+                                    filter: brightness(1.2);
+                                }
+
+                                .settings-nav .nav-link.active {
+                                    transform: scale(1.02);
+                                    box-shadow: 0 4px 15px rgba(0, 0, 0, 0.3);
+                                    color: #000 !important;
+                                    font-weight: 700 !important;
+                                }
+
+                                /* Individual Colorful Gradients */
+                                .nav-link-general.active {
+                                    background: linear-gradient(90deg, #00d9ff, #b537f2) !important;
+                                }
+
+                                .nav-link-config.active {
+                                    background: linear-gradient(90deg, #ff8c00, #ffd700) !important;
+                                }
+
+                                .nav-link-data.active {
+                                    background: linear-gradient(90deg, #b537f2, #ff3b5c) !important;
+                                }
+
+                                .nav-link-security.active {
+                                    background: linear-gradient(90deg, #00ff88, #00d9ff) !important;
+                                }
+
+                                .nav-link-activity.active {
+                                    background: linear-gradient(90deg, #f093fb, #f5576c) !important;
+                                }
+
+                                .nav-link-recycle.active {
+                                    background: linear-gradient(90deg, #30cfd0, #330867) !important;
+                                }
+
+                                .nav-link-diagnostic.active {
+                                    background: linear-gradient(90deg, #a18cd1, #fbc2eb) !important;
+                                }
+
+                                .nav-link-keeprecord.active {
+                                    background: linear-gradient(90deg, #84fab0, #8fd3f4) !important;
+                                }
+
+                                .nav-link-batch.active {
+                                    background: linear-gradient(90deg, #ffecd2, #fcb69f) !important;
+                                }
+
+                                .settings-nav .nav-link span {
+                                    margin-right: 10px;
+                                    font-size: 1.1rem;
+                                }
+                            </style>
                             <div class="nav flex-column nav-pills" role="tablist">
-                                <button class="nav-link active" type="button"
+                                <button class="nav-link nav-link-general active" type="button"
                                     onclick="switchSettingsTab('tab-general', this)">
                                     <span>🏢</span> General Settings
                                 </button>
-                                <button class="nav-link" type="button" onclick="switchSettingsTab('tab-config', this)">
-                                    <span>🏷️</span> Categories & Courses
+                                <button class="nav-link nav-link-config" type="button"
+                                    onclick="switchSettingsTab('tab-config', this)">
+                                    <span>🏷️ </span> Categories & Courses
                                 </button>
-                                <button class="nav-link" type="button" onclick="switchSettingsTab('tab-data', this)">
+                                <button class="nav-link nav-link-data" type="button"
+                                    onclick="switchSettingsTab('tab-data', this)">
                                     <span>💾</span> Data Management
                                 </button>
-                                <button class="nav-link" type="button"
+                                <button class="nav-link nav-link-security" type="button"
                                     onclick="switchSettingsTab('tab-security', this)">
                                     <span>🔒</span> Security & Access
                                 </button>
-                                <button class="nav-link" type="button"
+                                <button class="nav-link nav-link-activity" type="button"
                                     onclick="switchSettingsTab('tab-activitylog', this); renderActivityLog()">
                                     <span>📋</span> Activity Log
                                 </button>
-                                <button class="nav-link" type="button"
+                                <button class="nav-link nav-link-recycle" type="button"
                                     onclick="switchSettingsTab('tab-recyclebin', this); renderRecycleBin()">
                                     <span>🗑️</span> Recycle Bin
                                 </button>
-                                <button class="nav-link" type="button"
+                                <button class="nav-link nav-link-diagnostic" type="button"
                                     onclick="switchSettingsTab('tab-diagnostic', this)">
                                     <span>🔍</span> Sync Diagnostic
                                 </button>
-                                <button class="nav-link" type="button"
+                                <button class="nav-link nav-link-keeprecord" type="button"
                                     onclick="switchSettingsTab('tab-keeprecord', this); renderKeepRecordNotes()">
                                     <span>📝</span> Keep Record
                                 </button>
-                                <button class="nav-link" type="button"
+                                <button class="nav-link nav-link-batch" type="button"
                                     onclick="switchSettingsTab('tab-batchreport', this); populateBatchReportDropdowns()">
                                     <span>📊</span> Batch Profit Report
                                 </button>

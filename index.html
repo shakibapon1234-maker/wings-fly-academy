@@ -2754,13 +2754,17 @@
                         <div class="card-body p-4">
                             <div class="d-flex justify-content-between align-items-center">
                                 <div>
-                                    <h4 class="fw-bold m-0 text-white">
+                                    <h4 class="fw-bold m-0"
+                                        style="color: #ffd700 !important; text-shadow: 0 0 10px rgba(255,215,0,0.5);">
                                         <span class="me-2" style="font-size: 2rem;">💵</span> CASH
                                     </h4>
-                                    <p class="text-white opacity-75 mb-0 mt-2">Physical cash on hand</p>
+                                    <p class="mb-0 mt-2 fw-semibold" style="color: #fff9e6 !important;">Physical cash on
+                                        hand</p>
                                 </div>
                                 <div class="text-end">
-                                    <h2 class="fw-bold text-white mb-0" id="cashBalance">৳0</h2>
+                                    <h2 class="fw-bold mb-0"
+                                        style="color: #ffd700 !important; font-size: 2.8rem; text-shadow: 0 0 15px rgba(255,215,0,0.6);"
+                                        id="cashBalance">৳0</h2>
                                     <div class="mt-2 d-flex gap-2 justify-content-end">
                                         <button class="btn btn-light btn-sm rounded-pill px-3 fw-bold"
                                             onclick="openCashModal()">
@@ -2788,8 +2792,10 @@
                             <div class="row g-3 align-items-end">
                                 <!-- Account Dropdown -->
                                 <div class="col-md-5">
-                                    <label class="text-white small mb-1 opacity-75">Select Account</label>
-                                    <select id="unifiedAccountSelect" class="form-select" style="font-size: 1rem;">
+                                    <label class="text-info small mb-1 fw-bold"
+                                        style="color: #00fff5 !important;">Select Account</label>
+                                    <select id="unifiedAccountSelect" class="form-select bg-dark text-cyan border-info"
+                                        style="font-size: 1rem; color: #00fff5 !important; border-color: #00fff5 !important;">
                                         <option value="">-- Select an Account --</option>
                                         <!-- All accounts will be populated here (Cash, Bank, Mobile) -->
                                     </select>
@@ -2797,14 +2803,20 @@
 
                                 <!-- Date From -->
                                 <div class="col-md-3">
-                                    <label class="text-white small mb-1 opacity-75">From Date</label>
-                                    <input type="date" id="unifiedDateFrom" class="form-control">
+                                    <label class="text-info small mb-1 fw-bold" style="color: #00fff5 !important;">From
+                                        Date</label>
+                                    <input type="date" id="unifiedDateFrom"
+                                        class="form-control bg-dark text-cyan border-info"
+                                        style="color: #00fff5 !important; border-color: #00fff5 !important;">
                                 </div>
 
                                 <!-- Date To -->
                                 <div class="col-md-3">
-                                    <label class="text-white small mb-1 opacity-75">To Date</label>
-                                    <input type="date" id="unifiedDateTo" class="form-control">
+                                    <label class="text-info small mb-1 fw-bold" style="color: #00fff5 !important;">To
+                                        Date</label>
+                                    <input type="date" id="unifiedDateTo"
+                                        class="form-control bg-dark text-cyan border-info"
+                                        style="color: #00fff5 !important; border-color: #00fff5 !important;">
                                 </div>
 
                                 <!-- Search Button -->
