@@ -145,7 +145,19 @@
         methodSelectIds.forEach(function (id) {
             var el = document.getElementById(id);
             if (!el || el.tagName !== 'SELECT') return;
-            var currentVal = el.value;
+            var currentVal = el.value; // this contains the pre-selected saved method
+
+            // if an option was dynamically injected by earlier scripts and isn't in 'methods', add it
+            if (currentVal && currentVal !== '' && !methods.includes(currentVal)) {
+                // handle case-insensitivity: if it's just a case difference, don't add duplicate, but use exact case
+                var caseMatch = methods.find(function (m) { return m.toLowerCase() === currentVal.toLowerCase(); });
+                if (caseMatch) {
+                    currentVal = caseMatch;
+                } else {
+                    methods.push(currentVal);
+                }
+            }
+
             el.innerHTML = '<option value="">Select Method...</option>';
             methods.forEach(function (m) {
                 var opt = document.createElement('option');
@@ -153,7 +165,19 @@
                 opt.textContent = m;
                 el.appendChild(opt);
             });
-            if (currentVal) el.value = currentVal;
+
+            if (currentVal) {
+                el.value = currentVal;
+                // strict case-insensitive fallback just in case
+                if (el.value !== currentVal) {
+                    for (var i = 0; i < el.options.length; i++) {
+                        if (el.options[i].value.toLowerCase() === currentVal.toLowerCase()) {
+                            el.selectedIndex = i;
+                            break;
+                        }
+                    }
+                }
+            }
         });
 
         // 3. Employee Role dropdowns — সব জায়গায়
