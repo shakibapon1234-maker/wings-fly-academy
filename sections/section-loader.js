@@ -198,31 +198,75 @@
       if (!students || !students[index]) return;
       var s = students[index];
       var form = document.getElementById('studentForm');
-      if (form) {
-        form.reset();
-        var rowIdx = document.getElementById('studentRowIndex');
-        if (rowIdx) rowIdx.value = index;
-        var title = document.getElementById('studentModalLabel');
-        if (title) title.textContent = '\u270f\ufe0f Edit — ' + (s.name || '');
-        // Populate fields
-        var set = function (id, val) { var el = document.getElementById(id); if (el && val !== undefined && val !== null) el.value = val; };
-        set('studentName', s.name); set('studentPhone', s.phone);
-        set('studentFatherName', s.fatherName); set('studentMotherName', s.motherName);
-        set('studentCourseSelect', s.course); set('studentBatchInput', s.batch);
-        set('studentEnrollDate', s.enrollDate); set('studentBloodGroup', s.bloodGroup);
-        set('inpTotal', s.totalPayment); set('inpPaid', s.paid); set('inpDue', s.due);
-        set('studentMethodSelect', s.method); set('studentReminderDate', s.reminderDate);
-        set('studentRemarks', s.remarks);
-        var photoInput = document.getElementById('photoURLInput');
-        if (photoInput) photoInput.value = s.photo || '';
-        if (s.photo) {
-          var preview = document.getElementById('studentPhotoPreview');
-          var removeBtn = document.getElementById('removePhotoBtn');
-          if (preview) { preview.src = s.photo; preview.style.display = 'block'; }
-          if (removeBtn) removeBtn.style.display = 'inline-block';
-        }
-        if (typeof window.populateDropdowns === 'function') setTimeout(window.populateDropdowns, 50);
+      if (!form) return;
+
+      form.reset();
+
+      // ── Step 1: Course dropdown populate করো ──
+      var courseSelect = document.getElementById('studentCourseSelect');
+      if (courseSelect) {
+        var courses = (window.globalData && window.globalData.courseNames) || [];
+        courses.forEach(function (c) {
+          if (![].slice.call(courseSelect.options).some(function (o) { return o.value === c; })) {
+            var opt = document.createElement('option');
+            opt.value = c; opt.text = c;
+            courseSelect.appendChild(opt);
+          }
+        });
       }
+
+      // ── Step 2: Payment Method dropdown populate করো তারপর saved value set করো ──
+      var methodSelect = document.getElementById('studentMethodSelect');
+      var savedMethod = s.method || s.paymentMethod || '';
+      if (methodSelect) {
+        var methods = (window.globalData && window.globalData.paymentMethods) || ['Cash', 'Bkash', 'Nagad', 'Bank'];
+        methods.forEach(function (m) {
+          if (![].slice.call(methodSelect.options).some(function (o) { return o.value === m; })) {
+            var opt = document.createElement('option');
+            opt.value = m; opt.text = m;
+            methodSelect.appendChild(opt);
+          }
+        });
+        // saved method যদি list-এ না থাকে, add করো
+        if (savedMethod && ![].slice.call(methodSelect.options).some(function (o) { return o.value === savedMethod; })) {
+          var opt = document.createElement('option');
+          opt.value = savedMethod; opt.text = savedMethod;
+          methodSelect.appendChild(opt);
+        }
+        methodSelect.value = savedMethod;
+        // case-insensitive fallback
+        if (methodSelect.value !== savedMethod && savedMethod) {
+          for (var mi = 0; mi < methodSelect.options.length; mi++) {
+            if (methodSelect.options[mi].value.toLowerCase() === savedMethod.toLowerCase()) {
+              methodSelect.selectedIndex = mi; break;
+            }
+          }
+        }
+      }
+
+      // ── Step 3: বাকি সব field set করো ──
+      var set = function (id, val) { var el = document.getElementById(id); if (el && val !== undefined && val !== null) el.value = val; };
+      var rowIdx = document.getElementById('studentRowIndex');
+      if (rowIdx) rowIdx.value = index;
+      var title = document.getElementById('studentModalLabel');
+      if (title) title.textContent = '✏️ Edit — ' + (s.name || '');
+      set('studentName', s.name); set('studentPhone', s.phone);
+      set('studentFatherName', s.fatherName); set('studentMotherName', s.motherName);
+      set('studentCourseSelect', s.course); set('studentBatchInput', s.batch);
+      set('studentEnrollDate', s.enrollDate); set('studentBloodGroup', s.bloodGroup);
+      set('inpTotal', s.totalPayment); set('inpPaid', s.paid); set('inpDue', s.due);
+      set('studentReminderDate', s.reminderDate); set('studentRemarks', s.remarks);
+      var photoInput = document.getElementById('photoURLInput');
+      if (photoInput) photoInput.value = s.photo || '';
+      if (s.photo) {
+        var preview = document.getElementById('studentPhotoPreview');
+        var removeBtn = document.getElementById('removePhotoBtn');
+        if (preview) { preview.src = s.photo; preview.style.display = 'block'; }
+        if (removeBtn) removeBtn.style.display = 'inline-block';
+      }
+
+      // ⚠️ NOTE: populateDropdowns setTimeout বাদ — এটা set করা method value reset করে দেয়!
+
       bootstrap.Modal.getOrCreateInstance(modal).show();
     };
 
