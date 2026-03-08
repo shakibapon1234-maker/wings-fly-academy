@@ -55,20 +55,29 @@ async function handleLogin(e) {
       };
     }
 
+    // Safety check for users array — try to recover from backup if empty
+    if (!window.globalData.users || !Array.isArray(window.globalData.users) || window.globalData.users.length === 0) {
+      try {
+        const backup = localStorage.getItem('wingsfly_users_backup');
+        if (backup) {
+          const parsed = JSON.parse(backup);
+          if (Array.isArray(parsed) && parsed.length > 0) {
+            window.globalData.users = parsed;
+            console.log('🔐 Users recovered from backup for login');
+          }
+        }
+      } catch (e) { console.warn('User recovery failed', e); }
+
+      // Still empty? Use default admin
+      if (!window.globalData.users || window.globalData.users.length === 0) {
+        window.globalData.users = [
+          { username: 'admin', password: 'e7d3bfb67567c3d94bcecb2ce65ef146eac83e50dc3f3b89e81bb647a8bada4c', role: 'admin', name: 'Admin' }
+        ];
+      }
+    }
+
     // 1. Check against User List
     let validUser = null;
-
-    // Safety check for users array
-    if (!globalData.users || !Array.isArray(globalData.users)) {
-      globalData.users = [
-        {
-          username: 'admin',
-          password: 'e7d3bfb67567c3d94bcecb2ce65ef146eac83e50dc3f3b89e81bb647a8bada4c',
-          role: 'admin',
-          name: 'Admin'
-        }
-      ];
-    }
 
     // A. Hash the input password for secure comparison
     const hashedInput = await hashPassword(password);

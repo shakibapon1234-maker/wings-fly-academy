@@ -95,7 +95,7 @@ function updateAccountBalance(method, amount, type, isAddition = true) {
 
   // ── Fallback (finance-engine.js not yet loaded) ──
   // Canonical lists — must match finance-engine.js
-  const moneyInTypes  = ['Income', 'Transfer In', 'Loan Receiving', 'Loan Received', 'Registration', 'Refund'];
+  const moneyInTypes = ['Income', 'Transfer In', 'Loan Receiving', 'Loan Received', 'Registration', 'Refund'];
   const moneyOutTypes = ['Expense', 'Transfer Out', 'Loan Giving', 'Loan Given', 'Salary', 'Rent', 'Utilities'];
 
   const amt = parseFloat(amount) || 0;
@@ -103,7 +103,7 @@ function updateAccountBalance(method, amount, type, isAddition = true) {
 
   if (method === 'Cash') {
     if (typeof globalData.cashBalance === 'undefined') globalData.cashBalance = 0;
-    if (moneyInTypes.includes(type))       globalData.cashBalance += amt * multiplier;
+    if (moneyInTypes.includes(type)) globalData.cashBalance += amt * multiplier;
     else if (moneyOutTypes.includes(type)) globalData.cashBalance -= amt * multiplier;
     if (typeof renderCashBalance === 'function') renderCashBalance();
     return;
@@ -113,7 +113,7 @@ function updateAccountBalance(method, amount, type, isAddition = true) {
   if (!account) account = (window.globalData.mobileBanking || []).find(acc => acc.name === method);
   if (!account) return;
 
-  if (moneyInTypes.includes(type))       account.balance = (parseFloat(account.balance) || 0) + (amt * multiplier);
+  if (moneyInTypes.includes(type)) account.balance = (parseFloat(account.balance) || 0) + (amt * multiplier);
   else if (moneyOutTypes.includes(type)) account.balance = (parseFloat(account.balance) || 0) - (amt * multiplier);
 
   if (typeof renderAccountList === 'function') renderAccountList();
@@ -223,6 +223,9 @@ async function saveToStorage(skipCloudSync = false) {
     // Backup রাখো যাতে cloud pull এ হারিয়ে না যায়
     localStorage.setItem('wingsfly_deleted_backup', JSON.stringify(window.globalData.deletedItems));
     localStorage.setItem('wingsfly_activity_backup', JSON.stringify(window.globalData.activityHistory));
+    if (window.globalData.users && window.globalData.users.length > 0) {
+      localStorage.setItem('wingsfly_users_backup', JSON.stringify(window.globalData.users));
+    }
 
     const currentTime = Date.now().toString();
     localStorage.setItem('wingsfly_data', JSON.stringify(window.globalData));
@@ -687,14 +690,14 @@ function recalculateCashBalanceFromTransactions() {
   }
 
   // Canonical lists — must match finance-engine.js
-  const ACCOUNT_IN  = ['Income', 'Loan Received', 'Loan Receiving', 'Transfer In', 'Registration', 'Refund'];
+  const ACCOUNT_IN = ['Income', 'Loan Received', 'Loan Receiving', 'Transfer In', 'Registration', 'Refund'];
   const ACCOUNT_OUT = ['Expense', 'Loan Given', 'Loan Giving', 'Transfer Out', 'Salary', 'Rent', 'Utilities'];
 
   const cashTransactions = (globalData.finance || []).filter(f => f.method === 'Cash' && !f._deleted);
 
   cashTransactions.forEach(trans => {
     const amount = parseFloat(trans.amount) || 0;
-    if (ACCOUNT_IN.includes(trans.type))       calculatedCashBalance += amount;
+    if (ACCOUNT_IN.includes(trans.type)) calculatedCashBalance += amount;
     else if (ACCOUNT_OUT.includes(trans.type)) calculatedCashBalance -= amount;
   });
 

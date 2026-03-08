@@ -661,7 +661,12 @@
           courseNames: data.course_names || gd.courseNames || [],
           attendance: data.attendance || gd.attendance || {},
           nextId: data.next_id || gd.nextId || 1001,
-          users: (usersBackup && usersBackup.length > 0) ? usersBackup : (data.users || []),
+          users: (() => {
+            const map = new Map();
+            (data.users || []).forEach(u => { if (u.username) map.set(u.username.toLowerCase(), u); });
+            (usersBackup || []).forEach(u => { if (u.username) map.set(u.username.toLowerCase(), u); });
+            return Array.from(map.values());
+          })(),
           examRegistrations: data.exam_registrations || gd.examRegistrations || [],
           visitors: data.visitors || gd.visitors || [],
           employeeRoles: data.employee_roles || gd.employeeRoles || [],
