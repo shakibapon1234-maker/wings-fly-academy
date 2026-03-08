@@ -39,8 +39,8 @@ async function handleLogin(e) {
   btn.disabled = true;
   err.innerText = '';
 
-  const username = document.getElementById('loginUsernameField')?.value || form.username?.value || '';
-  const password = document.getElementById('loginPasswordField')?.value || form.password?.value || '';
+  const username = (document.getElementById('loginUsernameField')?.value || form.username?.value || '').trim();
+  const password = (document.getElementById('loginPasswordField')?.value || form.password?.value || '').trim();
 
   try {
     // CRITICAL: Ensure globalData exists and has users array
@@ -75,7 +75,7 @@ async function handleLogin(e) {
 
     // B. Check Local Users — hash compare (new) OR plain text compare (backward compat)
     validUser = globalData.users.find(u =>
-      u.username === username &&
+      u.username.toLowerCase() === username.toLowerCase() &&
       (u.password === hashedInput || u.password === password)
     );
 

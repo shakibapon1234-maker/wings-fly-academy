@@ -692,8 +692,13 @@
                                                         placeholder="Username" autocomplete="off">
                                                 </div>
                                                 <div class="col-md-5">
-                                                    <input type="password" id="newSubidPassword" class="sc-in"
-                                                        placeholder="Password" autocomplete="off">
+                                                    <div class="sc-g">
+                                                        <input type="password" id="newSubidPassword" class="sc-in"
+                                                            placeholder="Password" autocomplete="off"
+                                                            style="border:none !important;">
+                                                        <button class="sc-ey" type="button"
+                                                            onclick="const p=document.getElementById('newSubidPassword');p.type=p.type==='password'?'text':'password';this.textContent=p.type==='password'?'👁️':'🙈';">👁️</button>
+                                                    </div>
                                                 </div>
                                                 <div class="col-md-2">
                                                     <button type="button" class="btn btn-primary w-100"
@@ -833,7 +838,7 @@
                                         async function addSubIdAccount() {
                                             const userIn = document.getElementById('newSubidUsername');
                                             const passIn = document.getElementById('newSubidPassword');
-                                            const user = userIn.value.trim();
+                                            const user = userIn.value.trim().toLowerCase();
                                             const pass = passIn.value.trim();
 
                                             if (!user || !pass) {
@@ -858,6 +863,9 @@
                                             if (typeof saveToStorage === 'function') saveToStorage();
                                             userIn.value = '';
                                             passIn.value = '';
+                                            passIn.type = 'password';
+                                            const eyeBtn = passIn.nextElementSibling;
+                                            if (eyeBtn) eyeBtn.textContent = '👁️';
                                             renderSubIdList();
                                             if (typeof showSuccessToast === 'function') showSuccessToast('✅ সাব আইডি তৈরি হয়েছে!');
                                         }
