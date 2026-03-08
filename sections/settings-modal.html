@@ -1547,4 +1547,287 @@
 </div><!-- /modal-dialog -->
 </div><!-- /settingsModal -->
 
+<!-- ============================================================ -->
+<!-- Account Analytics Modal                                      -->
+<!-- showAccountDetails() এই modal খোলে এবং data populate করে   -->
+<!-- ============================================================ -->
+<div class="modal fade" id="accountAnalyticsModal" tabindex="-1" aria-labelledby="accountAnalyticsModalLabel" aria-hidden="true">
+  <div class="modal-dialog modal-xl modal-dialog-centered modal-dialog-scrollable">
+    <div class="modal-content" style="background:#0d1b2a; color:#e0e6f0; border:1px solid #1e3a5f;">
+
+      <!-- Header -->
+      <div class="modal-header" style="background:#0a1628; border-bottom:1px solid #1e3a5f;">
+        <h5 class="modal-title fw-bold" id="accountAnalyticsModalLabel">
+          📊 Account Analytics — Income & Expense Breakdown
+        </h5>
+        <button type="button" class="btn-close btn-close-white" data-bs-dismiss="modal" aria-label="Close"></button>
+      </div>
+
+      <!-- Body -->
+      <div class="modal-body p-4">
+
+        <!-- Summary Cards Row -->
+        <div class="row g-3 mb-4">
+          <div class="col-6 col-md-3">
+            <div class="rounded-3 p-3 text-center h-100" style="background:#0a2e1a; border:1px solid #00c853;">
+              <div style="font-size:0.78rem; color:#aaa;">মোট Income</div>
+              <div id="ana_totalIncome" class="fw-bold mt-1" style="font-size:1.4rem; color:#00e676;">৳0</div>
+            </div>
+          </div>
+          <div class="col-6 col-md-3">
+            <div class="rounded-3 p-3 text-center h-100" style="background:#2e0a0a; border:1px solid #d32f2f;">
+              <div style="font-size:0.78rem; color:#aaa;">মোট Expense</div>
+              <div id="ana_totalExpense" class="fw-bold mt-1" style="font-size:1.4rem; color:#ff5252;">৳0</div>
+            </div>
+          </div>
+          <div class="col-6 col-md-3">
+            <div class="rounded-3 p-3 text-center h-100" style="background:#0a1e2e; border:1px solid #1565c0;">
+              <div style="font-size:0.78rem; color:#aaa;">Net Profit</div>
+              <div id="ana_netProfit" class="fw-bold mt-1" style="font-size:1.4rem; color:#40c4ff;">৳0</div>
+            </div>
+          </div>
+          <div class="col-6 col-md-3">
+            <div class="rounded-3 p-3 text-center h-100" style="background:#1a1a0a; border:1px solid #f9a825;">
+              <div style="font-size:0.78rem; color:#aaa;">মোট Balance</div>
+              <div id="ana_grandTotal" class="fw-bold mt-1" style="font-size:1.4rem; color:#ffeb3b;">৳0</div>
+            </div>
+          </div>
+        </div>
+
+        <!-- Month Filter -->
+        <div class="d-flex align-items-center gap-3 mb-4 flex-wrap">
+          <label class="text-muted" style="font-size:0.85rem;">Filter by Month:</label>
+          <select id="ana_monthFilter" class="form-select form-select-sm w-auto" style="background:#0a1628; color:#e0e6f0; border:1px solid #1e3a5f;" onchange="window._anaRefreshTables()">
+            <option value="">— সব সময়ের —</option>
+          </select>
+          <span id="ana_filterInfo" class="text-muted" style="font-size:0.82rem;"></span>
+        </div>
+
+        <!-- Two Column: Income | Expense -->
+        <div class="row g-3">
+
+          <!-- Income Breakdown -->
+          <div class="col-md-6">
+            <div class="rounded-3 p-3 h-100" style="background:#071a0e; border:1px solid #1b5e20;">
+              <h6 class="fw-bold mb-3" style="color:#00e676;">✅ Income Breakdown</h6>
+              <div class="table-responsive">
+                <table class="table table-sm mb-0" style="color:#cce8d4; font-size:0.82rem;">
+                  <thead>
+                    <tr style="border-bottom:1px solid #1b5e20;">
+                      <th style="color:#aaa; font-weight:500;">Category</th>
+                      <th style="color:#aaa; font-weight:500;">Person</th>
+                      <th class="text-end" style="color:#aaa; font-weight:500;">Amount</th>
+                      <th style="color:#aaa; font-weight:500;">Date</th>
+                    </tr>
+                  </thead>
+                  <tbody id="ana_incomeRows">
+                    <tr><td colspan="4" class="text-center text-muted py-3">লোড হচ্ছে...</td></tr>
+                  </tbody>
+                  <tfoot>
+                    <tr style="border-top:1px solid #1b5e20;">
+                      <td colspan="2" class="fw-bold" style="color:#00e676;">উপমোট</td>
+                      <td id="ana_incomeSubtotal" class="text-end fw-bold" style="color:#00e676;">৳0</td>
+                      <td></td>
+                    </tr>
+                  </tfoot>
+                </table>
+              </div>
+            </div>
+          </div>
+
+          <!-- Expense Breakdown -->
+          <div class="col-md-6">
+            <div class="rounded-3 p-3 h-100" style="background:#1a0707; border:1px solid #7f0000;">
+              <h6 class="fw-bold mb-3" style="color:#ff5252;">❌ Expense Breakdown</h6>
+              <div class="table-responsive">
+                <table class="table table-sm mb-0" style="color:#f8d0d0; font-size:0.82rem;">
+                  <thead>
+                    <tr style="border-bottom:1px solid #7f0000;">
+                      <th style="color:#aaa; font-weight:500;">Category</th>
+                      <th style="color:#aaa; font-weight:500;">Person</th>
+                      <th class="text-end" style="color:#aaa; font-weight:500;">Amount</th>
+                      <th style="color:#aaa; font-weight:500;">Date</th>
+                    </tr>
+                  </thead>
+                  <tbody id="ana_expenseRows">
+                    <tr><td colspan="4" class="text-center text-muted py-3">লোড হচ্ছে...</td></tr>
+                  </tbody>
+                  <tfoot>
+                    <tr style="border-top:1px solid #7f0000;">
+                      <td colspan="2" class="fw-bold" style="color:#ff5252;">উপমোট</td>
+                      <td id="ana_expenseSubtotal" class="text-end fw-bold" style="color:#ff5252;">৳0</td>
+                      <td></td>
+                    </tr>
+                  </tfoot>
+                </table>
+              </div>
+            </div>
+          </div>
+        </div>
+
+        <!-- Account Balances Row -->
+        <div class="mt-4">
+          <h6 class="fw-bold mb-3" style="color:#40c4ff;">🏦 Account Balances</h6>
+          <div id="ana_accountBalances" class="row g-2">
+            <!-- Populated by JS -->
+          </div>
+        </div>
+
+      </div><!-- /modal-body -->
+
+      <!-- Footer -->
+      <div class="modal-footer" style="background:#0a1628; border-top:1px solid #1e3a5f;">
+        <span class="text-muted me-auto" style="font-size:0.8rem;" id="ana_lastUpdated"></span>
+        <button type="button" class="btn btn-sm" style="background:#1e3a5f; color:#e0e6f0;" data-bs-dismiss="modal">বন্ধ করুন</button>
+      </div>
+
+    </div>
+  </div>
+</div>
+
+<!-- showAccountDetails function -->
+<script>
+window.showAccountDetails = function () {
+  const gd = window.globalData;
+  if (!gd) {
+    alert('Data এখনো লোড হয়নি। একটু অপেক্ষা করুন।');
+    return;
+  }
+
+  const fmt = (n) => '৳' + (typeof formatNumber === 'function'
+    ? formatNumber(n)
+    : Number(n).toLocaleString('en-IN'));
+
+  const finance = (gd.finance || []).filter(f => !f._deleted);
+
+  // ── Month filter dropdown populate ──
+  const monthSet = new Set();
+  finance.forEach(f => {
+    if (f.date && f.date.length >= 7) monthSet.add(f.date.slice(0, 7));
+  });
+  const months = Array.from(monthSet).sort().reverse();
+  const sel = document.getElementById('ana_monthFilter');
+  if (sel) {
+    sel.innerHTML = '<option value="">— সব সময়ের —</option>';
+    months.forEach(m => {
+      const [yr, mo] = m.split('-');
+      const label = new Date(yr, mo - 1).toLocaleString('bn-BD', { month: 'long', year: 'numeric' });
+      sel.innerHTML += `<option value="${m}">${label}</option>`;
+    });
+  }
+
+  // ── Grand Total (account balances) ──
+  const cashTotal   = parseFloat(gd.cashBalance) || 0;
+  const bankTotal   = (gd.bankAccounts || []).reduce((s, a) => s + (parseFloat(a.balance) || 0), 0);
+  const mobileTotal = (gd.mobileBanking || []).reduce((s, a) => s + (parseFloat(a.balance) || 0), 0);
+  const grandTotal  = cashTotal + bankTotal + mobileTotal;
+  const gt = document.getElementById('ana_grandTotal');
+  if (gt) gt.textContent = fmt(grandTotal);
+
+  // ── Account Balances Cards ──
+  const balDiv = document.getElementById('ana_accountBalances');
+  if (balDiv) {
+    let html = '';
+    html += `<div class="col-6 col-md-3"><div class="rounded-2 p-2 text-center" style="background:#0d1b2a;border:1px solid #1e3a5f;">
+      <div style="font-size:0.75rem;color:#aaa;">💵 Cash</div>
+      <div class="fw-bold" style="color:#ffeb3b;">${fmt(cashTotal)}</div></div></div>`;
+    (gd.bankAccounts || []).forEach(a => {
+      html += `<div class="col-6 col-md-3"><div class="rounded-2 p-2 text-center" style="background:#0d1b2a;border:1px solid #1e3a5f;">
+        <div style="font-size:0.75rem;color:#aaa;">🏦 ${a.name}</div>
+        <div class="fw-bold" style="color:#40c4ff;">${fmt(parseFloat(a.balance)||0)}</div></div></div>`;
+    });
+    (gd.mobileBanking || []).forEach(a => {
+      html += `<div class="col-6 col-md-3"><div class="rounded-2 p-2 text-center" style="background:#0d1b2a;border:1px solid #1e3a5f;">
+        <div style="font-size:0.75rem;color:#aaa;">📱 ${a.name}</div>
+        <div class="fw-bold" style="color:#69f0ae;">${fmt(parseFloat(a.balance)||0)}</div></div></div>`;
+    });
+    balDiv.innerHTML = html;
+  }
+
+  // ── Refresh tables helper ──
+  window._anaRefreshTables = function () {
+    const month = (document.getElementById('ana_monthFilter') || {}).value || '';
+    const fin = window.globalData ? (window.globalData.finance || []).filter(f => !f._deleted) : [];
+
+    const inTypes  = window.FE_STAT_INCOME  || ['Income', 'Registration', 'Refund'];
+    const outTypes = window.FE_STAT_EXPENSE || ['Expense', 'Salary', 'Rent', 'Utilities'];
+
+    const incomeRows  = fin.filter(f => inTypes.includes(f.type)  && (!month || (f.date||'').startsWith(month)));
+    const expenseRows = fin.filter(f => outTypes.includes(f.type) && (!month || (f.date||'').startsWith(month)));
+
+    const totalInc = incomeRows.reduce((s, f)  => s + (parseFloat(f.amount)||0), 0);
+    const totalExp = expenseRows.reduce((s, f) => s + (parseFloat(f.amount)||0), 0);
+    const profit   = totalInc - totalExp;
+
+    // Summary cards
+    const ti = document.getElementById('ana_totalIncome');  if (ti) ti.textContent = fmt(totalInc);
+    const te = document.getElementById('ana_totalExpense'); if (te) te.textContent = fmt(totalExp);
+    const np = document.getElementById('ana_netProfit');
+    if (np) {
+      np.textContent = fmt(Math.abs(profit));
+      np.style.color = profit >= 0 ? '#40c4ff' : '#ff5252';
+      np.textContent = (profit < 0 ? '−' : '') + fmt(Math.abs(profit));
+    }
+    const fi = document.getElementById('ana_filterInfo');
+    if (fi) fi.textContent = month ? `(${incomeRows.length + expenseRows.length}টি entry)` : `(মোট ${fin.length}টি entry)`;
+
+    // Income subtotal
+    const is = document.getElementById('ana_incomeSubtotal'); if (is) is.textContent = fmt(totalInc);
+
+    // Expense subtotal
+    const es = document.getElementById('ana_expenseSubtotal'); if (es) es.textContent = fmt(totalExp);
+
+    // Income table
+    const iBody = document.getElementById('ana_incomeRows');
+    if (iBody) {
+      if (!incomeRows.length) {
+        iBody.innerHTML = '<tr><td colspan="4" class="text-center text-muted py-3">কোনো income নেই</td></tr>';
+      } else {
+        iBody.innerHTML = incomeRows
+          .sort((a, b) => (b.date||'').localeCompare(a.date||''))
+          .map(f => `<tr style="border-bottom:1px solid #1b5e2040;">
+            <td>${f.category || f.type || '—'}</td>
+            <td style="max-width:100px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;" title="${f.person||''}">${f.person || '—'}</td>
+            <td class="text-end fw-bold" style="color:#00e676;">${fmt(parseFloat(f.amount)||0)}</td>
+            <td style="color:#888;white-space:nowrap;">${f.date ? f.date.slice(0,10) : '—'}</td>
+          </tr>`).join('');
+      }
+    }
+
+    // Expense table
+    const eBody = document.getElementById('ana_expenseRows');
+    if (eBody) {
+      if (!expenseRows.length) {
+        eBody.innerHTML = '<tr><td colspan="4" class="text-center text-muted py-3">কোনো expense নেই</td></tr>';
+      } else {
+        eBody.innerHTML = expenseRows
+          .sort((a, b) => (b.date||'').localeCompare(a.date||''))
+          .map(f => `<tr style="border-bottom:1px solid #7f000040;">
+            <td>${f.category || f.type || '—'}</td>
+            <td style="max-width:100px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;" title="${f.person||''}">${f.person || '—'}</td>
+            <td class="text-end fw-bold" style="color:#ff5252;">${fmt(parseFloat(f.amount)||0)}</td>
+            <td style="color:#888;white-space:nowrap;">${f.date ? f.date.slice(0,10) : '—'}</td>
+          </tr>`).join('');
+      }
+    }
+  };
+
+  // Initial populate
+  window._anaRefreshTables();
+
+  // Last updated timestamp
+  const lu = document.getElementById('ana_lastUpdated');
+  if (lu) lu.textContent = 'Updated: ' + new Date().toLocaleString('bn-BD');
+
+  // Open modal
+  const modalEl = document.getElementById('accountAnalyticsModal');
+  if (modalEl && window.bootstrap) {
+    const m = bootstrap.Modal.getOrCreateInstance(modalEl);
+    m.show();
+  } else {
+    console.error('accountAnalyticsModal বা Bootstrap পাওয়া যায়নি।');
+  }
+};
+</script>
+
 <!-- Keep Record - New Note Modal -->
