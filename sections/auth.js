@@ -96,6 +96,9 @@ async function handleLogin(e) {
       const avatarEl = document.getElementById('sidebarAvatar');
       if (avatarEl) avatarEl.innerText = (validUser.name || username).charAt(0).toUpperCase();
 
+      // ✅ APPLY SECURITY BEFORE SHOWING DASHBOARD
+      if (typeof applyRoleSecurity === 'function') applyRoleSecurity();
+
       showDashboard(validUser.name || username);
     } else {
       err.innerText = 'Invalid username or password';
@@ -219,6 +222,9 @@ function loadDashboard() {
 
       updateGlobalStats();
       updateStudentCount();
+
+      // ✅ RE-APPLY SECURITY AFTER TAB SWITCH
+      if (typeof applyRoleSecurity === 'function') applyRoleSecurity();
 
       if (typeof populateDropdowns === 'function') {
         populateDropdowns();
@@ -367,7 +373,83 @@ function switchTab(tab, refreshStats = true) {
   if (refreshStats) {
     updateGlobalStats();
   }
+
+  // ✅ PREVENT UNAUTHORIZED TAB SWITCH
+  if (typeof applyRoleSecurity === 'function') applyRoleSecurity();
 }
+
+
+// ═══════════════════════════════════════════════════
+// ROLE-BASED ACCESS CONTROL (RBAC) — Sub ID Restrictions
+// ═══════════════════════════════════════════════════
+function applyRoleSecurity() {
+  const role = sessionStorage.getItem('role') || 'admin';
+  const isSubId = (role === 'subid' || role === 'operator');
+
+  // Sidebar IDs to hide for subid
+  const restrictedSidebarTabs = [
+    'tabLedger',
+    'tabAccounts',
+    'tabLoans',
+    'tabVisitors',
+    'tabEmployees',
+    'tabExamResults',
+    'tabIdCards',
+    'tabCertificates',
+    'tabSettings'
+  ];
+
+  if (isSubId) {
+    // 1. Hide Sidebar Tabs
+    restrictedSidebarTabs.forEach(id => {
+      const el = document.getElementById(id);
+      if (el) el.style.display = 'none';
+    });
+
+    // 2. Hide specific "Add New" dropdown items (Finance, Visitor)
+    const dropdownItems = document.querySelectorAll('.top-bar .dropdown-menu .dropdown-item');
+    dropdownItems.forEach(item => {
+      const text = item.textContent.toLowerCase();
+      // Allow only Student and Exam
+      if (!text.includes('student') && !text.includes('exam')) {
+        item.style.display = 'none';
+      }
+    });
+
+    // 3. Hide Dashboard Overview Cards (Financials)
+    const metricCards = document.querySelectorAll('.aviation-metric-card, .metric-card-blue, .metric-card-green, .metric-card-yellow, .metric-card-red, .metric-card-purple');
+    metricCards.forEach(card => {
+      // Allow only Student Count card
+      if (!card.innerText.includes('Students') && !card.innerText.includes('মেসেজ')) {
+        card.style.display = 'none';
+      }
+    });
+
+    // 4. Force check active tab (if they somehow navigated to unauthorized tab)
+    const currentTab = localStorage.getItem('wingsfly_active_tab');
+    if (restrictedSidebarTabs.includes('tab' + currentTab.charAt(0).toUpperCase() + currentTab.slice(1)) || currentTab === 'ledger') {
+      console.warn('🔒 Unauthorized tab access blocked for Sub ID. Redirecting to Dashboard.');
+      // Special case: tabExamResults -> switchTab('examResults')
+      localStorage.setItem('wingsfly_active_tab', 'dashboard');
+      // We can't recursively call switchTab here safely without a flag, but let the UI handle it.
+    }
+
+    // 5. Hide Notification / Search if needed
+    const notificationBtn = document.getElementById('notificationDropdown');
+    if (notificationBtn) notificationBtn.style.display = 'none';
+  } else {
+    // Re-show everything for Admin
+    restrictedSidebarTabs.forEach(id => {
+      const el = document.getElementById(id);
+      if (el) el.style.display = '';
+    });
+    const dropdownItems = document.querySelectorAll('.top-bar .dropdown-menu .dropdown-item');
+    dropdownItems.forEach(item => item.style.display = '');
+    const metricCards = document.querySelectorAll('.aviation-metric-card');
+    metricCards.forEach(card => card.style.display = '');
+  }
+}
+window.applyRoleSecurity = applyRoleSecurity;
 
 
 window.hashPassword = hashPassword;

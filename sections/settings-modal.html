@@ -663,8 +663,52 @@
                                                         "🔑 Forgot Password?" বাটন দিয়ে recovery করা যাবে।</span>
                                                 </div>
                                             </div>
+                                            <div style="text-align:right;margin-top:14px;">
+                                                <button class="sc-sv" type="button" onclick="scSave()">💾 Save Security
+                                                    Settings</button>
+                                            </div>
                                         </div>
-                                        <!-- ③ Auto Lockout -->
+
+                                        <!-- ③ Staff/Sub-account Access (New) -->
+                                        <div class="sc">
+                                            <div class="sc-h">
+                                                <div class="sc-ic gr">👥</div>
+                                                <div>
+                                                    <p class="sc-t">Staff / Sub-account Access</p>
+                                                    <p class="sc-s">সীমিত এক্সেস সম্পন্ন সাব আইডি তৈরি করুন</p>
+                                                </div>
+                                            </div>
+
+                                            <div id="subid-list-container" class="mb-3"
+                                                style="background:rgba(0,0,0,0.2); border-radius:10px; padding:10px;">
+                                                <!-- List of existing sub-accounts -->
+                                                <div class="text-center text-muted small py-2">Loading accounts...</div>
+                                            </div>
+
+                                            <div class="sc-lb mb-2">Create New Sub ID</div>
+                                            <div class="row g-2">
+                                                <div class="col-md-5">
+                                                    <input type="text" id="newSubidUsername" class="sc-in"
+                                                        placeholder="Username" autocomplete="off">
+                                                </div>
+                                                <div class="col-md-5">
+                                                    <input type="password" id="newSubidPassword" class="sc-in"
+                                                        placeholder="Password" autocomplete="off">
+                                                </div>
+                                                <div class="col-md-2">
+                                                    <button type="button" class="btn btn-primary w-100"
+                                                        onclick="addSubIdAccount()"
+                                                        style="height:100%; font-size:0.8rem;">+ Add</button>
+                                                </div>
+                                            </div>
+                                            <div class="sc-tip" style="margin-top:12px;">
+                                                <span>💡</span><span>Sub ID শুধুমাত্র 👨‍🎓 <strong>Add Student</strong>
+                                                    এবং 📝 <strong>Add Registration</strong> করতে পারবে। Finance বা অন্য
+                                                    কিছু দেখতে পারবে না।</span>
+                                            </div>
+                                        </div>
+
+                                        <!-- ④ Auto Lockout -->
                                         <div class="sc">
                                             <div class="sc-h">
                                                 <div class="sc-ic gr">⏱️</div>
@@ -754,7 +798,82 @@
                                             if (scRecBody2 && scRecBody2.classList.contains('op')) { scRecBody2.classList.remove('op'); }
                                             if (scRecArrow2 && scRecArrow2.classList.contains('op')) { scRecArrow2.classList.remove('op'); }
                                             scLockBadge();
+                                            renderSubIdList();
                                         }
+
+                                        function renderSubIdList() {
+                                            const gd = window.globalData;
+                                            if (!gd || !gd.users) return;
+                                            const container = document.getElementById('subid-list-container');
+                                            if (!container) return;
+
+                                            const subAccounts = gd.users.filter(u => u.role === 'subid');
+                                            if (subAccounts.length === 0) {
+                                                container.innerHTML = '<div class="text-center text-muted small py-2">কোনো সাব আইডি নেই</div>';
+                                                return;
+                                            }
+
+                                            let html = '<table class="table table-sm table-borderless text-white mb-0" style="font-size:0.8rem;">';
+                                            subAccounts.forEach((u, idx) => {
+                                                html += `
+                                                    <tr>
+                                                        <td><i class="bi bi-person me-2"></i>${u.username}</td>
+                                                        <td class="text-end">
+                                                            <button class="btn btn-sm text-danger p-0" onclick="deleteSubIdAccount('${u.username}')">
+                                                                <i class="bi bi-trash"></i>
+                                                            </button>
+                                                        </td>
+                                                    </tr>
+                                                `;
+                                            });
+                                            html += '</table>';
+                                            container.innerHTML = html;
+                                        }
+
+                                        async function addSubIdAccount() {
+                                            const userIn = document.getElementById('newSubidUsername');
+                                            const passIn = document.getElementById('newSubidPassword');
+                                            const user = userIn.value.trim();
+                                            const pass = passIn.value.trim();
+
+                                            if (!user || !pass) {
+                                                alert('পরিচয় (Username) এবং পাসওয়ার্ড দুটোই দিন');
+                                                return;
+                                            }
+
+                                            const gd = window.globalData;
+                                            if (gd.users.find(u => u.username === user)) {
+                                                alert('এই ইউজারনেম ইতিমধ্যে আছে');
+                                                return;
+                                            }
+
+                                            const hashed = typeof hashPassword === 'function' ? await hashPassword(pass) : pass;
+                                            gd.users.push({
+                                                username: user,
+                                                password: hashed,
+                                                role: 'subid',
+                                                name: user
+                                            });
+
+                                            if (typeof saveToStorage === 'function') saveToStorage();
+                                            userIn.value = '';
+                                            passIn.value = '';
+                                            renderSubIdList();
+                                            if (typeof showSuccessToast === 'function') showSuccessToast('✅ সাব আইডি তৈরি হয়েছে!');
+                                        }
+
+                                        function deleteSubIdAccount(username) {
+                                            if (!confirm('আপনি কি এই সাব আইডিটি মুছে ফেলতে চান?')) return;
+                                            const gd = window.globalData;
+                                            gd.users = gd.users.filter(u => u.username !== username || u.role !== 'subid');
+                                            if (typeof saveToStorage === 'function') saveToStorage();
+                                            renderSubIdList();
+                                        }
+
+                                        window.renderSubIdList = renderSubIdList;
+                                        window.addSubIdAccount = addSubIdAccount;
+                                        window.deleteSubIdAccount = deleteSubIdAccount;
+
                                         async function scSave() {
                                             const gd = window.globalData; if (!gd) return; if (!gd.settings) gd.settings = {};
                                             const u = document.getElementById('settingsUsername')?.value.trim();
@@ -1551,373 +1670,411 @@
 <!-- Account Analytics Modal                                      -->
 <!-- showAccountDetails() এই modal খোলে এবং data populate করে   -->
 <!-- ============================================================ -->
-<div class="modal fade" id="accountAnalyticsModal" tabindex="-1" aria-labelledby="accountAnalyticsModalLabel" aria-hidden="true">
-  <div class="modal-dialog modal-xl modal-dialog-centered modal-dialog-scrollable">
-    <div class="modal-content" style="background:#0d1b2a; color:#e0e6f0; border:1px solid #1e3a5f;">
+<div class="modal fade" id="accountAnalyticsModal" tabindex="-1" aria-labelledby="accountAnalyticsModalLabel"
+    aria-hidden="true">
+    <div class="modal-dialog modal-xl modal-dialog-centered modal-dialog-scrollable">
+        <div class="modal-content" style="background:#0d1b2a; color:#e0e6f0; border:1px solid #1e3a5f;">
 
-      <!-- Header -->
-      <div class="modal-header" style="background:#0a1628; border-bottom:1px solid #1e3a5f;">
-        <h5 class="modal-title fw-bold" id="accountAnalyticsModalLabel">
-          📊 Account Analytics — Income & Expense Breakdown
-        </h5>
-        <button type="button" class="btn-close btn-close-white" data-bs-dismiss="modal" aria-label="Close"></button>
-      </div>
+            <!-- Header -->
+            <div class="modal-header" style="background:#0a1628; border-bottom:1px solid #1e3a5f;">
+                <h5 class="modal-title fw-bold" id="accountAnalyticsModalLabel">
+                    📊 Account Analytics — Income & Expense Breakdown
+                </h5>
+                <button type="button" class="btn-close btn-close-white" data-bs-dismiss="modal"
+                    aria-label="Close"></button>
+            </div>
 
-      <!-- Body -->
-      <div class="modal-body p-4">
+            <!-- Body -->
+            <div class="modal-body p-4">
 
-        <!-- Summary Cards Row -->
-        <div class="row g-3 mb-4">
-          <div class="col-6 col-md-3">
-            <div class="rounded-3 p-3 text-center h-100" style="background:#0a2e1a; border:1px solid #00c853;">
-              <div style="font-size:0.78rem; color:#aaa;">মোট Income</div>
-              <div id="ana_totalIncome" class="fw-bold mt-1" style="font-size:1.4rem; color:#00e676;">৳0</div>
+                <!-- Summary Cards Row -->
+                <div class="row g-3 mb-4">
+                    <div class="col-6 col-md-3">
+                        <div class="rounded-3 p-3 text-center h-100"
+                            style="background:#0a2e1a; border:1px solid #00c853;">
+                            <div style="font-size:0.78rem; color:#aaa;">মোট Income</div>
+                            <div id="ana_totalIncome" class="fw-bold mt-1" style="font-size:1.4rem; color:#00e676;">৳0
+                            </div>
+                        </div>
+                    </div>
+                    <div class="col-6 col-md-3">
+                        <div class="rounded-3 p-3 text-center h-100"
+                            style="background:#2e0a0a; border:1px solid #d32f2f;">
+                            <div style="font-size:0.78rem; color:#aaa;">মোট Expense</div>
+                            <div id="ana_totalExpense" class="fw-bold mt-1" style="font-size:1.4rem; color:#ff5252;">৳0
+                            </div>
+                        </div>
+                    </div>
+                    <div class="col-6 col-md-3">
+                        <div class="rounded-3 p-3 text-center h-100"
+                            style="background:#0a1e2e; border:1px solid #1565c0;">
+                            <div style="font-size:0.78rem; color:#aaa;">Net Profit</div>
+                            <div id="ana_netProfit" class="fw-bold mt-1" style="font-size:1.4rem; color:#40c4ff;">৳0
+                            </div>
+                        </div>
+                    </div>
+                    <div class="col-6 col-md-3">
+                        <div class="rounded-3 p-3 text-center h-100"
+                            style="background:#1a1a0a; border:1px solid #f9a825;">
+                            <div style="font-size:0.78rem; color:#aaa;">মোট Balance</div>
+                            <div id="ana_grandTotal" class="fw-bold mt-1" style="font-size:1.4rem; color:#ffeb3b;">৳0
+                            </div>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- Filter Bar -->
+                <div class="rounded-3 p-3 mb-4" style="background:#071220; border:1px solid #1e3a5f;">
+                    <!-- Filter Mode Tabs -->
+                    <div class="d-flex gap-2 mb-3 flex-wrap align-items-center">
+                        <span style="font-size:0.82rem; color:#aaa;">Filter:</span>
+                        <button id="ana_btn_all" onclick="window._anaSetMode('all')" class="btn btn-sm px-3"
+                            style="background:#1565c0;color:#fff;border:none;border-radius:20px;font-size:0.8rem;">সব
+                            সময়</button>
+                        <button id="ana_btn_month" onclick="window._anaSetMode('month')" class="btn btn-sm px-3"
+                            style="background:#0d1b2a;color:#aaa;border:1px solid #1e3a5f;border-radius:20px;font-size:0.8rem;">মাস</button>
+                        <button id="ana_btn_range" onclick="window._anaSetMode('range')" class="btn btn-sm px-3"
+                            style="background:#0d1b2a;color:#aaa;border:1px solid #1e3a5f;border-radius:20px;font-size:0.8rem;">Date
+                            Range</button>
+                        <span id="ana_filterInfo" class="text-muted ms-auto" style="font-size:0.82rem;"></span>
+                    </div>
+
+                    <!-- Month Picker (default hidden) -->
+                    <div id="ana_panel_month" style="display:none;">
+                        <select id="ana_monthFilter" class="form-select form-select-sm w-auto"
+                            style="background:#0a1628; color:#e0e6f0; border:1px solid #1e3a5f;"
+                            onchange="window._anaRefreshTables()">
+                            <option value="">— মাস বেছে নিন —</option>
+                        </select>
+                    </div>
+
+                    <!-- Date Range Picker (default hidden) -->
+                    <div id="ana_panel_range" class="d-flex gap-2 align-items-center flex-wrap"
+                        style="display:none !important;">
+                        <div>
+                            <label style="font-size:0.75rem;color:#aaa;">From</label>
+                            <input type="date" id="ana_dateFrom" class="form-control form-control-sm"
+                                style="background:#0a1628;color:#e0e6f0;border:1px solid #1e3a5f;width:155px;"
+                                onchange="window._anaRefreshTables()">
+                        </div>
+                        <div>
+                            <label style="font-size:0.75rem;color:#aaa;">To</label>
+                            <input type="date" id="ana_dateTo" class="form-control form-control-sm"
+                                style="background:#0a1628;color:#e0e6f0;border:1px solid #1e3a5f;width:155px;"
+                                onchange="window._anaRefreshTables()">
+                        </div>
+                        <button onclick="window._anaQuickRange('thisMonth')" class="btn btn-sm mt-3"
+                            style="background:#0d2a1a;color:#00e676;border:1px solid #1b5e20;font-size:0.75rem;">এই
+                            মাস</button>
+                        <button onclick="window._anaQuickRange('last30')" class="btn btn-sm mt-3"
+                            style="background:#0d2a1a;color:#00e676;border:1px solid #1b5e20;font-size:0.75rem;">শেষ ৩০
+                            দিন</button>
+                        <button onclick="window._anaQuickRange('last90')" class="btn btn-sm mt-3"
+                            style="background:#0d2a1a;color:#00e676;border:1px solid #1b5e20;font-size:0.75rem;">শেষ ৯০
+                            দিন</button>
+                        <button onclick="window._anaQuickRange('thisYear')" class="btn btn-sm mt-3"
+                            style="background:#0d2a1a;color:#00e676;border:1px solid #1b5e20;font-size:0.75rem;">এই
+                            বছর</button>
+                    </div>
+                </div>
+
+                <!-- Two Column: Income | Expense -->
+                <div class="row g-3">
+
+                    <!-- Income Breakdown -->
+                    <div class="col-md-6">
+                        <div class="rounded-3 p-3 h-100" style="background:#071a0e; border:1px solid #1b5e20;">
+                            <h6 class="fw-bold mb-3" style="color:#00e676;">✅ Income Breakdown</h6>
+                            <div class="table-responsive">
+                                <table class="table table-sm mb-0" style="color:#cce8d4; font-size:0.82rem;">
+                                    <thead>
+                                        <tr style="border-bottom:1px solid #1b5e20;">
+                                            <th style="color:#aaa; font-weight:500;">Category</th>
+                                            <th style="color:#aaa; font-weight:500;">Person</th>
+                                            <th class="text-end" style="color:#aaa; font-weight:500;">Amount</th>
+                                            <th style="color:#aaa; font-weight:500;">Date</th>
+                                        </tr>
+                                    </thead>
+                                    <tbody id="ana_incomeRows">
+                                        <tr>
+                                            <td colspan="4" class="text-center text-muted py-3">লোড হচ্ছে...</td>
+                                        </tr>
+                                    </tbody>
+                                    <tfoot>
+                                        <tr style="border-top:1px solid #1b5e20;">
+                                            <td colspan="2" class="fw-bold" style="color:#00e676;">উপমোট</td>
+                                            <td id="ana_incomeSubtotal" class="text-end fw-bold" style="color:#00e676;">
+                                                ৳0</td>
+                                            <td></td>
+                                        </tr>
+                                    </tfoot>
+                                </table>
+                            </div>
+                        </div>
+                    </div>
+
+                    <!-- Expense Breakdown -->
+                    <div class="col-md-6">
+                        <div class="rounded-3 p-3 h-100" style="background:#1a0707; border:1px solid #7f0000;">
+                            <h6 class="fw-bold mb-3" style="color:#ff5252;">❌ Expense Breakdown</h6>
+                            <div class="table-responsive">
+                                <table class="table table-sm mb-0" style="color:#f8d0d0; font-size:0.82rem;">
+                                    <thead>
+                                        <tr style="border-bottom:1px solid #7f0000;">
+                                            <th style="color:#aaa; font-weight:500;">Category</th>
+                                            <th style="color:#aaa; font-weight:500;">Person</th>
+                                            <th class="text-end" style="color:#aaa; font-weight:500;">Amount</th>
+                                            <th style="color:#aaa; font-weight:500;">Date</th>
+                                        </tr>
+                                    </thead>
+                                    <tbody id="ana_expenseRows">
+                                        <tr>
+                                            <td colspan="4" class="text-center text-muted py-3">লোড হচ্ছে...</td>
+                                        </tr>
+                                    </tbody>
+                                    <tfoot>
+                                        <tr style="border-top:1px solid #7f0000;">
+                                            <td colspan="2" class="fw-bold" style="color:#ff5252;">উপমোট</td>
+                                            <td id="ana_expenseSubtotal" class="text-end fw-bold"
+                                                style="color:#ff5252;">৳0</td>
+                                            <td></td>
+                                        </tr>
+                                    </tfoot>
+                                </table>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- Account Balances Row -->
+                <div class="mt-4">
+                    <h6 class="fw-bold mb-3" style="color:#40c4ff;">🏦 Account Balances</h6>
+                    <div id="ana_accountBalances" class="row g-2">
+                        <!-- Populated by JS -->
+                    </div>
+                </div>
+
+            </div><!-- /modal-body -->
+
+            <!-- Footer -->
+            <div class="modal-footer" style="background:#0a1628; border-top:1px solid #1e3a5f;">
+                <span class="text-muted me-auto" style="font-size:0.8rem;" id="ana_lastUpdated"></span>
+                <button type="button" class="btn btn-sm fw-bold" onclick="window._anaPrint()"
+                    style="background:#1b5e20;color:#fff;border:none;">🖨️ Print / PDF</button>
+                <button type="button" class="btn btn-sm" style="background:#1e3a5f; color:#e0e6f0;"
+                    data-bs-dismiss="modal">বন্ধ করুন</button>
             </div>
-          </div>
-          <div class="col-6 col-md-3">
-            <div class="rounded-3 p-3 text-center h-100" style="background:#2e0a0a; border:1px solid #d32f2f;">
-              <div style="font-size:0.78rem; color:#aaa;">মোট Expense</div>
-              <div id="ana_totalExpense" class="fw-bold mt-1" style="font-size:1.4rem; color:#ff5252;">৳0</div>
-            </div>
-          </div>
-          <div class="col-6 col-md-3">
-            <div class="rounded-3 p-3 text-center h-100" style="background:#0a1e2e; border:1px solid #1565c0;">
-              <div style="font-size:0.78rem; color:#aaa;">Net Profit</div>
-              <div id="ana_netProfit" class="fw-bold mt-1" style="font-size:1.4rem; color:#40c4ff;">৳0</div>
-            </div>
-          </div>
-          <div class="col-6 col-md-3">
-            <div class="rounded-3 p-3 text-center h-100" style="background:#1a1a0a; border:1px solid #f9a825;">
-              <div style="font-size:0.78rem; color:#aaa;">মোট Balance</div>
-              <div id="ana_grandTotal" class="fw-bold mt-1" style="font-size:1.4rem; color:#ffeb3b;">৳0</div>
-            </div>
-          </div>
+
         </div>
-
-        <!-- Filter Bar -->
-        <div class="rounded-3 p-3 mb-4" style="background:#071220; border:1px solid #1e3a5f;">
-          <!-- Filter Mode Tabs -->
-          <div class="d-flex gap-2 mb-3 flex-wrap align-items-center">
-            <span style="font-size:0.82rem; color:#aaa;">Filter:</span>
-            <button id="ana_btn_all"   onclick="window._anaSetMode('all')"   class="btn btn-sm px-3" style="background:#1565c0;color:#fff;border:none;border-radius:20px;font-size:0.8rem;">সব সময়</button>
-            <button id="ana_btn_month" onclick="window._anaSetMode('month')" class="btn btn-sm px-3" style="background:#0d1b2a;color:#aaa;border:1px solid #1e3a5f;border-radius:20px;font-size:0.8rem;">মাস</button>
-            <button id="ana_btn_range" onclick="window._anaSetMode('range')" class="btn btn-sm px-3" style="background:#0d1b2a;color:#aaa;border:1px solid #1e3a5f;border-radius:20px;font-size:0.8rem;">Date Range</button>
-            <span id="ana_filterInfo" class="text-muted ms-auto" style="font-size:0.82rem;"></span>
-          </div>
-
-          <!-- Month Picker (default hidden) -->
-          <div id="ana_panel_month" style="display:none;">
-            <select id="ana_monthFilter" class="form-select form-select-sm w-auto" style="background:#0a1628; color:#e0e6f0; border:1px solid #1e3a5f;" onchange="window._anaRefreshTables()">
-              <option value="">— মাস বেছে নিন —</option>
-            </select>
-          </div>
-
-          <!-- Date Range Picker (default hidden) -->
-          <div id="ana_panel_range" class="d-flex gap-2 align-items-center flex-wrap" style="display:none !important;">
-            <div>
-              <label style="font-size:0.75rem;color:#aaa;">From</label>
-              <input type="date" id="ana_dateFrom" class="form-control form-control-sm" style="background:#0a1628;color:#e0e6f0;border:1px solid #1e3a5f;width:155px;" onchange="window._anaRefreshTables()">
-            </div>
-            <div>
-              <label style="font-size:0.75rem;color:#aaa;">To</label>
-              <input type="date" id="ana_dateTo" class="form-control form-control-sm" style="background:#0a1628;color:#e0e6f0;border:1px solid #1e3a5f;width:155px;" onchange="window._anaRefreshTables()">
-            </div>
-            <button onclick="window._anaQuickRange('thisMonth')" class="btn btn-sm mt-3" style="background:#0d2a1a;color:#00e676;border:1px solid #1b5e20;font-size:0.75rem;">এই মাস</button>
-            <button onclick="window._anaQuickRange('last30')"    class="btn btn-sm mt-3" style="background:#0d2a1a;color:#00e676;border:1px solid #1b5e20;font-size:0.75rem;">শেষ ৩০ দিন</button>
-            <button onclick="window._anaQuickRange('last90')"    class="btn btn-sm mt-3" style="background:#0d2a1a;color:#00e676;border:1px solid #1b5e20;font-size:0.75rem;">শেষ ৯০ দিন</button>
-            <button onclick="window._anaQuickRange('thisYear')"  class="btn btn-sm mt-3" style="background:#0d2a1a;color:#00e676;border:1px solid #1b5e20;font-size:0.75rem;">এই বছর</button>
-          </div>
-        </div>
-
-        <!-- Two Column: Income | Expense -->
-        <div class="row g-3">
-
-          <!-- Income Breakdown -->
-          <div class="col-md-6">
-            <div class="rounded-3 p-3 h-100" style="background:#071a0e; border:1px solid #1b5e20;">
-              <h6 class="fw-bold mb-3" style="color:#00e676;">✅ Income Breakdown</h6>
-              <div class="table-responsive">
-                <table class="table table-sm mb-0" style="color:#cce8d4; font-size:0.82rem;">
-                  <thead>
-                    <tr style="border-bottom:1px solid #1b5e20;">
-                      <th style="color:#aaa; font-weight:500;">Category</th>
-                      <th style="color:#aaa; font-weight:500;">Person</th>
-                      <th class="text-end" style="color:#aaa; font-weight:500;">Amount</th>
-                      <th style="color:#aaa; font-weight:500;">Date</th>
-                    </tr>
-                  </thead>
-                  <tbody id="ana_incomeRows">
-                    <tr><td colspan="4" class="text-center text-muted py-3">লোড হচ্ছে...</td></tr>
-                  </tbody>
-                  <tfoot>
-                    <tr style="border-top:1px solid #1b5e20;">
-                      <td colspan="2" class="fw-bold" style="color:#00e676;">উপমোট</td>
-                      <td id="ana_incomeSubtotal" class="text-end fw-bold" style="color:#00e676;">৳0</td>
-                      <td></td>
-                    </tr>
-                  </tfoot>
-                </table>
-              </div>
-            </div>
-          </div>
-
-          <!-- Expense Breakdown -->
-          <div class="col-md-6">
-            <div class="rounded-3 p-3 h-100" style="background:#1a0707; border:1px solid #7f0000;">
-              <h6 class="fw-bold mb-3" style="color:#ff5252;">❌ Expense Breakdown</h6>
-              <div class="table-responsive">
-                <table class="table table-sm mb-0" style="color:#f8d0d0; font-size:0.82rem;">
-                  <thead>
-                    <tr style="border-bottom:1px solid #7f0000;">
-                      <th style="color:#aaa; font-weight:500;">Category</th>
-                      <th style="color:#aaa; font-weight:500;">Person</th>
-                      <th class="text-end" style="color:#aaa; font-weight:500;">Amount</th>
-                      <th style="color:#aaa; font-weight:500;">Date</th>
-                    </tr>
-                  </thead>
-                  <tbody id="ana_expenseRows">
-                    <tr><td colspan="4" class="text-center text-muted py-3">লোড হচ্ছে...</td></tr>
-                  </tbody>
-                  <tfoot>
-                    <tr style="border-top:1px solid #7f0000;">
-                      <td colspan="2" class="fw-bold" style="color:#ff5252;">উপমোট</td>
-                      <td id="ana_expenseSubtotal" class="text-end fw-bold" style="color:#ff5252;">৳0</td>
-                      <td></td>
-                    </tr>
-                  </tfoot>
-                </table>
-              </div>
-            </div>
-          </div>
-        </div>
-
-        <!-- Account Balances Row -->
-        <div class="mt-4">
-          <h6 class="fw-bold mb-3" style="color:#40c4ff;">🏦 Account Balances</h6>
-          <div id="ana_accountBalances" class="row g-2">
-            <!-- Populated by JS -->
-          </div>
-        </div>
-
-      </div><!-- /modal-body -->
-
-      <!-- Footer -->
-      <div class="modal-footer" style="background:#0a1628; border-top:1px solid #1e3a5f;">
-        <span class="text-muted me-auto" style="font-size:0.8rem;" id="ana_lastUpdated"></span>
-        <button type="button" class="btn btn-sm fw-bold" onclick="window._anaPrint()" style="background:#1b5e20;color:#fff;border:none;">🖨️ Print / PDF</button>
-        <button type="button" class="btn btn-sm" style="background:#1e3a5f; color:#e0e6f0;" data-bs-dismiss="modal">বন্ধ করুন</button>
-      </div>
-
     </div>
-  </div>
 </div>
 
 <!-- showAccountDetails function -->
 <script>
-window.showAccountDetails = function () {
-  const gd = window.globalData;
-  if (!gd) {
-    alert('Data এখনো লোড হয়নি। একটু অপেক্ষা করুন।');
-    return;
-  }
+    window.showAccountDetails = function () {
+        const gd = window.globalData;
+        if (!gd) {
+            alert('Data এখনো লোড হয়নি। একটু অপেক্ষা করুন।');
+            return;
+        }
 
-  const fmt = (n) => '৳' + (typeof formatNumber === 'function'
-    ? formatNumber(n)
-    : Number(n).toLocaleString('en-IN'));
+        const fmt = (n) => '৳' + (typeof formatNumber === 'function'
+            ? formatNumber(n)
+            : Number(n).toLocaleString('en-IN'));
 
-  const finance = (gd.finance || []).filter(f => !f._deleted);
+        const finance = (gd.finance || []).filter(f => !f._deleted);
 
-  // ── Month filter dropdown populate ──
-  const monthSet = new Set();
-  finance.forEach(f => {
-    if (f.date && f.date.length >= 7) monthSet.add(f.date.slice(0, 7));
-  });
-  const months = Array.from(monthSet).sort().reverse();
-  const sel = document.getElementById('ana_monthFilter');
-  if (sel) {
-    sel.innerHTML = '<option value="">— সব সময়ের —</option>';
-    months.forEach(m => {
-      const [yr, mo] = m.split('-');
-      const label = new Date(yr, mo - 1).toLocaleString('bn-BD', { month: 'long', year: 'numeric' });
-      sel.innerHTML += `<option value="${m}">${label}</option>`;
-    });
-  }
+        // ── Month filter dropdown populate ──
+        const monthSet = new Set();
+        finance.forEach(f => {
+            if (f.date && f.date.length >= 7) monthSet.add(f.date.slice(0, 7));
+        });
+        const months = Array.from(monthSet).sort().reverse();
+        const sel = document.getElementById('ana_monthFilter');
+        if (sel) {
+            sel.innerHTML = '<option value="">— সব সময়ের —</option>';
+            months.forEach(m => {
+                const [yr, mo] = m.split('-');
+                const label = new Date(yr, mo - 1).toLocaleString('bn-BD', { month: 'long', year: 'numeric' });
+                sel.innerHTML += `<option value="${m}">${label}</option>`;
+            });
+        }
 
-  // ── Grand Total (account balances) ──
-  const cashTotal   = parseFloat(gd.cashBalance) || 0;
-  const bankTotal   = (gd.bankAccounts || []).reduce((s, a) => s + (parseFloat(a.balance) || 0), 0);
-  const mobileTotal = (gd.mobileBanking || []).reduce((s, a) => s + (parseFloat(a.balance) || 0), 0);
-  const grandTotal  = cashTotal + bankTotal + mobileTotal;
-  const gt = document.getElementById('ana_grandTotal');
-  if (gt) gt.textContent = fmt(grandTotal);
+        // ── Grand Total (account balances) ──
+        const cashTotal = parseFloat(gd.cashBalance) || 0;
+        const bankTotal = (gd.bankAccounts || []).reduce((s, a) => s + (parseFloat(a.balance) || 0), 0);
+        const mobileTotal = (gd.mobileBanking || []).reduce((s, a) => s + (parseFloat(a.balance) || 0), 0);
+        const grandTotal = cashTotal + bankTotal + mobileTotal;
+        const gt = document.getElementById('ana_grandTotal');
+        if (gt) gt.textContent = fmt(grandTotal);
 
-  // ── Account Balances Cards ──
-  const balDiv = document.getElementById('ana_accountBalances');
-  if (balDiv) {
-    let html = '';
-    html += `<div class="col-6 col-md-3"><div class="rounded-2 p-2 text-center" style="background:#0d1b2a;border:1px solid #1e3a5f;">
+        // ── Account Balances Cards ──
+        const balDiv = document.getElementById('ana_accountBalances');
+        if (balDiv) {
+            let html = '';
+            html += `<div class="col-6 col-md-3"><div class="rounded-2 p-2 text-center" style="background:#0d1b2a;border:1px solid #1e3a5f;">
       <div style="font-size:0.75rem;color:#aaa;">💵 Cash</div>
       <div class="fw-bold" style="color:#ffeb3b;">${fmt(cashTotal)}</div></div></div>`;
-    (gd.bankAccounts || []).forEach(a => {
-      html += `<div class="col-6 col-md-3"><div class="rounded-2 p-2 text-center" style="background:#0d1b2a;border:1px solid #1e3a5f;">
+            (gd.bankAccounts || []).forEach(a => {
+                html += `<div class="col-6 col-md-3"><div class="rounded-2 p-2 text-center" style="background:#0d1b2a;border:1px solid #1e3a5f;">
         <div style="font-size:0.75rem;color:#aaa;">🏦 ${a.name}</div>
-        <div class="fw-bold" style="color:#40c4ff;">${fmt(parseFloat(a.balance)||0)}</div></div></div>`;
-    });
-    (gd.mobileBanking || []).forEach(a => {
-      html += `<div class="col-6 col-md-3"><div class="rounded-2 p-2 text-center" style="background:#0d1b2a;border:1px solid #1e3a5f;">
+        <div class="fw-bold" style="color:#40c4ff;">${fmt(parseFloat(a.balance) || 0)}</div></div></div>`;
+            });
+            (gd.mobileBanking || []).forEach(a => {
+                html += `<div class="col-6 col-md-3"><div class="rounded-2 p-2 text-center" style="background:#0d1b2a;border:1px solid #1e3a5f;">
         <div style="font-size:0.75rem;color:#aaa;">📱 ${a.name}</div>
-        <div class="fw-bold" style="color:#69f0ae;">${fmt(parseFloat(a.balance)||0)}</div></div></div>`;
-    });
-    balDiv.innerHTML = html;
-  }
+        <div class="fw-bold" style="color:#69f0ae;">${fmt(parseFloat(a.balance) || 0)}</div></div></div>`;
+            });
+            balDiv.innerHTML = html;
+        }
 
-  // ── Filter mode state ──
-  window._anaMode = 'all'; // 'all' | 'month' | 'range'
+        // ── Filter mode state ──
+        window._anaMode = 'all'; // 'all' | 'month' | 'range'
 
-  window._anaSetMode = function (mode) {
-    window._anaMode = mode;
-    const btnAll   = document.getElementById('ana_btn_all');
-    const btnMonth = document.getElementById('ana_btn_month');
-    const btnRange = document.getElementById('ana_btn_range');
-    const panelMonth = document.getElementById('ana_panel_month');
-    const panelRange = document.getElementById('ana_panel_range');
+        window._anaSetMode = function (mode) {
+            window._anaMode = mode;
+            const btnAll = document.getElementById('ana_btn_all');
+            const btnMonth = document.getElementById('ana_btn_month');
+            const btnRange = document.getElementById('ana_btn_range');
+            const panelMonth = document.getElementById('ana_panel_month');
+            const panelRange = document.getElementById('ana_panel_range');
 
-    [btnAll, btnMonth, btnRange].forEach(b => { if(b){ b.style.background='#0d1b2a'; b.style.color='#aaa'; b.style.border='1px solid #1e3a5f'; }});
-    const active = mode==='all' ? btnAll : mode==='month' ? btnMonth : btnRange;
-    if (active) { active.style.background='#1565c0'; active.style.color='#fff'; active.style.border='none'; }
+            [btnAll, btnMonth, btnRange].forEach(b => { if (b) { b.style.background = '#0d1b2a'; b.style.color = '#aaa'; b.style.border = '1px solid #1e3a5f'; } });
+            const active = mode === 'all' ? btnAll : mode === 'month' ? btnMonth : btnRange;
+            if (active) { active.style.background = '#1565c0'; active.style.color = '#fff'; active.style.border = 'none'; }
 
-    if (panelMonth) panelMonth.style.display = mode==='month' ? 'block' : 'none';
-    if (panelRange) panelRange.style.display = mode==='range' ? 'flex' : 'none';
+            if (panelMonth) panelMonth.style.display = mode === 'month' ? 'block' : 'none';
+            if (panelRange) panelRange.style.display = mode === 'range' ? 'flex' : 'none';
 
-    window._anaRefreshTables();
-  };
+            window._anaRefreshTables();
+        };
 
-  // ── Quick range shortcuts ──
-  window._anaQuickRange = function (preset) {
-    const today = new Date();
-    const pad = n => String(n).padStart(2,'0');
-    const fmt_ = d => `${d.getFullYear()}-${pad(d.getMonth()+1)}-${pad(d.getDate())}`;
-    let from, to = fmt_(today);
+        // ── Quick range shortcuts ──
+        window._anaQuickRange = function (preset) {
+            const today = new Date();
+            const pad = n => String(n).padStart(2, '0');
+            const fmt_ = d => `${d.getFullYear()}-${pad(d.getMonth() + 1)}-${pad(d.getDate())}`;
+            let from, to = fmt_(today);
 
-    if (preset === 'thisMonth') {
-      from = `${today.getFullYear()}-${pad(today.getMonth()+1)}-01`;
-    } else if (preset === 'last30') {
-      const d = new Date(today); d.setDate(d.getDate()-30); from = fmt_(d);
-    } else if (preset === 'last90') {
-      const d = new Date(today); d.setDate(d.getDate()-90); from = fmt_(d);
-    } else if (preset === 'thisYear') {
-      from = `${today.getFullYear()}-01-01`;
-    }
+            if (preset === 'thisMonth') {
+                from = `${today.getFullYear()}-${pad(today.getMonth() + 1)}-01`;
+            } else if (preset === 'last30') {
+                const d = new Date(today); d.setDate(d.getDate() - 30); from = fmt_(d);
+            } else if (preset === 'last90') {
+                const d = new Date(today); d.setDate(d.getDate() - 90); from = fmt_(d);
+            } else if (preset === 'thisYear') {
+                from = `${today.getFullYear()}-01-01`;
+            }
 
-    const df = document.getElementById('ana_dateFrom');
-    const dt = document.getElementById('ana_dateTo');
-    if (df) df.value = from;
-    if (dt) dt.value = to;
-    window._anaRefreshTables();
-  };
+            const df = document.getElementById('ana_dateFrom');
+            const dt = document.getElementById('ana_dateTo');
+            if (df) df.value = from;
+            if (dt) dt.value = to;
+            window._anaRefreshTables();
+        };
 
-  // ── Refresh tables helper ──
-  window._anaRefreshTables = function () {
-    const mode  = window._anaMode || 'all';
-    const month = (document.getElementById('ana_monthFilter') || {}).value || '';
-    const dateFrom = (document.getElementById('ana_dateFrom') || {}).value || '';
-    const dateTo   = (document.getElementById('ana_dateTo')   || {}).value || '';
-    const fin = window.globalData ? (window.globalData.finance || []).filter(f => !f._deleted) : [];
+        // ── Refresh tables helper ──
+        window._anaRefreshTables = function () {
+            const mode = window._anaMode || 'all';
+            const month = (document.getElementById('ana_monthFilter') || {}).value || '';
+            const dateFrom = (document.getElementById('ana_dateFrom') || {}).value || '';
+            const dateTo = (document.getElementById('ana_dateTo') || {}).value || '';
+            const fin = window.globalData ? (window.globalData.finance || []).filter(f => !f._deleted) : [];
 
-    const inTypes  = window.FE_STAT_INCOME  || ['Income', 'Registration', 'Refund'];
-    const outTypes = window.FE_STAT_EXPENSE || ['Expense', 'Salary', 'Rent', 'Utilities'];
+            const inTypes = window.FE_STAT_INCOME || ['Income', 'Registration', 'Refund'];
+            const outTypes = window.FE_STAT_EXPENSE || ['Expense', 'Salary', 'Rent', 'Utilities'];
 
-    // Filter function by mode
-    const passFilter = (f) => {
-      const d = (f.date || '').slice(0,10);
-      if (mode === 'month') return !month || d.startsWith(month);
-      if (mode === 'range') {
-        if (dateFrom && d < dateFrom) return false;
-        if (dateTo   && d > dateTo)   return false;
-        return true;
-      }
-      return true; // 'all'
-    };
+            // Filter function by mode
+            const passFilter = (f) => {
+                const d = (f.date || '').slice(0, 10);
+                if (mode === 'month') return !month || d.startsWith(month);
+                if (mode === 'range') {
+                    if (dateFrom && d < dateFrom) return false;
+                    if (dateTo && d > dateTo) return false;
+                    return true;
+                }
+                return true; // 'all'
+            };
 
-    const incomeRows  = fin.filter(f => inTypes.includes(f.type)  && passFilter(f));
-    const expenseRows = fin.filter(f => outTypes.includes(f.type) && passFilter(f));
+            const incomeRows = fin.filter(f => inTypes.includes(f.type) && passFilter(f));
+            const expenseRows = fin.filter(f => outTypes.includes(f.type) && passFilter(f));
 
-    const totalInc = incomeRows.reduce((s, f)  => s + (parseFloat(f.amount)||0), 0);
-    const totalExp = expenseRows.reduce((s, f) => s + (parseFloat(f.amount)||0), 0);
-    const profit   = totalInc - totalExp;
+            const totalInc = incomeRows.reduce((s, f) => s + (parseFloat(f.amount) || 0), 0);
+            const totalExp = expenseRows.reduce((s, f) => s + (parseFloat(f.amount) || 0), 0);
+            const profit = totalInc - totalExp;
 
-    // Summary cards
-    const ti = document.getElementById('ana_totalIncome');  if (ti) ti.textContent = fmt(totalInc);
-    const te = document.getElementById('ana_totalExpense'); if (te) te.textContent = fmt(totalExp);
-    const np = document.getElementById('ana_netProfit');
-    if (np) {
-      np.style.color = profit >= 0 ? '#40c4ff' : '#ff5252';
-      np.textContent = (profit < 0 ? '−' : '') + fmt(Math.abs(profit));
-    }
+            // Summary cards
+            const ti = document.getElementById('ana_totalIncome'); if (ti) ti.textContent = fmt(totalInc);
+            const te = document.getElementById('ana_totalExpense'); if (te) te.textContent = fmt(totalExp);
+            const np = document.getElementById('ana_netProfit');
+            if (np) {
+                np.style.color = profit >= 0 ? '#40c4ff' : '#ff5252';
+                np.textContent = (profit < 0 ? '−' : '') + fmt(Math.abs(profit));
+            }
 
-    // Filter info
-    const fi = document.getElementById('ana_filterInfo');
-    if (fi) {
-      let label = `মোট ${fin.length}টি entry`;
-      if (mode==='month' && month) label = `${incomeRows.length+expenseRows.length}টি entry`;
-      else if (mode==='range' && (dateFrom||dateTo)) label = `${incomeRows.length+expenseRows.length}টি entry | ${dateFrom||'শুরু'} → ${dateTo||'শেষ'}`;
-      fi.textContent = '(' + label + ')';
-    }
+            // Filter info
+            const fi = document.getElementById('ana_filterInfo');
+            if (fi) {
+                let label = `মোট ${fin.length}টি entry`;
+                if (mode === 'month' && month) label = `${incomeRows.length + expenseRows.length}টি entry`;
+                else if (mode === 'range' && (dateFrom || dateTo)) label = `${incomeRows.length + expenseRows.length}টি entry | ${dateFrom || 'শুরু'} → ${dateTo || 'শেষ'}`;
+                fi.textContent = '(' + label + ')';
+            }
 
-    // Subtotals
-    const is = document.getElementById('ana_incomeSubtotal');  if (is) is.textContent = fmt(totalInc);
-    const es = document.getElementById('ana_expenseSubtotal'); if (es) es.textContent = fmt(totalExp);
+            // Subtotals
+            const is = document.getElementById('ana_incomeSubtotal'); if (is) is.textContent = fmt(totalInc);
+            const es = document.getElementById('ana_expenseSubtotal'); if (es) es.textContent = fmt(totalExp);
 
-    // Row builder
-    const buildRows = (rows, color, borderColor) => {
-      if (!rows.length) return `<tr><td colspan="4" class="text-center text-muted py-3">কোনো data নেই</td></tr>`;
-      return rows
-        .sort((a,b) => (b.date||'').localeCompare(a.date||''))
-        .map(f => `<tr style="border-bottom:1px solid ${borderColor};">
+            // Row builder
+            const buildRows = (rows, color, borderColor) => {
+                if (!rows.length) return `<tr><td colspan="4" class="text-center text-muted py-3">কোনো data নেই</td></tr>`;
+                return rows
+                    .sort((a, b) => (b.date || '').localeCompare(a.date || ''))
+                    .map(f => `<tr style="border-bottom:1px solid ${borderColor};">
           <td>${f.category || f.type || '—'}</td>
-          <td style="max-width:110px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;" title="${f.person||''}">${f.person || '—'}</td>
-          <td class="text-end fw-bold" style="color:${color};">${fmt(parseFloat(f.amount)||0)}</td>
-          <td style="color:#888;white-space:nowrap;">${f.date ? f.date.slice(0,10) : '—'}</td>
+          <td style="max-width:110px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;" title="${f.person || ''}">${f.person || '—'}</td>
+          <td class="text-end fw-bold" style="color:${color};">${fmt(parseFloat(f.amount) || 0)}</td>
+          <td style="color:#888;white-space:nowrap;">${f.date ? f.date.slice(0, 10) : '—'}</td>
         </tr>`).join('');
-    };
+            };
 
-    const iBody = document.getElementById('ana_incomeRows');
-    if (iBody) iBody.innerHTML = buildRows(incomeRows, '#00e676', '#1b5e2040');
+            const iBody = document.getElementById('ana_incomeRows');
+            if (iBody) iBody.innerHTML = buildRows(incomeRows, '#00e676', '#1b5e2040');
 
-    const eBody = document.getElementById('ana_expenseRows');
-    if (eBody) eBody.innerHTML = buildRows(expenseRows, '#ff5252', '#7f000040');
-  };
+            const eBody = document.getElementById('ana_expenseRows');
+            if (eBody) eBody.innerHTML = buildRows(expenseRows, '#ff5252', '#7f000040');
+        };
 
-  // ── Print function ──
-  window._anaPrint = function () {
-    const gd = window.globalData || {};
-    const mode    = window._anaMode || 'all';
-    const month   = (document.getElementById('ana_monthFilter')||{}).value || '';
-    const dateFrom = (document.getElementById('ana_dateFrom')||{}).value || '';
-    const dateTo   = (document.getElementById('ana_dateTo')||{}).value   || '';
+        // ── Print function ──
+        window._anaPrint = function () {
+            const gd = window.globalData || {};
+            const mode = window._anaMode || 'all';
+            const month = (document.getElementById('ana_monthFilter') || {}).value || '';
+            const dateFrom = (document.getElementById('ana_dateFrom') || {}).value || '';
+            const dateTo = (document.getElementById('ana_dateTo') || {}).value || '';
 
-    let filterLabel = 'সব সময়ের রিপোর্ট';
-    if (mode==='month' && month) {
-      const [yr,mo] = month.split('-');
-      filterLabel = new Date(yr, mo-1).toLocaleString('bn-BD',{month:'long',year:'numeric'}) + ' মাসের রিপোর্ট';
-    } else if (mode==='range') {
-      filterLabel = `Date Range: ${dateFrom||'শুরু'} থেকে ${dateTo||'শেষ'}`;
-    }
+            let filterLabel = 'সব সময়ের রিপোর্ট';
+            if (mode === 'month' && month) {
+                const [yr, mo] = month.split('-');
+                filterLabel = new Date(yr, mo - 1).toLocaleString('bn-BD', { month: 'long', year: 'numeric' }) + ' মাসের রিপোর্ট';
+            } else if (mode === 'range') {
+                filterLabel = `Date Range: ${dateFrom || 'শুরু'} থেকে ${dateTo || 'শেষ'}`;
+            }
 
-    const incTh  = document.getElementById('ana_totalIncome')?.textContent  || '৳0';
-    const expTh  = document.getElementById('ana_totalExpense')?.textContent || '৳0';
-    const netTh  = document.getElementById('ana_netProfit')?.textContent    || '৳0';
-    const gtTh   = document.getElementById('ana_grandTotal')?.textContent   || '৳0';
+            const incTh = document.getElementById('ana_totalIncome')?.textContent || '৳0';
+            const expTh = document.getElementById('ana_totalExpense')?.textContent || '৳0';
+            const netTh = document.getElementById('ana_netProfit')?.textContent || '৳0';
+            const gtTh = document.getElementById('ana_grandTotal')?.textContent || '৳0';
 
-    const iRows = document.getElementById('ana_incomeRows')?.innerHTML  || '';
-    const eRows = document.getElementById('ana_expenseRows')?.innerHTML || '';
-    const balances = document.getElementById('ana_accountBalances')?.innerHTML || '';
+            const iRows = document.getElementById('ana_incomeRows')?.innerHTML || '';
+            const eRows = document.getElementById('ana_expenseRows')?.innerHTML || '';
+            const balances = document.getElementById('ana_accountBalances')?.innerHTML || '';
 
-    const printDate = new Date().toLocaleString('bn-BD');
-    const academyName = gd.settings?.academyName || 'Wings Fly Aviation Academy';
+            const printDate = new Date().toLocaleString('bn-BD');
+            const academyName = gd.settings?.academyName || 'Wings Fly Aviation Academy';
 
-    const win = window.open('','_blank','width=900,height=700');
-    win.document.write(`<!DOCTYPE html><html><head>
+            const win = window.open('', '_blank', 'width=900,height=700');
+            win.document.write(`<!DOCTYPE html><html><head>
 <meta charset="UTF-8">
 <title>Account Analytics Report</title>
 <style>
@@ -1965,51 +2122,50 @@ window.showAccountDetails = function () {
 <div class="section-title inc-title">✅ Income Breakdown</div>
 <table>
   <thead><tr><th>Category</th><th>Person</th><th style="text-align:right;">Amount</th><th>Date</th></tr></thead>
-  <tbody>${iRows.replace(/style="[^"]*"/g,'').replace(/color:#00e676;/g,'').replace(/color:#888;white-space:nowrap;/g,'color:#666;')}</tbody>
+  <tbody>${iRows.replace(/style="[^"]*"/g, '').replace(/color:#00e676;/g, '').replace(/color:#888;white-space:nowrap;/g, 'color:#666;')}</tbody>
   <tfoot><tr><td colspan="2">উপমোট</td><td style="text-align:right;">${incTh}</td><td></td></tr></tfoot>
 </table>
 
 <div class="section-title exp-title">❌ Expense Breakdown</div>
 <table>
   <thead><tr><th>Category</th><th>Person</th><th style="text-align:right;">Amount</th><th>Date</th></tr></thead>
-  <tbody>${eRows.replace(/style="[^"]*"/g,'').replace(/color:#ff5252;/g,'').replace(/color:#888;white-space:nowrap;/g,'color:#666;')}</tbody>
+  <tbody>${eRows.replace(/style="[^"]*"/g, '').replace(/color:#ff5252;/g, '').replace(/color:#888;white-space:nowrap;/g, 'color:#666;')}</tbody>
   <tfoot><tr><td colspan="2">উপমোট</td><td style="text-align:right;">${expTh}</td><td></td></tr></tfoot>
 </table>
 
 <div class="section-title bal-title">🏦 Account Balances</div>
-<div class="bal-grid">${
-  (() => {
-    const cash = parseFloat(gd.cashBalance)||0;
-    let chips = `<div class="bal-chip"><div class="n">💵 Cash</div><div class="v">৳${cash.toLocaleString()}</div></div>`;
-    (gd.bankAccounts||[]).forEach(a => { chips += `<div class="bal-chip"><div class="n">🏦 ${a.name}</div><div class="v">৳${(parseFloat(a.balance)||0).toLocaleString()}</div></div>`; });
-    (gd.mobileBanking||[]).forEach(a => { chips += `<div class="bal-chip"><div class="n">📱 ${a.name}</div><div class="v">৳${(parseFloat(a.balance)||0).toLocaleString()}</div></div>`; });
-    return chips;
-  })()
-}</div>
+<div class="bal-grid">${(() => {
+                    const cash = parseFloat(gd.cashBalance) || 0;
+                    let chips = `<div class="bal-chip"><div class="n">💵 Cash</div><div class="v">৳${cash.toLocaleString()}</div></div>`;
+                    (gd.bankAccounts || []).forEach(a => { chips += `<div class="bal-chip"><div class="n">🏦 ${a.name}</div><div class="v">৳${(parseFloat(a.balance) || 0).toLocaleString()}</div></div>`; });
+                    (gd.mobileBanking || []).forEach(a => { chips += `<div class="bal-chip"><div class="n">📱 ${a.name}</div><div class="v">৳${(parseFloat(a.balance) || 0).toLocaleString()}</div></div>`; });
+                    return chips;
+                })()
+                }</div>
 
 <div class="footer">Wings Fly Aviation Academy — Auto-generated report</div>
 </body></html>`);
-    win.document.close();
-    setTimeout(() => win.print(), 600);
-  };
+            win.document.close();
+            setTimeout(() => win.print(), 600);
+        };
 
-  // Initial populate
-  window._anaSetMode('all');
-  window._anaRefreshTables();
+        // Initial populate
+        window._anaSetMode('all');
+        window._anaRefreshTables();
 
-  // Last updated timestamp
-  const lu = document.getElementById('ana_lastUpdated');
-  if (lu) lu.textContent = 'Updated: ' + new Date().toLocaleString('bn-BD');
+        // Last updated timestamp
+        const lu = document.getElementById('ana_lastUpdated');
+        if (lu) lu.textContent = 'Updated: ' + new Date().toLocaleString('bn-BD');
 
-  // Open modal
-  const modalEl = document.getElementById('accountAnalyticsModal');
-  if (modalEl && window.bootstrap) {
-    const m = bootstrap.Modal.getOrCreateInstance(modalEl);
-    m.show();
-  } else {
-    console.error('accountAnalyticsModal বা Bootstrap পাওয়া যায়নি।');
-  }
-};
+        // Open modal
+        const modalEl = document.getElementById('accountAnalyticsModal');
+        if (modalEl && window.bootstrap) {
+            const m = bootstrap.Modal.getOrCreateInstance(modalEl);
+            m.show();
+        } else {
+            console.error('accountAnalyticsModal বা Bootstrap পাওয়া যায়নি।');
+        }
+    };
 </script>
 
 <!-- Keep Record - New Note Modal -->
