@@ -724,7 +724,14 @@ if (typeof togglePersonField === 'function') {
 // Required by sections and sync system
 // ===================================
 window.renderLedger = renderLedger;
-window.updateGlobalStats = updateGlobalStats;
+// ✅ FIX: finance-engine.js এর canonical updateGlobalStats preserve করো
+// শুধু তখনই set করো যদি finance-engine এখনো define না করে থাকে
+if (typeof window.updateGlobalStats !== 'function') {
+  window.updateGlobalStats = updateGlobalStats;
+} else {
+  // finance-engine এর wrapped version ব্যবহার করো — overwrite করো না
+  console.log('✅ app.js: updateGlobalStats already set by finance-engine, keeping it');
+}
 window.checkDailyBackup = checkDailyBackup;
 // window.updateStudentCount → sections/student-management.js
 // window.filterData → sections/student-management.js
@@ -850,7 +857,10 @@ window.attachMethodBalanceListeners = attachMethodBalanceListeners;
   if (typeof openAccountModal === 'function') window.openAccountModal = openAccountModal;
   if (typeof renderAccountList === 'function') window.renderAccountList = renderAccountList;
   if (typeof renderDashboard === 'function') window.renderDashboard = renderDashboard;
-  if (typeof updateGlobalStats === 'function') window.updateGlobalStats = updateGlobalStats;
+  // ✅ FIX: finance-engine এর wrapped version overwrite করো না
+  if (typeof updateGlobalStats === 'function' && typeof window.FE_STAT_INCOME === 'undefined') {
+    window.updateGlobalStats = updateGlobalStats;
+  }
   if (typeof recalculateCashBalanceFromTransactions === 'function') window.recalculateCashBalanceFromTransactions = recalculateCashBalanceFromTransactions;
   if (typeof renderKeepRecordNotes === 'function') window.renderKeepRecordNotes = renderKeepRecordNotes;
 
