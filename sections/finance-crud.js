@@ -196,30 +196,11 @@ function deleteInstallment(rowIndex, instIndex) {
     return;
   }
 
-  if (!confirm(`এই payment টি delete করতে চান?\n৳${formatNumber(inst.amount)} (${inst.date} - ${inst.method || 'Cash'})`)) return;
+  // ⚠️ Confirm, moveToTrash, logActivity - এতিমধ্যে patch (recycle-bin-fix.js) করবে।
+  // এখানে শুধুমাত্র core data mutation ও balance adjustment থাকবে।
 
   const amount = parseFloat(inst.amount) || 0;
   const method = inst.method || 'Cash';
-
-  // 0. ✅ Recycle Bin এ সেভ করো (restore করার জন্য)
-  if (typeof moveToTrash === 'function') {
-    moveToTrash('installment', {
-      studentName: student.name,
-      studentIndex: rowIndex,
-      amount: amount,
-      date: inst.date,
-      method: method,
-      batch: student.batch || '',
-      description: `Installment: ৳${formatNumber(amount)} | ${student.name} | ${inst.date}`
-    });
-  }
-
-  // 0b. Activity Log
-  if (typeof logActivity === 'function') {
-    logActivity('finance', 'DELETE',
-      `Installment deleted: ৳${formatNumber(amount)} | Student: ${student.name} | Method: ${method}`,
-      { amount, method, date: inst.date, studentName: student.name });
-  }
 
   // 1. Student installments array থেকে সরাও
   const displayList = getStudentInstallments(student);
@@ -298,10 +279,7 @@ function deleteStudent(rowIndex) {
     return;
   }
 
-  // Move to trash before deleting
-  if (typeof moveToTrash === 'function') moveToTrash('student', student);
-  if (typeof logActivity === 'function') logActivity('student', 'DELETE',
-    'Student deleted: ' + (student.name || 'Unknown') + ' | Batch: ' + (student.batch || '-') + ' | Course: ' + (student.course || '-'), student);
+  // ⚠️ Confirm, moveToTrash, logActivity - patch করবে।
 
   // Delete count track করো (sync এর জন্য)
   const _delCount = parseInt(localStorage.getItem('wings_total_deleted') || '0') + 1;
@@ -519,15 +497,7 @@ function deleteTransaction(id) {
     return;
   }
 
-  // 0. ✅ Recycle Bin এ সেভ করো
-  if (typeof moveToTrash === 'function') {
-    moveToTrash('finance', txToDelete);
-  }
-  if (typeof logActivity === 'function') {
-    logActivity('finance', 'DELETE',
-      `Transaction deleted: ${txToDelete.type} | ${txToDelete.category || ''} | ৳${txToDelete.amount}`,
-      txToDelete);
-  }
+  // ⚠️ moveToTrash, logActivity - patch করবে।
 
   // 1. Account balance reverse করো
   if (typeof updateAccountBalance === "function") {
@@ -646,7 +616,7 @@ window.deleteTransaction = deleteTransaction;
 // Alias for delete button in finance table
 function _handleDeleteTx(id) {
   if (!id) return;
-  if (!confirm('এই transaction টি delete করতে চান?')) return;
+  // patch layer confirm করবে।
   deleteTransaction(id);
 }
 window._handleDeleteTx = _handleDeleteTx;

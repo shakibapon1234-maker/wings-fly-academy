@@ -9,7 +9,7 @@ const KEEP_RECORD_KEY = 'wingsfly_keep_records';
 function getKeepRecords() {
   try {
     return JSON.parse(localStorage.getItem(KEEP_RECORD_KEY) || '[]');
-  } catch(e) { return []; }
+  } catch (e) { return []; }
 }
 
 function saveKeepRecords(records) {
@@ -81,12 +81,12 @@ function saveNote() {
   if (!window.globalData) window.globalData = {};
   if (!Array.isArray(window.globalData.activityHistory)) window.globalData.activityHistory = [];
   const actEntry = {
-    id:          'ACT_' + Date.now() + '_' + Math.floor(Math.random() * 9999),
-    action:      editId ? 'EDIT' : 'ADD',
-    type:        'keeprecord',
+    id: 'ACT_' + Date.now() + '_' + Math.floor(Math.random() * 9999),
+    action: editId ? 'EDIT' : 'ADD',
+    type: 'keeprecord',
     description: (title || content || 'Note') + (editId ? ' updated' : ' added'),
-    timestamp:   new Date().toISOString(),
-    user:        sessionStorage.getItem('username') || 'Admin'
+    timestamp: new Date().toISOString(),
+    user: sessionStorage.getItem('username') || 'Admin'
   };
   window.globalData.activityHistory.unshift(actEntry);
   if (window.globalData.activityHistory.length > 500) {
@@ -95,7 +95,7 @@ function saveNote() {
   try {
     localStorage.setItem('wingsfly_activity_backup',
       JSON.stringify(window.globalData.activityHistory));
-  } catch(e) {}
+  } catch (e) { }
   if (typeof saveToStorage === 'function') saveToStorage();
 
   // Close modal
@@ -111,8 +111,7 @@ function saveNote() {
 window.saveNote = saveNote;
 
 function deleteNote(id) {
-  if (!confirm('এই নোটটি মুছে ফেলবেন?')) return;
-
+  // ⚠️ Confirm, moveToTrash, logActivity - patch করবে।
   const allRecords = getKeepRecords();
   const noteToDelete = allRecords.find(r => r.id === id);
 
@@ -120,48 +119,6 @@ function deleteNote(id) {
     showErrorToast('❌ নোট পাওয়া যায়নি।');
     return;
   }
-
-  // ── Recycle Bin: globalData.deletedItems এ রাখো ──
-  if (!window.globalData) window.globalData = {};
-  if (!Array.isArray(window.globalData.deletedItems)) window.globalData.deletedItems = [];
-
-  // ✅ FIX: Standard trash format — id/type/item/deletedAt/deletedBy
-  // restoreDeletedItem() এই format এ খোঁজে তাই এটা ঠিক রাখতে হবে
-  const trashItem = {
-    id:        'TRASH_' + Date.now() + '_' + Math.floor(Math.random() * 9999),
-    type:      'keeprecord',
-    item:      JSON.parse(JSON.stringify(noteToDelete)), // deep copy
-    deletedAt: new Date().toISOString(),
-    deletedBy: sessionStorage.getItem('username') || 'Admin'
-  };
-  window.globalData.deletedItems.unshift(trashItem);
-  if (window.globalData.deletedItems.length > 300) {
-    window.globalData.deletedItems = window.globalData.deletedItems.slice(0, 300);
-  }
-  try {
-    localStorage.setItem('wingsfly_deleted_backup',
-      JSON.stringify(window.globalData.deletedItems));
-  } catch(e) {}
-
-  // ── Activity Log: globalData.activityHistory এ রাখো ──
-  if (!Array.isArray(window.globalData.activityHistory)) window.globalData.activityHistory = [];
-  const actEntry = {
-    id:          'ACT_' + Date.now() + '_' + Math.floor(Math.random() * 9999),
-    action:      'DELETE',
-    type:        'keeprecord',
-    description: (noteToDelete.title || noteToDelete.content || 'Note') + ' deleted',
-    timestamp:   new Date().toISOString(),
-    user:        sessionStorage.getItem('username') || 'Admin',
-    data:        noteToDelete
-  };
-  window.globalData.activityHistory.unshift(actEntry);
-  if (window.globalData.activityHistory.length > 500) {
-    window.globalData.activityHistory = window.globalData.activityHistory.slice(0, 500);
-  }
-  try {
-    localStorage.setItem('wingsfly_activity_backup',
-      JSON.stringify(window.globalData.activityHistory));
-  } catch(e) {}
 
   // ── localStorage থেকে সরাও ──
   const remaining = allRecords.filter(r => r.id !== id);
@@ -276,7 +233,7 @@ window.renderKeepRecordNotes = renderKeepRecordNotes;
 
 function escapeHtml(str) {
   if (!str) return '';
-  return str.replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;').replace(/"/g,'&quot;');
+  return str.replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;').replace(/"/g, '&quot;');
 }
 
 

@@ -15,6 +15,13 @@
 (function () {
   'use strict';
 
+  // Prevent multiple executions
+  if (window._wingsRecycleFixLoaded) {
+    console.log('[RecycleFix] Already loaded, skipping...');
+    return;
+  }
+  window._wingsRecycleFixLoaded = true;
+
   // ── Helper: Safe save ──
   function _save() {
     var gd = window.globalData;
@@ -86,7 +93,7 @@
       action: (action || 'OTHER').toUpperCase(),
       type: (type || 'general').toLowerCase(),
       description: description || '',
-      user: _user(),
+      user: _user(), // sub-account username capture
       timestamp: new Date().toISOString(),
       data: data ? (function () {
         try { return JSON.parse(JSON.stringify(data)); } catch (e) { return {}; }
@@ -99,7 +106,7 @@
     if (gd.activityHistory.length > 1000) gd.activityHistory = gd.activityHistory.slice(0, 1000);
 
     _save();
-    console.log('[Activity]', entry.action, entry.type, entry.description);
+    console.log('[Activity History]', entry.action, entry.type, entry.description, 'by', entry.user);
   };
 
   // ═══════════════════════════════════════════════
@@ -213,13 +220,14 @@
   var _patchKeepRecord = function () {
     // Wrap existing deleteNote if it doesn't use moveToTrash
     var orig = window.deleteNote;
-    if (typeof orig === 'function') {
-      window.deleteNote = function (noteId) {
+    if (typeof orig === 'function' && !orig._isRecyclePatched) {
+      var patchFn = function (noteId) {
         var gd = window.globalData;
         if (!gd || !Array.isArray(gd.keepRecords)) { if (typeof orig === 'function') return orig(noteId); return; }
 
         var note = gd.keepRecords.find(function (n) { return n.id === noteId || n._id === noteId; });
         if (note) {
+          if (!confirm('এই Note টি Recycle Bin-এ পাঠাবেন?')) return;
           // Move to trash FIRST
           window.moveToTrash('KeepRecord', note);
           // Remove from keepRecords
@@ -231,8 +239,10 @@
           if (typeof orig === 'function') orig(noteId);
         }
       };
+      patchFn._isRecyclePatched = true;
+      window.deleteNote = patchFn;
       console.log('[RecycleFix] ✓ deleteNote patched');
-    } else {
+    } else if (typeof orig !== 'function') {
       // Define from scratch if missing
       window.deleteNote = function (noteId) {
         var gd = window.globalData;
@@ -255,20 +265,25 @@
   // ═══════════════════════════════════════════════
   var _patchStudentDelete = function () {
     var orig = window.deleteStudent;
-    window.deleteStudent = function (id) {
+    if (typeof orig !== 'function' || orig._isRecyclePatched) return;
+    var patchFn = function (rowIndexOrId) {
       var gd = window.globalData;
-      if (!gd || !Array.isArray(gd.students)) { if (typeof orig === 'function') return orig(id); return; }
-      var student = gd.students.find(function (s) { return String(s.id) === String(id) || String(s._id) === String(id); });
-      if (!student) { if (typeof orig === 'function') return orig(id); return; }
-      if (!confirm('Student টি Recycle Bin-এ পাঠাবেন?')) return;
-      window.moveToTrash('Student', student);
-      gd.students = gd.students.filter(function (s) { return String(s.id) !== String(id) && String(s._id) !== String(id); });
-      _save();
-      if (typeof window.render === 'function') window.render(gd.students);
-      if (typeof window.updateGlobalStats === 'function') window.updateGlobalStats();
-      if (typeof window.showSuccessToast === 'function') window.showSuccessToast('🗑️ ' + student.name + ' Recycle Bin-এ গেছে');
+      if (!gd || !Array.isArray(gd.students)) return orig(rowIndexOrId);
+      var student;
+      if (typeof rowIndexOrId === 'number' && rowIndexOrId < 1000) {
+        student = gd.students[rowIndexOrId];
+      } else {
+        var sid = String(rowIndexOrId);
+        student = gd.students.find(function (s) { return String(s.id) === sid || String(s._id) === sid; });
+      }
+      if (student) {
+        if (!confirm('এই Student টি Recycle Bin-এ পাঠাবেন?\n(Balance reverse করা হবে)')) return;
+        window.moveToTrash('Student', student);
+      }
+      return orig(rowIndexOrId);
     };
-    console.log('[RecycleFix] ✓ deleteStudent patched');
+    patchFn._isRecyclePatched = true;
+    window.deleteStudent = patchFn;
   };
 
   // ═══════════════════════════════════════════════
@@ -276,15 +291,48 @@
   // ═══════════════════════════════════════════════
   var _patchFinanceDelete = function () {
     var orig = window.deleteTransaction || window.deleteFinance;
+    if (typeof orig !== 'function' || orig._isRecyclePatched) return;
     var patchFn = function (id) {
-      if (typeof orig === 'function') {
-        if (!confirm('Transaction টি Recycle Bin-এ পাঠাবেন?')) return;
-        return orig(id);
+      var gd = window.globalData;
+      if (!gd || !Array.isArray(gd.finance)) return orig(id);
+      var sid = String(id);
+      var tx = gd.finance.find(function (f) { return String(f.id) === sid; });
+      if (tx) {
+        if (!confirm('এই Transaction টি Recycle Bin-এ পাঠাবেন?\n' + tx.type + ': ৳' + tx.amount)) return;
+        window.moveToTrash('Finance', tx);
       }
+      return orig(id);
     };
+    patchFn._isRecyclePatched = true;
     window.deleteTransaction = patchFn;
     window.deleteFinance = patchFn;
-    console.log('[RecycleFix] ✓ deleteTransaction/deleteFinance patched');
+  };
+
+  var _patchInstallmentDelete = function () {
+    var orig = window.deleteInstallment;
+    if (typeof orig !== 'function' || orig._isRecyclePatched) return;
+    var patchFn = function (rowIndex, instIndex) {
+      var gd = window.globalData;
+      if (!gd || !gd.students) return orig(rowIndex, instIndex);
+      var student = gd.students[rowIndex];
+      if (!student) return orig(rowIndex, instIndex);
+      var installments = (typeof window.getStudentInstallments === 'function')
+        ? window.getStudentInstallments(student) : (student.installments || []);
+      var inst = installments[instIndex];
+      if (inst && !inst.isMigrated) {
+        if (!confirm('এই পেমেন্ট টি ডিলিট করবেন?\n৳' + inst.amount + ' (' + student.name + ')')) return;
+        window.moveToTrash('Installment', {
+          studentName: student.name,
+          amount: inst.amount,
+          date: inst.date,
+          method: inst.method,
+          studentIndex: rowIndex
+        });
+      }
+      return orig(rowIndex, instIndex);
+    };
+    patchFn._isRecyclePatched = true;
+    window.deleteInstallment = patchFn;
   };
 
   // ═══════════════════════════════════════════════
@@ -292,19 +340,25 @@
   // ═══════════════════════════════════════════════
   var _patchEmployeeDelete = function () {
     var orig = window.deleteEmployee;
-    window.deleteEmployee = function (id) {
+    if (typeof orig !== 'function' || orig._isRecyclePatched) return;
+    var patchFn = function (idOrIndex) {
       var gd = window.globalData;
-      if (!gd || !Array.isArray(gd.employees)) { if (typeof orig === 'function') return orig(id); return; }
-      var emp = gd.employees.find(function (e) { return String(e.id) === String(id) || String(e._id) === String(id); });
-      if (!emp) { if (typeof orig === 'function') return orig(id); return; }
-      if (!confirm('Employee টি Recycle Bin-এ পাঠাবেন?')) return;
-      window.moveToTrash('Employee', emp);
-      gd.employees = gd.employees.filter(function (e) { return String(e.id) !== String(id) && String(e._id) !== String(id); });
-      _save();
-      if (typeof window.renderEmployees === 'function') window.renderEmployees();
-      if (typeof window.showSuccessToast === 'function') window.showSuccessToast('🗑️ ' + emp.name + ' Recycle Bin-এ গেছে');
+      if (!gd || !Array.isArray(gd.employees)) return orig(idOrIndex);
+      var emp;
+      if (typeof idOrIndex === 'number' && idOrIndex < 1000) {
+        emp = gd.employees[idOrIndex];
+      } else {
+        var sid = String(idOrIndex);
+        emp = gd.employees.find(function (e) { return String(e.id) === sid || String(e._id) === sid; });
+      }
+      if (emp) {
+        if (!confirm('এই Employee-কে Recycle Bin-এ পাঠাবেন?\n' + emp.name)) return;
+        window.moveToTrash('Employee', emp);
+      }
+      return orig(idOrIndex);
     };
-    console.log('[RecycleFix] ✓ deleteEmployee patched');
+    patchFn._isRecyclePatched = true;
+    window.deleteEmployee = patchFn;
   };
 
   // ═══════════════════════════════════════════════
@@ -312,19 +366,25 @@
   // ═══════════════════════════════════════════════
   var _patchVisitorDelete = function () {
     var orig = window.deleteVisitor;
-    window.deleteVisitor = function (id) {
+    if (typeof orig !== 'function' || orig._isRecyclePatched) return;
+    var patchFn = function (idOrIndex) {
       var gd = window.globalData;
-      if (!gd || !Array.isArray(gd.visitors)) { if (typeof orig === 'function') return orig(id); return; }
-      var v = gd.visitors.find(function (x) { return String(x.id) === String(id) || String(x._id) === String(id); });
-      if (!v) { if (typeof orig === 'function') return orig(id); return; }
-      if (!confirm('Visitor টি Recycle Bin-এ পাঠাবেন?')) return;
-      window.moveToTrash('Visitor', v);
-      gd.visitors = gd.visitors.filter(function (x) { return String(x.id) !== String(id) && String(x._id) !== String(id); });
-      _save();
-      if (typeof window.renderVisitors === 'function') window.renderVisitors();
-      if (typeof window.showSuccessToast === 'function') window.showSuccessToast('🗑️ Visitor Recycle Bin-এ গেছে');
+      if (!gd || !Array.isArray(gd.visitors)) return orig(idOrIndex);
+      var v;
+      if (typeof idOrIndex === 'number' && idOrIndex < 1000) {
+        v = gd.visitors[idOrIndex];
+      } else {
+        var sid = String(idOrIndex);
+        v = gd.visitors.find(function (x) { return String(x.id) === sid || String(x._id) === sid; });
+      }
+      if (v) {
+        if (!confirm('এই Visitor টি Recycle Bin-এ পাঠাবেন?')) return;
+        window.moveToTrash('Visitor', v);
+      }
+      return orig(idOrIndex);
     };
-    console.log('[RecycleFix] ✓ deleteVisitor patched');
+    patchFn._isRecyclePatched = true;
+    window.deleteVisitor = patchFn;
   };
 
   // ═══════════════════════════════════════════════
@@ -601,6 +661,7 @@
     _patchKeepRecord();
     _patchStudentDelete();
     _patchFinanceDelete();
+    _patchInstallmentDelete(); // added
     _patchEmployeeDelete();
     _patchVisitorDelete();
     _initTabIntercept();
@@ -619,6 +680,7 @@
     _patchKeepRecord();
     _patchStudentDelete();
     _patchFinanceDelete();
+    _patchInstallmentDelete(); // added
     _patchEmployeeDelete();
     _patchVisitorDelete();
     window.renderActivityLog = renderActivityLog;
