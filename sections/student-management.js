@@ -157,6 +157,13 @@ function updateTableFooter(students) {
   document.getElementById('footerTotalPayable').innerText = '৳' + formatNumber(totalPayable);
   document.getElementById('footerTotalPaid').innerText = '৳' + formatNumber(totalPaid);
   document.getElementById('footerTotalDue').innerText = '৳' + formatNumber(totalDue);
+
+  // ✅ FIX: studentCount badge সবসময় update করো
+  const countBadge = document.getElementById('studentCount');
+  if (countBadge) {
+    const n = students.length;
+    countBadge.textContent = `${n} STUDENT${n !== 1 ? 'S' : ''}`;
+  }
 }
 
 // ===================================
@@ -2503,7 +2510,7 @@ function quickFilterStudents() {
   // Update count badge
   const countBadge = document.getElementById('studentCount');
   if (countBadge) {
-    countBadge.textContent = `${filtered.length} student${filtered.length !== 1 ? 's' : ''}`;
+    countBadge.textContent = `${filtered.length} STUDENT${filtered.length !== 1 ? 'S' : ''}`;
   }
 }
 
