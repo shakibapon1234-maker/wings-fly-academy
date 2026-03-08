@@ -47,14 +47,15 @@ function updateGlobalStats() {
   const STAT_INCOME_TYPES  = typeof window.FE_STAT_INCOME  !== 'undefined' ? window.FE_STAT_INCOME  : ['Income', 'Registration', 'Refund'];
   const STAT_EXPENSE_TYPES = typeof window.FE_STAT_EXPENSE !== 'undefined' ? window.FE_STAT_EXPENSE : ['Expense', 'Salary', 'Rent', 'Utilities'];
 
-  // Calculate Income from Students array (Source of truth for student collections)
-  const totalStudentIncome = (globalData.students || []).reduce((sum, s) => sum + (parseFloat(s.paid) || 0), 0);
-
-  // Calculate Other Income, Exam Income, and Total Expense from finance transactions
-  let nonStudentIncome = 0;
+  // ✅ FIX: সব income/expense finance entries থেকে calculate করো
+  // students.paid থেকে নয় — কারণ account balance finance entries থেকে rebuild হয়
+  // দুটো আলাদা source থেকে calculate করলে mismatch হয়
+  let totalStudentIncome = 0;
   let totalExamIncome = 0;
+  let nonStudentIncome = 0;
+
   (globalData.finance || []).forEach(f => {
-    if (f._deleted) return; // soft-deleted entries skip
+    if (f._deleted) return;
     const amt = parseFloat(f.amount) || 0;
     const cat = (f.category || '').toLowerCase();
     const desc = (f.description || '').toLowerCase();
@@ -65,13 +66,14 @@ function updateGlobalStats() {
         cat.includes('admission') || cat.includes('fee') ||
         desc.includes('installment') || desc.includes('enrollment fee');
 
-      if (isExamRelated)          totalExamIncome += amt;
-      else if (!isStudentRelated) nonStudentIncome += amt;
+      if (isExamRelated)             totalExamIncome += amt;
+      else if (isStudentRelated)     totalStudentIncome += amt;  // ✅ student entries count হবে
+      else                           nonStudentIncome += amt;
 
     } else if (STAT_EXPENSE_TYPES.includes(f.type)) {
       expense += amt;
     }
-    // Loan, Transfer → এখানে count হয় না (account balance-এ যায় শুধু)
+    // Loan, Transfer → account balance-এ যায়, income/expense না
   });
 
   // Display Total for the 'Student Collection' card
