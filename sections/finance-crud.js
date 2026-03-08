@@ -37,15 +37,42 @@ function getStudentInstallments(student) {
 
 function openStudentPaymentModal(rowIndex) {
   // Use direct index access
-  const student = globalData.students[rowIndex];
-  if (!student) { alert("Student not found!"); return; }
+  const student = (window.globalData && window.globalData.students)
+    ? window.globalData.students[rowIndex]
+    : (typeof globalData !== 'undefined' ? globalData.students[rowIndex] : null);
+
+  if (!student) {
+    alert("Student not found!");
+    return;
+  }
 
   currentPaymentStudentIndex = rowIndex;
 
+  // Ensure modal HTML is loaded (supports lazy-loaded modals via section-loader)
+  const totalFeeEl = document.getElementById('pmtTotalFee');
+  const totalPaidEl = document.getElementById('pmtTotalPaid');
+  const totalDueEl = document.getElementById('pmtTotalDue');
+
+  if (!totalFeeEl || !totalPaidEl || !totalDueEl) {
+    // Try lazy-load via Section Loader if available
+    if (window.sectionLoader && typeof window.sectionLoader.loadAndOpen === 'function') {
+      window.sectionLoader.loadAndOpen(
+        '__modalPlaceholderOther',
+        'sections/modals-student.html',
+        'studentPaymentModal',
+        function () { openStudentPaymentModal(rowIndex); }
+      );
+      return;
+    }
+
+    console.warn('[FinanceCRUD] studentPaymentModal elements missing in DOM, and SectionLoader not available.');
+    return;
+  }
+
   // Update header/summary
-  document.getElementById('pmtTotalFee').innerText = '৳' + formatNumber(student.totalPayment || 0);
-  document.getElementById('pmtTotalPaid').innerText = '৳' + formatNumber(student.paid || 0);
-  document.getElementById('pmtTotalDue').innerText = '৳' + formatNumber(student.due || 0);
+  totalFeeEl.innerText = '৳' + formatNumber(student.totalPayment || 0);
+  totalPaidEl.innerText = '৳' + formatNumber(student.paid || 0);
+  totalDueEl.innerText = '৳' + formatNumber(student.due || 0);
 
   // Suggest remaining due in amount field
   const amountField = document.getElementById('pmtNewAmount');
@@ -53,6 +80,10 @@ function openStudentPaymentModal(rowIndex) {
 
   // Populate history table
   const tbody = document.getElementById('pmtHistoryBody');
+  if (!tbody) {
+    console.warn('[FinanceCRUD] pmtHistoryBody element missing in DOM.');
+    return;
+  }
   tbody.innerHTML = '';
 
   const installments = getStudentInstallments(student);
@@ -139,21 +170,25 @@ function handleAddInstallment() {
     timestamp: new Date().toISOString()
   };
 
-  // DUPLICATE GUARD: Finance total for this student should equal student.paid BEFORE this entry
-  // If finance already shows more than student.paid, skip adding to finance (already counted)
+  // ✅ FIX: student.paid ইতিমধ্যে update হয়েছে (উপরে)।
+  // Finance total = student.paid - amount (এই entry যোগের আগের value)
+  // যদি finance total ইতিমধ্যে student.paid এর সমান বা বেশি হয়, তাহলে duplicate।
   const financeTotal = (globalData.finance || [])
-    .filter(f => f.person === student.name && (f.category === 'Student Installment' || f.category === 'Student Fee'))
+    .filter(f => !f._deleted && f.person === student.name &&
+      (f.category === 'Student Installment' || f.category === 'Student Fee'))
     .reduce((sum, f) => sum + (parseFloat(f.amount) || 0), 0);
-  const expectedBeforeThis = (parseFloat(student.paid) || 0); // student.paid already updated above
+  const paidBeforeThisEntry = (parseFloat(student.paid) || 0) - amount; // এই entry যোগের আগে কত ছিল
 
-  if (financeTotal < expectedBeforeThis) {
+  if (financeTotal <= paidBeforeThisEntry + 1) { // 1tk buffer for rounding
     globalData.finance.push(financeEntry);
     // 3. Update Account Balance
-    if (typeof updateAccountBalance === "function") {
+    if (typeof window.feApplyEntryToAccount === 'function') {
+      window.feApplyEntryToAccount(financeEntry, +1);
+    } else if (typeof updateAccountBalance === 'function') {
       updateAccountBalance(financeEntry.method, financeEntry.amount, financeEntry.type);
     }
   } else {
-    console.warn(`⚠️ Duplicate finance entry prevented for ${student.name}. Finance:${financeTotal} >= Expected:${expectedBeforeThis}`);
+    console.warn(`⚠️ Duplicate finance entry prevented for ${student.name}. Finance:${financeTotal} >= PaidBefore:${paidBeforeThisEntry}`);
   }
 
   // 4. Save & Refresh
@@ -206,6 +241,23 @@ function deleteInstallment(rowIndex, instIndex) {
   const amount = parseFloat(inst.amount) || 0;
   const method = inst.method || 'Cash';
 
+  // 0. ✅ Recycle Bin এ সেভ করো (restore করার জন্য)
+  if (typeof moveToTrash === 'function') {
+    moveToTrash('installment', {
+      studentName: student.name,
+      studentIndex: rowIndex,
+      amount: amount,
+      date: inst.date,
+      method: method,
+      batch: student.batch || '',
+      description: `Installment: ৳${formatNumber(amount)} | ${student.name} | ${inst.date}`
+    });
+  }
+
+  if (typeof logActivity === 'function') {
+    logActivity('installment', 'DELETE',
+      `Installment moved to trash: ৳${amount} for ${student.name}`, inst);
+  }
   // 1. Student installments array থেকে সরাও
   const displayList = getStudentInstallments(student);
   const migratedCount = displayList.filter(i => i.isMigrated).length;
@@ -283,7 +335,13 @@ function deleteStudent(rowIndex) {
     return;
   }
 
-  // ⚠️ Confirm, moveToTrash, logActivity - patch করবে।
+  // 0. ✅ Move to trash before deleting (Keep a safe copy)
+  if (typeof moveToTrash === 'function') moveToTrash('student', student);
+
+  if (typeof logActivity === 'function') {
+    logActivity('student', 'DELETE',
+      'Student moved to trash: ' + (student.name || 'Unknown') + ' | Batch: ' + (student.batch || '-') + ' | Course: ' + (student.course || '-'), student);
+  }
 
   // Delete count track করো (sync এর জন্য)
   const _delCount = parseInt(localStorage.getItem('wings_total_deleted') || '0') + 1;
@@ -316,12 +374,32 @@ function deleteStudent(rowIndex) {
 
   // Delete related finance transactions (student payments)
   if (globalData.finance && Array.isArray(globalData.finance)) {
-    // Remove all finance entries where student name matches
-    // (assuming finance records might have student.name in description or person field)
+    const sNameLower = (student.name || '').trim().toLowerCase();
+    const sId = student.studentId ? String(student.studentId).toLowerCase() : null;
+
+    // Remove all finance entries where student name or ID matches
     globalData.finance = globalData.finance.filter(f => {
-      // Keep transaction if it's not related to this student
-      return !(f.person === student.name ||
-        (f.description && f.description.includes(student.name)));
+      const fPersonLower = (f.person || '').trim().toLowerCase();
+      const fStudentNameLower = (f.studentName || '').trim().toLowerCase();
+      const fDescLower = (f.description || '').toLowerCase();
+
+      // Match 1: Direct name match
+      const isDirectMatch = fPersonLower === sNameLower || fStudentNameLower === sNameLower;
+
+      // Match 2: Name in description (very likely for auto-generated fees)
+      const isDescMatch = fDescLower && fDescLower.includes(sNameLower);
+
+      // Match 3: Student ID in description (most reliable if present)
+      const isIdMatch = sId && fDescLower && fDescLower.includes(sId);
+
+      // Match 4: Name variant (Description contains just the name parts)
+      const nameParts = sNameLower.split(' ').filter(p => p.length > 3);
+      const isNamePartMatch = nameParts.length > 0 && nameParts.some(p => fDescLower.includes(p) && f.category === 'Student Fee');
+
+      const isMatch = isDirectMatch || isDescMatch || isIdMatch || isNamePartMatch;
+
+      // Keep transaction if it's NOT a match
+      return !isMatch;
     });
   }
 
@@ -333,15 +411,21 @@ function deleteStudent(rowIndex) {
     return;
   }
 
-  // ✅ Sync এ 'Delete' word পাঠাও যাতে cloud এ delete বোঝা যায়
+  // ✅ Save locally first
+  saveToStorage(true);
+
+  // ✅ Schedule cloud sync
   if (typeof window.scheduleSyncPush === 'function') {
     window.scheduleSyncPush('Delete Student: ' + (student.name || 'Unknown'));
-  } else {
-    saveToStorage();
   }
 
   showSuccessToast('Student deleted successfully! (Payments reversed)');
   render(globalData.students);
+
+  // ✅ FORCE REBUILD: Ensure accounts match finance ledger exactly
+  if (typeof rebuildBankBalancesFromFinance === 'function') rebuildBankBalancesFromFinance();
+  if (typeof recalculateCashBalanceFromTransactions === 'function') recalculateCashBalanceFromTransactions();
+
   updateGlobalStats();
 
   // Update account displays
@@ -361,7 +445,8 @@ window.openStudentModal = function (index) {
   if (index !== undefined && window.globalData && window.globalData.students[index]) {
     // edit mode — form populate করতে পারলে করো
   }
-  new bootstrap.Modal(el).show();
+  const modal = bootstrap.Modal.getOrCreateInstance(el);
+  modal.show();
 };
 // These functions are in app.js (loads after), so use deferred assignment
 document.addEventListener('DOMContentLoaded', function () {
@@ -504,9 +589,18 @@ function deleteTransaction(id) {
     return;
   }
 
-  // ⚠️ moveToTrash, logActivity - patch করবে।
+  // ✅ Recycle Bin: soft-delete (restore করা যাবে)
+  if (typeof moveToTrash === 'function') {
+    moveToTrash('finance', { ...txToDelete });
+  }
 
-  // 1. Account balance reverse করো
+  if (typeof logActivity === 'function') {
+    logActivity('finance', 'DELETE',
+      `Transaction moved to trash: ${txToDelete.type} | ${txToDelete.category || ''} | ৳${txToDelete.amount}`,
+      txToDelete);
+  }
+
+  // 1. ✅ Account balance reverse করো (finance-engine canonical rules use হবে)
   if (typeof updateAccountBalance === "function") {
     updateAccountBalance(txToDelete.method, txToDelete.amount, txToDelete.type, false);
   }
@@ -641,6 +735,7 @@ function editTransaction(id) {
   form.amount.value = transaction.amount;
   form.category.value = transaction.category || '';
   form.description.value = transaction.description || '';
+  form.person.value = transaction.person || '';
 
   const el = document.getElementById('editTransactionModal');
   if (!el) return;
@@ -667,30 +762,48 @@ async function handleEditTransactionSubmit(e) {
   const index = globalData.finance.findIndex(f => String(f.id) === String(id));
 
   if (index !== -1) {
+    const oldTx = { ...globalData.finance[index] };
+    const newAmount = parseFloat(formData.amount) || 0;
+
+    // 1. ✅ ACCOUNT BALANCE SYNC: Reverse old impact, then apply new impact
+    if (typeof updateAccountBalance === "function") {
+      // Reverse old
+      updateAccountBalance(oldTx.method, oldTx.amount, oldTx.type, false);
+      // Apply new
+      updateAccountBalance(formData.method, newAmount, formData.type, true);
+    }
+
+    // 2. Update Finance Array
     globalData.finance[index] = {
       ...globalData.finance[index],
       type: formData.type,
       method: formData.method,
       date: formData.date,
-      amount: parseFloat(formData.amount) || 0,
+      amount: newAmount,
       category: formData.category,
-      description: formData.description
+      description: formData.description,
+      person: formData.person || ''
     };
+
     await saveToStorage();
 
     const modal = bootstrap.Modal.getInstance(document.getElementById('editTransactionModal'));
     if (modal) modal.hide();
 
-    showSuccessToast('Transaction updated successfully!');
+    showSuccessToast('Transaction updated successfully! (Balances synced)');
 
     // Refresh
-    renderLedger(globalData.finance);
-    updateGlobalStats();
+    if (typeof renderLedger === 'function') renderLedger(globalData.finance);
+    if (typeof updateGlobalStats === 'function') updateGlobalStats();
 
     // Also refresh Account Details if open
-    if (bootstrap.Modal.getInstance(document.getElementById('accountDetailsModal'))) {
-      renderAccountDetails();
+    if (document.getElementById('accountDetailsModal') && bootstrap.Modal.getInstance(document.getElementById('accountDetailsModal'))) {
+      if (typeof renderAccountDetails === 'function') renderAccountDetails();
     }
+
+    // Refresh Account List, Cash, etc.
+    if (typeof renderAccountList === 'function') renderAccountList();
+    if (typeof renderCashBalance === 'function') renderCashBalance();
   }
 }
 

@@ -78,13 +78,47 @@
   // TOAST (অ্যাপের নিজের toast use করবে)
   // ============================================
   function healToast(msg, type = 'info') {
-    if (type === 'fix' && typeof window.showSuccessToast === 'function') {
-      window.showSuccessToast('🔧 Auto-Heal: ' + msg);
-    } else if (type === 'warn' && typeof window.showErrorToast === 'function') {
-      window.showErrorToast('⚠️ Auto-Heal: ' + msg);
-    } else {
-      console.log('[AutoHeal Toast]', msg);
-    }
+    // Mini-toast for auto-heal to avoid blocking UI
+    // USER REQUEST: Make notifications very small and short
+    const toast = document.createElement('div');
+    const color = type === 'fix' ? '#00ff88' : (type === 'warn' ? '#ff2366' : '#00d9ff');
+    const icon = type === 'fix' ? '🔧' : (type === 'warn' ? '⚠️' : 'ℹ️');
+
+    toast.style.cssText = `
+      position: fixed;
+      bottom: 10px;
+      right: 10px;
+      background: rgba(10, 14, 37, 0.8);
+      color: ${color};
+      border: 1px solid ${color}44;
+      padding: 4px 8px;
+      border-radius: 4px;
+      font-size: 0.65rem;
+      font-weight: 500;
+      z-index: 10000;
+      display: flex;
+      align-items: center;
+      gap: 6px;
+      box-shadow: 0 2px 5px rgba(0,0,0,0.3);
+      pointer-events: none;
+      transform: translateY(20px);
+      opacity: 0;
+      transition: all 0.2s cubic-bezier(0.175, 0.885, 0.32, 1.275);
+    `;
+    toast.innerHTML = `<span style="font-size: 0.7rem;">${icon}</span> <span>${msg}</span>`;
+    document.body.appendChild(toast);
+
+    // Animation
+    requestAnimationFrame(() => {
+      toast.style.transform = 'translateY(0)';
+      toast.style.opacity = '1';
+    });
+
+    setTimeout(() => {
+      toast.style.transform = 'translateY(-10px)';
+      toast.style.opacity = '0';
+      setTimeout(() => toast.remove(), 200);
+    }, 1500); // reduced from 2500ms
   }
 
   // ============================================
@@ -112,7 +146,7 @@
 
     if (fixed > 0) {
       localStorage.setItem('wingsfly_data', JSON.stringify(data));
-      healToast(`${fixed} জন student-এর due auto-fix হয়েছে`, 'fix');
+      healToast(`${fixed} student dues fixed`, 'fix');
     }
     return fixed;
   }
@@ -148,7 +182,7 @@
     if (removed > 0) {
       data.finance = cleaned;
       localStorage.setItem('wingsfly_data', JSON.stringify(data));
-      healToast(`${removed}টি duplicate transaction auto-remove হয়েছে`, 'fix');
+      healToast(`${removed} dupe txns removed`, 'fix');
     }
     return removed;
   }
@@ -166,7 +200,7 @@
       hLog('fix', `Cash balance was invalid (${data.cashBalance}) → 0 সেট করা হয়েছে`);
       data.cashBalance = 0;
       localStorage.setItem('wingsfly_data', JSON.stringify(data));
-      healToast('Cash balance invalid ছিল, 0 সেট করা হয়েছে', 'warn');
+      healToast('Cash balance reset', 'warn');
       fixed++;
     }
 
@@ -193,34 +227,35 @@
   }
 
   // ============================================
-  // HEAL 7: Student Duplicate Detection
-  // একই name + phone = duplicate student
+  // HEAL 7: Student Duplicate Detection (SAFE MODE)
+  // একই name + phone = সম্ভাব্য duplicate student
+  // ✅ USER REQUEST: কোনো student auto-delete করা হবে না
+  // শুধু লগ/ওয়ার্নিং দেখাবে, যাতে ম্যানুয়ালি দেখা যায়।
   // ============================================
   function healStudentDuplicates() {
     const data = window.globalData;
     if (!data || !data.students) return 0;
 
     const seen = new Map();
-    const toKeep = [];
-    let removed = 0;
+    const duplicates = [];
 
     data.students.forEach(s => {
       const key = `${(s.name || '').trim().toLowerCase()}|${(s.phone || '').trim()}`;
       if (seen.has(key) && key !== '|') {
-        hLog('fix', `Duplicate student removed: "${s.name}" (${s.phone})`);
-        removed++;
+        duplicates.push(s);
       } else {
         seen.set(key, true);
-        toKeep.push(s);
       }
     });
 
-    if (removed > 0) {
-      data.students = toKeep;
-      localStorage.setItem('wingsfly_data', JSON.stringify(data));
-      healToast(`${removed}জন duplicate student auto-remove হয়েছে`, 'fix');
+    if (duplicates.length > 0) {
+      hLog('warn', `${duplicates.length}টি সম্ভাব্য duplicate student পাওয়া গেছে (name+phone same) — কোনো auto-delete করা হয়নি।`);
+      duplicates.slice(0, 5).forEach(s => {
+        hLog('info', `Duplicate candidate: "${s.name}" (${s.phone || 'no phone'})`);
+      });
+      healToast(`${duplicates.length} duplicate students detected (no auto-delete)`, 'warn');
     }
-    return removed;
+    return 0;
   }
 
   // ============================================
@@ -266,7 +301,7 @@
 
     if (fixed > 0) {
       localStorage.setItem('wingsfly_data', JSON.stringify(data));
-      healToast(`${fixed}টি employee/bank data fix হয়েছে`, 'fix');
+      healToast(`${fixed} data errors fixed`, 'fix');
     }
     return fixed;
   }
@@ -332,20 +367,36 @@
     if (!data || !data.finance) return 0;
 
     let calcCash = 0;
+
+    // Get starting balance if set
+    if (data.settings?.startBalances?.Cash) {
+      calcCash = parseFloat(data.settings.startBalances.Cash) || 0;
+    }
+
+    // ── Canonical lists (finance-engine.js এর সাথে sync) ──
+    const ACCOUNT_IN  = typeof window.FE_ACCOUNT_IN  !== 'undefined' ? window.FE_ACCOUNT_IN
+      : ['Income', 'Loan Received', 'Loan Receiving', 'Transfer In', 'Registration', 'Refund'];
+    const ACCOUNT_OUT = typeof window.FE_ACCOUNT_OUT !== 'undefined' ? window.FE_ACCOUNT_OUT
+      : ['Expense', 'Loan Given', 'Loan Giving', 'Transfer Out', 'Salary', 'Rent', 'Utilities'];
+
     data.finance.forEach(f => {
+      if (f._deleted) return; // soft-deleted entries skip
+      if (f.method !== 'Cash') return;
+
       const amt = parseFloat(f.amount) || 0;
-      if (f.type === 'Income' || f.type === 'আয়') calcCash += amt;
-      else if (f.type === 'Expense' || f.type === 'ব্যয়') calcCash -= amt;
+      if (ACCOUNT_IN.includes(f.type))       calcCash += amt;
+      else if (ACCOUNT_OUT.includes(f.type)) calcCash -= amt;
     });
 
     const stored = parseFloat(data.cashBalance) || 0;
     const gap = Math.abs(calcCash - stored);
 
-    // শুধু বড় gap হলে fix করো (৳10,000+)
-    if (gap > 10000) {
+    if (gap > 5000) {
       hLog('fix', `Cash balance মিলছে না: Calculated ৳${calcCash.toFixed(0)} vs Stored ৳${stored.toFixed(0)} (gap: ৳${gap.toFixed(0)}) → recalculate`);
-      // app-এর নিজের recalculate function থাকলে সেটা call করো
-      if (typeof window.recalculateCashBalanceFromTransactions === 'function') {
+      if (typeof window.feRebuildAllBalances === 'function') {
+        window.feRebuildAllBalances();
+        hLog('fix', 'finance-engine দিয়ে সব balance rebuild হয়েছে');
+      } else if (typeof window.recalculateCashBalanceFromTransactions === 'function') {
         window.recalculateCashBalanceFromTransactions();
         hLog('fix', 'Cash balance app function দিয়ে recalculate হয়েছে');
       } else {
@@ -353,7 +404,7 @@
         localStorage.setItem('wingsfly_data', JSON.stringify(data));
         hLog('fix', `Cash balance manual recalculate: ৳${calcCash.toFixed(0)}`);
       }
-      healToast(`Cash balance auto-recalculate হয়েছে: ৳${calcCash.toFixed(0)}`, 'fix');
+      healToast(`Cash re-synced: ৳${calcCash.toFixed(0)}`, 'fix');
       return 1;
     } else if (gap > 1) {
       hLog('info', `Cash balance minor gap: ৳${gap.toFixed(0)} — monitor করা হচ্ছে`);
@@ -406,7 +457,7 @@
         hLog('warn', `Overpaid: "${s.name}" ৳${paid} paid / ৳${total} total`);
       }
     });
-    if (overpaid > 0) healToast(`${overpaid}জন student overpaid — accounts check করুন`, 'warn');
+    if (overpaid > 0) healToast(`${overpaid} overpaid students`, 'warn');
     return 0;
   }
 
@@ -474,7 +525,7 @@
 
     if (fixed > 0) {
       localStorage.setItem('wingsfly_data', JSON.stringify(data));
-      healToast(`${fixed} জন student-এর payment mismatch fix করা হয়েছে।`, 'fix');
+      healToast(`${fixed} payments synced`, 'fix');
       if (typeof window.updatePaidFinanceStatusBadge === 'function') window.updatePaidFinanceStatusBadge();
 
       // Sync
@@ -691,7 +742,16 @@
     // 11. Paid vs Finance mismatch fix (background auto-fix)
     totalFixed += healPaidFinanceMismatch();
 
-    // 12. Cloud sync fix (async, network)
+    // 12. ✅ Finance-engine full balance rebuild (periodic — প্রতি ৫ cycle-এ একবার)
+    if (healStats.totalRuns % 5 === 0) {
+      if (typeof window.feRebuildAllBalances === 'function') {
+        window.feRebuildAllBalances();
+        if (typeof window.updateGrandTotal === 'function') window.updateGrandTotal();
+        hLog('info', `Periodic balance rebuild (cycle #${healStats.totalRuns}) সম্পন্ন`);
+      }
+    }
+
+    // 14. Cloud sync fix (async, network)
     totalFixed += await healSyncMismatch();
 
     // Update UI stats
@@ -700,10 +760,14 @@
       healStats.lastFix = new Date().toLocaleTimeString('bn-BD');
       hLog('fix', `Heal cycle সম্পন্ন — ${totalFixed}টি সমস্যা auto-fix হয়েছে ✓`);
 
-      // ✅ V30 FIX: Local fix হলে cloud এ auto-push (data sync নিশ্চিত)
-      // healSyncMismatch নিজেই cloud handle করে, তাই এখানে শুধু local fixes এর জন্য push
-      // healSyncMismatch এর fixes (cloud pull/push) আলাদা count করা হয় না totalFixed এ
-      // তাই এখানে push করলে loop হবে না
+      // ✅ Activity Log-এ heal fix লিখি
+      if (typeof window.logActivity === 'function') {
+        window.logActivity('heal', 'FIX',
+          `🔧 Auto-Heal #${healStats.totalRuns}: ${totalFixed}টি সমস্যা fix হয়েছে`,
+          { fixes: totalFixed, run: healStats.totalRuns, time: healStats.lastFix }
+        );
+      }
+
       if (typeof window.scheduleSyncPush === 'function') {
         window.scheduleSyncPush(`Auto-Heal: ${totalFixed} fixes`);
         hLog('info', `Heal fix cloud এ push scheduled (${totalFixed} changes)`);
@@ -713,6 +777,13 @@
       }
     } else {
       hLog('ok', `Heal cycle সম্পন্ন — কোনো সমস্যা নেই ✓`);
+      // প্রতি ১০ cycle-এ একবার "all ok" activity log
+      if (healStats.totalRuns % 10 === 0 && typeof window.logActivity === 'function') {
+        window.logActivity('heal', 'TEST',
+          `✅ Auto-Heal #${healStats.totalRuns}: সব ঠিক আছে`,
+          { run: healStats.totalRuns }
+        );
+      }
     }
 
     // Settings-এ stats update

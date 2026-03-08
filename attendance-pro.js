@@ -6,9 +6,9 @@
 (function () {
   'use strict';
 
-  const MONTH_NAMES = ['January','February','March','April','May','June',
-                       'July','August','September','October','November','December'];
-  const MONTH_SHORT = ['Jan','Feb','Mar','Apr','May','Jun','Jul','Aug','Sep','Oct','Nov','Dec'];
+  const MONTH_NAMES = ['January', 'February', 'March', 'April', 'May', 'June',
+    'July', 'August', 'September', 'October', 'November', 'December'];
+  const MONTH_SHORT = ['Jan', 'Feb', 'Mar', 'Apr', 'May', 'Jun', 'Jul', 'Aug', 'Sep', 'Oct', 'Nov', 'Dec'];
 
   // ── Helper ──────────────────────────────────────────
   function gd() { return window.globalData || {}; }
@@ -60,6 +60,12 @@
 
   // ── Open Hub ────────────────────────────────────────
   function openAttendanceModal() {
+    console.log('📅 Opening Attendance Centre...');
+    if (!window.globalData) {
+      console.error('❌ globalData not found!');
+      return;
+    }
+
     // পুরনো modal remove করো
     const oldEl = document.getElementById('attendanceHubModal');
     if (oldEl) oldEl.remove();
@@ -70,19 +76,28 @@
 
     // Bootstrap ছাড়াই manually show করো
     const modalEl = document.getElementById('attendanceHubModal');
-    modalEl.style.cssText = 'display:block !important; opacity:1 !important; position:fixed; top:0; left:0; width:100%; height:100%; z-index:1055; overflow-y:auto;';
+    if (!modalEl) {
+      console.error('❌ Failed to create attendanceHubModal');
+      return;
+    }
+
+    modalEl.style.cssText = 'display:block !important; opacity:1 !important; position:fixed; top:0; left:0; width:100%; height:100%; z-index:1055; overflow-y:auto; background: rgba(0,0,0,0.5);';
     modalEl.classList.add('show');
 
     // backdrop তৈরি করো
     const backdrop = document.createElement('div');
     backdrop.id = 'attHubBackdrop';
-    backdrop.style.cssText = 'position:fixed;top:0;left:0;width:100%;height:100%;background:rgba(0,0,0,0.6);z-index:1054;';
+    backdrop.style.cssText = 'position:fixed;top:0;left:0;width:100%;height:100%;background:rgba(0,0,0,0.7);z-index:1054; backdrop-filter: blur(4px);';
     backdrop.onclick = closeAttHub;
     document.body.appendChild(backdrop);
     document.body.classList.add('modal-open');
     document.body.style.overflow = 'hidden';
 
-    setTimeout(() => switchAttTab('mark'), 50);
+    console.log('✅ Modal shown, switching to Mark tab...');
+    setTimeout(() => {
+      switchAttTab('mark');
+      if (typeof window.populateDropdowns === 'function') window.populateDropdowns();
+    }, 100);
   }
   window.openAttendanceModal = openAttendanceModal;
 
@@ -95,8 +110,8 @@
     modal.id = 'attendanceHubModal';
     modal.tabIndex = -1;
     modal.innerHTML = `
-<div class="modal-dialog modal-xl modal-dialog-centered" style="max-width:1000px;">
-  <div class="modal-content" style="background:linear-gradient(135deg,#07091c,#0e0a28,#07091c);border:1px solid rgba(0,217,255,0.25);border-radius:20px;overflow:hidden;font-family:'DM Sans',sans-serif;">
+<div class="modal-dialog modal-xl modal-dialog-centered" style="max-width:1250px; width:95%;">
+  <div class="modal-content" style="background:linear-gradient(135deg,#07091c,#0e0a28,#07091c);border:1px solid rgba(0,217,255,0.25);border-radius:20px;overflow:hidden;font-family:'DM Sans',sans-serif;box-shadow:0 0 50px rgba(0,217,255,0.2);">
 
     <!-- Header -->
     <div class="modal-header border-0 pb-0 px-4 pt-4" style="background:rgba(0,0,0,0.3);">
@@ -105,8 +120,8 @@
           <i class="bi bi-calendar-check-fill text-white fs-5"></i>
         </div>
         <div>
-          <h5 class="modal-title fw-bold mb-0" style="font-family:'Rajdhani',sans-serif;font-size:1.3rem;color:#00d9ff;letter-spacing:1px;">ATTENDANCE CENTRE</h5>
-          <div class="small" style="color:rgba(255,255,255,0.4);font-size:0.75rem;">Wings Fly Aviation Academy</div>
+          <h5 class="modal-title fw-bold mb-0" style="font-family:'Rajdhani',sans-serif;font-size:1.4rem;color:#00d9ff;letter-spacing:1px;">ATTENDANCE CENTRE</h5>
+          <div class="small" style="color:rgba(255,255,255,0.4);font-size:0.8rem;">Wings Fly Aviation Academy Hub</div>
         </div>
       </div>
       <button type="button" class="btn-close btn-close-white" onclick="closeAttHub()"></button>
@@ -132,7 +147,7 @@
     </div>
 
     <!-- Body -->
-    <div class="modal-body p-0" style="overflow-y:auto;max-height:65vh;">
+    <div class="modal-body p-0" style="overflow-y:auto; max-height:80vh; min-height:500px;">
 
       <!-- ══ MARK ATTENDANCE ══════════════════════ -->
       <div class="att-pane active" id="attPane-mark">
@@ -396,7 +411,7 @@
   // ── MARK ATTENDANCE ─────────────────────────────────
   function loadAttendanceList() {
     const batch = (document.getElementById('attMarkBatch') || document.getElementById('attendanceBatchSelect'))?.value;
-    const date  = (document.getElementById('attMarkDate')  || document.getElementById('attendanceDate'))?.value;
+    const date = (document.getElementById('attMarkDate') || document.getElementById('attendanceDate'))?.value;
 
     const container = document.getElementById('attMarkContainer') || document.getElementById('attendanceListContainer');
     const selectAll = document.getElementById('attMarkSelectAll');
@@ -410,7 +425,7 @@
 
     const batchStudents = (gd().students || []).filter(s => s.batch === batch);
     const attKey = `${batch}_${date}`;
-    const saved  = gd().attendance?.[attKey] || {};
+    const saved = gd().attendance?.[attKey] || {};
 
     if (countBadge) countBadge.textContent = `${batchStudents.length} Student${batchStudents.length !== 1 ? 's' : ''}`;
     if (selectAll && batchStudents.length > 0) selectAll.classList.remove('d-none');
@@ -422,10 +437,9 @@
 
     // New mark UI
     if (container) {
-      container.innerHTML = `<div class="att-mark-scroll" id="attMarkScroll">${
-        batchStudents.map(s => {
-          const status = saved[s.studentId] || 'Present';
-          return `
+      container.innerHTML = `<div class="att-mark-scroll" id="attMarkScroll">${batchStudents.map(s => {
+        const status = saved[s.studentId] || 'Present';
+        return `
           <div class="att-mark-student-row">
             <div class="stu-info">
               <div class="name">${s.name}</div>
@@ -438,8 +452,8 @@
                 onclick="toggleAtt(this,'Absent','${s.studentId}')">A</button>
             </div>
           </div>`;
-        }).join('')
-      }</div>`;
+      }).join('')
+        }</div>`;
     }
   }
   window.loadAttendanceList = loadAttendanceList;
@@ -468,7 +482,7 @@
 
   function saveAttendance() {
     const batch = (document.getElementById('attMarkBatch') || document.getElementById('attendanceBatchSelect'))?.value;
-    const date  = (document.getElementById('attMarkDate')  || document.getElementById('attendanceDate'))?.value;
+    const date = (document.getElementById('attMarkDate') || document.getElementById('attendanceDate'))?.value;
     if (!batch || !date) {
       window.showErrorToast?.('❌ Batch ও Date বেছে নিন');
       return;
@@ -498,7 +512,7 @@
   // আলাদা নামে — যাতে কোনো override কাজ না করে
   function attHubSave() {
     const batch = (document.getElementById('attMarkBatch'))?.value;
-    const date  = (document.getElementById('attMarkDate'))?.value;
+    const date = (document.getElementById('attMarkDate'))?.value;
     if (!batch || !date) {
       window.showErrorToast?.('❌ Batch ও Date বেছে নিন');
       return;
@@ -527,14 +541,14 @@
   // ── MONTHLY REPORT ──────────────────────────────────
   function renderMonthlyReport() {
     const batch = document.getElementById('attMonBatch')?.value;
-    const year  = parseInt(document.getElementById('attMonYear')?.value);
+    const year = parseInt(document.getElementById('attMonYear')?.value);
     const month = parseInt(document.getElementById('attMonMonth')?.value);
-    const wrap  = document.getElementById('attMonTableWrap');
+    const wrap = document.getElementById('attMonTableWrap');
     const stats = document.getElementById('attMonStats');
 
     if (!batch || !wrap) { return; }
 
-    const daysInMonth   = new Date(year, month + 1, 0).getDate();
+    const daysInMonth = new Date(year, month + 1, 0).getDate();
     const batchStudents = (gd().students || []).filter(s => s.batch === batch);
 
     if (batchStudents.length === 0) {
@@ -546,7 +560,7 @@
     // Working days
     const workingDays = [];
     for (let d = 1; d <= daysInMonth; d++) {
-      const ds = `${year}-${String(month+1).padStart(2,'0')}-${String(d).padStart(2,'0')}`;
+      const ds = `${year}-${String(month + 1).padStart(2, '0')}-${String(d).padStart(2, '0')}`;
       if (gd().attendance?.[`${batch}_${ds}`]) workingDays.push(d);
     }
 
@@ -555,8 +569,8 @@
     const rows = batchStudents.map((s, idx) => {
       let p = 0, a = 0;
       const cells = Array.from({ length: daysInMonth }, (_, i) => {
-        const d  = i + 1;
-        const ds = `${year}-${String(month+1).padStart(2,'0')}-${String(d).padStart(2,'0')}`;
+        const d = i + 1;
+        const ds = `${year}-${String(month + 1).padStart(2, '0')}-${String(d).padStart(2, '0')}`;
         const dayData = gd().attendance?.[`${batch}_${ds}`];
         const st = dayData ? dayData[s.studentId] : undefined;
         const isWD = !!dayData;
@@ -577,8 +591,8 @@
       const rowBg = idx % 2 === 0 ? 'rgba(255,255,255,0.015)' : 'transparent';
 
       return `<tr style="background:${rowBg};">
-        <td style="padding:8px 10px;border:1px solid rgba(255,255,255,0.05);color:rgba(255,255,255,0.35);text-align:center;font-size:0.78rem;">${idx+1}</td>
-        <td style="padding:8px 12px;border:1px solid rgba(255,255,255,0.05);color:#00d9ff;font-size:0.75rem;font-family:monospace;white-space:nowrap;">${s.studentId||'—'}</td>
+        <td style="padding:8px 10px;border:1px solid rgba(255,255,255,0.05);color:rgba(255,255,255,0.35);text-align:center;font-size:0.78rem;">${idx + 1}</td>
+        <td style="padding:8px 12px;border:1px solid rgba(255,255,255,0.05);color:#00d9ff;font-size:0.75rem;font-family:monospace;white-space:nowrap;">${s.studentId || '—'}</td>
         <td style="padding:8px 14px;border:1px solid rgba(255,255,255,0.05);font-weight:600;white-space:nowrap;">${s.name}</td>
         ${cells}
         <td style="text-align:center;border:1px solid rgba(255,255,255,0.05);background:rgba(0,255,136,0.08);font-weight:800;color:#00ff88;padding:4px 8px;">${p}</td>
@@ -590,10 +604,10 @@
     // Day headers
     const dayThs = Array.from({ length: daysInMonth }, (_, i) => {
       const d = i + 1;
-      const ds = `${year}-${String(month+1).padStart(2,'0')}-${String(d).padStart(2,'0')}`;
-      const isWD  = !!(gd().attendance?.[`${batch}_${ds}`]);
+      const ds = `${year}-${String(month + 1).padStart(2, '0')}-${String(d).padStart(2, '0')}`;
+      const isWD = !!(gd().attendance?.[`${batch}_${ds}`]);
       const isFri = new Date(year, month, d).getDay() === 5;
-      const bg  = isWD ? 'rgba(0,217,255,0.18)' : (isFri ? 'rgba(255,215,0,0.1)' : 'rgba(255,255,255,0.04)');
+      const bg = isWD ? 'rgba(0,217,255,0.18)' : (isFri ? 'rgba(255,215,0,0.1)' : 'rgba(255,255,255,0.04)');
       const txt = isWD ? '#00d9ff' : (isFri ? '#ffd700' : 'rgba(255,255,255,0.3)');
       return `<th style="text-align:center;min-width:26px;font-size:0.68rem;background:${bg};color:${txt};border:1px solid rgba(255,255,255,0.07);padding:5px 2px;">${d}</th>`;
     }).join('');
@@ -621,11 +635,11 @@
       ? Math.round(totalP / (workingDays.length * batchStudents.length) * 100) : 0;
     if (stats) {
       stats.classList.remove('d-none');
-      document.getElementById('attMonWd').textContent   = workingDays.length;
-      document.getElementById('attMonStu').textContent  = batchStudents.length;
+      document.getElementById('attMonWd').textContent = workingDays.length;
+      document.getElementById('attMonStu').textContent = batchStudents.length;
       document.getElementById('attMonTotP').textContent = totalP;
       document.getElementById('attMonTotA').textContent = totalA;
-      document.getElementById('attMonAvg').textContent  = avgRate + '%';
+      document.getElementById('attMonAvg').textContent = avgRate + '%';
       document.getElementById('attMonBest').textContent = bestName;
     }
   }
@@ -634,8 +648,8 @@
   // ── YEARLY REPORT ───────────────────────────────────
   function renderYearlyReport() {
     const batch = document.getElementById('attYrBatch')?.value;
-    const year  = parseInt(document.getElementById('attYrYear')?.value);
-    const wrap  = document.getElementById('attYrContent');
+    const year = parseInt(document.getElementById('attYrYear')?.value);
+    const wrap = document.getElementById('attYrContent');
     if (!batch || !wrap) return;
 
     const batchStudents = (gd().students || []).filter(s => s.batch === batch);
@@ -651,7 +665,7 @@
         const daysInMonth = new Date(year, mi + 1, 0).getDate();
         let mp = 0, ma = 0, mwd = 0;
         for (let d = 1; d <= daysInMonth; d++) {
-          const ds  = `${year}-${String(mi+1).padStart(2,'0')}-${String(d).padStart(2,'0')}`;
+          const ds = `${year}-${String(mi + 1).padStart(2, '0')}-${String(d).padStart(2, '0')}`;
           const key = `${batch}_${ds}`;
           const dayData = gd().attendance?.[key];
           if (dayData) {
@@ -672,7 +686,7 @@
     // Stats row
     const overallP = stuData.reduce((a, x) => a + x.totalP, 0);
     const overallA = stuData.reduce((a, x) => a + x.totalA, 0);
-    const best     = stuData.reduce((b, x) => x.rate > (b?.rate || -1) ? x : b, null);
+    const best = stuData.reduce((b, x) => x.rate > (b?.rate || -1) ? x : b, null);
 
     const statsHtml = `
     <div class="att-stats-row" style="margin-bottom:20px;">
@@ -685,7 +699,7 @@
 
     // Table header months
     const monthThs = MONTH_NAMES.map(m =>
-      `<th style="text-align:center;min-width:52px;background:rgba(0,217,255,0.08);color:rgba(0,217,255,0.7);font-size:0.68rem;letter-spacing:1px;border:1px solid rgba(255,255,255,0.06);padding:7px 3px;">${m.slice(0,3).toUpperCase()}</th>`
+      `<th style="text-align:center;min-width:52px;background:rgba(0,217,255,0.08);color:rgba(0,217,255,0.7);font-size:0.68rem;letter-spacing:1px;border:1px solid rgba(255,255,255,0.06);padding:7px 3px;">${m.slice(0, 3).toUpperCase()}</th>`
     ).join('');
 
     const tableRows = stuData.map((sd, idx) => {
@@ -695,10 +709,10 @@
         return `<td style="text-align:center;border:1px solid rgba(255,255,255,0.05);font-weight:700;font-size:0.75rem;color:${rc};">${md.rate}%</td>`;
       }).join('');
       const overallRc = rateColor(sd.rate);
-      return `<tr style="background:${idx%2===0?'rgba(255,255,255,0.015)':'transparent'};">
-        <td style="padding:8px 12px;border:1px solid rgba(255,255,255,0.05);color:rgba(255,255,255,0.35);text-align:center;">${idx+1}</td>
+      return `<tr style="background:${idx % 2 === 0 ? 'rgba(255,255,255,0.015)' : 'transparent'};">
+        <td style="padding:8px 12px;border:1px solid rgba(255,255,255,0.05);color:rgba(255,255,255,0.35);text-align:center;">${idx + 1}</td>
         <td style="padding:8px 14px;border:1px solid rgba(255,255,255,0.05);font-weight:600;white-space:nowrap;">${sd.s.name}</td>
-        <td style="padding:8px 10px;border:1px solid rgba(255,255,255,0.05);color:#00d9ff;font-family:monospace;font-size:0.75rem;">${sd.s.studentId||'—'}</td>
+        <td style="padding:8px 10px;border:1px solid rgba(255,255,255,0.05);color:#00d9ff;font-family:monospace;font-size:0.75rem;">${sd.s.studentId || '—'}</td>
         ${monthCells}
         <td style="text-align:center;border:1px solid rgba(255,255,255,0.05);color:#00ff88;font-weight:800;background:rgba(0,255,136,0.08);">${sd.totalP}</td>
         <td style="text-align:center;border:1px solid rgba(255,255,255,0.05);color:#ff3b5c;font-weight:800;background:rgba(255,59,92,0.08);">${sd.totalA}</td>
@@ -729,15 +743,15 @@
   // ── COURSE-WISE REPORT ──────────────────────────────
   function renderCourseReport() {
     const course = document.getElementById('attCwCourse')?.value;
-    const batch  = document.getElementById('attCwBatch')?.value;
-    const year   = parseInt(document.getElementById('attCwYear')?.value);
-    const month  = parseInt(document.getElementById('attCwMonth')?.value);
-    const wrap   = document.getElementById('attCwContent');
+    const batch = document.getElementById('attCwBatch')?.value;
+    const year = parseInt(document.getElementById('attCwYear')?.value);
+    const month = parseInt(document.getElementById('attCwMonth')?.value);
+    const wrap = document.getElementById('attCwContent');
     if (!wrap) return;
 
     let students = gd().students || [];
     if (course) students = students.filter(s => s.course === course);
-    if (batch)  students = students.filter(s => s.batch  === batch);
+    if (batch) students = students.filter(s => s.batch === batch);
 
     if (students.length === 0) {
       wrap.innerHTML = `<div class="att-empty"><i class="bi bi-mortarboard"></i><p>কোনো Student পাওয়া যায়নি</p></div>`;
@@ -759,7 +773,7 @@
       const stuRows = stuList.map(s => {
         let p = 0, a = 0;
         for (let d = 1; d <= daysInMonth; d++) {
-          const ds = `${year}-${String(month+1).padStart(2,'0')}-${String(d).padStart(2,'0')}`;
+          const ds = `${year}-${String(month + 1).padStart(2, '0')}-${String(d).padStart(2, '0')}`;
           const dayData = gd().attendance?.[`${b}_${ds}`];
           if (dayData) {
             if (d === 1) wd++;
@@ -773,7 +787,7 @@
         return `<div style="display:flex;align-items:center;justify-content:space-between;padding:10px 14px;border-bottom:1px solid rgba(255,255,255,0.05);">
           <div>
             <div style="font-weight:600;font-size:0.88rem;">${s.name}</div>
-            <div style="font-size:0.72rem;color:#00d9ff;opacity:0.7;font-family:monospace;">${s.studentId||'—'}</div>
+            <div style="font-size:0.72rem;color:#00d9ff;opacity:0.7;font-family:monospace;">${s.studentId || '—'}</div>
           </div>
           <div style="display:flex;align-items:center;gap:14px;font-family:'Rajdhani',sans-serif;">
             <span style="color:#00ff88;font-weight:700;">${p}P</span>
@@ -809,7 +823,7 @@
     const batch = document.getElementById('attBlankBatch')?.value;
     if (!batch) { window.showErrorToast?.('❌ Batch বেছে নিন'); return; }
 
-    const cols  = parseInt(document.getElementById('attBlankCols')?.value) || 26;
+    const cols = parseInt(document.getElementById('attBlankCols')?.value) || 26;
     const label = document.getElementById('attBlankLabel')?.value || '';
     const students = (gd().students || []).filter(s => s.batch === batch);
     if (students.length === 0) { window.showErrorToast?.('❌ এই Batch-এ কোনো Student নেই'); return; }
@@ -817,7 +831,7 @@
     students.sort((a, b) => (a.studentId || '').toString().localeCompare((b.studentId || '').toString()));
 
     const logo1 = window.APP_LOGOS?.premium || 'wings_logo_premium.png';
-    const logo2 = window.APP_LOGOS?.linear  || 'wings_logo_linear.png';
+    const logo2 = window.APP_LOGOS?.linear || 'wings_logo_linear.png';
     const isPortrait = style === 'portrait';
     const isSignature = style === 'signature';
     const isMonthly = style === 'monthly-grid';
@@ -829,9 +843,10 @@
       // Signature sheet
       const rows = students.map((s, i) => `
         <tr style="height:38px;">
-          <td style="border:1px solid #ccc;text-align:center;font-size:12px;color:#555;">${i+1}</td>
+          <td style="border:1px solid #ccc;text-align:center;font-size:12px;color:#555;">${i + 1}</td>
           <td style="border:1px solid #ccc;padding:4px 10px;font-weight:600;">${s.name}</td>
-          <td style="border:1px solid #ccc;text-align:center;font-size:11px;color:#2c7da0;">${s.studentId||''}</td>
+          <td style="border:1px solid #ccc;padding:4px 8px;font-size:10px;color:#2c7da0;white-space:nowrap;">${s.course || ''}</td>
+          <td style="border:1px solid #ccc;text-align:center;font-size:11px;color:#2c7da0;">${s.studentId || ''}</td>
           <td style="border:1px solid #ccc;"></td>
         </tr>`).join('');
       tableContent = `
@@ -840,6 +855,7 @@
             <tr style="background:#1a4d6e;">
               <th style="border:1px solid #ccc;color:#fff;padding:8px;width:40px;text-align:center;">#</th>
               <th style="border:1px solid #ccc;color:#fff;padding:8px;text-align:left;">Student Name</th>
+              <th style="border:1px solid #ccc;color:#fff;padding:8px;text-align:left;white-space:nowrap;">Course</th>
               <th style="border:1px solid #ccc;color:#fff;padding:8px;text-align:center;width:90px;">ID</th>
               <th style="border:1px solid #ccc;color:#fff;padding:8px;text-align:center;min-width:200px;">Signature</th>
             </tr>
@@ -849,12 +865,13 @@
     } else if (isMonthly) {
       // Monthly grid
       const colH = Array.from({ length: 31 }, (_, i) =>
-        `<th style="border:1px solid #bcd;background:#e8f4ff;text-align:center;width:22px;font-size:10px;color:#1a4d6e;">${i+1}</th>`).join('');
+        `<th style="border:1px solid #bcd;background:#e8f4ff;text-align:center;width:22px;font-size:10px;color:#1a4d6e;">${i + 1}</th>`).join('');
       const rows = students.map((s, i) => {
         const cells = Array.from({ length: 31 }, () =>
           `<td style="border:1px solid #dde;height:28px;"></td>`).join('');
-        return `<tr><td style="border:1px solid #bcd;text-align:center;font-size:11px;color:#555;">${i+1}</td>
+        return `<tr><td style="border:1px solid #bcd;text-align:center;font-size:11px;color:#555;">${i + 1}</td>
           <td style="border:1px solid #bcd;padding:3px 8px;font-weight:600;font-size:12px;">${s.name}</td>
+          <td style="border:1px solid #bcd;padding:3px 8px;font-size:10px;color:#2c7da0;white-space:nowrap;">${s.course || ''}</td>
           ${cells}</tr>`;
       }).join('');
       tableContent = `
@@ -862,6 +879,7 @@
           <thead>
             <tr><th style="border:1px solid #bcd;background:#1a4d6e;color:#fff;width:35px;text-align:center;">#</th>
             <th style="border:1px solid #bcd;background:#1a4d6e;color:#fff;text-align:left;padding:6px;min-width:160px;">Name</th>
+            <th style="border:1px solid #bcd;background:#1a4d6e;color:#fff;text-align:left;padding:6px;white-space:nowrap;">Course</th>
             ${colH}</tr>
           </thead>
           <tbody>${rows}</tbody>
@@ -869,13 +887,14 @@
     } else {
       // Standard landscape/portrait
       const colH = Array.from({ length: cols }, (_, i) =>
-        `<th style="border:1px solid #000;width:${isPortrait ? 28 : 36}px;text-align:center;font-size:${isPortrait ? 9 : 11}px;">${i+1}</th>`).join('');
+        `<th style="border:1px solid #000;width:${isPortrait ? 28 : 36}px;text-align:center;font-size:${isPortrait ? 9 : 11}px;">${i + 1}</th>`).join('');
       const rows = students.map((s, i) => {
         const cells = Array.from({ length: cols }, () =>
           `<td style="border:1px solid #000;height:${isPortrait ? 28 : 32}px;"></td>`).join('');
         return `<tr>
-          <td style="border:1px solid #000;text-align:center;font-size:${isPortrait ? 10 : 12}px;">${i+1}</td>
+          <td style="border:1px solid #000;text-align:center;font-size:${isPortrait ? 10 : 12}px;">${i + 1}</td>
           <td style="border:1px solid #000;padding:3px 8px;font-weight:600;font-size:${isPortrait ? 11 : 13}px;font-style:italic;color:#1a4d6e;">${s.name}</td>
+          <td style="border:1px solid #000;padding:3px 8px;font-size:${isPortrait ? 9 : 11}px;color:#2c7da0;white-space:nowrap;">${s.course || ''}</td>
           ${cells}
         </tr>`;
       }).join('');
@@ -885,6 +904,7 @@
             <tr>
               <th style="border:1px solid #000;background:#f0f8ff;width:40px;text-align:center;font-size:${isPortrait ? 9 : 11}px;color:#1a4d6e;">SL</th>
               <th style="border:1px solid #000;background:#f0f8ff;text-align:left;padding:5px 8px;font-size:${isPortrait ? 9 : 11}px;color:#1a4d6e;">Student Name</th>
+              <th style="border:1px solid #000;background:#f0f8ff;text-align:left;padding:5px 8px;font-size:${isPortrait ? 9 : 11}px;color:#1a4d6e;white-space:nowrap;">Course</th>
               ${colH}
             </tr>
           </thead>
@@ -954,7 +974,7 @@
   // backwards compat
   window.printBlankAttendanceSheet = () => {
     const batch = document.getElementById('attendanceBatchSelect')?.value ||
-                  document.getElementById('attMarkBatch')?.value;
+      document.getElementById('attMarkBatch')?.value;
     if (!batch) { window.showErrorToast?.('❌ Batch বেছে নিন'); return; }
     // open hub at blank tab
     openAttendanceModal();

@@ -500,11 +500,16 @@ function _executeLoanDeletion(tx) {
   // 4. Remove from Finance list
   window.globalData.finance = window.globalData.finance.filter(f => String(f.id) !== sid);
 
-  // 5. Save
+  // 5. Save locally first
   if (typeof saveToStorage === 'function') {
-    saveToStorage();
+    saveToStorage(true);
   } else {
     localStorage.setItem('wingsfly_data', JSON.stringify(window.globalData));
+  }
+
+  // 5b. Force Cloud Sync
+  if (typeof window.scheduleSyncPush === 'function') {
+    window.scheduleSyncPush('Loan deleted: ' + (tx.person || 'Unknown'));
   }
 
   // 6. Refresh UI

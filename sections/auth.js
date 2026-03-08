@@ -39,8 +39,8 @@ async function handleLogin(e) {
   btn.disabled = true;
   err.innerText = '';
 
-  const username = document.getElementById('loginUsernameField')?.value || form.username?.value || '';
-  const password = document.getElementById('loginPasswordField')?.value || form.password?.value || '';
+  const username = (document.getElementById('loginUsernameField')?.value || form.username?.value || '').trim();
+  const password = (document.getElementById('loginPasswordField')?.value || form.password?.value || '').trim();
 
   try {
     // CRITICAL: Ensure globalData exists and has users array
@@ -55,27 +55,36 @@ async function handleLogin(e) {
       };
     }
 
+    // Safety check for users array — try to recover from backup if empty
+    if (!window.globalData.users || !Array.isArray(window.globalData.users) || window.globalData.users.length === 0) {
+      try {
+        const backup = localStorage.getItem('wingsfly_users_backup');
+        if (backup) {
+          const parsed = JSON.parse(backup);
+          if (Array.isArray(parsed) && parsed.length > 0) {
+            window.globalData.users = parsed;
+            console.log('🔐 Users recovered from backup for login');
+          }
+        }
+      } catch (e) { console.warn('User recovery failed', e); }
+
+      // Still empty? Use default admin
+      if (!window.globalData.users || window.globalData.users.length === 0) {
+        window.globalData.users = [
+          { username: 'admin', password: 'e7d3bfb67567c3d94bcecb2ce65ef146eac83e50dc3f3b89e81bb647a8bada4c', role: 'admin', name: 'Admin' }
+        ];
+      }
+    }
+
     // 1. Check against User List
     let validUser = null;
-
-    // Safety check for users array
-    if (!globalData.users || !Array.isArray(globalData.users)) {
-      globalData.users = [
-        {
-          username: 'admin',
-          password: 'e7d3bfb67567c3d94bcecb2ce65ef146eac83e50dc3f3b89e81bb647a8bada4c',
-          role: 'admin',
-          name: 'Admin'
-        }
-      ];
-    }
 
     // A. Hash the input password for secure comparison
     const hashedInput = await hashPassword(password);
 
     // B. Check Local Users — hash compare (new) OR plain text compare (backward compat)
     validUser = globalData.users.find(u =>
-      u.username === username &&
+      u.username.toLowerCase() === username.toLowerCase() &&
       (u.password === hashedInput || u.password === password)
     );
 
@@ -95,6 +104,9 @@ async function handleLogin(e) {
       // Update sidebar avatar
       const avatarEl = document.getElementById('sidebarAvatar');
       if (avatarEl) avatarEl.innerText = (validUser.name || username).charAt(0).toUpperCase();
+
+      // ✅ APPLY SECURITY BEFORE SHOWING DASHBOARD
+      if (typeof applyRoleSecurity === 'function') applyRoleSecurity();
 
       showDashboard(validUser.name || username);
     } else {
@@ -219,6 +231,9 @@ function loadDashboard() {
 
       updateGlobalStats();
       updateStudentCount();
+
+      // ✅ RE-APPLY SECURITY AFTER TAB SWITCH
+      if (typeof applyRoleSecurity === 'function') applyRoleSecurity();
 
       if (typeof populateDropdowns === 'function') {
         populateDropdowns();
@@ -387,7 +402,83 @@ function switchTab(tab, refreshStats = true) {
   if (refreshStats) {
     updateGlobalStats();
   }
+
+  // ✅ PREVENT UNAUTHORIZED TAB SWITCH
+  if (typeof applyRoleSecurity === 'function') applyRoleSecurity();
 }
+
+
+// ═══════════════════════════════════════════════════
+// ROLE-BASED ACCESS CONTROL (RBAC) — Sub ID Restrictions
+// ═══════════════════════════════════════════════════
+function applyRoleSecurity() {
+  const role = sessionStorage.getItem('role') || 'admin';
+  const isSubId = (role === 'subid' || role === 'operator');
+
+  // Sidebar IDs to hide for subid
+  const restrictedSidebarTabs = [
+    'tabLedger',
+    'tabAccounts',
+    'tabLoans',
+    'tabVisitors',
+    'tabEmployees',
+    'tabExamResults',
+    'tabIdCards',
+    'tabCertificates',
+    'tabSettings'
+  ];
+
+  if (isSubId) {
+    // 1. Hide Sidebar Tabs
+    restrictedSidebarTabs.forEach(id => {
+      const el = document.getElementById(id);
+      if (el) el.style.display = 'none';
+    });
+
+    // 2. Hide specific "Add New" dropdown items (Finance, Visitor)
+    const dropdownItems = document.querySelectorAll('.top-bar .dropdown-menu .dropdown-item');
+    dropdownItems.forEach(item => {
+      const text = item.textContent.toLowerCase();
+      // Allow only Student and Exam
+      if (!text.includes('student') && !text.includes('exam')) {
+        item.style.display = 'none';
+      }
+    });
+
+    // 3. Hide Dashboard Overview Cards (Financials)
+    const metricCards = document.querySelectorAll('.aviation-metric-card, .metric-card-blue, .metric-card-green, .metric-card-yellow, .metric-card-red, .metric-card-purple');
+    metricCards.forEach(card => {
+      // Allow only Student Count card
+      if (!card.innerText.includes('Students') && !card.innerText.includes('মেসেজ')) {
+        card.style.display = 'none';
+      }
+    });
+
+    // 4. Force check active tab (if they somehow navigated to unauthorized tab)
+    const currentTab = localStorage.getItem('wingsfly_active_tab');
+    if (restrictedSidebarTabs.includes('tab' + currentTab.charAt(0).toUpperCase() + currentTab.slice(1)) || currentTab === 'ledger') {
+      console.warn('🔒 Unauthorized tab access blocked for Sub ID. Redirecting to Dashboard.');
+      // Special case: tabExamResults -> switchTab('examResults')
+      localStorage.setItem('wingsfly_active_tab', 'dashboard');
+      // We can't recursively call switchTab here safely without a flag, but let the UI handle it.
+    }
+
+    // 5. Hide Notification / Search if needed
+    const notificationBtn = document.getElementById('notificationDropdown');
+    if (notificationBtn) notificationBtn.style.display = 'none';
+  } else {
+    // Re-show everything for Admin
+    restrictedSidebarTabs.forEach(id => {
+      const el = document.getElementById(id);
+      if (el) el.style.display = '';
+    });
+    const dropdownItems = document.querySelectorAll('.top-bar .dropdown-menu .dropdown-item');
+    dropdownItems.forEach(item => item.style.display = '');
+    const metricCards = document.querySelectorAll('.aviation-metric-card');
+    metricCards.forEach(card => card.style.display = '');
+  }
+}
+window.applyRoleSecurity = applyRoleSecurity;
 
 
 window.hashPassword = hashPassword;

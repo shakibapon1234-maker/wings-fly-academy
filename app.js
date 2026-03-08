@@ -37,6 +37,13 @@ if (typeof window.globalData === 'undefined') {
   };
 }
 
+// Legacy global alias for older scripts that use `globalData` directly
+// (finance-crud, student-management, etc.)
+if (typeof globalData === 'undefined') {
+  // Non-strict mode: this creates a writable global variable
+  globalData = window.globalData;
+}
+
 // সবসময় নিশ্চিত করো
 if (!window.globalData.deletedItems) window.globalData.deletedItems = [];
 if (!window.globalData.activityHistory) window.globalData.activityHistory = [];
@@ -75,51 +82,39 @@ const PHOTO_STORE_NAME = 'student_photos';
 // photo-manager — extracted to sections/photo-manager.js
 
 // SYNC: Update bank account, mobile banking, or cash balance based on transaction
+// Uses finance-engine.js canonical type lists (FE_ACCOUNT_IN / FE_ACCOUNT_OUT)
 function updateAccountBalance(method, amount, type, isAddition = true) {
   if (!window.globalData) return;
+
+  // Delegate to finance-engine if available (canonical rules)
+  if (typeof window.feApplyEntryToAccount === 'function') {
+    const sign = isAddition ? 1 : -1;
+    window.feApplyEntryToAccount({ method, amount, type }, sign);
+    return;
+  }
+
+  // ── Fallback (finance-engine.js not yet loaded) ──
+  // Canonical lists — must match finance-engine.js
+  const moneyInTypes = ['Income', 'Transfer In', 'Loan Receiving', 'Loan Received', 'Registration', 'Refund'];
+  const moneyOutTypes = ['Expense', 'Transfer Out', 'Loan Giving', 'Loan Given', 'Salary', 'Rent', 'Utilities'];
 
   const amt = parseFloat(amount) || 0;
   const multiplier = isAddition ? 1 : -1;
 
-  // Types that ADD to balance (money coming IN to the account)
-  // Note: Loan Receiving = money received as loan (adds to balance, but NOT income)
-  const moneyInTypes = ['Income', 'Transfer In', 'Loan Receiving', 'Loan Received'];
-  // Types that SUBTRACT from balance (money going OUT of the account)
-  // Note: Loan Giving = money given as loan (removes from balance, but NOT expense)
-  const moneyOutTypes = ['Expense', 'Transfer Out', 'Loan Giving', 'Loan Given'];
-
-  // Handle Cash
   if (method === 'Cash') {
-    if (typeof globalData.cashBalance === 'undefined') {
-      globalData.cashBalance = 0;
-    }
-
-    if (moneyInTypes.includes(type)) {
-      globalData.cashBalance += amt * multiplier;
-    } else if (moneyOutTypes.includes(type)) {
-      globalData.cashBalance -= amt * multiplier;
-    }
-
-    // Update UI if cash balance element exists
-    if (typeof renderCashBalance === 'function') {
-      renderCashBalance();
-    }
+    if (typeof globalData.cashBalance === 'undefined') globalData.cashBalance = 0;
+    if (moneyInTypes.includes(type)) globalData.cashBalance += amt * multiplier;
+    else if (moneyOutTypes.includes(type)) globalData.cashBalance -= amt * multiplier;
+    if (typeof renderCashBalance === 'function') renderCashBalance();
     return;
   }
 
-  // Check in bank accounts first, then mobile banking
   let account = (window.globalData.bankAccounts || []).find(acc => acc.name === method);
-  if (!account) {
-    account = (window.globalData.mobileBanking || []).find(acc => acc.name === method);
-  }
-
+  if (!account) account = (window.globalData.mobileBanking || []).find(acc => acc.name === method);
   if (!account) return;
 
-  if (moneyInTypes.includes(type)) {
-    account.balance = (parseFloat(account.balance) || 0) + (amt * multiplier);
-  } else if (moneyOutTypes.includes(type)) {
-    account.balance = (parseFloat(account.balance) || 0) - (amt * multiplier);
-  }
+  if (moneyInTypes.includes(type)) account.balance = (parseFloat(account.balance) || 0) + (amt * multiplier);
+  else if (moneyOutTypes.includes(type)) account.balance = (parseFloat(account.balance) || 0) - (amt * multiplier);
 
   if (typeof renderAccountList === 'function') renderAccountList();
   if (typeof renderMobileBankingList === 'function') renderMobileBankingList();
@@ -228,6 +223,9 @@ async function saveToStorage(skipCloudSync = false) {
     // Backup রাখো যাতে cloud pull এ হারিয়ে না যায়
     localStorage.setItem('wingsfly_deleted_backup', JSON.stringify(window.globalData.deletedItems));
     localStorage.setItem('wingsfly_activity_backup', JSON.stringify(window.globalData.activityHistory));
+    if (window.globalData.users && window.globalData.users.length > 0) {
+      localStorage.setItem('wingsfly_users_backup', JSON.stringify(window.globalData.users));
+    }
 
     const currentTime = Date.now().toString();
     localStorage.setItem('wingsfly_data', JSON.stringify(window.globalData));
@@ -580,6 +578,7 @@ function addEmployeeRole() {
     inp.value = '';
     saveToStorage();
     if (typeof renderSettingsLists === 'function') renderSettingsLists(); // ✅ FIX: was renderSettings() — function doesn't exist
+    if (typeof window.refreshAllDropdowns === 'function') window.refreshAllDropdowns();
     showSuccessToast('Role added');
   }
 }
@@ -589,6 +588,7 @@ function deleteEmployeeRole(index) {
     globalData.employeeRoles.splice(index, 1);
     saveToStorage();
     if (typeof renderSettingsLists === 'function') renderSettingsLists(); // ✅ FIX: was renderSettings()
+    if (typeof window.refreshAllDropdowns === 'function') window.refreshAllDropdowns();
   }
 }
 
@@ -673,35 +673,36 @@ function handleDataReset() {
 window.handleDataReset = handleDataReset;
 
 // RECALCULATE CASH BALANCE FROM TRANSACTIONS
+// Uses finance-engine.js canonical type lists
 function recalculateCashBalanceFromTransactions() {
+  // If finance-engine is loaded, use full rebuild (handles all accounts)
+  if (typeof window.feRebuildAllBalances === 'function') {
+    window.feRebuildAllBalances();
+    return parseFloat(globalData.cashBalance) || 0;
+  }
+
+  // ── Fallback ──
   let calculatedCashBalance = 0;
 
-  // Get starting balance if set in settings
+  // Start from opening balance
   if (globalData.settings && globalData.settings.startBalances && globalData.settings.startBalances['Cash']) {
     calculatedCashBalance = parseFloat(globalData.settings.startBalances['Cash']) || 0;
   }
 
-  // Add/subtract all Cash transactions
-  // Note: Loan Received/Giving DO affect cash balance (physical cash moves)
-  // But they are NOT counted as income/expense in stats
-  const cashTransactions = (globalData.finance || []).filter(f => f.method === 'Cash');
+  // Canonical lists — must match finance-engine.js
+  const ACCOUNT_IN = ['Income', 'Loan Received', 'Loan Receiving', 'Transfer In', 'Registration', 'Refund'];
+  const ACCOUNT_OUT = ['Expense', 'Loan Given', 'Loan Giving', 'Transfer Out', 'Salary', 'Rent', 'Utilities'];
+
+  const cashTransactions = (globalData.finance || []).filter(f => f.method === 'Cash' && !f._deleted);
 
   cashTransactions.forEach(trans => {
     const amount = parseFloat(trans.amount) || 0;
-    // Money coming INTO cash account
-    if (['Income', 'Loan Received', 'Loan Receiving', 'Transfer In'].includes(trans.type)) {
-      calculatedCashBalance += amount;
-    }
-    // Money going OUT of cash account
-    else if (['Expense', 'Loan Given', 'Loan Giving', 'Transfer Out'].includes(trans.type)) {
-      calculatedCashBalance -= amount;
-    }
+    if (ACCOUNT_IN.includes(trans.type)) calculatedCashBalance += amount;
+    else if (ACCOUNT_OUT.includes(trans.type)) calculatedCashBalance -= amount;
   });
 
-  // Update global cash balance
   globalData.cashBalance = calculatedCashBalance;
 
-  // Save and refresh display
   saveToStorage();
   if (typeof renderCashBalance === 'function') renderCashBalance();
 
@@ -726,7 +727,14 @@ if (typeof togglePersonField === 'function') {
 // Required by sections and sync system
 // ===================================
 window.renderLedger = renderLedger;
-window.updateGlobalStats = updateGlobalStats;
+// ✅ FIX: finance-engine.js এর canonical updateGlobalStats preserve করো
+// শুধু তখনই set করো যদি finance-engine এখনো define না করে থাকে
+if (typeof window.updateGlobalStats !== 'function') {
+  window.updateGlobalStats = updateGlobalStats;
+} else {
+  // finance-engine এর wrapped version ব্যবহার করো — overwrite করো না
+  console.log('✅ app.js: updateGlobalStats already set by finance-engine, keeping it');
+}
 window.checkDailyBackup = checkDailyBackup;
 // window.updateStudentCount → sections/student-management.js
 // window.filterData → sections/student-management.js
@@ -852,7 +860,10 @@ window.attachMethodBalanceListeners = attachMethodBalanceListeners;
   if (typeof openAccountModal === 'function') window.openAccountModal = openAccountModal;
   if (typeof renderAccountList === 'function') window.renderAccountList = renderAccountList;
   if (typeof renderDashboard === 'function') window.renderDashboard = renderDashboard;
-  if (typeof updateGlobalStats === 'function') window.updateGlobalStats = updateGlobalStats;
+  // ✅ FIX: finance-engine এর wrapped version overwrite করো না
+  if (typeof updateGlobalStats === 'function' && typeof window.FE_STAT_INCOME === 'undefined') {
+    window.updateGlobalStats = updateGlobalStats;
+  }
   if (typeof recalculateCashBalanceFromTransactions === 'function') window.recalculateCashBalanceFromTransactions = recalculateCashBalanceFromTransactions;
   if (typeof renderKeepRecordNotes === 'function') window.renderKeepRecordNotes = renderKeepRecordNotes;
 

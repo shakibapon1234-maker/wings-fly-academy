@@ -97,6 +97,11 @@
                         <label class="form-label fw-semibold">Description</label>
                         <textarea name="description" class="form-control" rows="2"></textarea>
                     </div>
+                    <div class="mb-3">
+                        <label class="form-label fw-semibold">Person / Employee / Counterparty</label>
+                        <input type="text" name="person" class="form-control"
+                            placeholder="Student name, Employee name or counterparty">
+                    </div>
                     <button type="submit" class="btn btn-primary w-100 fw-bold">Save
                         Changes</button>
                 </form>
@@ -527,61 +532,7 @@
     </div>
 </div>
 
-<!-- Attendance Modal -->
-<div class="modal fade" id="attendanceModal" tabindex="-1">
-    <div class="modal-dialog modal-lg modal-dialog-centered">
-        <div class="modal-content custom-modal">
-            <div class="modal-header">
-                <h5 class="modal-title fw-bold">📋 Student Attendance</h5>
-                <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
-            </div>
-            <div class="modal-body">
-                <div class="row g-3 mb-4">
-                    <div class="col-md-6">
-                        <label class="form-label small fw-bold">Select Batch</label>
-                        <select id="attendanceBatchSelect" class="form-select" onchange="loadAttendanceList()">
-                            <option value="">Select a batch...</option>
-                        </select>
-                    </div>
-                    <div class="col-md-6">
-                        <label class="form-label small fw-bold">Date</label>
-                        <input type="date" id="attendanceDate" class="form-control" onchange="loadAttendanceList()">
-                    </div>
-                </div>
-                <div id="attendanceListContainer" class="d-none">
-                    <div class="table-responsive rounded border">
-                        <table class="table table-hover align-middle mb-0">
-                            <thead class="bg-light">
-                                <tr>
-                                    <th>ID</th>
-                                    <th>Name</th>
-                                    <th class="text-center">Status</th>
-                                </tr>
-                            </thead>
-                            <tbody id="attendanceTableBody"></tbody>
-                        </table>
-                    </div>
-                </div>
-            </div>
-            <div class="modal-footer justify-content-between flex-wrap gap-2">
-                <div class="d-flex gap-2 flex-wrap">
-                    <button type="button" class="btn btn-outline-secondary fw-bold rounded-pill px-3"
-                        onclick="printBlankAttendanceSheet()">
-                        Blank Sheet
-                    </button>
-                    <button type="button" class="btn btn-outline-info fw-bold rounded-pill px-3"
-                        onclick="openAttendanceReportModal()">
-                        Monthly Report
-                    </button>
-                </div>
-                <button type="button" class="btn btn-primary px-4 fw-bold rounded-pill" data-bs-dismiss="modal"
-                    onclick="saveAttendance()">
-                    💾 Save Attendance
-                </button>
-            </div>
-        </div>
-    </div>
-</div>
+<!-- Attendance Modal removed — handled by attendance-pro.js -->
 
 <!-- Exam Registration Modal -->
 <div class="modal fade" id="examRegistrationModal" tabindex="-1">
@@ -966,7 +917,7 @@
                                             ['Students match', lS === cS, `${Math.abs(lS - cS)} ব্যবধান`],
                                             ['Finance match', lF === cF, `${Math.abs(lF - cF)} ব্যবধান`],
                                             ['Cash match', Math.abs(lC - cC) < 1, diagFmt(Math.abs(lC - cC)) + 'ব্যবধান'],
-                                            ['Version sync', lV === cV, `Local v${lV}, Cloud v${cV}`],
+                                            ['Version sync', Math.abs(lV - cV) <= 5, `Local v${lV}, Cloud v${cV}`],
                                             ['Data loss risk নেই', !(cloud && (cS < lS || cF < lF)), 'Cloud-এ কম data!'],
                                             ['Accounting OK', true, ''],
                                         ];

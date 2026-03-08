@@ -95,8 +95,13 @@ function showAllAccountsSearch(dateFrom, dateTo) {
       <td style="padding:8px;"><span style="background:${isIncome ? 'rgba(0,255,136,0.15)' : 'rgba(255,59,92,0.15)'};color:${isIncome ? '#00ff88' : '#ff3b5c'};padding:2px 8px;border-radius:20px;font-size:0.75rem;font-weight:700;">${f.type || '-'}</span></td>
       <td style="padding:8px;font-weight:600;color:#00d9ff;">${f.method || 'Cash'}</td>
       <td style="padding:8px;">${f.category || '-'}</td>
-      <td style="padding:8px;color:rgba(255,255,255,0.6);">${f.description || f.note || '-'}</td>
+      <td style="padding:8px;color:rgba(255,255,255,0.6);">${f.person ? '👤 ' + f.person + '<br>' : ''}${f.description || f.note || '-'}</td>
       <td style="padding:8px;text-align:right;font-weight:700;color:${isIncome ? '#00ff88' : '#ff3b5c'};">৳${fmt(amt)}</td>
+      <td style="padding:8px;text-align:right;">
+        <button class="btn btn-sm text-danger p-0" onclick="window._handleDeleteTx('${f.id}')" title="Delete">
+          <i class="bi bi-trash"></i>
+        </button>
+      </td>
     </tr>`;
   });
 
@@ -110,6 +115,7 @@ function showAllAccountsSearch(dateFrom, dateTo) {
           <th style="padding:10px;color:rgba(0,217,255,0.7);font-size:0.72rem;text-transform:uppercase;">Category</th>
           <th style="padding:10px;color:rgba(0,217,255,0.7);font-size:0.72rem;text-transform:uppercase;">Details</th>
           <th style="padding:10px;color:rgba(0,217,255,0.7);font-size:0.72rem;text-transform:uppercase;text-align:right;">Amount</th>
+          <th style="padding:10px;width:30px;"></th>
         </tr></thead>
         <tbody>${rows}</tbody>
       </table></div>`;
@@ -378,6 +384,11 @@ function displayTransactionHistory(transactions, accountData) {
         </td>
         <td class="text-end">
           ৳${formatNumber(runningBalance)}
+        </td>
+        <td class="text-center">
+          <button class="btn btn-sm text-danger p-0" onclick="window._handleDeleteTx('${record.id}')" title="Delete">
+            <i class="bi bi-trash"></i>
+          </button>
         </td>
       </tr>
     `;

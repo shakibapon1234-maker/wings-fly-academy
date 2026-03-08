@@ -76,9 +76,9 @@ function loadActivityHistory() {
     return;
   }
 
-  const icons = { student: '🎓', finance: '💰', employee: '👤', settings: '⚙️', login: '🔐', default: '📝' };
-  const colors = { ADD: '#00ff88', EDIT: '#00d9ff', DELETE: '#ff4444', LOGIN: '#b537f2', LOGOUT: '#ffaa00', default: '#ffffff' };
-  const actionBadge = { ADD: 'success', EDIT: 'info', DELETE: 'danger', LOGIN: 'primary', LOGOUT: 'warning', SETTING_CHANGE: 'secondary' };
+  const icons = { student: '🎓', finance: '💰', employee: '👤', settings: '⚙️', login: '🔐', system: '🔍', autotest: '🧬', heal: '🔧', default: '📝' };
+  const colors = { ADD: '#00ff88', EDIT: '#00d9ff', DELETE: '#ff4444', LOGIN: '#b537f2', LOGOUT: '#ffaa00', WARN: '#ffcc00', TEST: '#00d4ff', FIX: '#00ff88', default: '#ffffff' };
+  const actionBadge = { ADD: 'success', EDIT: 'info', DELETE: 'danger', LOGIN: 'primary', LOGOUT: 'warning', SETTING_CHANGE: 'secondary', WARN: 'warning', TEST: 'info', FIX: 'success' };
 
   container.innerHTML = filtered.map(h => {
     const d = new Date(h.timestamp);
@@ -238,9 +238,21 @@ function restoreDeletedItem(trashId) {
 
   } else if (type === 'finance') {
     if (!window.globalData.finance) window.globalData.finance = [];
-    window.globalData.finance.push(item);
+    // _deleted flag সরাও (soft-delete ছিল কিনা)
+    const restoredItem = { ...item, _deleted: false };
+    delete restoredItem._deletedAt;
+    window.globalData.finance.push(restoredItem);
+
+    // ✅ Account balance re-apply (canonical finance-engine rules)
+    if (typeof window.feApplyEntryToAccount === 'function') {
+      window.feApplyEntryToAccount(restoredItem, +1);
+    } else if (typeof updateAccountBalance === 'function') {
+      updateAccountBalance(restoredItem.method, restoredItem.amount, restoredItem.type, true);
+    }
+
     logActivity('finance', 'ADD', `✅ Restored transaction: ${item.description || item.category || itemName}`, item);
     if (typeof renderLedger === 'function') setTimeout(() => renderLedger(window.globalData.finance), 100);
+    if (typeof updateGrandTotal === 'function') setTimeout(updateGrandTotal, 150);
 
   } else if (type === 'employee') {
     if (!window.globalData.employees) window.globalData.employees = [];
@@ -295,13 +307,23 @@ function restoreDeletedItem(trashId) {
   // ✅ Remove from trash + sync backup
   window.globalData.deletedItems.splice(idx, 1);
   localStorage.setItem('wingsfly_deleted_backup', JSON.stringify(window.globalData.deletedItems));
-  saveToStorage();
+
+  // ✅ Save Locally immediately
+  if (typeof saveToStorage === 'function') {
+    saveToStorage(true);
+  } else {
+    localStorage.setItem('wingsfly_data', JSON.stringify(window.globalData));
+  }
+
   setTimeout(loadDeletedItems, 150);
 
   showSuccessToast(`✅ ${itemName} সফলভাবে restore হয়েছে!`);
   if (typeof updateGlobalStats === 'function') setTimeout(updateGlobalStats, 200);
-  // Cloud sync
-  if (typeof window.scheduleSyncPush === 'function') window.scheduleSyncPush('Restore: ' + type);
+
+  // ✅ Schedule Cloud Push
+  if (typeof window.scheduleSyncPush === 'function') {
+    window.scheduleSyncPush('Restore: ' + type);
+  }
 }
 window.restoreDeletedItem = restoreDeletedItem;
 

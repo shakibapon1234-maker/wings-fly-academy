@@ -4,6 +4,137 @@
 // Extracted from app.js (Phase 4)
 // ====================================
 
+// ✅ FIX: Inject missing modal HTML into DOM (accountModal, mobileModal, transferModal)
+(function injectAccountModals() {
+  if (document.getElementById('accountModal')) return; // Already exists
+
+  const modalHTML = `
+    <!-- ===== BANK ACCOUNT MODAL ===== -->
+    <div class="modal fade" id="accountModal" tabindex="-1" aria-hidden="true">
+      <div class="modal-dialog modal-dialog-centered">
+        <div class="modal-content border-0 shadow-lg" style="background:#0d1b2a; color:#e0f0ff; border-radius:16px;">
+          <div class="modal-header border-0 pb-0">
+            <h5 class="modal-title fw-bold" style="color:#00d9ff;"><span class="me-2 header-icon-circle bg-primary-light">🏦</span>Add New Bank Account</h5>
+            <button type="button" class="btn-close btn-close-white" data-bs-dismiss="modal"></button>
+          </div>
+          <div class="modal-body pt-3">
+            <form id="accountForm" onsubmit="handleAccountSubmit(event)">
+              <input type="hidden" name="accountIndex" value="-1">
+              <div class="mb-3">
+                <label class="form-label fw-semibold" style="color:#a0c4ff;">Account Name</label>
+                <input type="text" name="name" class="form-control" style="background:#162032;color:#e0f0ff;border-color:#1e3a5f;" placeholder="e.g. CITY BANK" required>
+              </div>
+              <div class="mb-3">
+                <label class="form-label fw-semibold" style="color:#a0c4ff;">Branch</label>
+                <input type="text" name="branch" class="form-control" style="background:#162032;color:#e0f0ff;border-color:#1e3a5f;" placeholder="e.g. Bonosree">
+              </div>
+              <div class="mb-3">
+                <label class="form-label fw-semibold" style="color:#a0c4ff;">Bank Name / Tag</label>
+                <input type="text" name="bankName" class="form-control" style="background:#162032;color:#e0f0ff;border-color:#1e3a5f;" placeholder="e.g. WINGS FLY" required>
+              </div>
+              <div class="mb-3">
+                <label class="form-label fw-semibold" style="color:#a0c4ff;">Account Number</label>
+                <input type="text" name="accountNo" class="form-control" style="background:#162032;color:#e0f0ff;border-color:#1e3a5f;" placeholder="e.g. 1493888742001" required>
+              </div>
+              <div class="mb-4">
+                <label class="form-label fw-semibold" style="color:#a0c4ff;">Opening Balance (৳)</label>
+                <input type="number" name="balance" class="form-control" style="background:#162032;color:#e0f0ff;border-color:#1e3a5f;" placeholder="0" value="0" min="0" step="0.01">
+              </div>
+              <div class="d-flex gap-2 justify-content-end">
+                <button type="button" class="btn btn-outline-secondary" data-bs-dismiss="modal">Cancel</button>
+                <button type="submit" class="btn btn-primary fw-bold px-4">💾 Save Account</button>
+              </div>
+            </form>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <!-- ===== MOBILE BANKING MODAL ===== -->
+    <div class="modal fade" id="mobileModal" tabindex="-1" aria-hidden="true">
+      <div class="modal-dialog modal-dialog-centered">
+        <div class="modal-content border-0 shadow-lg" style="background:#0d1b2a; color:#e0f0ff; border-radius:16px;">
+          <div class="modal-header border-0 pb-0">
+            <h5 class="modal-title fw-bold" style="color:#00ff99;"><span class="me-2 header-icon-circle bg-success-light">📱</span>Add Mobile Banking</h5>
+            <button type="button" class="btn-close btn-close-white" data-bs-dismiss="modal"></button>
+          </div>
+          <div class="modal-body pt-3">
+            <form id="mobileForm" onsubmit="handleMobileSubmit(event)">
+              <input type="hidden" name="mobileIndex" value="-1">
+              <div class="mb-3">
+                <label class="form-label fw-semibold" style="color:#a0c4ff;">Account Name</label>
+                <input type="text" name="name" class="form-control" style="background:#162032;color:#e0f0ff;border-color:#1e3a5f;" placeholder="e.g. bKash, Nagad, Rocket" required>
+              </div>
+              <div class="mb-3">
+                <label class="form-label fw-semibold" style="color:#a0c4ff;">Account Number</label>
+                <input type="text" name="accountNo" class="form-control" style="background:#162032;color:#e0f0ff;border-color:#1e3a5f;" placeholder="e.g. 01712345678">
+              </div>
+              <div class="mb-4">
+                <label class="form-label fw-semibold" style="color:#a0c4ff;">Opening Balance (৳)</label>
+                <input type="number" name="balance" class="form-control" style="background:#162032;color:#e0f0ff;border-color:#1e3a5f;" placeholder="0" value="0" min="0" step="0.01">
+              </div>
+              <div class="d-flex gap-2 justify-content-end">
+                <button type="button" class="btn btn-outline-secondary" data-bs-dismiss="modal">Cancel</button>
+                <button type="submit" class="btn btn-success fw-bold px-4">💾 Save Account</button>
+              </div>
+            </form>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <!-- ===== TRANSFER MODAL ===== -->
+    <div class="modal fade" id="transferModal" tabindex="-1" aria-hidden="true">
+      <div class="modal-dialog modal-dialog-centered">
+        <div class="modal-content border-0 shadow-lg" style="background:#0d1b2a; color:#e0f0ff; border-radius:16px;">
+          <div class="modal-header border-0 pb-0">
+            <h5 class="modal-title fw-bold" style="color:#f0c040;">🔄 Transfer Balance</h5>
+            <button type="button" class="btn-close btn-close-white" data-bs-dismiss="modal"></button>
+          </div>
+          <div class="modal-body pt-3">
+            <form id="transferForm" onsubmit="handleTransferSubmit(event)">
+              <div class="mb-3">
+                <label class="form-label fw-semibold" style="color:#a0c4ff;">From Account</label>
+                <select name="fromAccount" id="accTransferFrom" class="form-select" style="background:#162032;color:#e0f0ff;border-color:#1e3a5f;" required>
+                  <option value="">-- Select Source --</option>
+                </select>
+              </div>
+              <div class="mb-3">
+                <label class="form-label fw-semibold" style="color:#a0c4ff;">To Account</label>
+                <select name="toAccount" id="accTransferTo" class="form-select" style="background:#162032;color:#e0f0ff;border-color:#1e3a5f;" required>
+                  <option value="">-- Select Destination --</option>
+                </select>
+              </div>
+              <div class="mb-3">
+                <label class="form-label fw-semibold" style="color:#a0c4ff;">Amount (৳)</label>
+                <input type="number" name="amount" class="form-control" style="background:#162032;color:#e0f0ff;border-color:#1e3a5f;" placeholder="0" min="1" step="0.01" required>
+              </div>
+              <div class="mb-3">
+                <label class="form-label fw-semibold" style="color:#a0c4ff;">Date</label>
+                <input type="date" name="date" class="form-control" style="background:#162032;color:#e0f0ff;border-color:#1e3a5f;" required>
+              </div>
+              <div class="mb-4">
+                <label class="form-label fw-semibold" style="color:#a0c4ff;">Notes (optional)</label>
+                <input type="text" name="notes" class="form-control" style="background:#162032;color:#e0f0ff;border-color:#1e3a5f;" placeholder="e.g. Internal Transfer">
+              </div>
+              <div class="d-flex gap-2 justify-content-end">
+                <button type="button" class="btn btn-outline-secondary" data-bs-dismiss="modal">Cancel</button>
+                <button type="submit" class="btn fw-bold px-4" style="background:#f0c040;color:#000;">🔄 Transfer</button>
+              </div>
+            </form>
+          </div>
+        </div>
+      </div>
+    </div>
+  `;
+
+  // Inject into body
+  const wrapper = document.createElement('div');
+  wrapper.innerHTML = modalHTML;
+  document.body.appendChild(wrapper);
+  console.log('✅ Account modals injected into DOM');
+})();
+
 function renderAccountList() {
   const container = document.getElementById('accountTableBody');
   const noAccountsMsg = document.getElementById('noAccountsMessage');
@@ -658,11 +789,11 @@ function applyFinanceToBankAccount(entry) {
       for (let i = 0; i < arguments.length; i++) {
         try {
           if (typeof applyFinanceToBankAccount === 'function') applyFinanceToBankAccount(arguments[i]);
-        } catch(hookErr) { console.warn('Finance hook error:', hookErr); }
+        } catch (hookErr) { console.warn('Finance hook error:', hookErr); }
       }
       return originalPush(...arguments);
     };
-  } catch(e) { console.warn('⚠️ hookFinanceSave failed:', e); }
+  } catch (e) { console.warn('⚠️ hookFinanceSave failed:', e); }
 })();
 
 
@@ -675,45 +806,52 @@ document.addEventListener('DOMContentLoaded', () => {
    FINAL BANK ACCOUNT RECONCILIATION SYSTEM
    ========================================================= */
 
-/* 🔁 Rebuild ALL bank balances from finance data */
+/* 🔁 Rebuild ALL account balances from finance data */
 function rebuildBankBalancesFromFinance() {
-  if (!globalData.bankAccounts || !globalData.finance) return;
+  // finance-engine.js loaded থাকলে সেটাই সব করবে (canonical, consistent)
+  if (typeof window.feRebuildAllBalances === 'function') {
+    window.feRebuildAllBalances();
+    if (typeof saveToStorage === 'function') saveToStorage(true);
+    if (typeof updateDashboardBankBalance === 'function') updateDashboardBankBalance();
+    console.log('🔄 rebuildBankBalancesFromFinance → delegated to feRebuildAllBalances');
+    return;
+  }
 
-  // Reset all balances to 0
-  globalData.bankAccounts.forEach(acc => {
-    acc.balance = 0;
+  // ── Fallback (finance-engine.js not yet loaded) ──
+  const gd = window.globalData || {};
+  if (!gd.finance) return;
+
+  const startBalances = (gd.settings && gd.settings.startBalances) || {};
+
+  // Reset to startBalances
+  (gd.bankAccounts || []).forEach(acc => {
+    acc.balance = parseFloat(startBalances[acc.name]) || 0;
+  });
+  (gd.mobileBanking || []).forEach(acc => {
+    acc.balance = parseFloat(startBalances[acc.name]) || 0;
   });
 
-  // Apply all finance entries
-  globalData.finance.forEach(entry => {
-    if (!entry.method || !entry.amount) return;
+  // Canonical lists — must match finance-engine.js
+  const MONEY_IN  = ['Income', 'Loan Received', 'Loan Receiving', 'Transfer In', 'Registration', 'Refund'];
+  const MONEY_OUT = ['Expense', 'Loan Given', 'Loan Giving', 'Salary', 'Rent', 'Utilities', 'Transfer Out'];
 
-    const account = globalData.bankAccounts.find(
-      acc => acc.name === entry.method
-    );
+  (gd.finance || []).forEach(entry => {
+    if (entry._deleted || !entry.method || !entry.amount) return;
+    let account = (gd.bankAccounts || []).find(acc => acc.name === entry.method);
+    if (!account) account = (gd.mobileBanking || []).find(acc => acc.name === entry.method);
     if (!account) return;
-
     const amount = parseFloat(entry.amount) || 0;
-
-    if (entry.type === 'Income' || entry.type === 'Loan Received' || entry.type === 'Loan Receiving') {
-      account.balance += amount;
-    }
-
-    if (
-      entry.type === 'Expense' ||
-      entry.type === 'Loan Given' ||
-      entry.type === 'Salary' ||
-      entry.type === 'Rent' ||
-      entry.type === 'Utilities'
-    ) {
-      account.balance -= amount;
-    }
+    if (MONEY_IN.includes(entry.type))       account.balance += amount;
+    else if (MONEY_OUT.includes(entry.type)) account.balance -= amount;
   });
 
-  saveToStorage(true);
-  updateDashboardBankBalance();
+  if (typeof recalculateCashBalanceFromTransactions === 'function') {
+    recalculateCashBalanceFromTransactions();
+  }
 
-  console.log('🔄 Bank balances rebuilt from finance');
+  if (typeof saveToStorage === 'function') saveToStorage(true);
+  if (typeof updateDashboardBankBalance === 'function') updateDashboardBankBalance();
+  console.log('🔄 All account balances (Bank & Mobile) rebuilt from finance');
 }
 
 /* 🔃 Auto rebuild on app load */
@@ -757,32 +895,11 @@ document.addEventListener('DOMContentLoaded', () => {
     });
   }
 
-  // Helper function to populate payment method dropdowns
+  // Helper function to populate payment method dropdowns (now centralized in ledger-render.js)
   function populatePaymentDropdownsNow() {
-    ['studentMethodSelect', 'financeMethodSelect', 'examPaymentMethodSelect'].forEach(id => {
-      const select = document.getElementById(id);
-      if (!select) return;
-
-      select.innerHTML = '<option value="">Select Payment Method</option>';
-
-      const addOpt = (value, label) => {
-        const opt = document.createElement('option');
-        opt.value = value;
-        opt.textContent = label;
-        select.appendChild(opt);
-      };
-
-      const cashBal = parseFloat(globalData.cashBalance) || 0;
-      addOpt('Cash', `💵 Cash  —  ৳${formatNumber(cashBal)}`);
-      (globalData.bankAccounts || []).forEach(b => {
-        const bal = parseFloat(b.balance) || 0;
-        addOpt(b.name, `🏦 ${b.name}  —  ৳${formatNumber(bal)}`);
-      });
-      (globalData.mobileBanking || []).forEach(m => {
-        const bal = parseFloat(m.balance) || 0;
-        addOpt(m.name, `📱 ${m.name}  —  ৳${formatNumber(bal)}`);
-      });
-    });
+    if (typeof window.populateDropdowns === 'function') {
+      window.populateDropdowns();
+    }
   }
 
   // Expose globally

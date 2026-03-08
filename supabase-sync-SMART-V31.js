@@ -61,6 +61,11 @@
     employees: localStorage.getItem('wf_lastpull_employees') || null,
   };
 
+  // ── Sync Cooldown (Delete Protection) ─────────────────────
+  let _lastDeleteCount = parseInt(localStorage.getItem('wings_total_deleted') || '0');
+  let _lastDeleteTime = 0;
+  const DELETE_COOLDOWN_MS = 180000; // 3 minutes
+
   // ── পুরোনো tables support আছে কিনা flag ──────────────────
   let _partialTablesReady = false; // Supabase এ wf_students আছে কিনা
 
@@ -105,7 +110,7 @@
       supabaseClient = window.supabase.createClient(SUPABASE_URL, SUPABASE_KEY);
       localVersion = parseInt(localStorage.getItem('wings_local_version')) || 0;
       isInitialized = true;
-      log('✅', `V31 Initialized (v${localVersion})`);
+      log('✅', `V31.2 Initialized (v${localVersion})`);
       return true;
     } catch (e) { log('❌', 'Init failed:', e); return false; }
   }
@@ -218,6 +223,11 @@
       loans: gd.loans || [],
       id_cards: gd.idCards || [],
       notices: gd.notices || [],
+      // ✅ CRITICAL: Partial push হলেও academy_data তে main arrays আপডেট করো
+      // নাহলে অন্য PC পুল করলে পুরোনো ডাটা পাবে।
+      students: gd.students || [],
+      finance: gd.finance || [],
+      employees: gd.employees || [],
       version: localVersion,
       last_updated: new Date().toISOString(),
       last_device: DEVICE_ID,
@@ -231,7 +241,7 @@
       .upsert(metaPayload);
 
     if (error) { log('❌', 'Meta push error:', error); throw error; }
-    log('✅', `Meta pushed v${localVersion}`);
+    log('✅', `Meta pushed v${localVersion} (including arrays)`);
   }
 
   // ═══════════════════════════════════════════════════════════
@@ -293,11 +303,74 @@
     }
 
     if (anyUpdate) {
+      // ✅ TRASH FILTER: Pull করার পর Trash এ থাকা ডাটাগুলো ফিল্টার করো
+      _applyTrashFilter(gd);
       _save();
       if (typeof window.renderFullUI === 'function') window.renderFullUI();
     }
 
     return anyUpdate;
+  }
+
+  // ✅ Helper: Trash এ থাকা আইটেমগুলো মেইন লিস্ট থেকে সরাও
+  function _applyTrashFilter(gd) {
+    if (!gd || !Array.isArray(gd.deletedItems) || gd.deletedItems.length === 0) return;
+
+    const trashedIds = new Set();
+    gd.deletedItems.forEach(d => {
+      if (d.item) {
+        if (d.item.id) trashedIds.add(String(d.item.id));
+        if (d.item._id) trashedIds.add(String(d.item._id));
+        if (d.item.id_card_no) trashedIds.add(String(d.item.id_card_no));
+        if (d.item.studentId) trashedIds.add(String(d.item.studentId));
+        if (d.item.rowIndex !== undefined) trashedIds.add(String(d.item.rowIndex));
+      }
+    });
+
+    if (trashedIds.size === 0) return;
+
+    const beforeLen = (gd.students?.length || 0) + (gd.finance?.length || 0) + (gd.notices?.length || 0);
+
+    // Filter Students
+    if (Array.isArray(gd.students)) {
+      gd.students = gd.students.filter(s => !trashedIds.has(String(s.id)) && !trashedIds.has(String(s.rowIndex)) && !trashedIds.has(String(s._id)) && !trashedIds.has(String(s.studentId)));
+    }
+    // Filter Finance
+    if (Array.isArray(gd.finance)) {
+      gd.finance = gd.finance.filter(f => !trashedIds.has(String(f.id)) && !trashedIds.has(String(f._id)));
+    }
+    // Filter Employees
+    if (Array.isArray(gd.employees)) {
+      gd.employees = gd.employees.filter(e => !trashedIds.has(String(e.id)) && !trashedIds.has(String(e._id)));
+    }
+    // Filter Notices
+    if (Array.isArray(gd.notices)) {
+      gd.notices = gd.notices.filter(n => !trashedIds.has(String(n.id)) && !trashedIds.has(String(n._id)));
+    }
+    if (Array.isArray(gd.noticeBoard)) {
+      gd.noticeBoard = gd.noticeBoard.filter(n => !trashedIds.has(String(n.id)) && !trashedIds.has(String(n._id)));
+    }
+    // Filter Exam Registrations
+    if (Array.isArray(gd.examRegistrations)) {
+      gd.examRegistrations = gd.examRegistrations.filter(r => !trashedIds.has(String(r.id)) && !trashedIds.has(String(r._id)));
+    }
+    // Filter Visitors
+    if (Array.isArray(gd.visitors)) {
+      gd.visitors = gd.visitors.filter(v => !trashedIds.has(String(v.id)) && !trashedIds.has(String(v._id)));
+    }
+    // Filter Keep Records
+    if (Array.isArray(gd.keepRecords)) {
+      gd.keepRecords = gd.keepRecords.filter(r => !trashedIds.has(String(r.id)) && !trashedIds.has(String(r._id)));
+    }
+    // Filter Breakdown Records
+    if (Array.isArray(gd.breakdownRecords)) {
+      gd.breakdownRecords = gd.breakdownRecords.filter(r => !trashedIds.has(String(r.id)) && !trashedIds.has(String(r._id)));
+    }
+
+    const afterLen = (gd.students?.length || 0) + (gd.finance?.length || 0) + (gd.notices?.length || 0);
+    if (beforeLen !== afterLen) {
+      log('🛡️', `Trash Filter: Removed ${beforeLen - afterLen} trashed items from pulled data`);
+    }
   }
 
   async function _fetchSince(tableName, sinceTimestamp) {
@@ -394,6 +467,39 @@
 
     isPushing = true;
     try {
+      // ✅ Race condition check BEFORE pushing
+      const { data: cloudMeta } = await supabaseClient
+        .from(TABLE_NAME).select('version').eq('id', RECORD_ID).single();
+
+      if (cloudMeta && parseInt(cloudMeta.version) > localVersion) {
+        // ✅ Infinite Loop Prevention: Check if we are in delete cooldown
+        const currentDelCount = parseInt(localStorage.getItem('wings_total_deleted') || '0');
+        if (currentDelCount > _lastDeleteCount) {
+          _lastDeleteCount = currentDelCount;
+          _lastDeleteTime = Date.now();
+        }
+        const isCooldownActive = (_lastDeleteTime > 0 && (Date.now() - _lastDeleteTime) < DELETE_COOLDOWN_MS);
+
+        if (isCooldownActive) {
+          log('🛡️', `Cloud v${cloudMeta.version} > Local v${localVersion}, but delete cooldown is active. Pausing push to avoid loop & data restore.`);
+          isPushing = false;
+          // Schedule a retry after cooldown ends (e.g. 3 mins from last delete)
+          const remaining = Math.max(5000, DELETE_COOLDOWN_MS - (Date.now() - _lastDeleteTime));
+          setTimeout(() => { if (window.wingsSync) window.wingsSync.pushNow('Retry post-cooldown'); }, remaining + 1000);
+          return false;
+        }
+
+        log('🔄', `Cloud version (${cloudMeta.version}) > Local (${localVersion}) — pulling first`);
+        isPushing = false; // Release lock
+        const pullSuccess = await pullFromCloud(true);
+        if (!pullSuccess) {
+          log('❌', 'Pull failed or skipped. Cannot push safely. Breaking retry loop.');
+          return false;
+        }
+        // Pull updates localVersion, so we need to restart push
+        return pushToCloud(reason + ' [re-try after pull]');
+      }
+
       localVersion++;
       localStorage.setItem('wings_local_version', String(localVersion));
 
@@ -436,6 +542,20 @@
   async function pullFromCloud(silent = false) {
     if (!isInitialized && !initialize()) return false;
     if (isPulling) return false;
+
+    // ✅ CRITICAL: Recent delete হলে sync pull skip করো
+    // ডিলিটের পরে push হচ্ছে, এই সময় pull করলে পুরনো ডাটা ফিরে আসবে
+    const currentDelCount = parseInt(localStorage.getItem('wings_total_deleted') || '0');
+    if (currentDelCount > _lastDeleteCount) {
+      _lastDeleteCount = currentDelCount;
+      _lastDeleteTime = Date.now();
+      log('🛡️', 'Local delete detected — activating sync cooldown');
+    }
+    if (_lastDeleteTime > 0 && (Date.now() - _lastDeleteTime) < DELETE_COOLDOWN_MS) {
+      if (!silent) log('🛡️', 'Sync pull skipped due to recent delete cooldown');
+      return false;
+    }
+
     isPulling = true;
 
     try {
@@ -479,42 +599,106 @@
           });
         }
 
+        // ✅ FIX: activeNotice — local delete কে priority দাও
+        // যদি locally activeNotice মুছে ফেলা হয়ে থাকে, cloud এর পুরনো notice ফিরে আসবে না
+        const localActiveNotice = gd.settings?.activeNotice;
+        const localNoticeCache = localStorage.getItem('wingsfly_notice_board');
+        if (!localActiveNotice && !localNoticeCache) {
+          // Locally notice deleted — cloud notice কে ignore করো
+          delete mergedSettings.activeNotice;
+        }
+
         const usersBackup = (() => {
           try { return JSON.parse(localStorage.getItem('wingsfly_users_backup') || 'null'); } catch (e) { return null; }
         })();
 
-        // ✅ FIX: academy_data কে BASE হিসেবে ব্যবহার করো
-        // wf_* tables শুধু newer/updated records যোগ করবে অথবা override করবে
-        // এটা prevent করে wf_* tables-এ থাকা পুরোনো/ভুল data দিয়ে সঠিক data মুছে যাওয়া
+        // ✅ V32-FIX: MERGE strategy — local is source of truth, delete protected
+        // Cloud pull এ local নতুন data হারাবে না, recycle bin items ফিরে আসবে না
+
+        // সব deleted IDs collect করো (local + cloud উভয় recycle bin থেকে)
+        // NOTE: recycle-bin-fix এ deletedItems এর structure:
+        // { id: 'TRASH_...', type: 'Student', item: { id/studentId/_id/rowIndex/... } }
+        // তাই এখানে d.item থেকেই আসল entity IDs নিতে হবে, d.id নয়।
+        const _deletedIds = new Set((() => {
+          const ids = [];
+          function _extract(list) {
+            (list || []).forEach(d => {
+              const item = d && (d.item || d);
+              if (!item) return;
+              [
+                item.id,
+                item._id,
+                item.studentId,
+                item.id_card_no,
+                item.rowIndex
+              ]
+                .filter(v => v !== undefined && v !== null && v !== '')
+                .forEach(v => ids.push(String(v)));
+            });
+          }
+          _extract(gd.deletedItems);
+          _extract(data.deleted_items);
+          return ids;
+        })());
+
+        // MERGE: Cloud base + Local override, deleted items বাদ
+        function _mergeArr(localArr, cloudArr, idFn) {
+          const map = new Map();
+          (cloudArr || []).forEach(item => { const id = idFn(item); if (id && !_deletedIds.has(id)) map.set(id, item); });
+          (localArr || []).forEach(item => { const id = idFn(item); if (!_deletedIds.has(id || '')) { if (id) map.set(id, item); else map.set('_' + Math.random(), item); } });
+          return Array.from(map.values());
+        }
+
         window.globalData = Object.assign(gd, {
-          students: data.students || gd.students || [],  // academy_data is base
-          employees: data.employees || gd.employees || [],
-          finance: data.finance || gd.finance || [],
+          // ✅ MERGE: local override cloud, deleted items বাদ
+          students: _mergeArr(gd.students, data.students, s => String(s.studentId || s.id || s._id || '')),
+          finance: _mergeArr(gd.finance, data.finance, f => String(f.id || f._id || f.timestamp || '')),
+          employees: _mergeArr(gd.employees, data.employees, e => String(e.id || e._id || e.employeeId || '')),
           settings: mergedSettings,
-          incomeCategories: data.income_categories || [],
-          expenseCategories: data.expense_categories || [],
-          paymentMethods: data.payment_methods || [],
-          cashBalance: data.cash_balance || 0,
-          bankAccounts: data.bank_accounts || [],
-          mobileBanking: data.mobile_banking || [],
-          courseNames: data.course_names || [],
-          attendance: data.attendance || {},
-          nextId: data.next_id || 1001,
-          users: (usersBackup && usersBackup.length > 0) ? usersBackup : (data.users || []),
-          examRegistrations: data.exam_registrations || [],
-          visitors: data.visitors || [],
-          employeeRoles: data.employee_roles || [],
-          deletedItems: data.deleted_items || gd.deletedItems || [],
-          activityHistory: data.activity_history || gd.activityHistory || [],
-          keepRecords: data.keep_records || [],
-          loans: data.loans || [],
-          idCards: data.id_cards || [],
-          notices: data.notices || [],
+          incomeCategories: data.income_categories || gd.incomeCategories || [],
+          expenseCategories: data.expense_categories || gd.expenseCategories || [],
+          paymentMethods: data.payment_methods || gd.paymentMethods || [],
+          cashBalance: data.cash_balance ?? gd.cashBalance ?? 0,
+          bankAccounts: data.bank_accounts || gd.bankAccounts || [],
+          mobileBanking: data.mobile_banking || gd.mobileBanking || [],
+          courseNames: data.course_names || gd.courseNames || [],
+          attendance: data.attendance || gd.attendance || {},
+          nextId: data.next_id || gd.nextId || 1001,
+          users: (() => {
+            const map = new Map();
+            (data.users || []).forEach(u => { if (u.username) map.set(u.username.toLowerCase(), u); });
+            (usersBackup || []).forEach(u => { if (u.username) map.set(u.username.toLowerCase(), u); });
+            return Array.from(map.values());
+          })(),
+          examRegistrations: data.exam_registrations || gd.examRegistrations || [],
+          visitors: data.visitors || gd.visitors || [],
+          employeeRoles: data.employee_roles || gd.employeeRoles || [],
+          // ✅ MERGE: Local + Cloud trash — কোনো delete হারাবে না
+          deletedItems: (() => {
+            const map = new Map();
+            (data.deleted_items || []).forEach(item => { if (item && item.id) map.set(String(item.id), item); });
+            (gd.deletedItems || []).forEach(item => { if (item && item.id) map.set(String(item.id), item); });
+            return Array.from(map.values()).sort((a, b) => new Date(b.deletedAt) - new Date(a.deletedAt)).slice(0, 300);
+          })(),
+          activityHistory: (() => {
+            const map = new Map();
+            (data.activity_history || []).forEach(item => { if (item && item.id) map.set(String(item.id), item); });
+            (gd.activityHistory || []).forEach(item => { if (item && item.id) map.set(String(item.id), item); });
+            return Array.from(map.values()).sort((a, b) => new Date(b.timestamp) - new Date(a.timestamp)).slice(0, 500);
+          })(),
+          keepRecords: data.keep_records || gd.keepRecords || [],
+          loans: data.loans || gd.loans || [],
+          idCards: data.id_cards || gd.idCards || [],
+          notices: data.notices || gd.notices || [],
         });
 
         localVersion = cloudVersion;
         localStorage.setItem('wings_local_version', String(cloudVersion));
         localStorage.setItem('lastSyncTime', String(cloudTimestamp));
+
+        // ✅ TRASH FILTER: ক্লাউড থেকে ডাটা আসার পর Trash এ থাকা আইটেমগুলো সরাও
+        if (typeof _applyTrashFilter === 'function') _applyTrashFilter(window.globalData);
+
         _save();
 
         // ✅ FIX: Full sync এর সময় wf_* merge করব না!
@@ -695,7 +879,7 @@
     // saveToStorage patch (dirty tracking এর জন্য)
     _patchSaveToStorage();
 
-    log('🚀', `V31 Sync ready | partial=${_partialTablesReady}`);
+    log('🚀', `V31.2 Sync ready | partial=${_partialTablesReady}`);
     showNotification('🔄 Sync ready', 'success');
   }
 

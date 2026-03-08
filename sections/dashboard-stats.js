@@ -39,47 +39,47 @@ function updateGlobalStats() {
     if (titleEl) titleEl.innerText = globalData.settings.academyName;
   }
 
-  // Monthly Income Calculation
-  const currentMonth = new Date().getMonth();
-  const currentYear = new Date().getFullYear();
-  let monthIncome = 0;
+  // ── CANONICAL RULES (finance-engine.js এর সাথে sync) ──
+  // Loan Received / Loan Given  → Account-এ যায়, Income/Expense count হয় না
+  // Transfer In / Transfer Out  → Account move, Income/Expense count হয় না
+  // Income / Registration / Refund → Income stats
+  // Expense / Salary / Rent / Utilities → Expense stats
+  const STAT_INCOME_TYPES  = typeof window.FE_STAT_INCOME  !== 'undefined' ? window.FE_STAT_INCOME  : ['Income', 'Registration', 'Refund'];
+  const STAT_EXPENSE_TYPES = typeof window.FE_STAT_EXPENSE !== 'undefined' ? window.FE_STAT_EXPENSE : ['Expense', 'Salary', 'Rent', 'Utilities'];
 
-  // Calculate Income from Students array (Source of truth for collections)
-  const totalStudentIncome = (globalData.students || []).reduce((sum, s) => sum + (parseFloat(s.paid) || 0), 0);
-
-  // Calculate Other Income, Exam Income, and Total Expense from finance transactions
-  let nonStudentIncome = 0;
+  // ✅ FIX: সব income/expense finance entries থেকে calculate করো
+  // students.paid থেকে নয় — কারণ account balance finance entries থেকে rebuild হয়
+  // দুটো আলাদা source থেকে calculate করলে mismatch হয়
+  let totalStudentIncome = 0;
   let totalExamIncome = 0;
+  let nonStudentIncome = 0;
+
   (globalData.finance || []).forEach(f => {
+    if (f._deleted) return;
     const amt = parseFloat(f.amount) || 0;
     const cat = (f.category || '').toLowerCase();
     const desc = (f.description || '').toLowerCase();
 
-    // ⛔ EXPLICIT LOAN EXCLUSION: Only process 'Income' and 'Expense' types
-    if (f.type === 'Income') {
+    if (STAT_INCOME_TYPES.includes(f.type)) {
       const isExamRelated = cat.includes('exam') || desc.includes('exam fee') || desc.includes('exam reg');
+      const isStudentRelated = cat.includes('student') || cat.includes('installment') ||
+        cat.includes('admission') || cat.includes('fee') ||
+        desc.includes('installment') || desc.includes('enrollment fee');
 
-      const isStudentRelated = cat.includes('student') ||
-        cat.includes('installment') ||
-        cat.includes('admission') ||
-        cat.includes('fee') ||
-        desc.includes('installment') ||
-        desc.includes('enrollment fee');
+      if (isExamRelated)             totalExamIncome += amt;
+      else if (isStudentRelated)     totalStudentIncome += amt;  // ✅ student entries count হবে
+      else                           nonStudentIncome += amt;
 
-      if (isExamRelated) {
-        totalExamIncome += amt;
-      } else if (!isStudentRelated) {
-        nonStudentIncome += amt;
-      }
-    } else if (f.type === 'Expense') {
+    } else if (STAT_EXPENSE_TYPES.includes(f.type)) {
       expense += amt;
     }
+    // Loan, Transfer → account balance-এ যায়, income/expense না
   });
 
-  // Display Total for the 'Student Collection' card (as requested: "Total Income only from students")
+  // Display Total for the 'Student Collection' card
   income = totalStudentIncome;
 
-  // Overall Income for Profit calculation (everything)
+  // Overall Income for Profit calculation (Student + Exam + Other)
   const overallIncome = totalStudentIncome + totalExamIncome + nonStudentIncome;
   const profit = overallIncome - expense;
 
@@ -116,6 +116,22 @@ function updateGlobalStats() {
       dashProfitEl.className = "av-card-value value-red";
       if (dashProfitStatus) dashProfitStatus.innerText = "Net Loss";
     }
+  }
+
+  // --- NEW: Account Balance (Asset) Display ---
+  const totalAssets = (parseFloat(globalData.cashBalance) || 0) +
+    (globalData.bankAccounts || []).reduce((s, a) => s + (parseFloat(a.balance) || 0), 0) +
+    (globalData.mobileBanking || []).reduce((s, a) => s + (parseFloat(a.balance) || 0), 0);
+
+  const dashAssetEl = document.getElementById('dashTotalAssets');
+  if (dashAssetEl) {
+    animateCount(dashAssetEl, totalAssets, '৳', false, 1100);
+  }
+
+  // Debug: reconciliation log in console
+  const startBal = (globalData.settings?.startBalances?.Cash || 0);
+  if (Math.abs(totalAssets - (profit + startBal)) > 10) {
+    console.info(`[Stats] Assets(৳${totalAssets}) vs Profit+Start(৳${profit + startBal}) Gap: ৳${totalAssets - (profit + startBal)}`);
   }
 
   // Update New Dashboard Widgets
@@ -201,16 +217,17 @@ function updateTargetProgress() {
   const targetStart = document.getElementById('targetStartDate')?.value;
   const targetEnd = document.getElementById('targetEndDate')?.value;
 
-  // Calculate income within range
-  const filteredIncome = globalData.finance
-    .filter(f => {
-      // Logic for income: explicitly marked Income, Student Fee, or Transfer In
-      const isIncome = (f.type === 'Income' || f.category === 'Student Fee' || f.type === 'Transfer In');
-      if (!isIncome) return false;
+  // ── Canonical Income types only (Loan / Transfer বাদ) ──
+  const STAT_INCOME_TYPES = typeof window.FE_STAT_INCOME !== 'undefined'
+    ? window.FE_STAT_INCOME
+    : ['Income', 'Registration', 'Refund'];
 
+  const filteredIncome = (globalData.finance || [])
+    .filter(f => {
+      if (f._deleted) return false;
+      if (!STAT_INCOME_TYPES.includes(f.type)) return false;
       if (targetStart && f.date < targetStart) return false;
       if (targetEnd && f.date > targetEnd) return false;
-
       return true;
     })
     .reduce((sum, f) => sum + parseFloat(f.amount || 0), 0);

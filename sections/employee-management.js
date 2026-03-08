@@ -257,31 +257,41 @@ function openEditEmployeeModal(id) {
 
 window.openEditEmployeeModal = openEditEmployeeModal;
 
+// ── Delete ──
+
 async function deleteEmployee(id) {
   // Log before delete
   const empToDelete = (window.globalData.employees || []).find(e => e.id == id);
-  if (empToDelete) {
-    if (typeof moveToTrash === 'function') moveToTrash('employee', empToDelete);
-    if (typeof logActivity === 'function') logActivity('employee', 'DELETE',
-      'Employee deleted: ' + (empToDelete.name || 'Unknown') + ' | Role: ' + (empToDelete.role || '-'), empToDelete);
-  }
+  if (!empToDelete) return;
+
   if (confirm('Are you sure you want to remove this employee?')) {
-    globalData.employees = globalData.employees.filter(e => String(e.id) !== String(id));
+    // 0. Move to Trash
+    if (typeof moveToTrash === 'function') moveToTrash('employee', empToDelete);
 
-    // CRITICAL: Update timestamp and force immediate sync
-    const currentTime = new Date().toISOString();
-    localStorage.setItem('lastLocalUpdate', currentTime);
-    localStorage.setItem('wingsfly_data', JSON.stringify(globalData));
-
-    if (typeof window.scheduleSyncPush === 'function') {
-      window.scheduleSyncPush('Employee delete');
-    } else if (typeof window.saveToCloud === 'function') {
-      console.log('🚀 Forcing immediate employee deletion sync to cloud...');
-      await window.saveToCloud();
+    // 1. Log Activity
+    if (typeof logActivity === 'function') {
+      logActivity('employee', 'DELETE',
+        'Employee deleted: ' + (empToDelete.name || 'Unknown') + ' | Role: ' + (empToDelete.role || '-'), empToDelete);
     }
 
+    // 2. Remove from globalData
+    globalData.employees = globalData.employees.filter(e => String(e.id) !== String(id));
+
+    // 3. Save locally first (Skip cloud push to handle manually)
+    if (typeof saveToStorage === 'function') {
+      saveToStorage(true);
+    } else {
+      localStorage.setItem('wingsfly_data', JSON.stringify(globalData));
+    }
+
+    // 4. Force cloud sync
+    if (typeof window.scheduleSyncPush === 'function') {
+      window.scheduleSyncPush('Employee delete: ' + (empToDelete.name || 'Unknown'));
+    }
+
+    // 5. Refresh UI
     renderEmployeeList();
-    showSuccessToast('Employee removed.');
+    showSuccessToast('Employee removed & moved to trash.');
   }
 }
 

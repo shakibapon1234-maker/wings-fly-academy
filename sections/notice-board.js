@@ -194,8 +194,29 @@ function openNoticeModal() {
     };
   }
 
-  const modal = bootstrap.Modal.getOrCreateInstance(document.getElementById('noticeBoardModal'));
-  modal.show();
+  // Modal খোলো
+  try {
+    var modalEl = document.getElementById('noticeBoardModal');
+    if (!modalEl) {
+      console.warn('[NoticeBoard] noticeBoardModal element পাওয়া যায়নি — index.html check করুন');
+      return;
+    }
+    if (typeof bootstrap !== 'undefined' && bootstrap.Modal) {
+      var modal = bootstrap.Modal.getOrCreateInstance(modalEl);
+      modal.show();
+    } else {
+      // Bootstrap fallback
+      modalEl.style.display = 'block';
+      modalEl.classList.add('show');
+      document.body.classList.add('modal-open');
+      var backdrop = document.createElement('div');
+      backdrop.className = 'modal-backdrop fade show';
+      backdrop.id = '_noticeBackdrop';
+      document.body.appendChild(backdrop);
+    }
+  } catch (e) {
+    console.error('[NoticeBoard] Modal open error:', e);
+  }
 }
 
 function toggleCustomDuration() {
@@ -295,11 +316,35 @@ function publishNotice() {
   noticeToast(`✅ নোটিস প্রকাশিত! মেয়াদ: ${dLabel}`, 'success');
 }
 function deleteNotice() {
+  // Notice board এর activeNotice delete (settings এ stored)
+  // recycle-bin-fix এর deleteNotice patch Notice array এর জন্য
+  // এটা শুধু activeNotice/banner clear করে
   _noticeSave(null);
   hideNoticeBanner();
   closeNoticeModal();
+
+  // ✅ FIX: Delete cooldown trigger — sync pull যেন পুরনো notice ফেরত না আনে
+  try {
+    var _delCount = parseInt(localStorage.getItem('wings_total_deleted') || '0') + 1;
+    localStorage.setItem('wings_total_deleted', _delCount.toString());
+  } catch (e) { }
+
   noticeToast('🗑️ নোটিস মুছে ফেলা হয়েছে', 'success');
 }
+// deleteActiveNotice = banner notice clear করার alias
+window.deleteActiveNotice = function () {
+  _noticeSave(null);
+  hideNoticeBanner();
+  closeNoticeModal();
+
+  // ✅ FIX: Delete cooldown trigger
+  try {
+    var _delCount = parseInt(localStorage.getItem('wings_total_deleted') || '0') + 1;
+    localStorage.setItem('wings_total_deleted', _delCount.toString());
+  } catch (e) { }
+
+  noticeToast('🗑️ নোটিস মুছে ফেলা হয়েছে', 'success');
+};
 
 // Auto-init when DOM ready
 document.addEventListener('DOMContentLoaded', function () {
@@ -479,3 +524,10 @@ window.updateCountdown = updateCountdown;
 window.noticeToast = noticeToast;
 window.closeNoticeModal = closeNoticeModal;
 window.refreshNoticeBoardOnLogin = refreshNoticeBoardOnLogin;
+
+// Modal Interactions
+window.openNoticeModal = openNoticeModal;
+window.toggleCustomDuration = toggleCustomDuration;
+window.previewNotice = previewNotice;
+window.publishNotice = publishNotice;
+window.deleteNotice = deleteNotice;

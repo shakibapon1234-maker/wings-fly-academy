@@ -148,6 +148,10 @@
     // 2. Add Transaction / Finance
     window.openAddTransaction = window.openFinanceModal = function (type) {
       loadAndOpen('__modalPlaceholderOther', 'sections/modals.html', 'financeModal', function () {
+        // ✅ FIX: Populate dropdowns (centralized in ledger-render.js)
+        if (typeof window.populateDropdowns === 'function') {
+          setTimeout(window.populateDropdowns, 100);
+        }
         if (typeof window.updateFinanceCategoryOptions === 'function') {
           if (type) {
             const typeSelect = document.querySelector('#financeModal select[name="type"]');
@@ -155,25 +159,81 @@
               typeSelect.value = type.charAt(0).toUpperCase() + type.slice(1);
               window.updateFinanceCategoryOptions();
             }
+          } else {
+            window.updateFinanceCategoryOptions();
           }
+        }
+        // ✅ Re-attach listener for subsequent opens
+        const fm = document.getElementById('financeModal');
+        if (fm && typeof window.populateDropdowns === 'function') {
+          fm.addEventListener('show.bs.modal', window.populateDropdowns);
         }
       });
     };
 
-    // 3. Student
-    window.openStudentModal = function (id) {
-      loadAndOpen('__modalPlaceholderOther', 'sections/modals-student.html', 'studentModal', function () {
-        if (typeof window.initStudentModal === 'function') window.initStudentModal(id);
-      });
+    // 3. Add Student — modal is inline in index.html, no fetch needed
+    window.openStudentModal = function () {
+      var modal = document.getElementById('studentModal');
+      if (!modal) { console.error('[SectionLoader] studentModal not found in DOM'); return; }
+      // Reset form for new student
+      var form = document.getElementById('studentForm');
+      if (form) form.reset();
+      var rowIdx = document.getElementById('studentRowIndex');
+      if (rowIdx) rowIdx.value = '';
+      var title = document.getElementById('studentModalLabel');
+      if (title) title.textContent = '👨‍🎓 Add New Student';
+      if (typeof window.populateDropdowns === 'function') setTimeout(window.populateDropdowns, 50);
+      if (typeof window.removeStudentPhoto === 'function') window.removeStudentPhoto();
+      // Set today's date
+      var enrollDate = document.getElementById('studentEnrollDate');
+      if (enrollDate && !enrollDate.value) enrollDate.value = new Date().toISOString().split('T')[0];
+      bootstrap.Modal.getOrCreateInstance(modal).show();
+    };
+
+    // 3b. Edit Student
+    window.openEditStudentModal = function (index) {
+      var modal = document.getElementById('studentModal');
+      if (!modal) { console.error('[SectionLoader] studentModal not found in DOM'); return; }
+      var students = window.globalData && window.globalData.students;
+      if (!students || !students[index]) return;
+      var s = students[index];
+      var form = document.getElementById('studentForm');
+      if (form) {
+        form.reset();
+        var rowIdx = document.getElementById('studentRowIndex');
+        if (rowIdx) rowIdx.value = index;
+        var title = document.getElementById('studentModalLabel');
+        if (title) title.textContent = '\u270f\ufe0f Edit — ' + (s.name || '');
+        // Populate fields
+        var set = function(id, val) { var el = document.getElementById(id); if (el && val !== undefined && val !== null) el.value = val; };
+        set('studentName', s.name); set('studentPhone', s.phone);
+        set('studentFatherName', s.fatherName); set('studentMotherName', s.motherName);
+        set('studentCourseSelect', s.course); set('studentBatchInput', s.batch);
+        set('studentEnrollDate', s.enrollDate); set('studentBloodGroup', s.bloodGroup);
+        set('inpTotal', s.totalPayment); set('inpPaid', s.paid); set('inpDue', s.due);
+        set('studentMethodSelect', s.method); set('studentReminderDate', s.reminderDate);
+        set('studentRemarks', s.remarks);
+        var photoInput = document.getElementById('photoURLInput');
+        if (photoInput) photoInput.value = s.photo || '';
+        if (s.photo) {
+          var preview = document.getElementById('studentPhotoPreview');
+          var removeBtn = document.getElementById('removePhotoBtn');
+          if (preview) { preview.src = s.photo; preview.style.display = 'block'; }
+          if (removeBtn) removeBtn.style.display = 'inline-block';
+        }
+        if (typeof window.populateDropdowns === 'function') setTimeout(window.populateDropdowns, 50);
+      }
+      bootstrap.Modal.getOrCreateInstance(modal).show();
     };
 
     // 4. Employee
     window.openEmployeeModal = function (id) {
-      loadAndOpen('__modalPlaceholderOther', 'sections/modals.html', 'employeeModal', function () {
-        if (typeof window.initEmployeeModal === 'function') window.initEmployeeModal(id);
-      });
-    };
+  loadAndOpen('__modalPlaceholderOther', 'sections/modals.html', 'employeeModal', function () {
+    if (typeof window.initEmployeeModal === 'function') window.initEmployeeModal(id);
+  });
+};
 
+<<<<<<< HEAD
     // 5. Exam Registration
     window.openExamRegistration = function () {
       loadAndOpen('__modalPlaceholderOther', 'sections/modals.html', 'examRegistrationModal', function () {
@@ -184,32 +244,75 @@
     // 5. & 6. Attendance & Notice Board 
     // These are handled by their respective modules (student-management.js, index.html)
     // No redundant global patching needed here.
+=======
+// 5. Attendance — handled by attendance-pro.js (AttendanceHub)
+// openAttendanceModal is defined in attendance-pro.js, do not override here
+
+// 7. Visitor
+window.openVisitorModal = function () {
+  loadAndOpen('__modalPlaceholderOther', 'sections/modals-other.html', 'visitorModal', function () {
+    if (typeof window.populateDropdowns === 'function') {
+      setTimeout(window.populateDropdowns, 100);
+    }
+    // ✅ Re-attach listener
+    const vm = document.getElementById('visitorModal');
+    if (vm && typeof window.populateDropdowns === 'function') {
+      vm.addEventListener('show.bs.modal', window.populateDropdowns);
+    }
+  });
+};
+
+// 6. Exam Registration
+window.openExamRegistration = function () {
+  loadAndOpen('__modalPlaceholderOther', 'sections/modals-other.html', 'examRegistrationModal', function () {
+    // ✅ Populate everything related to exams
+    if (typeof window.populateDropdowns === 'function') {
+      setTimeout(window.populateDropdowns, 100);
+    }
+    if (typeof window.populateExamModal === 'function') {
+      window.populateExamModal();
+    }
+    // ✅ Re-attach listener for subsequent opens
+    const em = document.getElementById('examRegistrationModal');
+    if (em && typeof window.populateDropdowns === 'function') {
+      em.addEventListener('show.bs.modal', window.populateDropdowns);
+    }
+    if (em && typeof window.populateExamModal === 'function') {
+      em.addEventListener('show.bs.modal', window.populateExamModal);
+    }
+  });
+};
+>>>>>>> origin/main
   }
 
-  function init() {
-    console.log('[SectionLoader] 🏁 Initializing System...');
-    _patchAll();
+function init() {
+  console.log('[SectionLoader] 🏁 Initializing System...');
+  _patchAll();
 
-    // Preload
-    setTimeout(() => {
-      fetch('sections/settings-modal.html?v=' + Date.now()).catch(() => { });
-    }, 5000);
+  // Preload
+  setTimeout(() => {
+    fetch('sections/settings-modal.html?v=' + Date.now()).catch(() => { });
+  }, 5000);
 
-    console.log('[SectionLoader] 🚀 System successfully initialized');
-  }
+  console.log('[SectionLoader] 🚀 System successfully initialized');
+}
 
-  if (document.readyState === 'loading') {
-    document.addEventListener('DOMContentLoaded', init);
-  } else {
-    init();
-  }
+if (document.readyState === 'loading') {
+  document.addEventListener('DOMContentLoaded', init);
+} else {
+  init();
+}
 
-  // Backup patch
-  setTimeout(_patchAll, 2000);
+// Backup patch (attendance-pro.js handles openAttendanceModal, do not re-patch)
+setTimeout(function() {
+  var savedAttModal = window.openAttendanceModal;
+  _patchAll();
+  if (savedAttModal) window.openAttendanceModal = savedAttModal;
+}, 2000);
 
-  window.sectionLoader = {
-    loadAndOpen: loadAndOpen,
-    isLoaded: id => _loaded.has(id)
-  };
+window.sectionLoader = {
+  loadAndOpen: loadAndOpen,
+  isLoaded: id => _loaded.has(id)
+};
 
-})();
+}) ();
