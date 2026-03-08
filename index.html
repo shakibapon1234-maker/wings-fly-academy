@@ -3668,10 +3668,11 @@
                 set('photoURLInput', s.photo || '');
                 set('studentCourseSelect', s.course);
 
-                // ✅ FIX: Payment Method — ensure saved value exists in options before setting
+                // ✅ FIX: Payment Method — inject option if missing, then set with case-insensitive fallback
                 var savedMethod = s.method || s.paymentMethod || '';
                 var msel = document.getElementById('studentMethodSelect');
                 if (msel && savedMethod) {
+                    // If option doesn't exist, add it dynamically
                     if (![].slice.call(msel.options).some(function (o) { return o.value === savedMethod; })) {
                         var newOpt = document.createElement('option');
                         newOpt.value = savedMethod;
@@ -3679,6 +3680,16 @@
                         msel.appendChild(newOpt);
                     }
                     msel.value = savedMethod;
+                    // Case-insensitive fallback if direct assignment didn't work
+                    if (msel.value !== savedMethod) {
+                        for (var mi = 0; mi < msel.options.length; mi++) {
+                            if (msel.options[mi].value.toLowerCase() === savedMethod.toLowerCase() ||
+                                msel.options[mi].text.toLowerCase() === savedMethod.toLowerCase()) {
+                                msel.selectedIndex = mi;
+                                break;
+                            }
+                        }
+                    }
                 }
 
                 var title = document.getElementById('studentModalLabel');

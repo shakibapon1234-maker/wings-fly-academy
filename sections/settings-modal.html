@@ -2246,3 +2246,46 @@
 </script>
 
 <!-- Keep Record - New Note Modal -->
+<div class="modal fade" id="newNoteModal" tabindex="-1" aria-labelledby="noteModalTitle" aria-hidden="true">
+  <div class="modal-dialog modal-dialog-centered modal-md">
+    <div class="modal-content" style="background:#0d1b2e; border:1px solid rgba(0,217,255,0.25); border-radius:16px; color:#e2f0ff;">
+      <div class="modal-header" style="border-bottom:1px solid rgba(0,217,255,0.15); padding:18px 24px;">
+        <h5 class="modal-title fw-bold" id="noteModalTitle" style="color:#00d9ff;">📝 নতুন নোট</h5>
+        <button type="button" class="btn-close btn-close-white" data-bs-dismiss="modal" aria-label="Close"></button>
+      </div>
+      <div class="modal-body" style="padding:24px;">
+        <input type="hidden" id="editingNoteId">
+        <div class="mb-3">
+          <label class="form-label" style="color:#7aa0c4; font-size:0.82rem; font-weight:600; text-transform:uppercase; letter-spacing:0.5px;">তারিখ</label>
+          <input type="date" id="noteDate" class="form-control"
+            style="background:rgba(255,255,255,0.05); border:1px solid rgba(0,217,255,0.2); color:#e2f0ff; border-radius:8px;">
+        </div>
+        <div class="mb-3">
+          <label class="form-label" style="color:#7aa0c4; font-size:0.82rem; font-weight:600; text-transform:uppercase; letter-spacing:0.5px;">শিরোনাম</label>
+          <input type="text" id="noteTitle" class="form-control" placeholder="নোটের শিরোনাম..."
+            style="background:rgba(255,255,255,0.05); border:1px solid rgba(0,217,255,0.2); color:#e2f0ff; border-radius:8px;">
+        </div>
+        <div class="mb-3">
+          <label class="form-label" style="color:#7aa0c4; font-size:0.82rem; font-weight:600; text-transform:uppercase; letter-spacing:0.5px;">ট্যাগ</label>
+          <input type="text" id="noteTag" class="form-control" placeholder="যেমন: গুরুত্বপূর্ণ, কাজ, ব্যক্তিগত..."
+            style="background:rgba(255,255,255,0.05); border:1px solid rgba(0,217,255,0.2); color:#e2f0ff; border-radius:8px;">
+        </div>
+        <div class="mb-3">
+          <label class="form-label" style="color:#7aa0c4; font-size:0.82rem; font-weight:600; text-transform:uppercase; letter-spacing:0.5px;">নোট <span style="color:#ff4d6d;">*</span></label>
+          <textarea id="noteContent" class="form-control" rows="5" placeholder="আপনার নোট লিখুন..."
+            style="background:rgba(255,255,255,0.05); border:1px solid rgba(0,217,255,0.2); color:#e2f0ff; border-radius:8px; resize:vertical;"></textarea>
+        </div>
+      </div>
+      <div class="modal-footer" style="border-top:1px solid rgba(0,217,255,0.15); padding:16px 24px; gap:10px;">
+        <button type="button" class="btn" data-bs-dismiss="modal"
+          style="background:rgba(255,255,255,0.07); color:#aac; border:1px solid rgba(255,255,255,0.15); border-radius:10px; padding:8px 22px; font-weight:600;">
+          বাতিল
+        </button>
+        <button type="button" onclick="saveNote()"
+          style="background:linear-gradient(135deg,#7c3aed,#00d9ff); color:#fff; border:none; border-radius:10px; padding:8px 28px; font-weight:700; cursor:pointer; font-size:0.95rem;">
+          💾 সেভ করুন
+        </button>
+      </div>
+    </div>
+  </div>
+</div>
