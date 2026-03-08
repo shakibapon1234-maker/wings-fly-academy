@@ -3400,7 +3400,7 @@
     <!-- Inline init scripts (extracted from index.html) -->
     <script src="sections/inline-scripts.js?v=20260307_2155"></script>
     <!-- Modal Lazy Loader -->
-    <script src="sections/section-loader.js?v=20260308_1920"></script>
+    <script src="sections/section-loader.js?v=20260308_1925"></script>
 
     <!-- ✅ STUDENT MODAL HTML — Inline, no fetch needed -->
     <div id="studentModalInline">
@@ -3670,6 +3670,22 @@
 
                 // ✅ FIX: Payment Method — inject option if missing, then set with case-insensitive fallback
                 var savedMethod = s.method || s.paymentMethod || '';
+                // If savedMethod is empty (maybe overwritten by previous bug), try to recover from installments or finance history
+                if (!savedMethod || savedMethod.trim() === '') {
+                    if (s.installments && s.installments.length > 0) {
+                        savedMethod = s.installments[0].method;
+                    } else if (window.globalData && window.globalData.finance) {
+                        var pmts = window.globalData.finance.filter(function (f) {
+                            return (f.person === s.name || f.studentId === s.studentId) &&
+                                f.type === 'Income' &&
+                                (f.category === 'Student Fee' || f.category === 'Admission Fee');
+                        });
+                        if (pmts.length > 0) {
+                            savedMethod = pmts[0].method;
+                        }
+                    }
+                    if (!savedMethod) savedMethod = 'Cash'; // ultimate fallback
+                }
                 var msel = document.getElementById('studentMethodSelect');
                 if (msel && savedMethod) {
                     // If option doesn't exist, add it dynamically

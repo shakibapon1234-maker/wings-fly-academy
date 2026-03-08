@@ -218,6 +218,22 @@
       // ── Step 2: Payment Method dropdown populate করো তারপর saved value set করো ──
       var methodSelect = document.getElementById('studentMethodSelect');
       var savedMethod = s.method || s.paymentMethod || '';
+      // Fallback: if previous bug overwrote it with empty, recover from history
+      if (!savedMethod || savedMethod.trim() === '') {
+        if (s.installments && s.installments.length > 0) {
+          savedMethod = s.installments[0].method;
+        } else if (window.globalData && window.globalData.finance) {
+          var pmts = window.globalData.finance.filter(function (f) {
+            return (f.person === s.name || f.studentId === s.studentId) &&
+              f.type === 'Income' &&
+              (f.category === 'Student Fee' || f.category === 'Admission Fee');
+          });
+          if (pmts.length > 0) {
+            savedMethod = pmts[0].method;
+          }
+        }
+        if (!savedMethod) savedMethod = 'Cash'; // ultimate fallback
+      }
       if (methodSelect) {
         var methods = (window.globalData && window.globalData.paymentMethods) || ['Cash', 'Bkash', 'Nagad', 'Bank'];
         methods.forEach(function (m) {
