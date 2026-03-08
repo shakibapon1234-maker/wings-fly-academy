@@ -729,7 +729,13 @@ function editTransaction(id) {
     return;
   }
 
+  // ✅ Ensure dropdowns (Method, etc.) are populated before setting values
+  if (typeof window.populateDropdowns === 'function') {
+    window.populateDropdowns();
+  }
+
   const form = document.getElementById('editTransactionForm');
+  if (!form) return;
   form.transactionId.value = transaction.id;
   form.type.value = transaction.type;
   form.method.value = transaction.method || 'Cash';
