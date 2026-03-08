@@ -86,20 +86,20 @@ function openEditStudentModal(index) {
     if (el) el.value = val || '';
   };
 
-  setField('name',         s.name);
-  setField('phone',        s.phone);
-  setField('fatherName',   s.fatherName);
-  setField('motherName',   s.motherName);
-  setField('bloodGroup',   s.bloodGroup);
-  setField('batch',        s.batch);
-  setField('enrollDate',   s.enrollDate);
+  setField('name', s.name);
+  setField('phone', s.phone);
+  setField('fatherName', s.fatherName);
+  setField('motherName', s.motherName);
+  setField('bloodGroup', s.bloodGroup);
+  setField('batch', s.batch);
+  setField('enrollDate', s.enrollDate);
   setField('reminderDate', s.reminderDate);
   setField('totalPayment', s.totalPayment);
-  setField('payment',      s.paid);
-  setField('due',          s.due);
-  setField('notes',        s.notes || s.remarks);
-  setField('nid',          s.nid);
-  setField('address',      s.address);
+  setField('payment', s.paid);
+  setField('due', s.due);
+  setField('notes', s.notes || s.remarks);
+  setField('nid', s.nid);
+  setField('address', s.address);
 
   // Course select — populateDropdowns আগে call হয়ে থাকলে options আছে
   // তবুও নিশ্চিত করো current value set হচ্ছে
@@ -115,17 +115,38 @@ function openEditStudentModal(index) {
     courseSelect.value = s.course || '';
   }
 
-  // Method select
+  // Method select — re-populate options then set saved value
   const methodSelect = document.getElementById('studentMethodSelect');
   if (methodSelect) {
-    // populateDropdowns already filled this, just set value
-    if (s.method && ![...methodSelect.options].some(o => o.value === s.method)) {
+    const savedMethod = s.method || s.paymentMethod || '';
+
+    // Re-populate options from globalData.paymentMethods
+    // (form.reset() clears selected value but keeps options; however if options
+    //  were never added yet we must inject them here)
+    const methods = (window.globalData && window.globalData.paymentMethods)
+      ? window.globalData.paymentMethods
+      : ['Cash', 'Bkash', 'Nagad', 'Bank'];
+
+    // Keep existing options but ensure all paymentMethods are present
+    methods.forEach(m => {
+      if (![...methodSelect.options].some(o => o.value === m)) {
+        const opt = document.createElement('option');
+        opt.value = m;
+        opt.text = m;
+        methodSelect.appendChild(opt);
+      }
+    });
+
+    // Also ensure the student's saved method is present (custom/old value)
+    if (savedMethod && ![...methodSelect.options].some(o => o.value === savedMethod)) {
       const opt = document.createElement('option');
-      opt.value = s.method;
-      opt.text = s.method;
+      opt.value = savedMethod;
+      opt.text = savedMethod;
       methodSelect.appendChild(opt);
     }
-    methodSelect.value = s.method || '';
+
+    // Now set the value
+    methodSelect.value = savedMethod;
   }
 
   // Modal title "Edit" mode
@@ -149,10 +170,10 @@ window.editStudent = openEditStudentModal;
 
 function getDataWarnings() {
   const gd = window.globalData || {};
-  const finance       = gd.finance       || [];
-  const students      = gd.students      || [];
-  const courseNames   = gd.courseNames   || [];
-  const bankAccounts  = gd.bankAccounts  || [];
+  const finance = gd.finance || [];
+  const students = gd.students || [];
+  const courseNames = gd.courseNames || [];
+  const bankAccounts = gd.bankAccounts || [];
   const mobileBanking = gd.mobileBanking || [];
 
   const studentNames = students.map(s => (s.name || '').trim().toLowerCase());
@@ -178,7 +199,7 @@ function getDataWarnings() {
 
     // Loan বা non-student category হলে orphaned check skip
     const category = (f.category || '').trim();
-    const subType  = (f.subType || f.sub_type || '').trim().toLowerCase();
+    const subType = (f.subType || f.sub_type || '').trim().toLowerCase();
     if (NON_STUDENT_CATEGORIES.has(category)) return;
     if (subType === 'loan' || subType === 'লোন' || subType === 'ঋণ') return;
     if (category.toLowerCase().includes('loan') || category.toLowerCase().includes('লোন')) return;
@@ -253,11 +274,11 @@ function showWarningDetailsModal() {
       <tr style="border-bottom:1px solid rgba(255,255,255,0.06);">
         <td style="padding:8px 10px; color:rgba(255,255,255,0.88);">
           <div><strong>${entry.person || '—'}</strong> <span style="color:rgba(255,255,255,0.35); font-size:0.78rem;">— এই নামে student নেই</span></div>
-          <div style="color:rgba(255,255,255,0.45); font-size:0.78rem;">${entry.date||'—'} | ${entry.category||'—'} | ৳${entry.amount||0}</div>
+          <div style="color:rgba(255,255,255,0.45); font-size:0.78rem;">${entry.date || '—'} | ${entry.category || '—'} | ৳${entry.amount || 0}</div>
         </td>
         <td style="padding:8px 10px; text-align:right; white-space:nowrap; vertical-align:middle;">
           <button class="btn btn-sm btn-outline-warning border-0 rounded-pill px-2 py-0 me-1" style="font-size:0.78rem;" onclick="warnEditFinance(${index})">✏️ Edit</button>
-          <button class="btn btn-sm btn-outline-danger border-0 rounded-pill px-2 py-0" style="font-size:0.78rem;" onclick="warnAskOrphan(${index},'${(entry.person||'').replace(/'/g,"\\'")}')">🗑️ Delete?</button>
+          <button class="btn btn-sm btn-outline-danger border-0 rounded-pill px-2 py-0" style="font-size:0.78rem;" onclick="warnAskOrphan(${index},'${(entry.person || '').replace(/'/g, "\\'")}')">🗑️ Delete?</button>
         </td>
       </tr>`
   );
@@ -266,11 +287,11 @@ function showWarningDetailsModal() {
     ({ student, index, course }) => `
       <tr style="border-bottom:1px solid rgba(255,255,255,0.06);">
         <td style="padding:8px 10px; color:rgba(255,255,255,0.88);">
-          <div><strong>${student.name||'—'}</strong></div>
+          <div><strong>${student.name || '—'}</strong></div>
           <div style="color:#f87171; font-size:0.78rem;">Course: "${course}" — list-এ নেই</div>
         </td>
         <td style="padding:8px 10px; text-align:right; white-space:nowrap; vertical-align:middle;">
-          <button class="btn btn-sm btn-outline-primary border-0 rounded-pill px-2 py-0 me-1" style="font-size:0.78rem;" onclick="warnAddCourse('${course.replace(/'/g,"\\'")}')">➕ Course যোগ</button>
+          <button class="btn btn-sm btn-outline-primary border-0 rounded-pill px-2 py-0 me-1" style="font-size:0.78rem;" onclick="warnAddCourse('${course.replace(/'/g, "\\'")}')">➕ Course যোগ</button>
           <button class="btn btn-sm btn-outline-warning border-0 rounded-pill px-2 py-0" style="font-size:0.78rem;" onclick="openEditStudentModal(${index})">✏️ Edit</button>
         </td>
       </tr>`
@@ -295,11 +316,11 @@ function showWarningDetailsModal() {
                   <td style="padding:8px 10px; color:rgba(255,255,255,0.88);">
                     <div><strong>"${method}"</strong> — ${entries.length}টি transaction</div>
                     <div style="color:rgba(255,255,255,0.4); font-size:0.78rem;">
-                      ${entries.slice(0,3).map(e=>`${e.date||'—'} ৳${e.amount||0}`).join(' · ')}${entries.length>3?` · আরো ${entries.length-3}টি`:''}
+                      ${entries.slice(0, 3).map(e => `${e.date || '—'} ৳${e.amount || 0}`).join(' · ')}${entries.length > 3 ? ` · আরো ${entries.length - 3}টি` : ''}
                     </div>
                   </td>
                   <td style="padding:8px 10px; text-align:right; white-space:nowrap; vertical-align:middle;">
-                    <button class="btn btn-sm btn-outline-primary border-0 rounded-pill px-2 py-0" style="font-size:0.78rem;" onclick="warnAddMethod('${method.replace(/'/g,"\\'")}')">ℹ️ কী করব?</button>
+                    <button class="btn btn-sm btn-outline-primary border-0 rounded-pill px-2 py-0" style="font-size:0.78rem;" onclick="warnAddMethod('${method.replace(/'/g, "\\'")}')">ℹ️ কী করব?</button>
                   </td>
                 </tr>`).join('')}
             </tbody>
@@ -355,7 +376,7 @@ function warnEditFinance(financeIndex) {
 function warnAskOrphan(financeIndex, personName) {
   const tx = (window.globalData.finance || [])[financeIndex];
   if (!tx) return;
-  if (confirm(`"${personName}" নামের student আর নেই।\n\nDate: ${tx.date||'—'} | Category: ${tx.category||'—'} | ৳${tx.amount||0}\n\nDelete করবেন?`)) {
+  if (confirm(`"${personName}" নামের student আর নেই।\n\nDate: ${tx.date || '—'} | Category: ${tx.category || '—'} | ৳${tx.amount || 0}\n\nDelete করবেন?`)) {
     window.globalData.finance.splice(financeIndex, 1);
     if (typeof saveToStorage === 'function') saveToStorage();
     if (typeof showSuccessToast === 'function') showSuccessToast('🗑️ Entry deleted!');
@@ -383,11 +404,11 @@ function warnAddMethod(methodName) {
 }
 
 window.showWarningDetailsModal = showWarningDetailsModal;
-window.getDataWarnings         = getDataWarnings;
-window.warnEditFinance         = warnEditFinance;
-window.warnAskOrphan           = warnAskOrphan;
-window.warnAddCourse           = warnAddCourse;
-window.warnAddMethod           = warnAddMethod;
+window.getDataWarnings = getDataWarnings;
+window.warnEditFinance = warnEditFinance;
+window.warnAskOrphan = warnAskOrphan;
+window.warnAddCourse = warnAddCourse;
+window.warnAddMethod = warnAddMethod;
 
 
 // =============================================
@@ -436,7 +457,7 @@ document.addEventListener('DOMContentLoaded', () => setTimeout(injectWarnDetails
 setTimeout(injectWarnDetailsButton, 6000);
 
 // Auto-test button click করলে পরেও inject করো
-document.addEventListener('click', function(e) {
+document.addEventListener('click', function (e) {
   if (e.target && (e.target.textContent || '').includes('Tests')) {
     setTimeout(injectWarnDetailsButton, 3000);
   }
