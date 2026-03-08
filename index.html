@@ -104,6 +104,17 @@
             color: #ffffff !important;
         }
 
+        /* ✅ Fix for Select overlap & Date icon color */
+        .form-select {
+            padding-right: 2.5rem !important;
+        }
+
+        input[type="date"]::-webkit-calendar-picker-indicator {
+            filter: invert(60%) sepia(80%) saturate(2000%) hue-rotate(160deg) brightness(100%) contrast(100%);
+            /* Vibrant Cyan */
+            cursor: pointer;
+        }
+
         .input-group-text {
             background: rgba(30, 41, 59, 0.9) !important;
             border: 2px solid rgba(0, 217, 255, 0.4) !important;
