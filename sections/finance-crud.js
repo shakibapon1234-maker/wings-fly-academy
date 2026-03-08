@@ -162,6 +162,10 @@ function handleAddInstallment() {
   // Success feedback
   showSuccessToast('Installment added successfully!');
 
+  if (typeof logActivity === 'function') {
+    logActivity('finance', 'PAYMENT', 'Installment added for: ' + student.name + ' | Amount: ৳' + amount + ' | Method: ' + method);
+  }
+
   // Reset form
   document.getElementById('pmtNewAmount').value = '';
 
@@ -477,6 +481,9 @@ async function handleTransferSubmit(e) {
 
   form.reset();
   showSuccessToast('Transfer completed successfully!');
+  if (typeof logActivity === 'function') {
+    logActivity('finance', 'SETTINGS', 'Transfer: ৳' + amount + ' from ' + fromMethod + ' to ' + toMethod);
+  }
   updateGlobalStats(); if (typeof renderFinanceTable === "function") renderFinanceTable();
 }
 

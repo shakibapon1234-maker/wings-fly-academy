@@ -70,11 +70,17 @@ async function handleEmployeeSubmit(e) {
       if (index !== -1) {
         globalData.employees[index] = { ...globalData.employees[index], ...newEmployee };
         showSuccessToast('Employee updated successfully!');
+        if (typeof logActivity === 'function') {
+          logActivity('employee', 'EDIT', 'Updated employee: ' + newEmployee.name + ' (' + newEmployee.role + ')');
+        }
       }
     } else {
       if (!globalData.employees) globalData.employees = [];
       globalData.employees.push(newEmployee);
       showSuccessToast('Employee added successfully!');
+      if (typeof logActivity === 'function') {
+        logActivity('employee', 'ADD', 'Added new employee: ' + newEmployee.name + ' (' + newEmployee.role + ')');
+      }
     }
 
     // CRITICAL: Update timestamp BEFORE saving to prevent race conditions

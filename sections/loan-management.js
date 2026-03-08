@@ -643,6 +643,9 @@ async function handleEditTransactionSubmit(e) {
   }
 
   if (typeof showSuccessToast === 'function') showSuccessToast('✅ Transaction updated successfully!');
+  if (typeof logActivity === 'function') {
+    logActivity('finance', 'EDIT', 'Updated transaction: ' + updatedTx.type + ' | ' + updatedTx.category + ' | ৳' + updatedTx.amount + ' (Person: ' + (updatedTx.person || '-') + ')');
+  }
 }
 
 // Global expose

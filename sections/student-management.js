@@ -858,6 +858,9 @@ async function handleStudentSubmit(e) {
           student.photo = photoURL;
         }
 
+        if (typeof logActivity === 'function') {
+          logActivity('student', 'EDIT', 'Updated profile for: ' + student.name + ' (ID: ' + (student.studentId || '-') + ')');
+        }
         if (!student.installments) student.installments = [];
       }
     } else {
@@ -918,6 +921,10 @@ async function handleStudentSubmit(e) {
         } else {
           console.warn(`⚠️ Duplicate enrollment finance entry prevented for ${student.name}`);
         }
+      }
+
+      if (typeof logActivity === 'function') {
+        logActivity('student', 'ADD', 'Enrolled new student: ' + student.name + ' | Batch: ' + (student.batch || '-') + ' | Paid: ৳' + (student.paid || 0));
       }
 
       // Print receipt after a short delay

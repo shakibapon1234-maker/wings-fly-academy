@@ -38,9 +38,15 @@ async function handleVisitorSubmit(e) {
     visitor.addedAt = window.globalData.visitors[editIndex].addedAt;
     window.globalData.visitors[editIndex] = visitor;
     showSuccessToast('✅ Visitor updated successfully!');
+    if (typeof logActivity === 'function') {
+      logActivity('visitor', 'EDIT', 'Updated visitor: ' + visitor.name);
+    }
   } else {
     window.globalData.visitors.push(visitor);
     showSuccessToast('✅ Visitor added successfully!');
+    if (typeof logActivity === 'function') {
+      logActivity('visitor', 'ADD', 'Added new visitor: ' + visitor.name + ' - interested in ' + (visitor.course || 'none'));
+    }
   }
 
   await saveToStorage();

@@ -75,6 +75,10 @@ function handleExamRegistration(event) {
         }
     }
 
+    if (typeof logActivity === 'function') {
+        logActivity('exam', 'ADD', 'Registered for exam: ' + examRegistration.studentName + ' - ' + examRegistration.subjectName + ' | Fee: ৳' + examRegistration.examFee);
+    }
+
     // Show success message
     alert(`✅ Exam Registration Successful!\n\nRegistration ID: ${registrationId}\nStudent: ${examRegistration.studentName}\nSubject: ${examRegistration.subjectName}\nFee: ৳${examRegistration.examFee.toLocaleString()}`);
 
@@ -265,6 +269,11 @@ function handleAddResult(event) {
         saveToStorage();
     } else {
         localStorage.setItem('wingsfly_data', JSON.stringify(globalData));
+    }
+
+    if (typeof logActivity === 'function') {
+        const reg = examRegistrations[registrationIndex];
+        logActivity('exam', 'EDIT', 'Added result for: ' + (reg.studentName || '') + ' - ' + (reg.subjectName || '') + ' | Grade: ' + grade);
     }
 
     // Show success message
