@@ -1757,10 +1757,81 @@
 
                             <!-- Tab 10: Accounts Management -->
                             <div class="settings-tab-pane" id="tab-advanced" style="display:none; padding:24px;">
-                                <h5 class="fw-bold mb-4" style="color:var(--primary);">💼 Accounts Management Configuration</h5>
+                                <div class="d-flex justify-content-between align-items-center mb-4">
+                                    <h5 class="fw-bold mb-0" style="color:var(--primary);">💼 Accounts Management</h5>
+                                    <div>
+                                        <button class="btn btn-sm btn-outline-info me-2" onclick="printAccountsMgmt()"><i class="bi bi-printer"></i> Print</button>
+                                    </div>
+                                </div>
                                 
-                                <div class="alert alert-secondary bg-dark border-secondary text-muted small" style="border-radius:12px;">
-                                    <i class="bi bi-info-circle me-2"></i> Accounts management settings will be configured here in the future.
+                                <!-- Sub Tabs -->
+                                <ul class="nav nav-pills mb-4 modern-pills" id="accMgmtTabs" role="tablist">
+                                    <li class="nav-item" role="presentation">
+                                        <button class="nav-link active" id="pills-advance-tab" data-bs-toggle="pill" data-bs-target="#pills-advance" type="button" role="tab" onclick="renderAccMgmtList('Advance')">Advance Payment</button>
+                                    </li>
+                                    <li class="nav-item" role="presentation">
+                                        <button class="nav-link" id="pills-invest-tab" data-bs-toggle="pill" data-bs-target="#pills-invest" type="button" role="tab" onclick="renderAccMgmtList('Investment')">Investment</button>
+                                    </li>
+                                </ul>
+
+                                <div class="tab-content" id="accMgmtTabContent">
+                                    
+                                    <!-- Advance Payment Tab -->
+                                    <div class="tab-pane fade show active" id="pills-advance" role="tabpanel">
+                                        <div class="card premium-table-card border-0 mb-3 shadow-sm rounded-4">
+                                            <div class="card-header bg-transparent border-bottom border-light d-flex justify-content-between align-items-center py-3">
+                                                <h6 class="mb-0 fw-bold header-icon-circle2">💸 Advance Payments</h6>
+                                                <button class="btn btn-sm btn-primary rounded-pill px-3 fw-bold" onclick="openAccMgmtAddModal('Advance')">+ Add Advance</button>
+                                            </div>
+                                            <div class="card-body p-0">
+                                                <div class="table-responsive">
+                                                    <table class="table modern-table mb-0 width-100 min-w-100">
+                                                        <thead class="table-dark">
+                                                            <tr>
+                                                                <th>Date</th>
+                                                                <th>Person/Details</th>
+                                                                <th>Method</th>
+                                                                <th>Amount</th>
+                                                                <th class="text-end">Actions</th>
+                                                            </tr>
+                                                        </thead>
+                                                        <tbody id="accMgmtAdvanceList">
+                                                            <!-- Rendered via JS -->
+                                                        </tbody>
+                                                    </table>
+                                                </div>
+                                            </div>
+                                        </div>
+                                    </div>
+
+                                    <!-- Investment Tab -->
+                                    <div class="tab-pane fade" id="pills-invest" role="tabpanel">
+                                        <div class="card premium-table-card border-0 mb-3 shadow-sm rounded-4">
+                                            <div class="card-header bg-transparent border-bottom border-light d-flex justify-content-between align-items-center py-3">
+                                                <h6 class="mb-0 fw-bold header-icon-circle2">📈 Investments</h6>
+                                                <button class="btn btn-sm btn-primary rounded-pill px-3 fw-bold" onclick="openAccMgmtAddModal('Investment')">+ Add Investment</button>
+                                            </div>
+                                            <div class="card-body p-0">
+                                                <div class="table-responsive">
+                                                    <table class="table modern-table mb-0 width-100 min-w-100">
+                                                        <thead class="table-dark">
+                                                            <tr>
+                                                                <th>Date</th>
+                                                                <th>Investor Name</th>
+                                                                <th>Method</th>
+                                                                <th>Amount</th>
+                                                                <th class="text-end">Actions</th>
+                                                            </tr>
+                                                        </thead>
+                                                        <tbody id="accMgmtInvestList">
+                                                            <!-- Rendered via JS -->
+                                                        </tbody>
+                                                    </table>
+                                                </div>
+                                            </div>
+                                        </div>
+                                    </div>
+
                                 </div>
                             </div><!-- /tab-advanced -->
 

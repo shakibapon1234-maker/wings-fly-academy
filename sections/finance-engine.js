@@ -31,6 +31,8 @@
     'Loan Receiving',
     'Registration',
     'Refund',
+    'Advance',
+    'Investment'
   ];
 
   /** Account balance কমায় কিন্তু সবসময় expense না */
@@ -42,6 +44,8 @@
     'Salary',
     'Rent',
     'Utilities',
+    'Advance Return',
+    'Investment Return'
   ];
 
   /** শুধু এই types গুলো Income stats-এ count হবে */
