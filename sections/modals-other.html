@@ -814,14 +814,14 @@
                                 <!-- =============================================== -->
                                 <!-- WINGS FLY EXTENDED MODULES                     -->
                                 <!-- =============================================== -->
-                                <script src="exam-fix.js"></script>
+                                <!-- REMOVED DUPLICATE: <script src="exam-fix.js"></script> -->
 
-                                <link rel="stylesheet" href="quick-fix.css">
-                                <script src="quick-fix.js"></script>
-                                <script src="print-fix.js"></script>
-                                <script src="symbol-fix.js"></script>
-                                <script src="auto-heal.js?v=1.2"></script>
-                                <script src="auto-test.js?v=20260304_1550"></script>
+                                <!-- REMOVED DUPLICATE: <link rel="stylesheet" href="quick-fix.css"> -->
+                                <!-- REMOVED DUPLICATE: <script src="quick-fix.js"></script> -->
+                                <!-- REMOVED DUPLICATE: <script src="print-fix.js"></script> -->
+                                <!-- REMOVED DUPLICATE: <script src="symbol-fix.js"></script> -->
+                                <!-- REMOVED DUPLICATE: <script src="auto-heal.js?v=1.2"></script> -->
+                                <!-- REMOVED DUPLICATE: <script src="auto-test.js?v=20260304_1550"></script> -->
 
                                 <!-- =============================================== -->
                                 <!-- INLINE DIAGNOSTIC & TEST SYSTEM               -->
@@ -1034,6 +1034,9 @@
                                         if (tab) tab.style.display = 'block';
                                         // Activate button
                                         if (btn) btn.classList.add('active');
+                                        // ✅ FIX: Tab switch হলে scroll সবসময় উপরে reset হবে
+                                        var scrollArea = document.querySelector('#settingsModal .flex-grow-1.overflow-auto');
+                                        if (scrollArea) scrollArea.scrollTop = 0;
                                     }
                                     window.switchSettingsTab = switchSettingsTab;
                                 </script>
@@ -1980,5 +1983,5 @@
                                     document.addEventListener("DOMContentLoaded", function () { var fm = document.getElementById("financeModal"); if (fm) { fm.addEventListener("show.bs.modal", function () { setTimeout(function () { if (typeof window.populateDropdowns === "function") window.populateDropdowns(); var d = document.querySelector("#financeForm input[name='date']"); if (d && !d.value) { var n = new Date(); d.value = n.toISOString().split("T")[0]; } }, 50); }); } });
                                 </script>
 
-                                <script src="tab-reset-fix.js?v=20260227_0001"></script>
-                                <script src="category-fix.js?v=20260227_0001"></script>
+                                <!-- REMOVED DUPLICATE: <script src="tab-reset-fix.js?v=20260227_0001"></script> -->
+                                <!-- REMOVED DUPLICATE: <script src="category-fix.js?v=20260227_0001"></script> -->
