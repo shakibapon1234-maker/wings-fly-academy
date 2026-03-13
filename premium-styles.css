@@ -370,6 +370,53 @@
     box-shadow: 0 4px 16px rgba(0, 217, 255, 0.3);
 }
 
+.att-action-row {
+  display: flex;
+  gap: 10px;
+  justify-content: flex-end;
+  flex-wrap: wrap;
+  padding: 16px 24px;
+  background: rgba(0,0,0,0.2);
+  border-top: 1px solid rgba(0,217,255,0.1);
+}
+
+.att-btn-outline {
+  background: transparent;
+  border: 1px solid rgba(0,217,255,0.35);
+  color: var(--att-cyan);
+}
+.att-btn-outline:hover {
+  background: rgba(0,217,255,0.1);
+  border-color: var(--att-cyan);
+}
+
+.att-btn-ghost {
+  background: transparent;
+  border: 1px solid rgba(255,255,255,0.12);
+  color: rgba(255,255,255,0.5);
+}
+.att-btn-ghost:hover {
+  background: rgba(255,255,255,0.06);
+  color: rgba(255,255,255,0.85);
+}
+
+.att-empty {
+  text-align: center;
+  padding: 52px 20px;
+  color: rgba(255,255,255,0.25);
+}
+.att-empty i {
+  font-size: 3.5rem;
+  display: block;
+  margin-bottom: 14px;
+  opacity: 0.3;
+}
+.att-empty p {
+  font-family: var(--att-heading);
+  font-size: 0.9rem;
+  letter-spacing: 0.5px;
+}
+
 /* ── Generic Modal ── */
 .modal-content {
     background: linear-gradient(145deg, rgba(21, 26, 53, 0.95), rgba(31, 21, 69, 0.95)) !important;
