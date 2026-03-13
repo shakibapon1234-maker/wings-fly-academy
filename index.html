@@ -1088,6 +1088,16 @@
         #sidebarLogoImg.is-active {
             animation: sidebarLogoSpin 2s linear infinite;
         }
+
+        /* DEV MODE ANIMATIONS */
+        @keyframes devPulse {
+            0% { box-shadow: 0 0 0 0 rgba(220, 53, 69, 0.7); }
+            70% { box-shadow: 0 0 0 10px rgba(220, 53, 69, 0); }
+            100% { box-shadow: 0 0 0 0 rgba(220, 53, 69, 0); }
+        }
+        @keyframes blinker {
+            50% { opacity: 0; }
+        }
     </style>
 
     <!-- ===== DONUT SPINNING RING - PERMANENT STATIC STYLES ===== -->
@@ -1389,13 +1399,9 @@
                         <span class="nav-icon"><i class="bi bi-check2-square icon-exam"></i></span>
                         <span class="nav-text">Exams</span>
                     </button>
-                    <button class="nav-item-link" id="tabPayroll" onclick="switchTab('payroll')">
-                        <span class="nav-icon"><i class="bi bi-cash-stack" style="color:#10b981;"></i></span>
-                        <span class="nav-text">Payroll</span>
-                    </button>
-                    <button class="nav-item-link" id="tabAnalytics" onclick="switchTab('analytics')">
-                        <span class="nav-icon"><i class="bi bi-graph-up-arrow" style="color:#6366f1;"></i></span>
-                        <span class="nav-text">Analytics</span>
+                    <button class="nav-item-link" id="tabSalary" onclick="switchTab('salary')">
+                        <span class="nav-icon"><i class="bi bi-bank2" style="color:#10b981;"></i></span>
+                        <span class="nav-text">Salary Hub</span>
                     </button>
                     <button class="nav-item-link" onclick="openAttendanceModal()">
                         <span class="nav-icon"><i class="bi bi-calendar-check icon-exam"></i></span>
@@ -1446,8 +1452,11 @@
                 <header class="top-bar border-0 shadow-sm">
                     <div class="d-flex align-items-center flex-grow-1">
                         <h4 class="mb-0 fw-bold me-4 text-av-main">Welcome back, Admin! <span
-                                class="badge bg-primary-subtle text-primary border border-primary-subtle rounded-pill px-3"
-                                style="font-size: 0.7rem; vertical-align: middle;">Cloud Pro ✨</span></h4>
+                                class="badge bg-danger text-white border border-danger rounded-pill px-3"
+                                style="font-size: 0.7rem; vertical-align: middle; animation: devPulse 2s infinite;">DEV MODE — V34 (SAFE BRANCH) ⚠️</span></h4>
+                        <div class="ms-2 d-none d-lg-block">
+                             <span class="text-danger fw-bold" style="font-size: 0.8rem; letter-spacing: 0.5px; animation: blinker 1.5s linear infinite;">[ সতর্কবার্তা: মেইন ব্রাঞ্চে কোনো ডাটা ইনপুট করবেন না ]</span>
+                        </div>
                         <div class="search-wrapper position-relative mx-auto" style="width: 450px;">
                             <i class="bi bi-search position-absolute top-50 translate-middle-y ms-3 text-dim"></i>
                             <input type="text" id="searchInput"
@@ -2642,102 +2651,74 @@
                     </div>
                 </div>
 
-                <!-- PAYROLL MANAGEMENT SECTION -->
-                <div id="payrollSection" class="d-none">
+                <!-- SALARY MANAGEMENT HUB SECTION -->
+                <div id="salarySection" class="d-none">
                     <div class="d-flex justify-content-between align-items-center mb-4">
-                        <h4 class="fw-bold m-0"><span class="me-2">💰</span> Payroll Management</h4>
+                        <h4 class="fw-bold m-0"><span class="me-2">💰</span> Salary Management Hub</h4>
                         <div class="d-flex gap-2">
-                            <button class="btn btn-success fw-bold px-4 rounded-3" onclick="generateMonthlyPayroll()">
-                                <i class="bi bi-calendar-check me-2"></i>Generate Monthly Payroll
+                            <button class="btn btn-primary fw-bold px-4 rounded-pill shadow-sm" onclick="openSalaryModal()">
+                                <i class="bi bi-plus-circle me-2"></i>Record Payment
                             </button>
-                            <button class="btn btn-outline-primary fw-bold px-4 rounded-3"
-                                onclick="printPayrollReport()">
-                                <i class="bi bi-printer-fill me-2"></i>Print Report
+                            <button class="btn btn-outline-info fw-bold px-4 rounded-pill" onclick="printSalaryHistory()">
+                                <i class="bi bi-printer-fill me-2"></i>Print History
                             </button>
                         </div>
                     </div>
 
-                    <div class="card border-0 shadow-sm mb-4 bg-glass-card">
-                        <div class="card-body">
-                            <div class="row g-3">
-                                <div class="col-md-4">
-                                    <label class="form-label small fw-bold">Select Month/Year</label>
-                                    <input type="month" id="payrollMonthFilter"
-                                        class="form-control premium-input-modern" onchange="renderPayrollList()">
+                    <!-- Salary Stats & Filters -->
+                    <div class="card border-0 shadow-sm mb-4 glass-card">
+                        <div class="card-body p-4">
+                            <div class="row g-4 align-items-center">
+                                <div class="col-md-3">
+                                    <label class="form-label small fw-bold text-cyan text-uppercase mb-2">Month / Year</label>
+                                    <input type="month" id="salaryMonthFilter" class="form-control premium-input-modern" onchange="loadSalaryHub()">
                                 </div>
-                                <div class="col-md-8 text-end d-flex align-items-end justify-content-end gap-3">
-                                    <div class="payroll-stat-item">
-                                        <div class="small text-muted">Total Salary</div>
-                                        <div class="h5 fw-bold text-primary mb-0" id="payrollTotalSalary">৳0</div>
-                                    </div>
-                                    <div class="payroll-stat-item border-start ps-3">
-                                        <div class="small text-muted">Paid Count</div>
-                                        <div class="h5 fw-bold text-success mb-0" id="payrollPaidCount">0</div>
+                                <div class="col-md-9">
+                                    <div class="row g-3">
+                                        <div class="col-md-4">
+                                            <div class="p-3 rounded-4 bg-primary-subtle border border-primary-subtle">
+                                                <div class="small text-muted text-uppercase fw-bold mb-1">Monthly Budget</div>
+                                                <div class="h4 fw-bold text-primary mb-0" id="salaryTotalBudget">৳0</div>
+                                            </div>
+                                        </div>
+                                        <div class="col-md-4">
+                                            <div class="p-3 rounded-4 bg-success-subtle border border-success-subtle">
+                                                <div class="small text-muted text-uppercase fw-bold mb-1">Paid Amount</div>
+                                                <div class="h4 fw-bold text-success mb-0" id="salaryPaidTotal">৳0</div>
+                                            </div>
+                                        </div>
+                                        <div class="col-md-4">
+                                            <div class="p-3 rounded-4 bg-danger-subtle border border-danger-subtle">
+                                                <div class="small text-muted text-uppercase fw-bold mb-1">Due Amount</div>
+                                                <div class="h4 fw-bold text-danger mb-0" id="salaryDueTotal">৳0</div>
+                                            </div>
+                                        </div>
                                     </div>
                                 </div>
                             </div>
                         </div>
                     </div>
 
-                    <div class="card border-0 shadow-sm overflow-hidden rounded-4">
+                    <!-- Staff Salary List -->
+                    <div class="card border-0 shadow-sm overflow-hidden rounded-4 glass-card">
                         <div class="table-responsive">
                             <table class="table table-hover align-middle modern-table mb-0">
-                                <thead class="bg-light">
+                                <thead class="bg-dark text-white">
                                     <tr>
-                                        <th>Employee</th>
-                                        <th>Role</th>
-                                        <th>Base Salary</th>
-                                        <th>Allowances</th>
-                                        <th>Deductions</th>
-                                        <th>Net Payable</th>
+                                        <th>Staff Member</th>
+                                        <th>Designation</th>
                                         <th>Status</th>
-                                        <th class="text-end">Action</th>
+                                        <th>Monthly Pay</th>
+                                        <th>Bonus</th>
+                                        <th>Advance</th>
+                                        <th>Net Paid</th>
+                                        <th class="text-end">Actions</th>
                                     </tr>
                                 </thead>
-                                <tbody id="payrollTableBody"></tbody>
+                                <tbody id="salaryTableBody">
+                                    <tr><td colspan="8" class="text-center py-5 text-muted">Select a month to load staff records...</td></tr>
+                                </tbody>
                             </table>
-                        </div>
-                    </div>
-                </div>
-
-                <!-- ADVANCED ANALYTICS SECTION -->
-                <div id="analyticsSection" class="d-none">
-                    <div class="d-flex justify-content-between align-items-center mb-4">
-                        <h4 class="fw-bold m-0"><span class="me-2">📊</span> Advanced Analytics</h4>
-                        <div class="d-flex gap-2">
-                            <button class="btn btn-light btn-sm" onclick="refreshAnalytics()">
-                                <i class="bi bi-arrow-clockwise me-1"></i>Refresh Data
-                            </button>
-                        </div>
-                    </div>
-
-                    <div class="row g-4 mb-4">
-                        <div class="col-md-12">
-                            <div class="card border-0 shadow-sm rounded-4 p-4 bg-glass-card">
-                                <h6 class="fw-bold text-primary mb-4">📈 Income vs Expense Trends (Last 6 Months)</h6>
-                                <div style="height: 350px;">
-                                    <canvas id="analyticsTrendChart"></canvas>
-                                </div>
-                            </div>
-                        </div>
-                    </div>
-
-                    <div class="row g-4">
-                        <div class="col-md-6">
-                            <div class="card border-0 shadow-sm rounded-4 p-4 bg-glass-card">
-                                <h6 class="fw-bold text-success mb-3">🎓 Batch-wise Enrollment Growth</h6>
-                                <div style="height: 300px;">
-                                    <canvas id="analyticsBatchGrowthChart"></canvas>
-                                </div>
-                            </div>
-                        </div>
-                        <div class="col-md-6">
-                            <div class="card border-0 shadow-sm rounded-4 p-4 bg-glass-card">
-                                <h6 class="fw-bold text-warning mb-3">💳 Payment Method Distribution</h6>
-                                <div style="height: 300px;">
-                                    <canvas id="analyticsPaymentDistributionChart"></canvas>
-                                </div>
-                            </div>
                         </div>
                     </div>
                 </div>
