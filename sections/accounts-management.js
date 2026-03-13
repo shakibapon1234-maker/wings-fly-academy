@@ -858,6 +858,14 @@ function rebuildBankBalancesFromFinance() {
 document.addEventListener('DOMContentLoaded', () => {
   rebuildBankBalancesFromFinance();
 
+  // ✅ FIX: Auto-render AccMgmt lists on load so data shows after refresh
+  setTimeout(() => {
+    if (typeof renderAccMgmtList === 'function') {
+      renderAccMgmtList('Advance');
+      renderAccMgmtList('Investment');
+    }
+  }, 800);
+
   // ===================================
   // AUTO-POPULATE DROPDOWNS ON MODAL OPEN
   // ===================================
@@ -1005,9 +1013,13 @@ function openAccMgmtAddModal(type) {
   (globalData.bankAccounts || []).forEach(b => { methodOptions += `<option value="${b.name}">🏦 ${b.name}</option>`; });
   (globalData.mobileBanking || []).forEach(m => { methodOptions += `<option value="${m.name}">📱 ${m.name}</option>`; });
 
+  // ✅ FIX: Settings modal hide করো তারপর Swal দেখাও
+  const settingsModalEl = document.getElementById('settingsModal');
+  const settingsModalInstance = settingsModalEl ? bootstrap.Modal.getInstance(settingsModalEl) : null;
+  if (settingsModalInstance) settingsModalInstance.hide();
+
   Swal.fire({
     title: `<div class="fw-bold" style="color:var(--primary);">${title}</div>`,
-    target: document.getElementById('settingsModal'),
     background: '#0d1b2a',
     color: '#e0f0ff',
     customClass: {
@@ -1045,6 +1057,14 @@ function openAccMgmtAddModal(type) {
     showCancelButton: true,
     confirmButtonText: 'Save',
     cancelButtonText: 'Cancel',
+    didOpen: () => {
+      // ✅ FIX: Bootstrap modal focus trap bypass
+      document.querySelectorAll('.modal.show').forEach(m => {
+        m.removeAttribute('aria-hidden');
+        m.removeAttribute('inert');
+      });
+      setTimeout(() => { const inp = document.getElementById('swal-person'); if (inp) inp.focus(); }, 100);
+    },
     preConfirm: () => {
       const person = document.getElementById('swal-person').value.trim();
       const amount = parseFloat(document.getElementById('swal-amount').value);
@@ -1059,6 +1079,11 @@ function openAccMgmtAddModal(type) {
       return { person, amount, method, date, desc, type: typeVal };
     }
   }).then(result => {
+    // ✅ FIX: Swal বন্ধ হলে settings modal আবার খুলো
+    setTimeout(() => {
+      if (typeof window.openSettings === 'function') window.openSettings();
+    }, 200);
+
     if (result.isConfirmed) {
       if (!globalData.finance) globalData.finance = [];
       const data = result.value;
@@ -1101,9 +1126,13 @@ function openAccMgmtReturnModal(type, targetPersonName) {
   (globalData.bankAccounts || []).forEach(b => { methodOptions += `<option value="${b.name}">🏦 ${b.name}</option>`; });
   (globalData.mobileBanking || []).forEach(m => { methodOptions += `<option value="${m.name}">📱 ${m.name}</option>`; });
 
+  // ✅ FIX: Settings modal hide করো তারপর Swal দেখাও
+  const settingsModalEl2 = document.getElementById('settingsModal');
+  const settingsModalInstance2 = settingsModalEl2 ? bootstrap.Modal.getInstance(settingsModalEl2) : null;
+  if (settingsModalInstance2) settingsModalInstance2.hide();
+
   Swal.fire({
     title: `<div class="fw-bold" style="color:var(--primary);">${title}</div>`,
-    target: document.getElementById('settingsModal'),
     background: '#0d1b2a',
     color: '#e0f0ff',
     customClass: {
@@ -1141,6 +1170,14 @@ function openAccMgmtReturnModal(type, targetPersonName) {
     showCancelButton: true,
     confirmButtonText: 'Save Return',
     cancelButtonText: 'Cancel',
+    didOpen: () => {
+      // ✅ FIX: Bootstrap modal focus trap bypass
+      document.querySelectorAll('.modal.show').forEach(m => {
+        m.removeAttribute('aria-hidden');
+        m.removeAttribute('inert');
+      });
+      setTimeout(() => { const inp = document.getElementById('swal-amount'); if (inp) inp.focus(); }, 100);
+    },
     preConfirm: () => {
       const person = document.getElementById('swal-person').value.trim();
       const amount = parseFloat(document.getElementById('swal-amount').value);
@@ -1183,6 +1220,10 @@ function openAccMgmtReturnModal(type, targetPersonName) {
       renderAccMgmtList(type);
       if (typeof renderLedger === 'function') renderLedger();
     }
+    // ✅ FIX: Swal বন্ধ হলে settings modal আবার খুলো
+    setTimeout(() => {
+      if (typeof window.openSettings === 'function') window.openSettings();
+    }, 200);
   });
 }
 
@@ -1218,12 +1259,26 @@ function renderAccMgmtList(type) {
     r.txns.sort((a,b) => new Date(b.date) - new Date(a.date));
     
     html += `
-      <tr class="table-primary fw-bold" style="background-color: var(--bg-card) !important;">
-        <td colspan="3" class="text-info ps-4 pt-3 pb-2"><i class="bi bi-person-circle me-2"></i> ${personName}</td>
-        <td class="pt-3 pb-2 text-warning">Net Outstanding: ৳${formatNumber(netAmount)}</td>
-        <td class="text-end pt-3 pb-2 pe-4">
-            <button class="btn btn-sm btn-outline-warning rounded-pill px-3" onclick="openAccMgmtReturnModal('${type}', '${personName}')">
-                <i class="bi bi-arrow-counterclockwise"></i> Return
+      <tr style="background: linear-gradient(90deg, rgba(0,180,255,0.12), rgba(120,80,255,0.08)) !important; border-top: 2px solid rgba(0,180,255,0.25); border-bottom: 1px solid rgba(0,180,255,0.15);">
+        <td colspan="2" style="padding: 0.85rem 1.2rem; vertical-align: middle;">
+          <div class="d-flex align-items-center gap-2">
+            <span style="background:rgba(0,180,255,0.15);border:1px solid rgba(0,180,255,0.3);border-radius:50%;width:32px;height:32px;display:inline-flex;align-items:center;justify-content:center;font-size:0.9rem;">👤</span>
+            <span class="fw-bold" style="color:#00d4ff;font-size:0.97rem;letter-spacing:0.3px;">${personName}</span>
+          </div>
+        </td>
+        <td style="padding: 0.85rem 1rem; vertical-align: middle;">
+          <span class="badge rounded-pill" style="background:rgba(255,200,0,0.15);border:1px solid rgba(255,200,0,0.35);color:#ffd200;font-size:0.8rem;padding:0.4rem 0.8rem;">
+            Net Outstanding: ৳${formatNumber(netAmount)}
+          </span>
+        </td>
+        <td style="padding: 0.85rem 1rem; vertical-align: middle; text-align: right;">
+          <span class="text-white-50 small">${r.txns.length} transaction${r.txns.length > 1 ? 's' : ''}</span>
+        </td>
+        <td style="padding: 0.85rem 1rem; vertical-align: middle; text-align: end;">
+            <button class="btn btn-sm fw-bold rounded-pill px-3" 
+              style="background:linear-gradient(135deg,#f0a500,#ffd200);color:#1a1000;border:none;box-shadow:0 2px 10px rgba(255,200,0,0.3);"
+              onclick="openAccMgmtReturnModal('${type}', '${personName}')">
+                <i class="bi bi-arrow-counterclockwise me-1"></i> Return
             </button>
         </td>
       </tr>
@@ -1231,26 +1286,33 @@ function renderAccMgmtList(type) {
 
     r.txns.forEach(f => {
       const isReturn = f.type === returnType;
-      const amountColor = isReturn ? 'text-success' : 'text-danger';
-      const typeBadge = isReturn ? '<span class="badge bg-success-subtle text-success">Returned</span>' : '<span class="badge bg-danger-subtle text-danger">Given</span>';
+      const amountColor = isReturn ? '#00e676' : '#ff5370';
+      const rowBg = isReturn ? 'rgba(0,230,118,0.04)' : 'rgba(255,83,112,0.04)';
+      const typeBadgeHtml = isReturn 
+        ? '<span class="badge" style="background:rgba(0,230,118,0.15);border:1px solid rgba(0,230,118,0.35);color:#00e676;font-size:0.75rem;">✅ Returned</span>' 
+        : '<span class="badge" style="background:rgba(255,83,112,0.15);border:1px solid rgba(255,83,112,0.35);color:#ff5370;font-size:0.75rem;">💸 Given</span>';
       
       html += `
-        <tr>
-          <td class="ps-4">${f.date}</td>
-          <td>
-             <div class="fw-semibold">${f.person}</div>
-             <small class="text-muted">${f.description || ''}</small>
+        <tr style="background:${rowBg}; border-bottom: 1px solid rgba(255,255,255,0.05);">
+          <td style="padding:0.75rem 1.2rem; color:rgba(255,255,255,0.6); font-size:0.88rem;">${f.date}</td>
+          <td style="padding:0.75rem 1rem;">
+             <div class="fw-semibold" style="color:#e0f0ff;font-size:0.92rem;">${f.person}</div>
+             ${f.description ? `<small style="color:rgba(255,255,255,0.4);">${f.description}</small>` : ''}
           </td>
-          <td>
-             <div class="d-flex align-items-center gap-2">
-                 <span class="badge bg-secondary-subtle text-secondary">${f.method}</span>
-                 ${typeBadge}
+          <td style="padding:0.75rem 1rem;">
+             <div class="d-flex align-items-center gap-2 flex-wrap">
+                 <span class="badge" style="background:rgba(102,126,234,0.2);border:1px solid rgba(102,126,234,0.3);color:#a0b4ff;font-size:0.75rem;">${f.method}</span>
+                 ${typeBadgeHtml}
              </div>
           </td>
-          <td class="fw-bold ${amountColor}">৳${formatNumber(f.amount)}</td>
-          <td class="text-end pe-4">
-            <button class="btn btn-sm btn-outline-danger border-0 rounded-circle delete-btn" onclick="deleteAccMgmtTxn('${f.id}', '${type}')" title="Delete">
-              <i class="bi bi-trash"></i>
+          <td style="padding:0.75rem 1rem; font-weight:700; color:${amountColor}; font-size:0.97rem; font-family:monospace;">
+            ${isReturn ? '+' : '-'}৳${formatNumber(f.amount)}
+          </td>
+          <td style="padding:0.75rem 1rem; text-align:end;">
+            <button class="btn btn-sm border-0 rounded-circle" 
+              style="background:rgba(255,83,112,0.1);color:#ff5370;width:32px;height:32px;padding:0;display:inline-flex;align-items:center;justify-content:center;"
+              onclick="deleteAccMgmtTxn('${f.id}', '${type}')" title="Delete">
+              <i class="bi bi-trash" style="font-size:0.85rem;"></i>
             </button>
           </td>
         </tr>
@@ -1259,7 +1321,14 @@ function renderAccMgmtList(type) {
   });
 
   if (!html) {
-    html = `<tr><td colspan="5" class="text-center text-muted py-4">No ${type} records found.</td></tr>`;
+    html = `
+      <tr>
+        <td colspan="5" style="text-align:center; padding: 3rem 1rem;">
+          <div style="color:rgba(255,255,255,0.25); font-size:2.5rem; margin-bottom:0.75rem;">📭</div>
+          <div style="color:rgba(255,255,255,0.35); font-size:0.95rem;">No ${type} records found.</div>
+        </td>
+      </tr>
+    `;
   }
 
   listEl.innerHTML = html;
