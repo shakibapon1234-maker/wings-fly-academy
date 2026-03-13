@@ -145,6 +145,24 @@
       );
     };
 
+    // 1b. Salary Modal
+    window.openSalaryModal = function (empId) {
+      const modalId = 'salaryModal';
+      if (document.getElementById(modalId)) {
+          if (window._openSalaryModalImpl) {
+              window._openSalaryModalImpl(empId);
+              return;
+          }
+      }
+      loadAndOpen('__modalPlaceholderOther', 'sections/salary-modal.html', modalId, function () {
+          if (window._openSalaryModalImpl) {
+              window._openSalaryModalImpl(empId);
+          } else if (typeof window.openSalaryModal === 'function' && window.openSalaryModal !== arguments.callee) {
+              window.openSalaryModal(empId);
+          }
+      });
+    };
+
     // 2. Add Transaction / Finance
     window.openAddTransaction = window.openFinanceModal = function (type) {
       loadAndOpen('__modalPlaceholderOther', 'sections/modals.html', 'financeModal', function () {
@@ -333,11 +351,21 @@
         }
       });
     };
+
+    // 7. Notice Board
+    window.openNoticeModal = function () {
+        loadAndOpen('__noticeBoardPlaceholder', 'sections/notice-board-modal.html', 'noticeBoardModal', function() {
+            if (typeof window.initNoticeModal === 'function') window.initNoticeModal();
+        });
+    };
   }
 
   function init() {
     console.log('[SectionLoader] 🏁 Initializing System...');
     _patchAll();
+
+    // Load static sections into placeholders immediately
+    _loadStaticSections();
 
     // Preload
     setTimeout(() => {
@@ -345,6 +373,30 @@
     }, 5000);
 
     console.log('[SectionLoader] 🚀 System successfully initialized');
+  }
+
+  async function _loadStaticSections() {
+      const sections = [
+          { pid: '__accountsPlaceholder', file: 'sections/accounts-section.html' },
+          { pid: '__certificatesPlaceholder', file: 'sections/certificates.html' },
+          { pid: '__idcardsPlaceholder', file: 'sections/idcards.html' },
+          { pid: '__studentModalsPlaceholder', file: 'sections/student-modals.html' }
+      ];
+
+      for (const s of sections) {
+          try {
+              const el = document.getElementById(s.pid);
+              if (!el) continue;
+              const res = await fetch(s.file + '?v=' + Date.now());
+              if (!res.ok) continue;
+              const html = await res.text();
+              el.innerHTML = html;
+              _reExecScripts(el);
+              console.log('[SectionLoader] 💠 Loaded static section:', s.file);
+          } catch (e) {
+              console.warn('[SectionLoader] Failed to load static section:', s.file, e);
+          }
+      }
   }
 
   if (document.readyState === 'loading') {
