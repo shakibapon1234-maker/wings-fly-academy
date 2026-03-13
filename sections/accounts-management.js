@@ -990,3 +990,336 @@ document.addEventListener('DOMContentLoaded', () => {
 
 window.applyFinanceToBankAccount = applyFinanceToBankAccount;
 window.rebuildBankBalancesFromFinance = rebuildBankBalancesFromFinance;
+
+// ===============================================
+// ADVANCE & INVESTMENT MANAGEMENT LOGIC
+// ===============================================
+
+function openAccMgmtAddModal(type) {
+  const isAdvance = type === 'Advance';
+  const title = isAdvance ? '💸 Add Advance Payment' : '📈 Add Investment';
+  const personLabel = isAdvance ? 'Paid To (Employee/Vendor)' : 'Investor Name';
+  const typeVal = isAdvance ? 'Advance' : 'Investment';
+
+  let methodOptions = '<option value="Cash">💵 Cash</option>';
+  (globalData.bankAccounts || []).forEach(b => { methodOptions += `<option value="${b.name}">🏦 ${b.name}</option>`; });
+  (globalData.mobileBanking || []).forEach(m => { methodOptions += `<option value="${m.name}">📱 ${m.name}</option>`; });
+
+  Swal.fire({
+    title: `<div class="fw-bold" style="color:var(--primary);">${title}</div>`,
+    target: document.getElementById('settingsModal'),
+    background: '#0d1b2a',
+    color: '#e0f0ff',
+    customClass: {
+        popup: 'border border-primary rounded-4 shadow-lg',
+        confirmButton: 'btn btn-primary px-4 fw-bold mx-2',
+        cancelButton: 'btn btn-outline-secondary px-4 fw-bold mx-2'
+    },
+    buttonsStyling: false,
+    html: `
+      <div class="text-start mt-2">
+        <div class="mb-3">
+          <label class="form-label fw-bold" style="color:#a0c4ff;">${personLabel}</label>
+          <input id="swal-person" class="form-control" style="background:#162032;color:#e0f0ff;border:1px solid #1e3a5f;" placeholder="Name">
+        </div>
+        <div class="mb-3">
+          <label class="form-label fw-bold" style="color:#a0c4ff;">Amount (৳)</label>
+          <input id="swal-amount" type="number" class="form-control" style="background:#162032;color:#e0f0ff;border:1px solid #1e3a5f;" placeholder="0">
+        </div>
+        <div class="mb-3">
+          <label class="form-label fw-bold" style="color:#a0c4ff;">Method</label>
+          <select id="swal-method" class="form-select" style="background:#162032;color:#e0f0ff;border:1px solid #1e3a5f;">
+            ${methodOptions}
+          </select>
+        </div>
+        <div class="mb-3">
+          <label class="form-label fw-bold" style="color:#a0c4ff;">Date</label>
+          <input id="swal-date" type="date" class="form-control" style="background:#162032;color:#e0f0ff;border:1px solid #1e3a5f;" value="${new Date().toISOString().split('T')[0]}">
+        </div>
+        <div class="mb-3">
+          <label class="form-label fw-bold" style="color:#a0c4ff;">Description (Optional)</label>
+          <input id="swal-desc" class="form-control" style="background:#162032;color:#e0f0ff;border:1px solid #1e3a5f;" placeholder="Any details">
+        </div>
+      </div>
+    `,
+    showCancelButton: true,
+    confirmButtonText: 'Save',
+    cancelButtonText: 'Cancel',
+    preConfirm: () => {
+      const person = document.getElementById('swal-person').value.trim();
+      const amount = parseFloat(document.getElementById('swal-amount').value);
+      const method = document.getElementById('swal-method').value;
+      const date = document.getElementById('swal-date').value;
+      const desc = document.getElementById('swal-desc').value.trim();
+
+      if (!person) return Swal.showValidationMessage('Validation Error: Name is required');
+      if (!amount || amount <= 0) return Swal.showValidationMessage('Validation Error: Amount is required');
+      if (!date) return Swal.showValidationMessage('Validation Error: Date is required');
+
+      return { person, amount, method, date, desc, type: typeVal };
+    }
+  }).then(result => {
+    if (result.isConfirmed) {
+      if (!globalData.finance) globalData.finance = [];
+      const data = result.value;
+      const entry = {
+        id: 'txn_' + Date.now(),
+        type: data.type,
+        category: data.type,
+        method: data.method,
+        date: data.date,
+        person: data.person,
+        amount: data.amount,
+        description: data.desc,
+        createdBy: window.currentUser || 'Admin',
+        createdAt: new Date().toISOString()
+      };
+      
+      globalData.finance.push(entry);
+      
+      if (typeof window.feApplyEntryToAccount === 'function') {
+        window.feApplyEntryToAccount(entry, 1);
+      }
+      
+      if (typeof showSuccessToast === 'function') showSuccessToast('Successfully Saved!');
+      if (typeof window.saveToStorage === 'function') {
+         window.saveToStorage();
+      }
+      renderAccMgmtList(type);
+      if (typeof renderLedger === 'function') renderLedger();
+    }
+  });
+}
+
+function openAccMgmtReturnModal(type, targetPersonName) {
+  const isAdvance = type === 'Advance';
+  const title = isAdvance ? '💸 Return Advance Payment' : '📈 Return Investment';
+  const personLabel = isAdvance ? 'Returned By (Employee/Vendor)' : 'Returned To (Investor Name)';
+  const typeVal = isAdvance ? 'Advance Return' : 'Investment Return';
+
+  let methodOptions = '<option value="Cash">💵 Cash</option>';
+  (globalData.bankAccounts || []).forEach(b => { methodOptions += `<option value="${b.name}">🏦 ${b.name}</option>`; });
+  (globalData.mobileBanking || []).forEach(m => { methodOptions += `<option value="${m.name}">📱 ${m.name}</option>`; });
+
+  Swal.fire({
+    title: `<div class="fw-bold" style="color:var(--primary);">${title}</div>`,
+    target: document.getElementById('settingsModal'),
+    background: '#0d1b2a',
+    color: '#e0f0ff',
+    customClass: {
+        popup: 'border border-warning rounded-4 shadow-lg',
+        confirmButton: 'btn btn-warning px-4 fw-bold mx-2 text-dark',
+        cancelButton: 'btn btn-outline-secondary px-4 fw-bold mx-2'
+    },
+    buttonsStyling: false,
+    html: `
+      <div class="text-start mt-2">
+        <div class="mb-3">
+          <label class="form-label fw-bold" style="color:#a0c4ff;">${personLabel}</label>
+          <input id="swal-person" class="form-control" style="background:#162032;color:#a0c4ff;border:1px solid #1e3a5f;" value="${targetPersonName}" readonly>
+        </div>
+        <div class="mb-3">
+          <label class="form-label fw-bold" style="color:#a0c4ff;">Amount (৳)</label>
+          <input id="swal-amount" type="number" class="form-control" style="background:#162032;color:#e0f0ff;border:1px solid #1e3a5f;" placeholder="0">
+        </div>
+        <div class="mb-3">
+          <label class="form-label fw-bold" style="color:#a0c4ff;">Method</label>
+          <select id="swal-method" class="form-select" style="background:#162032;color:#e0f0ff;border:1px solid #1e3a5f;">
+            ${methodOptions}
+          </select>
+        </div>
+        <div class="mb-3">
+          <label class="form-label fw-bold" style="color:#a0c4ff;">Date</label>
+          <input id="swal-date" type="date" class="form-control" style="background:#162032;color:#e0f0ff;border:1px solid #1e3a5f;" value="${new Date().toISOString().split('T')[0]}">
+        </div>
+        <div class="mb-3">
+          <label class="form-label fw-bold" style="color:#a0c4ff;">Description (Optional)</label>
+          <input id="swal-desc" class="form-control" style="background:#162032;color:#e0f0ff;border:1px solid #1e3a5f;" placeholder="Return details">
+        </div>
+      </div>
+    `,
+    showCancelButton: true,
+    confirmButtonText: 'Save Return',
+    cancelButtonText: 'Cancel',
+    preConfirm: () => {
+      const person = document.getElementById('swal-person').value.trim();
+      const amount = parseFloat(document.getElementById('swal-amount').value);
+      const method = document.getElementById('swal-method').value;
+      const date = document.getElementById('swal-date').value;
+      const desc = document.getElementById('swal-desc').value.trim();
+
+      if (!amount || amount <= 0) return Swal.showValidationMessage('Validation Error: Amount is required');
+      if (!date) return Swal.showValidationMessage('Validation Error: Date is required');
+
+      return { person, amount, method, date, desc, type: typeVal };
+    }
+  }).then(result => {
+    if (result.isConfirmed) {
+      if (!globalData.finance) globalData.finance = [];
+      const data = result.value;
+      const entry = {
+        id: 'txn_' + Date.now(),
+        type: data.type,
+        category: data.type,
+        method: data.method,
+        date: data.date,
+        person: data.person,
+        amount: data.amount,
+        description: data.desc,
+        createdBy: window.currentUser || 'Admin',
+        createdAt: new Date().toISOString()
+      };
+      
+      globalData.finance.push(entry);
+      
+      if (typeof window.feApplyEntryToAccount === 'function') {
+        window.feApplyEntryToAccount(entry, 1);
+      }
+      
+      if (typeof showSuccessToast === 'function') showSuccessToast('Return Successfully Saved!');
+      if (typeof window.saveToStorage === 'function') {
+         window.saveToStorage();
+      }
+      renderAccMgmtList(type);
+      if (typeof renderLedger === 'function') renderLedger();
+    }
+  });
+}
+
+function renderAccMgmtList(type) {
+  const isAdvance = type === 'Advance';
+  const returnType = isAdvance ? 'Advance Return' : 'Investment Return';
+  const listId = isAdvance ? 'accMgmtAdvanceList' : 'accMgmtInvestList';
+  const listEl = document.getElementById(listId);
+  if (!listEl) return;
+
+  const records = {};
+  
+  (globalData.finance || []).forEach((f) => {
+    if (f._deleted) return;
+    if (f.type === type || f.type === returnType || f.category === type) {
+      if (!f.person) return;
+      if (!records[f.person]) records[f.person] = { totalMain: 0, totalReturn: 0, txns: [] };
+      
+      if (f.type === type || (f.type !== returnType && f.category === type)) {
+          records[f.person].totalMain += parseFloat(f.amount);
+      } else if (f.type === returnType) {
+          records[f.person].totalReturn += parseFloat(f.amount);
+      }
+      records[f.person].txns.push(f);
+    }
+  });
+
+  let html = '';
+  Object.keys(records).forEach(personName => {
+    const r = records[personName];
+    const netAmount = Math.abs(r.totalMain - r.totalReturn);
+    
+    r.txns.sort((a,b) => new Date(b.date) - new Date(a.date));
+    
+    html += `
+      <tr class="table-primary fw-bold" style="background-color: var(--bg-card) !important;">
+        <td colspan="3" class="text-info ps-4 pt-3 pb-2"><i class="bi bi-person-circle me-2"></i> ${personName}</td>
+        <td class="pt-3 pb-2 text-warning">Net Outstanding: ৳${formatNumber(netAmount)}</td>
+        <td class="text-end pt-3 pb-2 pe-4">
+            <button class="btn btn-sm btn-outline-warning rounded-pill px-3" onclick="openAccMgmtReturnModal('${type}', '${personName}')">
+                <i class="bi bi-arrow-counterclockwise"></i> Return
+            </button>
+        </td>
+      </tr>
+    `;
+
+    r.txns.forEach(f => {
+      const isReturn = f.type === returnType;
+      const amountColor = isReturn ? 'text-success' : 'text-danger';
+      const typeBadge = isReturn ? '<span class="badge bg-success-subtle text-success">Returned</span>' : '<span class="badge bg-danger-subtle text-danger">Given</span>';
+      
+      html += `
+        <tr>
+          <td class="ps-4">${f.date}</td>
+          <td>
+             <div class="fw-semibold">${f.person}</div>
+             <small class="text-muted">${f.description || ''}</small>
+          </td>
+          <td>
+             <div class="d-flex align-items-center gap-2">
+                 <span class="badge bg-secondary-subtle text-secondary">${f.method}</span>
+                 ${typeBadge}
+             </div>
+          </td>
+          <td class="fw-bold ${amountColor}">৳${formatNumber(f.amount)}</td>
+          <td class="text-end pe-4">
+            <button class="btn btn-sm btn-outline-danger border-0 rounded-circle delete-btn" onclick="deleteAccMgmtTxn('${f.id}', '${type}')" title="Delete">
+              <i class="bi bi-trash"></i>
+            </button>
+          </td>
+        </tr>
+      `;
+    });
+  });
+
+  if (!html) {
+    html = `<tr><td colspan="5" class="text-center text-muted py-4">No ${type} records found.</td></tr>`;
+  }
+
+  listEl.innerHTML = html;
+}
+
+function deleteAccMgmtTxn(txnId, currentTabType) {
+  if (!confirm('Are you sure you want to delete this transaction? This will affect account balances.')) return;
+  
+  const idx = globalData.finance.findIndex(f => f.id === txnId);
+  if (idx !== -1) {
+    const txn = globalData.finance[idx];
+    
+    if (typeof window.feApplyEntryToAccount === 'function') {
+      window.feApplyEntryToAccount(txn, -1);
+    }
+    
+    globalData.finance[idx]._deleted = true;
+    if (typeof showSuccessToast === 'function') showSuccessToast('Transaction Deleted');
+    if (typeof window.saveToStorage === 'function') {
+         window.saveToStorage();
+    }
+    renderAccMgmtList(currentTabType);
+    if (typeof renderLedger === 'function') renderLedger();
+  }
+}
+
+function printAccountsMgmt() {
+  const content = document.getElementById('accMgmtTabContent').innerHTML;
+  const win = window.open('', '_blank');
+  win.document.write(`
+    <html>
+      <head>
+        <title>Accounts Management Report</title>
+        <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/css/bootstrap.min.css" rel="stylesheet">
+        <style>
+            body { font-family: 'Inter', sans-serif; padding: 20px; background: white; color: black !important; }
+            .badge { border: 1px solid #ccc; background: transparent !important; color: black !important;}
+            .table-dark { background-color: #f8f9fa !important; color: black !important; }
+            .table-primary { background-color: #e9ecef !important; }
+            .text-info, .text-warning, .text-success, .text-danger { color: black !important; }
+            .btn { display: none; }
+            @media print {
+              .btn { display: none !important; }
+            }
+        </style>
+      </head>
+      <body>
+        <h3 class="text-center mb-4">WINGS FLY AVIATION ACADEMY</h3>
+        <h4 class="mb-4">Accounts Management Report</h4>
+        ${content}
+        <script>window.print(); setTimeout(()=>window.close(), 500);</script>
+      </body>
+    </html>
+  `);
+  win.document.close();
+}
+
+// Attach to window so it's accessible globally
+window.openAccMgmtAddModal = openAccMgmtAddModal;
+window.openAccMgmtReturnModal = openAccMgmtReturnModal;
+window.renderAccMgmtList = renderAccMgmtList;
+window.deleteAccMgmtTxn = deleteAccMgmtTxn;
+window.printAccountsMgmt = printAccountsMgmt;
