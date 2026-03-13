@@ -183,6 +183,7 @@ function renderLedger(transactions) {
   const displayItems = [...transactions].reverse();
   let totalDisplayed = 0;
 
+  let rowsHtml = '';
   displayItems.forEach((f, idx) => {
     // Assign missing IDs on the fly
     if (!f.id) {
@@ -196,7 +197,7 @@ function renderLedger(transactions) {
     if (isPositive) totalDisplayed += amt;
     else totalDisplayed -= amt;
 
-    const row = `
+    rowsHtml += `
       <tr>
         <td>${f.date || 'N/A'}</td>
         <td><span class="badge ${f.type.includes('Transfer') ? 'bg-warning' : 'bg-light text-dark border'}">${f.type}</span></td>
@@ -209,7 +210,7 @@ function renderLedger(transactions) {
         <td class="${amtClass} fw-bold">৳${formatNumber(amt)}</td>
         <td class="text-end">
           <div class="btn-group">
-            <button class="btn btn-sm btn-outline-primary edit-tx-btn" data-txid="${f.id}" title="Edit record">
+            <button class="btn btn-sm btn-outline-primary edit-tx-btn" onclick="editTransaction('${f.id}')" title="Edit record">
               ✏️ Edit
             </button>
             <button class="btn btn-sm btn-danger del-tx-btn" onclick="event.stopPropagation(); _handleDeleteTx('${f.id}')" title="Delete record">
@@ -219,8 +220,8 @@ function renderLedger(transactions) {
         </td>
       </tr>
     `;
-    tbody.innerHTML += row;
   });
+  tbody.innerHTML = rowsHtml;
 
   // Update total in header
   const summaryTotalEl = document.getElementById('ledgerSummaryTotal');
