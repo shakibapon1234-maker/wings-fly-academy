@@ -30,29 +30,26 @@ function animateCount(el, target, prefix = '', isFloat = false, duration = 900) 
 window.animateCount = animateCount; // ✅ FIX: export করতে হবে নইলে কাজ করে না
 
 function updateGlobalStats() {
-  let income = 0;
-  let expense = 0;
+  const settings = globalData.settings || {};
+  const selectedBatch = settings.runningBatch || '';
 
   // Update Academy Name display
-  if (globalData.settings?.academyName) {
+  if (settings.academyName) {
     const titleEl = document.querySelector('.page-title') || document.querySelector('.dashboard-header h2');
-    if (titleEl) titleEl.innerText = globalData.settings.academyName;
+    if (titleEl) titleEl.innerText = settings.academyName;
   }
 
-  // ── CANONICAL RULES (finance-engine.js এর সাথে sync) ──
-  // Loan Received / Loan Given  → Account-এ যায়, Income/Expense count হয় না
-  // Transfer In / Transfer Out  → Account move, Income/Expense count হয় না
-  // Income / Registration / Refund → Income stats
-  // Expense / Salary / Rent / Utilities → Expense stats
+  // Canonical Types
   const STAT_INCOME_TYPES  = typeof window.FE_STAT_INCOME  !== 'undefined' ? window.FE_STAT_INCOME  : ['Income', 'Registration', 'Refund'];
   const STAT_EXPENSE_TYPES = typeof window.FE_STAT_EXPENSE !== 'undefined' ? window.FE_STAT_EXPENSE : ['Expense', 'Salary', 'Rent', 'Utilities'];
 
-  // ✅ FIX: সব income/expense finance entries থেকে calculate করো
-  // students.paid থেকে নয় — কারণ account balance finance entries থেকে rebuild হয়
-  // দুটো আলাদা source থেকে calculate করলে mismatch হয়
-  let totalStudentIncome = 0;
-  let totalExamIncome = 0;
-  let nonStudentIncome = 0;
+  // 1. Calculate ALL-TIME Stats
+  let allTotalStudents = (globalData.students || []).length;
+  let allTotalIncome = 0;
+  let allTotalExpense = 0;
+  let allTotalExamIncome = 0;
+  let allNonStudentIncome = 0;
+  let allStudentIncome = 0;
 
   (globalData.finance || []).forEach(f => {
     if (f._deleted) return;
@@ -66,50 +63,98 @@ function updateGlobalStats() {
         cat.includes('admission') || cat.includes('fee') ||
         desc.includes('installment') || desc.includes('enrollment fee');
 
-      if (isExamRelated)             totalExamIncome += amt;
-      else if (isStudentRelated)     totalStudentIncome += amt;  // ✅ student entries count হবে
-      else                           nonStudentIncome += amt;
-
+      if (isExamRelated)             allTotalExamIncome += amt;
+      else if (isStudentRelated)     allStudentIncome += amt;
+      else                           allNonStudentIncome += amt;
     } else if (STAT_EXPENSE_TYPES.includes(f.type)) {
-      expense += amt;
+      allTotalExpense += amt;
     }
-    // Loan, Transfer → account balance-এ যায়, income/expense না
   });
 
-  // Display Total for the 'Student Collection' card
-  income = totalStudentIncome;
+  allTotalIncome = allStudentIncome; // Student Collection focus
+  const allOverallIncome = allStudentIncome + allTotalExamIncome + allNonStudentIncome;
+  const allProfit = allOverallIncome - allTotalExpense;
 
-  // Overall Income for Profit calculation (Student + Exam + Other)
-  const overallIncome = totalStudentIncome + totalExamIncome + nonStudentIncome;
-  const profit = overallIncome - expense;
+  // 2. Calculate RUNNING BATCH Stats
+  let runTotalStudents = 0;
+  let runStudentIncome = 0;
+  let runExamIncome = 0;
+  let runNonStudentIncome = 0;
+  let runTotalExpense = allTotalExpense; // Expense is global unless we filter by date or tag
 
-  // Update Exam Card UI
-  const examEl = document.getElementById('dashTotalExam');
-  if (examEl) examEl.textContent = '৳' + (totalExamIncome > 0 ? (typeof formatNumber === 'function' ? formatNumber(totalExamIncome) : totalExamIncome) : '0');
+  // Filter students by batch
+  if (selectedBatch) {
+    const filteredStudents = (globalData.students || []).filter(s => s.batch === selectedBatch);
+    runTotalStudents = filteredStudents.length;
+    
+    // Calculate income for these students
+    const studentIds = new Set(filteredStudents.map(s => s.id).filter(Boolean));
+    const rowIndexToId = (globalData.students || []).reduce((acc, s, idx) => {
+        if (s.batch === selectedBatch) acc.add(idx);
+        return acc;
+    }, new Set());
 
-  // --- AVIATION PREMIUM DASHBOARD METRICS ---
+    (globalData.finance || []).forEach(f => {
+      if (f._deleted) return;
+      const amt = parseFloat(f.amount) || 0;
+      const cat = (f.category || '').toLowerCase();
+      const desc = (f.description || '').toLowerCase();
+      
+      // Match by student ID or rowIndex in desc
+      const isStudentMatch = (f.studentId && studentIds.has(f.studentId)) || 
+                             (f.description && f.description.includes('WF-') && rowIndexToId.has(parseInt(f.description.split('WF-')[1])));
 
-  // 1. Total Students
+      if (STAT_INCOME_TYPES.includes(f.type)) {
+        if (isStudentMatch) runStudentIncome += amt;
+        // Exam income usually not batch specific in this UI layout
+      }
+    });
+  } else {
+    // No batch selected -> Show all
+    runTotalStudents = allTotalStudents;
+    runStudentIncome = allStudentIncome;
+  }
+
+  const runProfit = runStudentIncome - runTotalExpense;
+
+  // 3. PENDING ADVANCES (Calculate from finance or payroll if available)
+  let pendingAdvAmount = 0;
+  let pendingAdvCount = 0;
+  const advMap = new Map();
+
+  (globalData.finance || []).forEach(f => {
+    if (f._deleted) return;
+    if (f.type === 'Expense' && (f.category === 'Advance' || (f.description && f.description.toLowerCase().includes('advance')))) {
+        const emp = f.person || f.description || 'Unknown';
+        advMap.set(emp, (advMap.get(emp) || 0) + parseFloat(f.amount || 0));
+    }
+    // If settlements exist, subtract them here (logic for later)
+  });
+  
+  advMap.forEach((amt) => {
+      if (amt > 0) {
+          pendingAdvAmount += amt;
+          pendingAdvCount++;
+      }
+  });
+
+  // --- UPDATE UI ---
+
+  // ROW 1: Running Batch
   const dashStudentEl = document.getElementById('dashTotalStudents');
-  const dashStudentCenter = document.getElementById('dashTotalStudentsCenter');
-  if (dashStudentEl) animateCount(dashStudentEl, globalData.students.length, '', false, 800);
-  if (dashStudentCenter) animateCount(dashStudentCenter, globalData.students.length, '', false, 800);
+  if (dashStudentEl) animateCount(dashStudentEl, runTotalStudents, '', false, 800);
 
-  // 2. Total Income
   const dashIncomeEl = document.getElementById('dashTotalIncome');
-  if (dashIncomeEl) animateCount(dashIncomeEl, income, '৳', false, 1000);
+  if (dashIncomeEl) animateCount(dashIncomeEl, runStudentIncome, '৳', false, 1000);
 
-  // 3. Total Expense
   const dashExpenseEl = document.getElementById('dashTotalExpense');
-  if (dashExpenseEl) animateCount(dashExpenseEl, expense, '৳', false, 1000);
+  if (dashExpenseEl) animateCount(dashExpenseEl, runTotalExpense, '৳', false, 1000);
 
-  // 4. Net Profit / Loss
   const dashProfitEl = document.getElementById('dashTotalProfit');
-  const dashProfitStatus = document.getElementById('dashProfitStatus');
-
   if (dashProfitEl) {
-    animateCount(dashProfitEl, Math.abs(profit), '৳', false, 1000);
-    if (profit >= 0) {
+    animateCount(dashProfitEl, Math.abs(runProfit), '৳', false, 1000);
+    const dashProfitStatus = document.getElementById('dashProfitStatus');
+    if (runProfit >= 0) {
       dashProfitEl.className = "av-card-value value-purple";
       if (dashProfitStatus) dashProfitStatus.innerText = "Net Profit";
     } else {
@@ -118,99 +163,81 @@ function updateGlobalStats() {
     }
   }
 
-  // --- NEW: Account Balance (Asset) Display ---
+  // ROW 2: All-Time Lifetime
+  const dashAllStudentEl = document.getElementById('dashAllTotalStudents');
+  if (dashAllStudentEl) animateCount(dashAllStudentEl, allTotalStudents, '', false, 800);
+
+  const dashAllIncomeEl = document.getElementById('dashAllTotalIncome');
+  if (dashAllIncomeEl) animateCount(dashAllIncomeEl, allStudentIncome, '৳', false, 1000);
+
+  const dashAllExpenseEl = document.getElementById('dashAllTotalExpense');
+  if (dashAllExpenseEl) animateCount(dashAllExpenseEl, allTotalExpense, '৳', false, 1000);
+
+  const dashAllProfitEl = document.getElementById('dashAllTotalProfit');
+  if (dashAllProfitEl) animateCount(dashAllProfitEl, allProfit, '৳', false, 1000);
+
+  // TOP BADGE: Pending Advances
+  const pendingAdvEl = document.getElementById('dashPendingAdvances');
+  const pendingAdvCountEl = document.getElementById('dashPendingAdvancesCount');
+  if (pendingAdvEl) pendingAdvEl.textContent = '৳' + formatNumber(pendingAdvAmount);
+  if (pendingAdvCountEl) pendingAdvCountEl.textContent = `${pendingAdvCount} person(s)`;
+
+  // Account Assets (Update both IDs if present)
   const totalAssets = (parseFloat(globalData.cashBalance) || 0) +
     (globalData.bankAccounts || []).reduce((s, a) => s + (parseFloat(a.balance) || 0), 0) +
     (globalData.mobileBanking || []).reduce((s, a) => s + (parseFloat(a.balance) || 0), 0);
 
   const dashAssetEl = document.getElementById('dashTotalAssets');
-  if (dashAssetEl) {
-    animateCount(dashAssetEl, totalAssets, '৳', false, 1100);
-  }
+  const dashAllAssetEl = document.getElementById('dashAllTotalAssets');
+  if (dashAssetEl) animateCount(dashAssetEl, totalAssets, '৳', false, 1100);
+  if (dashAllAssetEl) animateCount(dashAllAssetEl, totalAssets, '৳', false, 1100);
 
-  // Debug: reconciliation log in console
-  const startBal = (globalData.settings?.startBalances?.Cash || 0);
-  if (Math.abs(totalAssets - (profit + startBal)) > 10) {
-    console.info(`[Stats] Assets(৳${totalAssets}) vs Profit+Start(৳${profit + startBal}) Gap: ৳${totalAssets - (profit + startBal)}`);
-  }
+  // Exam Card (Main Dashboard)
+  const examEl = document.getElementById('dashTotalExam');
+  if (examEl) examEl.textContent = '৳' + formatNumber(allTotalExamIncome);
 
-  // Update New Dashboard Widgets
+  // Widgets & Charts
   renderDashLoanSummary();
   updateRecentActions();
   renderDashReminders();
-
-  // Call Recent Admissions
   renderRecentAdmissions();
+  if (typeof updateCharts === 'function') updateCharts();
 
-  // Call Charts Update
-  if (typeof updateCharts === 'function') {
-    updateCharts();
-  }
-
-  // --- ACCOUNT SUMMARY DISPLAY (Using ACTUAL account balances) ---
+  // Account Summary Row (Account Cards)
   const accountSummaryRow = document.getElementById('accountSummaryRow');
   if (accountSummaryRow) {
     accountSummaryRow.innerHTML = '';
-
-    // Add Cash card first
     const cashBalance = parseFloat(globalData.cashBalance) || 0;
-    const cashCard = `
+    accountSummaryRow.innerHTML += `
       <div class="col-md-3 mb-4">
         <div class="card account-card cash-card">
           <div class="account-icon">💵</div>
-          <div class="account-info">
-            <span class="account-name">Cash Balance</span>
-            <h4 class="account-val">৳${formatNumber(cashBalance)}</h4>
-          </div>
+          <div class="account-info"><span class="account-name">Cash Balance</span><h4 class="account-val">৳${formatNumber(cashBalance)}</h4></div>
         </div>
-      </div>
-    `;
-    accountSummaryRow.innerHTML += cashCard;
-
-    // Add Bank Account cards
+      </div>`;
     (globalData.bankAccounts || []).forEach(acc => {
-      const balance = parseFloat(acc.balance) || 0;
-      const card = `
+      accountSummaryRow.innerHTML += `
         <div class="col-md-3 mb-4">
           <div class="card account-card bank-card">
             <div class="account-icon">🏦</div>
-            <div class="account-info">
-              <span class="account-name">${acc.name}</span>
-              <h4 class="account-val">৳${formatNumber(balance)}</h4>
-            </div>
+            <div class="account-info"><span class="account-name">${acc.name}</span><h4 class="account-val">৳${formatNumber(parseFloat(acc.balance) || 0)}</h4></div>
           </div>
-        </div>
-      `;
-      accountSummaryRow.innerHTML += card;
+        </div>`;
     });
-
-    // Add Mobile Banking cards
     (globalData.mobileBanking || []).forEach(acc => {
-      const balance = parseFloat(acc.balance) || 0;
-      const card = `
+      accountSummaryRow.innerHTML += `
         <div class="col-md-3 mb-4">
           <div class="card account-card mobile-card">
             <div class="account-icon">📱</div>
-            <div class="account-info">
-              <span class="account-name">${acc.name}</span>
-              <h4 class="account-val">৳${formatNumber(balance)}</h4>
-            </div>
+            <div class="account-info"><span class="account-name">${acc.name}</span><h4 class="account-val">৳${formatNumber(parseFloat(acc.balance) || 0)}</h4></div>
           </div>
-        </div>
-      `;
-      accountSummaryRow.innerHTML += card;
+        </div>`;
     });
   }
 
-  // Check payment reminders
   if (typeof checkPaymentReminders === 'function') checkPaymentReminders();
-  // Update Recent Actions
-  if (typeof updateRecentActions === 'function') updateRecentActions();
-  // Update Monthly Target
   if (typeof updateTargetProgress === 'function') updateTargetProgress();
-  // Update Recent Exams
   if (typeof updateRecentExams === 'function') updateRecentExams();
-  // Update Unified Search Dropdown
   if (typeof populateAccountDropdown === 'function') populateAccountDropdown();
 }
 function updateTargetProgress() {

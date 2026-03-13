@@ -117,6 +117,10 @@
                                     onclick="switchSettingsTab('tab-batchreport', this); populateBatchReportDropdowns()">
                                     <span>📊</span> Batch Profit Report
                                 </button>
+                                <button class="nav-link nav-link-advanced" type="button"
+                                    onclick="switchSettingsTab('tab-advanced', this); if(typeof window.renderSettingsLists === 'function') window.renderSettingsLists();">
+                                    <span>⚙️</span> Advanced Settings
+                                </button>
                             </div>
                             <div class="mt-auto pt-4 text-center">
                                 <button type="submit" class="btn btn-primary w-100 py-2 shadow-sm">
@@ -1733,6 +1737,28 @@
                                     <h6>Select criteria and click generate to view report</h6>
                                 </div>
                             </div><!-- /tab-batchreport -->
+
+                            <!-- Tab 10: Advanced Settings -->
+                            <div class="settings-tab-pane" id="tab-advanced" style="display:none; padding:24px;">
+                                <h5 class="fw-bold mb-4" style="color:var(--primary);">🚀 Advanced System Configuration</h5>
+                                
+                                <div class="card bg-dark border-secondary mb-4 shadow-sm" style="border-radius:15px; border: 1.5px solid rgba(102,126,234,0.3) !important;">
+                                    <div class="card-body p-4">
+                                        <h6 class="fw-bold mb-3 text-info">Dashboard Display Settings</h6>
+                                        <div class="mb-4">
+                                            <label class="form-label fw-semibold">Running Batch Selection</label>
+                                            <p class="small text-muted mb-2">Select the batch you want to feature in the "Running Batch Overview" section on your dashboard.</p>
+                                            <select name="runningBatch" id="runningBatchSelect" class="form-select premium-input-modern">
+                                                <option value="">No Batch Selected</option>
+                                            </select>
+                                        </div>
+                                    </div>
+                                </div>
+
+                                <div class="alert alert-info bg-dark border-info text-info small" style="border-radius:12px;">
+                                    <i class="bi bi-info-circle me-2"></i> This setting controls which data is highlighted at the top of your dashboard. "All-Time" data will always be visible in the second row.
+                                </div>
+                            </div><!-- /tab-advanced -->
 
                         </div><!-- /tab-content -->
                     </div><!-- /flex-grow-1 content area -->

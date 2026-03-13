@@ -240,7 +240,8 @@ function handleSettingsSubmit(e) {
   globalData.settings = {
     startBalances: startBalances,
     academyName: formData.academyName || 'Wings Fly Aviation Academy',
-    monthlyTarget: parseFloat(formData.monthlyTarget) || 200000
+    monthlyTarget: parseFloat(formData.monthlyTarget) || 200000,
+    runningBatch: formData.runningBatch || ''
   };
 
   // Update Credentials (with SHA-256 hashing)

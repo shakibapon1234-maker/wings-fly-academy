@@ -224,6 +224,24 @@ function renderSettingsLists() {
         document.getElementById('settingsPassword').placeholder = 'Type new password to change...';
       }
     }
+    // Populate Advanced Tab: Running Batch Toggle
+    const runningBatchSelect = document.getElementById('runningBatchSelect');
+    if (runningBatchSelect) {
+      const currentRB = window.globalData.settings?.runningBatch || '';
+      const allBatches = [...new Set((window.globalData.students || []).map(s => s.batch).filter(Boolean))];
+      (window.globalData.courseNames || []).forEach(c => { if (!allBatches.includes(c)) allBatches.push(c); });
+      allBatches.sort();
+
+      runningBatchSelect.innerHTML = '<option value="">All Batches (No Filter)</option>';
+      allBatches.forEach(b => {
+        const opt = document.createElement('option');
+        opt.value = b;
+        opt.textContent = b;
+        if (b === currentRB) opt.selected = true;
+        runningBatchSelect.appendChild(opt);
+      });
+      runningBatchSelect.value = currentRB;
+    }
   }
 }
 

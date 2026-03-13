@@ -1765,19 +1765,29 @@
 
                 <div class="content-container">
                     <div id="dashboardOverview">
-                        <!-- AVIATION PREMIUM TOP ROW -->
-                        <div class="row g-4 mb-4">
-                            <!-- 1. Total Students -->
+                        <!-- TOP BADGE ROW -->
+                        <div class="d-flex justify-content-between align-items-center mb-4">
+                            <h6 class="text-uppercase fw-bold letter-spacing-2 opacity-75 mb-0" style="font-size: 0.75rem; color: #00d9ff;">
+                                🚀 RUNNING BATCH OVERVIEW
+                            </h6>
+                            <div class="badge-pending-advances px-3 py-1 rounded-pill" style="background: rgba(255, 140, 0, 0.1); border: 1px solid rgba(255, 140, 0, 0.3); color: #ffaa00; font-size: 0.75rem; font-weight: 700;">
+                                <i class="bi bi-person-fill-exclamation me-1"></i> PENDING ADVANCES: <span id="dashPendingAdvances">৳4,945</span> <small class="opacity-75 ms-1" id="dashPendingAdvancesCount">1 person(s)</small>
+                            </div>
+                        </div>
+
+                        <!-- ROW 1: RUNNING BATCH OVERVIEW -->
+                        <div class="row g-3 mb-5">
+                            <!-- 1. Running Total Students -->
                             <div class="col-md-6 col-lg-4 col-xl-2-4">
-                                <div class="aviation-metric-card metric-card-blue">
+                                <div class="aviation-metric-card metric-card-blue h-100">
                                     <div class="av-card-header">
-                                        <h6 class="av-card-label">Total Students</h6>
+                                        <h6 class="av-card-label">TOTAL STUDENTS</h6>
                                         <div class="av-card-icon av-card-icon-blue">
                                             <i class="bi bi-people-fill"></i>
                                         </div>
                                     </div>
                                     <div class="av-card-body">
-                                        <h3 class="av-card-value value-blue" id="dashTotalStudents">0</h3>
+                                        <h3 class="av-card-value value-blue" id="dashTotalStudents">19</h3>
                                         <p class="av-card-subtitle">Active Enrollment</p>
                                         <div class="av-card-trend trend-positive">
                                             <i class="bi bi-arrow-up-short"></i> +12%
@@ -1786,11 +1796,11 @@
                                 </div>
                             </div>
 
-                            <!-- 2. Student Collection (Renamed from Total Income) -->
+                            <!-- 2. Running Student Collection -->
                             <div class="col-md-6 col-lg-4 col-xl-2-4">
-                                <div class="aviation-metric-card metric-card-green">
+                                <div class="aviation-metric-card metric-card-green h-100">
                                     <div class="av-card-header">
-                                        <h6 class="av-card-label">Student Collection</h6>
+                                        <h6 class="av-card-label">STUDENT COLLECTION</h6>
                                         <div class="av-card-icon av-card-icon-green">
                                             <i class="bi bi-wallet2"></i>
                                         </div>
@@ -1805,36 +1815,17 @@
                                 </div>
                             </div>
 
-                            <!-- 2b. Total Account Balance (REPLACED EXAM INCOME) -->
+                            <!-- 3. Running Total Expense -->
                             <div class="col-md-6 col-lg-4 col-xl-2-4">
-                                <div class="aviation-metric-card metric-card-indigo">
+                                <div class="aviation-metric-card metric-card-orange h-100">
                                     <div class="av-card-header">
-                                        <h6 class="av-card-label">Account Balance</h6>
-                                        <div class="av-card-icon av-card-icon-indigo">
-                                            <i class="bi bi-wallet2"></i>
-                                        </div>
-                                    </div>
-                                    <div class="av-card-body">
-                                        <h3 class="av-card-value value-indigo" id="dashTotalAssets">৳0</h3>
-                                        <p class="av-card-subtitle">Cash + Bank + Mobile</p>
-                                        <div class="av-card-trend trend-positive">
-                                            <i class="bi bi-shield-check"></i> Assets
-                                        </div>
-                                    </div>
-                                </div>
-                            </div>
-
-                            <!-- 3. Total Expense -->
-                            <div class="col-md-6 col-lg-4 col-xl-2-4">
-                                <div class="aviation-metric-card metric-card-orange">
-                                    <div class="av-card-header">
-                                        <h6 class="av-card-label">Total Expense</h6>
+                                        <h6 class="av-card-label">TOTAL EXPENSE</h6>
                                         <div class="av-card-icon av-card-icon-orange">
                                             <i class="bi bi-graph-down-arrow"></i>
                                         </div>
                                     </div>
                                     <div class="av-card-body">
-                                        <h3 class="av-card-value value-orange" id="dashTotalExpense">৳0</h3>
+                                        <h3 class="av-card-value value-orange" id="dashTotalExpense">৳6,46,097</h3>
                                         <p class="av-card-subtitle">Operating Costs</p>
                                         <div class="av-card-trend trend-negative">
                                             <i class="bi bi-arrow-down-short"></i> -3%
@@ -1843,17 +1834,17 @@
                                 </div>
                             </div>
 
-                            <!-- 4. Net Profit/Loss -->
+                            <!-- 4. Running Net Profit/Loss -->
                             <div class="col-md-6 col-lg-4 col-xl-2-4">
-                                <div class="aviation-metric-card metric-card-purple">
+                                <div class="aviation-metric-card metric-card-purple h-100">
                                     <div class="av-card-header">
-                                        <h6 class="av-card-label">Net Profit/Loss</h6>
+                                        <h6 class="av-card-label">NET PROFIT/LOSS</h6>
                                         <div class="av-card-icon av-card-icon-purple">
                                             <i class="bi bi-calculator"></i>
                                         </div>
                                     </div>
                                     <div class="av-card-body">
-                                        <h3 class="av-card-value value-purple" id="dashTotalProfit">৳0</h3>
+                                        <h3 class="av-card-value value-purple" id="dashTotalProfit">৳5,16,577</h3>
                                         <p class="av-card-subtitle" id="dashProfitStatus">Business Health</p>
                                         <div class="av-card-trend trend-positive">
                                             <i class="bi bi-check-all"></i> Healthy
@@ -1861,7 +1852,94 @@
                                     </div>
                                 </div>
                             </div>
+
+                            <!-- 5. Running Account Balance -->
+                            <div class="col-md-6 col-lg-4 col-xl-2-4">
+                                <div class="aviation-metric-card" style="border: 1px solid rgba(0, 217, 255, 0.3); background: rgba(0, 217, 255, 0.05); border-radius: 15px; padding: 20px;">
+                                    <div class="av-card-header d-flex justify-content-between">
+                                        <h6 class="av-card-label" style="font-size: 0.75rem; color: rgba(255,255,255,0.6);">ACCOUNT BALANCE</h6>
+                                        <div class="av-card-icon" style="background: rgba(0, 217, 255, 0.2); color: #00d9ff; border: 1px solid rgba(0, 217, 255, 0.3); width: 35px; height: 35px; border-radius: 10px; display: flex; align-items: center; justify-content: center;">
+                                            <i class="bi bi-bank"></i>
+                                        </div>
+                                    </div>
+                                    <div class="av-card-body mt-2">
+                                        <h3 class="av-card-value" id="dashTotalAssets" style="color: #00d9ff; font-weight: 800; font-size: 1.8rem;">৳2,75,253</h3>
+                                        <p class="av-card-subtitle" style="font-size: 0.75rem; color: rgba(255,255,255,0.5);">Cash + Bank + Mobile</p>
+                                        <div class="av-card-trend" style="color: #00ff88; font-size: 0.75rem;">
+                                            <i class="bi bi-shield-check"></i> Assets
+                                        </div>
+                                    </div>
+                                </div>
+                            </div>
                         </div>
+
+                        <!-- ROW 2: ALL-TIME LIFETIME OVERVIEW -->
+                        <div class="d-flex align-items-center gap-2 mb-3">
+                            <span class="fs-5">📊</span>
+                            <h6 class="text-uppercase fw-bold letter-spacing-2 opacity-75 mb-0" style="font-size: 0.75rem; color: #84fab0;">
+                                ALL-TIME LIFETIME OVERVIEW
+                            </h6>
+                            <div class="flex-grow-1 border-top opacity-25 ms-2"></div>
+                        </div>
+                        
+                        <div class="row g-3 mb-4">
+                            <!-- All time students -->
+                            <div class="col">
+                                <div class="lifetime-card p-3 rounded-4" style="background: rgba(13, 17, 34, 0.6); border: 1px solid rgba(255, 255, 255, 0.05);">
+                                    <div class="d-flex justify-content-between align-items-start mb-2">
+                                        <div class="text-muted small fw-bold">All Students</div>
+                                        <i class="bi bi-people text-muted small"></i>
+                                    </div>
+                                    <h3 class="mb-0 fw-bold" id="dashAllTotalStudents" style="font-size: 1.5rem; color: #00d9ff;">19</h3>
+                                    <div class="text-muted tiny">Total Enrolled</div>
+                                </div>
+                            </div>
+                            <!-- All time collection -->
+                            <div class="col">
+                                <div class="lifetime-card p-3 rounded-4" style="background: rgba(13, 17, 34, 0.6); border: 1px solid rgba(255, 255, 255, 0.05);">
+                                    <div class="d-flex justify-content-between align-items-start mb-2">
+                                        <div class="text-muted small fw-bold">All Collection</div>
+                                        <i class="bi bi-wallet2 text-muted small"></i>
+                                    </div>
+                                    <h3 class="mb-0 fw-bold" id="dashAllTotalIncome" style="font-size: 1.5rem; color: #fff;">৳11,62,674</h3>
+                                    <div class="text-muted tiny">Student Fees</div>
+                                </div>
+                            </div>
+                            <!-- All time balance -->
+                            <div class="col">
+                                <div class="lifetime-card p-3 rounded-4" style="background: rgba(13, 17, 34, 0.6); border: 1px solid rgba(255, 255, 255, 0.05); border-left: 3px solid #00d9ff;">
+                                    <div class="d-flex justify-content-between align-items-start mb-2">
+                                        <div class="text-muted small fw-bold" style="color: #00d9ff;">Account Balance</div>
+                                        <i class="bi bi-bank text-muted small"></i>
+                                    </div>
+                                    <h3 class="mb-0 fw-bold" id="dashAllTotalAssets" style="font-size: 1.5rem; color: #fff;">৳2,75,253</h3>
+                                    <div class="text-muted tiny">Cash + Bank + Mobile</div>
+                                </div>
+                            </div>
+                            <!-- All time expense -->
+                            <div class="col">
+                                <div class="lifetime-card p-3 rounded-4" style="background: rgba(13, 17, 34, 0.6); border: 1px solid rgba(255, 255, 255, 0.05);">
+                                    <div class="d-flex justify-content-between align-items-start mb-2">
+                                        <div class="text-muted small fw-bold">Total Expense</div>
+                                        <i class="bi bi-graph-down-arrow text-muted small"></i>
+                                    </div>
+                                    <h3 class="mb-0 fw-bold" id="dashAllTotalExpense" style="font-size: 1.5rem; color: #ff4d4d;">৳6,46,097</h3>
+                                    <div class="text-muted tiny">All Time Costs</div>
+                                </div>
+                            </div>
+                            <!-- All time profit -->
+                            <div class="col">
+                                <div class="lifetime-card p-3 rounded-4" style="background: rgba(13, 17, 34, 0.6); border: 1px solid rgba(255, 255, 255, 0.05);">
+                                    <div class="d-flex justify-content-between align-items-start mb-2">
+                                        <div class="text-muted small fw-bold">Net Profit/Loss</div>
+                                        <i class="bi bi-calculator text-muted small"></i>
+                                    </div>
+                                    <h3 class="mb-0 fw-bold" id="dashAllTotalProfit" style="font-size: 1.5rem; color: #00ff88;">৳5,16,577</h3>
+                                    <div class="text-muted tiny">✅ Net Profit</div>
+                                </div>
+                            </div>
+                        </div>
+
 
                         <!-- ANALYTICS SECTION -->
                         <div class="section-card">
