@@ -118,7 +118,7 @@
                                     <span>📊</span> Batch Profit Report
                                 </button>
                                 <button class="nav-link nav-link-advanced" type="button"
-                                    onclick="switchSettingsTab('tab-advanced', this); if(typeof window.renderSettingsLists === 'function') window.renderSettingsLists(); document.querySelector('#settingsModal .flex-grow-1.overflow-auto').scrollTop=0;">
+                                    onclick="switchSettingsTab('tab-advanced', this); if(typeof window.renderSettingsLists === 'function') window.renderSettingsLists(); var _sa=document.querySelector('#settingsModal .flex-grow-1.overflow-auto'); if(_sa) _sa.scrollTop=0;">
                                     <span>💼</span> Accounts Management
                                 </button>
                             </div>

@@ -9,6 +9,38 @@
   if (document.getElementById('accountModal')) return; // Already exists
 
   const modalHTML = `
+    <!-- ===== CASH MODAL ===== -->
+    <div class="modal fade" id="cashModal" tabindex="-1" aria-hidden="true">
+      <div class="modal-dialog modal-dialog-centered">
+        <div class="modal-content border-0 shadow-lg" style="background:#0d1b2a; color:#e0f0ff; border-radius:16px;">
+          <div class="modal-header border-0 pb-0">
+            <h5 class="modal-title fw-bold" style="color:#f093fb;">
+              <span class="me-2">💵</span>Update Cash Balance
+            </h5>
+            <button type="button" class="btn-close btn-close-white" data-bs-dismiss="modal"></button>
+          </div>
+          <div class="modal-body pt-3">
+            <form id="cashForm" onsubmit="handleCashSubmit(event)">
+              <div class="mb-4">
+                <label class="form-label fw-semibold" style="color:#a0c4ff;">Cash Balance (৳)</label>
+                <input type="number" name="cashBalance" class="form-control form-control-lg"
+                  style="background:#162032;color:#e0f0ff;border-color:#1e3a5f;font-size:1.4rem;font-weight:700;"
+                  placeholder="0" value="0" min="0" step="0.01">
+                <small style="color:rgba(240,147,251,0.6);">Physical cash on hand এর পরিমাণ লিখুন</small>
+              </div>
+              <div class="d-flex gap-2 justify-content-end">
+                <button type="button" class="btn btn-outline-secondary" data-bs-dismiss="modal">Cancel</button>
+                <button type="submit" class="btn fw-bold px-4"
+                  style="background:linear-gradient(135deg,#f093fb,#f5576c);border:none;color:#fff;">
+                  💾 Update Cash
+                </button>
+              </div>
+            </form>
+          </div>
+        </div>
+      </div>
+    </div>
+
     <!-- ===== BANK ACCOUNT MODAL ===== -->
     <div class="modal fade" id="accountModal" tabindex="-1" aria-hidden="true">
       <div class="modal-dialog modal-dialog-centered">
