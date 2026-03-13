@@ -233,14 +233,13 @@ body::after {
 
 /* Enhanced Glass Card */
 .glass-card {
-  background: linear-gradient(135deg,
-      rgba(21, 26, 53, 0.95) 0%,
-      rgba(31, 21, 69, 0.95) 100%);
-  border: 2px solid var(--glass-border);
-  box-shadow: var(--glow-blue);
-  border-radius: 15px;
+  background: linear-gradient(135deg, rgba(21, 26, 53, 0.95) 0%, rgba(31, 21, 69, 0.95) 100%);
+  border: 1px solid rgba(0, 217, 255, 0.25) !important;
+  box-shadow: 0 10px 30px rgba(0, 0, 0, 0.3) !important;
+  border-radius: 24px !important;
   color: var(--text-main);
-  backdrop-filter: blur(10px);
+  backdrop-filter: blur(15px) saturate(180%) !important;
+  width: 100% !important;
   position: relative;
   overflow: hidden;
 }
@@ -1475,9 +1474,15 @@ body::after {
    TABLES - Enhanced Neon Style
    =================================== */
 
-.table {
-  color: var(--text-white);
-  margin: 0;
+/* Standard Container Padding to match Student Tab */
+.container-fluid {
+  padding: 1.5rem 2rem;
+}
+
+.table-responsive {
+  width: 100% !important;
+  overflow-x: auto;
+  border-radius: 15px;
 }
 
 .table thead {
@@ -1514,6 +1519,95 @@ body::after {
   font-weight: 500;
   border: none;
   vertical-align: middle;
+}
+
+/* ===================================
+   MODERN TABLE - Global Premium Style
+   =================================== */
+.modern-table, 
+.av-table {
+  width: 100% !important;
+  min-width: 100% !important; /* Forces table to stretch in overflow containers */
+  margin-bottom: 0 !important;
+  border-collapse: separate !important; /* Back to Student tab standard */
+  border-spacing: 0;
+  table-layout: auto !important; /* Back to Auto to fill screen */
+  background: transparent !important;
+}
+
+.modern-table thead th,
+.av-table thead th {
+  background: rgba(10, 14, 39, 0.8) !important;
+  color: #00d9ff !important;
+  font-family: 'Orbitron', sans-serif;
+  text-transform: uppercase;
+  letter-spacing: 1.5px;
+  font-size: 0.85rem; /* Spacious Font like Students */
+  font-weight: 700;
+  padding: 1.25rem 1rem !important; /* Large Padding like Students */
+  border-bottom: 3px solid rgba(0, 217, 255, 0.3) !important;
+}
+
+.modern-table td,
+.av-table td {
+  padding: 1.1rem 1rem !important; /* Spacious Cell padding like Students */
+  border-bottom: 1px solid rgba(255, 255, 255, 0.05) !important;
+  vertical-align: middle;
+  line-height: 1.5;
+  font-size: 0.95rem;
+  color: var(--text-white);
+}
+
+/* Action Column - Match Student Tab spacing */
+.modern-table th:last-child,
+.modern-table td:last-child,
+.av-table th:last-child,
+.av-table td:last-child {
+  text-align: right !important;
+  padding-right: 1.5rem !important;
+  width: auto;
+  white-space: nowrap;
+}
+
+/* Match Student Tab Button Styles */
+.modern-table .btn-sm,
+.av-table .btn-sm {
+  padding: 0.5rem 1rem !important;
+  font-size: 0.85rem !important;
+  font-weight: 600 !important;
+  border-radius: 8px !important;
+  transition: all 0.3s ease;
+}
+
+.modern-table tbody tr:hover {
+  background: rgba(0, 217, 255, 0.08) !important;
+  transform: scale(1.005);
+}
+
+.modern-table tfoot tr {
+  background: rgba(0, 217, 255, 0.05) !important;
+  border-top: 2px solid rgba(0, 217, 255, 0.2) !important;
+}
+
+.modern-table tfoot td {
+  color: #00d9ff !important;
+  font-weight: 800 !important;
+  font-size: 1rem;
+  padding: 1.25rem 1rem !important;
+}
+
+.premium-table-card {
+  background: linear-gradient(135deg, rgba(10, 18, 50, 0.97), rgba(20, 10, 55, 0.97)) !important;
+  border: 1.5px solid rgba(0, 217, 255, 0.2) !important;
+  border-radius: 24px !important;
+  overflow: hidden;
+  box-shadow: 0 15px 35px rgba(0, 0, 0, 0.4) !important;
+}
+
+.modern-table th:last-child,
+.modern-table td:last-child {
+  text-align: right !important;
+  padding-right: 1.5rem !important;
 }
 
 .table-striped tbody tr:nth-of-type(odd) {
@@ -1987,6 +2081,8 @@ textarea.form-control {
 
   .table-responsive {
     font-size: 0.85rem;
+    width: 100% !important;
+    overflow-x: auto;
   }
 
   .content-container {
@@ -3490,46 +3586,20 @@ tfoot th {
   box-shadow: 0 8px 25px rgba(56, 239, 125, 0.4);
 }
 
-/* Bank & Mobile table card */
-#accountsSection .card.border-0.shadow-sm.overflow-hidden.rounded-4 {
+/* Bank & Mobile table card (Simplified to use global) */
+#accountsSection .card.border-0.shadow-sm.overflow-hidden.rounded-4,
+.premium-table-card {
   background: linear-gradient(135deg, rgba(10, 18, 50, 0.97), rgba(20, 10, 55, 0.97)) !important;
   border: 1.5px solid rgba(0, 217, 255, 0.2) !important;
 }
 
-/* Table thead */
-#accountsSection .modern-table thead tr {
-  background: linear-gradient(90deg, rgba(0, 100, 200, 0.3), rgba(0, 217, 255, 0.15)) !important;
-}
-
-#accountsSection .modern-table thead th {
-  color: #00d9ff !important;
-  font-size: 0.78rem;
-  font-weight: 700;
-  text-transform: uppercase;
-  letter-spacing: 1px;
-  border-color: rgba(0, 217, 255, 0.15) !important;
-}
-
-/* Table tfoot total row */
-#accountsSection .modern-table tfoot tr {
-  background: linear-gradient(90deg, rgba(0, 200, 100, 0.15), rgba(0, 255, 136, 0.08)) !important;
-  border-top: 2px solid rgba(0, 200, 100, 0.3) !important;
-}
-
-#accountsSection .modern-table tfoot td {
-  color: #00ff88 !important;
-  font-weight: 800 !important;
-  font-size: 1rem;
-  border-color: rgba(0, 200, 100, 0.2) !important;
-}
-
 /* Table body rows */
-#accountsSection .modern-table tbody tr {
+.modern-table tbody tr {
   border-color: rgba(0, 217, 255, 0.08) !important;
   color: #c8d8f0;
 }
 
-#accountsSection .modern-table tbody tr:hover {
+.modern-table tbody tr:hover {
   background: rgba(0, 217, 255, 0.06) !important;
 }
 
