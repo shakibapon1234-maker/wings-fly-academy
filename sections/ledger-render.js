@@ -128,9 +128,49 @@ function populateDropdowns() {
 }
 
 function renderSettingsLists() {
-  const incCats = window.globalData.incomeCategories || [];
-  const expCats = window.globalData.expenseCategories || [];
-  const methods = window.globalData.paymentMethods || [];
+  const gd = window.globalData || {};
+
+  // === Dynamic Sync from Actual Data ===
+  
+  // 1. Income & Expense Categories from Finance Data
+  const existingIncomes = new Set();
+  const existingExpenses = new Set();
+  if (gd.finance && Array.isArray(gd.finance)) {
+    gd.finance.forEach(f => {
+      if (!f.category) return;
+      if (f.type === 'Income' || f.type === 'Loan Received') existingIncomes.add(f.category);
+      else existingExpenses.add(f.category);
+    });
+  }
+  gd.incomeCategories = [...new Set([...(gd.incomeCategories || []), ...existingIncomes])].sort();
+  gd.expenseCategories = [...new Set([...(gd.expenseCategories || []), ...existingExpenses])].sort();
+
+  // 2. Courses from Student Data
+  const existingCourses = new Set();
+  if (gd.students && Array.isArray(gd.students)) {
+    gd.students.forEach(s => {
+      if (s.course) existingCourses.add(s.course);
+    });
+  }
+  gd.courseNames = [...new Set([...(gd.courseNames || []), ...existingCourses])].sort();
+
+  // 3. Employee Roles from Employee Data
+  const existingRoles = new Set();
+  if (gd.employees && Array.isArray(gd.employees)) {
+    gd.employees.forEach(e => {
+      if (e.role) existingRoles.add(e.role);
+    });
+  }
+  gd.employeeRoles = [...new Set([...(gd.employeeRoles || ['Instructor', 'Admin', 'Staff', 'Manager']), ...existingRoles])].sort();
+
+  // Save dynamically merged data to storage
+  if (typeof saveToStorage === 'function') saveToStorage();
+  else localStorage.setItem('wingsfly_data', JSON.stringify(gd));
+
+  const incCats = gd.incomeCategories;
+  const expCats = gd.expenseCategories;
+  const courses = gd.courseNames;
+  const roles = gd.employeeRoles;
 
   // Income List
   const incList = document.getElementById('settingsIncomeCatList');
@@ -160,7 +200,6 @@ function renderSettingsLists() {
   const courseList = document.getElementById('settingsCourseList');
   if (courseList) {
     courseList.innerHTML = '';
-    const courses = window.globalData.courseNames || [];
     courses.forEach(c => {
       const li = document.createElement('li');
       li.className = 'list-group-item d-flex justify-content-between align-items-center';
@@ -173,7 +212,6 @@ function renderSettingsLists() {
   const rolesList = document.getElementById('settingsEmployeeRoleList');
   if (rolesList) {
     rolesList.innerHTML = '';
-    const roles = window.globalData.employeeRoles || ['Instructor', 'Admin', 'Staff', 'Manager'];
     roles.forEach((r, i) => {
       const li = document.createElement('li');
       li.className = 'list-group-item d-flex justify-content-between align-items-center';
