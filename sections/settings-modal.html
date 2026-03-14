@@ -183,6 +183,11 @@
                                             </div>
                                         </div>
 
+                                        <!-- ===== SAVE GENERAL SETTINGS BUTTON ===== -->
+                                        <div class="text-end mt-2 mb-3">
+                                            <button class="sc-sv" type="button" onclick="window.scSaveGeneral && window.scSaveGeneral()">💾 Save General Settings</button>
+                                        </div>
+
                                         <!-- ===== AUTO SNAPSHOT SECTION ===== -->
                                         <h6 class="settings-section-title mt-4">📸 Auto Snapshots</h6>
                                         <div class="p-3 rounded-3 mb-2"
@@ -894,6 +899,11 @@
                                             const gd = window.globalData; if (!gd) return; const s = gd.settings || {};
                                             const uEl = document.getElementById('settingsUsername');
                                             if (uEl) { uEl.value = s.adminUsername || (gd.users && gd.users[0] ? gd.users[0].username : ''); }
+                                            // ✅ Academy Info restore
+                                            const anEl = document.querySelector('#tab-general input[name="academyName"]');
+                                            const mtEl = document.querySelector('#tab-general input[name="monthlyTarget"]');
+                                            if (anEl && s.academyName) anEl.value = s.academyName;
+                                            if (mtEl && s.monthlyTarget) mtEl.value = s.monthlyTarget;
                                             // ✅ Password fields সবসময় খালি থাকবে (security)
                                             const pwEl = document.getElementById('settingsPassword');
                                             const pw2El = document.getElementById('settingsPasswordConfirm');
@@ -1178,6 +1188,44 @@
                                         }
 
                                         window.scLoad = scLoad; window.scSave = scSave;
+
+                                        // ✅ General Settings Save (Academy Info + Dashboard Display)
+                                        window.scSaveGeneral = async function() {
+                                            const gd = window.globalData; if (!gd) return; if (!gd.settings) gd.settings = {};
+                                            // Academy Info
+                                            const anEl = document.querySelector('#tab-general input[name="academyName"]');
+                                            const mtEl = document.querySelector('#tab-general input[name="monthlyTarget"]');
+                                            if (anEl && anEl.value.trim()) gd.settings.academyName = anEl.value.trim();
+                                            if (mtEl && mtEl.value) gd.settings.monthlyTarget = parseFloat(mtEl.value) || 0;
+                                            // Running Batch
+                                            const rbEl = document.getElementById('runningBatchSelect');
+                                            if (rbEl) gd.settings.runningBatch = rbEl.value;
+                                            // Date Range
+                                            const dsEl = document.getElementById('runningBatchDateStart');
+                                            const deEl = document.getElementById('runningBatchDateEnd');
+                                            if (dsEl) gd.settings.runningBatchDateStart = dsEl.value;
+                                            if (deEl) gd.settings.runningBatchDateEnd   = deEl.value;
+                                            // Save
+                                            localStorage.setItem('wingsfly_data', JSON.stringify(gd));
+                                            localStorage.setItem('wingsfly_settings_backup', JSON.stringify(gd.settings));
+                                            if (typeof saveToStorage === 'function') saveToStorage();
+                                            // Dashboard refresh
+                                            if (typeof updateGlobalStats === 'function') setTimeout(updateGlobalStats, 200);
+                                            // Cloud sync
+                                            if (typeof window.scheduleSyncPush === 'function') window.scheduleSyncPush('General settings updated');
+                                            else if (typeof window.saveToCloud === 'function') window.saveToCloud();
+                                            if (typeof logActivity === 'function') logActivity('settings', 'SETTINGS', 'General settings updated');
+                                            // Toast
+                                            if (typeof showSuccessToast === 'function') {
+                                                showSuccessToast('✅ General Settings সংরক্ষিত হয়েছে!');
+                                            } else {
+                                                var t = document.createElement('div');
+                                                t.textContent = '✅ General Settings সংরক্ষিত হয়েছে!';
+                                                t.style.cssText = 'position:fixed;top:20px;right:20px;z-index:999999;background:linear-gradient(135deg,#00d9ff,#00ff88);color:#050a1e;padding:12px 20px;border-radius:10px;font-weight:700;font-size:0.85rem;box-shadow:0 4px 20px rgba(0,217,255,0.4);';
+                                                document.body.appendChild(t);
+                                                setTimeout(function() { t.remove(); }, 3000);
+                                            }
+                                        };
                                         (function () {
                                             const orig = window.switchSettingsTab;
                                             if (typeof orig === 'function') {
