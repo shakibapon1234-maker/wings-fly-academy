@@ -1587,14 +1587,52 @@ function openAIAccountsAssistant() {
             </div>
         </div>
 
+        <!-- Box 4: AI Insights & Error Checking -->
+        <div style="background:rgba(255,100,100,0.05); padding:10px 15px; border-radius:8px; border-left:3px solid #ff4466;">
+            <div class="fw-bold mb-1" style="color:#ff4466; font-size:0.85rem;"><i class="bi bi-shield-exclamation"></i> AI Security & Error Check</div>
+            <div id="aiErrorChecks" style="font-size:0.85rem; color:#e0f0ff;">
+                <!-- Error messages will be injected here via logic -->
+            </div>
+        </div>
+
         <div class="mt-4 text-center" style="font-size:0.75rem; color:#7aa0c4;">
             <i class="bi bi-stars"></i> <i>AI Report generated using SMART V8 Sync Engine</i>
         </div>
     </div>
   `;
 
+  // --- Run AI Error Logic Before Rendering --- 
+  let errorMsgs = [];
+  
+  // Rule 1: Is Liquid Cash lower than amount we owe in Advances?
+  if (netAdvance > totalBalance && netAdvance > 0) {
+      errorMsgs.push(`<div class="mb-2"><i class="bi bi-x-circle text-danger"></i> <b>ঝুঁকি:</b> আপনার লিকুইড ব্যালেন্স (৳${totalBalance.toLocaleString()}) বকেয়া Advance-এর (৳${netAdvance.toLocaleString()}) চেয়ে কম! ক্যাশ ফ্লো নিয়ে সতর্ক হোন।</div>`);
+  }
+
+  // Rule 2: Orphaned Mobile Banking / Bank Accounts without balance
+  let zeroAccounts = 0;
+  (gd.bankAccounts || []).forEach(a => { if (parseFloat(a.balance) === 0) zeroAccounts++; });
+  (gd.mobileBanking || []).forEach(a => { if (parseFloat(a.balance) === 0) zeroAccounts++; });
+  if (zeroAccounts > 0) {
+      errorMsgs.push(`<div class="mb-2"><i class="bi bi-info-circle text-warning"></i> <b>পরামর্শ:</b> আপনার <b>${zeroAccounts}</b> টি অ্যাকাউন্টে ৳0 ব্যালেন্স রয়েছে। অব্যবহৃত অ্যাকাউন্টগুলো ডিলিট করে ড্রপডাউন ক্লিন রাখতে পারেন।</div>`);
+  }
+
+  // Rule 3: Missing categories in Advance/Investment
+  const badAdvance = gd.finance.filter(f => !f._deleted && f.type === 'Advance' && !f.person);
+  if (badAdvance.length > 0) {
+      errorMsgs.push(`<div class="mb-2"><i class="bi bi-exclamation-triangle text-danger"></i> <b>ভুল ডেটা:</b> ${badAdvance.length} টি Advance-এ কোনো ব্যক্তির নাম (Person) লেখা নেই। অবিলম্বে নাম যুক্ত করুন।</div>`);
+  }
+
+  // If no errors
+  if (errorMsgs.length === 0) {
+      errorMsgs.push(`<div class="text-success"><i class="bi bi-check2-all"></i> সিস্টেম চেক করেছে: কোনো বড় ধরনের সমস্যা বা ভুল এন্ট্রি পাওয়া যায়নি। ডেটা হেলথ একদম ঠিক আছে!</div>`);
+  }
+
+  // Replace placeholder
+  const finalHtmlContent = htmlContent.replace('<!-- Error messages will be injected here via logic -->', errorMsgs.join(''));
+
   Swal.fire({
-      html: htmlContent,
+      html: finalHtmlContent,
       background: 'transparent', // Custom container background makes default transparent useful
       backdrop: 'rgba(0,10,20,0.85)',
       width: '600px',
