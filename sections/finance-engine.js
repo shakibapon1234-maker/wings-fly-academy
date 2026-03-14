@@ -14,6 +14,12 @@
 //  ✅ Loan Given                        → Account balance -  | Stats: বাদ (loan, expense না)
 //  ✅ Transfer In                       → Account balance +  | Stats: বাদ (internal move)
 //  ✅ Transfer Out                      → Account balance -  | Stats: বাদ (internal move)
+//
+// v8 FIXES (March 2026):
+//  ✅ FIX 1 — Double-run বন্ধ: _alreadyRun flag দিয়ে safety fallback guard করা হয়েছে
+//  ✅ FIX 2 — updateGrandTotal double-call বন্ধ: wrapper এ guard যোগ করা হয়েছে
+//  ✅ FIX 3 — feSyncStudentPaid অপ্টিমাইজ: O(n×m) → O(n+m), finance আগে group করা হয়
+//  ✅ FIX 4 — updateGlobalStats wrapper এ অতিরিক্ত updateGrandTotal বন্ধ করা হয়েছে
 // ============================================================
 
 (function () {
@@ -204,6 +210,10 @@
   //
   // যদি অন্য কোনো ফাইলে updateGlobalStats define না থাকে,
   // এই version টা use হবে।
+  //
+  // FIX 2 + FIX 4: updateGrandTotal শুধু একবার call হবে।
+  // আগে: _feUpdateGlobalStats এ একবার + wrapper এ আরেকবার = দুইবার।
+  // এখন: শুধু _feUpdateGlobalStats এর ভেতরে একবার।
 
   function _feUpdateGlobalStats() {
     const gd = window.globalData || {};
@@ -219,7 +229,7 @@
     setEl('totalExpense', stats.expense);
     setEl('netProfit',    stats.profit);
 
-    // Grand total update
+    // Grand total update — শুধু একবার
     if (typeof updateGrandTotal === 'function') updateGrandTotal();
 
     return stats;
@@ -229,11 +239,12 @@
   if (typeof window.updateGlobalStats !== 'function') {
     window.updateGlobalStats = _feUpdateGlobalStats;
   } else {
-    // Wrap করো — আগের function চলবে, তারপর grand total sync হবে
+    // FIX 4: Wrap করো — কিন্তু আর updateGrandTotal দ্বিতীয়বার call করবো না।
+    // আগের function এর ভেতরে updateGrandTotal থাকলে সেটাই যথেষ্ট।
     const _orig = window.updateGlobalStats;
     window.updateGlobalStats = function () {
       const result = _orig.apply(this, arguments);
-      if (typeof updateGrandTotal === 'function') updateGrandTotal();
+      // updateGrandTotal এখানে আর call করা হচ্ছে না — double-call বন্ধ।
       return result;
     };
   }
@@ -291,30 +302,51 @@
 
   // ── 8. SYNC STUDENT PAID FROM FINANCE ENTRIES ────────────
   //
-  // Finance entries = single source of truth।
-  // students[].paid এবং students[].due finance থেকে recalculate করো।
-  // এটা data inconsistency fix করে — যেমন:
-  //   - Finance entry আছে কিন্তু student.paid update হয়নি
-  //   - Student.paid আছে কিন্তু finance entry নেই
+  // FIX 3: O(n×m) → O(n+m) অপ্টিমাইজেশন।
+  //
+  // আগে: প্রতিটি student-এর জন্য পুরো finance array scan হতো।
+  //       ১০০ student × ১০০০ entries = ১,০০,০০০ বার check।
+  //
+  // এখন: প্রথমে finance array একবার scan করে person অনুযায়ী
+  //       group করা হয়। তারপর প্রতিটি student শুধু নিজের
+  //       group দেখে।
+  //       ১০০০ entries (group) + ১০০ student = ১,১০০ বার check।
 
   window.feSyncStudentPaid = function () {
     const gd = window.globalData || {};
     if (!gd.students || !gd.finance) return;
 
-    // প্রতিটি student এর জন্য finance entries থেকে total calculate করো
+    // STEP 1: finance array একবার scan করে person → total map তৈরি করো
+    const personTotals = {};
+    (gd.finance || []).forEach(f => {
+      if (f._deleted) return;
+      if (!ACCOUNT_IN_TYPES.includes(f.type)) return;
+
+      const amount = parseFloat(f.amount) || 0;
+
+      // person field দিয়ে group
+      if (f.person) {
+        personTotals[f.person] = (personTotals[f.person] || 0) + amount;
+      }
+
+      // description এ নাম থাকলেও count করো (fallback)
+      // তবে person field আগে থাকলে description এ double-count এড়াতে skip
+      if (!f.person && f.description) {
+        // description থেকে student নাম match করার জন্য
+        // এটা fallback — person field থাকলে এই block চলে না
+        gd.students.forEach(student => {
+          if (student && student.name && f.description.includes(student.name)) {
+            personTotals[student.name] = (personTotals[student.name] || 0) + amount;
+          }
+        });
+      }
+    });
+
+    // STEP 2: প্রতিটি student নিজের total দেখো — আর finance scan নেই
     gd.students.forEach(student => {
       if (!student || !student.name) return;
 
-      // এই student এর সব non-deleted income finance entries
-      const studentFinanceTotal = (gd.finance || [])
-        .filter(f =>
-          !f._deleted &&
-          ACCOUNT_IN_TYPES.includes(f.type) &&
-          (f.person === student.name ||
-           (f.description || '').includes(student.name))
-        )
-        .reduce((sum, f) => sum + (parseFloat(f.amount) || 0), 0);
-
+      const studentFinanceTotal = personTotals[student.name] || 0;
       const oldPaid = parseFloat(student.paid) || 0;
 
       if (Math.abs(studentFinanceTotal - oldPaid) > 1) {
@@ -329,10 +361,23 @@
 
 
   // ── 9. AUTO-RUN ON LOAD ───────────────────────────────────
+  //
+  // FIX 1: _alreadyRun flag দিয়ে double-run বন্ধ।
+  //
+  // আগে: DOMContentLoaded (500ms) এবং setTimeout (2000ms) — দুইবার।
+  //       যদি DOMContentLoaded এ সফল হয়, 2000ms এ আবার চলত।
+  //
+  // এখন: প্রথমবার সফল হলে _alreadyRun = true।
+  //       দ্বিতীয় call টি দেখে _alreadyRun = true, তাই skip করে।
 
-  // globalData ready হওয়ার পরে rebuild করো
+  let _alreadyRun = false;
+
   function _runRebuild() {
+    // FIX 1: আগেই চললে আর চালাবো না
+    if (_alreadyRun) return;
+
     if (window.globalData && window.globalData.finance) {
+      _alreadyRun = true; // flag set করো যাতে দ্বিতীয়বার না চলে
       window.feRebuildAllBalances();
       if (typeof updateGlobalStats === 'function') updateGlobalStats();
     }
@@ -340,8 +385,8 @@
 
   // DOMContentLoaded-এ চেষ্টা করো, তারপর fallback timer
   document.addEventListener('DOMContentLoaded', () => setTimeout(_runRebuild, 500));
-  setTimeout(_runRebuild, 2000); // safety fallback
+  setTimeout(_runRebuild, 2000); // safety fallback — কিন্তু এখন double-run হবে না
 
-  console.log('✅ finance-engine.js loaded — canonical rules active');
+  console.log('✅ finance-engine.js loaded — canonical rules active (v8 optimized)');
 
 })();

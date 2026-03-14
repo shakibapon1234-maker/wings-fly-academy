@@ -813,19 +813,15 @@ function applyFinanceToBankAccount(entry) {
 
 
 /* 5️⃣ Hook into Finance Save (AUTO APPLY) */
+// ✅ v8 FIX: hookFinanceSave নিষ্ক্রিয় করা হয়েছে।
+// কারণ: finance-engine.js এর feApplyEntryToAccount() এবং feRebuildAllBalances()
+// এখন সব balance update করে। hookFinanceSave চালু থাকলে প্রতিটি
+// finance.push() এ balance দুইবার apply হতো — একবার এই hook এ,
+// আরেকবার finance-engine এ। এটাই double-entry সমস্যার মূল কারণ ছিল।
+// applyFinanceToBankAccount() ফাংশনটি রাখা হয়েছে (অন্য জায়গায় call হতে পারে),
+// কিন্তু finance.push() override আর করা হচ্ছে না।
 (function hookFinanceSave() {
-  try {
-    if (!window.globalData || !Array.isArray(window.globalData.finance)) return;
-    const originalPush = globalData.finance.push.bind(globalData.finance);
-    globalData.finance.push = function () {
-      for (let i = 0; i < arguments.length; i++) {
-        try {
-          if (typeof applyFinanceToBankAccount === 'function') applyFinanceToBankAccount(arguments[i]);
-        } catch (hookErr) { console.warn('Finance hook error:', hookErr); }
-      }
-      return originalPush(...arguments);
-    };
-  } catch (e) { console.warn('⚠️ hookFinanceSave failed:', e); }
+  console.log('ℹ️ hookFinanceSave: disabled — finance-engine.js handles all balance updates (v8)');
 })();
 
 

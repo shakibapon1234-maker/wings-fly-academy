@@ -492,7 +492,12 @@ async function handleFinanceSubmit(e) {
   };
 
   window.globalData.finance.push(newTransaction);
-  if (typeof updateAccountBalance === "function") updateAccountBalance(newTransaction.method, newTransaction.amount, newTransaction.type);
+  // v8 FIX: feApplyEntryToAccount ব্যবহার করো (canonical) — না থাকলে পুরনো fallback
+  if (typeof window.feApplyEntryToAccount === 'function') {
+    window.feApplyEntryToAccount(newTransaction, +1);
+  } else if (typeof updateAccountBalance === "function") {
+    updateAccountBalance(newTransaction.method, newTransaction.amount, newTransaction.type);
+  }
   await saveToStorage();
 
   // Close modal
@@ -558,6 +563,12 @@ async function handleTransferSubmit(e) {
   globalData.finance.push(outTransaction);
   globalData.finance.push(inTransaction);
 
+  // v8 FIX: feApplyEntryToAccount ব্যবহার করো (canonical)
+  if (typeof window.feApplyEntryToAccount === 'function') {
+    window.feApplyEntryToAccount(outTransaction, +1);
+    window.feApplyEntryToAccount(inTransaction, +1);
+  }
+
   await saveToStorage();
 
   // Close modal
@@ -590,7 +601,11 @@ function deleteTransaction(id) {
   }
 
   // 1. ✅ Account balance reverse করো (finance-engine canonical rules use হবে)
-  if (typeof updateAccountBalance === "function") {
+  // v8 FIX: feApplyEntryToAccount আছে কিনা আগে check করো — এটা finance-engine.js
+  // এর canonical function। থাকলে এটাই ব্যবহার করো, না থাকলে পুরনো fallback।
+  if (typeof window.feApplyEntryToAccount === 'function') {
+    window.feApplyEntryToAccount(txToDelete, -1); // -1 = reverse/undo
+  } else if (typeof updateAccountBalance === "function") {
     updateAccountBalance(txToDelete.method, txToDelete.amount, txToDelete.type, false);
   }
 

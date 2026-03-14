@@ -45,20 +45,32 @@
             .filter(e => !e.resigned && e.status !== 'Resigned');
 
         // ── Sort: এই মাসের সবচেয়ে সাম্প্রতিক payment উপরে ──
-        // এই মাসে কোনো payment নেই → সব-সময়ের latest দেখো
-        // তাও নেই → joining date desc (নতুন staff উপরে)
+        // v8 FIX: আগে প্রতিটি sort comparison এ পুরো finance array scan হতো।
+        // এখন একবার scan করে প্রতিটি employee এর latest date cache করা হয়।
+        // ফলে sort এ আর finance loop নেই — অনেক দ্রুত।
+
+        // STEP 1: একবার finance scan করে emp → {monthLatest, allLatest} map তৈরি
+        const empLatestCache = {};
+        (gd.finance || []).forEach(function(f) {
+            if (f._deleted) return;
+            const key = f.person || f.employeeId;
+            if (!key) return;
+            if (!empLatestCache[key]) empLatestCache[key] = { month: 0, all: 0 };
+            const t = new Date(f.createdAt || f.date || 0).getTime();
+            // all-time latest
+            if (t > empLatestCache[key].all) empLatestCache[key].all = t;
+            // this-month latest
+            const isThisMonth = (f.description || '').includes(month) || (f.date || '').startsWith(month);
+            if (isThisMonth && t > empLatestCache[key].month) empLatestCache[key].month = t;
+        });
+
         const getLatestDate = (emp, thisMonthOnly) => {
             const name = emp.name;
             const id   = emp.id || emp.empId || emp.employeeId;
-            let latest = 0;
-            (gd.finance || []).forEach(function(f) {
-                if (f._deleted) return;
-                if (f.person !== name && f.employeeId !== id) return;
-                if (thisMonthOnly && !(f.description || '').includes(month) && !(f.date || '').startsWith(month)) return;
-                const t = new Date(f.createdAt || f.date || 0).getTime();
-                if (t > latest) latest = t;
-            });
-            return latest;
+            const byName = empLatestCache[name] || { month: 0, all: 0 };
+            const byId   = empLatestCache[id]   || { month: 0, all: 0 };
+            if (thisMonthOnly) return Math.max(byName.month, byId.month);
+            return Math.max(byName.all, byId.all);
         };
 
         const employees = allActiveEmps.sort((a, b) => {
@@ -246,8 +258,33 @@
     // ─────────────────────────────────────────────
     // OPEN MODAL  ← BUG FIXED HERE
     // ─────────────────────────────────────────────
+    // ─────────────────────────────────────────────
+    // SCRIPT RE-EXECUTOR
+    // section-loader.js innerHTML দিয়ে inject করলে
+    // <script> block execute হয় না।
+    // এই function inject এর পরে scripts re-run করে।
+    // ─────────────────────────────────────────────
+    function _reExecModalScripts(containerEl) {
+        if (!containerEl) return;
+        const scripts = containerEl.querySelectorAll('script');
+        scripts.forEach(function(oldScript) {
+            const newScript = document.createElement('script');
+            newScript.textContent = oldScript.textContent;
+            oldScript.parentNode.replaceChild(newScript, oldScript);
+        });
+    }
+
     function openSalaryModal(empId) {
         const modalEl = document.getElementById('salaryModal');
+
+        // ── Script re-execution fix ──
+        // modal এর parent container এ script re-run করো
+        // যাতে setSalType() define হয় inject এর পরেও
+        if (modalEl && !window._salaryModalScriptsReady) {
+            _reExecModalScripts(modalEl.parentElement || modalEl);
+            window._salaryModalScriptsReady = true;
+        }
+
         if (!modalEl) {
             alert('Salary Modal not found!');
             return;
@@ -533,12 +570,104 @@
     };
 
     // ─────────────────────────────────────────────
+    // SET PAYMENT TYPE — Due / Advance / Bonus
+    // salary-modal.html এ inline script থাকলেও,
+    // এখানেও define করা হলো যাতে modal load timing
+    // সমস্যায় বাটন কাজ না করলেও fallback থাকে।
+    // ─────────────────────────────────────────────
+    // ─────────────────────────────────────────────
+    // SET PAYMENT TYPE — Due / Advance / Bonus
+    // salary-modal.html থেকে script সরানো হয়েছে।
+    // এখন এখানেই সম্পূর্ণ logic আছে।
+    // window.setSalType হিসেবে global — বাটনের
+    // onclick="setSalType('Advance')" সরাসরি call করবে।
+    // ─────────────────────────────────────────────
+    window.setSalType = function (type) {
+        var hidden = document.getElementById('salTypeHidden');
+        if (hidden) hidden.value = type;
+
+        // Button visual styles
+        var styles = {
+            Due:     { bg:'linear-gradient(135deg,#00d4aa,#00a88a)', color:'#fff',    shadow:'0 3px 12px rgba(0,212,170,0.4)', border:'none' },
+            Advance: { bg:'linear-gradient(135deg,#0096ff,#0055cc)', color:'#fff',    shadow:'0 3px 12px rgba(0,150,255,0.4)', border:'none' },
+            Bonus:   { bg:'linear-gradient(135deg,#ffd200,#ff9f43)', color:'#1a1000', shadow:'0 3px 12px rgba(255,200,0,0.4)',  border:'none' }
+        };
+        var inactive = { bg:'rgba(255,255,255,0.07)', color:'#a0c4ff', shadow:'none', border:'1px solid rgba(255,255,255,0.12)' };
+
+        ['Due','Advance','Bonus'].forEach(function(t) {
+            var btn = document.getElementById('btnType' + t);
+            if (!btn) return;
+            var s = (t === type) ? styles[t] : inactive;
+            btn.style.background = s.bg;
+            btn.style.color      = s.color;
+            btn.style.boxShadow  = s.shadow;
+            btn.style.border     = s.border;
+        });
+
+        // Show/hide info panels
+        var panels = { Due:'salDuePanel', Advance:'salAdvancePanel', Bonus:'salBonusPanel' };
+        Object.keys(panels).forEach(function(t) {
+            var el = document.getElementById(panels[t]);
+            if (!el) return;
+            if (t === type) el.classList.remove('d-none');
+            else            el.classList.add('d-none');
+        });
+
+        // Confirm button style + label
+        var confirmBtn = document.getElementById('salConfirmBtn');
+        if (confirmBtn) {
+            var btnLabels = { Due:'💾 Pay Due Salary', Advance:'🔵 Save Advance', Bonus:'🌟 Save Bonus' };
+            confirmBtn.textContent = btnLabels[type];
+            if (type === 'Advance') {
+                confirmBtn.className = 'btn fw-bold px-4';
+                confirmBtn.style.cssText = 'background:linear-gradient(135deg,#0096ff,#0055cc);color:#fff;border:none;';
+            } else if (type === 'Bonus') {
+                confirmBtn.className = 'btn fw-bold px-4';
+                confirmBtn.style.cssText = 'background:linear-gradient(135deg,#ffd200,#ff9f43);color:#1a1000;border:none;';
+            } else {
+                confirmBtn.className = 'btn btn-success fw-bold px-4';
+                confirmBtn.style.cssText = '';
+            }
+        }
+
+        // Modal title
+        var titles = { Due:'💰 Pay Due Salary', Advance:'🔵 Record Advance', Bonus:'🌟 Record Bonus' };
+        var titleEl = document.getElementById('salModalTitle');
+        if (titleEl) titleEl.textContent = titles[type];
+
+        // Auto description
+        var monthEl = document.getElementById('salaryMonthFilter');
+        var month = monthEl ? monthEl.value : '';
+        var desc = document.getElementById('salDescription');
+        if (desc && month) desc.value = type + ' for ' + month;
+
+        // Amount auto-fill
+        var amountEl = document.getElementById('salAmount');
+        if (!amountEl) return;
+        if (type === 'Due') {
+            var badge = document.getElementById('salDueAmountBadge');
+            var badgeText = badge ? badge.textContent : '';
+            var dueNum = parseFloat(badgeText.replace(/[^0-9.]/g, '')) || 0;
+            amountEl.value = dueNum > 0 ? dueNum : '';
+            amountEl.placeholder = 'বকেয়া পরিমাণ';
+        } else {
+            amountEl.value = '';
+            amountEl.placeholder = type === 'Advance' ? 'Advance পরিমাণ' : 'Bonus পরিমাণ';
+        }
+    };
+
+    // ─────────────────────────────────────────────
     // EXPORTS
     // ─────────────────────────────────────────────
     window.initSalaryHub      = initSalaryHub;
     window.loadSalaryHub      = loadSalaryHub;
     window.openSalaryModal    = openSalaryModal;
-    window._openSalaryModalImpl = openSalaryModal; // ← section-loader এর জন্য
+    window._openSalaryModalImpl = function(empId) {
+        // section-loader callback এ এসে modal inject হওয়ার পরে
+        // script re-execution reset করো, তারপর modal খোলো
+        window._salaryModalScriptsReady = false;
+        openSalaryModal(empId);
+    };
     window.handleSalarySubmit = handleSalarySubmit;
 
 })();
