@@ -215,6 +215,23 @@ function printLoanDetail() {
     }
   });
 
+  // Assign specific widths to columns so the Date column doesn't become huge
+  const ths = cloneTable.querySelectorAll('thead th');
+  if (ths.length >= 7) {
+    ths[0].style.width = '3%';   // #
+    ths[1].style.width = '12%';  // Date
+    ths[2].style.width = '15%';  // Type
+    ths[3].style.width = '30%';  // Description
+    ths[4].style.width = '10%';  // Debit (-)
+    ths[5].style.width = '10%';  // Credit (+)
+    ths[6].style.width = '20%';  // Balance
+  }
+  
+  // Also remove the action column header
+  if (ths.length >= 8) {
+    ths[7].remove();
+  }
+
   const printDate = new Date().toLocaleDateString('en-GB', { day: 'numeric', month: 'short', year: 'numeric' });
 
   const printWindow = window.open('', '_blank', 'width=900,height=700');
