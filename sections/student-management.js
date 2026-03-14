@@ -49,8 +49,8 @@ function render(students) {
     s.rowIndex = s.trueIndex; // Use trueIndex as rowIndex (points to globalData.students position)
   });
 
-  // Render each student
-  displayStudents.forEach(s => {
+  // ── HELPER: single student row HTML ──────────────────────
+  function _renderStudentRow(s) {
     const now = new Date();
     const today = `${now.getFullYear()}-${String(now.getMonth() + 1).padStart(2, '0')}-${String(now.getDate()).padStart(2, '0')}`;
 
@@ -138,9 +138,45 @@ function render(students) {
       </tr>
     `;
     tbody.innerHTML += row;
-  });
+  } // end _renderStudentRow
 
-  // ✅ UPDATE TABLE FOOTER TOTALS
+  // ── PAGINATION ────────────────────────────────────────────
+  if (typeof WFPaginator === 'function') {
+    // আগের pageSize মনে রাখো — filter/search এ reset হবে না
+    const existingPg = window._wfPaginators && window._wfPaginators['students'];
+    const pageSize   = existingPg ? existingPg.pageSize : 20;
+
+    const pg = new WFPaginator(displayStudents, pageSize);
+    if (!window._wfPaginators) window._wfPaginators = {};
+    window._wfPaginators['students'] = pg;
+
+    // pagination bar container — table এর নিচে একবার তৈরি হয়
+    let pgContainer = document.getElementById('studentPaginationBar');
+    if (!pgContainer) {
+      pgContainer = document.createElement('div');
+      pgContainer.id = 'studentPaginationBar';
+      const tableWrap = tbody.closest('.table-responsive') || tbody.closest('table')?.parentElement || tbody.parentElement;
+      if (tableWrap) tableWrap.insertAdjacentElement('afterend', pgContainer);
+    }
+
+    function _drawPage(page) {
+      tbody.innerHTML = '';
+      pg.getPage(page).forEach(s => _renderStudentRow(s));
+
+      renderPaginationBar('studentPaginationBar', pg, function (newPage) {
+        _drawPage(newPage);
+        if (typeof scrollToTableTop === 'function') scrollToTableTop('tableBody');
+      }, { pageSizes: [10, 20, 50, 100] });
+    }
+
+    _drawPage(1);
+
+  } else {
+    // WFPaginator না থাকলে সব একসাথে দেখাও (fallback)
+    displayStudents.forEach(s => _renderStudentRow(s));
+  }
+
+  // ✅ UPDATE TABLE FOOTER TOTALS (সবসময় full data দিয়ে)
   updateTableFooter(students);
 
   // ✅ AUTO-POPULATE BATCH FILTER DROPDOWN
@@ -181,23 +217,14 @@ function renderLedger(transactions) {
 
   // Reverse to show newest first
   const displayItems = [...transactions].reverse();
-  let totalDisplayed = 0;
 
-  let rowsHtml = '';
-  displayItems.forEach((f, idx) => {
-    // Assign missing IDs on the fly
-    if (!f.id) {
-      f.id = 'FIN-' + Date.now() + '-' + idx;
-    }
-    const amt = parseFloat(f.amount) || 0;
+  // ── ledger row builder ────────────────────────────────────
+  function _buildLedgerRow(f, idx) {
+    if (!f.id) f.id = 'FIN-' + Date.now() + '-' + idx;
+    const amt        = parseFloat(f.amount) || 0;
     const isPositive = (f.type === 'Income' || f.type === 'Loan Received' || f.type === 'Transfer In');
-    const amtClass = isPositive ? 'text-success' : 'text-danger';
-
-    // Accumulate total for footer
-    if (isPositive) totalDisplayed += amt;
-    else totalDisplayed -= amt;
-
-    rowsHtml += `
+    const amtClass   = isPositive ? 'text-success' : 'text-danger';
+    return `
       <tr>
         <td>${f.date || 'N/A'}</td>
         <td><span class="badge ${f.type.includes('Transfer') ? 'bg-warning' : 'bg-light text-dark border'}">${f.type}</span></td>
@@ -220,24 +247,66 @@ function renderLedger(transactions) {
         </td>
       </tr>
     `;
-  });
-  tbody.innerHTML = rowsHtml;
-
-  // Update total in header
-  const summaryTotalEl = document.getElementById('ledgerSummaryTotal');
-  if (summaryTotalEl) {
-    summaryTotalEl.innerText = '৳' + formatNumber(totalDisplayed);
-    summaryTotalEl.classList.remove('text-success', 'text-danger');
-    summaryTotalEl.classList.add(totalDisplayed >= 0 ? 'text-success' : 'text-danger');
   }
 
-  // Update total in Footer
-  const footerTotal = document.getElementById('ledgerFooterTotal');
-  if (footerTotal) {
-    footerTotal.innerText = '৳' + formatNumber(totalDisplayed);
-    footerTotal.classList.remove('text-success', 'text-danger');
-    footerTotal.classList.add(totalDisplayed >= 0 ? 'text-success' : 'text-danger');
+  // ── footer totals (সবসময় full dataset থেকে) ──────────────
+  function _updateLedgerTotals(items) {
+    let total = 0;
+    items.forEach(f => {
+      const amt = parseFloat(f.amount) || 0;
+      const isPositive = (f.type === 'Income' || f.type === 'Loan Received' || f.type === 'Transfer In');
+      if (isPositive) total += amt; else total -= amt;
+    });
+    const cls = total >= 0 ? 'text-success' : 'text-danger';
+    ['ledgerSummaryTotal', 'ledgerFooterTotal'].forEach(id => {
+      const el = document.getElementById(id);
+      if (el) {
+        el.innerText = '৳' + formatNumber(total);
+        el.classList.remove('text-success', 'text-danger');
+        el.classList.add(cls);
+      }
+    });
   }
+
+  // ── PAGINATION ────────────────────────────────────────────
+  if (typeof WFPaginator === 'function') {
+    const existingPg = window._wfPaginators && window._wfPaginators['ledger'];
+    const pageSize   = existingPg ? existingPg.pageSize : 20;
+
+    const pg = new WFPaginator(displayItems, pageSize);
+    if (!window._wfPaginators) window._wfPaginators = {};
+    window._wfPaginators['ledger'] = pg;
+
+    let pgContainer = document.getElementById('ledgerPaginationBar');
+    if (!pgContainer) {
+      pgContainer = document.createElement('div');
+      pgContainer.id = 'ledgerPaginationBar';
+      const tableWrap = tbody.closest('.table-responsive') || tbody.closest('table')?.parentElement || tbody.parentElement;
+      if (tableWrap) tableWrap.insertAdjacentElement('afterend', pgContainer);
+    }
+
+    function _drawLedgerPage(page) {
+      tbody.innerHTML = '';
+      pg.getPage(page).forEach((f, i) => {
+        tbody.innerHTML += _buildLedgerRow(f, i);
+      });
+      renderPaginationBar('ledgerPaginationBar', pg, function (newPage) {
+        _drawLedgerPage(newPage);
+        if (typeof scrollToTableTop === 'function') scrollToTableTop('ledgerTableBody');
+      }, { pageSizes: [10, 20, 50, 100] });
+    }
+
+    _drawLedgerPage(1);
+
+  } else {
+    // fallback — সব একসাথে
+    let rowsHtml = '';
+    displayItems.forEach((f, idx) => { rowsHtml += _buildLedgerRow(f, idx); });
+    tbody.innerHTML = rowsHtml;
+  }
+
+  // totals সবসময় full data থেকে
+  _updateLedgerTotals(displayItems);
 
   // Dynamically update category filter dropdown
   updateCategoryDropdown();

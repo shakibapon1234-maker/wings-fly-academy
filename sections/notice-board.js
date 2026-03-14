@@ -43,8 +43,17 @@ function _noticeSave(notice) {
 function _noticeRead() {
   // Priority: globalData > localStorage
   try {
+    // ✅ FIX: Check if notice was manually deleted — if so, block sync restore
+    const clearedAt = parseInt(localStorage.getItem('wings_notice_cleared_at') || '0');
+
     const gd = window.globalData?.settings?.activeNotice;
     if (gd && gd.expiresAt) {
+      // ✅ FIX: If notice was created BEFORE the delete timestamp, reject it
+      if (clearedAt > 0 && (gd.createdAt || 0) <= clearedAt) {
+        // Stale notice from sync — remove it
+        delete window.globalData.settings.activeNotice;
+        return null;
+      }
       if (Date.now() < gd.expiresAt) {
         // Sync to localStorage
         localStorage.setItem(NOTICE_STORAGE_KEY, JSON.stringify(gd));
@@ -60,6 +69,11 @@ function _noticeRead() {
     if (!raw) return null;
     const n = JSON.parse(raw);
     if (!n || !n.expiresAt) return null;
+    // ✅ FIX: Block stale localStorage notice too
+    if (clearedAt > 0 && (n.createdAt || 0) <= clearedAt) {
+      localStorage.removeItem(NOTICE_STORAGE_KEY);
+      return null;
+    }
     if (Date.now() > n.expiresAt) {
       localStorage.removeItem(NOTICE_STORAGE_KEY);
       return null;
@@ -302,6 +316,8 @@ function publishNotice() {
   };
 
   // Save + immediate cloud push
+  // ✅ FIX: Clear the delete-block flag so new notice is not blocked
+  try { localStorage.removeItem('wings_notice_cleared_at'); } catch (e) { }
   _noticeSave(notice);
 
   closeNoticeModal();
@@ -319,6 +335,12 @@ function deleteNotice() {
   // Notice board এর activeNotice delete (settings এ stored)
   // recycle-bin-fix এর deleteNotice patch Notice array এর জন্য
   // এটা শুধু activeNotice/banner clear করে
+
+  // ✅ FIX: Save delete timestamp — sync pull যেন পুরনো notice ফেরত না আনে
+  try {
+    localStorage.setItem('wings_notice_cleared_at', Date.now().toString());
+  } catch (e) { }
+
   _noticeSave(null);
   hideNoticeBanner();
   closeNoticeModal();

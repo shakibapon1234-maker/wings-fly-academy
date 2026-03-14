@@ -396,11 +396,47 @@
         });
     };
 
-    // 7. Notice Board
+    // 7. Notice Board — Modal is inline in index.html, no fetch needed
     window.openNoticeModal = function () {
-        loadAndOpen('__noticeBoardPlaceholder', 'sections/notice-board-modal.html', 'noticeBoardModal', function() {
-            if (typeof window.initNoticeModal === 'function') window.initNoticeModal();
-        });
+        var modalEl = document.getElementById('noticeBoardModal');
+        if (!modalEl) { console.warn('[SectionLoader] noticeBoardModal not found in DOM'); return; }
+        // Populate active notice status
+        var notice = typeof window.getActiveNotice === 'function' ? window.getActiveNotice() : null;
+        var statusCard = document.getElementById('currentNoticeStatus');
+        var noActiveMsg = document.getElementById('noActiveNoticeMsg');
+        if (notice) {
+            if (statusCard) statusCard.style.display = 'block';
+            if (noActiveMsg) noActiveMsg.style.display = 'none';
+            var textEl = document.getElementById('currentNoticeText');
+            var expEl = document.getElementById('currentNoticeExpire');
+            if (textEl) textEl.textContent = notice.text;
+            if (expEl) {
+                var rem = notice.expiresAt - Date.now();
+                var d = Math.floor(rem / 86400000);
+                var h = Math.floor((rem % 86400000) / 3600000);
+                var m = Math.floor((rem % 3600000) / 60000);
+                var label = d > 0 ? (d + ' \u09a6\u09bf\u09a8 ' + h + ' \u0998\u09a3\u09cd\u099f\u09be \u09ac\u09be\u0995\u09bf') :
+                            h > 0 ? (h + ' \u0998\u09a3\u09cd\u099f\u09be ' + m + ' \u09ae\u09bf\u09a8\u09bf\u099f \u09ac\u09be\u0995\u09bf') :
+                            (m + ' \u09ae\u09bf\u09a8\u09bf\u099f \u09ac\u09be\u0995\u09bf');
+                expEl.textContent = '\u23f3 \u09ae\u09c7\u09af\u09bc\u09be\u09a6: ' + label;
+            }
+        } else {
+            if (statusCard) statusCard.style.display = 'none';
+            if (noActiveMsg) noActiveMsg.style.display = 'block';
+        }
+        // Reset form
+        var ti = document.getElementById('noticeTextInput');
+        if (ti) { ti.value = ''; ti.oninput = function() { var c = document.getElementById('noticeCharCount'); if(c) c.textContent = this.value.length; }; }
+        var cc = document.getElementById('noticeCharCount'); if (cc) cc.textContent = '0';
+        var pv = document.getElementById('noticePreviewArea'); if (pv) pv.style.display = 'none';
+        // Show modal via Bootstrap
+        try {
+            var modal = bootstrap.Modal.getOrCreateInstance(modalEl);
+            modal.show();
+        } catch(e) {
+            modalEl.style.display = 'block';
+            modalEl.classList.add('show');
+        }
     };
   }
 
