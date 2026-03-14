@@ -202,10 +202,20 @@ function printLoanDetail() {
   const detailView = document.getElementById('loanDetailView');
   if (!detailView) return;
 
-  const clone = detailView.cloneNode(true);
-  clone.classList.remove('d-none');
+  // Extract only the table to avoid printing search inputs, buttons, or pagination
+  const tableNode = detailView.querySelector('table');
+  if (!tableNode) return;
+  
+  const cloneTable = tableNode.cloneNode(true);
+  
+  // Remove the action column (8th column) from all body rows
+  cloneTable.querySelectorAll('tbody tr').forEach(tr => {
+    if (tr.children.length >= 8) {
+      tr.removeChild(tr.lastElementChild);
+    }
+  });
 
-  clone.querySelectorAll('.loan-edit-btn, .loan-delete-btn').forEach(btn => btn.remove());
+  const printDate = new Date().toLocaleDateString('en-GB', { day: 'numeric', month: 'short', year: 'numeric' });
 
   const printWindow = window.open('', '_blank', 'width=900,height=700');
   printWindow.document.write(`
@@ -215,27 +225,42 @@ function printLoanDetail() {
       <title>Loan Ledger - ${currentLoanPerson}</title>
       <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/css/bootstrap.min.css" rel="stylesheet">
       <style>
-        body { padding: 20px; background: white; color: black; }
-        .card { border: 1px solid #ddd !important; }
-        .card-header { background: #f8f9fa !important; color: #000 !important; border-bottom: 2px solid #000 !important; }
-        table { border: 1px solid #000 !important; }
-        thead { background: #f0f0f0 !important; }
-        th, td { border: 1px solid #ddd !important; color: #000 !important; }
+        body { padding: 30px; background: white; color: black; font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif; }
+        .text-center { text-align: center; }
+        .mb-2 { margin-bottom: 0.5rem; }
+        .mb-4 { margin-bottom: 1.5rem; }
+        table { width: 100%; border-collapse: collapse; margin-top: 20px; border: 1px solid #000 !important; }
+        thead th { background-color: #f8f9fa !important; -webkit-print-color-adjust: exact; border-bottom: 2px solid #000 !important; }
+        th, td { border: 1px solid #ddd !important; padding: 10px; color: #000 !important; font-size: 14px; }
         .text-danger { color: #dc3545 !important; }
         .text-success { color: #28a745 !important; }
+        .text-end { text-align: right; }
+        .fw-bold { font-weight: bold; }
+        .header-logo { height: 70px; margin-bottom: 10px; }
         @media print {
-          .no-print { display: none; }
+          @page { margin: 15mm; }
+          body { padding: 0; }
         }
       </style>
     </head>
     <body>
-      <h2 class="text-center mb-4">Wings Fly Aviation Academy</h2>
-      <h4 class="text-center mb-4">Loan Ledger: ${currentLoanPerson}</h4>
-      ${clone.innerHTML}
+      <div class="text-center mb-4">
+        <img src="assets/img/logo.png" alt="Logo" class="header-logo" onerror="this.style.display='none'">
+        <h2 class="mb-2 fw-bold">Wings Fly Aviation Academy</h2>
+        <h4 class="mb-2">Loan Ledger: ${currentLoanPerson}</h4>
+        <p class="mb-0 text-muted"><strong>Print Date:</strong> ${printDate}</p>
+      </div>
+      
+      <div class="table-responsive">
+        ${cloneTable.outerHTML}
+      </div>
+      
       <script>
         window.onload = function() {
-          window.print();
-          window.onafterprint = function() { window.close(); };
+          setTimeout(function() {
+            window.print();
+            window.onafterprint = function() { window.close(); };
+          }, 500); // Small delay to allow logo to load
         };
       </script>
     </body>
