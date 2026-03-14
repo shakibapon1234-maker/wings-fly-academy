@@ -1260,107 +1260,134 @@ function openAccMgmtReturnModal(type, targetPersonName) {
 }
 
 function renderAccMgmtList(type) {
-  const isAdvance = type === 'Advance';
+  const isAdvance  = type === 'Advance';
   const returnType = isAdvance ? 'Advance Return' : 'Investment Return';
-  const listId = isAdvance ? 'accMgmtAdvanceList' : 'accMgmtInvestList';
-  const listEl = document.getElementById(listId);
+  const listId     = isAdvance ? 'accMgmtAdvanceList' : 'accMgmtInvestList';
+  const listEl     = document.getElementById(listId);
   if (!listEl) return;
 
+  // ── Group by person ──
   const records = {};
-  
-  (globalData.finance || []).forEach((f) => {
-    if (f._deleted) return;
-    if (f.type === type || f.type === returnType || f.category === type) {
-      if (!f.person) return;
-      if (!records[f.person]) records[f.person] = { totalMain: 0, totalReturn: 0, txns: [] };
-      
-      if (f.type === type || (f.type !== returnType && f.category === type)) {
-          records[f.person].totalMain += parseFloat(f.amount);
-      } else if (f.type === returnType) {
-          records[f.person].totalReturn += parseFloat(f.amount);
-      }
-      records[f.person].txns.push(f);
-    }
+  (globalData.finance || []).forEach(f => {
+    if (f._deleted || !f.person) return;
+    const isMain   = f.type === type || (f.type !== returnType && f.category === type);
+    const isReturn = f.type === returnType;
+    if (!isMain && !isReturn) return;
+
+    if (!records[f.person]) records[f.person] = { given: 0, returned: 0, txns: [] };
+    if (isMain)   records[f.person].given    += parseFloat(f.amount) || 0;
+    if (isReturn) records[f.person].returned += parseFloat(f.amount) || 0;
+    records[f.person].txns.push(f);
+  });
+
+  // ── Sort persons by their latest transaction date (newest person on top) ──
+  const sortedPersons = Object.keys(records).sort((a, b) => {
+    const latestA = Math.max(...records[a].txns.map(t => new Date(t.date || 0)));
+    const latestB = Math.max(...records[b].txns.map(t => new Date(t.date || 0)));
+    return latestB - latestA;
   });
 
   let html = '';
-  Object.keys(records).forEach(personName => {
-    const r = records[personName];
-    const netAmount = Math.abs(r.totalMain - r.totalReturn);
-    
-    r.txns.sort((a,b) => new Date(b.date) - new Date(a.date));
-    
+
+  sortedPersons.forEach(personName => {
+    const r          = records[personName];
+    const net        = Math.max(0, r.given - r.returned);
+    const isSettled  = net <= 0;
+
+    // Sort transactions: latest first
+    r.txns.sort((a, b) => new Date(b.date) - new Date(a.date));
+
+    // ── Person summary header row (1 row) ──
     html += `
-      <tr style="background: linear-gradient(90deg, rgba(0,180,255,0.12), rgba(120,80,255,0.08)) !important; border-top: 2px solid rgba(0,180,255,0.25); border-bottom: 1px solid rgba(0,180,255,0.15);">
-        <td colspan="2" style="padding: 0.85rem 1.2rem; vertical-align: middle;">
+      <tr style="background:linear-gradient(90deg,rgba(0,180,255,0.1),rgba(80,40,200,0.06));
+                 border-top:2px solid rgba(0,180,255,0.2);">
+        <td style="padding:0.8rem 1rem;">
           <div class="d-flex align-items-center gap-2">
-            <span style="background:rgba(0,180,255,0.15);border:1px solid rgba(0,180,255,0.3);border-radius:50%;width:32px;height:32px;display:inline-flex;align-items:center;justify-content:center;font-size:0.9rem;">👤</span>
-            <span class="fw-bold" style="color:#00d4ff;font-size:0.97rem;letter-spacing:0.3px;">${personName}</span>
+            <span style="background:rgba(0,180,255,0.15);border:1px solid rgba(0,180,255,0.3);
+                         border-radius:50%;width:30px;height:30px;display:inline-flex;
+                         align-items:center;justify-content:center;">👤</span>
+            <span class="fw-bold" style="color:#00d4ff;">${personName}</span>
           </div>
         </td>
-        <td style="padding: 0.85rem 1rem; vertical-align: middle;">
-          <span class="badge rounded-pill" style="background:rgba(255,200,0,0.15);border:1px solid rgba(255,200,0,0.35);color:#ffd200;font-size:0.8rem;padding:0.4rem 0.8rem;">
-            Net Outstanding: ৳${formatNumber(netAmount)}
+        <td style="padding:0.8rem 1rem;">
+          <span class="badge rounded-pill px-3 py-1"
+            style="${isSettled
+              ? 'background:rgba(0,230,118,0.15);border:1px solid rgba(0,230,118,0.35);color:#00e676;'
+              : 'background:rgba(255,200,0,0.15);border:1px solid rgba(255,200,0,0.35);color:#ffd200;'}">
+            ${isSettled ? '✅ Settled' : `Net: ৳${formatNumber(net)}`}
+          </span>
+          <span class="ms-2 small" style="color:rgba(255,255,255,0.35);">
+            ${r.txns.length} txn${r.txns.length > 1 ? 's' : ''}
           </span>
         </td>
-        <td style="padding: 0.85rem 1rem; vertical-align: middle; text-align: right;">
-          <span class="text-white-50 small">${r.txns.length} transaction${r.txns.length > 1 ? 's' : ''}</span>
+        <td style="padding:0.8rem 1rem;">
+          <span style="color:rgba(255,83,112,0.8);font-size:0.82rem;">
+            Given: ৳${formatNumber(r.given)}
+          </span>
+          ${r.returned > 0 ? `<span class="ms-2" style="color:rgba(0,230,118,0.8);font-size:0.82rem;">
+            Returned: ৳${formatNumber(r.returned)}</span>` : ''}
         </td>
-        <td style="padding: 0.85rem 1rem; vertical-align: middle; text-align: end;">
-            <button class="btn btn-sm fw-bold rounded-pill px-3" 
-              style="background:linear-gradient(135deg,#f0a500,#ffd200);color:#1a1000;border:none;box-shadow:0 2px 10px rgba(255,200,0,0.3);"
-              onclick="openAccMgmtReturnModal('${type}', '${personName}')">
-                <i class="bi bi-arrow-counterclockwise me-1"></i> Return
-            </button>
+        <td style="padding:0.8rem 1rem;"></td>
+        <td style="padding:0.8rem 1rem;text-align:end;">
+          ${!isSettled ? `
+          <button class="btn btn-sm fw-bold rounded-pill px-3"
+            style="background:linear-gradient(135deg,#f0a500,#ffd200);color:#1a1000;border:none;"
+            onclick="openAccMgmtReturnModal('${type}','${personName}')">
+            <i class="bi bi-arrow-counterclockwise me-1"></i>Adjust
+          </button>` : ''}
         </td>
-      </tr>
-    `;
+      </tr>`;
 
+    // ── Transaction rows — ONE row per txn, NO duplicate person header ──
     r.txns.forEach(f => {
-      const isReturn = f.type === returnType;
-      const amountColor = isReturn ? '#00e676' : '#ff5370';
-      const rowBg = isReturn ? 'rgba(0,230,118,0.04)' : 'rgba(255,83,112,0.04)';
-      const typeBadgeHtml = isReturn 
-        ? '<span class="badge" style="background:rgba(0,230,118,0.15);border:1px solid rgba(0,230,118,0.35);color:#00e676;font-size:0.75rem;">✅ Returned</span>' 
-        : '<span class="badge" style="background:rgba(255,83,112,0.15);border:1px solid rgba(255,83,112,0.35);color:#ff5370;font-size:0.75rem;">💸 Given</span>';
-      
+      const isRet      = f.type === returnType;
+      const amtColor   = isRet ? '#00e676' : '#ff5370';
+      const rowBg      = isRet ? 'rgba(0,230,118,0.03)' : 'rgba(255,83,112,0.03)';
+      const typeBadge  = isRet
+        ? '<span class="badge" style="background:rgba(0,230,118,0.15);border:1px solid rgba(0,230,118,0.3);color:#00e676;font-size:0.72rem;">↩ Returned</span>'
+        : '<span class="badge" style="background:rgba(255,83,112,0.15);border:1px solid rgba(255,83,112,0.3);color:#ff5370;font-size:0.72rem;">💸 Given</span>';
+      const dateStr    = f.date
+        ? new Date(f.date).toLocaleDateString('en-GB', { day:'2-digit', month:'short', year:'numeric' })
+        : f.date || '—';
+
       html += `
-        <tr style="background:${rowBg}; border-bottom: 1px solid rgba(255,255,255,0.05);">
-          <td style="padding:0.75rem 1.2rem; color:rgba(255,255,255,0.6); font-size:0.88rem;">${f.date}</td>
-          <td style="padding:0.75rem 1rem;">
-             <div class="fw-semibold" style="color:#e0f0ff;font-size:0.92rem;">${f.person}</div>
-             ${f.description ? `<small style="color:rgba(255,255,255,0.4);">${f.description}</small>` : ''}
+        <tr style="background:${rowBg};border-bottom:1px solid rgba(255,255,255,0.04);">
+          <td style="padding:0.65rem 1rem;color:rgba(255,255,255,0.55);font-size:0.85rem;
+                     padding-left:2.8rem;white-space:nowrap;">${dateStr}</td>
+          <td style="padding:0.65rem 1rem;">
+            <div style="color:#c8d8f0;font-size:0.88rem;">${f.description || '—'}</div>
           </td>
-          <td style="padding:0.75rem 1rem;">
-             <div class="d-flex align-items-center gap-2 flex-wrap">
-                 <span class="badge" style="background:rgba(102,126,234,0.2);border:1px solid rgba(102,126,234,0.3);color:#a0b4ff;font-size:0.75rem;">${f.method}</span>
-                 ${typeBadgeHtml}
-             </div>
+          <td style="padding:0.65rem 1rem;">
+            <div class="d-flex gap-2 align-items-center flex-wrap">
+              <span class="badge" style="background:rgba(102,126,234,0.2);border:1px solid rgba(102,126,234,0.3);
+                                         color:#a0b4ff;font-size:0.72rem;">${f.method || '—'}</span>
+              ${typeBadge}
+            </div>
           </td>
-          <td style="padding:0.75rem 1rem; font-weight:700; color:${amountColor}; font-size:0.97rem; font-family:monospace;">
-            ${isReturn ? '+' : '-'}৳${formatNumber(f.amount)}
+          <td style="padding:0.65rem 1rem;font-weight:700;color:${amtColor};
+                     font-size:0.95rem;font-family:monospace;">
+            ${isRet ? '+' : '−'}৳${formatNumber(f.amount)}
           </td>
-          <td style="padding:0.75rem 1rem; text-align:end;">
-            <button class="btn btn-sm border-0 rounded-circle" 
-              style="background:rgba(255,83,112,0.1);color:#ff5370;width:32px;height:32px;padding:0;display:inline-flex;align-items:center;justify-content:center;"
-              onclick="deleteAccMgmtTxn('${f.id}', '${type}')" title="Delete">
-              <i class="bi bi-trash" style="font-size:0.85rem;"></i>
+          <td style="padding:0.65rem 1rem;text-align:end;">
+            <button class="btn btn-sm border-0 rounded-circle"
+              style="background:rgba(255,83,112,0.1);color:#ff5370;width:28px;height:28px;
+                     padding:0;display:inline-flex;align-items:center;justify-content:center;"
+              onclick="deleteAccMgmtTxn('${f.id}','${type}')" title="Delete">
+              <i class="bi bi-trash" style="font-size:0.78rem;"></i>
             </button>
           </td>
-        </tr>
-      `;
+        </tr>`;
     });
   });
 
   if (!html) {
     html = `
       <tr>
-        <td colspan="5" style="text-align:center; padding: 3rem 1rem;">
-          <div style="color:rgba(255,255,255,0.25); font-size:2.5rem; margin-bottom:0.75rem;">📭</div>
-          <div style="color:rgba(255,255,255,0.35); font-size:0.95rem;">No ${type} records found.</div>
+        <td colspan="5" style="text-align:center;padding:3rem 1rem;">
+          <div style="color:rgba(255,255,255,0.2);font-size:2.5rem;margin-bottom:0.5rem;">📭</div>
+          <div style="color:rgba(255,255,255,0.3);font-size:0.9rem;">No ${type} records found.</div>
         </td>
-      </tr>
-    `;
+      </tr>`;
   }
 
   listEl.innerHTML = html;

@@ -7,6 +7,7 @@
             </div>
             <div class="modal-body pb-2">
                 <form id="salaryForm" onsubmit="handleSalarySubmit(event)">
+                    <!-- Hidden fields -->
                     <input type="hidden" id="salEmpId">
                     <input type="hidden" id="salEmpName">
                     <input type="hidden" id="salTypeHidden" value="Due">
@@ -19,41 +20,39 @@
                         </select>
                     </div>
 
-                    <!-- ══════════════════════════════════════ -->
-                    <!-- TYPE SELECTOR — 3 Big Buttons         -->
-                    <!-- ══════════════════════════════════════ -->
+                    <!-- 3 Payment Type Buttons -->
                     <div class="mb-3">
                         <label class="form-label fw-bold">Payment Type <span class="text-danger">*</span></label>
-                        <div class="d-flex gap-2" id="salTypeButtons">
+                        <div class="d-flex gap-2">
 
                             <button type="button" id="btnTypeDue"
                                 class="sal-type-btn flex-fill py-2 rounded-3 fw-bold border-0"
                                 onclick="setSalType('Due')"
-                                style="background:linear-gradient(135deg,#00d4aa,#00a88a);color:#fff;box-shadow:0 3px 12px rgba(0,212,170,0.4);">
+                                style="background:linear-gradient(135deg,#00d4aa,#00a88a);color:#fff;box-shadow:0 3px 12px rgba(0,212,170,0.4);cursor:pointer;transition:all .2s;line-height:1.3;">
                                 🟢 Due
-                                <div class="small fw-normal" style="font-size:0.72rem;opacity:0.85;">বকেয়া পেমেন্ট</div>
+                                <div style="font-size:0.72rem;opacity:0.85;font-weight:400;">বকেয়া পেমেন্ট</div>
                             </button>
 
                             <button type="button" id="btnTypeAdvance"
-                                class="sal-type-btn flex-fill py-2 rounded-3 fw-bold"
+                                class="sal-type-btn flex-fill py-2 rounded-3 fw-bold border-0"
                                 onclick="setSalType('Advance')"
-                                style="background:rgba(255,255,255,0.07);color:#a0c4ff;border:1px solid rgba(255,255,255,0.12);">
+                                style="background:rgba(255,255,255,0.07);color:#a0c4ff;border:1px solid rgba(255,255,255,0.12)!important;cursor:pointer;transition:all .2s;line-height:1.3;">
                                 🔵 Advance
-                                <div class="small fw-normal" style="font-size:0.72rem;opacity:0.75;">অগ্রিম পেমেন্ট</div>
+                                <div style="font-size:0.72rem;opacity:0.75;font-weight:400;">অগ্রিম পেমেন্ট</div>
                             </button>
 
                             <button type="button" id="btnTypeBonus"
-                                class="sal-type-btn flex-fill py-2 rounded-3 fw-bold"
+                                class="sal-type-btn flex-fill py-2 rounded-3 fw-bold border-0"
                                 onclick="setSalType('Bonus')"
-                                style="background:rgba(255,255,255,0.07);color:#a0c4ff;border:1px solid rgba(255,255,255,0.12);">
+                                style="background:rgba(255,255,255,0.07);color:#a0c4ff;border:1px solid rgba(255,255,255,0.12)!important;cursor:pointer;transition:all .2s;line-height:1.3;">
                                 🌟 Bonus
-                                <div class="small fw-normal" style="font-size:0.72rem;opacity:0.75;">বোনাস</div>
+                                <div style="font-size:0.72rem;opacity:0.75;font-weight:400;">বোনাস</div>
                             </button>
 
                         </div>
                     </div>
 
-                    <!-- ── DUE info panel ── -->
+                    <!-- Due info panel -->
                     <div id="salDuePanel" class="py-2 px-3 mb-3 rounded-3"
                         style="background:rgba(0,212,170,0.1);border:1px solid rgba(0,212,170,0.3);font-size:0.84rem;">
                         <div class="d-flex justify-content-between align-items-center">
@@ -65,17 +64,17 @@
                         </div>
                     </div>
 
-                    <!-- ── ADVANCE info panel ── -->
+                    <!-- Advance info panel -->
                     <div id="salAdvancePanel" class="py-2 px-3 mb-3 rounded-3 d-none"
                         style="background:rgba(0,150,255,0.1);border:1px solid rgba(0,150,255,0.3);font-size:0.84rem;">
                         <div style="color:#7ab8ff;">
                             <i class="bi bi-info-circle me-1"></i>
-                            Advance → <strong>Accounts › Advance Management</strong>-এ রেকর্ড হবে। পরে সেখান থেকে adjust করা যাবে।
+                            Advance <strong>Accounts › Advance Management</strong>-এ রেকর্ড হবে। পরে সেখান থেকে adjust করা যাবে।
                         </div>
                         <div id="salExistingAdvance" class="mt-1 fw-bold d-none" style="color:#ff9f43;font-size:0.82rem;"></div>
                     </div>
 
-                    <!-- ── BONUS info panel ── -->
+                    <!-- Bonus info panel -->
                     <div id="salBonusPanel" class="py-2 px-3 mb-3 rounded-3 d-none"
                         style="background:rgba(255,200,0,0.1);border:1px solid rgba(255,200,0,0.3);font-size:0.84rem;">
                         <span style="color:#ffd200;"><i class="bi bi-star-fill me-1"></i>
@@ -120,77 +119,68 @@
     </div>
 </div>
 
-<style>
-.sal-type-btn {
-    cursor: pointer;
-    transition: all 0.2s ease;
-    line-height: 1.3;
-}
-.sal-type-btn:hover {
-    filter: brightness(1.15);
-    transform: translateY(-2px);
-}
-</style>
-
 <script>
-// ═══════════════════════════════════════════════════════
-// SALARY MODAL — TYPE SWITCHER
-// ═══════════════════════════════════════════════════════
-
 function setSalType(type) {
     document.getElementById('salTypeHidden').value = type;
 
-    const styles = {
+    var styles = {
         Due:     { bg:'linear-gradient(135deg,#00d4aa,#00a88a)', color:'#fff',    shadow:'0 3px 12px rgba(0,212,170,0.4)', border:'none' },
         Advance: { bg:'linear-gradient(135deg,#0096ff,#0055cc)', color:'#fff',    shadow:'0 3px 12px rgba(0,150,255,0.4)', border:'none' },
-        Bonus:   { bg:'linear-gradient(135deg,#ffd200,#ff9f43)', color:'#1a1000', shadow:'0 3px 12px rgba(255,200,0,0.4)',  border:'none' },
+        Bonus:   { bg:'linear-gradient(135deg,#ffd200,#ff9f43)', color:'#1a1000', shadow:'0 3px 12px rgba(255,200,0,0.4)',  border:'none' }
     };
-    const inactive = { bg:'rgba(255,255,255,0.07)', color:'#a0c4ff', shadow:'none', border:'1px solid rgba(255,255,255,0.12)' };
+    var inactive = { bg:'rgba(255,255,255,0.07)', color:'#a0c4ff', shadow:'none', border:'1px solid rgba(255,255,255,0.12)' };
 
-    ['Due','Advance','Bonus'].forEach(t => {
-        const btn = document.getElementById('btnType' + t);
+    ['Due','Advance','Bonus'].forEach(function(t) {
+        var btn = document.getElementById('btnType' + t);
         if (!btn) return;
-        const s = (t === type) ? styles[t] : inactive;
+        var s = (t === type) ? styles[t] : inactive;
         btn.style.background  = s.bg;
         btn.style.color       = s.color;
         btn.style.boxShadow   = s.shadow;
         btn.style.border      = s.border;
     });
 
-    // Panels
-    ['Due','Advance','Bonus'].forEach(t => {
-        const el = document.getElementById('sal' + t + 'Panel');
-        if (el) el.classList.toggle('d-none', t !== type);
+    // Show/hide info panels
+    var panels = { Due: 'salDuePanel', Advance: 'salAdvancePanel', Bonus: 'salBonusPanel' };
+    Object.keys(panels).forEach(function(t) {
+        var el = document.getElementById(panels[t]);
+        if (!el) return;
+        if (t === type) el.classList.remove('d-none');
+        else el.classList.add('d-none');
     });
 
     // Confirm button style
-    const confirmBtn = document.getElementById('salConfirmBtn');
-    const btnLabels  = { Due:'💾 Pay Due Salary', Advance:'🔵 Save Advance', Bonus:'🌟 Save Bonus' };
+    var confirmBtn = document.getElementById('salConfirmBtn');
+    var btnLabels = { Due:'💾 Pay Due Salary', Advance:'🔵 Save Advance', Bonus:'🌟 Save Bonus' };
     confirmBtn.textContent = btnLabels[type];
     if (type === 'Advance') {
-        confirmBtn.style.cssText = 'background:linear-gradient(135deg,#0096ff,#0055cc);color:#fff;border:none;font-weight:700;padding:.5rem 1.5rem;';
+        confirmBtn.className = 'btn fw-bold px-4';
+        confirmBtn.style.cssText = 'background:linear-gradient(135deg,#0096ff,#0055cc);color:#fff;border:none;';
     } else if (type === 'Bonus') {
-        confirmBtn.style.cssText = 'background:linear-gradient(135deg,#ffd200,#ff9f43);color:#1a1000;border:none;font-weight:700;padding:.5rem 1.5rem;';
+        confirmBtn.className = 'btn fw-bold px-4';
+        confirmBtn.style.cssText = 'background:linear-gradient(135deg,#ffd200,#ff9f43);color:#1a1000;border:none;';
     } else {
-        confirmBtn.style.cssText = '';
         confirmBtn.className = 'btn btn-success fw-bold px-4';
+        confirmBtn.style.cssText = '';
     }
 
     // Modal title
-    const titles = { Due:'💰 Pay Due Salary', Advance:'🔵 Record Advance', Bonus:'🌟 Record Bonus' };
-    document.getElementById('salModalTitle').textContent = titles[type];
+    var titles = { Due:'💰 Pay Due Salary', Advance:'🔵 Record Advance', Bonus:'🌟 Record Bonus' };
+    var titleEl = document.getElementById('salModalTitle');
+    if (titleEl) titleEl.textContent = titles[type];
 
     // Auto description
-    const month = document.getElementById('salaryMonthFilter')?.value;
-    const desc  = document.getElementById('salDescription');
-    if (desc && month) desc.value = `${type} for ${month}`;
+    var monthEl = document.getElementById('salaryMonthFilter');
+    var month = monthEl ? monthEl.value : '';
+    var desc = document.getElementById('salDescription');
+    if (desc && month) desc.value = type + ' for ' + month;
 
     // Amount
-    const amountEl = document.getElementById('salAmount');
+    var amountEl = document.getElementById('salAmount');
     if (type === 'Due') {
-        // Pull due value from badge set by salary-management.js
-        const badgeText = document.getElementById('salDueAmountBadge')?.textContent || '';
-        const dueNum = parseFloat(badgeText.replace(/[৳,\s]/g,'').replace(/[^\d.]/g,'')) || 0;
+        var badge = document.getElementById('salDueAmountBadge');
+        var badgeText = badge ? badge.textContent : '';
+        var dueNum = parseFloat(badgeText.replace(/[^0-9.]/g, '')) || 0;
         amountEl.value = dueNum > 0 ? dueNum : '';
         amountEl.placeholder = 'বকেয়া পরিমাণ';
     } else {
