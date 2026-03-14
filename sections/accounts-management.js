@@ -1501,9 +1501,124 @@ function printAccountsMgmt() {
   win.document.close();
 }
 
+/* =========================================================
+   AI ACCOUNTS ASSISTANT FEATURE (GPT-STYLE)
+   ========================================================= */
+function openAIAccountsAssistant() {
+  const gd = window.globalData || {};
+  if (!gd.finance) gd.finance = [];
+
+  // Core Metrics
+  const cash = parseFloat(gd.cashBalance) || 0;
+  const bank = (gd.bankAccounts || []).reduce((s, a) => s + (parseFloat(a.balance) || 0), 0);
+  const mobile = (gd.mobileBanking || []).reduce((s, a) => s + (parseFloat(a.balance) || 0), 0);
+  const totalBalance = cash + bank + mobile;
+
+  // Advance Math
+  const advTotal = gd.finance.filter(f => !f._deleted && f.type === 'Advance').reduce((s,f) => s + (parseFloat(f.amount) || 0), 0);
+  const advReturnTotal = gd.finance.filter(f => !f._deleted && f.type === 'Advance Return').reduce((s,f) => s + (parseFloat(f.amount) || 0), 0);
+  const netAdvance = advTotal - advReturnTotal;
+
+  // Investment Math
+  const invTotal = gd.finance.filter(f => !f._deleted && f.type === 'Investment').reduce((s,f) => s + (parseFloat(f.amount) || 0), 0);
+  const invReturnTotal = gd.finance.filter(f => !f._deleted && f.type === 'Investment Return').reduce((s,f) => s + (parseFloat(f.amount) || 0), 0);
+  const netInvestment = invTotal - invReturnTotal;
+
+  // Profit/Loss via Engine
+  const stats = (typeof window.feCalcStats === 'function') ? window.feCalcStats(gd.finance) : { income:0, expense:0, profit:0 };
+
+  // Generate dynamic text
+  const netAdvanceStatus = netAdvance > 0 
+        ? `<span class="text-warning fw-bold">⚠️ ৳${netAdvance.toLocaleString()}</span> Advance বকেয়া আছে। এটি রিকভার করার দিকে জোর দিন।` 
+        : `<span class="text-success fw-bold">✅ কোনো Advance বকেয়া নেই!</span>`;
+  
+  const netInvestmentStatus = netInvestment > 0 
+        ? `বর্তমানে <span class="text-info fw-bold">৳${netInvestment.toLocaleString()}</span> Investment রিটার্নের অপেক্ষায় আছে।` 
+        : `<span class="text-muted">কোনো Investment চলমান নেই।</span>`;
+        
+  const balanceNote = totalBalance < 10000 
+        ? `<div class="text-danger mt-2" style="font-size:0.85rem;"><i class="bi bi-exclamation-triangle"></i> <b>Warning:</b> আপনার Cash & Bank Balance অনেক কম (মাত্র ৳${totalBalance.toLocaleString()})। লিকুইড ক্যাশ বাড়াতে হবে।</div>`
+        : `<div class="text-success mt-2" style="font-size:0.85rem;"><i class="bi bi-check-circle"></i> <b>Status:</b> Liquid Balance সন্তোষজনক (৳${totalBalance.toLocaleString()})।</div>`;
+
+  const profitNote = stats.profit >= 0 
+        ? `প্রতিষ্ঠানটি এখন <b>৳${stats.profit.toLocaleString()}</b> লাভে রয়েছে 🚀`
+        : `প্রতিষ্ঠানটি <b>৳${Math.abs(stats.profit).toLocaleString()}</b> লোকসানে রয়েছে! খরচ কমানোর দিকে ফোকাস দিন 📉`;
+
+  const htmlContent = `
+    <div style="text-align:left; font-family:'Inter',sans-serif; background:#0d1b2a; padding:15px; border-radius:12px; border:1px solid rgba(255,0,204,0.3); color:#e0f0ff;">
+        
+        <!-- Header -->
+        <div class="d-flex align-items-center mb-3 pb-3 border-bottom border-secondary">
+            <div style="background:linear-gradient(135deg, #ff00cc, #333399); width:45px; height:45px; border-radius:50%; display:flex; align-items:center; justify-content:center; box-shadow:0 3px 10px rgba(255,0,204,0.3);">
+                <i class="bi bi-robot" style="font-size:1.4rem; color:white;"></i>
+            </div>
+            <div class="ms-3">
+                <div class="fw-bold" style="font-size:1.05rem; color:#f093fb;">Antigravity AI Assistant</div>
+                <div style="font-size:0.75rem; color:#a0c4ff;">Financial Intelligence Report</div>
+            </div>
+        </div>
+        
+        <p style="font-size:0.9rem; line-height:1.5;">হ্যালো! আমি আপনার Accounts Management এবং Ledger স্ক্যান করেছি। নিচে আমার রিপোর্ট ও এনালাইসিস দেওয়া হলো:</p>
+        
+        <!-- Box 1: Core Performance -->
+        <div style="background:rgba(255,255,255,0.05); padding:10px 15px; border-radius:8px; margin-bottom:12px; border-left:3px solid #00d9ff;">
+            <div class="fw-bold text-info mb-1" style="font-size:0.85rem;"><i class="bi bi-bar-chart-fill"></i> বিজনেস পারফরম্যান্স</div>
+            <div style="font-size:0.9rem;">${profitNote}</div>
+            ${balanceNote}
+        </div>
+
+        <!-- Box 2: Advance -->
+        <div style="background:rgba(255,255,255,0.05); padding:10px 15px; border-radius:8px; margin-bottom:12px; border-left:3px solid #f0ad4e;">
+            <div class="fw-bold text-warning mb-1" style="font-size:0.85rem;"><i class="bi bi-credit-card-2-front"></i> Advance Payment রিকভারি</div>
+            <div style="font-size:0.9rem;">${netAdvanceStatus}</div>
+            <div style="font-size:0.75rem; margin-top:6px; color:#aaa; display:flex; gap:10px;">
+                <span>দেওয়া হয়েছে: <b>৳${advTotal.toLocaleString()}</b></span>|
+                <span>ফেরত এসেছে: <b>৳${advReturnTotal.toLocaleString()}</b></span>
+            </div>
+        </div>
+
+        <!-- Box 3: Investment -->
+        <div style="background:rgba(255,255,255,0.05); padding:10px 15px; border-radius:8px; margin-bottom:12px; border-left:3px solid #a78bfa;">
+            <div class="fw-bold mb-1" style="color:#a78bfa; font-size:0.85rem;"><i class="bi bi-graph-up-arrow"></i> Investment স্ট্যাটাস</div>
+            <div style="font-size:0.9rem;">${netInvestmentStatus}</div>
+            <div style="font-size:0.75rem; margin-top:6px; color:#aaa; display:flex; gap:10px;">
+                <span>ইনভেস্টমেন্ট: <b>৳${invTotal.toLocaleString()}</b></span>|
+                <span>রিটার্ন: <b>৳${invReturnTotal.toLocaleString()}</b></span>
+            </div>
+        </div>
+
+        <div class="mt-4 text-center" style="font-size:0.75rem; color:#7aa0c4;">
+            <i class="bi bi-stars"></i> <i>AI Report generated using SMART V8 Sync Engine</i>
+        </div>
+    </div>
+  `;
+
+  Swal.fire({
+      html: htmlContent,
+      background: 'transparent', // Custom container background makes default transparent useful
+      backdrop: 'rgba(0,10,20,0.85)',
+      width: '600px',
+      showConfirmButton: true,
+      confirmButtonText: '<i class="bi bi-check2-circle"></i> বুঝলাম',
+      confirmButtonColor: 'linear-gradient(135deg, #0d1b2a, #1e3a5f)',
+      customClass: {
+          popup: 'p-0 bg-transparent', // Removes default padding and color
+      }
+  }).then(() => {
+     // Apply manual gradient to the confirm button after render if needed
+     const btn = Swal.getConfirmButton();
+     if(btn) {
+         btn.style.background = 'transparent';
+         btn.style.border = '1px solid #1e3a5f';
+         btn.style.color = '#a0c4ff';
+     }
+  });
+}
+
 // Attach to window so it's accessible globally
 window.openAccMgmtAddModal = openAccMgmtAddModal;
 window.openAccMgmtReturnModal = openAccMgmtReturnModal;
 window.renderAccMgmtList = renderAccMgmtList;
 window.deleteAccMgmtTxn = deleteAccMgmtTxn;
 window.printAccountsMgmt = printAccountsMgmt;
+window.openAIAccountsAssistant = openAIAccountsAssistant;
