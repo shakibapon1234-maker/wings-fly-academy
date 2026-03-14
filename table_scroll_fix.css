@@ -16,7 +16,7 @@
 .table-responsive table,
 .table-responsive .table {
   min-width: 1200px !important; /* Minimum width to trigger scroll */
-  width: max-content !important;
+  width: 100% !important;
   table-layout: auto !important;
 }
 

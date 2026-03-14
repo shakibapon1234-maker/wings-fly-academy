@@ -3826,3 +3826,269 @@ tfoot th {
    নিচের JS snippet টা inline-scripts.js বা
    index.html এ যোগ করতে হবে (দেখুন নিচে)
    =================================== */
+
+/* ============================================================
+   TABLE ALIGNMENT FIX - Added 2026-03-14
+   Employee, Visitor, Loan sections এর table গুলো full-width করা
+   ============================================================ */
+
+/* ===================================
+   EMPLOYEE SECTION TABLE FIX
+   =================================== */
+
+#employeeSection .premium-table-card,
+#employeeSection .card {
+  width: 100% !important;
+  max-width: none !important;
+}
+
+#employeeSection .table-responsive {
+  width: 100% !important;
+  max-width: none !important;
+  overflow-x: auto;
+}
+
+#employeeSection .modern-table,
+#employeeSection table {
+  width: 100% !important;
+  min-width: 100% !important;
+}
+
+/* Employee filter card full-width */
+#employeeSection .card.border-0.shadow-sm {
+  width: 100% !important;
+  max-width: none !important;
+}
+
+/* ===================================
+   VISITOR SECTION TABLE FIX
+   =================================== */
+
+#visitorSection .premium-table-card,
+#visitorSection .card {
+  width: 100% !important;
+  max-width: none !important;
+}
+
+#visitorSection .table-responsive {
+  width: 100% !important;
+  max-width: none !important;
+  overflow-x: auto;
+}
+
+#visitorSection .modern-table,
+#visitorSection table {
+  width: 100% !important;
+  min-width: 100% !important;
+}
+
+/* Visitor filter card full-width */
+#visitorSection .card.border-0.shadow-sm {
+  width: 100% !important;
+  max-width: none !important;
+}
+
+/* ===================================
+   LOAN SECTION TABLE FIX
+   =================================== */
+
+#loanSection .premium-table-card,
+#loanSection .card {
+  width: 100% !important;
+  max-width: none !important;
+}
+
+#loanSection .table-responsive {
+  width: 100% !important;
+  max-width: none !important;
+  overflow-x: auto;
+}
+
+#loanSection table {
+  width: 100% !important;
+  min-width: 100% !important;
+}
+
+/* Loan detail view card */
+#loanDetailView {
+  width: 100% !important;
+  max-width: none !important;
+}
+
+/* Loan summary container */
+#loanSummaryContainer {
+  width: 100% !important;
+  max-width: none !important;
+}
+
+/* ===================================
+   FINANCE SECTION TABLE FIX
+   =================================== */
+
+#financeSection .premium-table-card,
+#financeSection .card {
+  width: 100% !important;
+  max-width: none !important;
+}
+
+#financeSection .table-responsive {
+  width: 100% !important;
+  max-width: none !important;
+  overflow-x: auto;
+}
+
+#financeSection table {
+  width: 100% !important;
+  min-width: 100% !important;
+}
+
+/* ===================================
+   GLOBAL TABLE CONTAINER FIX
+   সব section এর জন্য যদি কোনো container issue থাকে
+   =================================== */
+
+.premium-table-card {
+  width: 100% !important;
+  max-width: 100% !important;
+  margin-left: 0 !important;
+  margin-right: 0 !important;
+}
+
+.table-responsive {
+  width: 100% !important;
+  max-width: 100% !important;
+}
+
+/* All modern tables should be full-width */
+.modern-table {
+  width: 100% !important;
+  table-layout: auto;
+}
+
+/* ===================================
+   CARD BODY PADDING FIX
+   যদি card-body এর padding টেবিল কে ছোটো করে ফেলে
+   =================================== */
+
+.premium-table-card .card-body {
+  padding: 0 !important;
+}
+
+.premium-table-card .table-responsive {
+  padding: 0 !important;
+  margin: 0 !important;
+}
+/* ============================================================
+   TABLE ALIGNMENT FIX - Added 2026-03-14
+   Employee, Visitor, Loan, Finance sections এর tables full-width
+   ============================================================ */
+
+/* Employee Section */
+#employeeSection .premium-table-card,
+#employeeSection .card {
+  width: 100% !important;
+  max-width: none !important;
+}
+
+#employeeSection .table-responsive {
+  width: 100% !important;
+  max-width: none !important;
+}
+
+#employeeSection .modern-table,
+#employeeSection table {
+  width: 100% !important;
+  min-width: 100% !important;
+}
+
+/* Visitor Section */
+#visitorSection .premium-table-card,
+#visitorSection .card {
+  width: 100% !important;
+  max-width: none !important;
+}
+
+#visitorSection .table-responsive {
+  width: 100% !important;
+  max-width: none !important;
+}
+
+#visitorSection .modern-table,
+#visitorSection table {
+  width: 100% !important;
+  min-width: 100% !important;
+}
+
+/* Loan Section */
+#loanSection .premium-table-card,
+#loanSection .card,
+#loanDetailView {
+  width: 100% !important;
+  max-width: none !important;
+}
+
+#loanSection .table-responsive {
+  width: 100% !important;
+  max-width: none !important;
+}
+
+#loanSection table {
+  width: 100% !important;
+  min-width: 100% !important;
+}
+
+#loanSummaryContainer {
+  width: 100% !important;
+}
+
+/* Finance Section */
+#financeSection .premium-table-card,
+#financeSection .card {
+  width: 100% !important;
+  max-width: none !important;
+}
+
+#financeSection .table-responsive {
+  width: 100% !important;
+  max-width: none !important;
+}
+
+#financeSection table {
+  width: 100% !important;
+  min-width: 100% !important;
+}
+
+/* Global table fixes */
+.premium-table-card {
+  width: 100% !important;
+  max-width: 100% !important;
+  margin-left: 0 !important;
+  margin-right: 0 !important;
+}
+
+.premium-table-card .card-body {
+  padding: 0 !important;
+}
+
+.premium-table-card .table-responsive {
+  padding: 0 !important;
+  margin: 0 !important;
+}
+
+/* Salary Hub Section */
+#salarySection .premium-table-card,
+#salarySection .card {
+  width: 100% !important;
+  max-width: none !important;
+}
+
+#salarySection .table-responsive {
+  width: 100% !important;
+  max-width: none !important;
+}
+
+#salarySection .modern-table,
+#salarySection table {
+  width: 100% !important;
+  min-width: 100% !important;
+}
