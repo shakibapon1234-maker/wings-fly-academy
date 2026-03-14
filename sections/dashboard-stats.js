@@ -32,6 +32,8 @@ window.animateCount = animateCount; // ✅ FIX: export করতে হবে �
 function updateGlobalStats() {
   const settings = globalData.settings || {};
   const selectedBatch = settings.runningBatch || '';
+  const expenseDateStart = settings.runningBatchDateStart || '';
+  const expenseDateEnd   = settings.runningBatchDateEnd   || '';
 
   // Update Academy Name display
   if (settings.academyName) {
@@ -80,7 +82,21 @@ function updateGlobalStats() {
   let runStudentIncome = 0;
   let runExamIncome = 0;
   let runNonStudentIncome = 0;
-  let runTotalExpense = allTotalExpense; // Expense is global unless we filter by date or tag
+
+  // Expense: date range দিলে filter করো, না দিলে all-time
+  let runTotalExpense = 0;
+  if (expenseDateStart || expenseDateEnd) {
+    (globalData.finance || []).forEach(f => {
+      if (f._deleted) return;
+      if (!STAT_EXPENSE_TYPES.includes(f.type)) return;
+      const fDate = f.date || f.createdAt || '';
+      const afterStart = !expenseDateStart || fDate >= expenseDateStart;
+      const beforeEnd  = !expenseDateEnd   || fDate <= expenseDateEnd;
+      if (afterStart && beforeEnd) runTotalExpense += parseFloat(f.amount) || 0;
+    });
+  } else {
+    runTotalExpense = allTotalExpense; // Date range না দিলে all-time expense
+  }
 
   // Filter students by batch
   if (selectedBatch) {

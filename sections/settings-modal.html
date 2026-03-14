@@ -163,6 +163,20 @@
                                                         <option value="">No Batch Selected</option>
                                                     </select>
                                                 </div>
+                                                <div class="mb-3">
+                                                    <label class="form-label fw-semibold">Expense Date Range</label>
+                                                    <p class="small text-muted mb-2">এই date range এর মধ্যের খরচ দেখাবে Dashboard এর Running Batch Overview তে।</p>
+                                                    <div class="row g-2">
+                                                        <div class="col-6">
+                                                            <label class="small text-muted mb-1">From</label>
+                                                            <input type="date" id="runningBatchDateStart" class="form-control premium-input-modern" />
+                                                        </div>
+                                                        <div class="col-6">
+                                                            <label class="small text-muted mb-1">To</label>
+                                                            <input type="date" id="runningBatchDateEnd" class="form-control premium-input-modern" />
+                                                        </div>
+                                                    </div>
+                                                </div>
                                                 <div class="alert alert-info bg-dark border-info text-info small mb-0" style="border-radius:12px;">
                                                     <i class="bi bi-info-circle me-2"></i> This setting controls which data is highlighted at the top of your dashboard. "All-Time" data will always be visible in the second row.
                                                 </div>
@@ -902,6 +916,25 @@
                                             scLockBadge();
                                             renderSubIdList();
                                             renderNewSubidPermGrid();
+                                            // ✅ Running Batch Dropdown populate
+                                            const rbSel = document.getElementById('runningBatchSelect');
+                                            if (rbSel && window.globalData && window.globalData.students) {
+                                                const batches = [...new Set(window.globalData.students.map(st => st.batch))].filter(b => b).sort((a, b) => Number(a) - Number(b));
+                                                rbSel.innerHTML = '<option value="">-- All Batches --</option>';
+                                                batches.forEach(function(b) {
+                                                    rbSel.innerHTML += '<option value="' + b + '">Batch ' + b + '</option>';
+                                                });
+                                                // Saved value restore করো
+                                                const savedBatch = (window.globalData.settings && window.globalData.settings.runningBatch) || '';
+                                                rbSel.value = savedBatch;
+                                            }
+                                            // ✅ Date Range restore
+                                            const dsEl = document.getElementById('runningBatchDateStart');
+                                            const deEl = document.getElementById('runningBatchDateEnd');
+                                            const savedStart = (window.globalData.settings && window.globalData.settings.runningBatchDateStart) || '';
+                                            const savedEnd   = (window.globalData.settings && window.globalData.settings.runningBatchDateEnd)   || '';
+                                            if (dsEl) dsEl.value = savedStart;
+                                            if (deEl) deEl.value = savedEnd;
                                         }
 
                                         function renderNewSubidPermGrid() {
@@ -1100,6 +1133,14 @@
                                             if (rq) gd.settings.recoveryQuestion = rq;
                                             if (ra) { const hA = typeof hashPassword === 'function' ? await hashPassword(ra.toLowerCase()) : ra; gd.settings.recoveryAnswer = hA; }
                                             gd.settings.autoLockoutMinutes = lk;
+                                            // ✅ Running Batch save
+                                            const rbSelSave = document.getElementById('runningBatchSelect');
+                                            if (rbSelSave) gd.settings.runningBatch = rbSelSave.value;
+                                            // ✅ Date Range save
+                                            const dsSave = document.getElementById('runningBatchDateStart');
+                                            const deSave = document.getElementById('runningBatchDateEnd');
+                                            if (dsSave) gd.settings.runningBatchDateStart = dsSave.value;
+                                            if (deSave) gd.settings.runningBatchDateEnd   = deSave.value;
                                             // ✅ FIX: আগে localStorage এ save করো
                                             localStorage.setItem('wingsfly_data', JSON.stringify(gd));
                                             // ✅ FIX: Settings আলাদাভাবেও backup রাখো — cloud pull override করতে পারবে না
