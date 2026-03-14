@@ -100,29 +100,28 @@ function updateGlobalStats() {
 
   // Filter students by batch
   if (selectedBatch) {
-    const filteredStudents = (globalData.students || []).filter(s => s.batch === selectedBatch);
+    const selectedBatchStr = String(selectedBatch);
+    const filteredStudents = (globalData.students || []).filter(s => String(s.batch) === selectedBatchStr);
     runTotalStudents = filteredStudents.length;
-    
-    // Calculate income for these students
-    const studentIds = new Set(filteredStudents.map(s => s.id).filter(Boolean));
-    const rowIndexToId = (globalData.students || []).reduce((acc, s, idx) => {
-        if (s.batch === selectedBatch) acc.add(idx);
-        return acc;
-    }, new Set());
+
+    // Student IDs of this batch
+    const studentIds = new Set(filteredStudents.map(s => s.studentId || s.id).filter(Boolean));
 
     (globalData.finance || []).forEach(f => {
       if (f._deleted) return;
+      if (!STAT_INCOME_TYPES.includes(f.type)) return;
       const amt = parseFloat(f.amount) || 0;
-      const cat = (f.category || '').toLowerCase();
-      const desc = (f.description || '').toLowerCase();
-      
-      // Match by student ID or rowIndex in desc
-      const isStudentMatch = (f.studentId && studentIds.has(f.studentId)) || 
-                             (f.description && f.description.includes('WF-') && rowIndexToId.has(parseInt(f.description.split('WF-')[1])));
+      const desc = f.description || '';
 
-      if (STAT_INCOME_TYPES.includes(f.type)) {
-        if (isStudentMatch) runStudentIncome += amt;
-        // Exam income usually not batch specific in this UI layout
+      // Match by studentId field directly
+      const byStudentId = f.studentId && studentIds.has(f.studentId);
+      // Match by description containing "Batch: X" or "| Batch: X"
+      const byDescBatch = desc.includes('Batch: ' + selectedBatchStr) || desc.includes('| Batch:' + selectedBatchStr);
+      // Match by studentId prefix (e.g. WF-6-)
+      const byIdPrefix = f.studentId && f.studentId.startsWith('WF-' + selectedBatchStr + '-');
+
+      if (byStudentId || byDescBatch || byIdPrefix) {
+        runStudentIncome += amt;
       }
     });
   } else {
