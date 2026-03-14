@@ -265,7 +265,12 @@
                     </div>
                 </div>
 
-                <h6 class="fw-bold mb-3">Payment History (All Installments)</h6>
+                <div class="d-flex justify-content-between align-items-center mb-3">
+                    <h6 class="fw-bold m-0">Payment History (All Installments)</h6>
+                    <button class="btn btn-sm btn-outline-danger fw-bold" onclick="printStudentPaymentHistory(currentPaymentStudentIndex)">
+                        <i class="bi bi-printer-fill me-1"></i> Print History
+                    </button>
+                </div>
                 <div class="table-responsive rounded-3 border">
                     <table class="table table-hover align-middle mb-0">
                         <thead class="bg-light">

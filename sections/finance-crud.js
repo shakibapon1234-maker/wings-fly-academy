@@ -887,3 +887,120 @@ document.addEventListener('click', function (e) {
 });
 
 window.attachLedgerListeners = attachLedgerListeners;
+
+function printStudentPaymentHistory(rowIndex) {
+  const student = globalData.students[rowIndex];
+  if (!student) return;
+
+  const installments = getStudentInstallments(student);
+  let rows = '';
+
+  installments.forEach((inst, idx) => {
+    rows += `
+      <tr>
+        <td style="text-align:center;">${idx + 1}</td>
+        <td>${inst.date} ${inst.isMigrated ? '(Initial)' : ''}</td>
+        <td style="text-align:center;">${inst.method || 'N/A'}</td>
+        <td style="text-align:right; font-weight:bold;">৳${formatNumber(inst.amount)}</td>
+      </tr>
+    `;
+  });
+
+  if (installments.length === 0) {
+    rows = '<tr><td colspan="4" style="text-align:center;">No payments recorded yet.</td></tr>';
+  }
+
+  const printDate = new Date().toLocaleDateString('en-GB', { day: 'numeric', month: 'short', year: 'numeric' });
+
+  const printWindow = window.open('', '_blank', 'width=800,height=600');
+  printWindow.document.write(`
+    <!DOCTYPE html>
+    <html>
+    <head>
+      <title>Payment History - ${student.name}</title>
+      <style>
+        body { font-family: Arial, sans-serif; padding: 20px; color: #000; background: #fff; line-height: 1.5; }
+        .text-center { text-align: center; }
+        .mb-2 { margin-bottom: 10px; }
+        .mb-4 { margin-bottom: 20px; }
+        .header-logo { height: 60px; margin-bottom: 10px; }
+        h2, h3, h4 { margin: 0; padding: 0; }
+        .info-grid { display: flex; justify-content: space-between; margin-bottom: 20px; border-bottom: 1px solid #ccc; padding-bottom: 10px; }
+        .info-box { flex: 1; }
+        table { width: 100%; border-collapse: collapse; margin-top: 20px; border: 1px solid #000; }
+        th, td { border: 1px solid #000; padding: 8px 12px; font-size: 14px; }
+        th { background-color: #f0f0f0; -webkit-print-color-adjust: exact; text-transform: uppercase; }
+        .summary-boxes { display: flex; justify-content: space-between; margin-top: 30px; gap: 15px; }
+        .s-box { padding: 10px 15px; border: 1px solid #000; text-align: center; flex: 1; border-radius: 5px; font-weight: bold; }
+        .s-paid { background-color: #d4edda; -webkit-print-color-adjust: exact; }
+        .s-due { background-color: #f8d7da; -webkit-print-color-adjust: exact; }
+        .s-total { background-color: #e2e3e5; -webkit-print-color-adjust: exact; }
+      </style>
+    </head>
+    <body>
+      <div class="text-center mb-4">
+        <img src="assets/img/logo.png" alt="Logo" class="header-logo" onerror="this.style.display='none'">
+        <h2 class="mb-2">Wings Fly Aviation Academy</h2>
+        <h4 style="border-bottom: 1px dashed #000; display: inline-block; padding-bottom: 5px;">Student Payment History</h4>
+        <p style="font-size: 12px; margin-top: 5px;">Print Date: ${printDate}</p>
+      </div>
+
+      <div class="info-grid">
+        <div class="info-box">
+          <strong>Student Name:</strong> ${student.name}<br>
+          <strong>Phone:</strong> ${student.phone}<br>
+        </div>
+        <div class="info-box" style="text-align:right;">
+          <strong>Course:</strong> ${student.course || 'N/A'}<br>
+          <strong>Batch:</strong> ${student.batch || 'N/A'}<br>
+        </div>
+      </div>
+
+      <table>
+        <thead>
+          <tr>
+            <th style="width: 5%;">#</th>
+            <th style="width: 35%;">Date</th>
+            <th style="width: 30%;">Method</th>
+            <th style="width: 30%; text-align:right;">Amount</th>
+          </tr>
+        </thead>
+        <tbody>
+          ${rows}
+        </tbody>
+      </table>
+
+      <div class="summary-boxes">
+        <div class="s-box s-total">
+          <small>Total Fee</small><br>
+          <span style="font-size: 18px;">৳${formatNumber(student.totalPayment || 0)}</span>
+        </div>
+        <div class="s-box s-paid">
+          <small>Total Paid</small><br>
+          <span style="font-size: 18px;">৳${formatNumber(student.paid || 0)}</span>
+        </div>
+        <div class="s-box s-due">
+          <small>Outstanding Due</small><br>
+          <span style="font-size: 18px;">৳${formatNumber(student.due || 0)}</span>
+        </div>
+      </div>
+
+      <div style="margin-top: 60px; display: flex; justify-content: space-between;">
+        <div style="border-top: 1px solid #000; padding-top: 5px; width: 200px; text-align: center;">Accounts Signature</div>
+        <div style="border-top: 1px solid #000; padding-top: 5px; width: 200px; text-align: center;">Student Signature</div>
+      </div>
+
+      <script>
+        window.onload = function() {
+          setTimeout(function() {
+            window.print();
+            window.onafterprint = function() { window.close(); };
+          }, 500);
+        };
+      </script>
+    </body>
+    </html>
+  `);
+  printWindow.document.close();
+}
+window.printStudentPaymentHistory = printStudentPaymentHistory;
