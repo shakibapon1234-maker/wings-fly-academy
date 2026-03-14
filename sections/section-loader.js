@@ -333,7 +333,15 @@
 
     // 6. Exam Registration
     window.openExamRegistration = function () {
-      loadAndOpen('__modalPlaceholderOther', 'sections/modals-other.html', 'examRegistrationModal', function () {
+      const modalId = 'examRegistrationModal';
+      if (document.getElementById(modalId)) {
+          if (window.populateExamModal) {
+              window.populateExamModal();
+              bootstrap.Modal.getOrCreateInstance(document.getElementById(modalId)).show();
+              return;
+          }
+      }
+      loadAndOpen('__modalPlaceholderOther', 'sections/modals-other.html', modalId, function () {
         // ✅ Populate everything related to exams
         if (typeof window.populateDropdowns === 'function') {
           setTimeout(window.populateDropdowns, 100);
@@ -342,14 +350,58 @@
           window.populateExamModal();
         }
         // ✅ Re-attach listener for subsequent opens
-        const em = document.getElementById('examRegistrationModal');
+        const em = document.getElementById(modalId);
         if (em && typeof window.populateDropdowns === 'function') {
+          em.removeEventListener('show.bs.modal', window.populateDropdowns);
           em.addEventListener('show.bs.modal', window.populateDropdowns);
         }
         if (em && typeof window.populateExamModal === 'function') {
+          em.removeEventListener('show.bs.modal', window.populateExamModal);
           em.addEventListener('show.bs.modal', window.populateExamModal);
         }
       });
+    };
+
+    // 6b. Edit Exam Registration
+    window.editExamRegistration = function (examId) {
+        const modalId = 'examRegistrationModal';
+        if (document.getElementById(modalId)) {
+            if (window._editExamRegistrationImpl) {
+                window._editExamRegistrationImpl(examId);
+                return;
+            } else if (typeof editExamRegistration === 'function' && editExamRegistration !== arguments.callee) {
+                editExamRegistration(examId);
+                return;
+            }
+        }
+        loadAndOpen('__modalPlaceholderOther', 'sections/modals-other.html', modalId, function () {
+            if (window._editExamRegistrationImpl) {
+                window._editExamRegistrationImpl(examId);
+            } else if (typeof editExamRegistration === 'function' && editExamRegistration !== arguments.callee) {
+                editExamRegistration(examId);
+            }
+        });
+    };
+
+    // 6c. Add/Update Exam Result
+    window.openAddResultModal = function (examId) {
+        const modalId = 'addResultModal';
+        if (document.getElementById(modalId)) {
+            if (window._openAddResultModalImpl) {
+                window._openAddResultModalImpl(examId);
+                return;
+            } else if (typeof openAddResultModal === 'function' && openAddResultModal !== arguments.callee) {
+                openAddResultModal(examId);
+                return;
+            }
+        }
+        loadAndOpen('__modalPlaceholderOther', 'sections/modals-other.html', modalId, function () {
+            if (window._openAddResultModalImpl) {
+                window._openAddResultModalImpl(examId);
+            } else if (typeof openAddResultModal === 'function' && openAddResultModal !== arguments.callee) {
+                openAddResultModal(examId);
+            }
+        });
     };
 
     // 7. Notice Board

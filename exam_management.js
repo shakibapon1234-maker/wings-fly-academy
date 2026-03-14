@@ -437,12 +437,24 @@ function editExamRegistration(examId) {
     const reg  = regs.find(r => getExamId(r) === examId);
 
     if (!reg) {
-        _examToast('❌ Registration not found', 'error');
+        if (typeof _examToast === 'function') _examToast('❌ Registration not found', 'error');
+        else if (window.showErrorToast) window.showErrorToast('❌ Registration not found: ' + examId);
         return;
     }
 
+    const modalEl = document.getElementById('examRegistrationModal');
     const form = document.getElementById('examRegistrationForm');
-    if (!form) return;
+    
+    // If modal/form missing, we might be in lazy-load limbo
+    if (!form || !modalEl) {
+        console.warn('[Exam] Form or Modal missing in DOM, calling loader fallback...');
+        if (window.sectionLoader && typeof window.sectionLoader.loadAndOpen === 'function') {
+            window.sectionLoader.loadAndOpen('__modalPlaceholderOther', 'sections/modals-other.html', 'examRegistrationModal', () => {
+                editExamRegistration(examId);
+            });
+        }
+        return;
+    }
 
     // Populate modal first (fills payment methods, datalists etc.)
     populateExamModal();
@@ -474,16 +486,13 @@ function editExamRegistration(examId) {
     form.dataset.editId = examId;
 
     // Open modal
-    const modalEl = document.getElementById('examRegistrationModal');
-    if (modalEl) {
-        const modal = bootstrap.Modal.getInstance(modalEl) || new bootstrap.Modal(modalEl);
-        modal.show();
-    }
+    const modal = bootstrap.Modal.getInstance(modalEl) || new bootstrap.Modal(modalEl);
+    modal.show();
 
-    _examToast('✏️ Edit mode — make changes and submit', 'info');
+    if (typeof _examToast === 'function') _examToast('✏️ Edit mode — changes করে Submit করুন', 'success');
 }
 window.editExamRegistration = editExamRegistration;
-
+window._editExamRegistrationImpl = editExamRegistration;
 
 // ─────────────────────────────────────────────────────────────
 // 10. Delete Exam Registration
@@ -555,7 +564,20 @@ window.deleteExamRegistration = deleteExamRegistration;
 function openAddResultModal(examId) {
     const regs = (window.globalData && window.globalData.examRegistrations) || [];
     const reg  = regs.find(r => getExamId(r) === examId);
-    if (!reg) { _examToast('❌ Registration not found', 'error'); return; }
+    if (!reg) { 
+        if (typeof _examToast === 'function') _examToast('❌ Registration not found', 'error');
+        return; 
+    }
+
+    const modalEl = document.getElementById('addResultModal');
+    if (!modalEl) {
+        if (window.sectionLoader && typeof window.sectionLoader.loadAndOpen === 'function') {
+            window.sectionLoader.loadAndOpen('__modalPlaceholderOther', 'sections/modals-other.html', 'addResultModal', () => {
+                openAddResultModal(examId);
+            });
+        }
+        return;
+    }
 
     const ridInput = document.getElementById('resultRegistrationId');
     const nameEl   = document.getElementById('resultStudentName');
@@ -564,13 +586,11 @@ function openAddResultModal(examId) {
     if (nameEl)   nameEl.value  = reg.studentName || '';
     if (subjEl)   subjEl.value  = reg.subjectName || '';
 
-    const modalEl = document.getElementById('addResultModal');
-    if (modalEl) {
-        const modal = bootstrap.Modal.getInstance(modalEl) || new bootstrap.Modal(modalEl);
-        modal.show();
-    }
+    const modal = bootstrap.Modal.getInstance(modalEl) || new bootstrap.Modal(modalEl);
+    modal.show();
 }
 window.openAddResultModal = openAddResultModal;
+window._openAddResultModalImpl = openAddResultModal;
 
 async function handleAddResult(e) {
     e.preventDefault();
@@ -1049,3 +1069,30 @@ document.addEventListener('DOMContentLoaded', () => {
 
     console.log('✅ Exam Management System Loaded — Wings Fly Aviation');
 });
+
+
+// ─────────────────────────────────────────────────────────────
+// 20. Recycle Bin Integration — support for 'exam' type
+// ─────────────────────────────────────────────────────────────
+(function patchRecycleBinForExam() {
+    const _registerPatch = () => {
+        const _origLoad = window.loadDeletedItems;
+        if (typeof _origLoad !== 'function') return;
+
+        window.loadDeletedItems = function() {
+            const deleted = (window.globalData && window.globalData.deletedItems) || [];
+            deleted.forEach(d => {
+                if (d.type === 'exam' && !d._displayName) {
+                    d._icon = '📋';
+                    d._displayName = (d.item?.studentName || 'Unknown Student') + ' — ' + (d.item?.subjectName || 'Exam');
+                }
+            });
+            return _origLoad.apply(this, arguments);
+        };
+        console.log('✅ Exam-RecycleBin patch applied');
+    };
+    if (document.readyState === 'loading') document.addEventListener('DOMContentLoaded', _registerPatch);
+    else _registerPatch();
+    // Re-patch later if needed
+    setTimeout(_registerPatch, 1000);
+})();
