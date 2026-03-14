@@ -471,7 +471,7 @@
 
         if (type === 'Advance') {
             // Advance → type:'Advance' — Accounts Management এ sync হবে
-            gd.finance.push({
+            const newAdv = {
                 id: 'SAL_ADV_' + Date.now(),
                 date,
                 type: 'Advance',
@@ -484,11 +484,17 @@
                 source: 'salary',          // ← accounts-management filter করতে পারবে
                 createdBy: window.currentUser || 'Admin',
                 createdAt: new Date().toISOString()
-            });
+            };
+            gd.finance.push(newAdv);
+
+            // ✅ FIX: Update Account Balance
+            if (typeof window.feApplyEntryToAccount === 'function') {
+                window.feApplyEntryToAccount(newAdv, +1);
+            }
         } else {
             // Due / Bonus → Expense > Salaries
             const label = type === 'Bonus' ? 'Bonus' : 'Salary';
-            gd.finance.push({
+            const newTxn = {
                 id: 'SAL_' + Date.now(),
                 date,
                 type: 'Expense',
@@ -500,7 +506,13 @@
                 description: `${desc} [${label}] (${month})`,
                 createdBy: window.currentUser || 'Admin',
                 createdAt: new Date().toISOString()
-            });
+            };
+            gd.finance.push(newTxn);
+            
+            // ✅ FIX: Update Account Balance (Missing from diagram sync)
+            if (typeof window.feApplyEntryToAccount === 'function') {
+                window.feApplyEntryToAccount(newTxn, +1);
+            }
         }
 
         if (window.markDirty)        window.markDirty('finance');
