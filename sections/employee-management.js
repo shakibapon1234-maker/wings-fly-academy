@@ -177,7 +177,7 @@ function renderEmployeeList() {
     tr.innerHTML = `
         <td>
             <div class="d-flex align-items-center gap-2">
-                <div class="bg-primary-subtle text-primary rounded-circle d-flex align-items-center justify-content-center fw-bold" style="width: 32px; height: 32px;">
+                <div class="rounded-circle d-flex align-items-center justify-content-center fw-bold" style="width:36px;height:36px;background:linear-gradient(135deg,#00d9ff,#7c3aed);color:#fff;font-size:0.9rem;flex-shrink:0;">
                     ${e.name.charAt(0).toUpperCase()}
                 </div>
                 <div class="fw-bold text-white">${e.name}</div>
@@ -209,50 +209,80 @@ function renderEmployeeList() {
 }
 
 function openEditEmployeeModal(id) {
-  const employee = globalData.employees.find(e => e.id === id);
-  if (!employee) return;
+  const employee = (globalData.employees || []).find(e => String(e.id) === String(id));
+  if (!employee) { console.warn('[openEditEmployeeModal] employee not found:', id); return; }
 
+  // ✅ FIX: Fill form after modal is guaranteed to be in DOM
+  function _fillAndShow() {
+    const modalEl = document.getElementById('employeeModal');
+    const form = document.getElementById('employeeForm');
+    if (!modalEl || !form) {
+      console.error('[openEditEmployeeModal] modal or form not found in DOM');
+      return;
+    }
+
+    form.reset();
+
+    if (form.employeeId) form.employeeId.value = employee.id;
+    if (form.name) form.name.value = employee.name || '';
+    if (form.email) form.email.value = employee.email || '';
+    if (form.phone) form.phone.value = employee.phone || '';
+    if (form.joiningDate) form.joiningDate.value = employee.joiningDate || '';
+    if (form.resignDate) form.resignDate.value = employee.resignDate || '';
+    if (form.salary) form.salary.value = employee.salary || '';
+
+    // Populate role dropdown and set value
+    const roleSelect = form.querySelector('select[name="role"]');
+    if (roleSelect) {
+      const roles = globalData.employeeRoles && globalData.employeeRoles.length
+        ? globalData.employeeRoles
+        : ['Instructor', 'Admin', 'Staff', 'Manager'];
+      roleSelect.innerHTML = roles.map(r =>
+        `<option value="${r}" ${r === employee.role ? 'selected' : ''}>${r}</option>`
+      ).join('');
+      // Ensure value is set even if not in list
+      if (!roles.includes(employee.role)) {
+        const opt = document.createElement('option');
+        opt.value = employee.role;
+        opt.text = employee.role;
+        opt.selected = true;
+        roleSelect.insertBefore(opt, roleSelect.firstChild);
+      }
+    }
+
+    // ✅ FIX: Use getOrCreateInstance to avoid duplicate modal errors
+    try {
+      window.employeeModalInstance = bootstrap.Modal.getOrCreateInstance(modalEl);
+      window.employeeModalInstance.show();
+    } catch (err) { console.error('[openEditEmployeeModal] show error:', err); }
+  }
+
+  // ✅ FIX: Modal is lazy-loaded via section-loader — ensure it's in DOM first
   const modalEl = document.getElementById('employeeModal');
-  const form = document.getElementById('employeeForm');
-  if (!modalEl || !form) return;
-
-  form.reset();
-
-  // Populate fields
-  if (form.employeeId) form.employeeId.value = employee.id;
-  if (form.name) form.name.value = employee.name;
-  if (form.role) {
-    // Ensure role exists in options, if not add it temporarily or rely on existing options
-    const roleExists = [...form.role.options].some(o => o.value === employee.role);
-    if (!roleExists) {
-      const opt = document.createElement('option');
-      opt.value = employee.role;
-      opt.text = employee.role;
-      form.role.add(opt);
+  if (!modalEl) {
+    // Load modal via section-loader's openEmployeeModal, then fill
+    if (typeof window.openEmployeeModal === 'function') {
+      window.openEmployeeModal();
     }
-    form.role.value = employee.role;
+    let tries = 0;
+    const poll = setInterval(() => {
+      tries++;
+      if (document.getElementById('employeeModal')) {
+        clearInterval(poll);
+        // Hide the blank modal first, then fill and reopen
+        setTimeout(() => {
+          const blank = bootstrap.Modal.getInstance(document.getElementById('employeeModal'));
+          if (blank) blank.hide();
+          setTimeout(_fillAndShow, 150);
+        }, 200);
+      } else if (tries > 30) {
+        clearInterval(poll);
+        console.error('[openEditEmployeeModal] Modal did not load after 3s');
+      }
+    }, 100);
+  } else {
+    _fillAndShow();
   }
-  if (form.email) form.email.value = employee.email || '';
-  if (form.phone) form.phone.value = employee.phone || '';
-  if (form.joiningDate) form.joiningDate.value = employee.joiningDate || '';
-  if (form.resignDate) form.resignDate.value = employee.resignDate || '';
-  if (form.salary) form.salary.value = employee.salary || '';
-
-  // Dynamic Role Population (ensure we populate list but keep selected value)
-  const roleSelect = form.querySelector('select[name="role"]');
-  if (roleSelect && globalData.employeeRoles) {
-    // Re-populate but keep selected
-    const currentVal = employee.role;
-    roleSelect.innerHTML = globalData.employeeRoles.map(r => `<option value="${r}" ${r === currentVal ? 'selected' : ''}>${r}</option>`).join('');
-  }
-
-  // Show Modal
-  try {
-    if (!window.employeeModalInstance) {
-      window.employeeModalInstance = new bootstrap.Modal(modalEl);
-    }
-    window.employeeModalInstance.show();
-  } catch (e) { console.error(e); }
 }
 
 window.openEditEmployeeModal = openEditEmployeeModal;

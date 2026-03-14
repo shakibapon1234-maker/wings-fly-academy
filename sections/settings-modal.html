@@ -1548,7 +1548,7 @@
                                             সিস্টেমের সব ড্রপডাউন, লেজার এবং সিঙ্কিং ঠিক আছে কি না তা এটি ১ মিনিটে চেক
                                             করবে।
                                         </div>
-                                        <div id="sim-log-container"
+                                        <div id="sim-output"
                                             style="max-height:180px; overflow-y:auto; background: rgba(0,0,0,0.2); border-radius: 8px; border: 1px solid rgba(255,255,255,0.05); min-height: 40px;">
                                             <div class="text-center text-muted py-3" style="font-size: 0.75rem;">
                                                 সিমুলেশন শুরু করতে বাটনে ক্লিক করুন...</div>
@@ -2390,3 +2390,323 @@
     </div>
   </div>
 </div>
+<script>
+// ============================================================
+// SimulatorPro — Full Demo Data Generator
+// Wings Fly Aviation Academy
+// সকল Tab-এর জন্য সম্পূর্ণ Demo Data
+// ============================================================
+window.SimulatorPro = (function () {
+
+    function _simLog(msg, type) {
+        const area = document.getElementById('sim-output');
+        if (!area) return;
+        const colors = { ok: '#00ff88', warn: '#ffcc00', err: '#ff4466', info: '#00d4ff' };
+        area.style.display = 'block';
+        area.innerHTML += '<div style="color:' + (colors[type] || '#c8d8f0') + ';margin:2px 0">[' + new Date().toLocaleTimeString() + '] ' + msg + '</div>';
+        area.scrollTop = area.scrollHeight;
+    }
+
+    function _pad(n) { return String(n).padStart(2, '0'); }
+    function _dateStr(daysAgo) {
+        var d = new Date();
+        d.setDate(d.getDate() - daysAgo);
+        return d.getFullYear() + '-' + _pad(d.getMonth() + 1) + '-' + _pad(d.getDate());
+    }
+    function _randInt(min, max) { return Math.floor(Math.random() * (max - min + 1)) + min; }
+    function _pick(arr) { return arr[Math.floor(Math.random() * arr.length)]; }
+
+    function _buildDemoData() {
+        var gd = window.globalData;
+        if (!gd) return false;
+
+        // Courses & Payment Methods
+        gd.courseNames = ['Caregiver Basic', 'Caregiver Advanced', 'Student Visa Counseling', 'IELTS Preparation', 'Spoken English', 'Japan Language (N5)', 'Japan Language (N4)', 'Travel & Tourism'];
+        gd.paymentMethods = ['Cash', 'Bkash', 'Nagad', 'Dutch-Bangla Bank'];
+        gd.bankAccounts = [{ name: 'Dutch-Bangla Bank', balance: 185000 }];
+        gd.mobileBanking = [
+            { name: 'Bkash', balance: 42000 },
+            { name: 'Nagad', balance: 18500 }
+        ];
+        gd.cashBalance = 75000;
+        gd.employeeRoles = ['Principal', 'Instructor', 'Counselor', 'Admin Officer', 'Accounts Officer', 'Support Staff'];
+        gd.incomeCategories = ['Tuition Fees', 'Registration Fee', 'Admission Fee', 'Exam Fee', 'Course Material', 'Loan Received', 'Other Income'];
+        gd.expenseCategories = ['Salary', 'Rent', 'Utilities', 'Office Supplies', 'Marketing', 'Maintenance', 'Loan Given', 'Other Expense'];
+
+        var studentNames = [
+            'মোঃ রাকিবুল ইসলাম', 'সাবিনা ইয়াসমিন', 'তানভীর আহমেদ', 'নুসরাত জাহান',
+            'আরিফুল হক', 'শাহনাজ পারভীন', 'মোস্তাফিজুর রহমান', 'রিমা আক্তার',
+            'জাহিদ হাসান', 'মৌসুমী বেগম', 'সোহেল রানা', 'নাজনীন সুলতানা',
+            'ইমরান হোসেন', 'ফারজানা আক্তার', 'শাকিল আহমেদ', 'মারিয়া খানম',
+            'রেজাউল করিম', 'সুমাইয়া ইসলাম', 'নাহিদ পারভেজ', 'আফরিন হোসেন'
+        ];
+        var phonePrefixes = ['01711','01812','01913','01611','01712','01815','01914','01612','01713','01816','01915','01613','01714','01817','01916','01614','01715','01818','01917','01615'];
+        var batches = ['Batch-14', 'Batch-15', 'Batch-16'];
+        var bloodGroups = ['A+', 'B+', 'O+', 'AB+', 'A-', 'B-'];
+        var methods = ['Cash', 'Bkash', 'Nagad', 'Dutch-Bangla Bank'];
+        var feeTotals = [8000, 10000, 12000, 15000, 18000, 20000];
+
+        gd.students = [];
+        gd.finance = [];
+        var finId = 2001;
+
+        studentNames.forEach(function(name, i) {
+            var course = _pick(gd.courseNames);
+            var batch = _pick(batches);
+            var total = _pick(feeTotals);
+            var paidRatio = _pick([0.25, 0.5, 0.75, 1]);
+            var paid = Math.round(total * paidRatio);
+            var due = total - paid;
+            var method = _pick(methods);
+            var enrollDaysAgo = _randInt(10, 180);
+
+            gd.students.push({
+                id: String(1001 + i),
+                studentId: 'WF-' + (1001 + i),
+                name: name,
+                phone: phonePrefixes[i] + String(_randInt(1000000, 9999999)),
+                fatherName: 'মোঃ আবদুল করিম',
+                course: course,
+                batch: batch,
+                enrollDate: _dateStr(enrollDaysAgo),
+                totalPayment: total,
+                payment: paid,
+                due: due,
+                method: method,
+                status: due > 0 ? 'Active' : 'Paid',
+                bloodGroup: _pick(bloodGroups),
+                remarks: due > 0 ? 'কিস্তিতে পেমেন্ট চলছে' : 'সম্পূর্ণ পেমেন্ট সম্পন্ন',
+                _createdAt: new Date(Date.now() - enrollDaysAgo * 86400000).toISOString()
+            });
+
+            if (paid > 0) {
+                gd.finance.push({
+                    id: String(finId++),
+                    date: _dateStr(enrollDaysAgo),
+                    type: 'Income',
+                    category: 'Tuition Fees',
+                    description: 'Tuition Fee — ' + name + ' (' + batch + ')',
+                    amount: paid,
+                    method: method,
+                    person: name,
+                    _createdAt: new Date().toISOString()
+                });
+            }
+        });
+
+        // Employees (8 জন)
+        var empData = [
+            { name: 'মোঃ শাকিব আল হাসান', designation: 'Principal', dept: 'Administration', salary: 35000 },
+            { name: 'রাহেলা বেগম', designation: 'Instructor', dept: 'Academic', salary: 22000 },
+            { name: 'কামরুল ইসলাম', designation: 'Instructor', dept: 'Academic', salary: 20000 },
+            { name: 'সামিরা হোসেন', designation: 'Counselor', dept: 'Student Affairs', salary: 18000 },
+            { name: 'মোঃ ফারুক হোসেন', designation: 'Admin Officer', dept: 'Administration', salary: 16000 },
+            { name: 'তাসলিমা আক্তার', designation: 'Accounts Officer', dept: 'Finance', salary: 15000 },
+            { name: 'রাফি উদ্দিন', designation: 'Support Staff', dept: 'General', salary: 12000 },
+            { name: 'ময়না বেগম', designation: 'Support Staff', dept: 'General', salary: 11000 }
+        ];
+
+        gd.employees = empData.map(function(e, i) {
+            return {
+                id: String(301 + i),
+                name: e.name,
+                phone: '017' + String(_randInt(10000000, 99999999)),
+                designation: e.designation,
+                department: e.dept,
+                salary: e.salary,
+                joiningDate: _dateStr(_randInt(60, 730)),
+                status: 'Active',
+                paymentMethod: _pick(['Cash', 'Bkash', 'Dutch-Bangla Bank'])
+            };
+        });
+
+        // Salary Expenses (last 3 months)
+        [0, 30, 60].forEach(function(monthOffset) {
+            empData.forEach(function(e, i) {
+                gd.finance.push({
+                    id: String(finId++),
+                    date: _dateStr(monthOffset + _randInt(1, 5)),
+                    type: 'Expense',
+                    category: 'Salary',
+                    description: e.designation + ' Salary — ' + e.name,
+                    amount: e.salary,
+                    method: _pick(['Cash', 'Bkash', 'Dutch-Bangla Bank']),
+                    person: e.name,
+                    _createdAt: new Date().toISOString()
+                });
+            });
+        });
+
+        // Rent & Utilities
+        [5, 35, 65].forEach(function(d) {
+            gd.finance.push({ id: String(finId++), date: _dateStr(d), type: 'Expense', category: 'Rent', description: 'মাসিক অফিস ভাড়া', amount: 25000, method: 'Cash', _createdAt: new Date().toISOString() });
+            gd.finance.push({ id: String(finId++), date: _dateStr(d + 2), type: 'Expense', category: 'Utilities', description: 'বিদ্যুৎ বিল', amount: _randInt(3000, 6000), method: 'Cash', _createdAt: new Date().toISOString() });
+        });
+
+        // Registration Fees
+        for (var ri = 0; ri < 10; ri++) {
+            gd.finance.push({ id: String(finId++), date: _dateStr(_randInt(1, 90)), type: 'Income', category: 'Registration Fee', description: 'ভর্তি রেজিস্ট্রেশন ফি', amount: _pick([500, 1000, 1500]), method: _pick(methods), _createdAt: new Date().toISOString() });
+        }
+
+        // Marketing & Misc Expenses
+        var miscDesc = ['সোশ্যাল মিডিয়া বিজ্ঞাপন', 'অফিস মেরামত', 'স্টেশনারি কেনা', 'প্রিন্টার কালি', 'ব্যানার তৈরি'];
+        var miscCat = ['Marketing', 'Maintenance', 'Office Supplies'];
+        for (var mi = 0; mi < 6; mi++) {
+            gd.finance.push({ id: String(finId++), date: _dateStr(_randInt(5, 120)), type: 'Expense', category: _pick(miscCat), description: _pick(miscDesc), amount: _pick([2000, 3500, 5000, 7000, 10000]), method: _pick(methods), _createdAt: new Date().toISOString() });
+        }
+
+        // Loan Entries
+        gd.finance.push({ id: String(finId++), date: _dateStr(45), type: 'Loan Given', category: 'Loan Given', description: 'ব্যক্তিগত ঋণ প্রদান', amount: 50000, method: 'Cash', person: 'মোঃ করিম উদ্দিন', _createdAt: new Date().toISOString() });
+        gd.finance.push({ id: String(finId++), date: _dateStr(30), type: 'Loan Received', category: 'Loan Received', description: 'আংশিক ফেরত', amount: 20000, method: 'Cash', person: 'মোঃ করিম উদ্দিন', _createdAt: new Date().toISOString() });
+        gd.finance.push({ id: String(finId++), date: _dateStr(60), type: 'Loan Given', category: 'Loan Given', description: 'জরুরি ঋণ', amount: 30000, method: 'Bkash', person: 'রফিকুল ইসলাম', _createdAt: new Date().toISOString() });
+        gd.finance.push({ id: String(finId++), date: _dateStr(15), type: 'Loan Received', category: 'Loan Received', description: 'অফিস খরচের ঋণ গ্রহণ', amount: 80000, method: 'Dutch-Bangla Bank', person: 'আমিনা খাতুন', _createdAt: new Date().toISOString() });
+
+        // Visitors (10 জন)
+        var visitorNames = ['মোঃ আলী হোসেন','রোকেয়া বেগম','করিম মিয়া','সাহেলা আক্তার','ফয়সাল আহমেদ','মিনারা বেগম','জহির উদ্দিন','পারভীন সুলতানা','নাসির উদ্দিন','শিরিন আক্তার'];
+        var purposes = ['ভর্তি তথ্য', 'কোর্স সম্পর্কে জিজ্ঞেসা', 'ভিসা প্রসেসিং', 'ক্যারিয়ার কাউন্সেলিং', 'পুনরায় ভর্তি'];
+        var visitorStatuses = ['Converted', 'Follow-up', 'Not Interested', 'Pending'];
+        gd.visitors = visitorNames.map(function(name, i) {
+            return { id: String(501 + i), name: name, phone: '018' + String(_randInt(10000000, 99999999)), purpose: _pick(purposes), date: _dateStr(_randInt(0, 30)), status: _pick(visitorStatuses), remarks: 'ডেমো ভিজিটর ডেটা', _createdAt: new Date().toISOString() };
+        });
+
+        // Exam Registrations (8 টি)
+        var examCourses = ['Caregiver Basic', 'IELTS Preparation', 'Japan Language (N5)'];
+        var examStatuses = ['Registered', 'Confirmed', 'Pending Payment'];
+        gd.examRegistrations = [];
+        for (var ei = 0; ei < 8; ei++) {
+            var s = gd.students[ei];
+            gd.examRegistrations.push({ id: String(601 + ei), studentName: s.name, studentId: s.studentId, course: _pick(examCourses), examDate: _dateStr(-_randInt(7, 30)), examFee: _pick([500, 1000, 1500]), status: _pick(examStatuses), _createdAt: new Date().toISOString() });
+        }
+
+        // Attendance (last 7 days)
+        gd.attendance = {};
+        var attendanceOptions = ['present', 'present', 'present', 'absent', 'late'];
+        for (var day = 0; day < 7; day++) {
+            var dateKey = _dateStr(day);
+            gd.attendance[dateKey] = {};
+            gd.students.forEach(function(st) {
+                gd.attendance[dateKey][st.studentId] = _pick(attendanceOptions);
+            });
+        }
+
+        gd.nextId = finId;
+        return true;
+    }
+
+    // Public: demo()
+    function demo() {
+        var gd = window.globalData;
+        if (!gd) { alert('⚠️ System এখনো লোড হয়নি।'); return; }
+
+        var hasData = (gd.students && gd.students.length > 0) || (gd.finance && gd.finance.length > 5);
+        if (hasData) {
+            if (!confirm('⚠️ বর্তমান ডেটা মুছে নতুন Demo Data যোগ করা হবে।\n\nনিশ্চিত?')) return;
+        }
+
+        gd.students = []; gd.employees = []; gd.finance = [];
+        gd.visitors = []; gd.examRegistrations = []; gd.attendance = {};
+        gd.cashBalance = 0; gd.bankAccounts = []; gd.mobileBanking = [];
+
+        var simOutput = document.getElementById('sim-output');
+        if (simOutput) { simOutput.style.display = 'block'; simOutput.innerHTML = ''; }
+
+        _simLog('🚀 Demo Data তৈরি শুরু হচ্ছে...', 'info');
+
+        try {
+            _buildDemoData();
+
+            _simLog('✅ Students: ' + gd.students.length + ' জন যোগ হয়েছে', 'ok');
+            _simLog('✅ Employees: ' + gd.employees.length + ' জন যোগ হয়েছে', 'ok');
+            _simLog('✅ Finance Entries: ' + gd.finance.length + ' টি যোগ হয়েছে', 'ok');
+            _simLog('✅ Visitors: ' + gd.visitors.length + ' জন যোগ হয়েছে', 'ok');
+            _simLog('✅ Exam Registrations: ' + gd.examRegistrations.length + ' টি যোগ হয়েছে', 'ok');
+            _simLog('✅ Attendance: ' + Object.keys(gd.attendance).length + ' দিনের রেকর্ড', 'ok');
+            _simLog('✅ Loans: 4 টি entry (3 persons)', 'ok');
+            _simLog('✅ Accounts: Cash ৳' + gd.cashBalance.toLocaleString() + ', Bank ৳' + gd.bankAccounts[0].balance.toLocaleString() + ', Bkash ৳' + gd.mobileBanking[0].balance.toLocaleString(), 'ok');
+
+            if (typeof saveToStorage === 'function') { saveToStorage(true); }
+            else { localStorage.setItem('wingsfly_data', JSON.stringify(gd)); }
+
+            if (typeof updateGlobalStats === 'function') updateGlobalStats();
+            if (typeof renderLoanSummary === 'function') renderLoanSummary();
+
+            _simLog('💾 ডেটা সংরক্ষিত হয়েছে!', 'ok');
+            _simLog('🎉 সমস্ত Demo Data সফলভাবে লোড হয়েছে!', 'ok');
+
+            if (typeof showSuccessToast === 'function') showSuccessToast('✅ Demo Data সফলভাবে যোগ হয়েছে! সব Tab-এ ডেটা দেখা যাবে।');
+
+            setTimeout(function() {
+                if (confirm('✅ Demo Data সফলভাবে যোগ হয়েছে!\n\nসব Tab-এ ডেটা দেখতে পেজ রিফ্রেশ করবেন?')) {
+                    window.location.reload();
+                }
+            }, 800);
+
+        } catch(err) {
+            _simLog('❌ Error: ' + err.message, 'err');
+            console.error('[SimulatorPro.demo]', err);
+            if (typeof showErrorToast === 'function') showErrorToast('❌ Demo Data লোড করতে সমস্যা হয়েছে।');
+        }
+    }
+
+    // Public: run() — Full Integrity Simulation
+    function run() {
+        var simOutput = document.getElementById('sim-output');
+        if (simOutput) { simOutput.style.display = 'block'; simOutput.innerHTML = ''; }
+
+        _simLog('🔬 Full Integrity Simulation শুরু...', 'info');
+
+        var gd = window.globalData;
+        if (!gd) { _simLog('❌ globalData পাওয়া যায়নি!', 'err'); return; }
+
+        var pass = 0, fail = 0;
+        function check(label, condition, detail) {
+            if (condition) { _simLog('✅ PASS: ' + label + (detail ? ' — ' + detail : ''), 'ok'); pass++; }
+            else { _simLog('❌ FAIL: ' + label + (detail ? ' — ' + detail : ''), 'err'); fail++; }
+        }
+
+        check('globalData লোড হয়েছে', !!gd);
+        check('Students array আছে', Array.isArray(gd.students), (gd.students ? gd.students.length : 0) + ' জন');
+        check('Finance array আছে', Array.isArray(gd.finance), (gd.finance ? gd.finance.length : 0) + ' টি entry');
+        check('Employees array আছে', Array.isArray(gd.employees), (gd.employees ? gd.employees.length : 0) + ' জন');
+        check('Payment Methods সেট আছে', (gd.paymentMethods || []).length > 0);
+        check('Cash Balance আছে', typeof gd.cashBalance === 'number');
+        check('Course Names আছে', (gd.courseNames || []).length > 0, (gd.courseNames || []).length + ' টি কোর্স');
+        check('Deleted items track হচ্ছে', Array.isArray(gd.deletedItems));
+
+        var activeFinance = (gd.finance || []).filter(function(f) { return !f._deleted; });
+        var incomeTotal = activeFinance.filter(function(f) { return f.type === 'Income'; }).reduce(function(s,f) { return s + (parseFloat(f.amount)||0); }, 0);
+        var expenseTotal = activeFinance.filter(function(f) { return f.type === 'Expense'; }).reduce(function(s,f) { return s + (parseFloat(f.amount)||0); }, 0);
+        check('Income entries আছে', incomeTotal > 0, '৳' + incomeTotal.toLocaleString());
+        check('Expense entries আছে', expenseTotal > 0, '৳' + expenseTotal.toLocaleString());
+        check('Finance amounts শূন্য নয়', activeFinance.every(function(f) { return parseFloat(f.amount) > 0; }));
+
+        var studentDueOk = (gd.students || []).every(function(s) {
+            var total = parseFloat(s.totalPayment) || 0;
+            var paid = parseFloat(s.payment) || 0;
+            var due = parseFloat(s.due) || 0;
+            return Math.abs((total - paid) - due) < 1;
+        });
+        var studentsWithDue = (gd.students || []).filter(function(s) { return parseFloat(s.due) > 0; });
+        check('Student due calculation সঠিক', studentDueOk, studentsWithDue.length + ' জনের due আছে');
+
+        var stored = localStorage.getItem('wingsfly_data');
+        check('localStorage-এ ডেটা আছে', !!stored);
+        if (stored) {
+            try { JSON.parse(stored); check('localStorage ডেটা valid JSON', true); }
+            catch(e) { check('localStorage ডেটা valid JSON', false); }
+        }
+
+        _simLog('─────────────────────────', 'info');
+        _simLog('📊 ফলাফল: ' + pass + ' PASS, ' + fail + ' FAIL', fail === 0 ? 'ok' : 'warn');
+        if (fail === 0) {
+            _simLog('🎉 সব পরীক্ষা পাস! সিস্টেম সম্পূর্ণ ঠিক আছে।', 'ok');
+            if (typeof showSuccessToast === 'function') showSuccessToast('✅ Simulation সম্পন্ন — সব ঠিক আছে!');
+        } else {
+            _simLog('⚠️ ' + fail + ' টি পরীক্ষায় সমস্যা পাওয়া গেছে।', 'warn');
+            if (typeof showErrorToast === 'function') showErrorToast('⚠️ Simulation: ' + fail + ' টি সমস্যা পাওয়া গেছে।');
+        }
+    }
+
+    return { demo: demo, run: run };
+})();
+</script>

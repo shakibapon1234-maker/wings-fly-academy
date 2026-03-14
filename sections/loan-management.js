@@ -18,6 +18,9 @@ function renderLoanSummary() {
   const personStats = {};
 
   globalData.finance.forEach(tx => {
+    // ✅ FIX: Skip deleted transactions
+    if (tx._deleted) return;
+    
     let person = tx.person;
     if (!person) return; // Skip if no person assigned
 
@@ -30,27 +33,10 @@ function renderLoanSummary() {
 
     if (tx.type === 'Loan Given') {
       personStats[person].given += tx.amount;
-      personStats[person].balance -= tx.amount; // Money out, they owe us (positive receivable?) or balance decreases?
-      // Let's convention: Positive Balance = We owe them? Negative Balance = They owe us?
-      // Or: Balance = Received - Given. 
-      // If Received 100, Given 50. Balance +50 (We have their money). 
-      // If Given 100, Received 0. Balance -100 (They owe us).
-      // Let's stick to: "Net Balance"
+      personStats[person].balance -= tx.amount;
     } else if (tx.type === 'Loan Received') {
       personStats[person].received += tx.amount;
       personStats[person].balance += tx.amount;
-    }
-    // We could also consider other transaction types if 'person' is attached, allowing general ledger per person.
-    // For now, strict Loan types or just all types for that person? 
-    // User said: "I need loan management... person wise I can keep account."
-    // It's safer to include ALL transactions for that person to give a full picture (e.g. if they paid us via "Income" type but tagged person).
-    // BUT for "Loan Management" specifically, maybe just loans? 
-    // Let's stick to Loan interactions for the summary cards, but show ALL in details.
-    else if (person) {
-      // If it is Income/Expense/Transfer but has a person tag, it might be relevant.
-      // For simplicity of "Loan", let's assume Type is key. 
-      // But if I lend 500 (Loan Given) and they return 500 (Income? or Loan Received?).
-      // Usually Loan Repayment should be Loan Received. 
     }
   });
 
@@ -69,16 +55,6 @@ function renderLoanSummary() {
     // FILTER: Only show people with actual Loan activity
     if (stats.given === 0 && stats.received === 0) return;
 
-    // Color logic: Balance < 0 (They Owe Us) -> Red/Danger? Balance > 0 (We Owe Them) -> Green/Success?
-    // "Loan Given" = Debit (Asset). "Loan Received" = Credit (Liability).
-    // Let's display "Net Due": Given - Received.
-    // If Result > 0: They have taken more than given back -> They Owe (Red).
-    // If Result < 0: They gave more -> We Owe (Green).
-
-    // Using simple stats.balance (Received - Given).
-    // If Balance < 0: They owe us (Red).
-    // If Balance > 0: We owe them (Green).
-
     let balanceText = '';
     let balanceClass = '';
 
@@ -96,17 +72,17 @@ function renderLoanSummary() {
     const col = document.createElement('div');
     col.className = 'col-md-4 col-lg-3';
     col.innerHTML = `
-      <div class="card h-100 shadow-sm border-0 person-loan-card" style="cursor: pointer; transition: transform 0.2s;" onclick="openLoanDetail('${p.replace(/'/g, "\\'")}')">
+      <div class="card h-100 shadow-sm border-0 person-loan-card" style="cursor: pointer; transition: transform 0.2s; background: rgba(255, 255, 255, 0.05); backdrop-filter: blur(10px);" onclick="openLoanDetail('${p.replace(/'/g, "\\'")}')">
         <div class="card-body text-center">
             <div class="mb-3">
                 <span class="avatar-circle bg-primary-light text-primary fw-bold fs-4 d-inline-block rounded-circle" style="width: 50px; height: 50px; line-height: 50px;">
                     ${p.charAt(0).toUpperCase()}
                 </span>
             </div>
-            <h5 class="card-title fw-bold text-dark mb-1">${p}</h5>
+            <h5 class="card-title fw-bold text-white mb-1" style="color: #ffffff !important;">${p}</h5>
             <div class="mb-3 ${balanceClass} fw-bold fs-5">${balanceText}</div>
             
-            <div class="d-flex justify-content-between text-muted small border-top pt-2">
+            <div class="d-flex justify-content-between small border-top pt-2" style="color: rgba(255, 255, 255, 0.7);">
                 <span>Given: ৳${formatNumber(stats.given)}</span>
                 <span>Recv: ৳${formatNumber(stats.received)}</span>
             </div>
@@ -137,10 +113,8 @@ function openLoanDetail(person) {
   if (title) title.innerText = `Ledger: ${person}`;
   if (tbody) tbody.innerHTML = '';
 
-  // Filter transactions
-  // We include ALL transactions with this person name to be thorough
-  // Sort by date ASCENDING (oldest first) for proper running balance calculation
-  let txs = globalData.finance.filter(tx => tx.person === person).sort((a, b) => new Date(a.date) - new Date(b.date));
+  // ✅ FIX: Exclude deleted transactions
+  let txs = globalData.finance.filter(tx => !tx._deleted && tx.person === person).sort((a, b) => new Date(a.date) - new Date(b.date));
 
   // Date Range Filtering
   const start = document.getElementById('loanDetailStartDate').value;
@@ -163,17 +137,15 @@ function openLoanDetail(person) {
 
     if (tx.type === 'Loan Given' || tx.type === 'Expense') {
       debit = tx.amount;
-      runningBalance -= tx.amount; // Money out: reduces balance (They owe us more)
+      runningBalance -= tx.amount;
     } else if (tx.type === 'Loan Received' || tx.type === 'Income') {
       credit = tx.amount;
-      runningBalance += tx.amount; // Money in: increases balance
+      runningBalance += tx.amount;
     } else {
-      // Transfers? Assume Out is debit?
       debit = tx.amount;
       runningBalance -= tx.amount;
     }
 
-    // Determine balance color
     let balanceClass = '';
     let balancePrefix = '';
     if (runningBalance < 0) {
@@ -191,7 +163,7 @@ function openLoanDetail(person) {
     tr.innerHTML = `
             <td class="text-muted small">${rowNum}</td>
             <td>${tx.date}</td>
-            <td><span class="badge ${debit > 0 ? 'bg-danger-subtle text-danger' : 'bg-success-subtle text-success'}">${typeLabel}</span></td>
+            <td><span style="display:inline-block;padding:3px 10px;border-radius:20px;font-size:0.72rem;font-weight:700;letter-spacing:0.5px;${debit > 0 ? 'background:rgba(255,71,87,0.15);color:#ff4757;border:1.5px solid #ff4757;' : 'background:rgba(0,230,118,0.12);color:#00e676;border:1.5px solid #00e676;'}">${typeLabel}</span></td>
             <td class="small">${tx.description || '-'}</td>
             <td class="text-end text-danger fw-bold">${debit > 0 ? formatNumber(debit) : '-'}</td>
             <td class="text-end text-success fw-bold">${credit > 0 ? formatNumber(credit) : '-'}</td>
@@ -211,236 +183,77 @@ function openLoanDetail(person) {
     } else if (runningBalance > 0) {
       footVal.innerHTML = `<span class="text-success">We Owe: ৳${formatNumber(runningBalance)}</span>`;
     } else {
-      footVal.innerHTML = `৳0`;
+      footVal.innerHTML = `<span class="text-muted">Settled</span>`;
     }
   }
+
+  detailView.scrollIntoView({ behavior: 'smooth', block: 'start' });
 }
 
 function closeLoanDetail() {
   const detailView = document.getElementById('loanDetailView');
   if (detailView) detailView.classList.add('d-none');
-
-  // Clear date filters for next time
-  document.getElementById('loanDetailStartDate').value = '';
-  document.getElementById('loanDetailEndDate').value = '';
-
   currentLoanPerson = null;
 }
 
 function printLoanDetail() {
   if (!currentLoanPerson) return;
 
-  // ── Collect data directly from globalData (not innerHTML) ──
-  let txs = (globalData.finance || [])
-    .filter(tx => tx.person === currentLoanPerson)
-    .sort((a, b) => new Date(a.date) - new Date(b.date));
+  const detailView = document.getElementById('loanDetailView');
+  if (!detailView) return;
 
-  const start = document.getElementById('loanDetailStartDate')?.value || '';
-  const end = document.getElementById('loanDetailEndDate')?.value || '';
-  if (start) txs = txs.filter(tx => tx.date >= start);
-  if (end) txs = txs.filter(tx => tx.date <= end);
+  const clone = detailView.cloneNode(true);
+  clone.classList.remove('d-none');
 
-  const academy = (globalData.settings?.academyName) || 'Wings Fly Aviation Academy';
-  const dateRange = (start || end) ? `${start || 'Beginning'} → ${end || 'Today'}` : 'All Time';
+  clone.querySelectorAll('.loan-edit-btn, .loan-delete-btn').forEach(btn => btn.remove());
 
-  // ── Build rows ──
-  let runningBalance = 0;
-  let rowsHTML = '';
-
-  txs.forEach((tx, i) => {
-    let debit = 0, credit = 0;
-    if (tx.type === 'Loan Given' || tx.type === 'Expense') {
-      debit = parseFloat(tx.amount) || 0;
-      runningBalance -= debit;
-    } else {
-      credit = parseFloat(tx.amount) || 0;
-      runningBalance += credit;
-    }
-    const balColor = runningBalance < 0 ? '#dc2626' : runningBalance > 0 ? '#16a34a' : '#64748b';
-    const typeColor = debit > 0 ? '#dc2626' : '#16a34a';
-    const typeBg = debit > 0 ? '#fee2e2' : '#dcfce7';
-
-    rowsHTML += `
-      <tr style="background:${i % 2 === 0 ? '#f8fafc' : '#ffffff'};">
-        <td style="padding:8px 10px; color:#94a3b8; font-size:12px; text-align:center;">${i + 1}</td>
-        <td style="padding:8px 10px; font-weight:600; font-size:13px;">${tx.date || '—'}</td>
-        <td style="padding:8px 10px;">
-          <span style="background:${typeBg}; color:${typeColor}; padding:3px 10px; border-radius:20px; font-size:11px; font-weight:700;">
-            ${tx.type}
-          </span>
-        </td>
-        <td style="padding:8px 10px; font-size:12px; color:#475569;">${tx.description || '—'}</td>
-        <td style="padding:8px 10px; text-align:right; color:#dc2626; font-weight:700; font-size:13px;">
-          ${debit > 0 ? '৳' + formatNumber(debit) : '—'}
-        </td>
-        <td style="padding:8px 10px; text-align:right; color:#16a34a; font-weight:700; font-size:13px;">
-          ${credit > 0 ? '৳' + formatNumber(credit) : '—'}
-        </td>
-        <td style="padding:8px 10px; text-align:right; color:${balColor}; font-weight:800; font-size:13px;">
-          ৳${formatNumber(Math.abs(runningBalance))}
-        </td>
-      </tr>`;
-  });
-
-  // ── Net balance label ──
-  let netLabel, netColor;
-  if (runningBalance < 0) {
-    netLabel = `They Owe Us: ৳${formatNumber(Math.abs(runningBalance))}`;
-    netColor = '#dc2626';
-  } else if (runningBalance > 0) {
-    netLabel = `We Owe Them: ৳${formatNumber(runningBalance)}`;
-    netColor = '#16a34a';
-  } else {
-    netLabel = 'Settled — ৳0';
-    netColor = '#64748b';
-  }
-
-  // ── Open dedicated print window ──
-  const pw = window.open('', '_blank', 'width=900,height=700');
-  pw.document.write(`<!DOCTYPE html>
-<html><head>
-<meta charset="utf-8">
-<title>Personal Ledger – ${currentLoanPerson}</title>
-<style>
-  * { margin:0; padding:0; box-sizing:border-box; }
-  body { font-family: Arial, sans-serif; color: #1e293b; background:#fff; padding:30px; }
-  .header { display:flex; justify-content:space-between; align-items:flex-start;
-            padding-bottom:16px; border-bottom:3px solid #111827; margin-bottom:20px; }
-  .academy-name { font-size:20px; font-weight:900; color:#111827; }
-  .sub { font-size:10px; color:#64748b; letter-spacing:1px; text-transform:uppercase; margin-top:4px; }
-  .title-block { text-align:right; }
-  .report-title { font-size:18px; font-weight:800; color:#3b82f6; border-bottom:2px solid #3b82f6;
-                  display:inline-block; padding-bottom:3px; }
-  .meta { font-size:11px; color:#94a3b8; margin-top:5px; }
-  table { width:100%; border-collapse:collapse; margin-top:10px; }
-  thead tr { background:#1e293b; }
-  thead th { padding:10px; color:#fff; font-size:12px; font-weight:700; text-align:left; }
-  thead th:nth-child(5), thead th:nth-child(6), thead th:nth-child(7) { text-align:right; }
-  tfoot tr { background:#f1f5f9; }
-  tfoot td { padding:12px 10px; font-weight:800; font-size:14px; }
-  .footer { text-align:center; margin-top:30px; padding-top:15px; border-top:2px solid #e2e8f0; }
-  .footer p { font-size:10px; color:#64748b; }
-  @media print {
-    body { padding:15px; }
-    @page { margin:10mm; }
-  }
-</style>
-</head><body>
-
-<div class="header">
-  <div>
-    <div class="academy-name">${academy}</div>
-    <div class="sub">Aviation Career Experts</div>
-  </div>
-  <div class="title-block">
-    <div class="report-title">Personal Ledger – ${currentLoanPerson}</div>
-    <div class="meta">Date: ${new Date().toLocaleDateString('en-GB')} &nbsp;|&nbsp; Range: ${dateRange}</div>
-  </div>
-</div>
-
-<table>
-  <thead>
-    <tr>
-      <th style="width:40px; text-align:center;">#</th>
-      <th>Date</th>
-      <th>Type</th>
-      <th>Description</th>
-      <th>Debit (−)</th>
-      <th>Credit (+)</th>
-      <th>Balance</th>
-      <th style="text-align:center;">Action</th>
-    </tr>
-  </thead>
-  <tbody>
-    ${rowsHTML || `<tr><td colspan="7" style="text-align:center;padding:20px;color:#94a3b8;">No transactions found.</td></tr>`}
-  </tbody>
-  <tfoot>
-    <tr>
-      <td colspan="7" style="text-align:right; padding-right:16px;">NET BALANCE:</td>
-      <td style="text-align:right; color:${netColor}; font-size:16px;">${netLabel}</td>
-    </tr>
-  </tfoot>
-</table>
-
-<div class="footer">
-  <p>System Generated Official Document | ${academy}</p>
-  <p style="margin-top:4px; font-size:9px; color:#94a3b8;">www.wingsfly-aviation.com</p>
-</div>
-
-<script>
-  window.onload = function() { window.print(); }
-<\/script>
-</body></html>`);
-  pw.document.close();
+  const printWindow = window.open('', '_blank', 'width=900,height=700');
+  printWindow.document.write(`
+    <!DOCTYPE html>
+    <html>
+    <head>
+      <title>Loan Ledger - ${currentLoanPerson}</title>
+      <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/css/bootstrap.min.css" rel="stylesheet">
+      <style>
+        body { padding: 20px; background: white; color: black; }
+        .card { border: 1px solid #ddd !important; }
+        .card-header { background: #f8f9fa !important; color: #000 !important; border-bottom: 2px solid #000 !important; }
+        table { border: 1px solid #000 !important; }
+        thead { background: #f0f0f0 !important; }
+        th, td { border: 1px solid #ddd !important; color: #000 !important; }
+        .text-danger { color: #dc3545 !important; }
+        .text-success { color: #28a745 !important; }
+        @media print {
+          .no-print { display: none; }
+        }
+      </style>
+    </head>
+    <body>
+      <h2 class="text-center mb-4">Wings Fly Aviation Academy</h2>
+      <h4 class="text-center mb-4">Loan Ledger: ${currentLoanPerson}</h4>
+      ${clone.innerHTML}
+      <script>
+        window.onload = function() {
+          window.print();
+          window.onafterprint = function() { window.close(); };
+        };
+      </script>
+    </body>
+    </html>
+  `);
+  printWindow.document.close();
 }
 
-function checkPersonBalance() {
-  const input = document.getElementById('financePersonInput');
-  const display = document.getElementById('personBalanceDisplay');
-
-  if (!input || !display) return;
-
-  // Only show for Loan types or generally useful? Let's show always if match found
-  const name = input.value.trim().toLowerCase();
-
-  if (name.length < 2) {
-    display.innerHTML = '';
-    return;
-  }
-
-  // Calculate balance for this person
-  // Exact match or partial? Use exact-ish for balance calculation to avoid summing up "Ali" and "Alim" together
-  // Ideally we filter by exact name match from existing records to be accurate
-
-  // Let's find all transactions where person name loosely matches to suggest, 
-  // BUT for balance we should probably be stricter or just aggregate what we find.
-  // For now, let's aggregate EXACT case-insensitive matches to give specific feedback
-
-  const txs = globalData.finance.filter(f => f.person && f.person.toLowerCase() === name);
-
-  if (txs.length === 0) {
-    // Maybe partial match suggestion?
-    const similar = [...new Set(globalData.finance
-      .filter(f => f.person && f.person.toLowerCase().includes(name))
-      .map(f => f.person))];
-
-    if (similar.length > 0) {
-      display.innerHTML = `<span class="text-muted fw-normal">Did you mean: ${similar.join(', ')}?</span>`;
-    } else {
-      display.innerHTML = '<span class="text-muted fw-normal">New person (No previous history)</span>';
-    }
-    return;
-  }
-
-  let given = 0;
-  let received = 0;
-
+function checkPersonBalance(person) {
+  const txs = globalData.finance.filter(tx => !tx._deleted && tx.person === person);
+  let balance = 0;
   txs.forEach(tx => {
-    if (tx.type === 'Loan Given' || tx.type === 'Expense') given += tx.amount;
-    else if (tx.type === 'Loan Received' || tx.type === 'Income') received += tx.amount;
+    if (tx.type === 'Loan Given') balance -= tx.amount;
+    else if (tx.type === 'Loan Received') balance += tx.amount;
   });
-
-  const balance = received - given;
-  // Balance < 0 : They Owe Us (Given > Received) -> Red
-  // Balance > 0 : We Owe Them (Received > Given) -> Green
-
-  let html = '';
-  if (balance < 0) {
-    html = `<span class="text-danger">⚠️  They Owe: ৳${formatNumber(Math.abs(balance))}</span>`;
-  } else if (balance > 0) {
-    html = `<span class="text-success">✅ We Owe: ৳${formatNumber(balance)}</span>`;
-  } else {
-    html = `<span class="text-muted">✔️ Account Settled (Balance 0)</span>`;
-  }
-
-  display.innerHTML = `${html} <span class="text-muted ms-2 small fw-normal">(Total Loan: ৳${formatNumber(given)} | Paid: ৳${formatNumber(received)})</span>`;
+  return balance;
 }
 
-
-
-// ===================================
-// GLOBAL EXPOSURE
-// ===================================
 window.renderLoanSummary = renderLoanSummary;
 window.filterLoanSummary = filterLoanSummary;
 window.openLoanDetail = openLoanDetail;
@@ -450,7 +263,6 @@ window.checkPersonBalance = checkPersonBalance;
 
 // ===================================
 // DELETE LOAN TRANSACTION
-// Recycle Bin + Activity Log, Income affect করে না
 // ===================================
 function deleteLoanTransaction(id) {
   if (!id) return;
@@ -461,7 +273,6 @@ function deleteLoanTransaction(id) {
 
   if (!tx) {
     console.error('[LoanDelete] ID not found:', sid);
-    // Fallback: try numeric match if sid is numeric
     const numericId = Number(id);
     if (!isNaN(numericId)) {
       const tx2 = (window.globalData.finance || []).find(f => Number(f.id) === numericId);
@@ -480,16 +291,20 @@ function deleteLoanTransaction(id) {
 function _executeLoanDeletion(tx) {
   const sid = String(tx.id);
 
-  // 1. Reverse the Balance Effect before deleting
-  if (typeof updateAccountBalance === 'function') {
-    // isAddition = false means REVERSE the transaction effect
-    updateAccountBalance(tx.method, tx.amount, tx.type, false);
+  // ✅ FIX: Use finance-engine's soft delete function
+  if (typeof window.feSoftDeleteEntry === 'function') {
+    window.feSoftDeleteEntry(sid);
+  } else {
+    // Fallback to old method
+    if (typeof updateAccountBalance === 'function') {
+      updateAccountBalance(tx.method, tx.amount, tx.type, false);
+    }
+    tx._deleted = true;
+    tx._deletedAt = new Date().toISOString();
   }
 
-  // 2. Move to Trash
   if (typeof moveToTrash === 'function') moveToTrash('finance', tx);
 
-  // 3. Activity Log
   if (typeof logActivity === 'function') {
     logActivity('finance', 'DELETE',
       `Loan Transaction Deleted: ${tx.description || tx.type} — ৳${tx.amount} | Person: ${tx.person || '-'}`,
@@ -497,22 +312,17 @@ function _executeLoanDeletion(tx) {
     );
   }
 
-  // 4. Remove from Finance list
-  window.globalData.finance = window.globalData.finance.filter(f => String(f.id) !== sid);
-
-  // 5. Save locally first
   if (typeof saveToStorage === 'function') {
     saveToStorage(true);
   } else {
     localStorage.setItem('wingsfly_data', JSON.stringify(window.globalData));
   }
 
-  // 5b. Force Cloud Sync
   if (typeof window.scheduleSyncPush === 'function') {
     window.scheduleSyncPush('Loan deleted: ' + (tx.person || 'Unknown'));
   }
 
-  // 6. Refresh UI
+  // ✅ Refresh UI - now properly excludes deleted transactions
   if (typeof updateGlobalStats === 'function') updateGlobalStats();
   if (typeof renderLoanSummary === 'function') renderLoanSummary();
   if (window.currentLoanPerson) openLoanDetail(window.currentLoanPerson);
@@ -522,12 +332,9 @@ function _executeLoanDeletion(tx) {
 
 window.deleteLoanTransaction = deleteLoanTransaction;
 
-// =====================================================
-// editTransaction — Finance Ledger Edit Modal খোলে
-// loan-management.js এ রাখা হয়েছে কারণ Loan Detail
-// এ edit button এখানেই আছে
-// =====================================================
-
+// ===================================
+// EDIT TRANSACTION
+// ===================================
 function editTransaction(txId) {
   const sid = String(txId);
   const tx = (window.globalData.finance || []).find(f => String(f.id) === sid);
@@ -543,7 +350,6 @@ function editTransaction(txId) {
     return;
   }
 
-  // Populate form fields
   form.elements['transactionId'].value = sid;
   form.elements['type'].value = tx.type || 'Income';
   form.elements['date'].value = tx.date || '';
@@ -551,18 +357,15 @@ function editTransaction(txId) {
   form.elements['category'].value = tx.category || '';
   form.elements['description'].value = tx.description || tx.notes || '';
 
-  // Populate method dropdown dynamically
   const methodSelect = document.getElementById('editTransMethodSelect');
   if (methodSelect) {
     methodSelect.innerHTML = '';
 
-    // Add Cash
     const cashOpt = document.createElement('option');
     cashOpt.value = 'Cash';
     cashOpt.textContent = 'Cash';
     methodSelect.appendChild(cashOpt);
 
-    // Add bank accounts
     (window.globalData.accounts || []).forEach(acc => {
       const opt = document.createElement('option');
       opt.value = acc.name;
@@ -570,7 +373,6 @@ function editTransaction(txId) {
       methodSelect.appendChild(opt);
     });
 
-    // Add mobile banking
     (window.globalData.mobileBanking || []).forEach(mb => {
       const opt = document.createElement('option');
       opt.value = mb.name;
@@ -581,7 +383,6 @@ function editTransaction(txId) {
     methodSelect.value = tx.method || 'Cash';
   }
 
-  // Show modal
   try {
     const bsModal = new bootstrap.Modal(modal);
     bsModal.show();
@@ -604,12 +405,10 @@ async function handleEditTransactionSubmit(e) {
 
   const oldTx = window.globalData.finance[idx];
 
-  // Reverse old balance effect
   if (typeof updateAccountBalance === 'function') {
     updateAccountBalance(oldTx.method, oldTx.amount, oldTx.type, false);
   }
 
-  // Update transaction
   const updatedTx = {
     ...oldTx,
     type: fd.get('type'),
@@ -624,22 +423,18 @@ async function handleEditTransactionSubmit(e) {
 
   window.globalData.finance[idx] = updatedTx;
 
-  // Apply new balance effect
   if (typeof updateAccountBalance === 'function') {
     updateAccountBalance(updatedTx.method, updatedTx.amount, updatedTx.type, true);
   }
 
-  // Save
   if (typeof saveToStorage === 'function') await saveToStorage();
 
-  // Close modal
   const modalEl = document.getElementById('editTransactionModal');
   if (modalEl) {
     const bsModal = bootstrap.Modal.getInstance(modalEl);
     if (bsModal) bsModal.hide();
   }
 
-  // Refresh UI
   if (typeof renderLedger === 'function') renderLedger(window.globalData.finance);
   if (typeof updateGlobalStats === 'function') updateGlobalStats();
   if (typeof renderLoanSummary === 'function') renderLoanSummary();
@@ -653,6 +448,5 @@ async function handleEditTransactionSubmit(e) {
   }
 }
 
-// Global expose
 window.editTransaction = editTransaction;
 window.handleEditTransactionSubmit = handleEditTransactionSubmit;

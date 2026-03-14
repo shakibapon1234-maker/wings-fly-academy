@@ -2,8 +2,17 @@
                     <div class="d-flex justify-content-between align-items-center mb-4">
                         <h4 class="fw-bold m-0"><span class="me-2">👤</span> Visitor Management</h4>
                         <div class="d-flex gap-2">
-                            <button class="btn btn-primary fw-bold px-4 rounded-3" data-bs-toggle="modal"
-                                data-bs-target="#visitorModal">
+                            <button class="btn btn-primary fw-bold px-4 rounded-3" onclick="
+                                document.getElementById('visitorRowIndex') && (document.getElementById('visitorRowIndex').value = '');
+                                const _vm = document.getElementById('visitorModal');
+                                if (_vm) {
+                                  const _f = document.getElementById('visitorForm');
+                                  if (_f) _f.reset();
+                                  bootstrap.Modal.getOrCreateInstance(_vm).show();
+                                } else if (typeof openVisitorModal === 'function') {
+                                  openVisitorModal();
+                                }
+                              ">
                                 <i class="bi bi-person-plus-fill me-2"></i>Add New Visitor
                             </button>
                         </div>

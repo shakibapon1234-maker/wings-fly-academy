@@ -1,761 +1,959 @@
-// ============================================
-// EXAM MANAGEMENT SYSTEM
-// ============================================
+// ============================================================
+// WINGS FLY AVIATION ACADEMY
+// EXAM MANAGEMENT SYSTEM — UNIFIED FIXED VERSION
+// ✅ Replaces both: exam_management.js + exam-fix.js
+// ✅ Fix: Field name conflict — regId vs id, batch vs studentBatch
+// ✅ Fix: Edit & Delete buttons now work correctly
+// ✅ Fix: Old data (field: id) + new data (field: regId) both supported
+// ============================================================
 
-// Initialize exam registrations storage in globalData
+// ─────────────────────────────────────────────────────────────
+// HELPER: Get the correct ID from a registration object
+// Supports both old format (.id) and new format (.regId)
+// ─────────────────────────────────────────────────────────────
+function getExamId(reg) {
+    return reg.regId || reg.id || '';
+}
+
+// ─────────────────────────────────────────────────────────────
+// HELPER: Get the correct batch from a registration object
+// Supports both old format (.studentBatch) and new format (.batch)
+// ─────────────────────────────────────────────────────────────
+function getExamBatch(reg) {
+    return reg.batch || reg.studentBatch || '';
+}
+
+// ─────────────────────────────────────────────────────────────
+// 0. Init — ensure examRegistrations array exists
+// ─────────────────────────────────────────────────────────────
 if (typeof globalData !== 'undefined' && !globalData.examRegistrations) {
     globalData.examRegistrations = [];
 }
 
-// Generate unique registration ID
-function generateRegistrationId() {
-    const timestamp = Date.now();
-    const random = Math.floor(Math.random() * 1000);
-    return `EXAM-${timestamp}-${random}`;
+
+// ─────────────────────────────────────────────────────────────
+// 1. Auto-populate Student ID + Batch from Student Name
+// ─────────────────────────────────────────────────────────────
+function autoPopulateStudentDetails() {
+    const nameInput  = document.getElementById('examStudentNameInput');
+    const idInput    = document.getElementById('examStudentIdInput');
+    const batchInput = document.getElementById('examStudentBatchInput');
+
+    if (!nameInput || !idInput || !batchInput) return;
+
+    const typed    = nameInput.value.trim().toLowerCase();
+    const students = (window.globalData && window.globalData.students) || [];
+
+    if (!typed) { idInput.value = ''; batchInput.value = ''; return; }
+
+    const match =
+        students.find(s => (s.name || '').toLowerCase() === typed) ||
+        students.find(s => (s.name || '').toLowerCase().startsWith(typed)) ||
+        students.find(s => (s.name || '').toLowerCase().includes(typed));
+
+    if (match) {
+        idInput.value    = match.studentId || match.id || '';
+        batchInput.value = match.batch     || match.course || '';
+    } else {
+        idInput.value = ''; batchInput.value = '';
+    }
 }
+window.autoPopulateStudentDetails = autoPopulateStudentDetails;
 
-// Handle Exam Registration Form Submit
-function handleExamRegistration(event) {
-    event.preventDefault();
-    const form = event.target;
-    const formData = new FormData(form);
 
-    // Generate registration ID
-    const registrationId = generateRegistrationId();
-
-    const examRegistration = {
-        id: registrationId,
-        studentName: formData.get('studentName'),
-        studentId: formData.get('studentId'), // Added Student ID
-        studentBatch: formData.get('studentBatch'), // Added Batch
-        examSession: formData.get('examSession'), // Added Session
-        subjectName: formData.get('subjectName'),
-        examFee: parseFloat(formData.get('examFee')) || 0,
-        paymentMethod: formData.get('paymentMethod'),
-        examComment: formData.get('examComment') || '', // Added Comment
-        registrationDate: formData.get('registrationDate') || new Date().toISOString().split('T')[0],
-        grade: null, // Will be updated when result is added
-        timestamp: new Date().toISOString()
-    };
-
-    // Save to examRegistrations in globalData
-    if (typeof globalData !== 'undefined') {
-        if (!globalData.examRegistrations) globalData.examRegistrations = [];
-        globalData.examRegistrations.push(examRegistration);
-
-        if (typeof saveToStorage === 'function') {
-            saveToStorage();
-        } else {
-            localStorage.setItem('wingsfly_data', JSON.stringify(globalData));
-        }
+// ─────────────────────────────────────────────────────────────
+// 2. Populate Exam Modal (datalists, payment methods, date)
+// ─────────────────────────────────────────────────────────────
+function populateExamModal() {
+    // Student datalist
+    const studentList = document.getElementById('studentList');
+    if (studentList) {
+        const students = (window.globalData && window.globalData.students) || [];
+        studentList.innerHTML = students
+            .map(s => `<option value="${s.name || ''}"></option>`)
+            .join('');
     }
 
-    // Also record exam fee as income in financial ledger (globalData.finance)
-    if (typeof globalData !== 'undefined' && globalData.finance) {
-        const financeEntry = {
-            type: 'Income',
-            method: examRegistration.paymentMethod,
-            date: examRegistration.registrationDate,
-            category: 'Exam Fee',
-            person: examRegistration.studentName,
-            amount: examRegistration.examFee,
-            description: `Exam ID: ${examRegistration.id} | Student ID: ${formData.get('studentId') || 'N/A'} | Batch: ${formData.get('studentBatch') || 'N/A'} | Session: ${formData.get('examSession') || 'N/A'} | Subject: ${examRegistration.subjectName}`,
-            timestamp: new Date().toISOString()
-        };
-        globalData.finance.push(financeEntry);
-        if (window.updateAccountBalance) {
-            window.updateAccountBalance(financeEntry.method, financeEntry.amount, financeEntry.type);
-        }
-
-        // Save using the app's native function if available
-        if (typeof saveToStorage === 'function') {
-            saveToStorage();
-        } else {
-            localStorage.setItem('wingsfly_data', JSON.stringify(globalData));
-        }
+    // Subject datalist (from past exam registrations + courseNames)
+    const subjectList = document.getElementById('subjectList');
+    if (subjectList) {
+        const exams      = (window.globalData && window.globalData.examRegistrations) || [];
+        const courses    = (window.globalData && window.globalData.courseNames) || [];
+        const fromExams  = exams.map(e => e.subjectName).filter(Boolean);
+        const subjects   = [...new Set([...courses, ...fromExams])];
+        subjectList.innerHTML = subjects
+            .map(s => `<option value="${s}"></option>`)
+            .join('');
     }
 
-    if (typeof logActivity === 'function') {
-        logActivity('exam', 'ADD', 'Registered for exam: ' + examRegistration.studentName + ' - ' + examRegistration.subjectName + ' | Fee: ৳' + examRegistration.examFee);
+    // Payment method <select>
+    const methodSel = document.getElementById('examPaymentMethodSelect');
+    if (methodSel) {
+        const methods      = (window.globalData && window.globalData.paymentMethods) || ['Cash', 'Bkash', 'Nagad', 'Bank'];
+        const bankAccounts = (window.globalData && window.globalData.bankAccounts)   || [];
+        const mobile       = (window.globalData && window.globalData.mobileBanking)  || [];
+
+        const unique = [...new Set([
+            ...methods,
+            ...bankAccounts.map(a => a.name),
+            ...mobile.map(a => a.name)
+        ].filter(Boolean))];
+
+        methodSel.innerHTML =
+            `<option value="">Select Payment Method</option>` +
+            unique.map(m => `<option value="${m}">${m}</option>`).join('');
     }
 
-    // Show success message
-    alert(`✅ Exam Registration Successful!\n\nRegistration ID: ${registrationId}\nStudent: ${examRegistration.studentName}\nSubject: ${examRegistration.subjectName}\nFee: ৳${examRegistration.examFee.toLocaleString()}`);
+    // Default today's date
+    const dateInput = document.getElementById('examRegistrationDate');
+    if (dateInput && !dateInput.value) {
+        dateInput.value = new Date().toISOString().split('T')[0];
+    }
 
-    // Close modal and reset form
+    // Clear student fields if NOT in edit mode
+    const form     = document.getElementById('examRegistrationForm');
+    const idInput  = document.getElementById('examStudentIdInput');
+    const batInput = document.getElementById('examStudentBatchInput');
+    if (form && !form.dataset.editId) {
+        if (idInput)  idInput.value  = '';
+        if (batInput) batInput.value = '';
+    }
+}
+window.populateExamModal = populateExamModal;
+
+
+// ─────────────────────────────────────────────────────────────
+// 3. Initialize Exam System (called on page load & modal open)
+// ─────────────────────────────────────────────────────────────
+function initializeExamSystem() {
+    populateExamModal();
+    updateRecentExams();
+    if (typeof populateDropdowns === 'function') {
+        populateDropdowns();
+    }
+}
+window.initializeExamSystem = initializeExamSystem;
+
+
+// ─────────────────────────────────────────────────────────────
+// 4. Open Exam Registration Modal
+// ─────────────────────────────────────────────────────────────
+function openExamRegistration() {
     const modalEl = document.getElementById('examRegistrationModal');
-    const modal = bootstrap.Modal.getInstance(modalEl);
-    if (modal) modal.hide();
-    form.reset();
-
-    // Automatically trigger receipt printing
-    printExamReceipt(registrationId);
-
-    // Switch to Results tab automatically
-    if (typeof switchTab === 'function') {
-        switchTab('examResults');
+    if (modalEl) {
+        initializeExamSystem();
+        const bsModal = bootstrap.Modal.getInstance(modalEl) || new bootstrap.Modal(modalEl);
+        bsModal.show();
+    } else {
+        console.error('examRegistrationModal not found!');
     }
 }
+window.openExamRegistration = openExamRegistration;
 
-// Search and Filter Exam Results
-function searchExamResults() {
-    const nameSearch = document.getElementById('examResultSearchInput')?.value.toLowerCase().trim() || '';
-    const batchSearch = document.getElementById('examBatchFilter')?.value.toLowerCase().trim() || '';
-    const sessionSearch = document.getElementById('examSessionFilter')?.value.toLowerCase().trim() || '';
-    const subjectSearch = document.getElementById('examSubjectFilter')?.value.toLowerCase().trim() || '';
-    const startDate = document.getElementById('examStartDateFilter')?.value || '';
-    const endDate = document.getElementById('examEndDateFilter')?.value || '';
 
-    const examRegistrations = (typeof globalData !== 'undefined' && globalData.examRegistrations) ? globalData.examRegistrations : [];
-    const resultsDisplay = document.getElementById('examResultsDisplay');
-    const noResultsMessage = document.getElementById('noResultsMessage');
-    const tableBody = document.getElementById('examResultsTableBody');
+// ─────────────────────────────────────────────────────────────
+// 5. Handle Exam Registration Form Submit (Create & Edit)
+// ─────────────────────────────────────────────────────────────
+async function handleExamRegistration(e) {
+    e.preventDefault();
+    const form = e.target;
+    const fd   = new FormData(form);
+    const data = {};
+    fd.forEach((v, k) => data[k] = v);
 
-    // Apply multiple filters
-    const filteredResults = examRegistrations.filter(reg => {
-        // Name, ID, or Reg ID match
-        const matchName = !nameSearch ||
-            (reg.studentName && reg.studentName.toLowerCase().includes(nameSearch)) ||
-            (reg.studentId && reg.studentId.toLowerCase().includes(nameSearch)) ||
-            (reg.id && reg.id.toLowerCase().includes(nameSearch));
+    // Read values
+    const studentName = (data.studentName || '').trim();
+    const subjectName = (data.subjectName || '').trim();
+    const examFee     = parseFloat(data.examFee) || 0;
+    const payMethod   = (data.paymentMethod || '').trim();
+    const regDate     = (data.registrationDate || '').trim();
+    const studentId   = (document.getElementById('examStudentIdInput')?.value   || '').trim();
+    const studentBatch= (document.getElementById('examStudentBatchInput')?.value || '').trim();
 
-        // Batch match
-        const matchBatch = !batchSearch ||
-            (reg.studentBatch && reg.studentBatch.toString().toLowerCase().includes(batchSearch));
+    // Validation
+    if (!studentName) { _examToast('❌ Student name is required', 'error'); return; }
+    if (!subjectName) { _examToast('❌ Subject name is required', 'error'); return; }
+    if (examFee <= 0) { _examToast('❌ Exam fee must be greater than 0', 'error'); return; }
+    if (!payMethod)   { _examToast('❌ Please select a payment method', 'error'); return; }
+    if (!regDate)     { _examToast('❌ Registration date is required', 'error'); return; }
 
-        // Session match
-        const matchSession = !sessionSearch ||
-            (reg.examSession && reg.examSession.toLowerCase().includes(sessionSearch));
+    if (!window.globalData.examRegistrations) window.globalData.examRegistrations = [];
 
-        // Subject match
-        const matchSubject = !subjectSearch ||
-            (reg.subjectName && reg.subjectName.toLowerCase().includes(subjectSearch));
+    const editId = form.dataset.editId || null;
 
-        // Date range match
-        const regDate = reg.registrationDate || '';
-        const matchDate = (!startDate || regDate >= startDate) && (!endDate || regDate <= endDate);
+    if (editId) {
+        // ── EDIT MODE ──
+        const idx = window.globalData.examRegistrations.findIndex(r => getExamId(r) === editId);
+        if (idx < 0) { _examToast('❌ Registration not found', 'error'); return; }
 
-        return matchName && matchBatch && matchSession && matchSubject && matchDate;
-    });
+        const existing = window.globalData.examRegistrations[idx];
+        // Update fields, preserve regId/id whichever exists
+        existing.studentName      = studentName;
+        existing.studentId        = studentId;
+        existing.batch            = studentBatch;
+        existing.studentBatch     = studentBatch; // keep both for compatibility
+        existing.examSession      = (data.examSession || '').trim();
+        existing.subjectName      = subjectName;
+        existing.examFee          = examFee;
+        existing.paymentMethod    = payMethod;
+        existing.registrationDate = regDate;
+        existing.examComment      = (data.examComment || '').trim();
+        existing.updatedAt        = new Date().toISOString();
 
-    if (filteredResults.length === 0) {
-        if (resultsDisplay) resultsDisplay.classList.add('d-none');
-        if (noResultsMessage) {
-            noResultsMessage.classList.remove('d-none');
-            noResultsMessage.innerHTML = `<p class="mb-0">No exam registrations match your filters.</p>`;
+        window.globalData.examRegistrations[idx] = existing;
+        delete form.dataset.editId;
+        _examToast('✅ Exam registration updated!', 'success');
+
+    } else {
+        // ── CREATE MODE ──
+        const regId = 'EXAM-' + Date.now().toString().slice(-6);
+
+        const registration = {
+            regId,
+            id:               regId,           // keep both for compatibility
+            studentName,
+            studentId,
+            batch:            studentBatch,
+            studentBatch:     studentBatch,    // keep both for compatibility
+            examSession:      (data.examSession || '').trim(),
+            subjectName,
+            examFee,
+            paymentMethod:    payMethod,
+            registrationDate: regDate,
+            examComment:      (data.examComment || '').trim(),
+            grade:            '',
+            addedAt:          new Date().toISOString(),
+            timestamp:        new Date().toISOString()
+        };
+
+        window.globalData.examRegistrations.push(registration);
+
+        // Finance ledger entry
+        if (!window.globalData.finance) window.globalData.finance = [];
+        window.globalData.finance.push({
+            id:       'FIN-' + Date.now(),
+            type:     'Income',
+            method:   payMethod,
+            date:     regDate,
+            category: 'Exam Fee',
+            person:   studentName,
+            amount:   examFee,
+            description: `Exam Fee — ${studentName} | ${subjectName} | Batch: ${studentBatch} | Session: ${data.examSession || ''} | Reg: ${regId}`,
+            note:        `Exam Fee — ${studentName} | ${subjectName} | Session: ${data.examSession || ''} | Reg: ${regId}`,
+            addedAt:  new Date().toISOString(),
+            timestamp: new Date().toISOString()
+        });
+
+        // Update account balance
+        if (typeof updateAccountBalance === 'function') {
+            updateAccountBalance(payMethod, examFee, 'Income', true);
+        } else if (window.updateAccountBalance) {
+            window.updateAccountBalance(payMethod, examFee, 'Income');
         }
+
+        _examToast(`✅ Exam registered! ID: ${regId}`, 'success');
+
+        // Print receipt
+        setTimeout(() => printExamReceipt(regId), 600);
+    }
+
+    // Save
+    if (typeof saveToStorage === 'function') {
+        await saveToStorage();
+    } else {
+        localStorage.setItem('wingsfly_data', JSON.stringify(window.globalData));
+    }
+    if (typeof window.scheduleSyncPush === 'function') window.scheduleSyncPush('Exam Registration Saved');
+    if (typeof logActivity === 'function') {
+        logActivity('exam', editId ? 'EDIT' : 'ADD', `${studentName} — ${subjectName} | ৳${examFee}`);
+    }
+
+    // Close modal & reset form
+    const modalEl = document.getElementById('examRegistrationModal');
+    if (modalEl) {
+        const modal = bootstrap.Modal.getInstance(modalEl);
+        if (modal) modal.hide();
+    }
+    form.reset();
+    const idEl  = document.getElementById('examStudentIdInput');
+    const batEl = document.getElementById('examStudentBatchInput');
+    if (idEl)  idEl.value  = '';
+    if (batEl) batEl.value = '';
+
+    // Refresh views
+    if (typeof searchExamResults === 'function') searchExamResults();
+    if (typeof updateGlobalStats  === 'function') updateGlobalStats();
+    if (typeof renderDashboard    === 'function') renderDashboard();
+    updateRecentExams();
+}
+window.handleExamRegistration = handleExamRegistration;
+
+
+// ─────────────────────────────────────────────────────────────
+// 6. Search & Filter Exam Results
+// ─────────────────────────────────────────────────────────────
+function searchExamResults() {
+    const q       = (document.getElementById('examResultSearchInput')?.value || '').toLowerCase().trim();
+    const batch   = (document.getElementById('examBatchFilter')?.value       || '').toLowerCase().trim();
+    const session = (document.getElementById('examSessionFilter')?.value     || '').toLowerCase().trim();
+    const subject = (document.getElementById('examSubjectFilter')?.value     || '').toLowerCase().trim();
+    const start   =  document.getElementById('examStartDateFilter')?.value   || '';
+    const end     =  document.getElementById('examEndDateFilter')?.value     || '';
+
+    let list = (window.globalData && window.globalData.examRegistrations) || [];
+
+    if (q)       list = list.filter(r =>
+        (r.studentName || '').toLowerCase().includes(q) ||
+        (getExamId(r)  || '').toLowerCase().includes(q) ||
+        (r.studentId   || '').toString().toLowerCase().includes(q));
+
+    if (batch)   list = list.filter(r => (getExamBatch(r) || '').toLowerCase().includes(batch));
+    if (session) list = list.filter(r => (r.examSession   || '').toLowerCase().includes(session));
+    if (subject) list = list.filter(r => (r.subjectName   || '').toLowerCase().includes(subject));
+    if (start)   list = list.filter(r => (r.registrationDate || '') >= start);
+    if (end)     list = list.filter(r => (r.registrationDate || '') <= end);
+
+    // Newest first
+    list = list.slice().sort((a, b) => new Date(b.addedAt || b.timestamp || 0) - new Date(a.addedAt || a.timestamp || 0));
+
+    renderExamResults(list);
+}
+window.searchExamResults = searchExamResults;
+
+
+// ─────────────────────────────────────────────────────────────
+// 7. Render Exam Results Table
+// ─────────────────────────────────────────────────────────────
+function renderExamResults(list) {
+    const tbody    = document.getElementById('examResultsTableBody');
+    const display  = document.getElementById('examResultsDisplay');
+    const noMsg    = document.getElementById('noResultsMessage');
+    const countEl  = document.getElementById('filteredExamCount');
+    const totalEl  = document.getElementById('examTotalFeeDisplay');
+    const creditEl = document.getElementById('examTotalCredit');
+    const netEl    = document.getElementById('examNetTotal');
+
+    if (!tbody) return;
+
+    if (!list || list.length === 0) {
+        tbody.innerHTML = `
+          <tr>
+            <td colspan="12" class="text-center py-5">
+              <i class="bi bi-journal-x fs-2 d-block mb-2 opacity-50"></i>
+              <span class="text-muted">No exam registrations found.</span>
+            </td>
+          </tr>`;
+        if (display) display.classList.remove('d-none');
+        if (noMsg)   noMsg.classList.add('d-none');
+        if (countEl) countEl.textContent = '0';
+        if (totalEl) totalEl.textContent = '৳0';
+        if (creditEl) creditEl.textContent = '৳0';
+        if (netEl)   netEl.textContent = '৳0';
         return;
     }
 
-    // Helper for payment method styling
+    const fmt = window.formatNumber || (n => Number(n).toLocaleString('en-IN'));
+
     const getMethodStyle = (method) => {
         const m = (method || '').toLowerCase();
-        if (m.includes('cash')) return 'bg-success';
-        if (m.includes('bank')) return 'bg-primary';
-        if (m.includes('bkash')) return 'bg-danger';
-        if (m.includes('nogod')) return 'bg-warning text-dark';
-        if (m.includes('islami')) return 'bg-info';
-        return 'bg-secondary';
+        if (m.includes('cash'))   return 'background:rgba(0,255,157,0.15);color:#00c97a;border:1px solid rgba(0,255,157,0.3);';
+        if (m.includes('bank'))   return 'background:rgba(0,150,255,0.15);color:#0096ff;border:1px solid rgba(0,150,255,0.3);';
+        if (m.includes('bkash'))  return 'background:rgba(220,0,80,0.15);color:#ff2d6b;border:1px solid rgba(220,0,80,0.3);';
+        if (m.includes('nagad') || m.includes('nogod')) return 'background:rgba(255,140,0,0.15);color:#ff8c00;border:1px solid rgba(255,140,0,0.3);';
+        return 'background:rgba(150,150,150,0.15);color:#aaa;border:1px solid rgba(150,150,150,0.3);';
     };
 
-    // Display results
-    if (tableBody) {
-        tableBody.innerHTML = '';
-        filteredResults.forEach(reg => {
-            const row = document.createElement('tr');
-            row.innerHTML = `
-                <td><strong class="text-primary small text-nowrap">${reg.id}</strong></td>
-                <td><span class="badge bg-light text-dark border fw-bold">${reg.studentId || 'N/A'}</span></td>
-                <td><span class="fw-bold">${reg.studentName}</span></td>
-                <td><span class="badge bg-info-subtle text-info fw-bold">${reg.studentBatch || 'N/A'}</span></td>
-                <td class="small text-muted">${reg.examSession || '-'}</td>
-                <td class="fw-semibold">${reg.subjectName}</td>
-                <td class="fw-bold">৳${(reg.examFee || 0).toLocaleString()}</td>
-                <td><span class="badge ${getMethodStyle(reg.paymentMethod)} font-monospace text-uppercase" style="padding: 6px 12px; border-radius: 6px;">${reg.paymentMethod || 'N/A'}</span></td>
-                <td>${reg.grade ? `<span class="badge bg-success fs-6">${reg.grade}</span>` : `<button class="btn btn-sm btn-warning fw-bold shadow-sm" style="border-radius: 6px;" onclick="openAddResultModal('${reg.id}')">Add Result</button>`}</td>
-                <td class="small fw-medium">${reg.registrationDate}</td>
-                <td class="small text-muted italic" style="max-width: 150px; overflow: hidden; text-overflow: ellipsis; white-space: nowrap;" title="${reg.examComment || ''}">${reg.examComment || '-'}</td>
-                <td class="text-end">
-                    <div class="d-flex gap-2 justify-content-end">
-                        <button class="btn btn-sm btn-outline-primary fw-bold" onclick="printExamReceipt('${reg.id}')" title="Print Receipt">
-                            📄 Receipt
-                        </button>
-                        <button class="btn btn-sm btn-danger px-3 shadow-sm fw-bold" onclick="deleteExamRegistration('${reg.id}')">
-                            🗑️
-                        </button>
-                    </div>
-                </td>
-            `;
-            tableBody.appendChild(row);
-        });
-    }
+    tbody.innerHTML = list.map(r => {
+        const examId    = getExamId(r);
+        const examBatch = getExamBatch(r);
+        const fee       = parseFloat(r.examFee) || 0;
+        const gradeClass= (r.grade === 'A+' || r.grade === 'A') ? 'text-success fw-bold' :
+                          (r.grade === 'Fail') ? 'text-danger fw-bold' : 'text-primary';
 
-    // Calculate totals for summary bar
-    const totalFee = filteredResults.reduce((sum, reg) => sum + (parseFloat(reg.examFee) || 0), 0);
+        return `
+        <tr>
+          <td><span class="badge rounded-pill px-3 py-2" style="background:rgba(0,217,255,0.15);color:#00d9ff;font-size:0.72rem;">${examId || '—'}</span></td>
+          <td class="text-muted small">${r.studentId || '—'}</td>
+          <td class="fw-bold">${r.studentName || '—'}</td>
+          <td><span class="badge bg-secondary rounded-pill px-2">${examBatch || '—'}</span></td>
+          <td class="small">${r.examSession || '—'}</td>
+          <td class="fw-semibold">${r.subjectName || '—'}</td>
+          <td class="fw-bold text-success">৳${fmt(fee)}</td>
+          <td><span class="badge rounded-pill px-2" style="${getMethodStyle(r.paymentMethod)}">${r.paymentMethod || '—'}</span></td>
+          <td class="${gradeClass}">${r.grade || '—'}</td>
+          <td class="small text-muted">${r.registrationDate || '—'}</td>
+          <td class="small" style="max-width:120px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;" title="${r.examComment || ''}">${r.examComment || '—'}</td>
+          <td class="no-print text-end">
+            <div class="d-flex gap-1 justify-content-end">
+              <button class="btn btn-sm btn-outline-warning rounded-pill px-2" title="Add/Update Result" onclick="openAddResultModal('${examId}')">
+                <i class="bi bi-trophy-fill"></i>
+              </button>
+              <button class="btn btn-sm btn-outline-primary rounded-pill px-2" title="Edit" onclick="editExamRegistration('${examId}')">
+                <i class="bi bi-pencil-fill"></i>
+              </button>
+              <button class="btn btn-sm btn-outline-info rounded-pill px-2" title="Print Receipt" onclick="printExamReceipt('${examId}')">
+                <i class="bi bi-printer-fill"></i>
+              </button>
+              <button class="btn btn-sm btn-outline-danger rounded-pill px-2" title="Delete" onclick="deleteExamRegistration('${examId}')">
+                <i class="bi bi-trash-fill"></i>
+              </button>
+            </div>
+          </td>
+        </tr>`;
+    }).join('');
 
-    // Update all display elements
-    const totalDisplay = document.getElementById('examTotalFeeDisplay');
-    if (totalDisplay) totalDisplay.innerText = `৳${totalFee.toLocaleString()}`;
+    const totalFee = list.reduce((sum, r) => sum + (parseFloat(r.examFee) || 0), 0);
 
-    const totalCredit = document.getElementById('examTotalCredit');
-    if (totalCredit) totalCredit.innerText = `৳${totalFee.toLocaleString()}`;
-
-    const netTotal = document.getElementById('examNetTotal');
-    if (netTotal) netTotal.innerText = `৳${totalFee.toLocaleString()}`;
-
-    const countDisplay = document.getElementById('filteredExamCount');
-    if (countDisplay) countDisplay.innerText = filteredResults.length;
-
-    if (resultsDisplay) resultsDisplay.classList.remove('d-none');
-    if (noResultsMessage) noResultsMessage.classList.add('d-none');
+    if (display)  display.classList.remove('d-none');
+    if (noMsg)    noMsg.classList.add('d-none');
+    if (countEl)  countEl.textContent = list.length;
+    if (totalEl)  totalEl.textContent = `৳${fmt(totalFee)}`;
+    if (creditEl) creditEl.textContent = `৳${fmt(totalFee)}`;
+    if (netEl)    netEl.textContent   = `৳${fmt(totalFee)}`;
 }
+window.renderExamResults = renderExamResults;
 
-// Clear all exam filters
+
+// ─────────────────────────────────────────────────────────────
+// 8. Clear Filters
+// ─────────────────────────────────────────────────────────────
 function clearExamFilters() {
-    const ids = ['examResultSearchInput', 'examBatchFilter', 'examSessionFilter', 'examSubjectFilter', 'examStartDateFilter', 'examEndDateFilter'];
-    ids.forEach(id => {
+    ['examResultSearchInput','examBatchFilter','examSessionFilter',
+     'examSubjectFilter','examStartDateFilter','examEndDateFilter'].forEach(id => {
         const el = document.getElementById(id);
         if (el) el.value = '';
     });
     searchExamResults();
 }
+window.clearExamFilters = clearExamFilters;
 
-// Open Add Result Modal
-function openAddResultModal(registrationId) {
-    const examRegistrations = (typeof globalData !== 'undefined' && globalData.examRegistrations) ? globalData.examRegistrations : [];
-    const registration = examRegistrations.find(reg => reg.id === registrationId);
 
-    if (!registration) {
-        alert('Registration not found!');
-        return;
-    }
-
-    // Set form values
-    const regIdInput = document.getElementById('resultRegistrationId');
-    const studentInput = document.getElementById('resultStudentName');
-    const subjectInput = document.getElementById('resultSubjectName');
-
-    if (regIdInput) regIdInput.value = registration.id;
-    if (studentInput) studentInput.value = registration.studentName;
-    if (subjectInput) subjectInput.value = registration.subjectName;
-
-    // Open modal
-    const modalEl = document.getElementById('addResultModal');
-    const modal = new bootstrap.Modal(modalEl);
-    modal.show();
-}
-
-// Handle Add Result Form Submit
-function handleAddResult(event) {
-    event.preventDefault();
-    const form = event.target;
-    const formData = new FormData(form);
-
-    const registrationId = formData.get('registrationId');
-    const grade = formData.get('grade');
-
-    // Update registration with grade
-    const examRegistrations = (typeof globalData !== 'undefined' && globalData.examRegistrations) ? globalData.examRegistrations : [];
-    const registrationIndex = examRegistrations.findIndex(reg => reg.id === registrationId);
-
-    if (registrationIndex === -1) {
-        alert('Registration not found!');
-        return;
-    }
-
-    examRegistrations[registrationIndex].grade = grade;
-
-    if (typeof saveToStorage === 'function') {
-        saveToStorage();
-    } else {
-        localStorage.setItem('wingsfly_data', JSON.stringify(globalData));
-    }
-
-    if (typeof logActivity === 'function') {
-        const reg = examRegistrations[registrationIndex];
-        logActivity('exam', 'EDIT', 'Added result for: ' + (reg.studentName || '') + ' - ' + (reg.subjectName || '') + ' | Grade: ' + grade);
-    }
-
-    // Show success message
-    alert(`✅ Result Added Successfully!\n\nGrade: ${grade}`);
-
-    // Close modal and refresh results
-    const modalEl = document.getElementById('addResultModal');
-    const modal = bootstrap.Modal.getInstance(modalEl);
-    if (modal) modal.hide();
-    form.reset();
-
-    // Refresh search results
-    searchExamResults();
-}
-
-// Delete Exam Registration
-function deleteExamRegistration(registrationId) {
-    if (!confirm('Are you sure you want to delete this exam registration?')) {
-        return;
-    }
-
-    const examRegistrations = globalData.examRegistrations || [];
-    const regToDelete = examRegistrations.find(reg => reg.id === registrationId);
-
-    // ✅ Recycle Bin এ পাঠাও (type: 'exam')
-    if (regToDelete && typeof window.moveToTrash === 'function') {
-        window.moveToTrash('exam', regToDelete);
-    }
-
-    // ✅ Activity Log এ রেকর্ড করো
-    if (regToDelete && typeof window.logActivity === 'function') {
-        window.logActivity('exam', 'DELETE',
-            'Exam Registration ডিলিট: ' + (regToDelete.studentName || regToDelete.name || 'Unknown') + ' — ' + (regToDelete.subjectName || ''),
-            regToDelete
-        );
-    }
-
-    if (regToDelete && window.updateAccountBalance) {
-        window.updateAccountBalance(regToDelete.paymentMethod, regToDelete.examFee, 'Income', false);
-    }
-
-    // Also remove from finance ledger
-    if (globalData.finance) {
-        globalData.finance = globalData.finance.filter(f => !f.description.includes(registrationId));
-    }
-
-    globalData.examRegistrations = examRegistrations.filter(reg => reg.id !== registrationId);
-
-    if (typeof saveToStorage === 'function') {
-        saveToStorage();
-    } else {
-        localStorage.setItem('wingsfly_data', JSON.stringify(globalData));
-    }
-
-    if (typeof showToast === 'function') {
-        showToast('Exam registration deleted and moved to Recycle Bin', 'info');
-    } else {
-        alert('Exam registration deleted successfully!');
-    }
-    searchExamResults();
-}
-
-// Switch to Exam Results Tab
-function switchToExamResults() {
-    // Hide all sections
-    document.getElementById('studentSection').classList.add('d-none');
-    document.getElementById('ledgerSection')?.classList.add('d-none');
-    document.getElementById('loanSection')?.classList.add('d-none');
-    document.getElementById('examResultsSection').classList.remove('d-none');
-
-    // Update page title
-    const pageTitle = document.querySelector('.page-title');
-    if (pageTitle) pageTitle.textContent = 'Exam Results';
-
-    // Clear search and show all results
-    const searchInput = document.getElementById('examResultSearchInput');
-    if (searchInput) searchInput.value = '';
-    searchExamResults();
-}
-
-// Initialize Exam System on Page Load
-function initializeExamSystem() {
-    // Populate student list in registration modal
-    const studentData = (typeof globalData !== 'undefined' && globalData.students) ? globalData.students : (JSON.parse(localStorage.getItem('wingsfly_data'))?.students || []);
-    const studentListDatalist = document.getElementById('studentList');
-    if (studentListDatalist) {
-        studentListDatalist.innerHTML = '';
-        studentData.forEach(student => {
-            const option = document.createElement('option');
-            option.value = student.name;
-            studentListDatalist.appendChild(option);
-        });
-    }
-
-    // Populate subject list (NEW)
-    const subjectListDatalist = document.getElementById('subjectList');
-    const courseNames = (typeof globalData !== 'undefined' && globalData.courseNames) ? globalData.courseNames : (JSON.parse(localStorage.getItem('wingsfly_data'))?.courseNames || []);
-    if (subjectListDatalist && courseNames.length > 0) {
-        subjectListDatalist.innerHTML = '';
-        courseNames.forEach(course => {
-            const option = document.createElement('option');
-            option.value = course;
-            subjectListDatalist.appendChild(option);
-        });
-    }
-
-    // Payment methods are now handled by populateDropdowns() in app.js
-    // but we call it here to ensure it's up to date if this modal opens
-    if (typeof populateDropdowns === 'function') {
-        populateDropdowns();
-    }
-
-    // Set default registration date to today
-    const examRegistrationDate = document.getElementById('examRegistrationDate');
-    if (examRegistrationDate) {
-        examRegistrationDate.value = new Date().toISOString().split('T')[0];
-    }
-
-    // Reset autocomplete fields
-    const idInput = document.getElementById('examStudentIdInput');
-    const batchInput = document.getElementById('examStudentBatchInput');
-    if (idInput) idInput.value = '';
-    if (batchInput) batchInput.value = '';
-
-    // Update dashboard widget if we are on dashboard load
-    updateRecentExams();
-}
-
-// Auto-populate Student ID and Batch based on selected name
-function autoPopulateStudentDetails() {
-    const nameInput = document.getElementById('examStudentNameInput');
-    const idInput = document.getElementById('examStudentIdInput');
-    const batchInput = document.getElementById('examStudentBatchInput');
-
-    if (!nameInput || !idInput || !batchInput) return;
-
-    const studentName = nameInput.value.trim();
-    const studentData = (typeof globalData !== 'undefined' && globalData.students) ? globalData.students : (JSON.parse(localStorage.getItem('wingsfly_data'))?.students || []);
-
-    // Find the student record
-    const student = studentData.find(s => s.name === studentName);
-
-    if (student) {
-        idInput.value = student.studentId || student.id || 'N/A';
-        batchInput.value = student.batch || 'N/A';
-    } else {
-        idInput.value = '';
-        batchInput.value = '';
-    }
-}
-
-// Update Recent Exams Widget on Dashboard
-function updateRecentExams() {
-    const list = document.getElementById('recentExamsList');
-    if (!list) return;
-
-    const examRegistrations = (typeof globalData !== 'undefined' && globalData.examRegistrations) ? globalData.examRegistrations : [];
-
-    // Get last 4 registrations
-    const recent = [...examRegistrations].reverse().slice(0, 4);
-
-    if (recent.length === 0) {
-        list.innerHTML = '<div class="col-12 text-center text-muted py-3"><p class="mb-0">No recent exam registrations.</p></div>';
-        return;
-    }
-
-    list.innerHTML = '';
-    recent.forEach(reg => {
-        const item = document.createElement('div');
-        item.className = 'list-group-item border-0 px-0 py-3 border-bottom';
-        item.style.backgroundColor = 'transparent';
-
-        const statusBadge = reg.grade
-            ? `<span class="badge bg-success-light text-success fw-bold">${reg.grade}</span>`
-            : `<span class="badge bg-warning-light text-warning fw-bold">Pending</span>`;
-
-        item.innerHTML = `
-            <div class="d-flex justify-content-between align-items-start gap-3">
-                <div class="flex-grow-1 min-w-0">
-                    <div class="d-flex align-items-center gap-2 mb-1">
-                        <span class="badge bg-primary-light text-primary small fw-bold">${reg.studentId || 'ID N/A'}</span>
-                        <small class="text-muted">${reg.registrationDate}</small>
-                    </div>
-                    <h6 class="fw-bold mb-1 text-dark text-truncate">${reg.studentName}</h6>
-                    <div class="d-flex flex-wrap gap-2 small text-muted">
-                        <span>Batch: <strong class="text-dark">${reg.studentBatch || 'N/A'}</strong></span>
-                        <span class="text-secondary opacity-50">|</span>
-                        <span class="text-truncate">${reg.subjectName}</span>
-                    </div>
-                </div>
-                <div class="text-end">
-                    <div class="fw-bold text-dark mb-1">৳${(reg.examFee || 0).toLocaleString()}</div>
-                    ${statusBadge}
-                </div>
-            </div>
-        `;
-        list.appendChild(item);
-    });
-}
-
-// Print Exam Results (PDF)
-function printExamResults() {
-    const printArea = document.getElementById('printArea');
-    if (!printArea) return;
-
-    const nameSearch = document.getElementById('examResultSearchInput')?.value.toLowerCase().trim() || '';
-    const batchSearch = document.getElementById('examBatchFilter')?.value.toLowerCase().trim() || '';
-    const sessionSearch = document.getElementById('examSessionFilter')?.value.toLowerCase().trim() || '';
-    const subjectSearch = document.getElementById('examSubjectFilter')?.value.toLowerCase().trim() || '';
-    const startDate = document.getElementById('examStartDateFilter')?.value || '';
-    const endDate = document.getElementById('examEndDateFilter')?.value || '';
-
-    const examRegistrations = (typeof globalData !== 'undefined' && globalData.examRegistrations) ? globalData.examRegistrations : [];
-
-    // Apply filters matching the searchExamResults logic
-    const filteredResults = examRegistrations.filter(reg => {
-        const matchName = !nameSearch ||
-            (reg.studentName && reg.studentName.toLowerCase().includes(nameSearch)) ||
-            (reg.studentId && reg.studentId.toLowerCase().includes(nameSearch)) ||
-            (reg.id && reg.id.toLowerCase().includes(nameSearch));
-        const matchBatch = !batchSearch || (reg.studentBatch && reg.studentBatch.toString().toLowerCase().includes(batchSearch));
-        const matchSession = !sessionSearch || (reg.examSession && reg.examSession.toLowerCase().includes(sessionSearch));
-        const matchSubject = !subjectSearch || (reg.subjectName && reg.subjectName.toLowerCase().includes(subjectSearch));
-        const regDate = reg.registrationDate || '';
-        const matchDate = (!startDate || regDate >= startDate) && (!endDate || regDate <= endDate);
-        return matchName && matchBatch && matchSession && matchSubject && matchDate;
-    });
-
-    if (filteredResults.length === 0) {
-        alert('No data to print!');
-        return;
-    }
-
-    let tableHtml = `
-        <table class="report-table">
-            <thead>
-                <tr>
-                    <th>Reg ID</th>
-                    <th>Student ID</th>
-                    <th>Name</th>
-                    <th>Batch</th>
-                    <th>Session</th>
-                    <th>Subject</th>
-                    <th>Fee</th>
-                    <th>Date</th>
-                    <th>Grade</th>
-                    <th>Remarks</th>
-                </tr>
-            </thead>
-            <tbody>
-                ${filteredResults.map(reg => `
-                    <tr>
-                        <td>${reg.id}</td>
-                        <td>${reg.studentId || 'N/A'}</td>
-                        <td>${reg.studentName}</td>
-                        <td>${reg.studentBatch || 'N/A'}</td>
-                        <td>${reg.examSession || 'N/A'}</td>
-                        <td>${reg.subjectName}</td>
-                        <td>৳${(reg.examFee || 0).toLocaleString()}</td>
-                        <td>${reg.registrationDate}</td>
-                        <td style="font-weight: bold;">${reg.grade || 'Pending'}</td>
-                        <td>${reg.examComment || '-'}</td>
-                    </tr>
-                `).join('')}
-            </tbody>
-        </table>
-    `;
-
-    printArea.innerHTML = `
-        <div style="width: 100%; background: white; padding: 20px;">
-            ${typeof getPrintHeader === 'function' ? getPrintHeader('EXAM RESULTS REPORT') : '<h2>EXAM RESULTS REPORT</h2>'}
-            ${tableHtml}
-            ${typeof getPrintFooter === 'function' ? getPrintFooter() : ''}
-        </div>
-    `;
-
-    setTimeout(() => { window.print(); }, 500);
-}
-
-// Export Exam Results to Excel (CSV)
-function exportExamResultsExcel() {
-    const nameSearch = document.getElementById('examResultSearchInput')?.value.toLowerCase().trim() || '';
-    const batchSearch = document.getElementById('examBatchFilter')?.value.toLowerCase().trim() || '';
-    const sessionSearch = document.getElementById('examSessionFilter')?.value.toLowerCase().trim() || '';
-    const subjectSearch = document.getElementById('examSubjectFilter')?.value.toLowerCase().trim() || '';
-    const startDate = document.getElementById('examStartDateFilter')?.value || '';
-    const endDate = document.getElementById('examEndDateFilter')?.value || '';
-
-    const examRegistrations = (typeof globalData !== 'undefined' && globalData.examRegistrations) ? globalData.examRegistrations : [];
-
-    // Apply filters
-    const filteredResults = examRegistrations.filter(reg => {
-        const matchName = !nameSearch ||
-            (reg.studentName && reg.studentName.toLowerCase().includes(nameSearch)) ||
-            (reg.studentId && reg.studentId.toLowerCase().includes(nameSearch)) ||
-            (reg.id && reg.id.toLowerCase().includes(nameSearch));
-        const matchBatch = !batchSearch || (reg.studentBatch && reg.studentBatch.toString().toLowerCase().includes(batchSearch));
-        const matchSession = !sessionSearch || (reg.examSession && reg.examSession.toLowerCase().includes(sessionSearch));
-        const matchSubject = !subjectSearch || (reg.subjectName && reg.subjectName.toLowerCase().includes(subjectSearch));
-        const regDate = reg.registrationDate || '';
-        const matchDate = (!startDate || regDate >= startDate) && (!endDate || regDate <= endDate);
-        return matchName && matchBatch && matchSession && matchSubject && matchDate;
-    });
-
-    if (filteredResults.length === 0) {
-        alert('No data to export!');
-        return;
-    }
-
-    let csv = '\uFEFFRegistration ID,Student ID,Student Name,Batch,Session,Subject,Exam Fee,Date,Grade,Remarks\n';
-    filteredResults.forEach(reg => {
-        const row = [
-            reg.id,
-            reg.studentId || 'N/A',
-            reg.studentName,
-            reg.studentBatch || 'N/A',
-            reg.examSession || 'N/A',
-            reg.subjectName,
-            reg.examFee || 0,
-            reg.registrationDate,
-            reg.grade || 'Pending',
-            reg.examComment || ''
-        ].map(val => `"${val.toString().replace(/"/g, '""')}"`).join(',');
-        csv += row + '\n';
-    });
-
-    const filename = `Exam_Results_${new Date().toISOString().split('T')[0]}.csv`;
-    if (typeof downloadCSV === 'function') {
-        downloadCSV(csv, filename);
-    } else {
-        const blob = new Blob([csv], { type: 'text/csv;charset=utf-8;' });
-        const link = document.createElement('a');
-        const url = URL.createObjectURL(blob);
-        link.setAttribute('href', url);
-        link.setAttribute('download', filename);
-        link.style.visibility = 'hidden';
-        document.body.appendChild(link);
-        link.click();
-        document.body.removeChild(link);
-    }
-}
-
-// Print Exam Registration Receipt
-function printExamReceipt(registrationId) {
-    const examRegistrations = (typeof globalData !== 'undefined' && globalData.examRegistrations) ? globalData.examRegistrations : [];
-    const reg = examRegistrations.find(r => r.id === registrationId);
+// ─────────────────────────────────────────────────────────────
+// 9. Edit Exam Registration — opens modal pre-filled
+// ─────────────────────────────────────────────────────────────
+function editExamRegistration(examId) {
+    const regs = (window.globalData && window.globalData.examRegistrations) || [];
+    // ✅ Use getExamId() so BOTH old (.id) and new (.regId) records work
+    const reg  = regs.find(r => getExamId(r) === examId);
 
     if (!reg) {
-        alert('Receipt data not found!');
+        _examToast('❌ Registration not found', 'error');
         return;
     }
 
-    const premiumLogo = (window.APP_LOGOS && window.APP_LOGOS.premium) ? window.APP_LOGOS.premium : '';
-    const signatureImg = (window.APP_LOGOS && window.APP_LOGOS.signature) ? window.APP_LOGOS.signature : '';
-    const printArea = document.getElementById('printArea');
+    const form = document.getElementById('examRegistrationForm');
+    if (!form) return;
+
+    // Populate modal first (fills payment methods, datalists etc.)
+    populateExamModal();
+
+    const setVal = (id, val) => {
+        const el = document.getElementById(id);
+        if (el) el.value = val || '';
+    };
+
+    setVal('examStudentNameInput',  reg.studentName);
+    setVal('examStudentIdInput',    reg.studentId);
+    setVal('examStudentBatchInput', getExamBatch(reg));
+    setVal('examRegistrationDate',  reg.registrationDate);
+
+    // Form named fields
+    if (form.elements['examSession'])  form.elements['examSession'].value  = reg.examSession  || '';
+    if (form.elements['subjectName'])  form.elements['subjectName'].value  = reg.subjectName  || '';
+    if (form.elements['examFee'])      form.elements['examFee'].value      = reg.examFee      || '';
+    if (form.elements['examComment'])  form.elements['examComment'].value  = reg.examComment  || '';
+
+    // Payment method select
+    const methodSel = document.getElementById('examPaymentMethodSelect');
+    if (methodSel) {
+        // Small delay so options are populated before we set the value
+        setTimeout(() => { methodSel.value = reg.paymentMethod || ''; }, 100);
+    }
+
+    // Mark form as edit mode with the correct ID
+    form.dataset.editId = examId;
+
+    // Open modal
+    const modalEl = document.getElementById('examRegistrationModal');
+    if (modalEl) {
+        const modal = bootstrap.Modal.getInstance(modalEl) || new bootstrap.Modal(modalEl);
+        modal.show();
+    }
+
+    _examToast('✏️ Edit mode — make changes and submit', 'info');
+}
+window.editExamRegistration = editExamRegistration;
+
+
+// ─────────────────────────────────────────────────────────────
+// 10. Delete Exam Registration
+// ─────────────────────────────────────────────────────────────
+async function deleteExamRegistration(examId) {
+    if (!confirm(`🗑️ Delete this exam registration (${examId})?`)) return;
+
+    if (!window.globalData.examRegistrations) return;
+    // ✅ Use getExamId() so BOTH old (.id) and new (.regId) records work
+    const idx = window.globalData.examRegistrations.findIndex(r => getExamId(r) === examId);
+    if (idx < 0) {
+        _examToast('❌ Registration not found', 'error');
+        return;
+    }
+
+    const reg = window.globalData.examRegistrations[idx];
+
+    // Move to Recycle Bin
+    if (typeof window.moveToTrash === 'function') {
+        window.moveToTrash('exam', reg);
+    }
+
+    // Remove linked finance entry & reverse account balance
+    if (window.globalData.finance) {
+        const before = window.globalData.finance.length;
+        window.globalData.finance = window.globalData.finance.filter(f =>
+            !(f.note || f.description || '').includes(`Reg: ${examId}`)
+        );
+        const removed = before - window.globalData.finance.length;
+        if (removed > 0 && typeof updateAccountBalance === 'function' && reg.examFee && reg.paymentMethod) {
+            updateAccountBalance(reg.paymentMethod, parseFloat(reg.examFee) || 0, 'Income', false);
+        }
+    }
+
+    // Activity log
+    try {
+        if (!window.globalData.activityHistory) window.globalData.activityHistory = [];
+        window.globalData.activityHistory.unshift({
+            id: Date.now(),
+            action: 'Delete',
+            type: 'Exam Registration',
+            description: `Exam registration deleted: "${reg.studentName || examId}"`,
+            timestamp: new Date().toISOString(),
+            user: sessionStorage.getItem('username') || 'Admin'
+        });
+    } catch(e) {}
+
+    window.globalData.examRegistrations.splice(idx, 1);
+
+    if (typeof saveToStorage === 'function') {
+        await saveToStorage();
+    } else {
+        localStorage.setItem('wingsfly_data', JSON.stringify(window.globalData));
+    }
+    if (typeof window.scheduleSyncPush === 'function') window.scheduleSyncPush('Exam Registration Deleted');
+
+    _examToast('🗑️ Deleted & moved to Recycle Bin', 'success');
+    searchExamResults();
+    if (typeof updateGlobalStats === 'function') updateGlobalStats();
+    if (typeof renderDashboard   === 'function') renderDashboard();
+    updateRecentExams();
+}
+window.deleteExamRegistration = deleteExamRegistration;
+
+
+// ─────────────────────────────────────────────────────────────
+// 11. Add / Update Grade Modal
+// ─────────────────────────────────────────────────────────────
+function openAddResultModal(examId) {
+    const regs = (window.globalData && window.globalData.examRegistrations) || [];
+    const reg  = regs.find(r => getExamId(r) === examId);
+    if (!reg) { _examToast('❌ Registration not found', 'error'); return; }
+
+    const ridInput = document.getElementById('resultRegistrationId');
+    const nameEl   = document.getElementById('resultStudentName');
+    const subjEl   = document.getElementById('resultSubjectName');
+    if (ridInput) ridInput.value = examId;
+    if (nameEl)   nameEl.value  = reg.studentName || '';
+    if (subjEl)   subjEl.value  = reg.subjectName || '';
+
+    const modalEl = document.getElementById('addResultModal');
+    if (modalEl) {
+        const modal = bootstrap.Modal.getInstance(modalEl) || new bootstrap.Modal(modalEl);
+        modal.show();
+    }
+}
+window.openAddResultModal = openAddResultModal;
+
+async function handleAddResult(e) {
+    e.preventDefault();
+    const form  = e.target;
+    const fd    = new FormData(form);
+    const examId= fd.get('registrationId');
+    const grade = fd.get('grade');
+
+    if (!examId || !grade) { _examToast('❌ Grade is required', 'error'); return; }
+
+    const regs = (window.globalData && window.globalData.examRegistrations) || [];
+    const idx  = regs.findIndex(r => getExamId(r) === examId);
+    if (idx < 0) { _examToast('❌ Registration not found', 'error'); return; }
+
+    regs[idx].grade = grade;
+
+    if (typeof saveToStorage === 'function') {
+        await saveToStorage();
+    } else {
+        localStorage.setItem('wingsfly_data', JSON.stringify(window.globalData));
+    }
+    if (typeof window.scheduleSyncPush === 'function') window.scheduleSyncPush('Exam Grade Saved');
+
+    _examToast(`✅ Grade "${grade}" saved for ${regs[idx].studentName}`, 'success');
+
+    const modalEl = document.getElementById('addResultModal');
+    if (modalEl) {
+        const modal = bootstrap.Modal.getInstance(modalEl);
+        if (modal) modal.hide();
+    }
+    form.reset();
+    searchExamResults();
+}
+window.handleAddResult = handleAddResult;
+
+
+// ─────────────────────────────────────────────────────────────
+// 12. Print Exam Receipt (A5 layout)
+// ─────────────────────────────────────────────────────────────
+function printExamReceipt(examId) {
+    const regs = (window.globalData && window.globalData.examRegistrations) || [];
+    const reg  = regs.find(r => getExamId(r) === examId);
+
+    if (!reg) { alert('Receipt data not found!'); return; }
+
+    const premiumLogo  = (window.APP_LOGOS && window.APP_LOGOS.premium)   || '';
+    const signatureImg = (window.APP_LOGOS && window.APP_LOGOS.signature) || '';
+    const printArea    = document.getElementById('printArea');
     if (!printArea) return;
 
-    printArea.innerHTML = `
-    <div style="width: 210mm; height: 148mm; background: white; padding: 10mm 15mm; font-family: 'Inter', system-ui, sans-serif; position: relative; box-sizing: border-box; margin: 0 auto; color: #1e293b; line-height: 1.1; display: flex; flex-direction: column;">
-        <!-- Premium Watermark Layer -->
-        ${premiumLogo ? `<img src="${premiumLogo}" style="position: absolute; top: 50%; left: 50%; transform: translate(-50%, -50%) rotate(-30deg); opacity: 0.04; width: 350px; z-index: 0; pointer-events: none;">` : ''}
+    const displayId    = getExamId(reg);
+    const displayBatch = getExamBatch(reg);
 
-        <div style="position: relative; z-index: 1; height: 100%; display: flex; flex-direction: column;">
-            <!-- Official Header with Logo -->
-            <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 15px; border-bottom: 3px solid #1e1b4b; padding-bottom: 10px;">
-                <div style="display: flex; align-items: center; gap: 15px;">
-                    ${premiumLogo ? `<img src="${premiumLogo}" style="height: 55px; width: auto;">` : ''}
+    printArea.innerHTML = `
+    <div style="width:210mm;height:148mm;background:white;padding:10mm 15mm;font-family:'Inter',system-ui,sans-serif;position:relative;box-sizing:border-box;margin:0 auto;color:#1e293b;line-height:1.1;display:flex;flex-direction:column;">
+        ${premiumLogo ? `<img src="${premiumLogo}" style="position:absolute;top:50%;left:50%;transform:translate(-50%,-50%) rotate(-30deg);opacity:0.04;width:350px;z-index:0;pointer-events:none;">` : ''}
+        <div style="position:relative;z-index:1;height:100%;display:flex;flex-direction:column;">
+            <!-- Header -->
+            <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:15px;border-bottom:3px solid #1e1b4b;padding-bottom:10px;">
+                <div style="display:flex;align-items:center;gap:15px;">
+                    ${premiumLogo ? `<img src="${premiumLogo}" style="height:55px;width:auto;">` : ''}
                     <div>
-                        <h1 style="margin: 0; color: #1e1b4b; font-size: 24px; font-weight: 800; text-transform: uppercase; line-height: 1;">Wings Fly</h1>
-                        <p style="margin: 2px 0 0 0; color: #4338ca; font-size: 11px; font-weight: 700; text-transform: uppercase; letter-spacing: 0.5px;">Aviation & Career Development Academy</p>
-                        <p style="margin: 3px 0 0 0; color: #64748b; font-size: 9px;">Uttara, Dhaka | +880 1757 208244 | info@wingsflybd.com</p>
+                        <h1 style="margin:0;color:#1e1b4b;font-size:24px;font-weight:800;text-transform:uppercase;line-height:1;">Wings Fly</h1>
+                        <p style="margin:2px 0 0 0;color:#4338ca;font-size:11px;font-weight:700;text-transform:uppercase;letter-spacing:0.5px;">Aviation & Career Development Academy</p>
+                        <p style="margin:3px 0 0 0;color:#64748b;font-size:9px;">Uttara, Dhaka | +880 1757 208244 | info@wingsflybd.com</p>
                     </div>
                 </div>
-                <div style="text-align: right;">
-                    <div style="background: #1e1b4b; color: white; padding: 5px 12px; font-weight: 800; border-radius: 4px; font-size: 14px; margin-bottom: 5px; display: inline-block;">EXAM ADMIT RECEIPT</div>
-                    <p style="margin: 0; font-size: 11px;"><strong>Reg No:</strong> ${reg.id} | <strong>Date:</strong> ${reg.registrationDate}</p>
+                <div style="text-align:right;">
+                    <div style="background:#1e1b4b;color:white;padding:5px 12px;font-weight:800;border-radius:4px;font-size:14px;margin-bottom:5px;display:inline-block;">EXAM ADMIT RECEIPT</div>
+                    <p style="margin:0;font-size:11px;"><strong>Reg No:</strong> ${displayId} | <strong>Date:</strong> ${reg.registrationDate}</p>
                 </div>
             </div>
-            
             <!-- Student Details -->
-            <div style="background: #f8fafc; border: 1px solid #e2e8f0; border-radius: 6px; padding: 10px; margin-bottom: 12px; display: flex; justify-content: space-between;">
-                <div style="font-size: 11px;">
-                   <span style="font-size: 8px; text-transform: uppercase; color: #64748b; font-weight: 700; display: block; margin-bottom: 2px;">Candidate details</span>
-                   <strong style="font-size: 14px; color: #1e1b4b;">${reg.studentName}</strong><br>
-                   Student ID: <span style="font-weight: 700;">${reg.studentId || 'N/A'}</span>
+            <div style="background:#f8fafc;border:1px solid #e2e8f0;border-radius:6px;padding:10px;margin-bottom:12px;display:flex;justify-content:space-between;">
+                <div style="font-size:11px;">
+                   <span style="font-size:8px;text-transform:uppercase;color:#64748b;font-weight:700;display:block;margin-bottom:2px;">Candidate Details</span>
+                   <strong style="font-size:14px;color:#1e1b4b;">${reg.studentName}</strong><br>
+                   Student ID: <span style="font-weight:700;">${reg.studentId || 'N/A'}</span>
                 </div>
-                <div style="text-align: right; font-size: 11px;">
-                   <span style="font-size: 8px; text-transform: uppercase; color: #64748b; font-weight: 700; display: block; margin-bottom: 2px;">Exam Information</span>
-                   <strong style="font-size: 13px;">${reg.subjectName}</strong><br>
-                   Batch: ${reg.studentBatch || 'N/A'} | Session: ${reg.examSession || 'N/A'}
+                <div style="text-align:right;font-size:11px;">
+                   <span style="font-size:8px;text-transform:uppercase;color:#64748b;font-weight:700;display:block;margin-bottom:2px;">Exam Information</span>
+                   <strong style="font-size:13px;">${reg.subjectName}</strong><br>
+                   Batch: ${displayBatch || 'N/A'} | Session: ${reg.examSession || 'N/A'}
                 </div>
             </div>
-
-            <!-- Ledger Table -->
-            <div style="flex-grow: 1;">
-                <table style="width: 100%; border-collapse: collapse; font-size: 11px; border: 1px solid #e2e8f0; border-radius: 6px; overflow: hidden;">
-                    <thead style="background: #f1f5f9;">
+            <!-- Fee Table -->
+            <div style="flex-grow:1;">
+                <table style="width:100%;border-collapse:collapse;font-size:11px;border:1px solid #e2e8f0;border-radius:6px;overflow:hidden;">
+                    <thead style="background:#f1f5f9;">
                         <tr>
-                            <th style="padding: 10px; border: 1px solid #e2e8f0; text-align: left;">Sl. No & Description of Exam Fees</th>
-                            <th style="padding: 10px; border: 1px solid #e2e8f0; text-align: center; width: 100px;">Method</th>
-                            <th style="padding: 10px; border: 1px solid #e2e8f0; text-align: right; width: 130px;">Amount (৳)</th>
+                            <th style="padding:10px;border:1px solid #e2e8f0;text-align:left;">Description of Exam Fees</th>
+                            <th style="padding:10px;border:1px solid #e2e8f0;text-align:center;width:100px;">Method</th>
+                            <th style="padding:10px;border:1px solid #e2e8f0;text-align:right;width:130px;">Amount (৳)</th>
                         </tr>
                     </thead>
                     <tbody>
                         <tr>
-                            <td style="padding: 15px 10px; border: 1px solid #e2e8f0;">
-                                <strong style="color: #1e1b4b; display: block; font-size: 13px;">${reg.subjectName} - Registration Fee</strong>
-                                <span style="font-size: 10px; color: #64748b; margin-top: 4px; display: block;">Official enrollment for the academy examination program.</span>
+                            <td style="padding:15px 10px;border:1px solid #e2e8f0;">
+                                <strong style="color:#1e1b4b;display:block;font-size:13px;">${reg.subjectName} — Registration Fee</strong>
+                                <span style="font-size:10px;color:#64748b;margin-top:4px;display:block;">Official enrollment for the academy examination program.</span>
                             </td>
-                            <td style="padding: 15px 10px; border: 1px solid #e2e8f0; text-align: center;">
-                                <span style="background: #f8fafc; padding: 4px 10px; border-radius: 4px; border: 1px solid #e2e8f0; font-weight: 700; font-size: 11px;">${reg.paymentMethod || 'Cash'}</span>
+                            <td style="padding:15px 10px;border:1px solid #e2e8f0;text-align:center;">
+                                <span style="background:#f8fafc;padding:4px 10px;border-radius:4px;border:1px solid #e2e8f0;font-weight:700;font-size:11px;">${reg.paymentMethod || 'Cash'}</span>
                             </td>
-                            <td style="padding: 15px 10px; border: 1px solid #e2e8f0; text-align: right; font-weight: 900; font-size: 16px; color: #1e1b4b;">
+                            <td style="padding:15px 10px;border:1px solid #e2e8f0;text-align:right;font-weight:900;font-size:16px;color:#1e1b4b;">
                                 ৳${(reg.examFee || 0).toLocaleString()}
                             </td>
                         </tr>
                     </tbody>
                 </table>
-                
-                ${reg.examComment ? `
-                <div style="margin-top: 15px; padding: 10px; border: 1px dashed #cbd5e1; border-radius: 6px; font-size: 10px; color: #64748b;">
-                    <strong>Candidate Note:</strong> ${reg.examComment}
-                </div>
-                ` : ''}
+                ${reg.examComment ? `<div style="margin-top:15px;padding:10px;border:1px dashed #cbd5e1;border-radius:6px;font-size:10px;color:#64748b;"><strong>Candidate Note:</strong> ${reg.examComment}</div>` : ''}
             </div>
-
-            <!-- Official Signatures at the Bottom -->
-            <div style="display: flex; justify-content: space-between; align-items: flex-end; margin-top: auto; padding-top: 20px;">
-                <div style="width: 32%; text-align: center;">
-                    <div style="border-top: 1.5px solid #1e1b4b; padding-top: 5px; font-size: 10px; font-weight: 800; color: #1e1b4b; text-transform: uppercase;">
-                        Candidate Signature
-                    </div>
+            <!-- Signatures -->
+            <div style="display:flex;justify-content:space-between;align-items:flex-end;margin-top:auto;padding-top:20px;">
+                <div style="width:32%;text-align:center;">
+                    <div style="border-top:1.5px solid #1e1b4b;padding-top:5px;font-size:10px;font-weight:800;color:#1e1b4b;text-transform:uppercase;">Candidate Signature</div>
                 </div>
-                
-                <div style="text-align: center; flex-grow: 1; padding: 0 10px;">
-                     <p style="margin: 0; font-size: 8px; color: #94a3b8; font-style: italic;">
+                <div style="text-align:center;flex-grow:1;padding:0 10px;">
+                    <p style="margin:0;font-size:8px;color:#94a3b8;font-style:italic;">
                         This is a computer generated record. Valid only with official seal.<br>
-                        Reg ID: ${reg.id} | Powered by Wings Fly
+                        Reg ID: ${displayId} | Powered by Wings Fly
                     </p>
                 </div>
-
-                <div style="width: 32%; text-align: center;">
-                    <div style="height: 40px; display: flex; align-items: center; justify-content: center; position: relative; margin-bottom: 2px;">
-                        ${signatureImg ? `<img src="${signatureImg}" style="height: 45px; width: auto; position: absolute; bottom: 0;">` : ''}
+                <div style="width:32%;text-align:center;">
+                    <div style="height:40px;display:flex;align-items:center;justify-content:center;position:relative;margin-bottom:2px;">
+                        ${signatureImg ? `<img src="${signatureImg}" style="height:45px;width:auto;position:absolute;bottom:0;">` : ''}
                     </div>
-                    <div style="border-top: 1.5px solid #1e1b4b; padding-top: 5px; font-size: 10px; font-weight: 800; color: #1e1b4b; text-transform: uppercase;">
-                        Authorized Signature
-                    </div>
+                    <div style="border-top:1.5px solid #1e1b4b;padding-top:5px;font-size:10px;font-weight:800;color:#1e1b4b;text-transform:uppercase;">Authorized Signature</div>
                 </div>
             </div>
         </div>
-    </div>
-  `;
+    </div>`;
 
-    // Wait for content to render then print
     setTimeout(() => {
         window.print();
-        // Clear print area after print window is closed
         setTimeout(() => { if (printArea) printArea.innerHTML = ''; }, 1000);
     }, 500);
 }
-
-// Global exposure
-window.updateRecentExams = updateRecentExams;
-window.printExamResults = printExamResults;
-window.exportExamResultsExcel = exportExamResultsExcel;
 window.printExamReceipt = printExamReceipt;
 
-function openExamRegistration() {
-    const modalEl = document.getElementById('examRegistrationModal');
-    if (modalEl) {
-        // Initialize if first time
-        initializeExamSystem();
-        const bsModal = bootstrap.Modal.getInstance(modalEl) || new bootstrap.Modal(modalEl);
-        bsModal.show();
-    } else {
-        console.error('examRegistrationModal modal element not found!');
+
+// ─────────────────────────────────────────────────────────────
+// 13. Print Exam Results Report
+// ─────────────────────────────────────────────────────────────
+function printExamResults() {
+    const nameSearch = (document.getElementById('examResultSearchInput')?.value || '').toLowerCase().trim();
+    const batchSearch= (document.getElementById('examBatchFilter')?.value       || '').toLowerCase().trim();
+    const sessionSearch=(document.getElementById('examSessionFilter')?.value    || '').toLowerCase().trim();
+    const subjectSearch=(document.getElementById('examSubjectFilter')?.value    || '').toLowerCase().trim();
+    const startDate  =  document.getElementById('examStartDateFilter')?.value   || '';
+    const endDate    =  document.getElementById('examEndDateFilter')?.value     || '';
+
+    let list = (window.globalData && window.globalData.examRegistrations) || [];
+
+    if (nameSearch)    list = list.filter(r => (r.studentName||'').toLowerCase().includes(nameSearch) || (getExamId(r)||'').toLowerCase().includes(nameSearch));
+    if (batchSearch)   list = list.filter(r => (getExamBatch(r)||'').toLowerCase().includes(batchSearch));
+    if (sessionSearch) list = list.filter(r => (r.examSession||'').toLowerCase().includes(sessionSearch));
+    if (subjectSearch) list = list.filter(r => (r.subjectName||'').toLowerCase().includes(subjectSearch));
+    if (startDate)     list = list.filter(r => (r.registrationDate||'') >= startDate);
+    if (endDate)       list = list.filter(r => (r.registrationDate||'') <= endDate);
+
+    if (list.length === 0) { alert('No data to print!'); return; }
+
+    const totalFee = list.reduce((s, r) => s + (parseFloat(r.examFee) || 0), 0);
+
+    let rows = list.map((r, i) => `
+        <tr style="background:${i%2===0?'#fff':'#f7f9fc'}">
+            <td>${getExamId(r)}</td>
+            <td>${r.studentId || 'N/A'}</td>
+            <td style="font-weight:600">${r.studentName}</td>
+            <td>${getExamBatch(r) || 'N/A'}</td>
+            <td>${r.examSession || 'N/A'}</td>
+            <td>${r.subjectName}</td>
+            <td style="text-align:right">৳${(r.examFee||0).toLocaleString()}</td>
+            <td>${r.registrationDate}</td>
+            <td style="font-weight:700;color:${(r.grade==='A+'||r.grade==='A')?'green':'#333'}">${r.grade||'Pending'}</td>
+            <td>${r.examComment || '—'}</td>
+        </tr>`).join('');
+
+    const printArea = document.getElementById('printArea');
+    if (printArea) {
+        printArea.innerHTML = `
+        <div style="background:white;padding:20px;">
+            ${typeof getPrintHeader === 'function' ? getPrintHeader('EXAM RESULTS REPORT') : '<h2 style="border-bottom:2px solid #1a3a5c;padding-bottom:8px;color:#1a3a5c;">EXAM RESULTS REPORT</h2>'}
+            <div style="background:#f0f4f8;padding:10px;border-radius:6px;margin:10px 0;font-size:12px;">
+                Total Records: <strong>${list.length}</strong> &nbsp;|&nbsp; Total Fees: <strong>৳${totalFee.toLocaleString()}</strong>
+                &nbsp;|&nbsp; Printed: <strong>${new Date().toLocaleDateString()}</strong>
+            </div>
+            <table style="width:100%;border-collapse:collapse;font-size:11px;margin-top:12px;">
+                <thead><tr style="background:#1a3a5c;color:#fff;">
+                    <th style="padding:8px 6px;">Reg ID</th>
+                    <th style="padding:8px 6px;">Student ID</th>
+                    <th style="padding:8px 6px;">Name</th>
+                    <th style="padding:8px 6px;">Batch</th>
+                    <th style="padding:8px 6px;">Session</th>
+                    <th style="padding:8px 6px;">Subject</th>
+                    <th style="padding:8px 6px;text-align:right;">Fee</th>
+                    <th style="padding:8px 6px;">Date</th>
+                    <th style="padding:8px 6px;">Grade</th>
+                    <th style="padding:8px 6px;">Remarks</th>
+                </tr></thead>
+                <tbody>${rows}</tbody>
+            </table>
+            ${typeof getPrintFooter === 'function' ? getPrintFooter() : ''}
+        </div>`;
+        setTimeout(() => window.print(), 500);
     }
 }
-window.openExamRegistration = openExamRegistration;
+window.printExamResults = printExamResults;
 
-// Make sure to call this when the page loads
-document.addEventListener('DOMContentLoaded', function () {
+
+// ─────────────────────────────────────────────────────────────
+// 14. Export Exam Results to CSV / Excel
+// ─────────────────────────────────────────────────────────────
+function exportExamResultsExcel() {
+    let list = (window.globalData && window.globalData.examRegistrations) || [];
+
+    const nameSearch  = (document.getElementById('examResultSearchInput')?.value || '').toLowerCase().trim();
+    const batchSearch = (document.getElementById('examBatchFilter')?.value       || '').toLowerCase().trim();
+    const sessionSearch=(document.getElementById('examSessionFilter')?.value     || '').toLowerCase().trim();
+    const subjectSearch=(document.getElementById('examSubjectFilter')?.value     || '').toLowerCase().trim();
+    const startDate   =  document.getElementById('examStartDateFilter')?.value   || '';
+    const endDate     =  document.getElementById('examEndDateFilter')?.value     || '';
+
+    if (nameSearch)    list = list.filter(r => (r.studentName||'').toLowerCase().includes(nameSearch) || (getExamId(r)||'').toLowerCase().includes(nameSearch));
+    if (batchSearch)   list = list.filter(r => (getExamBatch(r)||'').toLowerCase().includes(batchSearch));
+    if (sessionSearch) list = list.filter(r => (r.examSession||'').toLowerCase().includes(sessionSearch));
+    if (subjectSearch) list = list.filter(r => (r.subjectName||'').toLowerCase().includes(subjectSearch));
+    if (startDate)     list = list.filter(r => (r.registrationDate||'') >= startDate);
+    if (endDate)       list = list.filter(r => (r.registrationDate||'') <= endDate);
+
+    if (list.length === 0) { _examToast('❌ No data to export', 'error'); return; }
+
+    const rows = [
+        ['Registration ID','Student ID','Student Name','Batch','Session','Subject','Exam Fee','Payment Method','Grade','Date','Comment'],
+        ...list.map(r => [
+            getExamId(r),
+            r.studentId    || 'N/A',
+            r.studentName,
+            getExamBatch(r) || 'N/A',
+            r.examSession   || 'N/A',
+            r.subjectName,
+            r.examFee       || 0,
+            r.paymentMethod || 'N/A',
+            r.grade         || 'Pending',
+            r.registrationDate,
+            r.examComment   || ''
+        ])
+    ];
+
+    const csv = '\uFEFF' + rows.map(r => r.map(c => `"${(c||'').toString().replace(/"/g,'""')}"`).join(',')).join('\n');
+    const filename = `Exam_Results_${new Date().toISOString().split('T')[0]}.csv`;
+
+    if (typeof downloadCSV === 'function') {
+        downloadCSV(csv, filename);
+    } else {
+        const blob = new Blob([csv], { type: 'text/csv;charset=utf-8;' });
+        const url  = URL.createObjectURL(blob);
+        const a    = document.createElement('a');
+        a.href     = url;
+        a.download = filename;
+        document.body.appendChild(a);
+        a.click();
+        document.body.removeChild(a);
+        URL.revokeObjectURL(url);
+    }
+    _examToast('📊 Excel (CSV) exported!', 'success');
+}
+window.exportExamResultsExcel = exportExamResultsExcel;
+
+
+// ─────────────────────────────────────────────────────────────
+// 15. Recent Exams Dashboard Widget
+// ─────────────────────────────────────────────────────────────
+function updateRecentExams() {
+    const container = document.getElementById('recentExamsList');
+    if (!container) return;
+
+    const fmt   = window.formatNumber || (n => Number(n).toLocaleString('en-IN'));
+    const exams = ((window.globalData && window.globalData.examRegistrations) || [])
+        .slice()
+        .sort((a, b) => new Date(b.addedAt || b.timestamp || 0) - new Date(a.addedAt || a.timestamp || 0))
+        .slice(0, 5);
+
+    if (exams.length === 0) {
+        container.innerHTML = `<div class="text-center text-muted py-3 small">No exam registrations yet.</div>`;
+        return;
+    }
+
+    container.innerHTML = exams.map(r => `
+        <div class="d-flex justify-content-between align-items-center py-2 border-bottom border-opacity-25">
+            <div>
+                <div class="fw-semibold small">${r.studentName}</div>
+                <div class="text-muted" style="font-size:0.75rem;">${r.subjectName} • ${r.registrationDate || ''}</div>
+            </div>
+            <span class="fw-bold text-success small">৳${fmt(r.examFee)}</span>
+        </div>`).join('');
+}
+window.updateRecentExams = updateRecentExams;
+
+
+// ─────────────────────────────────────────────────────────────
+// 16. Switch to Exam Results section
+// ─────────────────────────────────────────────────────────────
+function switchToExamResults() {
+    document.getElementById('studentSection')?.classList.add('d-none');
+    document.getElementById('ledgerSection')?.classList.add('d-none');
+    document.getElementById('loanSection')?.classList.add('d-none');
+    document.getElementById('examResultsSection')?.classList.remove('d-none');
+
+    const pageTitle = document.querySelector('.page-title');
+    if (pageTitle) pageTitle.textContent = 'Exam Results';
+
+    const searchInput = document.getElementById('examResultSearchInput');
+    if (searchInput) searchInput.value = '';
+    searchExamResults();
+}
+window.switchToExamResults = switchToExamResults;
+
+
+// ─────────────────────────────────────────────────────────────
+// 17. Credentials Safety Check
+// ─────────────────────────────────────────────────────────────
+(function ensureCredentials() {
+    function _fix() {
+        if (!window.globalData) return;
+        if (!window.globalData.credentials) {
+            try {
+                const stored = JSON.parse(localStorage.getItem('wingsfly_data') || '{}');
+                if (stored.credentials) {
+                    window.globalData.credentials = stored.credentials;
+                } else {
+                    window.globalData.credentials = {
+                        username: 'admin',
+                        password: 'e7d3bfb67567c3d94bcecb2ce65ef146eac83e50dc3f3b89e81bb647a8bada4c'
+                    };
+                    if (typeof saveToStorage === 'function') saveToStorage();
+                    else localStorage.setItem('wingsfly_data', JSON.stringify(window.globalData));
+                }
+            } catch(e) { console.warn('credentials ensure error:', e); }
+        }
+    }
+    if (document.readyState === 'loading') document.addEventListener('DOMContentLoaded', _fix);
+    else _fix();
+    setTimeout(_fix, 1500);
+})();
+
+
+// ─────────────────────────────────────────────────────────────
+// 18. Toast Helper (internal — uses app's toast if available)
+// ─────────────────────────────────────────────────────────────
+function _examToast(msg, type) {
+    if (typeof showSuccessToast === 'function' && type === 'success') { showSuccessToast(msg); return; }
+    if (typeof showErrorToast   === 'function' && type === 'error')   { showErrorToast(msg);   return; }
+    if (typeof showToast        === 'function') { showToast(msg, type); return; }
+    // fallback
+    console.log(`[Exam ${type}]`, msg);
+    if (type === 'error') alert(msg);
+}
+
+
+// ─────────────────────────────────────────────────────────────
+// 19. DOMContentLoaded — attach all event listeners
+// ─────────────────────────────────────────────────────────────
+document.addEventListener('DOMContentLoaded', () => {
     initializeExamSystem();
+
+    // Modal open → populate fields
+    const examModal = document.getElementById('examRegistrationModal');
+    if (examModal) {
+        examModal.addEventListener('show.bs.modal', () => populateExamModal());
+        examModal.addEventListener('hidden.bs.modal', () => {
+            const form = document.getElementById('examRegistrationForm');
+            if (form) {
+                delete form.dataset.editId;
+                form.reset();
+                const idEl  = document.getElementById('examStudentIdInput');
+                const batEl = document.getElementById('examStudentBatchInput');
+                if (idEl)  idEl.value  = '';
+                if (batEl) batEl.value = '';
+            }
+        });
+    }
+
+    console.log('✅ Exam Management System Loaded — Wings Fly Aviation');
 });

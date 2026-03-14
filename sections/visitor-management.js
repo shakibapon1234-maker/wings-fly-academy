@@ -103,13 +103,13 @@ function renderVisitors() {
     return;
   }
 
-  // Find real index (before reverse) for edit/delete
+  // ✅ FIX: Find real index using addedAt+name — indexOf fails after reverse/filter
   const allVisitors = window.globalData.visitors || [];
 
   tbody.innerHTML = list.map(v => {
-    const realIndex = allVisitors.indexOf(v) >= 0
-      ? allVisitors.indexOf(v)
-      : allVisitors.findIndex(x => x.addedAt === v.addedAt && x.name === v.name);
+    const realIndex = allVisitors.findIndex(x =>
+      x.addedAt === v.addedAt && x.name === v.name && x.phone === v.phone
+    );
 
     return `
       <tr>
@@ -160,27 +160,72 @@ function clearVisitorFilters() {
 function editVisitor(index) {
   const visitors = window.globalData.visitors || [];
   const v = visitors[index];
-  if (!v) return;
+  if (!v) { console.warn('[editVisitor] index not found:', index); return; }
 
-  const form = document.getElementById('visitorForm');
-  if (!form) return;
+  // ✅ FIX: visitorModal lazy-load হয় — আগে modal load করো, তারপর form fill করো
+  function _fillAndOpen() {
+    const form = document.getElementById('visitorForm');
+    if (!form) {
+      console.error('[editVisitor] visitorForm not found in DOM');
+      return;
+    }
 
-  form.elements['visitorName'].value = v.name || '';
-  form.elements['visitorPhone'].value = v.phone || '';
-  form.elements['visitDate'].value = v.date || '';
-  form.elements['visitorRemarks'].value = v.remarks || '';
+    // Safe field fill
+    const setVal = (name, val) => {
+      const el = form.elements[name];
+      if (el) el.value = val || '';
+    };
 
-  // Course select
-  const courseSelect = document.getElementById('visitorCourseSelect');
-  if (courseSelect && v.course) courseSelect.value = v.course;
+    setVal('visitorName', v.name);
+    setVal('visitorPhone', v.phone);
+    setVal('visitDate', v.date);
+    setVal('visitorRemarks', v.remarks);
 
-  document.getElementById('visitorRowIndex').value = index;
+    // Course select
+    const courseSelect = document.getElementById('visitorCourseSelect');
+    if (courseSelect) {
+      // Wait for options to be populated
+      setTimeout(() => {
+        if (v.course) courseSelect.value = v.course;
+      }, 150);
+    }
 
-  const title = document.getElementById('visitorModalTitle');
-  if (title) title.innerHTML = `<span class="me-2 header-icon-circle bg-warning-subtle">✏️</span>Edit Visitor`;
+    const rowIdx = document.getElementById('visitorRowIndex');
+    if (rowIdx) rowIdx.value = index;
 
-  const modal = new bootstrap.Modal(document.getElementById('visitorModal'));
-  modal.show();
+    const title = document.getElementById('visitorModalTitle');
+    if (title) title.innerHTML = `<span class="me-2 header-icon-circle bg-warning-subtle">✏️</span>Edit Visitor`;
+
+    // ✅ FIX: Use getOrCreate to avoid duplicate modal instances
+    const modalEl = document.getElementById('visitorModal');
+    if (!modalEl) { console.error('[editVisitor] visitorModal element not found'); return; }
+    const modal = bootstrap.Modal.getOrCreateInstance(modalEl);
+    modal.show();
+  }
+
+  // ✅ FIX: Check if modal is already in DOM — if not, load it first
+  const modalEl = document.getElementById('visitorModal');
+  if (!modalEl && typeof window.openVisitorModal === 'function') {
+    // Load modal via section-loader, then fill form
+    const origOpen = window.openVisitorModal;
+    // Temporarily override to fill form after load
+    window.openVisitorModal();
+    // Poll until modal appears in DOM
+    let tries = 0;
+    const poll = setInterval(() => {
+      tries++;
+      if (document.getElementById('visitorModal')) {
+        clearInterval(poll);
+        setTimeout(_fillAndOpen, 200);
+      } else if (tries > 30) {
+        clearInterval(poll);
+        console.error('[editVisitor] Modal did not load after 3s');
+      }
+    }, 100);
+  } else {
+    // Modal already in DOM
+    _fillAndOpen();
+  }
 }
 
 // ── Delete ──
