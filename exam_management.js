@@ -608,12 +608,14 @@ window.handleAddResult = handleAddResult;
 
 
 // ─────────────────────────────────────────────────────────────
-// 12. Print Exam Receipt (A5 layout)
+// 12. Print Exam Receipt — A5 Half-Page, Professional Design
+//     ✅ Fix: "undefined" subject/batch/session
+//     ✅ Fix: Only receipt prints — no page 2 background content
+//     ✅ Fix: @page size A5 landscape (half-page receipt style)
 // ─────────────────────────────────────────────────────────────
 function printExamReceipt(examId) {
     const regs = (window.globalData && window.globalData.examRegistrations) || [];
     const reg  = regs.find(r => getExamId(r) === examId);
-
     if (!reg) { alert('Receipt data not found!'); return; }
 
     const premiumLogo  = (window.APP_LOGOS && window.APP_LOGOS.premium)   || '';
@@ -624,90 +626,180 @@ function printExamReceipt(examId) {
     const displayId    = getExamId(reg);
     const displayBatch = getExamBatch(reg);
 
+    // ✅ Safe fallbacks — "undefined" দেখাবে না
+    const safeSubject  = reg.subjectName      && reg.subjectName !== 'undefined'   ? reg.subjectName      : '—';
+    const safeSession  = reg.examSession      && reg.examSession !== 'undefined'   ? reg.examSession      : '—';
+    const safeBatch    = displayBatch         && displayBatch    !== 'undefined'   ? displayBatch         : '—';
+    const safeStudentId= reg.studentId        && reg.studentId   !== 'undefined'   ? reg.studentId        : '—';
+    const safeMethod   = reg.paymentMethod    && reg.paymentMethod !== 'undefined' ? reg.paymentMethod    : 'Cash';
+    const safeFee      = parseFloat(reg.examFee) || 0;
+    const safeDate     = reg.registrationDate && reg.registrationDate !== 'undefined' ? reg.registrationDate : new Date().toISOString().split('T')[0];
+
+    // ✅ Inject @page A5 print CSS — isolate receipt, hide everything else
+    const oldStyle = document.getElementById('wf-exam-receipt-print-css');
+    if (oldStyle) oldStyle.remove();
+    const style = document.createElement('style');
+    style.id = 'wf-exam-receipt-print-css';
+    style.textContent = `
+      @media print {
+        @page { size: A5 landscape; margin: 0; }
+        body > *:not(#printArea) { display: none !important; visibility: hidden !important; }
+        #printArea {
+          display: block !important;
+          visibility: visible !important;
+          position: fixed !important;
+          top: 0 !important; left: 0 !important;
+          width: 100vw !important; height: 100vh !important;
+          background: white !important;
+          z-index: 99999 !important;
+          padding: 0 !important; margin: 0 !important;
+        }
+        #printArea * { visibility: visible !important; }
+      }
+    `;
+    document.head.appendChild(style);
+
     printArea.innerHTML = `
-    <div style="width:210mm;height:148mm;background:white;padding:10mm 15mm;font-family:'Inter',system-ui,sans-serif;position:relative;box-sizing:border-box;margin:0 auto;color:#1e293b;line-height:1.1;display:flex;flex-direction:column;">
-        ${premiumLogo ? `<img src="${premiumLogo}" style="position:absolute;top:50%;left:50%;transform:translate(-50%,-50%) rotate(-30deg);opacity:0.04;width:350px;z-index:0;pointer-events:none;">` : ''}
-        <div style="position:relative;z-index:1;height:100%;display:flex;flex-direction:column;">
-            <!-- Header -->
-            <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:15px;border-bottom:3px solid #1e1b4b;padding-bottom:10px;">
-                <div style="display:flex;align-items:center;gap:15px;">
-                    ${premiumLogo ? `<img src="${premiumLogo}" style="height:55px;width:auto;">` : ''}
-                    <div>
-                        <h1 style="margin:0;color:#1e1b4b;font-size:24px;font-weight:800;text-transform:uppercase;line-height:1;">Wings Fly</h1>
-                        <p style="margin:2px 0 0 0;color:#4338ca;font-size:11px;font-weight:700;text-transform:uppercase;letter-spacing:0.5px;">Aviation & Career Development Academy</p>
-                        <p style="margin:3px 0 0 0;color:#64748b;font-size:9px;">Uttara, Dhaka | +880 1757 208244 | info@wingsflybd.com</p>
-                    </div>
-                </div>
-                <div style="text-align:right;">
-                    <div style="background:#1e1b4b;color:white;padding:5px 12px;font-weight:800;border-radius:4px;font-size:14px;margin-bottom:5px;display:inline-block;">EXAM ADMIT RECEIPT</div>
-                    <p style="margin:0;font-size:11px;"><strong>Reg No:</strong> ${displayId} | <strong>Date:</strong> ${reg.registrationDate}</p>
-                </div>
+    <div style="
+      width:210mm; height:148mm;
+      background:white;
+      padding:8mm 12mm;
+      font-family:'Segoe UI','Inter',Arial,sans-serif;
+      position:relative;
+      box-sizing:border-box;
+      margin:0 auto;
+      color:#1e293b;
+      display:flex;
+      flex-direction:column;
+      gap:0;
+    ">
+      <!-- Watermark -->
+      ${premiumLogo ? `<img src="${premiumLogo}" style="position:absolute;top:50%;left:50%;transform:translate(-50%,-50%) rotate(-25deg);opacity:0.035;width:280px;z-index:0;pointer-events:none;">` : ''}
+
+      <div style="position:relative;z-index:1;display:flex;flex-direction:column;height:100%;">
+
+        <!-- ══ HEADER ══ -->
+        <div style="display:flex;justify-content:space-between;align-items:flex-start;padding-bottom:8px;border-bottom:3px solid #1e1b4b;margin-bottom:10px;">
+          <!-- Left: Logo + Academy Name -->
+          <div style="display:flex;align-items:center;gap:10px;">
+            ${premiumLogo
+              ? `<img src="${premiumLogo}" style="height:48px;width:auto;">`
+              : `<div style="width:48px;height:48px;background:#1e1b4b;border-radius:8px;display:flex;align-items:center;justify-content:center;color:white;font-weight:900;font-size:16px;">WF</div>`
+            }
+            <div>
+              <div style="font-size:20px;font-weight:900;color:#1e1b4b;text-transform:uppercase;letter-spacing:0.5px;line-height:1.1;">Wings Fly</div>
+              <div style="font-size:9px;font-weight:700;color:#4338ca;text-transform:uppercase;letter-spacing:0.8px;margin-top:2px;">Aviation & Career Development Academy</div>
+              <div style="font-size:8px;color:#94a3b8;margin-top:2px;">Uttara, Dhaka &nbsp;|&nbsp; +880 1757 208244 &nbsp;|&nbsp; info@wingsflybd.com</div>
             </div>
-            <!-- Student Details -->
-            <div style="background:#f8fafc;border:1px solid #e2e8f0;border-radius:6px;padding:10px;margin-bottom:12px;display:flex;justify-content:space-between;">
-                <div style="font-size:11px;">
-                   <span style="font-size:8px;text-transform:uppercase;color:#64748b;font-weight:700;display:block;margin-bottom:2px;">Candidate Details</span>
-                   <strong style="font-size:14px;color:#1e1b4b;">${reg.studentName}</strong><br>
-                   Student ID: <span style="font-weight:700;">${reg.studentId || 'N/A'}</span>
-                </div>
-                <div style="text-align:right;font-size:11px;">
-                   <span style="font-size:8px;text-transform:uppercase;color:#64748b;font-weight:700;display:block;margin-bottom:2px;">Exam Information</span>
-                   <strong style="font-size:13px;">${reg.subjectName}</strong><br>
-                   Batch: ${displayBatch || 'N/A'} | Session: ${reg.examSession || 'N/A'}
-                </div>
+          </div>
+          <!-- Right: Receipt Badge + Meta -->
+          <div style="text-align:right;">
+            <div style="display:inline-block;background:#1e1b4b;color:white;padding:5px 14px;border-radius:5px;font-size:13px;font-weight:800;letter-spacing:0.5px;margin-bottom:5px;">
+              ✦ EXAM ADMIT RECEIPT
             </div>
-            <!-- Fee Table -->
-            <div style="flex-grow:1;">
-                <table style="width:100%;border-collapse:collapse;font-size:11px;border:1px solid #e2e8f0;border-radius:6px;overflow:hidden;">
-                    <thead style="background:#f1f5f9;">
-                        <tr>
-                            <th style="padding:10px;border:1px solid #e2e8f0;text-align:left;">Description of Exam Fees</th>
-                            <th style="padding:10px;border:1px solid #e2e8f0;text-align:center;width:100px;">Method</th>
-                            <th style="padding:10px;border:1px solid #e2e8f0;text-align:right;width:130px;">Amount (৳)</th>
-                        </tr>
-                    </thead>
-                    <tbody>
-                        <tr>
-                            <td style="padding:15px 10px;border:1px solid #e2e8f0;">
-                                <strong style="color:#1e1b4b;display:block;font-size:13px;">${reg.subjectName} — Registration Fee</strong>
-                                <span style="font-size:10px;color:#64748b;margin-top:4px;display:block;">Official enrollment for the academy examination program.</span>
-                            </td>
-                            <td style="padding:15px 10px;border:1px solid #e2e8f0;text-align:center;">
-                                <span style="background:#f8fafc;padding:4px 10px;border-radius:4px;border:1px solid #e2e8f0;font-weight:700;font-size:11px;">${reg.paymentMethod || 'Cash'}</span>
-                            </td>
-                            <td style="padding:15px 10px;border:1px solid #e2e8f0;text-align:right;font-weight:900;font-size:16px;color:#1e1b4b;">
-                                ৳${(reg.examFee || 0).toLocaleString()}
-                            </td>
-                        </tr>
-                    </tbody>
-                </table>
-                ${reg.examComment ? `<div style="margin-top:15px;padding:10px;border:1px dashed #cbd5e1;border-radius:6px;font-size:10px;color:#64748b;"><strong>Candidate Note:</strong> ${reg.examComment}</div>` : ''}
+            <div style="font-size:10px;color:#475569;">
+              <span style="font-weight:700;">Reg No:</span> ${displayId}
             </div>
-            <!-- Signatures -->
-            <div style="display:flex;justify-content:space-between;align-items:flex-end;margin-top:auto;padding-top:20px;">
-                <div style="width:32%;text-align:center;">
-                    <div style="border-top:1.5px solid #1e1b4b;padding-top:5px;font-size:10px;font-weight:800;color:#1e1b4b;text-transform:uppercase;">Candidate Signature</div>
-                </div>
-                <div style="text-align:center;flex-grow:1;padding:0 10px;">
-                    <p style="margin:0;font-size:8px;color:#94a3b8;font-style:italic;">
-                        This is a computer generated record. Valid only with official seal.<br>
-                        Reg ID: ${displayId} | Powered by Wings Fly
-                    </p>
-                </div>
-                <div style="width:32%;text-align:center;">
-                    <div style="height:40px;display:flex;align-items:center;justify-content:center;position:relative;margin-bottom:2px;">
-                        ${signatureImg ? `<img src="${signatureImg}" style="height:45px;width:auto;position:absolute;bottom:0;">` : ''}
-                    </div>
-                    <div style="border-top:1.5px solid #1e1b4b;padding-top:5px;font-size:10px;font-weight:800;color:#1e1b4b;text-transform:uppercase;">Authorized Signature</div>
-                </div>
+            <div style="font-size:10px;color:#475569;">
+              <span style="font-weight:700;">Date:</span> ${safeDate}
             </div>
+          </div>
         </div>
+
+        <!-- ══ CANDIDATE + EXAM INFO BAND ══ -->
+        <div style="display:grid;grid-template-columns:1fr 1fr;gap:8px;margin-bottom:10px;">
+          <!-- Candidate -->
+          <div style="background:#f0f4ff;border:1px solid #c7d2fe;border-radius:6px;padding:8px 12px;">
+            <div style="font-size:8px;font-weight:700;color:#6366f1;text-transform:uppercase;letter-spacing:0.8px;margin-bottom:4px;">🎓 Candidate Details</div>
+            <div style="font-size:15px;font-weight:800;color:#1e1b4b;line-height:1.2;">${reg.studentName || '—'}</div>
+            <div style="font-size:10px;color:#64748b;margin-top:3px;">
+              Student ID: <strong style="color:#1e293b;">${safeStudentId}</strong>
+            </div>
+          </div>
+          <!-- Exam Info -->
+          <div style="background:#f0fdf4;border:1px solid #bbf7d0;border-radius:6px;padding:8px 12px;">
+            <div style="font-size:8px;font-weight:700;color:#16a34a;text-transform:uppercase;letter-spacing:0.8px;margin-bottom:4px;">📋 Exam Information</div>
+            <div style="font-size:14px;font-weight:800;color:#1e1b4b;line-height:1.2;">${safeSubject}</div>
+            <div style="font-size:10px;color:#64748b;margin-top:3px;">
+              Batch: <strong style="color:#1e293b;">${safeBatch}</strong>
+              &nbsp;&nbsp;|&nbsp;&nbsp;
+              Session: <strong style="color:#1e293b;">${safeSession}</strong>
+            </div>
+          </div>
+        </div>
+
+        <!-- ══ FEE TABLE ══ -->
+        <div style="flex-grow:1;margin-bottom:8px;">
+          <table style="width:100%;border-collapse:collapse;font-size:11px;">
+            <thead>
+              <tr style="background:#1e1b4b;color:white;">
+                <th style="padding:7px 10px;text-align:left;border-radius:4px 0 0 0;">Description</th>
+                <th style="padding:7px 10px;text-align:center;width:110px;">Payment Method</th>
+                <th style="padding:7px 10px;text-align:right;width:120px;border-radius:0 4px 0 0;">Amount (৳)</th>
+              </tr>
+            </thead>
+            <tbody>
+              <tr style="background:#fafafa;">
+                <td style="padding:10px;border:1px solid #e2e8f0;border-top:none;">
+                  <div style="font-size:12px;font-weight:700;color:#1e1b4b;">${safeSubject} — Exam Registration Fee</div>
+                  <div style="font-size:9px;color:#94a3b8;margin-top:3px;">Official enrollment for the Wings Fly Academy examination program.</div>
+                </td>
+                <td style="padding:10px;border:1px solid #e2e8f0;border-top:none;text-align:center;">
+                  <span style="background:#f1f5f9;border:1px solid #cbd5e1;border-radius:4px;padding:3px 10px;font-weight:700;font-size:10px;color:#334155;">${safeMethod}</span>
+                </td>
+                <td style="padding:10px;border:1px solid #e2e8f0;border-top:none;text-align:right;font-size:18px;font-weight:900;color:#1e1b4b;">
+                  ৳${safeFee.toLocaleString('en-IN')}
+                </td>
+              </tr>
+            </tbody>
+            <tfoot>
+              <tr style="background:#e8edf8;">
+                <td colspan="2" style="padding:7px 10px;border:1px solid #c7d2fe;text-align:right;font-size:11px;font-weight:700;color:#4338ca;">TOTAL AMOUNT PAID</td>
+                <td style="padding:7px 10px;border:1px solid #c7d2fe;text-align:right;font-size:14px;font-weight:900;color:#1e1b4b;">৳${safeFee.toLocaleString('en-IN')}</td>
+              </tr>
+            </tfoot>
+          </table>
+          ${reg.examComment && reg.examComment !== 'undefined' ? `
+          <div style="margin-top:6px;padding:6px 10px;border-left:3px solid #4338ca;background:#f5f3ff;border-radius:0 4px 4px 0;font-size:9px;color:#64748b;">
+            <strong style="color:#4338ca;">Note:</strong> ${reg.examComment}
+          </div>` : ''}
+        </div>
+
+        <!-- ══ SIGNATURES ══ -->
+        <div style="display:flex;justify-content:space-between;align-items:flex-end;padding-top:6px;border-top:1px dashed #cbd5e1;">
+          <!-- Candidate -->
+          <div style="width:30%;text-align:center;">
+            <div style="height:28px;"></div>
+            <div style="border-top:1.5px solid #1e1b4b;padding-top:4px;font-size:8.5px;font-weight:700;color:#475569;text-transform:uppercase;letter-spacing:0.5px;">Candidate's Signature</div>
+          </div>
+          <!-- Center notice -->
+          <div style="text-align:center;flex-grow:1;padding:0 10px;">
+            <div style="font-size:7.5px;color:#94a3b8;font-style:italic;line-height:1.6;">
+              This is a computer generated receipt.<br>
+              Valid only with official seal &amp; authorized signature.<br>
+              <strong style="color:#cbd5e1;">Reg ID: ${displayId}</strong>
+            </div>
+          </div>
+          <!-- Authorized -->
+          <div style="width:30%;text-align:center;">
+            <div style="height:28px;display:flex;align-items:flex-end;justify-content:center;margin-bottom:0;">
+              ${signatureImg ? `<img src="${signatureImg}" style="height:36px;width:auto;">` : ''}
+            </div>
+            <div style="border-top:1.5px solid #1e1b4b;padding-top:4px;font-size:8.5px;font-weight:700;color:#475569;text-transform:uppercase;letter-spacing:0.5px;">Authorized Signature</div>
+          </div>
+        </div>
+
+      </div>
     </div>`;
 
     setTimeout(() => {
         window.print();
-        setTimeout(() => { if (printArea) printArea.innerHTML = ''; }, 1000);
-    }, 500);
+        setTimeout(() => {
+            if (printArea) printArea.innerHTML = '';
+            const ps = document.getElementById('wf-exam-receipt-print-css');
+            if (ps) ps.remove();
+        }, 1500);
+    }, 400);
 }
 window.printExamReceipt = printExamReceipt;
 
