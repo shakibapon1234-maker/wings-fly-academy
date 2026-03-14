@@ -1250,6 +1250,8 @@ function openAccMgmtReturnModal(type, targetPersonName) {
          window.saveToStorage();
       }
       renderAccMgmtList(type);
+      // ── Salary Hub-এও refresh করো (advance column update) ──
+      if (typeof window.loadSalaryHub === 'function') window.loadSalaryHub();
       if (typeof renderLedger === 'function') renderLedger();
     }
     // ✅ FIX: Swal বন্ধ হলে settings modal আবার খুলো
@@ -1260,138 +1262,196 @@ function openAccMgmtReturnModal(type, targetPersonName) {
 }
 
 function renderAccMgmtList(type) {
-  const isAdvance  = type === 'Advance';
-  const returnType = isAdvance ? 'Advance Return' : 'Investment Return';
-  const listId     = isAdvance ? 'accMgmtAdvanceList' : 'accMgmtInvestList';
-  const listEl     = document.getElementById(listId);
+  var isAdvance  = type === 'Advance';
+  var returnType = isAdvance ? 'Advance Return' : 'Investment Return';
+  var listId     = isAdvance ? 'accMgmtAdvanceList' : 'accMgmtInvestList';
+  var listEl     = document.getElementById(listId);
   if (!listEl) return;
 
   // ── Group by person ──
-  const records = {};
-  (globalData.finance || []).forEach(f => {
+  var records = {};
+  (globalData.finance || []).forEach(function(f) {
     if (f._deleted || !f.person) return;
-    const isMain   = f.type === type || (f.type !== returnType && f.category === type);
-    const isReturn = f.type === returnType;
+    var isMain   = f.type === type || (f.type !== returnType && f.category === type);
+    var isReturn = f.type === returnType;
     if (!isMain && !isReturn) return;
-
     if (!records[f.person]) records[f.person] = { given: 0, returned: 0, txns: [] };
     if (isMain)   records[f.person].given    += parseFloat(f.amount) || 0;
     if (isReturn) records[f.person].returned += parseFloat(f.amount) || 0;
     records[f.person].txns.push(f);
   });
 
-  // ── Sort persons by their latest transaction date (newest person on top) ──
-  const sortedPersons = Object.keys(records).sort((a, b) => {
-    const latestA = Math.max(...records[a].txns.map(t => new Date(t.date || 0)));
-    const latestB = Math.max(...records[b].txns.map(t => new Date(t.date || 0)));
+  // ── Sort persons: unsettled first, then by latest txn date ──
+  var sortedPersons = Object.keys(records).sort(function(a, b) {
+    var netA = records[a].given - records[a].returned;
+    var netB = records[b].given - records[b].returned;
+    if ((netA > 0) !== (netB > 0)) return netB > 0 ? 1 : -1;
+    var latestA = Math.max.apply(null, records[a].txns.map(function(t){ return new Date(t.date||0); }));
+    var latestB = Math.max.apply(null, records[b].txns.map(function(t){ return new Date(t.date||0); }));
     return latestB - latestA;
   });
 
-  let html = '';
+  // ── Render as cards (no table rows — replaced with div cards) ──
+  // We use a wrapper div instead of table rows for better design
+  var cardTypeColor = isAdvance ? '#00d4aa' : '#a78bfa';
+  var cardTypeBorder = isAdvance ? 'rgba(0,212,170,0.25)' : 'rgba(167,139,250,0.25)';
 
-  sortedPersons.forEach(personName => {
-    const r          = records[personName];
-    const net        = Math.max(0, r.given - r.returned);
-    const isSettled  = net <= 0;
+  var cardsHtml = '';
 
-    // Sort transactions: latest first
-    r.txns.sort((a, b) => new Date(b.date) - new Date(a.date));
+  sortedPersons.forEach(function(personName) {
+    var r         = records[personName];
+    var net       = Math.max(0, r.given - r.returned);
+    var isSettled = net <= 0;
+    var safeId    = personName.replace(/[^a-zA-Z0-9]/g, '_');
+    var ledgerId  = 'ledger_' + safeId + '_' + type;
 
-    // ── Person summary header row (1 row) ──
-    html += `
-      <tr style="background:linear-gradient(90deg,rgba(0,180,255,0.1),rgba(80,40,200,0.06));
-                 border-top:2px solid rgba(0,180,255,0.2);">
-        <td style="padding:0.8rem 1rem;">
-          <div class="d-flex align-items-center gap-2">
-            <span style="background:rgba(0,180,255,0.15);border:1px solid rgba(0,180,255,0.3);
-                         border-radius:50%;width:30px;height:30px;display:inline-flex;
-                         align-items:center;justify-content:center;">👤</span>
-            <span class="fw-bold" style="color:#00d4ff;">${personName}</span>
+    // Sort txns newest first
+    r.txns.sort(function(a,b){ return new Date(b.date) - new Date(a.date); });
+
+    // Latest txn date
+    var latestDate = r.txns[0] && r.txns[0].date
+      ? new Date(r.txns[0].date).toLocaleDateString('en-GB',{day:'2-digit',month:'short',year:'numeric'})
+      : '—';
+
+    // Build ledger rows HTML
+    var ledgerRows = r.txns.map(function(f) {
+      var isRet    = f.type === returnType;
+      var amtColor = isRet ? '#00e676' : '#ff5370';
+      var dateStr  = f.date
+        ? new Date(f.date).toLocaleDateString('en-GB',{day:'2-digit',month:'short',year:'numeric'})
+        : '—';
+      var typePill = isRet
+        ? '<span style="background:rgba(0,230,118,0.15);border:1px solid rgba(0,230,118,0.3);color:#00e676;font-size:0.7rem;padding:2px 8px;border-radius:20px;">↩ Return</span>'
+        : '<span style="background:rgba(255,83,112,0.15);border:1px solid rgba(255,83,112,0.3);color:#ff5370;font-size:0.7rem;padding:2px 8px;border-radius:20px;">💸 Given</span>';
+      return `<tr style="border-bottom:1px solid rgba(255,255,255,0.05);">
+        <td style="padding:7px 10px;color:rgba(255,255,255,0.5);font-size:0.8rem;white-space:nowrap;">${dateStr}</td>
+        <td style="padding:7px 10px;">${typePill}</td>
+        <td style="padding:7px 10px;">
+          <span style="background:rgba(102,126,234,0.15);border:1px solid rgba(102,126,234,0.25);color:#a0b4ff;font-size:0.72rem;padding:2px 7px;border-radius:20px;">${f.method||'—'}</span>
+        </td>
+        <td style="padding:7px 10px;font-weight:700;color:${amtColor};font-family:monospace;font-size:0.88rem;">${isRet?'+':'−'}৳${formatNumber(f.amount)}</td>
+        <td style="padding:7px 10px;color:rgba(255,255,255,0.35);font-size:0.78rem;max-width:140px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;" title="${(f.description||'').replace(/"/g,'')}">${f.description||'—'}</td>
+        <td style="padding:7px 10px;text-align:right;">
+          <button onclick="deleteAccMgmtTxn('${f.id}','${type}')" title="Delete"
+            style="background:rgba(255,83,112,0.1);border:none;color:#ff5370;width:26px;height:26px;border-radius:50%;cursor:pointer;display:inline-flex;align-items:center;justify-content:center;padding:0;">
+            <i class="bi bi-trash" style="font-size:0.72rem;"></i>
+          </button>
+        </td>
+      </tr>`;
+    }).join('');
+
+    cardsHtml += `
+    <div style="background:rgba(255,255,255,0.03);border:1px solid ${cardTypeBorder};
+                border-radius:12px;margin-bottom:10px;overflow:hidden;">
+
+      <!-- ── Person Header Row ── -->
+      <div style="display:flex;align-items:center;justify-content:space-between;
+                  padding:12px 16px;flex-wrap:wrap;gap:8px;
+                  background:linear-gradient(90deg,rgba(0,0,0,0.2),transparent);">
+
+        <!-- Left: avatar + name + date -->
+        <div style="display:flex;align-items:center;gap:10px;">
+          <div style="width:36px;height:36px;border-radius:50%;display:flex;align-items:center;
+                      justify-content:center;font-size:1rem;flex-shrink:0;
+                      background:rgba(0,180,255,0.12);border:1px solid rgba(0,180,255,0.25);">👤</div>
+          <div>
+            <div style="font-weight:700;color:#e8f4ff;font-size:0.95rem;">${personName}</div>
+            <div style="font-size:0.72rem;color:rgba(255,255,255,0.35);margin-top:1px;">
+              Last: ${latestDate} &nbsp;·&nbsp; ${r.txns.length} transaction${r.txns.length>1?'s':''}
+            </div>
           </div>
-        </td>
-        <td style="padding:0.8rem 1rem;">
-          <span class="badge rounded-pill px-3 py-1"
-            style="${isSettled
-              ? 'background:rgba(0,230,118,0.15);border:1px solid rgba(0,230,118,0.35);color:#00e676;'
-              : 'background:rgba(255,200,0,0.15);border:1px solid rgba(255,200,0,0.35);color:#ffd200;'}">
-            ${isSettled ? '✅ Settled' : `Net: ৳${formatNumber(net)}`}
-          </span>
-          <span class="ms-2 small" style="color:rgba(255,255,255,0.35);">
-            ${r.txns.length} txn${r.txns.length > 1 ? 's' : ''}
-          </span>
-        </td>
-        <td style="padding:0.8rem 1rem;">
-          <span style="color:rgba(255,83,112,0.8);font-size:0.82rem;">
-            Given: ৳${formatNumber(r.given)}
-          </span>
-          ${r.returned > 0 ? `<span class="ms-2" style="color:rgba(0,230,118,0.8);font-size:0.82rem;">
-            Returned: ৳${formatNumber(r.returned)}</span>` : ''}
-        </td>
-        <td style="padding:0.8rem 1rem;"></td>
-        <td style="padding:0.8rem 1rem;text-align:end;">
+        </div>
+
+        <!-- Right: status + buttons -->
+        <div style="display:flex;align-items:center;gap:8px;flex-wrap:wrap;">
+          ${isSettled
+            ? `<span style="background:rgba(0,230,118,0.12);border:1px solid rgba(0,230,118,0.3);
+                            color:#00e676;font-size:0.78rem;padding:4px 12px;border-radius:20px;font-weight:600;">
+                ✅ Settled
+               </span>`
+            : `<div style="text-align:right;">
+                <div style="font-weight:800;color:#ffd200;font-size:1.05rem;font-family:monospace;">৳${formatNumber(net)}</div>
+                <div style="font-size:0.68rem;color:rgba(255,200,0,0.55);">বকেয়া</div>
+               </div>`
+          }
+
+          <!-- Ledger Button -->
+          <button onclick="toggleAccMgmtLedger('${ledgerId}')"
+            style="background:rgba(0,180,255,0.12);border:1px solid rgba(0,180,255,0.3);
+                   color:#00d4ff;font-size:0.78rem;padding:6px 14px;border-radius:20px;
+                   cursor:pointer;font-weight:600;transition:all .2s;"
+            onmouseover="this.style.background='rgba(0,180,255,0.25)'"
+            onmouseout="this.style.background='rgba(0,180,255,0.12)'">
+            <i class="bi bi-journal-text me-1"></i>Ledger
+          </button>
+
+          <!-- Adjust Button (only if not settled) -->
           ${!isSettled ? `
-          <button class="btn btn-sm fw-bold rounded-pill px-3"
-            style="background:linear-gradient(135deg,#f0a500,#ffd200);color:#1a1000;border:none;"
-            onclick="openAccMgmtReturnModal('${type}','${personName}')">
+          <button onclick="openAccMgmtReturnModal('${type}','${personName}')"
+            style="background:linear-gradient(135deg,#f0a500,#ffd200);border:none;
+                   color:#1a1000;font-size:0.78rem;padding:6px 14px;border-radius:20px;
+                   cursor:pointer;font-weight:700;transition:all .2s;"
+            onmouseover="this.style.opacity='0.85'"
+            onmouseout="this.style.opacity='1'">
             <i class="bi bi-arrow-counterclockwise me-1"></i>Adjust
           </button>` : ''}
-        </td>
-      </tr>`;
+        </div>
+      </div>
 
-    // ── Transaction rows — ONE row per txn, NO duplicate person header ──
-    r.txns.forEach(f => {
-      const isRet      = f.type === returnType;
-      const amtColor   = isRet ? '#00e676' : '#ff5370';
-      const rowBg      = isRet ? 'rgba(0,230,118,0.03)' : 'rgba(255,83,112,0.03)';
-      const typeBadge  = isRet
-        ? '<span class="badge" style="background:rgba(0,230,118,0.15);border:1px solid rgba(0,230,118,0.3);color:#00e676;font-size:0.72rem;">↩ Returned</span>'
-        : '<span class="badge" style="background:rgba(255,83,112,0.15);border:1px solid rgba(255,83,112,0.3);color:#ff5370;font-size:0.72rem;">💸 Given</span>';
-      const dateStr    = f.date
-        ? new Date(f.date).toLocaleDateString('en-GB', { day:'2-digit', month:'short', year:'numeric' })
-        : f.date || '—';
+      <!-- ── Given / Returned summary bar ── -->
+      <div style="display:flex;gap:16px;padding:6px 16px 10px;border-top:1px solid rgba(255,255,255,0.05);">
+        <span style="font-size:0.78rem;color:rgba(255,83,112,0.8);">
+          <i class="bi bi-arrow-up-right me-1"></i>Given: <strong>৳${formatNumber(r.given)}</strong>
+        </span>
+        ${r.returned > 0 ? `<span style="font-size:0.78rem;color:rgba(0,230,118,0.8);">
+          <i class="bi bi-arrow-down-left me-1"></i>Returned: <strong>৳${formatNumber(r.returned)}</strong>
+        </span>` : ''}
+      </div>
 
-      html += `
-        <tr style="background:${rowBg};border-bottom:1px solid rgba(255,255,255,0.04);">
-          <td style="padding:0.65rem 1rem;color:rgba(255,255,255,0.55);font-size:0.85rem;
-                     padding-left:2.8rem;white-space:nowrap;">${dateStr}</td>
-          <td style="padding:0.65rem 1rem;">
-            <div style="color:#c8d8f0;font-size:0.88rem;">${f.description || '—'}</div>
-          </td>
-          <td style="padding:0.65rem 1rem;">
-            <div class="d-flex gap-2 align-items-center flex-wrap">
-              <span class="badge" style="background:rgba(102,126,234,0.2);border:1px solid rgba(102,126,234,0.3);
-                                         color:#a0b4ff;font-size:0.72rem;">${f.method || '—'}</span>
-              ${typeBadge}
-            </div>
-          </td>
-          <td style="padding:0.65rem 1rem;font-weight:700;color:${amtColor};
-                     font-size:0.95rem;font-family:monospace;">
-            ${isRet ? '+' : '−'}৳${formatNumber(f.amount)}
-          </td>
-          <td style="padding:0.65rem 1rem;text-align:end;">
-            <button class="btn btn-sm border-0 rounded-circle"
-              style="background:rgba(255,83,112,0.1);color:#ff5370;width:28px;height:28px;
-                     padding:0;display:inline-flex;align-items:center;justify-content:center;"
-              onclick="deleteAccMgmtTxn('${f.id}','${type}')" title="Delete">
-              <i class="bi bi-trash" style="font-size:0.78rem;"></i>
-            </button>
-          </td>
-        </tr>`;
-    });
+      <!-- ── Ledger Table (hidden by default) ── -->
+      <div id="${ledgerId}" style="display:none;border-top:1px solid rgba(255,255,255,0.07);">
+        <div style="padding:8px 16px 4px;font-size:0.75rem;color:${cardTypeColor};font-weight:600;
+                    background:rgba(0,0,0,0.2);letter-spacing:0.05em;">
+          📒 LEDGER — ${personName}
+        </div>
+        <div style="overflow-x:auto;">
+          <table style="width:100%;border-collapse:collapse;font-size:0.83rem;">
+            <thead>
+              <tr style="background:rgba(0,0,0,0.25);">
+                <th style="padding:6px 10px;color:rgba(255,255,255,0.35);font-weight:600;font-size:0.72rem;text-transform:uppercase;">Date</th>
+                <th style="padding:6px 10px;color:rgba(255,255,255,0.35);font-weight:600;font-size:0.72rem;text-transform:uppercase;">Type</th>
+                <th style="padding:6px 10px;color:rgba(255,255,255,0.35);font-weight:600;font-size:0.72rem;text-transform:uppercase;">Method</th>
+                <th style="padding:6px 10px;color:rgba(255,255,255,0.35);font-weight:600;font-size:0.72rem;text-transform:uppercase;">Amount</th>
+                <th style="padding:6px 10px;color:rgba(255,255,255,0.35);font-weight:600;font-size:0.72rem;text-transform:uppercase;">Notes</th>
+                <th></th>
+              </tr>
+            </thead>
+            <tbody>${ledgerRows}</tbody>
+          </table>
+        </div>
+      </div>
+
+    </div>`;
   });
 
-  if (!html) {
-    html = `
-      <tr>
-        <td colspan="5" style="text-align:center;padding:3rem 1rem;">
-          <div style="color:rgba(255,255,255,0.2);font-size:2.5rem;margin-bottom:0.5rem;">📭</div>
-          <div style="color:rgba(255,255,255,0.3);font-size:0.9rem;">No ${type} records found.</div>
-        </td>
-      </tr>`;
+  if (!cardsHtml) {
+    cardsHtml = `
+      <div style="text-align:center;padding:3rem 1rem;">
+        <div style="color:rgba(255,255,255,0.15);font-size:2.5rem;margin-bottom:0.5rem;">📭</div>
+        <div style="color:rgba(255,255,255,0.3);font-size:0.9rem;">No ${type} records found.</div>
+      </div>`;
   }
 
-  listEl.innerHTML = html;
+  // ── listEl is now a div (settings-modal.html updated) — render directly ──
+  listEl.innerHTML = cardsHtml;
 }
+
+// Toggle ledger visibility
+window.toggleAccMgmtLedger = function(ledgerId) {
+  var el = document.getElementById(ledgerId);
+  if (!el) return;
+  el.style.display = el.style.display === 'none' ? 'block' : 'none';
+};
 
 function deleteAccMgmtTxn(txnId, currentTabType) {
   if (!confirm('Are you sure you want to delete this transaction? This will affect account balances.')) return;

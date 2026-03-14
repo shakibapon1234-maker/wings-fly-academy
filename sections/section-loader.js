@@ -146,19 +146,21 @@
     };
 
     // 1b. Salary Modal
+    var _salaryModalLoading = false;
     window.openSalaryModal = function (empId) {
-      const modalId = 'salaryModal';
-      if (document.getElementById(modalId)) {
-          if (window._openSalaryModalImpl) {
-              window._openSalaryModalImpl(empId);
-              return;
-          }
+      var modalId = 'salaryModal';
+      // Already loaded — use impl directly
+      if (document.getElementById(modalId) && window._openSalaryModalImpl) {
+          window._openSalaryModalImpl(empId);
+          return;
       }
+      // Prevent double-load
+      if (_salaryModalLoading) return;
+      _salaryModalLoading = true;
       loadAndOpen('__modalPlaceholderOther', 'sections/salary-modal.html', modalId, function () {
+          _salaryModalLoading = false;
           if (window._openSalaryModalImpl) {
               window._openSalaryModalImpl(empId);
-          } else if (typeof window.openSalaryModal === 'function' && window.openSalaryModal !== arguments.callee) {
-              window.openSalaryModal(empId);
           }
       });
     };
@@ -364,42 +366,32 @@
 
     // 6b. Edit Exam Registration
     window.editExamRegistration = function (examId) {
-        const modalId = 'examRegistrationModal';
+        var modalId = 'examRegistrationModal';
         if (document.getElementById(modalId)) {
             if (window._editExamRegistrationImpl) {
                 window._editExamRegistrationImpl(examId);
-                return;
-            } else if (typeof editExamRegistration === 'function' && editExamRegistration !== arguments.callee) {
-                editExamRegistration(examId);
                 return;
             }
         }
         loadAndOpen('__modalPlaceholderOther', 'sections/modals-other.html', modalId, function () {
             if (window._editExamRegistrationImpl) {
                 window._editExamRegistrationImpl(examId);
-            } else if (typeof editExamRegistration === 'function' && editExamRegistration !== arguments.callee) {
-                editExamRegistration(examId);
             }
         });
     };
 
     // 6c. Add/Update Exam Result
     window.openAddResultModal = function (examId) {
-        const modalId = 'addResultModal';
+        var modalId = 'addResultModal';
         if (document.getElementById(modalId)) {
             if (window._openAddResultModalImpl) {
                 window._openAddResultModalImpl(examId);
-                return;
-            } else if (typeof openAddResultModal === 'function' && openAddResultModal !== arguments.callee) {
-                openAddResultModal(examId);
                 return;
             }
         }
         loadAndOpen('__modalPlaceholderOther', 'sections/modals-other.html', modalId, function () {
             if (window._openAddResultModalImpl) {
                 window._openAddResultModalImpl(examId);
-            } else if (typeof openAddResultModal === 'function' && openAddResultModal !== arguments.callee) {
-                openAddResultModal(examId);
             }
         });
     };

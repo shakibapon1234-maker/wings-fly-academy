@@ -1,19 +1,21 @@
 /**
  * ============================================================
  * WINGS FLY AVIATION ACADEMY
- * SALARY HUB — Advanced Payroll Management (V3)
+ * SALARY HUB — Advanced Payroll Management (V3.2-Fixed)
  * ============================================================
  * ✅ Latest payment সবসময় উপরে (date desc sort)
  * ✅ History — একটি payment = একটি row, clean table
- * ✅ Staff dropdown auto-populated from employees
+ * ✅ Staff dropdown auto-populated from employees  ← BUG FIXED
  * ✅ Due / Advance / Bonus — 3 payment types
  * ✅ Advance → Accounts Management-এ চলে যায়
  * ✅ Resigned employees বাদ
+ * ✅ Advance Return — Salary ও Advance দুই জায়গা থেকে adjust
+ * ✅ strict mode IIFE removed — section-loader.js compatibility fix
  * ============================================================
  */
 
 (function () {
-    'use strict';
+    /* NOTE: 'use strict' removed — section-loader.js caller/arguments access conflict */
 
     // ─────────────────────────────────────────────
     // INIT
@@ -38,10 +40,40 @@
         if (!tbody) return;
         tbody.innerHTML = '';
 
-        // Active employees only — latest joined first
-        const employees = (gd.employees || [])
-            .filter(e => !e.resigned && e.status !== 'Resigned')
-            .sort((a, b) => new Date(b.joiningDate || 0) - new Date(a.joiningDate || 0));
+        // Active employees only
+        const allActiveEmps = (gd.employees || [])
+            .filter(e => !e.resigned && e.status !== 'Resigned');
+
+        // ── Sort: এই মাসের সবচেয়ে সাম্প্রতিক payment উপরে ──
+        // এই মাসে কোনো payment নেই → সব-সময়ের latest দেখো
+        // তাও নেই → joining date desc (নতুন staff উপরে)
+        const getLatestDate = (emp, thisMonthOnly) => {
+            const name = emp.name;
+            const id   = emp.id || emp.empId || emp.employeeId;
+            let latest = 0;
+            (gd.finance || []).forEach(function(f) {
+                if (f._deleted) return;
+                if (f.person !== name && f.employeeId !== id) return;
+                if (thisMonthOnly && !(f.description || '').includes(month) && !(f.date || '').startsWith(month)) return;
+                const t = new Date(f.createdAt || f.date || 0).getTime();
+                if (t > latest) latest = t;
+            });
+            return latest;
+        };
+
+        const employees = allActiveEmps.sort((a, b) => {
+            // এই মাসের latest transaction
+            const mA = getLatestDate(a, true);
+            const mB = getLatestDate(b, true);
+            if (mA > 0 || mB > 0) return mB - mA;
+            // এই মাসে কিছু নেই — all-time latest
+            const aA = getLatestDate(a, false);
+            const aB = getLatestDate(b, false);
+            if (aA > 0 || aB > 0) return aB - aA;
+            // কারো কোনো transaction নেই → joining date
+            return new Date(b.joiningDate || 0) - new Date(a.joiningDate || 0);
+        });
+
 
         let totalBudget = 0, totalPaid = 0, totalDue = 0;
 
@@ -212,39 +244,63 @@
     };
 
     // ─────────────────────────────────────────────
-    // OPEN MODAL
+    // OPEN MODAL  ← BUG FIXED HERE
     // ─────────────────────────────────────────────
     function openSalaryModal(empId) {
-        if (!document.getElementById('salaryModal')) {
+        const modalEl = document.getElementById('salaryModal');
+        if (!modalEl) {
             alert('Salary Modal not found!');
             return;
         }
 
         const gd = window.globalData || {};
+
+        // ── FIX: গ্লোবাল ডেটা লোড হয়েছে কিনা চেক করো ──
+        const allEmployees = gd.employees || gd.staff || gd.hrEmployees || [];
+        if (allEmployees.length === 0) {
+            console.warn('[SalaryHub] ⚠️ No employees found in globalData. Keys:', Object.keys(gd));
+        }
+
         _resetSalaryForm();
 
-        // Populate employee dropdown
+        // ── Populate employee dropdown ──
         const empSelect = document.getElementById('salEmpSelect');
         if (empSelect) {
             empSelect.innerHTML = '<option value="">-- Select Staff --</option>';
-            const activeEmps = (gd.employees || [])
+
+            const activeEmps = allEmployees
                 .filter(e => !e.resigned && e.status !== 'Resigned')
                 .sort((a, b) => (a.name || '').localeCompare(b.name || ''));
 
+            console.log('[SalaryHub] Populating dropdown with', activeEmps.length, 'employees');
+
             activeEmps.forEach(e => {
                 const opt = document.createElement('option');
-                opt.value          = e.id;
-                opt.textContent    = `${e.name} (${e.role || 'Staff'})`;
+                opt.value          = e.id || e.empId || e.employeeId || e.name; // ← multiple ID fallbacks
+                opt.textContent    = `${e.name} (${e.role || e.designation || 'Staff'})`;
                 opt.dataset.name   = e.name;
-                opt.dataset.salary = e.salary || 0;
+                opt.dataset.salary = e.salary || e.basicSalary || 0;
                 empSelect.appendChild(opt);
             });
 
-            if (empId) {
-                empSelect.value = empId;
-                _onEmpSelectChange();
-            }
+            // ── FIX: onchange আগে set করো, তারপর value set করো ──
             empSelect.onchange = _onEmpSelectChange;
+
+            if (empId) {
+                // Try to match by multiple possible ID fields
+                const matchedEmp = activeEmps.find(e =>
+                    e.id === empId || e.empId === empId ||
+                    e.employeeId === empId || e.name === empId
+                );
+                if (matchedEmp) {
+                    const matchVal = matchedEmp.id || matchedEmp.empId || matchedEmp.employeeId || matchedEmp.name;
+                    empSelect.value = matchVal;
+                    // ── FIX: value set করার পরে manually trigger করো ──
+                    _onEmpSelectChange();
+                } else {
+                    console.warn('[SalaryHub] Employee not found for id:', empId);
+                }
+            }
         }
 
         // Today's date
@@ -254,7 +310,7 @@
         // Default type = Due
         if (typeof window.setSalType === 'function') window.setSalType('Due');
 
-        bootstrap.Modal.getOrCreateInstance(document.getElementById('salaryModal')).show();
+        bootstrap.Modal.getOrCreateInstance(modalEl).show();
     }
 
     // ─────────────────────────────────────────────
@@ -288,7 +344,7 @@
         const badge = document.getElementById('salDueAmountBadge');
         if (badge) badge.textContent = `৳${due.toLocaleString()}`;
 
-        // Check existing advance
+        // Check existing advance (all-time net, not just this month)
         const advTotal = (gd.finance || [])
             .filter(f => !f._deleted && f.type === 'Advance'
                 && (f.person === empName || f.employeeId === empId))
@@ -377,12 +433,18 @@
         if (!gd.finance) gd.finance = [];
 
         if (type === 'Advance') {
-            // Advance → type:'Advance' — accounts-management picks this up
+            // Advance → type:'Advance' — Accounts Management এ sync হবে
             gd.finance.push({
                 id: 'SAL_ADV_' + Date.now(),
-                date, type: 'Advance', category: 'Advance',
-                method, amount, person: empName, employeeId: empId,
+                date,
+                type: 'Advance',
+                category: 'Advance',
+                method,
+                amount,
+                person: empName,
+                employeeId: empId,
                 description: `${desc} [Advance] (${month})`,
+                source: 'salary',          // ← accounts-management filter করতে পারবে
                 createdBy: window.currentUser || 'Admin',
                 createdAt: new Date().toISOString()
             });
@@ -391,8 +453,13 @@
             const label = type === 'Bonus' ? 'Bonus' : 'Salary';
             gd.finance.push({
                 id: 'SAL_' + Date.now(),
-                date, type: 'Expense', category: 'Salaries',
-                method, amount, person: empName, employeeId: empId,
+                date,
+                type: 'Expense',
+                category: 'Salaries',
+                method,
+                amount,
+                person: empName,
+                employeeId: empId,
                 description: `${desc} [${label}] (${month})`,
                 createdBy: window.currentUser || 'Admin',
                 createdAt: new Date().toISOString()
@@ -406,8 +473,17 @@
         bootstrap.Modal.getInstance(document.getElementById('salaryModal')).hide();
         loadSalaryHub();
 
-        // Refresh Accounts advance list
-        if (typeof window.renderAccMgmtList === 'function') window.renderAccMgmtList('Advance');
+        // ── Advance Management refresh ──
+        if (typeof window.renderAccMgmtList === 'function') {
+            window.renderAccMgmtList('Advance');
+        }
+        // ── Fallback: যদি অন্য function নামে থাকে ──
+        if (typeof window.refreshAdvanceList === 'function') {
+            window.refreshAdvanceList();
+        }
+        if (typeof window.loadAdvanceManagement === 'function') {
+            window.loadAdvanceManagement();
+        }
 
         if (typeof window.showSuccessToast === 'function') {
             const msgs = {
@@ -420,11 +496,49 @@
     }
 
     // ─────────────────────────────────────────────
+    // ADVANCE RETURN — দুই জায়গা থেকে call হবে
+    // Salary Tab থেকেও, Accounts থেকেও
+    // ─────────────────────────────────────────────
+    window.recordAdvanceReturn = function(empId, empName, amount, date, method, note) {
+        const gd = window.globalData || {};
+        if (!gd.finance) gd.finance = [];
+
+        gd.finance.push({
+            id: 'ADV_RET_' + Date.now(),
+            date: date || new Date().toISOString().split('T')[0],
+            type: 'Advance Return',
+            category: 'Advance Return',
+            method: method || 'Cash',
+            amount: parseFloat(amount) || 0,
+            person: empName,
+            employeeId: empId,
+            description: note || `Advance Return — ${empName}`,
+            createdBy: window.currentUser || 'Admin',
+            createdAt: new Date().toISOString()
+        });
+
+        if (window.markDirty)        window.markDirty('finance');
+        if (window.saveToStorage)    window.saveToStorage();
+        if (window.scheduleSyncPush) window.scheduleSyncPush('Advance Return');
+
+        // দুই জায়গাতেই refresh
+        loadSalaryHub();
+        if (typeof window.renderAccMgmtList === 'function')   window.renderAccMgmtList('Advance');
+        if (typeof window.refreshAdvanceList === 'function')   window.refreshAdvanceList();
+        if (typeof window.loadAdvanceManagement === 'function') window.loadAdvanceManagement();
+
+        if (typeof window.showSuccessToast === 'function') {
+            window.showSuccessToast(`✅ Advance Return ৳${parseFloat(amount).toLocaleString()} — রেকর্ড হয়েছে!`);
+        }
+    };
+
+    // ─────────────────────────────────────────────
     // EXPORTS
     // ─────────────────────────────────────────────
-    window.initSalaryHub     = initSalaryHub;
-    window.loadSalaryHub     = loadSalaryHub;
-    window.openSalaryModal   = openSalaryModal;
+    window.initSalaryHub      = initSalaryHub;
+    window.loadSalaryHub      = loadSalaryHub;
+    window.openSalaryModal    = openSalaryModal;
+    window._openSalaryModalImpl = openSalaryModal; // ← section-loader এর জন্য
     window.handleSalarySubmit = handleSalarySubmit;
 
 })();
