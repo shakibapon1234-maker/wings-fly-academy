@@ -24,7 +24,7 @@
   const SUPABASE_KEY = window.SUPABASE_CONFIG?.KEY || 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6Imd0b2xkcmx0eGpyd3NodWJwbGZwIiwicm9sZSI6ImFub24iLCJpYXQiOjE3NzEwOTk5MTksImV4cCI6MjA4NjY3NTkxOX0.7NTx3tzU1C5VaewNZZHTaJf2WJ_GtjhQPKOymkxRsUk';
   const TABLE_NAME = window.SUPABASE_CONFIG?.TABLE || 'academy_data';
   const RECORD_ID = window.SUPABASE_CONFIG?.MAIN_RECORD || 'wingsfly_main';
-  const PULL_INTERVAL = 15000; // 15s
+  const PULL_INTERVAL = 300000; // 5m
   const PUSH_DEBOUNCE = 1500;  // 1.5s debounce
   const DEVICE_ID = _getDeviceId();
 
