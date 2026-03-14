@@ -92,13 +92,29 @@
   function _reExecScripts(parentEl) {
     const scripts = parentEl.querySelectorAll('script');
     scripts.forEach(function (oldScript) {
-      const newScript = document.createElement('script');
       if (oldScript.src) {
+        // External src script — in-place replace (browser will fetch & execute)
+        const newScript = document.createElement('script');
         newScript.src = oldScript.src;
+        newScript.async = false;
+        if (oldScript.parentNode) oldScript.parentNode.replaceChild(newScript, oldScript);
       } else {
-        newScript.textContent = oldScript.textContent;
+        // Inline script — use new Function() for guaranteed global execution
+        // document.head.appendChild fails for deeply nested scripts in some browsers
+        const code = oldScript.textContent || oldScript.innerText || '';
+        if (code.trim()) {
+          try {
+            // eslint-disable-next-line no-new-func
+            const fn = new Function(code);
+            fn.call(window);
+            console.log('[SectionLoader] ✅ Script executed via new Function()');
+          } catch (e) {
+            console.error('[SectionLoader] ❌ Script execution error:', e);
+          }
+        }
+        // DOM থেকে পুরনো script remove করো
+        if (oldScript.parentNode) oldScript.parentNode.removeChild(oldScript);
       }
-      oldScript.parentNode.replaceChild(newScript, oldScript);
     });
   }
 
@@ -133,14 +149,28 @@
         'sections/settings-modal.html',
         'settingsModal',
         function () {
-          // Re-init tabs
-          if (typeof window.switchSettingsTab === 'function') {
-            const activeBtn = document.querySelector('#settingsModal .nav-link.active') || document.querySelector('#settingsModal .nav-link');
-            if (activeBtn) {
-              const match = (activeBtn.getAttribute('onclick') || '').match(/'([^']+)'/);
-              if (match) window.switchSettingsTab(match[1], activeBtn);
+          // ✅ FIX: scLoad() call করো — এটা settings data populate করে
+          // এবং recovery section closed রাখে প্রতিবার খোলার সময়
+          // Script execute হতে সামান্য সময় লাগে, তাই setTimeout দিয়ে call করো
+          // ✅ FIX: script execute হতে সময় লাগে — retry দিয়ে নিশ্চিত করো
+          function _tryScLoad(attempt) {
+            if (typeof window.scLoad === 'function') {
+              window.scLoad();
+              // Re-init tabs
+              if (typeof window.switchSettingsTab === 'function') {
+                const activeBtn = document.querySelector('#settingsModal .nav-link.active') || document.querySelector('#settingsModal .nav-link');
+                if (activeBtn) {
+                  const match = (activeBtn.getAttribute('onclick') || '').match(/'([^']+)'/);
+                  if (match) window.switchSettingsTab(match[1], activeBtn);
+                }
+              }
+            } else if (attempt < 10) {
+              setTimeout(function () { _tryScLoad(attempt + 1); }, 50);
+            } else {
+              console.warn('[SectionLoader] scLoad not found after retries');
             }
           }
+          setTimeout(function () { _tryScLoad(0); }, 100);
         }
       );
     };

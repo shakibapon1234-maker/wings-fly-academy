@@ -676,7 +676,7 @@
                                                     <input type="password" id="settingsPassword" class="sc-in"
                                                         placeholder="Enter new password" autocomplete="off"
                                                         data-form-type="other" data-lpignore="true"
-                                                        oninput="scPwStr(this.value)">
+                                                        oninput="window.scPwStr && window.scPwStr(this.value)">
                                                     <button class="sc-ey" type="button"
                                                         onclick="const p=document.getElementById('settingsPassword');p.type=p.type==='password'?'text':'password';this.textContent=p.type==='password'?'👁️':'🙈';">👁️</button>
                                                 </div>
@@ -691,7 +691,7 @@
                                                     <input type="password" id="settingsPasswordConfirm" class="sc-in"
                                                         placeholder="Re-enter new password" autocomplete="off"
                                                         data-form-type="other" data-lpignore="true"
-                                                        oninput="scPwMatch()">
+                                                        oninput="window.scPwMatch && window.scPwMatch()">
                                                     <button class="sc-ey" type="button"
                                                         onclick="const p=document.getElementById('settingsPasswordConfirm');p.type=p.type==='password'?'text':'password';this.textContent=p.type==='password'?'👁️':'🙈';">👁️</button>
                                                 </div>
@@ -703,13 +703,13 @@
                                                     নতুন password ব্যবহার করুন এবং <strong style="color:#00d9ff;">Push
                                                         to Cloud</strong> করুন।</span></div>
                                             <div style="text-align:right;margin-top:14px;">
-                                                <button class="sc-sv" type="button" onclick="scSave()">💾 Save
+                                                <button class="sc-sv" type="button" onclick="window.scSave && window.scSave()">💾 Save
                                                     Credentials</button>
                                             </div>
                                         </div>
                                         <!-- ② Secret Recovery -->
                                         <div class="sc">
-                                            <div class="sc-tg" onclick="scTogRec()">
+                                            <div class="sc-tg" onclick="window.scTogRec && window.scTogRec()">
                                                 <div style="display:flex;align-items:center;gap:13px;">
                                                     <div class="sc-ic pu">🛡️</div>
                                                     <div>
@@ -743,7 +743,7 @@
                                                             name="wf_recovery_secret_ans"
                                                             style="font-family:inherit;-webkit-text-security:disc;-moz-text-security:disc;">
                                                         <button class="sc-ey" type="button" id="scRecEyeBtn"
-                                                            onclick="scTogRecAns()">🙈</button>
+                                                            onclick="window.scTogRecAns && window.scTogRecAns()">🙈</button>
                                                     </div>
                                                 </div>
                                                 <div class="sc-tip"
@@ -754,7 +754,7 @@
                                                 </div>
                                             </div>
                                             <div style="text-align:right;margin-top:14px;">
-                                                <button class="sc-sv" type="button" onclick="scSave()">💾 Save Security
+                                                <button class="sc-sv" type="button" onclick="window.scSave && window.scSave()">💾 Save Security
                                                     Settings</button>
                                             </div>
                                         </div>
@@ -822,7 +822,7 @@
                                             <label class="sc-lb">🔒 Auto Lockout Time</label>
                                             <div style="display:flex;align-items:center;gap:12px;flex-wrap:wrap;">
                                                 <select id="settingsAutoLockout" class="sc-in"
-                                                    style="max-width:230px;cursor:pointer;" onchange="scLockBadge()">
+                                                    style="max-width:230px;cursor:pointer;" onchange="window.scLockBadge && window.scLockBadge()">
                                                     <option value="0">❌ Disabled (Never)</option>
                                                     <option value="15">⏱️ 15 minutes</option>
                                                     <option value="30">⏱️ 30 minutes</option>
@@ -837,7 +837,7 @@
                                             </div>
                                         </div>
                                         <div style="text-align:right;">
-                                            <button class="sc-sv" type="button" onclick="scSave()">💾 Save Security
+                                            <button class="sc-sv" type="button" onclick="window.scSave && window.scSave()">💾 Save Security
                                                 Settings</button>
                                         </div>
                                     </div>
@@ -983,8 +983,8 @@
                                                     + '<div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:6px;">'
                                                     + '<span style="color:#fff;font-weight:600;font-size:0.85rem;"><i class="bi bi-person-fill me-2" style="color:#00ff88;"></i>' + u.username + '</span>'
                                                     + '<div style="display:flex;gap:6px;">'
-                                                    + '<button class="btn btn-sm" style="background:rgba(0,217,255,0.1);border:1px solid rgba(0,217,255,0.2);color:#00d9ff;font-size:0.72rem;padding:2px 8px;border-radius:6px;" onclick="editSubIdPermissions('' + u.username + '')"><i class="bi bi-pencil-fill me-1"></i>Edit</button>'
-                                                    + '<button class="btn btn-sm" style="background:rgba(255,60,80,0.1);border:1px solid rgba(255,60,80,0.2);color:#ff4466;font-size:0.72rem;padding:2px 8px;border-radius:6px;" onclick="deleteSubIdAccount('' + u.username + '')"><i class="bi bi-trash-fill"></i></button>'
+                                                    + '<button class="btn btn-sm" style="background:rgba(0,217,255,0.1);border:1px solid rgba(0,217,255,0.2);color:#00d9ff;font-size:0.72rem;padding:2px 8px;border-radius:6px;" onclick="window.editSubIdPermissions && window.editSubIdPermissions(this.dataset.u)" data-u="' + u.username + '"><i class="bi bi-pencil-fill me-1"></i>Edit</button>'
+                                                    + '<button class="btn btn-sm" style="background:rgba(255,60,80,0.1);border:1px solid rgba(255,60,80,0.2);color:#ff4466;font-size:0.72rem;padding:2px 8px;border-radius:6px;" onclick="window.deleteSubIdAccount && window.deleteSubIdAccount(this.dataset.u)" data-u="' + u.username + '"><i class="bi bi-trash-fill"></i></button>'
                                                     + '</div></div>'
                                                     + '<div style="line-height:1.8;">' + (tabBadges || '<span style="color:rgba(255,255,255,0.3);font-size:0.72rem;">কোনো access নেই</span>') + '</div>'
                                                     + '</div>';
@@ -1050,8 +1050,8 @@
                                             panel.innerHTML = '<div style="color:#00d9ff;font-weight:600;font-size:0.82rem;margin-bottom:10px;">✏️ <strong>' + username + '</strong> — Tab Access নির্ধারণ করুন</div>'
                                                 + _buildPermCheckboxes(currentTabs, 'edit-subid')
                                                 + '<div style="display:flex;gap:8px;margin-top:10px;">'
-                                                + '<button onclick="saveSubIdPermissions('' + username + '')" style="background:linear-gradient(135deg,#00d9ff,#0099bb);color:#000;border:none;border-radius:7px;padding:6px 16px;font-size:0.8rem;font-weight:700;cursor:pointer;">💾 Save</button>'
-                                                + '<button onclick="document.getElementById('' + editId + '').remove()" style="background:rgba(255,255,255,0.07);color:rgba(255,255,255,0.6);border:1px solid rgba(255,255,255,0.1);border-radius:7px;padding:6px 14px;font-size:0.8rem;cursor:pointer;">বাতিল</button>'
+                                                + '<button onclick="window.saveSubIdPermissions && window.saveSubIdPermissions(this.dataset.u)" data-u="' + username + '" style="background:linear-gradient(135deg,#00d9ff,#0099bb);color:#000;border:none;border-radius:7px;padding:6px 16px;font-size:0.8rem;font-weight:700;cursor:pointer;">💾 Save</button>'
+                                                + '<button onclick="var el=document.getElementById(this.dataset.eid);if(el)el.remove();" data-eid="' + editId + '" style="background:rgba(255,255,255,0.07);color:rgba(255,255,255,0.6);border:1px solid rgba(255,255,255,0.1);border-radius:7px;padding:6px 14px;font-size:0.8rem;cursor:pointer;">বাতিল</button>'
                                                 + '</div>';
                                             container.appendChild(panel);
                                         }
