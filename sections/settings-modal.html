@@ -796,10 +796,17 @@
                                                         style="height:100%; font-size:0.8rem;">+ Add</button>
                                                 </div>
                                             </div>
-                                            <div class="sc-tip" style="margin-top:12px;">
-                                                <span>💡</span><span>Sub ID শুধুমাত্র 👨‍🎓 <strong>Add Student</strong>
-                                                    এবং 📝 <strong>Add Registration</strong> করতে পারবে। Finance বা অন্য
-                                                    কিছু দেখতে পারবে না।</span>
+                                            <!-- Permission Checkboxes -->
+                                            <div style="margin-top:14px;">
+                                                <div style="font-size:0.72rem;color:rgba(0,217,255,0.7);font-weight:700;letter-spacing:0.06em;text-transform:uppercase;margin-bottom:8px;">
+                                                    🔐 Tab Access Permission
+                                                </div>
+                                                <div id="newSubidPermGrid" style="display:grid;grid-template-columns:1fr 1fr;gap:2px;">
+                                                    <!-- Dynamically rendered by renderNewSubidPermGrid() -->
+                                                </div>
+                                            </div>
+                                            <div class="sc-tip" style="margin-top:10px;">
+                                                <span>💡</span><span>যে tab গুলো check করবেন, Sub ID শুধু সেগুলোই দেখতে পারবে।</span>
                                             </div>
                                         </div>
 
@@ -894,7 +901,22 @@
                                             if (scRecArrow2 && scRecArrow2.classList.contains('op')) { scRecArrow2.classList.remove('op'); }
                                             scLockBadge();
                                             renderSubIdList();
+                                            renderNewSubidPermGrid();
                                         }
+
+                                        function renderNewSubidPermGrid() {
+                                            var grid = document.getElementById('newSubidPermGrid');
+                                            if (!grid) return;
+                                            grid.innerHTML = WF_PERM_TABS.map(p =>
+                                                '<label style="display:flex;align-items:center;gap:6px;padding:5px 8px;border-radius:6px;cursor:pointer;background:rgba(255,255,255,0.03);margin-bottom:2px;">'
+                                                + '<input type="checkbox" value="' + p.tab + '" '
+                                                + (p.tab === 'students' ? 'checked' : '')
+                                                + ' style="accent-color:#00d9ff;width:14px;height:14px;" class="new-subid-perm-check">'
+                                                + '<span style="font-size:0.76rem;color:rgba(255,255,255,0.85);">' + p.label + '</span>'
+                                                + '</label>'
+                                            ).join('');
+                                        }
+                                        window.renderNewSubidPermGrid = renderNewSubidPermGrid;
 
                                         function renderSubIdList() {
                                             const gd = window.globalData;
@@ -925,43 +947,133 @@
                                             container.innerHTML = html;
                                         }
 
+                                        // ── Permission tabs list (auth.js WF_ALL_TABS এর সাথে sync) ──
+                                        var WF_PERM_TABS = [
+                                            { tab: 'students',    label: '👨‍🎓 Students' },
+                                            { tab: 'ledger',      label: '💰 Finance/Ledger' },
+                                            { tab: 'accounts',    label: '🏦 Accounts' },
+                                            { tab: 'loans',       label: '💳 Loans' },
+                                            { tab: 'visitors',    label: '🙋 Visitors' },
+                                            { tab: 'employees',   label: '👤 HR/Staff' },
+                                            { tab: 'examResults', label: '📝 Exams' },
+                                            { tab: 'salary',      label: '💵 Salary Hub' },
+                                            { tab: 'attendance',  label: '📅 Attendance' },
+                                            { tab: 'idcards',     label: '🪪 ID Cards' },
+                                            { tab: 'certificates',label: '📜 Certificates' },
+                                        ];
+
+                                        function renderSubIdList() {
+                                            const gd = window.globalData;
+                                            if (!gd || !gd.users) return;
+                                            const container = document.getElementById('subid-list-container');
+                                            if (!container) return;
+                                            const subAccounts = gd.users.filter(u => u.role === 'subid');
+                                            if (subAccounts.length === 0) {
+                                                container.innerHTML = '<div class="text-center text-muted small py-2">কোনো সাব আইডি নেই</div>';
+                                                return;
+                                            }
+                                            let html = '';
+                                            subAccounts.forEach(u => {
+                                                const tabs = (u.permissions && u.permissions.tabs) || ['students'];
+                                                const tabBadges = tabs.map(t => {
+                                                    const found = WF_PERM_TABS.find(p => p.tab === t);
+                                                    return found ? '<span style="background:rgba(0,217,255,0.12);border:1px solid rgba(0,217,255,0.25);border-radius:4px;padding:1px 6px;font-size:0.7rem;color:#00d9ff;margin:1px;display:inline-block;">' + found.label + '</span>' : '';
+                                                }).join('');
+                                                html += '<div style="background:rgba(255,255,255,0.04);border-radius:8px;padding:10px 12px;margin-bottom:8px;">'
+                                                    + '<div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:6px;">'
+                                                    + '<span style="color:#fff;font-weight:600;font-size:0.85rem;"><i class="bi bi-person-fill me-2" style="color:#00ff88;"></i>' + u.username + '</span>'
+                                                    + '<div style="display:flex;gap:6px;">'
+                                                    + '<button class="btn btn-sm" style="background:rgba(0,217,255,0.1);border:1px solid rgba(0,217,255,0.2);color:#00d9ff;font-size:0.72rem;padding:2px 8px;border-radius:6px;" onclick="editSubIdPermissions('' + u.username + '')"><i class="bi bi-pencil-fill me-1"></i>Edit</button>'
+                                                    + '<button class="btn btn-sm" style="background:rgba(255,60,80,0.1);border:1px solid rgba(255,60,80,0.2);color:#ff4466;font-size:0.72rem;padding:2px 8px;border-radius:6px;" onclick="deleteSubIdAccount('' + u.username + '')"><i class="bi bi-trash-fill"></i></button>'
+                                                    + '</div></div>'
+                                                    + '<div style="line-height:1.8;">' + (tabBadges || '<span style="color:rgba(255,255,255,0.3);font-size:0.72rem;">কোনো access নেই</span>') + '</div>'
+                                                    + '</div>';
+                                            });
+                                            container.innerHTML = html;
+                                        }
+
+                                        function _buildPermCheckboxes(selectedTabs, prefix) {
+                                            return WF_PERM_TABS.map(p => {
+                                                const checked = selectedTabs.includes(p.tab) ? 'checked' : '';
+                                                return '<label style="display:flex;align-items:center;gap:6px;padding:5px 8px;border-radius:6px;cursor:pointer;background:rgba(255,255,255,0.03);margin-bottom:4px;">'
+                                                    + '<input type="checkbox" value="' + p.tab + '" ' + checked + ' style="accent-color:#00d9ff;width:14px;height:14px;" class="' + prefix + '-perm-check">'
+                                                    + '<span style="font-size:0.78rem;color:rgba(255,255,255,0.85);">' + p.label + '</span>'
+                                                    + '</label>';
+                                            }).join('');
+                                        }
+
                                         async function addSubIdAccount() {
                                             const userIn = document.getElementById('newSubidUsername');
                                             const passIn = document.getElementById('newSubidPassword');
                                             const user = userIn.value.trim().toLowerCase();
                                             const pass = passIn.value.trim();
-
-                                            if (!user || !pass) {
-                                                alert('পরিচয় (Username) এবং পাসওয়ার্ড দুটোই দিন');
-                                                return;
-                                            }
-
+                                            if (!user || !pass) { alert('Username এবং Password দুটোই দিন'); return; }
                                             const gd = window.globalData;
-                                            if (gd.users.find(u => u.username === user)) {
-                                                alert('এই ইউজারনেম ইতিমধ্যে আছে');
-                                                return;
-                                            }
+                                            if (gd.users.find(u => u.username === user)) { alert('এই username ইতিমধ্যে আছে'); return; }
+
+                                            // Collect selected permissions
+                                            const checks = document.querySelectorAll('.new-subid-perm-check:checked');
+                                            const selectedTabs = Array.from(checks).map(c => c.value);
+                                            if (selectedTabs.length === 0) { alert('কমপক্ষে একটি tab permission দিন'); return; }
 
                                             const hashed = typeof hashPassword === 'function' ? await hashPassword(pass) : pass;
                                             gd.users.push({
-                                                username: user,
-                                                password: hashed,
-                                                role: 'subid',
-                                                name: user
+                                                username: user, password: hashed,
+                                                role: 'subid', name: user,
+                                                permissions: { tabs: selectedTabs }
                                             });
-
                                             if (typeof saveToStorage === 'function') saveToStorage();
-                                            userIn.value = '';
-                                            passIn.value = '';
-                                            passIn.type = 'password';
+                                            userIn.value = ''; passIn.value = ''; passIn.type = 'password';
                                             const eyeBtn = passIn.nextElementSibling;
                                             if (eyeBtn) eyeBtn.textContent = '👁️';
+                                            // Reset checkboxes to default (students only)
+                                            document.querySelectorAll('.new-subid-perm-check').forEach(c => { c.checked = (c.value === 'students'); });
                                             renderSubIdList();
                                             if (typeof showSuccessToast === 'function') showSuccessToast('✅ সাব আইডি তৈরি হয়েছে!');
                                         }
 
+                                        function editSubIdPermissions(username) {
+                                            const gd = window.globalData;
+                                            const u = gd.users.find(x => x.username === username && x.role === 'subid');
+                                            if (!u) return;
+                                            const currentTabs = (u.permissions && u.permissions.tabs) || ['students'];
+
+                                            // Inline edit panel
+                                            const container = document.getElementById('subid-list-container');
+                                            const editId = 'edit-perm-' + username;
+                                            let existing = document.getElementById(editId);
+                                            if (existing) { existing.remove(); return; } // toggle
+
+                                            const panel = document.createElement('div');
+                                            panel.id = editId;
+                                            panel.style.cssText = 'background:rgba(0,217,255,0.06);border:1px solid rgba(0,217,255,0.2);border-radius:10px;padding:14px;margin-top:8px;';
+                                            panel.innerHTML = '<div style="color:#00d9ff;font-weight:600;font-size:0.82rem;margin-bottom:10px;">✏️ <strong>' + username + '</strong> — Tab Access নির্ধারণ করুন</div>'
+                                                + _buildPermCheckboxes(currentTabs, 'edit-subid')
+                                                + '<div style="display:flex;gap:8px;margin-top:10px;">'
+                                                + '<button onclick="saveSubIdPermissions('' + username + '')" style="background:linear-gradient(135deg,#00d9ff,#0099bb);color:#000;border:none;border-radius:7px;padding:6px 16px;font-size:0.8rem;font-weight:700;cursor:pointer;">💾 Save</button>'
+                                                + '<button onclick="document.getElementById('' + editId + '').remove()" style="background:rgba(255,255,255,0.07);color:rgba(255,255,255,0.6);border:1px solid rgba(255,255,255,0.1);border-radius:7px;padding:6px 14px;font-size:0.8rem;cursor:pointer;">বাতিল</button>'
+                                                + '</div>';
+                                            container.appendChild(panel);
+                                        }
+
+                                        function saveSubIdPermissions(username) {
+                                            const gd = window.globalData;
+                                            const u = gd.users.find(x => x.username === username && x.role === 'subid');
+                                            if (!u) return;
+                                            const checks = document.querySelectorAll('.edit-subid-perm-check:checked');
+                                            const selectedTabs = Array.from(checks).map(c => c.value);
+                                            if (selectedTabs.length === 0) { alert('কমপক্ষে একটি tab permission দিন'); return; }
+                                            if (!u.permissions) u.permissions = {};
+                                            u.permissions.tabs = selectedTabs;
+                                            if (typeof saveToStorage === 'function') saveToStorage();
+                                            const panel = document.getElementById('edit-perm-' + username);
+                                            if (panel) panel.remove();
+                                            renderSubIdList();
+                                            if (typeof showSuccessToast === 'function') showSuccessToast('✅ Permission আপডেট হয়েছে!');
+                                        }
+
                                         function deleteSubIdAccount(username) {
-                                            if (!confirm('আপনি কি এই সাব আইডিটি মুছে ফেলতে চান?')) return;
+                                            if (!confirm('এই সাব আইডিটি মুছে ফেলবেন?')) return;
                                             const gd = window.globalData;
                                             gd.users = gd.users.filter(u => u.username !== username || u.role !== 'subid');
                                             if (typeof saveToStorage === 'function') saveToStorage();
@@ -971,6 +1083,8 @@
                                         window.renderSubIdList = renderSubIdList;
                                         window.addSubIdAccount = addSubIdAccount;
                                         window.deleteSubIdAccount = deleteSubIdAccount;
+                                        window.editSubIdPermissions = editSubIdPermissions;
+                                        window.saveSubIdPermissions = saveSubIdPermissions;
 
                                         async function scSave() {
                                             const gd = window.globalData; if (!gd) return; if (!gd.settings) gd.settings = {};

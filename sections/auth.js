@@ -399,74 +399,96 @@ function switchTab(tab, refreshStats = true) {
 
 
 // ═══════════════════════════════════════════════════
-// ROLE-BASED ACCESS CONTROL (RBAC) — Sub ID Restrictions
+// ROLE-BASED ACCESS CONTROL (RBAC) — Dynamic Permission System
 // ═══════════════════════════════════════════════════
+
+// সব available tabs — tab id → switchTab name mapping
+window.WF_ALL_TABS = [
+  { id: 'tabStudents',     tab: 'students',     label: 'Students' },
+  { id: 'tabLedger',       tab: 'ledger',        label: 'Finance/Ledger' },
+  { id: 'tabAccounts',     tab: 'accounts',      label: 'Accounts' },
+  { id: 'tabLoans',        tab: 'loans',         label: 'Loans' },
+  { id: 'tabVisitors',     tab: 'visitors',      label: 'Visitors' },
+  { id: 'tabEmployees',    tab: 'employees',     label: 'HR/Staff' },
+  { id: 'tabExamResults',  tab: 'examResults',   label: 'Exams' },
+  { id: 'tabSalary',       tab: 'salary',        label: 'Salary Hub' },
+  { id: 'tabAttendance',   tab: 'attendance',    label: 'Attendance' },
+  { id: 'tabIdCards',      tab: 'idcards',       label: 'ID Cards' },
+  { id: 'tabCertificates', tab: 'certificates',  label: 'Certificates' },
+  { id: 'tabSettings',     tab: 'settings',      label: 'Settings' },
+];
+
 function applyRoleSecurity() {
-  const role = sessionStorage.getItem('role') || 'admin';
-  const isSubId = (role === 'subid' || role === 'operator');
+  const role     = sessionStorage.getItem('role') || 'admin';
+  const username = sessionStorage.getItem('username') || '';
+  const isSubId  = (role === 'subid' || role === 'operator');
 
-  // Sidebar IDs to hide for subid
-  const restrictedSidebarTabs = [
-    'tabLedger',
-    'tabAccounts',
-    'tabLoans',
-    'tabVisitors',
-    'tabEmployees',
-    'tabExamResults',
-    'tabIdCards',
-    'tabCertificates',
-    'tabSettings'
-  ];
-
-  if (isSubId) {
-    // 1. Hide Sidebar Tabs
-    restrictedSidebarTabs.forEach(id => {
-      const el = document.getElementById(id);
-      if (el) el.style.display = 'none';
+  if (!isSubId) {
+    // Admin — সব দেখাও
+    window.WF_ALL_TABS.forEach(t => {
+      const el = document.getElementById(t.id);
+      if (el) el.style.display = '';
     });
+    document.querySelectorAll('.top-bar .dropdown-menu .dropdown-item')
+      .forEach(item => item.style.display = '');
+    document.querySelectorAll('.aviation-metric-card')
+      .forEach(card => card.style.display = '');
+    const nb = document.getElementById('notificationDropdown');
+    if (nb) nb.style.display = '';
+    return;
+  }
 
-    // 2. Hide specific "Add New" dropdown items (Finance, Visitor)
-    const dropdownItems = document.querySelectorAll('.top-bar .dropdown-menu .dropdown-item');
-    dropdownItems.forEach(item => {
-      const text = item.textContent.toLowerCase();
-      // Allow only Student and Exam
-      if (!text.includes('student') && !text.includes('exam')) {
-        item.style.display = 'none';
-      }
-    });
+  // ── Sub ID: user এর permissions পড়ো ──────────────────
+  // permissions সংরক্ষিত আছে user object এ: { tabs: ['students','salary',...] }
+  const gd = window.globalData;
+  const userObj = (gd && gd.users || []).find(u =>
+    u.username.toLowerCase() === username.toLowerCase() && u.role === 'subid'
+  );
 
-    // 3. Hide Dashboard Overview Cards (Financials)
-    const metricCards = document.querySelectorAll('.aviation-metric-card, .metric-card-blue, .metric-card-green, .metric-card-yellow, .metric-card-red, .metric-card-purple');
-    metricCards.forEach(card => {
-      // Allow only Student Count card
-      if (!card.innerText.includes('Students') && !card.innerText.includes('মেসেজ')) {
+  // Allowed tabs — user এর permissions.tabs থেকে, না থাকলে default: শুধু students
+  const allowedTabs = (userObj && userObj.permissions && Array.isArray(userObj.permissions.tabs))
+    ? userObj.permissions.tabs
+    : ['students'];
+
+  // 1. Sidebar tabs — allowed গুলো দেখাও, বাকি লুকাও
+  window.WF_ALL_TABS.forEach(t => {
+    const el = document.getElementById(t.id);
+    if (!el) return;
+    el.style.display = allowedTabs.includes(t.tab) ? '' : 'none';
+  });
+
+  // 2. Add New dropdown — allowed tabs এর সাথে মিলিয়ে filter করো
+  document.querySelectorAll('.top-bar .dropdown-menu .dropdown-item').forEach(item => {
+    const text = item.textContent.toLowerCase();
+    const allowed =
+      (text.includes('student') && allowedTabs.includes('students')) ||
+      (text.includes('exam')    && allowedTabs.includes('examResults')) ||
+      (text.includes('finance') && allowedTabs.includes('ledger')) ||
+      (text.includes('visitor') && allowedTabs.includes('visitors')) ||
+      (text.includes('employee')&& allowedTabs.includes('employees'));
+    item.style.display = allowed ? '' : 'none';
+  });
+
+  // 3. Finance metric cards — শুধু finance access থাকলে দেখাও
+  const hasFinance = allowedTabs.includes('ledger') || allowedTabs.includes('accounts');
+  document.querySelectorAll('.aviation-metric-card, .metric-card-blue, .metric-card-green, .metric-card-yellow, .metric-card-red, .metric-card-purple')
+    .forEach(card => {
+      if (!hasFinance && !card.innerText.includes('Students')) {
         card.style.display = 'none';
       }
     });
 
-    // 4. Force check active tab (if they somehow navigated to unauthorized tab)
-    const currentTab = localStorage.getItem('wingsfly_active_tab');
-    if (restrictedSidebarTabs.includes('tab' + currentTab.charAt(0).toUpperCase() + currentTab.slice(1)) || currentTab === 'ledger') {
-      console.warn('🔒 Unauthorized tab access blocked for Sub ID. Redirecting to Dashboard.');
-      // Special case: tabExamResults -> switchTab('examResults')
-      localStorage.setItem('wingsfly_active_tab', 'dashboard');
-      // We can't recursively call switchTab here safely without a flag, but let the UI handle it.
-    }
-
-    // 5. Hide Notification / Search if needed
-    const notificationBtn = document.getElementById('notificationDropdown');
-    if (notificationBtn) notificationBtn.style.display = 'none';
-  } else {
-    // Re-show everything for Admin
-    restrictedSidebarTabs.forEach(id => {
-      const el = document.getElementById(id);
-      if (el) el.style.display = '';
-    });
-    const dropdownItems = document.querySelectorAll('.top-bar .dropdown-menu .dropdown-item');
-    dropdownItems.forEach(item => item.style.display = '');
-    const metricCards = document.querySelectorAll('.aviation-metric-card');
-    metricCards.forEach(card => card.style.display = '');
+  // 4. Unauthorized tab এ থাকলে redirect করো
+  const currentTab = localStorage.getItem('wingsfly_active_tab') || 'dashboard';
+  const isAllowedTab = currentTab === 'dashboard' || allowedTabs.includes(currentTab);
+  if (!isAllowedTab) {
+    console.warn('🔒 Unauthorized tab blocked for Sub ID:', currentTab, '→ dashboard');
+    localStorage.setItem('wingsfly_active_tab', 'dashboard');
   }
+
+  // 5. Notification hide
+  const nb = document.getElementById('notificationDropdown');
+  if (nb) nb.style.display = 'none';
 }
 window.applyRoleSecurity = applyRoleSecurity;
 
