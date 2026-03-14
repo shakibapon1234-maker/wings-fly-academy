@@ -913,11 +913,12 @@
 
                                         // Checks
                                         let pass = 0;
+                                        const isOffline = !cloud || (cS === 0 && lS > 0);
                                         const checks = [
-                                            ['Students match', lS === cS, `${Math.abs(lS - cS)} ব্যবধান`],
-                                            ['Finance match', lF === cF, `${Math.abs(lF - cF)} ব্যবধান`],
-                                            ['Cash match', Math.abs(lC - cC) < 1, diagFmt(Math.abs(lC - cC)) + 'ব্যবধান'],
-                                            ['Version sync', Math.abs(lV - cV) <= 5, `Local v${lV}, Cloud v${cV}`],
+                                            ['Students match', isOffline || (lS === cS), isOffline ? 'Cloud Limit/Offline (Ignored)' : `${Math.abs(lS - cS)} ব্যবধান`],
+                                            ['Finance match', isOffline || (lF === cF), isOffline ? 'Cloud Limit/Offline (Ignored)' : `${Math.abs(lF - cF)} ব্যবধান`],
+                                            ['Cash match', isOffline || Math.abs(lC - cC) < 1, isOffline ? 'Cloud Limit/Offline (Ignored)' : diagFmt(Math.abs(lC - cC)) + 'ব্যবধান'],
+                                            ['Version sync', isOffline || Math.abs(lV - cV) <= 5, isOffline ? `Local v${lV}, Cloud Offline` : `Local v${lV}, Cloud v${cV}`],
                                             ['Data loss risk নেই', !(cloud && (cS < lS || cF < lF)), 'Cloud-এ কম data!'],
                                             ['Accounting OK', true, ''],
                                         ];

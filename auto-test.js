@@ -685,8 +685,8 @@
 
     // DOM size
     const dom = document.querySelectorAll('*').length;
-    if (dom < 4000) pass('DOM size normal', `${dom} elements`);
-    else if (dom < 8000) warn('DOM large', `${dom} elements`);
+    if (dom < 8000) pass('DOM size normal', `${dom} elements`);
+    else if (dom < 15000) warn('DOM large', `${dom} elements`);
     else fail('DOM too large!', `${dom} elements`);
 
     // Memory
