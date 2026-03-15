@@ -319,13 +319,15 @@
                 <div class="mb-3">
                     <label class="form-label">Username</label>
                     <input type="text" id="loginUsernameField" name="username" class="form-control" placeholder="Enter username"
-                        required autocomplete="username" data-lpignore="false">
+                        required autocomplete="username" data-lpignore="false" readonly
+                        onfocus="this.removeAttribute('readonly');" onblur="if(!this.value)this.setAttribute('readonly','readonly');">
                 </div>
                 <div class="mb-3">
                     <label class="form-label">Password</label>
                     <div class="position-relative">
                         <input type="password" id="loginPasswordField" name="password" class="form-control" placeholder="Enter password"
-                            required autocomplete="current-password" data-lpignore="false"
+                            required autocomplete="current-password" data-lpignore="false" readonly
+                            onfocus="this.removeAttribute('readonly');" onblur="if(!this.value)this.setAttribute('readonly','readonly');"
                             style="padding-right: 2.8rem;">
                         <button type="button" id="loginPwEyeBtn"
                             style="position:absolute;right:10px;top:50%;transform:translateY(-50%);background:none;border:none;cursor:pointer;font-size:1rem;color:rgba(0,200,255,0.6);padding:0;line-height:1;"
