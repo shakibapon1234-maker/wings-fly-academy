@@ -269,6 +269,16 @@
       if (title) title.textContent = '👨‍🎓 Add New Student';
       if (typeof window.populateDropdowns === 'function') setTimeout(window.populateDropdowns, 50);
       if (typeof window.removeStudentPhoto === 'function') window.removeStudentPhoto();
+      
+      // ✅ FIX: Reset Payment Method selection & remove old balance badge
+      var methodSel = document.getElementById('studentMethodSelect');
+      if (methodSel) {
+          methodSel.value = "";
+          var oldBadge = document.getElementById('studentMethodSelect_balanceBadge');
+          if (oldBadge) oldBadge.remove();
+          if (typeof window.showMethodBalance === 'function') window.showMethodBalance('studentMethodSelect');
+      }
+
       // Set today's date
       var enrollDate = document.getElementById('studentEnrollDate');
       if (enrollDate && !enrollDate.value) enrollDate.value = new Date().toISOString().split('T')[0];

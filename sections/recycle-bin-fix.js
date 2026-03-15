@@ -603,6 +603,19 @@
   };
 
   // ═══════════════════════════════════════════════
+  // 8.5 PATCH: Installment Delete
+  // ═══════════════════════════════════════════════
+  var _patchInstallmentDelete = function () {
+    // Note: finance-crud.js already has moveToTrash inside deleteInstallment,
+    // so we just provide the definition to satisfy the init() call.
+    if (window.deleteInstallment && !window.deleteInstallment._isRecyclePatched) {
+      // Logic is already correct in source, just marking it as patched
+      window.deleteInstallment._isRecyclePatched = true;
+      console.log('[RecycleFix] ✓ deleteInstallment confirmed (source-patched)');
+    }
+  };
+
+  // ═══════════════════════════════════════════════
   // 9. PATCH: Visitor Delete
   // ═══════════════════════════════════════════════
   var _patchVisitorDelete = function () {

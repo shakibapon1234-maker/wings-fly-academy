@@ -872,6 +872,26 @@ async function handleStudentSubmit(e) {
 
   const form = document.getElementById('studentForm');
   if (!form) { console.error('studentForm not found!'); return; }
+
+  // ✅ BATCH & REQUIRED VALIDATION
+  const nameInp = document.getElementById('studentName');
+  const batchInp = document.getElementById('studentBatchInput');
+  const courseSel = document.getElementById('studentCourseSelect');
+  const phoneInp = document.getElementById('studentPhone');
+  const methodSel = document.getElementById('studentMethodSelect');
+
+  if (!nameInp?.value.trim() || !batchInp?.value.trim() || !courseSel?.value || !phoneInp?.value.trim() || !methodSel?.value) {
+    showErrorToast('⚠️ Please fill all required fields: Name, Phone, Course, Batch, and Payment Method');
+    // Highlight empty fields
+    [nameInp, batchInp, courseSel, phoneInp, methodSel].forEach(el => {
+      if (el && (!el.value || !el.value.trim())) {
+        el.style.borderColor = '#ff4455';
+        setTimeout(() => el.style.borderColor = '', 3000);
+      }
+    });
+    return;
+  }
+
   const formData = new FormData(form);
   const data = {};
   formData.forEach((value, key) => data[key] = value);
