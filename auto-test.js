@@ -88,7 +88,7 @@
     return `<span style="background:${color}22;color:${color};border:1px solid ${color}44;border-radius:10px;padding:1px 7px;font-size:0.65rem;font-weight:700;margin-right:6px;white-space:nowrap;">${cat}</span>`;
   }
 
-  function _appendResult(r) {
+  function _appendResult(r, skipScroll = false) {
     const el = document.getElementById('functest-results');
     if (!el) return;
     const colors = { pass: '#00ff88', fail: '#ff4466', warn: '#ffcc00', skip: '#888' };
@@ -110,7 +110,26 @@
       (r.detail ? `<div style="color:${isFail ? '#ffaaaa' : isWarn ? '#ffe08a' : '#7aa0c4'};font-size:0.72rem;margin-top:2px;">${r.detail}</div>` : '') +
       `</div>`;
     el.appendChild(div);
-    el.scrollTop = el.scrollHeight;
+    if (!skipScroll) el.scrollTop = el.scrollHeight;
+  }
+
+  function _reorderResults() {
+    const el = document.getElementById('functest-results');
+    if (!el) return;
+    
+    // Header-গুলো সরিয়ে ফেলছি কারণ গ্লোবাল সর্টিং-এ তারা অর্থ হারাবে
+    // তবে আমরা রেজাল্ট কার্ডে অলরেডি ক্যাটাগরি ব্যাজ রেখেছি
+    el.innerHTML = '<div style="color:#888;font-size:0.7rem;text-align:center;padding:10px;border-bottom:1px solid rgba(255,255,255,0.05);margin-bottom:10px;">সর্টিং করা হচ্ছে: Fail > Warn > Pass</div>';
+    
+    const sorted = [...results].sort((a, b) => {
+      const order = { fail: 0, warn: 1, pass: 2, skip: 3 };
+      if (order[a.s] !== order[b.s]) return order[a.s] - order[b.s];
+      // এক স্ট্যাটাসের হলে ক্যাটাগরি অনুযায়ী সাজান
+      return (a.cat || '').localeCompare(b.cat || '') || (a.name || '').localeCompare(b.name || '');
+    });
+
+    sorted.forEach(r => _appendResult(r, true));
+    el.scrollTop = 0; // সর্টিং শেষে উপরে যেতে হবে কারণ উপরেই সমস্যাগুলো আছে
   }
 
   function _sectionHeader(title, cat) {
@@ -819,6 +838,10 @@
     setProgress('⚪ Security check চলছে...');
     testSecurity();
 
+    setProgress('White-checking সম্পন্ন। সাজানো হচ্ছে...');
+    await new Promise(r => setTimeout(r, 600)); // সামান্য বিরতি
+    _reorderResults();
+    
     setProgress('');
     cleanupTestData();
     _renderSummary();
