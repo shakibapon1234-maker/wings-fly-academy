@@ -2174,15 +2174,25 @@
     </script>
 
     <script>
-        // Ensure login fields are empty on load even if browser tries to autofill
-        window.addEventListener('load', function() {
-            setTimeout(function() {
+        // Aggressive clearing of login fields to prevent browser autofill on load
+        (function() {
+            function clearFields() {
                 const u = document.getElementById('loginUsernameField');
                 const p = document.getElementById('loginPasswordField');
                 if (u) u.value = '';
                 if (p) p.value = '';
-            }, 100);
-        });
+            }
+            // Run multiple times with increasing delay to catch browser autofill
+            window.addEventListener('load', () => {
+                setTimeout(clearFields, 50);
+                setTimeout(clearFields, 500);
+                setTimeout(clearFields, 1500);
+            });
+            // Also run when document becomes visible
+            document.addEventListener('visibilitychange', () => {
+                if (document.visibilityState === 'visible') clearFields();
+            });
+        })();
     </script>
 </body>
 
