@@ -21,7 +21,15 @@
 
     function goToCorrectTab() {
         var tab = getTargetTab();
-        if (tab === 'dashboard') return; // dashboard হলে কিছু করার নেই
+        // ✅ যদি অলরেডি সেই tab-এ থাকি, তাহলে আবার switch করার দরকার নেই
+        var currentBtn = document.querySelector('.nav-item-link.av-sidebar-active');
+        var isAlreadyOnTab = currentBtn && (currentBtn.id === 'tab' + tab.charAt(0).toUpperCase() + tab.slice(1));
+        
+        if (isAlreadyOnTab) {
+            console.log('[TabResetFix] Already on target tab:', tab);
+            return;
+        }
+
         if (typeof switchTab === 'function') {
             switchTab(tab, false);
             console.log('[TabResetFix] Redirected to tab:', tab);
