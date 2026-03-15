@@ -142,6 +142,45 @@
   function _patchAll() {
     console.log('[SectionLoader] 🔄 Patching global functions...');
 
+    // 0. Account Analytics & Details (Fixed Lazy Loading)
+    window.showAccountAnalytics = function () {
+      console.log('[UI] showAccountAnalytics wrapper called');
+      // Always try to load/open settings-modal.html which contains the analytics logic and modal
+      loadAndOpen('__modalPlaceholderSettings', 'sections/settings-modal.html', 'settingsModal', function () {
+        setTimeout(() => {
+          if (typeof window._showAccountAnalyticsImpl === 'function') {
+            console.log('[UI] Calling _showAccountAnalyticsImpl');
+            window._showAccountAnalyticsImpl();
+          } else {
+            console.error('[UI] _showAccountAnalyticsImpl NOT FOUND after load');
+            const modal = document.getElementById('accountAnalyticsModal');
+            if (modal && window.bootstrap) {
+                bootstrap.Modal.getOrCreateInstance(modal).show();
+            }
+          }
+        }, 100);
+      });
+    };
+
+    window.showAccountDetails = function () {
+      console.log('[UI] showAccountDetails wrapper called');
+      // Hide settings if open (critical for UX)
+      const settingsEl = document.getElementById('settingsModal');
+      if (settingsEl && window.bootstrap) {
+          const m = bootstrap.Modal.getInstance(settingsEl);
+          if (m) {
+              console.log('[UI] Hiding settingsModal');
+              m.hide();
+          }
+      }
+      // Ensure modals.html is loaded for Account Details
+      loadAndOpen('__modalPlaceholderOther', 'sections/modals.html', 'accountDetailsModal', function () {
+        if (typeof window.renderAccountDetails === 'function') {
+          window.renderAccountDetails();
+        }
+      });
+    };
+
     // 1. Settings
     window.openSettings = window.openSettingsModal = function () {
       loadAndOpen(
@@ -149,10 +188,6 @@
         'sections/settings-modal.html',
         'settingsModal',
         function () {
-          // ✅ FIX: scLoad() call করো — এটা settings data populate করে
-          // এবং recovery section closed রাখে প্রতিবার খোলার সময়
-          // Script execute হতে সামান্য সময় লাগে, তাই setTimeout দিয়ে call করো
-          // ✅ FIX: script execute হতে সময় লাগে — retry দিয়ে নিশ্চিত করো
           function _tryScLoad(attempt) {
             if (typeof window.scLoad === 'function') {
               window.scLoad();

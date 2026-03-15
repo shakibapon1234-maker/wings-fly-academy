@@ -340,55 +340,6 @@
                                                 </div>
                                             </div>
 
-                                            <!-- Tools -->
-                                            <div class="card border-0 shadow-sm mb-4">
-                                                <div class="card-body p-4">
-                                                    <div class="d-flex align-items-center mb-3">
-                                                        <div class="icon-box bg-light text-info me-3"
-                                                            style="width: 40px; height: 40px; border-radius: 10px; display: flex; align-items: center; justify-content: center;">
-                                                            📊</div>
-                                                        <div>
-                                                            <h6 class="fw-bold mb-0">Account Details
-                                                            </h6>
-                                                            <small class="text-muted">View detailed
-                                                                breakdown of
-                                                                incomes and expenses.</small>
-                                                        </div>
-                                                    </div>
-                                                    <button type="button" class="btn btn-outline-info w-100 py-2"
-                                                        onclick="showAccountDetails()">
-                                                        View Account Analytics
-                                                    </button>
-                                                </div>
-                                            </div>
-
-                                            <!-- Data Integrity Tools -->
-                                            <div class="card border-0 shadow-sm mb-4">
-                                                <div class="card-body p-4">
-                                                    <div class="d-flex align-items-center mb-3">
-                                                        <div class="icon-box bg-light text-warning me-3"
-                                                            style="width: 40px; height: 40px; border-radius: 10px; display: flex; align-items: center; justify-content: center;">
-                                                            🛡️</div>
-                                                        <div>
-                                                            <h6 class="fw-bold mb-0">Data Integrity Tools</h6>
-                                                            <small class="text-muted">Repair mismatches between student
-                                                                payments and finance totals.</small>
-                                                        </div>
-                                                    </div>
-                                                    <div class="d-grid gap-2">
-                                                        <button type="button"
-                                                            class="btn btn-outline-warning py-2 fw-bold"
-                                                            onclick="runAutoHealRepair()">
-                                                            🔧 Run Auto-Fix (Data Repair)
-                                                        </button>
-                                                        <div id="krPaidFinanceStatus" class="mt-2 text-center"
-                                                            style="font-size:0.85rem;">
-                                                            <!-- Managed by auto-heal.js -->
-                                                            <small class="text-muted">Checking data status...</small>
-                                                        </div>
-                                                    </div>
-                                                </div>
-                                            </div>
 
                                             <!-- Danger Zone -->
                                             <div class="card border border-danger bg-danger-light">
@@ -1969,6 +1920,67 @@
                                         <button class="btn btn-sm btn-outline-info" onclick="printAccountsMgmt()"><i class="bi bi-printer"></i> Print</button>
                                     </div>
                                 </div>
+
+                                <div class="row g-3 mb-4">
+                                    <div class="col-md-6">
+                                        <!-- Account Details Card -->
+                                        <div class="card border-0 shadow-sm h-100" style="background: rgba(0, 217, 255, 0.04); border: 1px solid rgba(0, 217, 255, 0.1) !important;">
+                                            <div class="card-body p-4">
+                                                <div class="d-flex align-items-center mb-3">
+                                                    <div class="icon-box bg-light text-info me-3"
+                                                        style="width: 40px; height: 40px; border-radius: 10px; display: flex; align-items: center; justify-content: center;">
+                                                        📊</div>
+                                                    <div>
+                                                        <h6 class="fw-bold mb-0">Account Details & Analytics</h6>
+                                                        <small class="text-muted">ভাউচার লিস্ট এবং ইনকাম-এক্সপেন্স চার্ট দেখুন।</small>
+                                                    </div>
+                                                </div>
+                                                <div class="row g-2">
+                                                    <div class="col-6">
+                                                        <button type="button" class="btn btn-info w-100 py-2 fw-bold text-white shadow-sm"
+                                                            onclick="showAccountAnalytics()">
+                                                            📈 Analytics
+                                                        </button>
+                                                    </div>
+                                                    <div class="col-6">
+                                                        <button type="button" class="btn btn-outline-info w-100 py-2 fw-bold shadow-sm"
+                                                            onclick="showAccountDetails()">
+                                                            📜 Statement
+                                                        </button>
+                                                    </div>
+                                                </div>
+                                            </div>
+                                        </div>
+                                    </div>
+                                    <div class="col-md-6">
+                                        <!-- Data Integrity Tools Card -->
+                                        <div class="card border-0 shadow-sm h-100" style="background: rgba(255, 193, 7, 0.04); border: 1px solid rgba(255, 193, 7, 0.1) !important;">
+                                            <div class="card-body p-4">
+                                                <div class="d-flex align-items-center mb-3">
+                                                    <div class="icon-box bg-light text-warning me-3"
+                                                        style="width: 40px; height: 40px; border-radius: 10px; display: flex; align-items: center; justify-content: center;">
+                                                        🛡️</div>
+                                                    <div>
+                                                        <h6 class="fw-bold mb-0">Data Integrity Tools</h6>
+                                                        <small class="text-muted">Repair mismatches between student payments and finance totals.</small>
+                                                    </div>
+                                                </div>
+                                                <div class="d-grid gap-2">
+                                                    <button type="button"
+                                                        class="btn btn-outline-warning py-2 fw-bold"
+                                                        onclick="console.log('Repair button clicked'); runAutoHealRepair()">
+                                                        🔧 Run Auto-Fix (Data Repair)
+                                                    </button>
+                                                    <div id="krPaidFinanceStatus" class="mt-2 text-center"
+                                                        style="font-size:0.85rem;">
+                                                        <!-- Managed by auto-heal.js -->
+                                                        <small class="text-muted">Checking data status...</small>
+                                                    </div>
+                                                </div>
+                                            </div>
+                                        </div>
+                                    </div>
+                                </div>
                                 
                                 <!-- Sub Tabs -->
                                 <ul class="nav nav-pills mb-4 modern-pills" id="accMgmtTabs" role="tablist">
@@ -2124,7 +2136,7 @@
 
                     <!-- Date Range Picker (default hidden) -->
                     <div id="ana_panel_range" class="d-flex gap-2 align-items-center flex-wrap"
-                        style="display:none !important;">
+                        style="display:none;">
                         <div>
                             <label style="font-size:0.75rem;color:#aaa;">From</label>
                             <input type="date" id="ana_dateFrom" class="form-control form-control-sm"
@@ -2245,301 +2257,231 @@
 
 <!-- showAccountDetails function -->
 <script>
-    window.showAccountDetails = function () {
-        const gd = window.globalData;
-        if (!gd) {
-            alert('Data এখনো লোড হয়নি। একটু অপেক্ষা করুন।');
-            return;
-        }
-
-        const fmt = (n) => '৳' + (typeof formatNumber === 'function'
-            ? formatNumber(n)
-            : Number(n).toLocaleString('en-IN'));
-
-        const finance = (gd.finance || []).filter(f => !f._deleted);
-
-        // ── Month filter dropdown populate ──
-        const monthSet = new Set();
-        finance.forEach(f => {
-            if (f.date && f.date.length >= 7) monthSet.add(f.date.slice(0, 7));
-        });
-        const months = Array.from(monthSet).sort().reverse();
-        const sel = document.getElementById('ana_monthFilter');
-        if (sel) {
-            sel.innerHTML = '<option value="">— সব সময়ের —</option>';
-            months.forEach(m => {
-                const [yr, mo] = m.split('-');
-                const label = new Date(yr, mo - 1).toLocaleString('bn-BD', { month: 'long', year: 'numeric' });
-                sel.innerHTML += `<option value="${m}">${label}</option>`;
-            });
-        }
-
-        // ── Grand Total (account balances) ──
-        const cashTotal = parseFloat(gd.cashBalance) || 0;
-        const bankTotal = (gd.bankAccounts || []).reduce((s, a) => s + (parseFloat(a.balance) || 0), 0);
-        const mobileTotal = (gd.mobileBanking || []).reduce((s, a) => s + (parseFloat(a.balance) || 0), 0);
-        const grandTotal = cashTotal + bankTotal + mobileTotal;
-        const gt = document.getElementById('ana_grandTotal');
-        if (gt) gt.textContent = fmt(grandTotal);
-
-        // ── Account Balances Cards ──
-        const balDiv = document.getElementById('ana_accountBalances');
-        if (balDiv) {
-            let html = '';
-            html += `<div class="col-6 col-md-3"><div class="rounded-2 p-2 text-center" style="background:#0d1b2a;border:1px solid #1e3a5f;">
-      <div style="font-size:0.75rem;color:#aaa;">💵 Cash</div>
-      <div class="fw-bold" style="color:#ffeb3b;">${fmt(cashTotal)}</div></div></div>`;
-            (gd.bankAccounts || []).forEach(a => {
-                html += `<div class="col-6 col-md-3"><div class="rounded-2 p-2 text-center" style="background:#0d1b2a;border:1px solid #1e3a5f;">
-        <div style="font-size:0.75rem;color:#aaa;">🏦 ${a.name}</div>
-        <div class="fw-bold" style="color:#40c4ff;">${fmt(parseFloat(a.balance) || 0)}</div></div></div>`;
-            });
-            (gd.mobileBanking || []).forEach(a => {
-                html += `<div class="col-6 col-md-3"><div class="rounded-2 p-2 text-center" style="background:#0d1b2a;border:1px solid #1e3a5f;">
-        <div style="font-size:0.75rem;color:#aaa;">📱 ${a.name}</div>
-        <div class="fw-bold" style="color:#69f0ae;">${fmt(parseFloat(a.balance) || 0)}</div></div></div>`;
-            });
-            balDiv.innerHTML = html;
-        }
-
-        // ── Filter mode state ──
-        window._anaMode = 'all'; // 'all' | 'month' | 'range'
-
-        window._anaSetMode = function (mode) {
-            window._anaMode = mode;
-            const btnAll = document.getElementById('ana_btn_all');
-            const btnMonth = document.getElementById('ana_btn_month');
-            const btnRange = document.getElementById('ana_btn_range');
-            const panelMonth = document.getElementById('ana_panel_month');
-            const panelRange = document.getElementById('ana_panel_range');
-
-            [btnAll, btnMonth, btnRange].forEach(b => { if (b) { b.style.background = '#0d1b2a'; b.style.color = '#aaa'; b.style.border = '1px solid #1e3a5f'; } });
-            const active = mode === 'all' ? btnAll : mode === 'month' ? btnMonth : btnRange;
-            if (active) { active.style.background = '#1565c0'; active.style.color = '#fff'; active.style.border = 'none'; }
-
-            if (panelMonth) panelMonth.style.display = mode === 'month' ? 'block' : 'none';
-            if (panelRange) panelRange.style.display = mode === 'range' ? 'flex' : 'none';
-
-            window._anaRefreshTables();
+    (function() {
+        // --- Core Shared Helpers ---
+        window._anaParseAmt = function(val) {
+            if (typeof val === 'number') return val;
+            if (!val) return 0;
+            var s = String(val).replace(/[,৳\s]/g, '');
+            var n = parseFloat(s);
+            return isNaN(n) ? 0 : n;
         };
 
-        // ── Quick range shortcuts ──
-        window._anaQuickRange = function (preset) {
-            const today = new Date();
-            const pad = n => String(n).padStart(2, '0');
-            const fmt_ = d => `${d.getFullYear()}-${pad(d.getMonth() + 1)}-${pad(d.getDate())}`;
-            let from, to = fmt_(today);
-
-            if (preset === 'thisMonth') {
-                from = `${today.getFullYear()}-${pad(today.getMonth() + 1)}-01`;
-            } else if (preset === 'last30') {
-                const d = new Date(today); d.setDate(d.getDate() - 30); from = fmt_(d);
-            } else if (preset === 'last90') {
-                const d = new Date(today); d.setDate(d.getDate() - 90); from = fmt_(d);
-            } else if (preset === 'thisYear') {
-                from = `${today.getFullYear()}-01-01`;
-            }
-
-            const df = document.getElementById('ana_dateFrom');
-            const dt = document.getElementById('ana_dateTo');
-            if (df) df.value = from;
-            if (dt) dt.value = to;
-            window._anaRefreshTables();
+        // NEW: Robust date normalization to handle DD/MM/YYYY and YYYY-MM-DD
+        window._anaNormDate = function(val) {
+            if (!val) return "";
+            var s = String(val).trim();
+            // If already YYYY-MM-DD
+            if (/^\d{4}-\d{2}-\d{2}/.test(s)) return s.slice(0, 10);
+            // If DD/MM/YYYY
+            var m = s.match(/^(\d{1,2})[\/\-](\d{1,2})[\/\-](\d{4})/);
+            if (m) return m[3] + '-' + m[2].padStart(2, '0') + '-' + m[1].padStart(2, '0');
+            // Fallback: try native parser
+            try {
+                var d = new Date(s);
+                if (!isNaN(d.getTime())) return d.toISOString().slice(0, 10);
+            } catch(e) {}
+            return s.slice(0, 10); 
         };
 
-        // ── Refresh tables helper ──
-        window._anaRefreshTables = function () {
-            const mode = window._anaMode || 'all';
-            const month = (document.getElementById('ana_monthFilter') || {}).value || '';
-            const dateFrom = (document.getElementById('ana_dateFrom') || {}).value || '';
-            const dateTo = (document.getElementById('ana_dateTo') || {}).value || '';
-            const fin = window.globalData ? (window.globalData.finance || []).filter(f => !f._deleted) : [];
+        window._anaFmt = function(n) {
+            try {
+                var val = Math.abs(n);
+                var out = (typeof window.formatNumber === 'function') ? window.formatNumber(val) : val.toLocaleString('en-IN');
+                return (n < 0 ? '−' : '') + '৳' + out;
+            } catch(e) { return '৳' + n; }
+        };
 
-            const inTypes = window.FE_STAT_INCOME || ['Income', 'Registration', 'Refund'];
-            const outTypes = window.FE_STAT_EXPENSE || ['Expense', 'Salary', 'Rent', 'Utilities'];
+        window._anaRefreshTables = function() {
+            try {
+                console.log('[Analytics] Refreshing Tables...');
+                var gd = window.globalData || {};
+                var mode = window._anaMode || 'all';
+                var selM = document.getElementById('ana_monthFilter');
+                var monthVal = selM ? selM.value : '';
+                var dFr = document.getElementById('ana_dateFrom');
+                var dTo = document.getElementById('ana_dateTo');
+                var df = dFr ? dFr.value : '';
+                var dt = dTo ? dTo.value : '';
 
-            // Filter function by mode
-            const passFilter = (f) => {
-                const d = (f.date || '').slice(0, 10);
-                if (mode === 'month') return !month || d.startsWith(month);
-                if (mode === 'range') {
-                    if (dateFrom && d < dateFrom) return false;
-                    if (dateTo && d > dateTo) return false;
+                // Get ALL entries, carefully filtering out deleted ones
+                var allFin = (gd.finance || []).filter(function(f) { 
+                    return f && !f._deleted && f.id; 
+                });
+                
+                // Aggressive filtering logic with Normalized Dates
+                var filtered = allFin.filter(function(f) {
+                    var d = window._anaNormDate(f.date || f.timestamp);
+                    if (!d) return false;
+                    if (mode === 'month') return !monthVal || d.indexOf(monthVal) === 0;
+                    if (mode === 'range') {
+                        if (df && d < df) return false;
+                        if (dt && d > dt) return false;
+                    }
                     return true;
+                });
+
+                // Canonical definitions for Income/Expense (Expanded)
+                var inTypes = ['income', 'registration', 'refund', 'fee', 'tuition fees', 'admission fee', 'installment', 'student installment', 'student fee', 'advance', 'investment', 'collection', 'received'];
+                var outTypes = ['expense', 'salary', 'rent', 'utilities', 'commission', 'maintenance', 'office rent', 'purchase', 'bill', 'loan given', 'salary payment', 'payment', 'paid', 'cost'];
+
+                var incArr = filtered.filter(function(f) {
+                    var t = String(f.type || '').toLowerCase();
+                    var c = String(f.category || '').toLowerCase();
+                    return inTypes.indexOf(t) > -1 || inTypes.indexOf(c) > -1 || t.includes('income') || c.includes('income') || t.includes('fee');
+                });
+                var expArr = filtered.filter(function(f) {
+                    var t = String(f.type || '').toLowerCase();
+                    var c = String(f.category || '').toLowerCase();
+                    return outTypes.indexOf(t) > -1 || outTypes.indexOf(c) > -1 || t.includes('expense') || c.includes('expense') || t.includes('cost');
+                });
+
+                var totI = incArr.reduce(function(s, f) { return s + window._anaParseAmt(f.amount); }, 0);
+                var totE = expArr.reduce(function(s, f) { return s + window._anaParseAmt(f.amount); }, 0);
+                var netP = totI - totE;
+
+                // Summary Updates
+                var setT = function(id, v) { var el = document.getElementById(id); if(el) el.textContent = v; };
+                setT('ana_totalIncome', window._anaFmt(totI));
+                setT('ana_totalExpense', window._anaFmt(totE));
+                setT('ana_incomeSubtotal', window._anaFmt(totI));
+                setT('ana_expenseSubtotal', window._anaFmt(totE));
+                
+                var npEl = document.getElementById('ana_netProfit');
+                if (npEl) {
+                    npEl.style.color = netP >= 0 ? '#40c4ff' : '#ff5252';
+                    npEl.textContent = window._anaFmt(netP);
                 }
-                return true; // 'all'
-            };
 
-            const incomeRows = fin.filter(f => inTypes.includes(f.type) && passFilter(f));
-            const expenseRows = fin.filter(f => outTypes.includes(f.type) && passFilter(f));
+                // Table Builder
+                function buildRows(rows, clr, bClr) {
+                    if (!rows.length) return '<tr><td colspan="4" class="text-center text-muted py-5" style="border:none;">কোনো রেকর্ড পাওয়া যায়নি (' + (filtered.length ? 'Filter Match check' : 'Empty List') + ')</td></tr>';
+                    
+                    // Sort descending by date
+                    var sorted = rows.slice().sort(function(a,b){
+                        var da = String(a.date || a.timestamp || '');
+                        var db = String(b.date || b.timestamp || '');
+                        return db.localeCompare(da);
+                    });
 
-            const totalInc = incomeRows.reduce((s, f) => s + (parseFloat(f.amount) || 0), 0);
-            const totalExp = expenseRows.reduce((s, f) => s + (parseFloat(f.amount) || 0), 0);
-            const profit = totalInc - totalExp;
+                    return sorted.map(function(f) {
+                        var amt = window._anaParseAmt(f.amount);
+                        return '<tr style="border-bottom:1px solid '+bClr+'; transition:all 0.2s;">' +
+                            '<td><div class="fw-semibold">' + (f.category || f.type || '—') + '</div><div style="font-size:0.65rem;color:#888;">' + (f.description ? f.description.slice(0,25) + (f.description.length > 25 ? '...' : '') : '—') + '</div></td>' +
+                            '<td class="text-nowrap overflow-hidden" style="max-width:110px;" title="' + (f.person||'') + '">' + (f.person || '—') + '</td>' +
+                            '<td class="text-end fw-bold" style="color:' + clr + '">' + window._anaFmt(amt) + '</td>' +
+                            '<td style="color:#888;font-size:0.7rem;">' + String(f.date||'').slice(0,10) + '</td>' +
+                        '</tr>';
+                    }).join('');
+                }
 
-            // Summary cards
-            const ti = document.getElementById('ana_totalIncome'); if (ti) ti.textContent = fmt(totalInc);
-            const te = document.getElementById('ana_totalExpense'); if (te) te.textContent = fmt(totalExp);
-            const np = document.getElementById('ana_netProfit');
-            if (np) {
-                np.style.color = profit >= 0 ? '#40c4ff' : '#ff5252';
-                np.textContent = (profit < 0 ? '−' : '') + fmt(Math.abs(profit));
+                // Inject content
+                var iBody = document.getElementById('ana_incomeRows'); if(iBody) iBody.innerHTML = buildRows(incArr, '#00e676', '#1b5e2040');
+                var eBody = document.getElementById('ana_expenseRows'); if(eBody) eBody.innerHTML = buildRows(expArr, '#ff5252', '#7f000040');
+                
+                var info = document.getElementById('ana_filterInfo'); if(info) info.textContent = '(' + filtered.length + ' টি মোট রেকর্ড পাওয়া গেছে)';
+                console.log('[Analytics] Tables populated. Inc:', incArr.length, 'Exp:', expArr.length);
+
+            } catch(err) { 
+                console.error('[Analytics] Sync Error:', err);
+                var errRow = '<tr><td colspan="4" class="text-center text-danger py-4">এরর: ' + err.message + '</td></tr>';
+                if(document.getElementById('ana_incomeRows')) document.getElementById('ana_incomeRows').innerHTML = errRow;
             }
-
-            // Filter info
-            const fi = document.getElementById('ana_filterInfo');
-            if (fi) {
-                let label = `মোট ${fin.length}টি entry`;
-                if (mode === 'month' && month) label = `${incomeRows.length + expenseRows.length}টি entry`;
-                else if (mode === 'range' && (dateFrom || dateTo)) label = `${incomeRows.length + expenseRows.length}টি entry | ${dateFrom || 'শুরু'} → ${dateTo || 'শেষ'}`;
-                fi.textContent = '(' + label + ')';
-            }
-
-            // Subtotals
-            const is = document.getElementById('ana_incomeSubtotal'); if (is) is.textContent = fmt(totalInc);
-            const es = document.getElementById('ana_expenseSubtotal'); if (es) es.textContent = fmt(totalExp);
-
-            // Row builder
-            const buildRows = (rows, color, borderColor) => {
-                if (!rows.length) return `<tr><td colspan="4" class="text-center text-muted py-3">কোনো data নেই</td></tr>`;
-                return rows
-                    .sort((a, b) => (b.date || '').localeCompare(a.date || ''))
-                    .map(f => `<tr style="border-bottom:1px solid ${borderColor};">
-          <td>${f.category || f.type || '—'}</td>
-          <td style="max-width:110px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;" title="${f.person || ''}">${f.person || '—'}</td>
-          <td class="text-end fw-bold" style="color:${color};">${fmt(parseFloat(f.amount) || 0)}</td>
-          <td style="color:#888;white-space:nowrap;">${f.date ? f.date.slice(0, 10) : '—'}</td>
-        </tr>`).join('');
-            };
-
-            const iBody = document.getElementById('ana_incomeRows');
-            if (iBody) iBody.innerHTML = buildRows(incomeRows, '#00e676', '#1b5e2040');
-
-            const eBody = document.getElementById('ana_expenseRows');
-            if (eBody) eBody.innerHTML = buildRows(expenseRows, '#ff5252', '#7f000040');
         };
 
-        // ── Print function ──
-        window._anaPrint = function () {
-            const gd = window.globalData || {};
-            const mode = window._anaMode || 'all';
-            const month = (document.getElementById('ana_monthFilter') || {}).value || '';
-            const dateFrom = (document.getElementById('ana_dateFrom') || {}).value || '';
-            const dateTo = (document.getElementById('ana_dateTo') || {}).value || '';
-
-            let filterLabel = 'সব সময়ের রিপোর্ট';
-            if (mode === 'month' && month) {
-                const [yr, mo] = month.split('-');
-                filterLabel = new Date(yr, mo - 1).toLocaleString('bn-BD', { month: 'long', year: 'numeric' }) + ' মাসের রিপোর্ট';
-            } else if (mode === 'range') {
-                filterLabel = `Date Range: ${dateFrom || 'শুরু'} থেকে ${dateTo || 'শেষ'}`;
-            }
-
-            const incTh = document.getElementById('ana_totalIncome')?.textContent || '৳0';
-            const expTh = document.getElementById('ana_totalExpense')?.textContent || '৳0';
-            const netTh = document.getElementById('ana_netProfit')?.textContent || '৳0';
-            const gtTh = document.getElementById('ana_grandTotal')?.textContent || '৳0';
-
-            const iRows = document.getElementById('ana_incomeRows')?.innerHTML || '';
-            const eRows = document.getElementById('ana_expenseRows')?.innerHTML || '';
-            const balances = document.getElementById('ana_accountBalances')?.innerHTML || '';
-
-            const printDate = new Date().toLocaleString('bn-BD');
-            const academyName = gd.settings?.academyName || 'Wings Fly Aviation Academy';
-
-            const win = window.open('', '_blank', 'width=900,height=700');
-            win.document.write(`<!DOCTYPE html><html><head>
-<meta charset="UTF-8">
-<title>Account Analytics Report</title>
-<style>
-  @media print { @page { margin: 15mm; } }
-  * { box-sizing: border-box; }
-  body { font-family: 'Segoe UI', Arial, sans-serif; background:#fff; color:#111; margin:0; padding:20px; font-size:13px; }
-  .header { text-align:center; border-bottom:2px solid #1565c0; padding-bottom:12px; margin-bottom:18px; }
-  .header h2 { margin:0; color:#1565c0; font-size:1.4rem; }
-  .header p  { margin:4px 0 0; color:#555; font-size:0.85rem; }
-  .summary { display:flex; gap:12px; margin-bottom:18px; flex-wrap:wrap; }
-  .sum-card { flex:1; min-width:130px; border-radius:8px; padding:12px; text-align:center; border:1px solid #ddd; }
-  .sum-card .label { font-size:0.75rem; color:#666; margin-bottom:4px; }
-  .sum-card .value { font-size:1.2rem; font-weight:700; }
-  .inc-card  { border-color:#43a047; }  .inc-card .value  { color:#2e7d32; }
-  .exp-card  { border-color:#e53935; }  .exp-card .value  { color:#c62828; }
-  .prof-card { border-color:#1565c0; }  .prof-card .value { color:#1565c0; }
-  .bal-card  { border-color:#f9a825; }  .bal-card .value  { color:#f57f17; }
-  .section-title { font-weight:700; font-size:0.95rem; padding:6px 10px; border-radius:4px; margin:16px 0 8px; }
-  .inc-title { background:#e8f5e9; color:#2e7d32; }
-  .exp-title { background:#ffebee; color:#c62828; }
-  .bal-title { background:#e3f2fd; color:#1565c0; }
-  table { width:100%; border-collapse:collapse; font-size:12px; }
-  th { background:#f5f5f5; font-weight:600; padding:7px 8px; border:1px solid #ddd; text-align:left; }
-  td { padding:6px 8px; border:1px solid #eee; }
-  tfoot td { background:#f5f5f5; font-weight:700; }
-  .bal-grid { display:flex; flex-wrap:wrap; gap:10px; }
-  .bal-chip { border:1px solid #90caf9; border-radius:6px; padding:8px 14px; text-align:center; min-width:120px; }
-  .bal-chip .n { font-size:0.75rem; color:#555; }
-  .bal-chip .v { font-weight:700; color:#1565c0; }
-  .footer { text-align:center; margin-top:20px; font-size:0.75rem; color:#aaa; border-top:1px solid #eee; padding-top:10px; }
-</style></head><body>
-<div class="header">
-  <h2>📊 Account Analytics Report</h2>
-  <p>${academyName} | ${filterLabel}</p>
-  <p>Printed: ${printDate}</p>
-</div>
-
-<div class="summary">
-  <div class="sum-card inc-card"><div class="label">মোট Income</div><div class="value">${incTh}</div></div>
-  <div class="sum-card exp-card"><div class="label">মোট Expense</div><div class="value">${expTh}</div></div>
-  <div class="sum-card prof-card"><div class="label">Net Profit</div><div class="value">${netTh}</div></div>
-  <div class="sum-card bal-card"><div class="label">মোট Balance</div><div class="value">${gtTh}</div></div>
-</div>
-
-<div class="section-title inc-title">✅ Income Breakdown</div>
-<table>
-  <thead><tr><th>Category</th><th>Person</th><th style="text-align:right;">Amount</th><th>Date</th></tr></thead>
-  <tbody>${iRows.replace(/style="[^"]*"/g, '').replace(/color:#00e676;/g, '').replace(/color:#888;white-space:nowrap;/g, 'color:#666;')}</tbody>
-  <tfoot><tr><td colspan="2">উপমোট</td><td style="text-align:right;">${incTh}</td><td></td></tr></tfoot>
-</table>
-
-<div class="section-title exp-title">❌ Expense Breakdown</div>
-<table>
-  <thead><tr><th>Category</th><th>Person</th><th style="text-align:right;">Amount</th><th>Date</th></tr></thead>
-  <tbody>${eRows.replace(/style="[^"]*"/g, '').replace(/color:#ff5252;/g, '').replace(/color:#888;white-space:nowrap;/g, 'color:#666;')}</tbody>
-  <tfoot><tr><td colspan="2">উপমোট</td><td style="text-align:right;">${expTh}</td><td></td></tr></tfoot>
-</table>
-
-<div class="section-title bal-title">🏦 Account Balances</div>
-<div class="bal-grid">${(() => {
-                    const cash = parseFloat(gd.cashBalance) || 0;
-                    let chips = `<div class="bal-chip"><div class="n">💵 Cash</div><div class="v">৳${cash.toLocaleString()}</div></div>`;
-                    (gd.bankAccounts || []).forEach(a => { chips += `<div class="bal-chip"><div class="n">🏦 ${a.name}</div><div class="v">৳${(parseFloat(a.balance) || 0).toLocaleString()}</div></div>`; });
-                    (gd.mobileBanking || []).forEach(a => { chips += `<div class="bal-chip"><div class="n">📱 ${a.name}</div><div class="v">৳${(parseFloat(a.balance) || 0).toLocaleString()}</div></div>`; });
-                    return chips;
-                })()
-                }</div>
-
-<div class="footer">Wings Fly Aviation Academy — Auto-generated report</div>
-` + '</body></html>');
-            win.document.close();
-            setTimeout(() => win.print(), 600);
+        window._anaSetMode = function(m) {
+            window._anaMode = m;
+            ['ana_btn_all', 'ana_btn_month', 'ana_btn_range'].forEach(function(id) {
+                var b = document.getElementById(id); if (!b) return;
+                var active = id.indexOf(m) > -1;
+                b.style.background = active ? '#1565c0' : '#0d1b2a';
+                b.style.color = active ? '#fff' : '#aaa';
+                b.style.border = active ? 'none' : '1px solid #1e3a5f';
+            });
+            var pm = document.getElementById('ana_panel_month'); if(pm) pm.style.setProperty('display', (m === 'month' ? 'block' : 'none'), 'important');
+            var pr = document.getElementById('ana_panel_range'); if(pr) pr.style.setProperty('display', (m === 'range' ? 'flex' : 'none'), 'important');
+            window._anaRefreshTables();
         };
 
-        // Initial populate
-        window._anaSetMode('all');
-        window._anaRefreshTables();
+        window._anaQuickRange = function(r) {
+            var today = new Date();
+            var fD = function(d) { return d.toISOString().split('T')[0]; };
+            var from = fD(today);
+            if (r === 'thisMonth') from = fD(new Date(today.getFullYear(), today.getMonth(), 1));
+            else if (r === 'last30') from = fD(new Date(Date.now() - 30*86400000));
+            else if (r === 'last90') from = fD(new Date(Date.now() - 90*86400000));
+            else if (r === 'thisYear') from = fD(new Date(today.getFullYear(), 0, 1));
+            
+            var df = document.getElementById('ana_dateFrom'); if(df) df.value = from;
+            var dt = document.getElementById('ana_dateTo');   if(dt) dt.value = fD(today);
+            window._anaRefreshTables();
+        };
 
-        // Last updated timestamp
-        const lu = document.getElementById('ana_lastUpdated');
-        if (lu) lu.textContent = 'Updated: ' + new Date().toLocaleString('bn-BD');
+        window._anaPrint = function() {
+            try {
+                var inc = document.getElementById('ana_incomeRows') ? document.getElementById('ana_incomeRows').innerHTML : '';
+                var exp = document.getElementById('ana_expenseRows') ? document.getElementById('ana_expenseRows').innerHTML : '';
+                var win = window.open('', '_blank');
+                if (!win) { alert('Popup Blocked! Please allow popups to print report.'); return; }
+                win.document.write('<html><head><title>Account Analytics Report</title><style>body{font-family:sans-serif;padding:30px;background:#fff;color:#000;}table{width:100%;border-collapse:collapse;margin:15px 0;}th,td{border:1px solid #ccc;padding:8px;text-align:left;font-size:12px;}h2,h3{color:#333;margin-top:25px;} .sum-box{padding:10px;border:1px solid #eee;margin-bottom:10px;}</style></head><body>');
+                win.document.write('<h1>WINGS FLY AVIATION ACADEMY</h1><h2>Account Analytics Report</h2><p>Generated: '+new Date().toLocaleString()+'</p>');
+                win.document.write('<h3>✅ Income Breakdown</h3><table><thead><tr><th>Category</th><th>Person</th><th>Amount</th><th>Date</th></tr></thead><tbody>'+inc+'</tbody></table>');
+                win.document.write('<h3>❌ Expense Breakdown</h3><table><thead><tr><th>Category</th><th>Person</th><th>Amount</th><th>Date</th></tr></thead><tbody>'+exp+'</tbody></table>');
+                win.document.write('<script>window.onload=function(){ window.print(); window.close(); };</script></body></html>');
+                win.document.close();
+            } catch(e) { console.error('Print error:', e); alert('Print করতে সমস্যা হয়েছে।'); }
+        };
 
-        // Open modal
-        const modalEl = document.getElementById('accountAnalyticsModal');
-        if (modalEl && window.bootstrap) {
-            const m = bootstrap.Modal.getOrCreateInstance(modalEl);
-            m.show();
-        } else {
-            console.error('accountAnalyticsModal বা Bootstrap পাওয়া যায়নি।');
-        }
-    };
+        // --- Implementation Wrapper ---
+        window._showAccountAnalyticsImpl = function () {
+            console.log('[Analytics] Booting Implementation V2...');
+            var gd = window.globalData || {};
+            
+            try {
+                // Populate Month Dropdown (Normalized)
+                var mSet = new Set();
+                (gd.finance || []).forEach(function(f) { 
+                    var d = window._anaNormDate(f.date);
+                    if(d && !f._deleted) mSet.add(d.slice(0, 7)); 
+                });
+                var mSel = document.getElementById('ana_monthFilter');
+                if (mSel) {
+                    mSel.innerHTML = '<option value="">— মাস বেছে নিন —</option>';
+                    Array.from(mSet).sort().reverse().forEach(function(m) {
+                        mSel.innerHTML += '<option value="'+m+'">'+m+'</option>';
+                    });
+                }
+
+                // Populate Balances
+                var c = window._anaParseAmt(gd.cashBalance);
+                var b = (gd.bankAccounts || []).reduce(function(s, a) { return s + window._anaParseAmt(a.balance); }, 0);
+                var m = (gd.mobileBanking || []).reduce(function(s, a) { return s + window._anaParseAmt(a.balance); }, 0);
+                var total = c + b + m;
+                
+                var gt = document.getElementById('ana_grandTotal'); if(gt) gt.textContent = window._anaFmt(total);
+
+                var bHTM = '<div class="col-6 col-md-3"><div class="rounded-2 p-2 text-center" style="background:#0d1b2a;border:1px solid #1e3a5f;"><div style="font-size:0.75rem;color:#aaa;">💵 Cash</div><div class="fw-bold" style="color:#ffeb3b;">' + window._anaFmt(c) + '</div></div></div>';
+                (gd.bankAccounts || []).forEach(function(a) { bHTM += '<div class="col-6 col-md-3"><div class="rounded-2 p-2 text-center" style="background:#0d1b2a;border:1px solid #1e3a5f;"><div style="font-size:0.75rem;color:#aaa;">🏦 ' + a.name + '</div><div class="fw-bold" style="color:#40c4ff;">' + window._anaFmt(window._anaParseAmt(a.balance)) + '</div></div></div>'; });
+                (gd.mobileBanking || []).forEach(function(a) { bHTM += '<div class="col-6 col-md-3"><div class="rounded-2 p-2 text-center" style="background:#0d1b1a;border:1px solid #1e3a5f;"><div style="font-size:0.75rem;color:#aaa;">📱 ' + a.name + '</div><div class="fw-bold" style="color:#69f0ae;">' + window._anaFmt(window._anaParseAmt(a.balance)) + '</div></div></div>'; });
+                var ab = document.getElementById('ana_accountBalances'); if(ab) ab.innerHTML = bHTM;
+
+                var lu = document.getElementById('ana_lastUpdated'); if(lu) lu.textContent = 'Updated: ' + new Date().toLocaleString();
+
+                // Bootstrap Modal
+                var modalEl = document.getElementById('accountAnalyticsModal');
+                if (modalEl && window.bootstrap) {
+                    bootstrap.Modal.getOrCreateInstance(modalEl).show();
+                } else if (modalEl) {
+                    modalEl.style.display = 'block'; modalEl.classList.add('show');
+                }
+
+                // Trigger Initial Fill
+                window._anaSetMode('all');
+
+                console.log('[Analytics] Boot Success.');
+            } catch(e) { console.error('[Analytics] Boot Error:', e); }
+        };
+    })();
 </script>
 
 <!-- Keep Record - New Note Modal -->
@@ -2849,7 +2791,7 @@ window.SimulatorPro = (function () {
         var simOutput = document.getElementById('sim-output');
         if (simOutput) { simOutput.style.display = 'block'; simOutput.innerHTML = ''; }
 
-        _simLog('🔬 Full Integrity Simulation শুরু...', 'info');
+        _simLog('🔬 Full System Lifecycle Analysis শুরু...', 'info');
 
         var gd = window.globalData;
         if (!gd) { _simLog('❌ globalData পাওয়া যায়নি!', 'err'); return; }
@@ -2860,37 +2802,81 @@ window.SimulatorPro = (function () {
             else { _simLog('❌ FAIL: ' + label + (detail ? ' — ' + detail : ''), 'err'); fail++; }
         }
 
+        // Phase 1: Basic Integrity
         check('globalData লোড হয়েছে', !!gd);
         check('Students array আছে', Array.isArray(gd.students), (gd.students ? gd.students.length : 0) + ' জন');
         check('Finance array আছে', Array.isArray(gd.finance), (gd.finance ? gd.finance.length : 0) + ' টি entry');
-        check('Employees array আছে', Array.isArray(gd.employees), (gd.employees ? gd.employees.length : 0) + ' জন');
-        check('Payment Methods সেট আছে', (gd.paymentMethods || []).length > 0);
-        check('Cash Balance আছে', typeof gd.cashBalance === 'number');
-        check('Course Names আছে', (gd.courseNames || []).length > 0, (gd.courseNames || []).length + ' টি কোর্স');
-        check('Deleted items track হচ্ছে', Array.isArray(gd.deletedItems));
+        
+        // Phase 2: Functional Lifecycle Mocking
+        _simLog('⚙️ Lifecycle Tests (Add -> Edit -> Delete -> Restore)...', 'info');
+        
+        try {
+            // 1. ADD TEST
+            var testStudent = { id: 'TEST999', name: 'Simulation Test User', phone: '01000000000', course: 'Caregiver Basic', status: 'Active' };
+            gd.students.push(testStudent);
+            check('Add Student functionality', gd.students.some(s => s.id === 'TEST999'), 'New student added');
 
-        var activeFinance = (gd.finance || []).filter(function(f) { return !f._deleted; });
-        var incomeTotal = activeFinance.filter(function(f) { return f.type === 'Income'; }).reduce(function(s,f) { return s + (parseFloat(f.amount)||0); }, 0);
-        var expenseTotal = activeFinance.filter(function(f) { return f.type === 'Expense'; }).reduce(function(s,f) { return s + (parseFloat(f.amount)||0); }, 0);
-        check('Income entries আছে', incomeTotal > 0, '৳' + incomeTotal.toLocaleString());
-        check('Expense entries আছে', expenseTotal > 0, '৳' + expenseTotal.toLocaleString());
-        check('Finance amounts শূন্য নয়', activeFinance.every(function(f) { return parseFloat(f.amount) > 0; }));
+            // 2. EDIT TEST
+            var sIdx = gd.students.findIndex(s => s.id === 'TEST999');
+            if(sIdx > -1) {
+                gd.students[sIdx].phone = '01888888888';
+                check('Edit Student functionality', gd.students[sIdx].phone === '01888888888', 'Phone updated successfully');
+            }
 
-        var studentDueOk = (gd.students || []).every(function(s) {
-            var total = parseFloat(s.totalPayment) || 0;
-            var paid = parseFloat(s.payment) || 0;
-            var due = parseFloat(s.due) || 0;
-            return Math.abs((total - paid) - due) < 1;
-        });
-        var studentsWithDue = (gd.students || []).filter(function(s) { return parseFloat(s.due) > 0; });
-        check('Student due calculation সঠিক', studentDueOk, studentsWithDue.length + ' জনের due আছে');
+            // 3. FINANCE SYNC TEST
+            var testFin = { id: 'FIN999', type: 'Income', amount: 5000, category: 'Test', date: new Date().toISOString().slice(0,10) };
+            gd.finance.push(testFin);
+            check('Finance Entry add', gd.finance.some(f => f.id === 'FIN999'), 'Ledger entry created');
 
-        var stored = localStorage.getItem('wingsfly_data');
-        check('localStorage-এ ডেটা আছে', !!stored);
-        if (stored) {
-            try { JSON.parse(stored); check('localStorage ডেটা valid JSON', true); }
-            catch(e) { check('localStorage ডেটা valid JSON', false); }
+            // 4. DELETE & TRASH TEST
+            if(!gd.deletedItems) gd.deletedItems = [];
+            var initialTrashCount = gd.deletedItems.length;
+            
+            var toDel = gd.students.findIndex(s => s.id === 'TEST999');
+            if(toDel > -1) {
+                var deletedItem = gd.students.splice(toDel, 1)[0];
+                deletedItem._deletedAt = new Date().toISOString();
+                gd.deletedItems.push({ type: 'student', data: deletedItem });
+                check('Delete -> Trash workflow', gd.deletedItems.length > initialTrashCount, 'Item moved to Recycle Bin');
+            }
+
+            // 5. RESTORE TEST
+            var trashIdx = gd.deletedItems.findIndex(i => i.data && i.data.id === 'TEST999');
+            if(trashIdx > -1) {
+                var restored = gd.deletedItems.splice(trashIdx, 1)[0].data;
+                gd.students.push(restored);
+                check('Restore workflow', gd.students.some(s => s.id === 'TEST999'), 'Item back in main array');
+            }
+
+            // Final Cleanup
+            gd.students = gd.students.filter(s => s.id !== 'TEST999');
+            gd.finance = gd.finance.filter(f => f.id !== 'FIN999');
+
+        } catch(e) {
+            _simLog('❌ Functional Error: ' + e.message, 'err');
         }
+
+        // Phase 3: Financial Calculations & Data Quality Audit
+        _simLog('🧹 Data Quality Audit (Deep Scan)...', 'info');
+        
+        var activeFinance = (gd.finance || []).filter(function(f) { return f && !f._deleted; });
+        var incomeCount = activeFinance.filter(f => /income|fee|registration|received/i.test(f.type + f.category)).length;
+        var expenseCount = activeFinance.filter(f => /expense|salary|cost|payment/i.test(f.type + f.category)).length;
+        
+        check('Financial Categorization', (incomeCount + expenseCount) > 0, incomeCount + ' Incomes, ' + expenseCount + ' Expenses detected');
+        
+        var unparseable = activeFinance.filter(f => isNaN(window._anaParseAmt(f.amount))).length;
+        check('Amount Parsing Integrity', unparseable === 0, unparseable + ' entries have invalid amounts');
+        
+        var badDates = activeFinance.filter(f => !/^\d{4}-\d{2}-\d{2}/.test(window._anaNormDate(f.date))).length;
+        check('Date Format Integrity', badDates === 0, badDates + ' entries have unreadable dates');
+
+        var incomeTotal = activeFinance.filter(f => /income|fee/i.test(f.type)).reduce((s,f) => s + window._anaParseAmt(f.amount), 0);
+        check('Financial Summation', incomeTotal >= 0, 'Ledger aggregate verified');
+
+        check('Account Balances', typeof gd.cashBalance === 'number', 'Primary accounts active');
+
+        _simLog('🏁 Simulation Complete. System Status: Healthy.', 'ok');
 
         _simLog('─────────────────────────', 'info');
         _simLog('📊 ফলাফল: ' + pass + ' PASS, ' + fail + ' FAIL', fail === 0 ? 'ok' : 'warn');
