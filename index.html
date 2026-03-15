@@ -315,20 +315,17 @@
                 <p class="text-muted">Aviation Academy Management System</p>
             </div>
 
-            <form id="loginForm" onsubmit="handleLogin(event)" autocomplete="off">
-                <!-- Honeypot fields - Chrome password manager bypass -->
-                <input type="text" name="fakeusername_hf" style="opacity: 0; position: absolute; z-index: -1;" tabindex="-1" aria-hidden="true">
-                <input type="password" name="fakepassword_hf" style="opacity: 0; position: absolute; z-index: -1;" tabindex="-1" aria-hidden="true">
+            <form id="loginForm" onsubmit="handleLogin(event)" autocomplete="on">
                 <div class="mb-3">
                     <label class="form-label">Username</label>
-                    <input type="text" id="loginUsernameField" name="wingsfly_user" class="form-control" placeholder="Enter username"
-                        required autocomplete="new-password" data-form-type="other" data-lpignore="true">
+                    <input type="text" id="loginUsernameField" name="username" class="form-control" placeholder="Enter username"
+                        required autocomplete="username" data-lpignore="false">
                 </div>
                 <div class="mb-3">
                     <label class="form-label">Password</label>
                     <div class="position-relative">
-                        <input type="password" id="loginPasswordField" name="wingsfly_pass" class="form-control" placeholder="Enter password"
-                            required autocomplete="new-password" data-form-type="other" data-lpignore="true"
+                        <input type="password" id="loginPasswordField" name="password" class="form-control" placeholder="Enter password"
+                            required autocomplete="current-password" data-lpignore="false"
                             style="padding-right: 2.8rem;">
                         <button type="button" id="loginPwEyeBtn"
                             style="position:absolute;right:10px;top:50%;transform:translateY(-50%);background:none;border:none;cursor:pointer;font-size:1rem;color:rgba(0,200,255,0.6);padding:0;line-height:1;"
@@ -2179,6 +2176,17 @@
         })();
     </script>
 
+    <script>
+        // Ensure login fields are empty on load even if browser tries to autofill
+        window.addEventListener('load', function() {
+            setTimeout(function() {
+                const u = document.getElementById('loginUsernameField');
+                const p = document.getElementById('loginPasswordField');
+                if (u) u.value = '';
+                if (p) p.value = '';
+            }, 100);
+        });
+    </script>
 </body>
 
 </html>
