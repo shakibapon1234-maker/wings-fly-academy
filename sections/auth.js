@@ -502,43 +502,22 @@ window.loadDashboard = loadDashboard;
 window.switchTab = switchTab;
 
 // ═══════════════════════════════════════════════════
-// PAGE REFRESH → Same Tab Restore
-// ═══════════════════════════════════════════════════
 // PAGE REFRESH → Same Tab Restore (Flash-Free)
 // ═══════════════════════════════════════════════════
 (function () {
   if (sessionStorage.getItem('isLoggedIn') !== 'true') return;
 
-  // ✅ FIX: script parse হওয়ার সাথে সাথেই style inject
-  // Browser paint করার আগেই login hide + content hide + dashboardOverview hide
   var lastTab = localStorage.getItem('wingsfly_active_tab') || 'dashboard';
   var style = document.createElement('style');
   style.id = 'wf-flash-prevent';
-  // ✅ Dashboard overview ও সব main section default-এ hide করো (!important সহ)
-  // DashboardSection container টাকে show করো যাতে sidebar দেখা যায়, কিন্তু ভেতরের content hide রাখো
-  style.textContent = `
-    #loginSection{display:none!important}
-    #dashboardSection{display:block!important}
-    #content{display:none!important}
-    #dashboardOverview, #studentSection, #loanSection, #ledgerSection, #visitorSection, #employeeSection, #examResultsSection, #salaryHubSection {
-        display:none!important;
-    }
-  `;
+  // ✅ Dashboard overview ও সব section default hide — শুধু সঠিক tab DOM ready হলে show হবে
+  style.textContent = '#loginSection{display:none!important}#dashboardSection{display:block!important}#content{display:none!important}#dashboardOverview{display:none!important}';
   (document.head || document.documentElement).appendChild(style);
 
   document.addEventListener('DOMContentLoaded', function () {
     var login = document.getElementById('loginSection');
     var dash = document.getElementById('dashboardSection');
     if (!login || !dash) return;
-
-    var lastTab = localStorage.getItem('wingsfly_active_tab') || 'dashboard';
-    var justLoggedIn = sessionStorage.getItem('wf_just_logged_in') === 'true';
-
-    // LOGIN: সবসময় dashboard এ যাও
-    if (justLoggedIn) {
-        lastTab = 'dashboard';
-        sessionStorage.removeItem('wf_just_logged_in');
-    }
 
     login.classList.add('d-none');
     dash.classList.remove('d-none');
@@ -550,6 +529,7 @@ window.switchTab = switchTab;
     console.log('[Auth] Refresh restore → tab:', lastTab);
 
     // ✅ FIX: switchTab synchronously কল — কোনো delay নেই
+    // এতে dashboard flash হবে না
     try {
       if (typeof switchTab === 'function') switchTab(lastTab, false);
       if (typeof updateGlobalStats === 'function') updateGlobalStats();
@@ -561,11 +541,8 @@ window.switchTab = switchTab;
     // ✅ Content show + loader hide + flash-prevent CSS remove
     if (loader) loader.style.display = 'none';
     if (contentEl) contentEl.style.display = 'block';
-    
-    setTimeout(function() {
-        var s = document.getElementById('wf-flash-prevent');
-        if (s) s.remove();
-    }, 50);
+    var s = document.getElementById('wf-flash-prevent');
+    if (s) s.remove();
   });
 })();
 

@@ -303,11 +303,7 @@
 
 <body>
     <div id="printArea"></div>
-    <div id="loader" style="display:none; position:fixed; inset:0; z-index:99999; background:rgba(2,5,20,0.8); display:flex; align-items:center; justify-content:center;">
-        <div class="spinner-border text-primary" role="status" style="width: 3rem; height: 3rem;">
-            <span class="visually-hidden">Loading...</span>
-        </div>
-    </div>
+
     <!-- Login Section -->
     <div id="loginSection">
         <canvas id="loginParticleCanvas"></canvas>
@@ -324,15 +320,13 @@
                 <div class="mb-3">
                     <label class="form-label">Username</label>
                     <input type="text" id="loginUsernameField" name="username" class="form-control" placeholder="Enter username"
-                        required autocomplete="username" data-lpignore="false" readonly
-                        onfocus="this.removeAttribute('readonly');" onblur="if(!this.value)this.setAttribute('readonly','readonly');">
+                        required autocomplete="username" data-lpignore="false">
                 </div>
                 <div class="mb-3">
                     <label class="form-label">Password</label>
                     <div class="position-relative">
                         <input type="password" id="loginPasswordField" name="password" class="form-control" placeholder="Enter password"
-                            required autocomplete="current-password" data-lpignore="false" readonly
-                            onfocus="this.removeAttribute('readonly');" onblur="if(!this.value)this.setAttribute('readonly','readonly');"
+                            required autocomplete="current-password" data-lpignore="false"
                             style="padding-right: 2.8rem;">
                         <button type="button" id="loginPwEyeBtn"
                             style="position:absolute;right:10px;top:50%;transform:translateY(-50%);background:none;border:none;cursor:pointer;font-size:1rem;color:rgba(0,200,255,0.6);padding:0;line-height:1;"
@@ -2180,25 +2174,15 @@
     </script>
 
     <script>
-        // Aggressive clearing of login fields to prevent browser autofill on load
-        (function() {
-            function clearFields() {
+        // Ensure login fields are empty on load even if browser tries to autofill
+        window.addEventListener('load', function() {
+            setTimeout(function() {
                 const u = document.getElementById('loginUsernameField');
                 const p = document.getElementById('loginPasswordField');
                 if (u) u.value = '';
                 if (p) p.value = '';
-            }
-            // Run multiple times with increasing delay to catch browser autofill
-            window.addEventListener('load', () => {
-                setTimeout(clearFields, 50);
-                setTimeout(clearFields, 500);
-                setTimeout(clearFields, 1500);
-            });
-            // Also run when document becomes visible
-            document.addEventListener('visibilitychange', () => {
-                if (document.visibilityState === 'visible') clearFields();
-            });
-        })();
+            }, 100);
+        });
     </script>
 </body>
 
