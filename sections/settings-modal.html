@@ -627,54 +627,60 @@
                                     <div style="max-width:640px;margin:0 auto;">
                                         <!-- ① Credentials -->
                                         <div class="sc">
-                                            <div class="sc-h">
-                                                <div class="sc-ic cy">🔒</div>
+                                            <div class="sc-tg" onclick="window.scTogCred && window.scTogCred()">
+                                                <div style="display:flex;align-items:center;gap:13px;">
+                                                    <div class="sc-ic cy">🔒</div>
+                                                    <div>
+                                                        <p class="sc-t">Login Credentials</p>
+                                                        <p class="sc-s">Username ও Password পরিবর্তন করুন</p>
+                                                    </div>
+                                                </div>
+                                                <span class="sc-ar" id="scCredArrow">▼</span>
+                                            </div>
+                                            <div class="sc-rb" id="scCredBody">
+                                                <div class="sc-dv"></div>
+                                                <div style="margin-bottom:13px;">
+                                                    <label class="sc-lb">👤 Admin Username</label>
+                                                    <input type="text" id="settingsUsername" class="sc-in"
+                                                        placeholder="Enter username" autocomplete="off"
+                                                        data-form-type="other" data-lpignore="true">
+                                                </div>
+                                                <div style="margin-bottom:13px;">
+                                                    <label class="sc-lb">🔑 New Password</label>
+                                                    <div class="sc-g">
+                                                        <input type="password" id="settingsPassword" class="sc-in"
+                                                            placeholder="Enter new password" autocomplete="off"
+                                                            data-form-type="other" data-lpignore="true"
+                                                            oninput="window.scPwStr && window.scPwStr(this.value)">
+                                                        <button class="sc-ey" type="button"
+                                                            onclick="const p=document.getElementById('settingsPassword');p.type=p.type==='password'?'text':'password';this.textContent=p.type==='password'?'👁️':'🙈';">👁️</button>
+                                                    </div>
+                                                    <div class="sc-br">
+                                                        <div class="sc-bf" id="scPwBar"></div>
+                                                    </div>
+                                                    <div class="sc-st" id="scPwTxt" style="color:#555;"></div>
+                                                </div>
                                                 <div>
-                                                    <p class="sc-t">Login Credentials</p>
-                                                    <p class="sc-s">Username ও Password পরিবর্তন করুন</p>
+                                                    <label class="sc-lb">🔁 Confirm Password</label>
+                                                    <div class="sc-g">
+                                                        <input type="password" id="settingsPasswordConfirm" class="sc-in"
+                                                            placeholder="Re-enter new password" autocomplete="off"
+                                                            data-form-type="other" data-lpignore="true"
+                                                            oninput="window.scPwMatch && window.scPwMatch()">
+                                                        <button class="sc-ey" type="button"
+                                                            onclick="const p=document.getElementById('settingsPasswordConfirm');p.type=p.type==='password'?'text':'password';this.textContent=p.type==='password'?'👁️':'🙈';">👁️</button>
+                                                    </div>
+                                                    <div id="scPwMatchTxt"
+                                                        style="font-size:0.68rem;margin-top:4px;font-weight:600;"></div>
                                                 </div>
-                                            </div>
-                                            <div style="margin-bottom:13px;">
-                                                <label class="sc-lb">👤 Admin Username</label>
-                                                <input type="text" id="settingsUsername" class="sc-in"
-                                                    placeholder="Enter username" autocomplete="off"
-                                                    data-form-type="other" data-lpignore="true">
-                                            </div>
-                                            <div style="margin-bottom:13px;">
-                                                <label class="sc-lb">🔑 New Password</label>
-                                                <div class="sc-g">
-                                                    <input type="password" id="settingsPassword" class="sc-in"
-                                                        placeholder="Enter new password" autocomplete="off"
-                                                        data-form-type="other" data-lpignore="true"
-                                                        oninput="window.scPwStr && window.scPwStr(this.value)">
-                                                    <button class="sc-ey" type="button"
-                                                        onclick="const p=document.getElementById('settingsPassword');p.type=p.type==='password'?'text':'password';this.textContent=p.type==='password'?'👁️':'🙈';">👁️</button>
+                                                <div class="sc-tip"><span>💡</span><span>Password পরিবর্তনের পর উভয়
+                                                        PC-তে
+                                                        নতুন password ব্যবহার করুন এবং <strong style="color:#00d9ff;">Push
+                                                            to Cloud</strong> করুন।</span></div>
+                                                <div style="text-align:right;margin-top:14px;">
+                                                    <button class="sc-sv" type="button" onclick="window.scSave && window.scSave()">💾 Save
+                                                        Credentials</button>
                                                 </div>
-                                                <div class="sc-br">
-                                                    <div class="sc-bf" id="scPwBar"></div>
-                                                </div>
-                                                <div class="sc-st" id="scPwTxt" style="color:#555;"></div>
-                                            </div>
-                                            <div>
-                                                <label class="sc-lb">🔁 Confirm Password</label>
-                                                <div class="sc-g">
-                                                    <input type="password" id="settingsPasswordConfirm" class="sc-in"
-                                                        placeholder="Re-enter new password" autocomplete="off"
-                                                        data-form-type="other" data-lpignore="true"
-                                                        oninput="window.scPwMatch && window.scPwMatch()">
-                                                    <button class="sc-ey" type="button"
-                                                        onclick="const p=document.getElementById('settingsPasswordConfirm');p.type=p.type==='password'?'text':'password';this.textContent=p.type==='password'?'👁️':'🙈';">👁️</button>
-                                                </div>
-                                                <div id="scPwMatchTxt"
-                                                    style="font-size:0.68rem;margin-top:4px;font-weight:600;"></div>
-                                            </div>
-                                            <div class="sc-tip"><span>💡</span><span>Password পরিবর্তনের পর উভয়
-                                                    PC-তে
-                                                    নতুন password ব্যবহার করুন এবং <strong style="color:#00d9ff;">Push
-                                                        to Cloud</strong> করুন।</span></div>
-                                            <div style="text-align:right;margin-top:14px;">
-                                                <button class="sc-sv" type="button" onclick="window.scSave && window.scSave()">💾 Save
-                                                    Credentials</button>
                                             </div>
                                         </div>
                                         <!-- ② Secret Recovery -->
@@ -731,52 +737,57 @@
 
                                         <!-- ③ Staff/Sub-account Access (New) -->
                                         <div class="sc">
-                                            <div class="sc-h">
-                                                <div class="sc-ic gr">👥</div>
-                                                <div>
-                                                    <p class="sc-t">Staff / Sub-account Access</p>
-                                                    <p class="sc-s">সীমিত এক্সেস সম্পন্ন সাব আইডি তৈরি করুন</p>
-                                                </div>
-                                            </div>
-
-                                            <div id="subid-list-container" class="mb-3"
-                                                style="background:rgba(0,0,0,0.2); border-radius:10px; padding:10px;">
-                                                <!-- List of existing sub-accounts -->
-                                                <div class="text-center text-muted small py-2">Loading accounts...</div>
-                                            </div>
-
-                                            <div class="sc-lb mb-2">Create New Sub ID</div>
-                                            <div class="row g-2">
-                                                <div class="col-md-5">
-                                                    <input type="text" id="newSubidUsername" class="sc-in"
-                                                        placeholder="Username" autocomplete="off">
-                                                </div>
-                                                <div class="col-md-5">
-                                                    <div class="sc-g">
-                                                        <input type="password" id="newSubidPassword" class="sc-in"
-                                                            placeholder="Password" autocomplete="off"
-                                                            style="border:none !important;">
-                                                        <button class="sc-ey" type="button"
-                                                            onclick="const p=document.getElementById('newSubidPassword');p.type=p.type==='password'?'text':'password';this.textContent=p.type==='password'?'👁️':'🙈';">👁️</button>
+                                            <div class="sc-tg" onclick="window.scTogSub && window.scTogSub()">
+                                                <div style="display:flex;align-items:center;gap:13px;">
+                                                    <div class="sc-ic gr">👥</div>
+                                                    <div>
+                                                        <p class="sc-t">Staff / Sub-account Access</p>
+                                                        <p class="sc-s">সীমিত এক্সেস সম্পন্ন সাব আইডি তৈরি করুন</p>
                                                     </div>
                                                 </div>
-                                                <div class="col-md-2">
-                                                    <button type="button" class="btn btn-primary w-100"
-                                                        onclick="addSubIdAccount()"
-                                                        style="height:100%; font-size:0.8rem;">+ Add</button>
-                                                </div>
+                                                <span class="sc-ar" id="scSubArrow">▼</span>
                                             </div>
-                                            <!-- Permission Checkboxes -->
-                                            <div style="margin-top:14px;">
-                                                <div style="font-size:0.72rem;color:rgba(0,217,255,0.7);font-weight:700;letter-spacing:0.06em;text-transform:uppercase;margin-bottom:8px;">
-                                                    🔐 Tab Access Permission
+                                            <div class="sc-rb" id="scSubBody" style="max-height:1000px;">
+                                                <div class="sc-dv"></div>
+                                                <div id="subid-list-container" class="mb-3"
+                                                    style="background:rgba(0,0,0,0.2); border-radius:10px; padding:10px;">
+                                                    <!-- List of existing sub-accounts -->
+                                                    <div class="text-center text-muted small py-2">Loading accounts...</div>
                                                 </div>
-                                                <div id="newSubidPermGrid" style="display:grid;grid-template-columns:1fr 1fr;gap:2px;">
-                                                    <!-- Dynamically rendered by renderNewSubidPermGrid() -->
+
+                                                <div class="sc-lb mb-2">Create New Sub ID</div>
+                                                <div class="row g-2">
+                                                    <div class="col-md-5">
+                                                        <input type="text" id="newSubidUsername" class="sc-in"
+                                                            placeholder="Username" autocomplete="off">
+                                                    </div>
+                                                    <div class="col-md-5">
+                                                        <div class="sc-g">
+                                                            <input type="password" id="newSubidPassword" class="sc-in"
+                                                                placeholder="Password" autocomplete="off"
+                                                                style="border:none !important;">
+                                                            <button class="sc-ey" type="button"
+                                                                onclick="const p=document.getElementById('newSubidPassword');p.type=p.type==='password'?'text':'password';this.textContent=p.type==='password'?'👁️':'🙈';">👁️</button>
+                                                        </div>
+                                                    </div>
+                                                    <div class="col-md-2">
+                                                        <button type="button" class="btn btn-primary w-100"
+                                                            onclick="addSubIdAccount()"
+                                                            style="height:100%; font-size:0.8rem;">+ Add</button>
+                                                    </div>
                                                 </div>
-                                            </div>
-                                            <div class="sc-tip" style="margin-top:10px;">
-                                                <span>💡</span><span>যে tab গুলো check করবেন, Sub ID শুধু সেগুলোই দেখতে পারবে।</span>
+                                                <!-- Permission Checkboxes -->
+                                                <div style="margin-top:14px;">
+                                                    <div style="font-size:0.72rem;color:rgba(0,217,255,0.7);font-weight:700;letter-spacing:0.06em;text-transform:uppercase;margin-bottom:8px;">
+                                                        🔐 Tab Access Permission
+                                                    </div>
+                                                    <div id="newSubidPermGrid" style="display:grid;grid-template-columns:1fr 1fr;gap:2px;">
+                                                        <!-- Dynamically rendered by renderNewSubidPermGrid() -->
+                                                    </div>
+                                                </div>
+                                                <div class="sc-tip" style="margin-top:10px;">
+                                                    <span>💡</span><span>যে tab গুলো check করবেন, Sub ID শুধু সেগুলোই দেখতে পারবে।</span>
+                                                </div>
                                             </div>
                                         </div>
 
@@ -814,7 +825,9 @@
                                     <script>
                                         function scPwStr(v) { const f = document.getElementById('scPwBar'), t = document.getElementById('scPwTxt'); if (!f) return; if (!v) { f.style.width = '0'; if (t) t.textContent = ''; return; } let s = 0; if (v.length >= 8) s++; if (v.length >= 12) s++; if (/[A-Z]/.test(v)) s++; if (/[0-9]/.test(v)) s++; if (/[^A-Za-z0-9]/.test(v)) s++; const L = [{ w: '20%', c: '#ff3b5c', l: 'Too weak' }, { w: '40%', c: '#ff8c00', l: 'Weak' }, { w: '60%', c: '#ffcc00', l: 'Fair' }, { w: '80%', c: '#00d9ff', l: 'Good' }, { w: '100%', c: '#00ff88', l: 'Strong 💪' }]; const lv = L[Math.min(s, 4)]; f.style.width = lv.w; f.style.background = lv.c; if (t) { t.textContent = lv.l; t.style.color = lv.c; } }
                                         function scPwMatch() { const p1 = document.getElementById('settingsPassword')?.value || '', p2 = document.getElementById('settingsPasswordConfirm')?.value || '', mt = document.getElementById('scPwMatchTxt'); if (!mt) return; if (!p2) { mt.textContent = ''; return; } mt.textContent = p1 === p2 ? '✅ Password মিলে গেছে' : '❌ Password মিলছে না'; mt.style.color = p1 === p2 ? '#00ff88' : '#ff4455'; }
+                                        function scTogCred() { const b = document.getElementById('scCredBody'), a = document.getElementById('scCredArrow'); if (!b) return; b.classList.toggle('op'); if (a) a.classList.toggle('op'); }
                                         function scTogRec() { const b = document.getElementById('scRecBody'), a = document.getElementById('scRecArrow'); if (!b) return; b.classList.toggle('op'); if (a) a.classList.toggle('op'); }
+                                        function scTogSub() { const b = document.getElementById('scSubBody'), a = document.getElementById('scSubArrow'); if (!b) return; b.classList.toggle('op'); if (a) a.classList.toggle('op'); }
                                         function scTogRecAns() {
                                             const p = document.getElementById('settingsRecoveryAnswer');
                                             const btn = document.getElementById('scRecEyeBtn');
@@ -830,7 +843,7 @@
                                                 if (btn) btn.textContent = '🙈';
                                             }
                                         }
-                                        window.scTogRec = scTogRec; window.scTogRecAns = scTogRecAns;
+                                        window.scTogCred = scTogCred; window.scTogRec = scTogRec; window.scTogSub = scTogSub; window.scTogRecAns = scTogRecAns;
                                         // ✅ Full Screen toggle — Settings Modal কে fullscreen/normal modal এ toggle করে
                                         function toggleDiagFullscreen() {
                                             var dlg = document.querySelector('#settingsModal .modal-dialog');
@@ -869,11 +882,17 @@
                                             if (raEl) { raEl.value = ''; raEl.style.webkitTextSecurity = 'disc'; raEl.style.mozTextSecurity = 'disc'; }
                                             const recEyeBtn = document.getElementById('scRecEyeBtn');
                                             if (recEyeBtn) recEyeBtn.textContent = '🙈';
-                                            // ✅ Recovery section closed by default on each load
-                                            const scRecBody2 = document.getElementById('scRecBody');
-                                            const scRecArrow2 = document.getElementById('scRecArrow');
-                                            if (scRecBody2 && scRecBody2.classList.contains('op')) { scRecBody2.classList.remove('op'); }
-                                            if (scRecArrow2 && scRecArrow2.classList.contains('op')) { scRecArrow2.classList.remove('op'); }
+                                            // ✅ Security sections closed by default on each load
+                                            ['scRecBody','scCredBody','scSubBody'].forEach(id => {
+                                                const el = document.getElementById(id);
+                                                if (el) el.classList.remove('op');
+                                            });
+                                            ['scRecArrow','scCredArrow','scSubArrow'].forEach(id => {
+                                                const el = document.getElementById(id);
+                                                if (el) el.classList.remove('op');
+                                            });
+                                            // Open Credentials by default maybe? The user wants "Close/Expand" so they can be closed.
+                                            // Let's keep them closed for a cleaner look as requested.
                                             scLockBadge();
                                             renderSubIdList();
                                             renderNewSubidPermGrid();
@@ -1115,11 +1134,15 @@
                                             if (recAnsEl) { recAnsEl.style.webkitTextSecurity = 'disc'; recAnsEl.style.mozTextSecurity = 'disc'; }
                                             const recEyeBtn = document.getElementById('scRecEyeBtn');
                                             if (recEyeBtn) recEyeBtn.textContent = '🙈';
-                                            // ✅ Collapse the Secret Recovery section after save
-                                            const scRecBody = document.getElementById('scRecBody');
-                                            const scRecArrow = document.getElementById('scRecArrow');
-                                            if (scRecBody && scRecBody.classList.contains('op')) { scRecBody.classList.remove('op'); }
-                                            if (scRecArrow && scRecArrow.classList.contains('op')) { scRecArrow.classList.remove('op'); }
+                                            // ✅ Collapse the Security sections after save
+                                            ['scRecBody','scCredBody','scSubBody'].forEach(id => {
+                                                const el = document.getElementById(id);
+                                                if (el) el.classList.remove('op');
+                                            });
+                                            ['scRecArrow','scCredArrow','scSubArrow'].forEach(id => {
+                                                const el = document.getElementById(id);
+                                                if (el) el.classList.remove('op');
+                                            });
                                             const pb = document.getElementById('scPwBar'); if (pb) pb.style.width = '0';
                                             const pt = document.getElementById('scPwTxt'); if (pt) pt.textContent = '';
                                             const pm = document.getElementById('scPwMatchTxt'); if (pm) pm.textContent = '';
