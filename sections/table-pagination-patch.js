@@ -255,3 +255,202 @@
   };
 
 })();
+
+
+// ============================================================
+// ANALYTICS MODAL PAGINATION PATCH
+// Account Analytics Modal — Income & Expense tables এ
+// pagination এবং সুন্দর date formatting যোগ করে
+// ============================================================
+
+(function () {
+    'use strict';
+
+    var ANA_PAGE_SIZE = 10;
+
+    function formatDisplayDate(raw) {
+        if (!raw) return '—';
+        var s = String(raw).trim().slice(0, 10);
+        var norm = '';
+        if (/^\d{4}-\d{2}-\d{2}/.test(s)) {
+            norm = s;
+        } else {
+            var m = s.match(/^(\d{1,2})[\/\-](\d{1,2})[\/\-](\d{4})/);
+            if (m) norm = m[3] + '-' + m[2].padStart(2, '0') + '-' + m[1].padStart(2, '0');
+        }
+        if (!norm) return s;
+        var months = ['Jan','Feb','Mar','Apr','May','Jun','Jul','Aug','Sep','Oct','Nov','Dec'];
+        var parts = norm.split('-');
+        var yr = parts[0], mo = parseInt(parts[1], 10) - 1, dy = parseInt(parts[2], 10);
+        if (isNaN(mo) || mo < 0 || mo > 11) return s;
+        return dy + ' ' + months[mo] + ' ' + yr;
+    }
+
+    function _pgBtnStyle(active) {
+        if (active) return 'background:#1565c0;color:#fff;border:none;border-radius:6px;padding:3px 9px;font-size:0.75rem;cursor:default;font-weight:bold;';
+        return 'background:rgba(255,255,255,0.06);color:#ccc;border:1px solid rgba(255,255,255,0.15);border-radius:6px;padding:3px 9px;font-size:0.75rem;cursor:pointer;';
+    }
+
+    function buildPaginationBar(currentPage, totalPages, onPageClick) {
+        if (totalPages <= 1) return '';
+        var html = '<div class="wf-ana-pagination d-flex align-items-center justify-content-between flex-wrap gap-2 mt-2 pt-2" style="border-top:1px solid rgba(255,255,255,0.08);">';
+        html += '<span style="font-size:0.75rem; color:#888;">পেজ ' + currentPage + ' / ' + totalPages + '</span>';
+        html += '<div class="d-flex gap-1 flex-wrap">';
+        if (currentPage > 1) {
+            html += '<button onclick="(' + onPageClick.toString() + ')(1)" style="' + _pgBtnStyle(false) + '">«</button>';
+            html += '<button onclick="(' + onPageClick.toString() + ')(' + (currentPage - 1) + ')" style="' + _pgBtnStyle(false) + '">‹</button>';
+        }
+        var start = Math.max(1, currentPage - 3);
+        var end = Math.min(totalPages, currentPage + 3);
+        if (end - start < 6) { start = Math.max(1, end - 6); end = Math.min(totalPages, start + 6); }
+        for (var p = start; p <= end; p++) {
+            html += '<button onclick="(' + onPageClick.toString() + ')(' + p + ')" style="' + _pgBtnStyle(p === currentPage) + '">' + p + '</button>';
+        }
+        if (currentPage < totalPages) {
+            html += '<button onclick="(' + onPageClick.toString() + ')(' + (currentPage + 1) + ')" style="' + _pgBtnStyle(false) + '">›</button>';
+            html += '<button onclick="(' + onPageClick.toString() + ')(' + totalPages + ')" style="' + _pgBtnStyle(false) + '">»</button>';
+        }
+        html += '</div></div>';
+        return html;
+    }
+
+    var _incPage = 1;
+    var _expPage = 1;
+    var _lastIncArr = [];
+    var _lastExpArr = [];
+
+    function renderTablePage(rows, clr, bClr, currentPage) {
+        if (!rows || !rows.length) return '<tr><td colspan="5" class="text-center text-muted py-5" style="border:none;">কোনো রেকর্ড পাওয়া যায়নি</td></tr>';
+        var sorted = rows.slice().sort(function (a, b) {
+            return String(b.date || b.timestamp || '').localeCompare(String(a.date || a.timestamp || ''));
+        });
+        var totalPages = Math.ceil(sorted.length / ANA_PAGE_SIZE);
+        var safePage = Math.max(1, Math.min(currentPage, totalPages));
+        var pageRows = sorted.slice((safePage - 1) * ANA_PAGE_SIZE, safePage * ANA_PAGE_SIZE);
+        return pageRows.map(function (f) {
+            var amt = window._anaParseAmt ? window._anaParseAmt(f.amount) : (parseFloat(f.amount) || 0);
+            var fmtAmt = window._anaFmt ? window._anaFmt(amt) : ('৳' + amt.toLocaleString());
+            return '<tr style="border-bottom:1px solid ' + bClr + ';">' +
+                '<td style="font-size:0.78rem;">' + (f.category || f.type || '—') + '</td>' +
+                '<td style="font-size:0.78rem;" title="' + (f.person||'') + '">' + (f.person || '—') + '</td>' +
+                '<td class="text-end fw-bold" style="color:' + clr + ';font-size:0.78rem;white-space:nowrap;">' + fmtAmt + '</td>' +
+                '<td style="color:#4fc3f7;font-size:0.73rem;white-space:nowrap;font-weight:600;">' + formatDisplayDate(f.date || f.timestamp) + '</td>' +
+                '<td style="color:#aaa;font-size:0.72rem;max-width:180px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;" title="' + (f.description||'') + '">' + (f.description || '—') + '</td>' +
+                '</tr>';
+        }).join('');
+    }
+
+    function injectPaginationBar(tbodyId, barId, rows, currentPage, onPageFn) {
+        var totalPages = Math.ceil(rows.length / ANA_PAGE_SIZE);
+        var bar = document.getElementById(barId);
+        if (!bar) {
+            var tbody = document.getElementById(tbodyId);
+            if (!tbody) return;
+            var wrap = tbody.closest('.table-responsive') || tbody.closest('table') || tbody.parentElement;
+            if (wrap && wrap.parentNode) {
+                bar = document.createElement('div');
+                bar.id = barId;
+                wrap.parentNode.insertBefore(bar, wrap.nextSibling);
+            }
+        }
+        if (!bar) return;
+        var pgHtml = buildPaginationBar(currentPage, totalPages, onPageFn);
+        var from = rows.length ? ((currentPage - 1) * ANA_PAGE_SIZE) + 1 : 0;
+        var to = Math.min(currentPage * ANA_PAGE_SIZE, rows.length);
+        var countHtml = rows.length > 0
+            ? '<div style="font-size:0.73rem;color:#888;text-align:right;margin-top:4px;">দেখাচ্ছে: ' + from + '–' + to + ' (মোট ' + rows.length + ' টি)</div>'
+            : '';
+        bar.innerHTML = pgHtml + countHtml;
+    }
+
+    function rebuildWithPagination(incP, expP) {
+        try {
+            var gd = window.globalData || {};
+            var mode = window._anaMode || 'all';
+            var selM = document.getElementById('ana_monthFilter');
+            var monthVal = selM ? selM.value : '';
+            var df = (document.getElementById('ana_dateFrom') || {}).value || '';
+            var dt = (document.getElementById('ana_dateTo') || {}).value || '';
+            var normDateFn = window._anaNormDate || function(v){ return String(v||'').slice(0,10); };
+
+            var filtered = (gd.finance || []).filter(function(f) {
+                if (!f || f._deleted || !f.id) return false;
+                var d = normDateFn(f.date || f.timestamp);
+                if (!d) return false;
+                if (mode === 'month') return !monthVal || d.indexOf(monthVal) === 0;
+                if (mode === 'range') {
+                    if (df && d < df) return false;
+                    if (dt && d > dt) return false;
+                }
+                return true;
+            });
+
+            function isIncome(f) {
+                var t = String(f.type || '').toLowerCase().trim();
+                var c = String(f.category || '').toLowerCase().trim();
+                return t === 'income' || t === 'loan received' || c === 'income' || c === 'loan received'
+                    || t.includes('income') || c.includes('income') || t.includes('fee') || c.includes('fee')
+                    || t.includes('received') || c.includes('received') || t.includes('installment') || c.includes('installment')
+                    || t.includes('registration') || c.includes('registration') || t.includes('refund') || c.includes('refund')
+                    || t.includes('advance') || c.includes('advance');
+            }
+            function isExpense(f) {
+                var t = String(f.type || '').toLowerCase().trim();
+                var c = String(f.category || '').toLowerCase().trim();
+                return t === 'expense' || t === 'loan given' || c === 'expense' || c === 'loan given'
+                    || t.includes('expense') || c.includes('expense') || t.includes('salary') || c.includes('salary')
+                    || t.includes('rent') || c.includes('rent') || t.includes('utilities') || c.includes('utilities')
+                    || t.includes('loan given') || c.includes('loan given') || t.includes('payment') || c.includes('payment')
+                    || t.includes('cost') || c.includes('cost');
+            }
+
+            _lastIncArr = filtered.filter(isIncome);
+            _lastExpArr = filtered.filter(isExpense);
+
+            var iBody = document.getElementById('ana_incomeRows');
+            if (iBody) iBody.innerHTML = renderTablePage(_lastIncArr, '#00e676', '#1b5e2040', incP);
+            injectPaginationBar('ana_incomeRows', 'ana_income_pg_bar', _lastIncArr, incP, function(pg) {
+                _incPage = pg;
+                rebuildWithPagination(_incPage, _expPage);
+            });
+
+            var eBody = document.getElementById('ana_expenseRows');
+            if (eBody) eBody.innerHTML = renderTablePage(_lastExpArr, '#ff5252', '#7f000040', expP);
+            injectPaginationBar('ana_expenseRows', 'ana_expense_pg_bar', _lastExpArr, expP, function(pg) {
+                _expPage = pg;
+                rebuildWithPagination(_incPage, _expPage);
+            });
+
+        } catch(err) { console.error('[AnalyticsPagination] rebuild error:', err); }
+    }
+
+    function waitAndPatch() {
+        if (typeof window._anaRefreshTables !== 'function') {
+            setTimeout(waitAndPatch, 200); return;
+        }
+        var _orig = window._anaRefreshTables;
+        window._anaRefreshTables = function() {
+            _orig.apply(this, arguments);
+            setTimeout(function() { rebuildWithPagination(_incPage, _expPage); }, 20);
+        };
+        var origSetMode = window._anaSetMode;
+        if (origSetMode && !origSetMode._pgPatched) {
+            window._anaSetMode = function(m) {
+                _incPage = 1; _expPage = 1;
+                origSetMode.apply(this, arguments);
+            };
+            window._anaSetMode._pgPatched = true;
+        }
+        console.log('✅ [AnalyticsPagination] patched');
+    }
+
+    document.addEventListener('show.bs.modal', function(e) {
+        if (e.target && e.target.id === 'accountAnalyticsModal') {
+            _incPage = 1; _expPage = 1;
+        }
+    });
+
+    waitAndPatch();
+    console.log('✅ [AnalyticsPagination] analytics-pagination-patch loaded');
+
+})();
