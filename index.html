@@ -316,17 +316,17 @@
                 <p class="text-muted">Aviation Academy Management System</p>
             </div>
 
-            <form id="loginForm" onsubmit="handleLogin(event)" autocomplete="off">
+            <form id="loginForm" onsubmit="handleLogin(event)" autocomplete="on">
                 <div class="mb-3">
                     <label class="form-label">Username</label>
-                    <input type="text" id="loginUsernameField" name="wf_username" class="form-control" placeholder="Enter username"
-                        required autocomplete="off" data-lpignore="true" data-form-type="other" data-1p-ignore="true">
+                    <input type="text" id="loginUsernameField" name="username" class="form-control" placeholder="Enter username"
+                        required autocomplete="username" data-lpignore="false">
                 </div>
                 <div class="mb-3">
                     <label class="form-label">Password</label>
                     <div class="position-relative">
-                        <input type="password" id="loginPasswordField" name="wf_password" class="form-control" placeholder="Enter password"
-                            required autocomplete="new-password" data-lpignore="true" data-form-type="other" data-1p-ignore="true"
+                        <input type="password" id="loginPasswordField" name="password" class="form-control" placeholder="Enter password"
+                            required autocomplete="current-password" data-lpignore="false"
                             style="padding-right: 2.8rem;">
                         <button type="button" id="loginPwEyeBtn"
                             style="position:absolute;right:10px;top:50%;transform:translateY(-50%);background:none;border:none;cursor:pointer;font-size:1rem;color:rgba(0,200,255,0.6);padding:0;line-height:1;"
@@ -2175,6 +2175,47 @@
                 if (p) p.value = '';
             }, 100);
         });
+
+        // ✅ AUTO-LOGIN: URL-এ ?autologin=1 থাকলে default admin দিয়ে সরাসরি ঢুকে যাবে
+        // ব্যবহার: index.html?autologin=1 — নতুন ব্রাউজারে প্রথমবার ঢোকার জন্য
+        (function() {
+            var params = new URLSearchParams(window.location.search);
+            if (params.get('autologin') === '1') {
+                window.addEventListener('load', function() {
+                    setTimeout(function() {
+                        try {
+                            // globalData load করো
+                            if (!window.globalData || !window.globalData.users || window.globalData.users.length === 0) {
+                                var raw = localStorage.getItem('wingsfly_data');
+                                if (raw) {
+                                    var parsed = JSON.parse(raw);
+                                    if (parsed && parsed.users && parsed.users.length > 0) {
+                                        window.globalData = parsed;
+                                    }
+                                }
+                            }
+                            if (!window.globalData) window.globalData = {};
+                            if (!window.globalData.users || window.globalData.users.length === 0) {
+                                window.globalData.users = [{ username: 'admin', password: 'e7d3bfb67567c3d94bcecb2ce65ef146eac83e50dc3f3b89e81bb647a8bada4c', role: 'admin', name: 'Admin' }];
+                            }
+                            var adminUser = window.globalData.users[0];
+                            sessionStorage.setItem('isLoggedIn', 'true');
+                            sessionStorage.setItem('username', adminUser.name || adminUser.username || 'Admin');
+                            sessionStorage.setItem('role', adminUser.role || 'admin');
+                            // URL clean করো
+                            window.history.replaceState({}, document.title, window.location.pathname);
+                            console.log('✅ Auto-login success. Now go to Settings → Security to set recovery question.');
+                            if (typeof showDashboard === 'function') {
+                                showDashboard(adminUser.name || adminUser.username || 'Admin');
+                            } else {
+                                // showDashboard লোড না হলে পেজ reload
+                                window.location.href = window.location.pathname;
+                            }
+                        } catch(e) { console.error('Auto-login error:', e); }
+                    }, 800);
+                });
+            }
+        })();
     </script>
 </body>
 
