@@ -1136,6 +1136,13 @@
     if (sessionStorage.getItem('isLoggedIn') !== 'true') return;
     if (!window.globalData) return;
 
+    // ✅ V9 FIX: wingsSync এখনো ready না হলে silent skip করো
+    // V34 sync load হতে কিছুটা সময় লাগে — error দেওয়ার দরকার নেই
+    if (!window.wingsSync) {
+      console.log('[AutoTest BG] ⏳ wingsSync এখনো ready হয়নি — skip (next cycle এ check হবে)');
+      return;
+    }
+
     const gd = window.globalData;
     const finance = gd.finance || [];
     const issues = [];
@@ -1221,15 +1228,33 @@
   window.startAutoTestMonitor = function () {
     if (_bgInterval) clearInterval(_bgInterval);
     _bgInterval = setInterval(runBackgroundMonitor, 10 * 60 * 1000); // ১০ মিনিট
-    setTimeout(runBackgroundMonitor, 30 * 1000);
+    // ✅ V9 FIX: প্রথম run 2 মিনিট পরে — V34 sync এর initial pull শেষ হওয়ার পর
+    // আগে 30s ছিল — তখন wingsSync ready হয় না, false alarm আসত
+    setTimeout(runBackgroundMonitor, 2 * 60 * 1000);
   };
 
   function _init() {
-    window.startAutoTestMonitor();
-    console.log(`%c🧬 Wings Fly Auto Test Suite v${SUITE_VERSION} — loaded & BG monitor active (V34 checks included)`, 'color:#00eeff;font-weight:bold');
+    // ✅ V9 FIX: wingsSync ready হওয়ার পর monitor শুরু করো
+    // আগে 30s পরে চলত — wingsSync তখনো load না হলে false alarm দিত
+    function _waitForSyncThenStart(attempt) {
+      if (window.wingsSync) {
+        window.startAutoTestMonitor();
+        console.log(`%c🧬 Wings Fly Auto Test Suite v${SUITE_VERSION} — loaded & BG monitor active (V34 checks included)`, 'color:#00eeff;font-weight:bold');
+      } else if (attempt < 20) {
+        // প্রতি 3 সেকেন্ডে retry — মোট 60 সেকেন্ড পর্যন্ত অপেক্ষা
+        setTimeout(() => _waitForSyncThenStart(attempt + 1), 3000);
+      } else {
+        // 60s পরেও না এলে তখন monitor চালু করো — wingsSync check skip হবে
+        window.startAutoTestMonitor();
+        console.warn('[AutoTest] ⚠️ wingsSync 60s পরেও ready হয়নি — monitor চালু, sync checks skip হবে');
+      }
+    }
+    _waitForSyncThenStart(0);
   }
 
-  if (document.readyState === 'loading') document.addEventListener('DOMContentLoaded', () => setTimeout(_init, 5000));
-  else setTimeout(_init, 5000);
+  // ✅ V9 FIX: DOMContentLoaded এর পর 8s অপেক্ষা করো
+  // আগে 5s ছিল — V34 sync init হতে বেশি সময় লাগে
+  if (document.readyState === 'loading') document.addEventListener('DOMContentLoaded', () => setTimeout(_init, 8000));
+  else setTimeout(_init, 8000);
 
 })();
