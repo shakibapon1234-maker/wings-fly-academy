@@ -2575,9 +2575,6 @@ function clearAdvancedSearch() {
   render(globalData.students);
 }
 
-window.populateBatchFilter = populateBatchFilter;
-window.applyAdvancedSearch = applyAdvancedSearch;
-window.clearAdvancedSearch = clearAdvancedSearch;
 
 // ========================================
 // QUICK SEARCH FUNCTIONALITY
