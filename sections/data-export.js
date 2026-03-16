@@ -73,13 +73,34 @@ function handleImportFile(event) {
       // Update local timestamp
       localStorage.setItem('lastLocalUpdate', new Date().toISOString());
 
-      // Save and Force Sync to Cloud
-      const syncSuccess = await saveToStorage();
+      // Save locally first (skipCloudSync=true — V34 handles push separately)
+      try {
+        localStorage.setItem('wingsfly_data', JSON.stringify(window.globalData));
+        console.log('💾 Import data saved to localStorage');
+      } catch (e) {
+        alert('❌ Error saving locally: ' + e.message);
+        return;
+      }
 
-      if (syncSuccess) {
-        alert(`SUCCESS: ${window.globalData.students.length} students imported and synced to Cloud.`);
+      // Force Cloud Sync — mark all fields dirty and push
+      let cloudSuccess = false;
+      try {
+        if (window.markDirty) window.markDirty(); // marks students, finance, employees, meta
+        if (window.wingsSync && typeof window.wingsSync.pushNow === 'function') {
+          cloudSuccess = await window.wingsSync.pushNow('import-backup-restore');
+        } else if (typeof window.saveToCloud === 'function') {
+          await window.saveToCloud();
+          cloudSuccess = true;
+        }
+      } catch (e) {
+        console.error('❌ Cloud sync error:', e);
+        cloudSuccess = false;
+      }
+
+      if (cloudSuccess) {
+        alert(`✅ SUCCESS: ${window.globalData.students.length} students imported and synced to Cloud!`);
       } else {
-        alert(`PARTIAL SUCCESS: ${window.globalData.students.length} students imported locally, but Cloud sync failed.`);
+        alert(`⚠️ PARTIAL SUCCESS: ${window.globalData.students.length} students imported locally.\n\nCloud sync may still be processing. Please click "SYNC WITH CLOUD NOW" button to force sync.`);
       }
 
       window.location.reload();

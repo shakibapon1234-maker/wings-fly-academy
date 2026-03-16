@@ -118,8 +118,10 @@
     }
 
     // Bank / Mobile
-    let account = (globalData.bankAccounts || []).find(a => (a.bankName || a.name) === entry.method);
-    if (!account) account = (globalData.mobileBanking || []).find(a => (a.bankName || a.name) === entry.method);
+    // ✅ FIX: name কে priority দাও — finance entries এ method = account.name
+    // bankName (যেমন "Wings Fly") method হিসেবে ব্যবহার হয় না
+    let account = (globalData.bankAccounts || []).find(a => a.name === entry.method || a.bankName === entry.method);
+    if (!account) account = (globalData.mobileBanking || []).find(a => a.name === entry.method || a.bankName === entry.method);
     if (!account) return;
 
     account.balance = (parseFloat(account.balance) || 0) + delta;
@@ -148,11 +150,12 @@
     gd.cashBalance = parseFloat(startBalances['Cash']) || 0;
 
     // Bank / Mobile reset → startBalance
+    // ✅ FIX: name কে আগে চেক করো — startBalances এ name দিয়ে save হয়
     (gd.bankAccounts || []).forEach(acc => {
-      acc.balance = parseFloat(startBalances[acc.bankName || acc.name]) || 0;
+      acc.balance = parseFloat(startBalances[acc.name] ?? startBalances[acc.bankName]) || 0;
     });
     (gd.mobileBanking || []).forEach(acc => {
-      acc.balance = parseFloat(startBalances[acc.bankName || acc.name]) || 0;
+      acc.balance = parseFloat(startBalances[acc.name] ?? startBalances[acc.bankName]) || 0;
     });
 
     // Replay all non-deleted entries
