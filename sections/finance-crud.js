@@ -469,13 +469,17 @@ async function handleFinanceSubmit(e) {
     return;
   }
 
-  // ✅ VALIDATION: Person field is mandatory ONLY for Loan TYPES
+  // ✅ VALIDATION: Person field is mandatory for Loan transactions
   const type = formData.type || '';
+  const category = (formData.category || '').trim();
   const person = (formData.person || '').trim();
 
-  // Only Loan Given and Loan Received TYPE require Person field
-  if ((type === 'Loan Given' || type === 'Loan Received') && !person) {
+  const isLoan = (type === 'Loan Given' || type === 'Loan Received' || category === 'Loan');
+
+  if (isLoan && !person) {
     showErrorToast('⚠️ Person/Counterparty name is required for Loan transactions!');
+    const personField = document.getElementById('financePerson') || document.querySelector('[name="person"]');
+    if (personField) personField.focus();
     return;
   }
 
@@ -778,6 +782,18 @@ async function handleEditTransactionSubmit(e) {
   if (!formData.method || formData.method.trim() === '') {
     showErrorToast('❌ Payment Method is required! Please select a payment method.');
     document.getElementById('editTransMethodSelect').focus();
+    return;
+  }
+
+  // ✅ VALIDATION: Person field required for Loan transactions
+  const _editType = formData.type || '';
+  const _editCategory = (formData.category || '').trim();
+  const _editPerson = (formData.person || '').trim();
+  const _editIsLoan = (_editType === 'Loan Given' || _editType === 'Loan Received' || _editCategory === 'Loan');
+  if (_editIsLoan && !_editPerson) {
+    showErrorToast('⚠️ Person/Counterparty name is required for Loan transactions!');
+    const pf = document.getElementById('editPersonField') || document.querySelector('#editTransactionForm [name="person"]');
+    if (pf) pf.focus();
     return;
   }
 
