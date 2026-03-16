@@ -43,7 +43,22 @@ async function handleLogin(e) {
   const password = (document.getElementById('loginPasswordField')?.value || form.password?.value || '').trim();
 
   try {
-    // CRITICAL: Ensure globalData exists and has users array
+    // CRITICAL: নতুন ব্রাউজারে / fresh session-এ — localStorage থেকে data load করো
+    if (!window.globalData || !window.globalData.users || window.globalData.users.length === 0) {
+      // ১. প্রথমে main storage থেকে load করার চেষ্টা
+      try {
+        const mainData = localStorage.getItem('wingsfly_data');
+        if (mainData) {
+          const parsed = JSON.parse(mainData);
+          if (parsed && parsed.users && Array.isArray(parsed.users) && parsed.users.length > 0) {
+            window.globalData = parsed;
+            console.log('✅ Login: globalData loaded from localStorage (wingsfly_data)');
+          }
+        }
+      } catch (e) { console.warn('Main data load failed', e); }
+    }
+
+    // ২. এখনও না হলে — globalData initialize করো
     if (!window.globalData) {
       window.globalData = {
         students: [],
@@ -55,7 +70,18 @@ async function handleLogin(e) {
       };
     }
 
-    // Safety check for users array — try to recover from backup if empty
+    // ৩. settings (recovery question) লোড নিশ্চিত করো
+    if (!window.globalData.settings) {
+      try {
+        const settingsData = localStorage.getItem('wingsfly_settings');
+        if (settingsData) {
+          window.globalData.settings = JSON.parse(settingsData);
+          console.log('✅ Login: settings loaded from localStorage');
+        }
+      } catch (e) { console.warn('Settings load failed', e); }
+    }
+
+    // ৪. Safety check for users array — try to recover from backup if empty
     if (!window.globalData.users || !Array.isArray(window.globalData.users) || window.globalData.users.length === 0) {
       try {
         const backup = localStorage.getItem('wingsfly_users_backup');
@@ -653,9 +679,28 @@ document.addEventListener('DOMContentLoaded', function () {
 });
 
 window.wfShowForgotModal = function () {
-  var gd = window.globalData;
   var overlay = document.getElementById('wfForgotOverlay');
   if (!overlay) { setTimeout(window.wfShowForgotModal, 200); return; }
+
+  // নতুন ব্রাউজারে globalData না থাকলে localStorage থেকে load করো
+  if (!window.globalData) window.globalData = {};
+  if (!window.globalData.settings) {
+    try {
+      // ১. main data থেকে settings নাও
+      var mainRaw = localStorage.getItem('wingsfly_data');
+      if (mainRaw) {
+        var mainParsed = JSON.parse(mainRaw);
+        if (mainParsed && mainParsed.settings) window.globalData.settings = mainParsed.settings;
+      }
+      // ২. fallback: আলাদা settings key
+      if (!window.globalData.settings) {
+        var settRaw = localStorage.getItem('wingsfly_settings');
+        if (settRaw) window.globalData.settings = JSON.parse(settRaw);
+      }
+    } catch (e) { console.warn('Settings load failed in forgot modal', e); }
+  }
+
+  var gd = window.globalData;
   if (!gd || !gd.settings || !gd.settings.recoveryQuestion) {
     alert('⚠️ কোনো Recovery Question সেট করা নেই।\nSettings → 🔒 Security তে গিয়ে প্রথমে Question সেট করুন।');
     return;
