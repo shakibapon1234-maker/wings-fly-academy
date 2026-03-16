@@ -2464,7 +2464,7 @@
                 win.document.write('<h1>WINGS FLY AVIATION ACADEMY</h1><h2>Account Analytics Report</h2><p>Generated: '+new Date().toLocaleString()+'</p>');
                 win.document.write('<h3>✅ Income Breakdown</h3><table><thead><tr><th>Category</th><th>Person</th><th>Amount</th><th>Date</th></tr></thead><tbody>'+inc+'</tbody></table>');
                 win.document.write('<h3>❌ Expense Breakdown</h3><table><thead><tr><th>Category</th><th>Person</th><th>Amount</th><th>Date</th></tr></thead><tbody>'+exp+'</tbody></table>');
-                win.document.write('<script>window.onload=function(){ window.print(); window.close(); };</script></body></html>');
+                win.document.write('<scr'+'ipt>window.onload=function(){ window.print(); window.close(); };<\/script></body></html>');
                 win.document.close();
             } catch(e) { console.error('Print error:', e); alert('Print করতে সমস্যা হয়েছে।'); }
         };
