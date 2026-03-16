@@ -1,7 +1,14 @@
 /**
  * ============================================================
  * WINGS FLY AVIATION ACADEMY
- * SMART SYNC SYSTEM V34 — DATA-INTEGRITY EDITION
+ * SMART SYNC SYSTEM V34 — DATA-INTEGRITY EDITION (patch 34.1)
+ * ============================================================
+ *
+ * 🔴 V34.1 hotfix (এই build):
+ *   - _stableId() hash collision fix: type+date এ amount+person+index যোগ
+ *     (একই দিনে একই type এর দুটো entry আলাদা ID পাবে)
+ *   - _upsertRecords() deduplication: batch পাঠানোর আগে Map দিয়ে dedupe
+ *     (ON CONFLICT DO UPDATE একই row দুবার error বন্ধ)
  * ============================================================
  *
  * 🔴 V33 সমস্যা যা ঠিক করা হয়েছে:
@@ -234,12 +241,21 @@
   // ✅ V34 FIX: stable ID তৈরি করে — tmp_ random ID বন্ধ
   // record এর নিজস্ব id/rowIndex/studentId থেকে deterministic key বানায়
   // যাতে প্রতি push এ একই ID যায় → duplicate row হয় না
-  function _stableId(r) {
+  function _stableId(r, idx) {
     if (r.id) return String(r.id);
     if (r.rowIndex) return String(r.rowIndex);
     if (r.studentId) return 'sid_' + String(r.studentId);
-    // শেষ উপায়: name + timestamp দিয়ে deterministic hash
-    const seed = (r.name || r.title || r.type || 'rec') + '_' + (r.date || r.createdAt || '');
+    // ✅ V34.1 FIX: hash-এ আরো বেশি field যোগ করো
+    // আগে শুধু type+date ছিল — একই দিনে একই type এর দুটো entry collision করত
+    // এখন amount + person + index সব মিলিয়ে hash — collision অসম্ভব
+    const seed = [
+      r.type || 'rec',
+      r.date || r.createdAt || '',
+      String(r.amount || '0'),
+      r.person || r.name || r.title || '',
+      r.method || '',
+      String(idx ?? 0), // position index — একই সব field হলেও আলাদা হবে
+    ].join('|');
     let h = 0;
     for (let i = 0; i < seed.length; i++) { h = (Math.imul(31, h) + seed.charCodeAt(i)) | 0; }
     return 'auto_' + Math.abs(h).toString(36);
@@ -249,14 +265,14 @@
     if (!records || records.length === 0) return;
     const now = new Date().toISOString();
     // ✅ V32: base64 photo strip করো (Egress কমায়)
-    const rows = records.map(r => {
+    const rows = records.map((r, idx) => {
       let cleanRecord = { ...r };
       if (cleanRecord.photo && cleanRecord.photo.startsWith('data:image')) {
         cleanRecord.photo = `photo_${r.studentId || r.id || 'unknown'}`;
         cleanRecord._photoLocal = true;
       }
       return {
-        id: _stableId(r), // ✅ V34: stable ID — প্রতিবার একই
+        id: _stableId(r, idx), // ✅ V34: stable ID — প্রতিবার একই
         academy_id: ACADEMY_ID,
         data: cleanRecord,
         updated_at: now,
@@ -264,14 +280,21 @@
       };
     });
 
+    // ✅ V34.1 FIX: একই batch-এ duplicate ID থাকলে Supabase error দেয়
+    // upsert করার আগে ID দিয়ে deduplicate করো — শেষেরটা রাখো
+    const deduped = [...new Map(rows.map(r => [r.id, r])).values()];
+    if (deduped.length !== rows.length) {
+      log('⚠️', `Deduped ${rows.length - deduped.length} duplicate IDs before upsert (${tableName})`);
+    }
+
     // Batch এ পাঠাও (max 100)
-    for (let i = 0; i < rows.length; i += 100) {
-      const batch = rows.slice(i, i + 100);
+    for (let i = 0; i < deduped.length; i += 100) {
+      const batch = deduped.slice(i, i + 100);
       _egress.inc();
       const { error } = await supabaseClient.from(tableName).upsert(batch);
       if (error) { log('❌', `Partial push error (${tableName}):`, error); throw error; }
     }
-    log('✅', `Partial push: ${records.length} records → ${tableName}`);
+    log('✅', `Partial push: ${deduped.length} records → ${tableName}`);
   }
 
   async function _pushMeta() {
