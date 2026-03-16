@@ -564,28 +564,38 @@
     console.log('[SectionLoader] 🚀 System successfully initialized');
   }
 
+  // In-memory HTML cache
+  const _htmlCache = new Map();
+
+  async function _fetchWithCache(file) {
+      if (_htmlCache.has(file)) return _htmlCache.get(file);
+      const res = await fetch(file + '?v=20260314');
+      if (!res.ok) throw new Error('HTTP ' + res.status);
+      const html = await res.text();
+      _htmlCache.set(file, html);
+      return html;
+  }
+
   async function _loadStaticSections() {
       const sections = [
-          { pid: '__accountsPlaceholder', file: 'sections/accounts-section.html' },
-          { pid: '__certificatesPlaceholder', file: 'sections/certificates.html' },
-          { pid: '__idcardsPlaceholder', file: 'sections/idcards.html' },
-          { pid: '__studentModalsPlaceholder', file: 'sections/student-modals.html' }
+          { pid: '__studentModalsPlaceholder', file: 'sections/student-modals.html' },
+          { pid: '__accountsPlaceholder',      file: 'sections/accounts-section.html' },
+          { pid: '__certificatesPlaceholder',  file: 'sections/certificates.html' },
+          { pid: '__idcardsPlaceholder',       file: 'sections/idcards.html' },
       ];
 
-      for (const s of sections) {
+      await Promise.all(sections.map(async (s) => {
           try {
               const el = document.getElementById(s.pid);
-              if (!el) continue;
-              const res = await fetch(s.file + '?v=' + Date.now());
-              if (!res.ok) continue;
-              const html = await res.text();
+              if (!el) return;
+              const html = await _fetchWithCache(s.file);
               el.innerHTML = html;
               _reExecScripts(el);
               console.log('[SectionLoader] 💠 Loaded static section:', s.file);
           } catch (e) {
               console.warn('[SectionLoader] Failed to load static section:', s.file, e);
           }
-      }
+      }));
 
       // ✅ FIX: After all static sections are loaded, refresh active tab if needed
       // This prevents "blank screen" on refresh for Accounts, Certificates etc.
