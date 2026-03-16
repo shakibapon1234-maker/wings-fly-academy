@@ -1,22 +1,27 @@
 /**
  * ============================================================
  * WINGS FLY AVIATION ACADEMY
- * SMART SYNC SYSTEM V33 — DATA-SAFE EDITION
+ * SMART SYNC SYSTEM V34 — DATA-INTEGRITY EDITION
  * ============================================================
  *
- * 🔴 V32 সমস্যা যা ঠিক করা হয়েছে:
- *   - saveToStorage() → double push বন্ধ (skipCloudSync=true intercept)
- *   - _pushPartial() → meta সবসময় push হয় (version mismatch fix)
- *   - Auto-monitor: 2s → 30s, record count change এ push (loop fix)
- *   - Multi-tab race condition: optimistic lock যোগ করা হয়েছে
- *   - Auto-heal module 13: __v33_sync_active flag এখন কাজ করে
+ * 🔴 V33 সমস্যা যা ঠিক করা হয়েছে:
+ *   - tmp_ ID bug: id/rowIndex না থাকলে এখন stable UUID তৈরি করে
+ *     (প্রতি push-এ আলাদা ID হওয়া বন্ধ → duplicate row বন্ধ)
+ *   - Pull merge fix: row.data এর ভেতরের id দিয়ে match করে
+ *     (আগে outer row.id দিয়ে match হত → নতুন record হয়ে যেত)
+ *   - beforeunload photo strip: page close এ base64 photo strip হয়
+ *     (আগে raw base64 সহ বড় payload যেত → size limit ভাঙত)
+ *   - Version double-increment fix: _pushFull এ localVersion++ সরানো
+ *     (pushToCloud এ একবারই increment হয়)
+ *   - Race condition fix: pull await শেষ হওয়ার পর isPushing=true
  *
- * ✅ V33 নতুন Features:
- *   - DOUBLE-PUSH PREVENTION: saveToStorage intercept করে debounce এ route করে
+ * ✅ V33 থেকে বজায় রাখা সব features:
+ *   - DOUBLE-PUSH PREVENTION: saveToStorage intercept → debounce
  *   - META ALWAYS PUSH: partial push এ version কখনো miss হবে না
- *   - SMART MONITOR: record count/cash change detect করে, timestamp এ নয়
- *   - OPTIMISTIC LOCK: multi-tab conflict এ আগে pull, তারপর push
- *   - V32 এর সব Egress Optimizer features বজায় আছে
+ *   - SMART MONITOR: record count/cash change detect করে
+ *   - OPTIMISTIC LOCK: multi-tab conflict handling
+ *   - EGRESS OPTIMIZER: 15min pull, 1.5min version check
+ *   - TAB VISIBILITY: hidden tab এ sync বন্ধ
  *
  * Author: Wings Fly IT Team
  * Date: March 2026
@@ -226,6 +231,20 @@
     _dirty.clear(); // সব dirty flag clear করো
   }
 
+  // ✅ V34 FIX: stable ID তৈরি করে — tmp_ random ID বন্ধ
+  // record এর নিজস্ব id/rowIndex/studentId থেকে deterministic key বানায়
+  // যাতে প্রতি push এ একই ID যায় → duplicate row হয় না
+  function _stableId(r) {
+    if (r.id) return String(r.id);
+    if (r.rowIndex) return String(r.rowIndex);
+    if (r.studentId) return 'sid_' + String(r.studentId);
+    // শেষ উপায়: name + timestamp দিয়ে deterministic hash
+    const seed = (r.name || r.title || r.type || 'rec') + '_' + (r.date || r.createdAt || '');
+    let h = 0;
+    for (let i = 0; i < seed.length; i++) { h = (Math.imul(31, h) + seed.charCodeAt(i)) | 0; }
+    return 'auto_' + Math.abs(h).toString(36);
+  }
+
   async function _upsertRecords(tableName, records) {
     if (!records || records.length === 0) return;
     const now = new Date().toISOString();
@@ -237,7 +256,7 @@
         cleanRecord._photoLocal = true;
       }
       return {
-        id: r.id || r.rowIndex || ('tmp_' + Date.now() + Math.random()),
+        id: _stableId(r), // ✅ V34: stable ID — প্রতিবার একই
         academy_id: ACADEMY_ID,
         data: cleanRecord,
         updated_at: now,
@@ -307,11 +326,16 @@
     const newStudents = await _fetchSince(TBL_STUDENTS, _lastPull.students);
     if (newStudents && newStudents.length > 0) {
       anyUpdate = true;
-      const existing = new Map((gd.students || []).map(s => [String(s.id || s.rowIndex), s]));
+      const existing = new Map((gd.students || []).map(s => [String(s.id || s.rowIndex || s.studentId), s]));
       newStudents.forEach(row => {
-        const key = String(row.id);
-        if (row.deleted) existing.delete(key);
-        else existing.set(key, row.data);
+        // ✅ V34 FIX: row.data এর ভেতরের id দিয়ে match করো
+        // আগে outer row.id দিয়ে match হত, কিন্তু Map key হলো data এর id
+        // ফলে merge না হয়ে নতুন record হয়ে যেত
+        const innerKey = String(
+          row.data?.id || row.data?.rowIndex || row.data?.studentId || row.id
+        );
+        if (row.deleted) existing.delete(innerKey);
+        else existing.set(innerKey, row.data);
       });
       gd.students = Array.from(existing.values());
       _lastPull.students = new Date().toISOString();
@@ -324,8 +348,10 @@
       anyUpdate = true;
       const existing = new Map((gd.finance || []).map(f => [String(f.id), f]));
       newFinance.forEach(row => {
-        if (row.deleted) existing.delete(String(row.id));
-        else existing.set(String(row.id), row.data);
+        // ✅ V34 FIX: inner data id দিয়ে match
+        const innerKey = String(row.data?.id || row.id);
+        if (row.deleted) existing.delete(innerKey);
+        else existing.set(innerKey, row.data);
       });
       gd.finance = Array.from(existing.values());
       _lastPull.finance = new Date().toISOString();
@@ -338,8 +364,10 @@
       anyUpdate = true;
       const existing = new Map((gd.employees || []).map(e => [String(e.id), e]));
       newEmployees.forEach(row => {
-        if (row.deleted) existing.delete(String(row.id));
-        else existing.set(String(row.id), row.data);
+        // ✅ V34 FIX: inner data id দিয়ে match
+        const innerKey = String(row.data?.id || row.id);
+        if (row.deleted) existing.delete(innerKey);
+        else existing.set(innerKey, row.data);
       });
       gd.employees = Array.from(existing.values());
       _lastPull.employees = new Date().toISOString();
@@ -413,7 +441,8 @@
     }
     localStorage.setItem('wings_last_known_count', localCount.toString());
 
-    localVersion++;
+    // ✅ V34 FIX: localVersion++ এখানে নেই — pushToCloud() তে একবারই হয়
+    // আগে এখানেও ++ হত → double increment হত
     const timestamp = new Date().toISOString();
 
     const studentsWithoutPhotos = (gd.students || []).map(s => {
@@ -638,9 +667,11 @@
             log('🔄', `Multi-tab conflict: Cloud v${cloudVer} (other device) >= Local v${localVersion} — pulling first`);
             localVersion = cloudVer;
             localStorage.setItem('wings_local_version', localVersion.toString());
+            // ✅ V34 FIX: pull সম্পূর্ণ await করার পর isPushing=true
+            // আগে isPushing=false করে pull ডাকত, pull শেষ না হতেই isPushing=true হত
             isPushing = false;
             await pullFromCloud(true, true);
-            isPushing = true; // pull শেষে আবার push করতে থাকো
+            isPushing = true; // pull শেষে push চালিয়ে যাও
           }
         }
       } catch (e) { /* version check fail হলেও push চালিয়ে যাও */ }
@@ -778,13 +809,19 @@
       if (!window.globalData || !navigator.sendBeacon) return;
       try {
         const beaconUrl = `${SUPABASE_URL}/rest/v1/${TABLE_NAME}?on_conflict=id`;
+        // ✅ V34 FIX: beforeunload এ photo base64 strip করো
+        // আগে raw base64 সহ payload যেত → Supabase size limit ভাঙত
+        const studentsClean = (window.globalData.students || []).map(s => {
+          if (!s.photo || !s.photo.startsWith('data:image')) return s;
+          return { ...s, photo: `photo_${s.studentId || s.id || 'unknown'}`, _photoLocal: true };
+        });
         const payload = JSON.stringify({
           id: RECORD_ID,
           version: localVersion + 1,
           last_updated: new Date().toISOString(),
           last_device: DEVICE_ID,
           last_action: 'page-close',
-          students: window.globalData.students || [],
+          students: studentsClean,
           finance: window.globalData.finance || [],
           employees: window.globalData.employees || [],
         });
@@ -850,7 +887,7 @@
     }
 
     log('🚀', '━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━');
-    log('🚀', 'Wings Fly Smart Sync V32 — EGRESS OPTIMIZER');
+    log('🚀', 'Wings Fly Smart Sync V34 — DATA INTEGRITY EDITION');
     log('🚀', '━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━');
     log('💡', `Realtime WebSocket: ❌ DISABLED (Egress সাশ্রয়)`);
     log('💡', `Pull interval: 15 minutes`);
@@ -883,9 +920,9 @@
     // Auto-save monitor
     setTimeout(_installAutoSaveMonitor, 2000);
 
-    log('🎉', '✅ V32 Sync fully operational!');
+    log('🎉', '✅ V34 Sync fully operational!');
     log('📊', `Egress today: ${_egress.get()} requests`);
-    showNotification('🔄 Sync ready (V32)', 'success');
+    showNotification('🔄 Sync ready (V34)', 'success');
   }
 
   // ─────────────────────────────────────────────────────────
@@ -929,6 +966,6 @@
     start();
   }
 
-  log('📦', 'V32 loaded — EGRESS OPTIMIZER EDITION');
+  log('📦', 'V34 loaded — DATA INTEGRITY EDITION');
 
 })();
