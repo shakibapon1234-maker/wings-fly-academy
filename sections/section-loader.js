@@ -35,10 +35,12 @@
     const loadPromise = (async () => {
       try {
         console.log('[SectionLoader] 📡 Fetching HTML:', htmlFile);
-        // FIX: file:// protocol avoids query params that can block local fetches in some browsers
+        // ✅ FIX: GitHub Pages cache bypass — APP_VERSION ব্যবহার করো
+        // file:// protocol-এ query params কাজ না করতে পারে
         const isFileProtocol = window.location.protocol === 'file:';
-        const url = isFileProtocol ? htmlFile : htmlFile + '?v=' + Date.now();
-        const res = await fetch(url);
+        const vStr = (typeof APP_VERSION !== 'undefined' ? APP_VERSION : '') + '-' + Date.now();
+        const url = isFileProtocol ? htmlFile : htmlFile + '?v=' + vStr;
+        const res = await fetch(url, { cache: 'no-store' });
         if (!res.ok) throw new Error('HTTP ' + res.status);
         const html = await res.text();
 
@@ -145,11 +147,18 @@
     // 0. Account Analytics & Details (Fixed Lazy Loading)
     window.showAccountAnalytics = function () {
       console.log('[UI] showAccountAnalytics wrapper called');
-      // Always try to load/open settings-modal.html which contains the analytics logic and modal
+      // ✅ FIX: settings-modal লোড হয়ে থাকলেও impl সরাসরি call করো
+      // (re-open করলে data fresh পাবে, _loaded cache skip)
+      if (typeof window._showAccountAnalyticsImpl === 'function') {
+        console.log('[UI] _showAccountAnalyticsImpl already available, calling directly');
+        window._showAccountAnalyticsImpl();
+        return;
+      }
+      // প্রথমবার load করো
       loadAndOpen('__modalPlaceholderSettings', 'sections/settings-modal.html', 'settingsModal', function () {
         setTimeout(() => {
           if (typeof window._showAccountAnalyticsImpl === 'function') {
-            console.log('[UI] Calling _showAccountAnalyticsImpl');
+            console.log('[UI] Calling _showAccountAnalyticsImpl after load');
             window._showAccountAnalyticsImpl();
           } else {
             console.error('[UI] _showAccountAnalyticsImpl NOT FOUND after load');

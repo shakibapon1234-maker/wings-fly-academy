@@ -2421,11 +2421,11 @@
                 b.style.color = active ? '#fff' : '#aaa';
                 b.style.border = active ? 'none' : '1px solid #1e3a5f';
             });
-            // ✅ FIX: d-flex class conflict সরিয়ে সরাসরি style.display ব্যবহার করো
+            // ✅ FIX: d-flex Bootstrap conflict এড়াতে সরাসরি style.display
             var pm = document.getElementById('ana_panel_month');
-            if(pm) { pm.style.display = (m === 'month') ? 'block' : 'none'; }
+            if (pm) pm.style.display = (m === 'month') ? 'block' : 'none';
             var pr = document.getElementById('ana_panel_range');
-            if(pr) { pr.style.display = (m === 'range') ? 'flex' : 'none'; }
+            if (pr) pr.style.display = (m === 'range') ? 'flex' : 'none';
             window._anaRefreshTables();
         };
 
@@ -2437,10 +2437,9 @@
             else if (r === 'last30') from = fD(new Date(Date.now() - 30*86400000));
             else if (r === 'last90') from = fD(new Date(Date.now() - 90*86400000));
             else if (r === 'thisYear') from = fD(new Date(today.getFullYear(), 0, 1));
-            
             var df = document.getElementById('ana_dateFrom'); if(df) df.value = from;
             var dt = document.getElementById('ana_dateTo');   if(dt) dt.value = fD(today);
-            // ✅ FIX: mode 'range'-এ switch করো, তারপর refresh
+            // ✅ FIX: আগে mode 'range' করো, তারপর refresh (setMode নিজেই refresh করবে)
             window._anaSetMode('range');
         };
 
@@ -2462,25 +2461,18 @@
         // --- Implementation Wrapper ---
         window._showAccountAnalyticsImpl = function () {
             console.log('[Analytics] Booting Implementation V2...');
-            
-            // ✅ FIX: globalData না থাকলে localStorage থেকে load করো
-            if (!window.globalData || !window.globalData.finance) {
-                try {
-                    var raw = localStorage.getItem('wingsfly_data');
-                    if (raw) {
-                        var parsed = JSON.parse(raw);
-                        if (parsed) {
-                            window.globalData = window.globalData || {};
-                            // finance, cashBalance, bankAccounts etc merge করো
-                            if (parsed.finance) window.globalData.finance = parsed.finance;
-                            if (parsed.cashBalance !== undefined) window.globalData.cashBalance = parsed.cashBalance;
-                            if (parsed.bankAccounts) window.globalData.bankAccounts = parsed.bankAccounts;
-                            if (parsed.mobileBanking) window.globalData.mobileBanking = parsed.mobileBanking;
-                            console.log('[Analytics] globalData loaded from localStorage, finance count:', (window.globalData.finance||[]).length);
-                        }
+
+            // ✅ FIX: প্রতিবার modal খোলার সময় globalData fresh reload করো
+            try {
+                var raw = localStorage.getItem('wingsfly_data');
+                if (raw) {
+                    var parsed = JSON.parse(raw);
+                    if (parsed) {
+                        window.globalData = Object.assign(window.globalData || {}, parsed);
+                        console.log('[Analytics] globalData refreshed. Finance entries:', (window.globalData.finance||[]).length);
                     }
-                } catch(e) { console.warn('[Analytics] localStorage load failed:', e); }
-            }
+                }
+            } catch(lsErr) { console.warn('[Analytics] localStorage reload failed:', lsErr); }
 
             var gd = window.globalData || {};
             
