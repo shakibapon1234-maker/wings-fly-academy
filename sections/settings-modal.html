@@ -2344,32 +2344,32 @@
                     return true;
                 });
 
-                // Canonical definitions for Income/Expense (Expanded + PascalCase support)
-                var inTypes = ['income', 'registration', 'refund', 'fee', 'tuition fees', 'admission fee', 
-                    'installment', 'student installment', 'student fee', 'advance', 'investment', 
-                    'collection', 'received', 'loan received'];
-                var outTypes = ['expense', 'salary', 'rent', 'utilities', 'commission', 'maintenance', 
-                    'office rent', 'purchase', 'bill', 'loan given', 'salary payment', 'payment', 
-                    'paid', 'cost'];
-
+                // ✅ FIX: lowercase match — আপনার data-এ 'Income','Expense','Loan Received','Loan Given'
                 var incArr = filtered.filter(function(f) {
                     var t = String(f.type || '').toLowerCase().trim();
                     var c = String(f.category || '').toLowerCase().trim();
-                    return inTypes.indexOf(t) > -1 || inTypes.indexOf(c) > -1 
-                        || t.includes('income') || c.includes('income') 
+                    return t === 'income' || t === 'loan received'
+                        || c === 'income' || c === 'loan received'
+                        || t.includes('income') || c.includes('income')
                         || t.includes('fee') || c.includes('fee')
                         || t.includes('received') || c.includes('received')
-                        || t.includes('installment') || c.includes('installment');
+                        || t.includes('installment') || c.includes('installment')
+                        || t.includes('registration') || c.includes('registration')
+                        || t.includes('refund') || c.includes('refund')
+                        || t.includes('advance') || c.includes('advance');
                 });
                 var expArr = filtered.filter(function(f) {
                     var t = String(f.type || '').toLowerCase().trim();
                     var c = String(f.category || '').toLowerCase().trim();
-                    return outTypes.indexOf(t) > -1 || outTypes.indexOf(c) > -1 
-                        || t.includes('expense') || c.includes('expense') 
-                        || t.includes('cost') || c.includes('cost')
-                        || t.includes('loan given') || c.includes('loan given')
+                    return t === 'expense' || t === 'loan given'
+                        || c === 'expense' || c === 'loan given'
+                        || t.includes('expense') || c.includes('expense')
                         || t.includes('salary') || c.includes('salary')
-                        || t.includes('payment') || c.includes('payment');
+                        || t.includes('rent') || c.includes('rent')
+                        || t.includes('utilities') || c.includes('utilities')
+                        || t.includes('loan given') || c.includes('loan given')
+                        || t.includes('payment') || c.includes('payment')
+                        || t.includes('cost') || c.includes('cost');
                 });
 
                 var totI = incArr.reduce(function(s, f) { return s + window._anaParseAmt(f.amount); }, 0);
@@ -2450,7 +2450,7 @@
             else if (r === 'last90') from = fD(new Date(Date.now() - 90*86400000));
             else if (r === 'thisYear') from = fD(new Date(today.getFullYear(), 0, 1));
             var df = document.getElementById('ana_dateFrom'); if(df) df.value = from;
-            var dt = document.getElementById('ana_dateTo');   if(dt) dt.value = fD(today);
+            var dt = document.getElementById('ana_dateTo'); if(dt) dt.value = fD(today);
             window._anaSetMode('range');
         };
 
@@ -2471,19 +2471,19 @@
 
         // --- Implementation Wrapper ---
         window._showAccountAnalyticsImpl = function () {
-            console.log('[Analytics] Booting Implementation V2...');
+            console.log('[Analytics] Booting...');
 
-            // ✅ FIX: প্রতিবার fresh reload
+            // ✅ প্রতিবার fresh localStorage reload
             try {
                 var raw = localStorage.getItem('wingsfly_data');
                 if (raw) {
                     var parsed = JSON.parse(raw);
                     if (parsed) {
                         window.globalData = Object.assign(window.globalData || {}, parsed);
-                        console.log('[Analytics] globalData refreshed. Finance:', (window.globalData.finance||[]).length);
+                        console.log('[Analytics] Finance entries:', (window.globalData.finance||[]).length);
                     }
                 }
-            } catch(lsErr) { console.warn('[Analytics] localStorage reload failed:', lsErr); }
+            } catch(e) { console.warn('[Analytics] reload failed:', e); }
 
             var gd = window.globalData || {};
             

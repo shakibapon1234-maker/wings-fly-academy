@@ -35,12 +35,10 @@
     const loadPromise = (async () => {
       try {
         console.log('[SectionLoader] 📡 Fetching HTML:', htmlFile);
-        // ✅ FIX: GitHub Pages cache bypass — APP_VERSION ব্যবহার করো
-        // file:// protocol-এ query params কাজ না করতে পারে
+        // FIX: file:// protocol avoids query params that can block local fetches in some browsers
         const isFileProtocol = window.location.protocol === 'file:';
-        const vStr = (typeof APP_VERSION !== 'undefined' ? APP_VERSION : '') + '-' + Date.now();
-        const url = isFileProtocol ? htmlFile : htmlFile + '?v=' + vStr;
-        const res = await fetch(url, { cache: 'no-store' });
+        const url = isFileProtocol ? htmlFile : htmlFile + '?v=' + Date.now();
+        const res = await fetch(url);
         if (!res.ok) throw new Error('HTTP ' + res.status);
         const html = await res.text();
 
@@ -146,29 +144,56 @@
 
     // 0. Account Analytics & Details (Fixed Lazy Loading)
     window.showAccountAnalytics = function () {
-      console.log('[UI] showAccountAnalytics wrapper called');
-      // ✅ FIX: settings-modal লোড হয়ে থাকলেও impl সরাসরি call করো
-      // (re-open করলে data fresh পাবে, _loaded cache skip)
-      if (typeof window._showAccountAnalyticsImpl === 'function') {
-        console.log('[UI] _showAccountAnalyticsImpl already available, calling directly');
-        window._showAccountAnalyticsImpl();
-        return;
-      }
-      // প্রথমবার load করো
-      loadAndOpen('__modalPlaceholderSettings', 'sections/settings-modal.html', 'settingsModal', function () {
-        setTimeout(() => {
-          if (typeof window._showAccountAnalyticsImpl === 'function') {
-            console.log('[UI] Calling _showAccountAnalyticsImpl after load');
-            window._showAccountAnalyticsImpl();
-          } else {
-            console.error('[UI] _showAccountAnalyticsImpl NOT FOUND after load');
-            const modal = document.getElementById('accountAnalyticsModal');
-            if (modal && window.bootstrap) {
-                bootstrap.Modal.getOrCreateInstance(modal).show();
-            }
+      console.log('[UI] showAccountAnalytics called');
+
+      function _runAnalytics() {
+        // globalData fresh করো
+        try {
+          var raw = localStorage.getItem('wingsfly_data');
+          if (raw) {
+            var parsed = JSON.parse(raw);
+            if (parsed) window.globalData = Object.assign(window.globalData || {}, parsed);
           }
-        }, 100);
-      });
+        } catch(e) {}
+
+        if (typeof window._showAccountAnalyticsImpl === 'function') {
+          window._showAccountAnalyticsImpl();
+          return;
+        }
+
+        // functions নেই — settings-modal.html থেকে শুধু script অংশটা inject করো
+        console.log('[UI] Analytics functions missing, injecting from settings-modal...');
+        // _loaded থেকে settingsModal সরিয়ে force re-load করো
+        if (window.SectionLoader && typeof window.SectionLoader.clearCache === 'function') {
+          window.SectionLoader.clearCache('settingsModal');
+        } else {
+          // Direct: _loaded Set clear করো
+          _loaded.delete('settingsModal');
+        }
+        loadAndOpen('__modalPlaceholderSettings', 'sections/settings-modal.html', 'settingsModal', function () {
+          setTimeout(function() {
+            if (typeof window._showAccountAnalyticsImpl === 'function') {
+              window._showAccountAnalyticsImpl();
+            } else {
+              console.error('[UI] _showAccountAnalyticsImpl still missing after reload');
+              var modal = document.getElementById('accountAnalyticsModal');
+              if (modal && window.bootstrap) bootstrap.Modal.getOrCreateInstance(modal).show();
+            }
+          }, 200);
+        });
+      }
+
+      // Modal DOM-এ আছে কিনা দেখো
+      var modal = document.getElementById('accountAnalyticsModal');
+      if (modal) {
+        _runAnalytics();
+      } else {
+        // Modal নেই — settings-modal.html load হয়নি
+        _loaded.delete('settingsModal');
+        loadAndOpen('__modalPlaceholderSettings', 'sections/settings-modal.html', 'settingsModal', function () {
+          setTimeout(_runAnalytics, 200);
+        });
+      }
     };
 
     window.showAccountDetails = function () {
@@ -589,7 +614,11 @@
 
   window.sectionLoader = {
     loadAndOpen: loadAndOpen,
-    isLoaded: id => _loaded.has(id)
+    isLoaded: id => _loaded.has(id),
+    clearCache: id => { if(id) _loaded.delete(id); else _loaded.clear(); }
   };
+
+  // Public alias for analytics fix
+  window.SectionLoader = window.sectionLoader;
 
 })();
