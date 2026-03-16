@@ -552,6 +552,17 @@
               console.warn('[SectionLoader] Failed to load static section:', s.file, e);
           }
       }
+
+      // ✅ FIX: After all static sections are loaded, refresh active tab if needed
+      // This prevents "blank screen" on refresh for Accounts, Certificates etc.
+      const activeTab = localStorage.getItem('wingsfly_active_tab');
+      const staticTabs = ['accounts', 'certificates', 'idcards'];
+      if (activeTab && staticTabs.includes(activeTab)) {
+          console.log('[SectionLoader] 🔄 Refreshing active tab after static load:', activeTab);
+          if (typeof window.switchTab === 'function') {
+              window.switchTab(activeTab, false);
+          }
+      }
   }
 
   if (document.readyState === 'loading') {

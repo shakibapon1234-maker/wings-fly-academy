@@ -35,8 +35,9 @@ function updateGlobalStats() {
   const expenseDateStart = settings.runningBatchDateStart || '';
   const expenseDateEnd   = settings.runningBatchDateEnd   || '';
 
-  // Update Academy Name display
-  if (settings.academyName) {
+  // Update Academy Name display (Only on Dashboard to avoid overwriting tab titles)
+  const activeTab = localStorage.getItem('wingsfly_active_tab') || 'dashboard';
+  if (settings.academyName && activeTab === 'dashboard') {
     const titleEl = document.querySelector('.page-title') || document.querySelector('.dashboard-header h2');
     if (titleEl) titleEl.innerText = settings.academyName;
   }
