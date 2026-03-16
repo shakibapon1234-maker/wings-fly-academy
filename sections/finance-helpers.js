@@ -282,7 +282,7 @@ function showWarningDetailsModal() {
           <button class="btn btn-sm btn-outline-warning border-0 rounded-pill px-2 py-0 me-1" style="font-size:0.78rem;" onclick="warnEditFinance('${txId}')">✏️ EDIT</button>
           <button class="btn btn-sm btn-outline-danger border-0 rounded-pill px-2 py-0" data-id="${txId}" style="font-size:0.78rem;" onclick="warnAskOrphan('${txId}','${(entry.person || '').replace(/'/g, "\\'")}')">🗑️ DELETE?</button>
         </td>
-      </tr>`;\
+      </tr>`;
     }
   );
 
