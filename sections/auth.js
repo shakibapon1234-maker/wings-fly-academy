@@ -502,11 +502,15 @@ window.loadDashboard = loadDashboard;
 window.switchTab = switchTab;
 
 // ═══════════════════════════════════════════════════
+// PAGE REFRESH → Same Tab Restore
+// ═══════════════════════════════════════════════════
 // PAGE REFRESH → Same Tab Restore (Flash-Free)
 // ═══════════════════════════════════════════════════
 (function () {
   if (sessionStorage.getItem('isLoggedIn') !== 'true') return;
 
+  // ✅ FIX: script parse হওয়ার সাথে সাথেই style inject
+  // Browser paint করার আগেই login hide + content hide + dashboardOverview hide
   var lastTab = localStorage.getItem('wingsfly_active_tab') || 'dashboard';
   var style = document.createElement('style');
   style.id = 'wf-flash-prevent';

@@ -63,7 +63,8 @@ function updateGlobalStats() {
       const isExamRelated = cat.includes('exam') || desc.includes('exam fee') || desc.includes('exam reg');
       const isStudentRelated = cat.includes('student') || cat.includes('installment') ||
         cat.includes('admission') || cat.includes('fee') ||
-        desc.includes('installment') || desc.includes('enrollment fee');
+        desc.includes('installment') || desc.includes('enrollment fee') ||
+        (f.studentId && f.studentId.trim() !== ''); // Check studentId field too
 
       if (isExamRelated)             allTotalExamIncome += amt;
       else if (isStudentRelated)     allStudentIncome += amt;

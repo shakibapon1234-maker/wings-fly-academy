@@ -880,8 +880,8 @@ async function handleStudentSubmit(e) {
   const phoneInp = document.getElementById('studentPhone');
   const methodSel = document.getElementById('studentMethodSelect');
 
-  if (!nameInp?.value.trim() || !batchInp?.value.trim() || !courseSel?.value || !phoneInp?.value.trim() || !methodSel?.value) {
-    showErrorToast('⚠️ Please fill all required fields: Name, Phone, Course, Batch, and Payment Method');
+  if (!nameInp?.value.trim() || !courseSel?.value || !phoneInp?.value.trim() || !methodSel?.value) {
+    showErrorToast('⚠️ Please fill required fields: Name, Phone, Course, and Payment Method');
     // Highlight empty fields
     [nameInp, batchInp, courseSel, phoneInp, methodSel].forEach(el => {
       if (el && (!el.value || !el.value.trim())) {
