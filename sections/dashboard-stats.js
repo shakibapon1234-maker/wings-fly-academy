@@ -134,27 +134,25 @@ function updateGlobalStats() {
 
   const runProfit = runStudentIncome - runTotalExpense;
 
-  // 3. PENDING ADVANCES
-  // ✅ FIX: type='Advance' দিয়ে save হয়, type='Advance Return' দিয়ে return হয়
+  // 3. PENDING ADVANCES (Calculate from finance or payroll if available)
   let pendingAdvAmount = 0;
   let pendingAdvCount = 0;
   const advMap = new Map();
 
   (globalData.finance || []).forEach(f => {
     if (f._deleted) return;
-    const emp = f.person || f.description || 'Unknown';
-    if (f.type === 'Advance') {
-      advMap.set(emp, (advMap.get(emp) || 0) + (parseFloat(f.amount) || 0));
-    } else if (f.type === 'Advance Return') {
-      advMap.set(emp, (advMap.get(emp) || 0) - (parseFloat(f.amount) || 0));
+    if (f.type === 'Expense' && (f.category === 'Advance' || (f.description && f.description.toLowerCase().includes('advance')))) {
+        const emp = f.person || f.description || 'Unknown';
+        advMap.set(emp, (advMap.get(emp) || 0) + parseFloat(f.amount || 0));
     }
+    // If settlements exist, subtract them here (logic for later)
   });
-
-  advMap.forEach((amt, person) => {
-    if (amt > 0) {
-      pendingAdvAmount += amt;
-      pendingAdvCount++;
-    }
+  
+  advMap.forEach((amt) => {
+      if (amt > 0) {
+          pendingAdvAmount += amt;
+          pendingAdvCount++;
+      }
   });
 
   // --- UPDATE UI ---
@@ -405,72 +403,62 @@ function checkPaymentReminders() {
 
 function updateRecentActions() {
   const list = document.getElementById('recentActionsList');
-  if (!list) return;
+  const dashWorks = document.getElementById('dashRecentWorks');
+  if (!list && !dashWorks) return;
 
-  // Get last 5 transactions
-  const transactions = [...(globalData.finance || [])].reverse().slice(0, 5);
+  // ✅ FIX: _deleted বাদ দাও, সর্বশেষ ৫টা
+  const transactions = [...(globalData.finance || [])]
+    .filter(f => !f._deleted)
+    .slice(-5)
+    .reverse();
 
   if (transactions.length === 0) {
-    list.innerHTML = '<div class="text-muted text-center py-3">No recent actions</div>';
-    const dashWorks = document.getElementById('dashRecentWorks');
-    if (dashWorks) dashWorks.innerHTML = list.innerHTML;
+    const empty = '<div class="text-muted text-center py-3" style="color:#94a3c4;">No recent activity.</div>';
+    if (list) list.innerHTML = empty;
+    if (dashWorks) dashWorks.innerHTML = empty;
     return;
   }
 
-  list.innerHTML = '';
-  transactions.forEach(f => {
-    const isIncome = (f.type === 'Income' || f.type === 'Loan Received' || f.type === 'Loan Receiving' || f.type === 'Transfer In');
-    const amountClass = isIncome ? 'text-success' : 'text-danger';
-    const symbol = isIncome ? '+' : '-';
+  function buildHTML(items) {
+    return items.map(f => {
+      const t = f.type || '';
+      const isIncome = ['Income', 'Loan Received', 'Transfer In', 'Advance Return', 'Investment Return'].includes(t);
+      const amountClass = isIncome ? 'text-success' : 'text-danger';
+      const symbol = isIncome ? '+' : '-';
 
-    // Determine descriptive Title & Icon
-    let actionTitle = 'Transaction';
-    let actionIcon = '';
+      let actionTitle = t || 'Transaction';
+      let actionIcon = '📋';
 
-    if (f.category === 'Student Fee') {
-      actionTitle = 'Fee Payment';
-      actionIcon = '👨‍🎓';
-    } else if (f.type === 'Loan Given') {
-      actionTitle = 'Give Loan';
-      actionIcon = '🤝';
-    } else if (f.type === 'Loan Received') {
-      actionTitle = 'Recv Loan';
-      actionIcon = '💥';
-    } else if (f.type === 'Expense') {
-      actionTitle = 'Add Expense';
-      actionIcon = '💸';
-    } else if (f.type === 'Income') {
-      actionTitle = 'Add Income';
-      actionIcon = '💰';
-    } else if (f.type.includes('Transfer')) {
-      actionTitle = 'Fund Transfer';
-      actionIcon = '🔄';
-    }
+      if (f.category === 'Student Installment' || f.category === 'Student Fee') { actionTitle = 'Student Fee'; actionIcon = '👨‍🎓'; }
+      else if (t === 'Income') { actionTitle = 'Income'; actionIcon = '💰'; }
+      else if (t === 'Expense') { actionTitle = 'Expense'; actionIcon = '💸'; }
+      else if (t === 'Loan Given') { actionTitle = 'Loan Given'; actionIcon = '🤝'; }
+      else if (t === 'Loan Received') { actionTitle = 'Loan Received'; actionIcon = '💥'; }
+      else if (t === 'Advance') { actionTitle = 'Advance'; actionIcon = '⬆️'; }
+      else if (t === 'Advance Return') { actionTitle = 'Advance Return'; actionIcon = '⬇️'; }
+      else if (t === 'Investment') { actionTitle = 'Investment'; actionIcon = '📈'; }
+      else if (t === 'Investment Return') { actionTitle = 'Invest Return'; actionIcon = '📉'; }
+      else if (t && t.includes('Transfer')) { actionTitle = 'Transfer'; actionIcon = '🔄'; }
 
-    const item = document.createElement('div');
-    item.className = 'list-group-item border-0 px-0 small d-flex justify-content-between align-items-center';
-    item.innerHTML = `
-      <div class="d-flex align-items-center gap-2 overflow-hidden">
-        <span class="flex-shrink-0 fs-5">${actionIcon}</span>
-        <div class="text-truncate">
-          <div class="fw-bold text-truncate" style="color:#deeeff;">${actionTitle}</div>
-          <div style="font-size: 0.7rem; color:#94a3c4;">
-            ${f.description || f.category} • ${f.date}
+      const desc = (f.description || f.category || '—').slice(0, 28);
+      const date = String(f.date || '').slice(0, 10);
+
+      return `<div class="d-flex justify-content-between align-items-center py-2" style="border-bottom:1px solid rgba(255,255,255,0.05);">
+        <div class="d-flex align-items-center gap-2" style="overflow:hidden;min-width:0;">
+          <span class="flex-shrink-0">${actionIcon}</span>
+          <div style="overflow:hidden;min-width:0;">
+            <div style="font-size:0.8rem;font-weight:700;color:#deeeff;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;">${actionTitle}</div>
+            <div style="font-size:0.68rem;color:#94a3c4;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;">${desc} · ${date}</div>
           </div>
         </div>
-      </div>
-      <div class="ms-2 fw-bold ${amountClass} flex-shrink-0">
-        ${symbol}৳${formatNumber(f.amount)}
-      </div>
-    `;
-    list.appendChild(item);
-  });
-
-  // Also populate dashRecentWorks if it exists
-  const dashWorks = document.getElementById('dashRecentWorks');
-  if (dashWorks) {
-    dashWorks.innerHTML = list.innerHTML;
+        <div class="ms-2 fw-bold flex-shrink-0 ${amountClass}" style="font-size:0.8rem;">${symbol}৳${formatNumber(f.amount)}</div>
+      </div>`;
+    }).join('');
   }
+
+  const html = buildHTML(transactions);
+  if (list) list.innerHTML = html;
+  if (dashWorks) dashWorks.innerHTML = html;
 }
 
 function renderDashLoanSummary() {
