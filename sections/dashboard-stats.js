@@ -134,25 +134,27 @@ function updateGlobalStats() {
 
   const runProfit = runStudentIncome - runTotalExpense;
 
-  // 3. PENDING ADVANCES (Calculate from finance or payroll if available)
+  // 3. PENDING ADVANCES
+  // ✅ FIX: type='Advance' দিয়ে save হয়, type='Advance Return' দিয়ে return হয়
   let pendingAdvAmount = 0;
   let pendingAdvCount = 0;
   const advMap = new Map();
 
   (globalData.finance || []).forEach(f => {
     if (f._deleted) return;
-    if (f.type === 'Expense' && (f.category === 'Advance' || (f.description && f.description.toLowerCase().includes('advance')))) {
-        const emp = f.person || f.description || 'Unknown';
-        advMap.set(emp, (advMap.get(emp) || 0) + parseFloat(f.amount || 0));
+    const emp = f.person || f.description || 'Unknown';
+    if (f.type === 'Advance') {
+      advMap.set(emp, (advMap.get(emp) || 0) + (parseFloat(f.amount) || 0));
+    } else if (f.type === 'Advance Return') {
+      advMap.set(emp, (advMap.get(emp) || 0) - (parseFloat(f.amount) || 0));
     }
-    // If settlements exist, subtract them here (logic for later)
   });
-  
-  advMap.forEach((amt) => {
-      if (amt > 0) {
-          pendingAdvAmount += amt;
-          pendingAdvCount++;
-      }
+
+  advMap.forEach((amt, person) => {
+    if (amt > 0) {
+      pendingAdvAmount += amt;
+      pendingAdvCount++;
+    }
   });
 
   // --- UPDATE UI ---

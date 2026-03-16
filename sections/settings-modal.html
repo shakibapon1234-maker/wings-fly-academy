@@ -2194,14 +2194,14 @@
                         <div class="rounded-3 p-3" style="background:#071a0e; border:1px solid #1b5e20;">
                             <h6 class="fw-bold mb-2" style="color:#00e676;">✅ Income Breakdown</h6>
                             <div class="table-responsive">
-                                <table class="table table-sm mb-0" style="color:#cce8d4; font-size:0.8rem; min-width:500px;">
+                                <table class="table table-sm mb-0" style="color:#cce8d4; font-size:0.8rem; width:100%; table-layout:auto;">
                                     <thead>
                                         <tr style="border-bottom:1px solid #1b5e20;">
-                                            <th style="color:#aaa;font-weight:500;width:22%;">Category</th>
-                                            <th style="color:#aaa;font-weight:500;width:28%;">Person</th>
-                                            <th class="text-end" style="color:#aaa;font-weight:500;width:18%;">Amount</th>
-                                            <th style="color:#aaa;font-weight:500;width:15%;">Date</th>
-                                            <th style="color:#aaa;font-weight:500;width:17%;">Description</th>
+                                            <th style="color:#aaa;font-weight:500;width:14%;">Category</th>
+                                            <th style="color:#aaa;font-weight:500;width:14%;">Person</th>
+                                            <th class="text-end" style="color:#aaa;font-weight:500;width:12%;">Amount</th>
+                                            <th style="color:#aaa;font-weight:500;width:12%;">Date</th>
+                                            <th style="color:#aaa;font-weight:500;">Description</th>
                                         </tr>
                                     </thead>
                                     <tbody id="ana_incomeRows">
@@ -2224,14 +2224,14 @@
                         <div class="rounded-3 p-3" style="background:#1a0707; border:1px solid #7f0000;">
                             <h6 class="fw-bold mb-2" style="color:#ff5252;">❌ Expense Breakdown</h6>
                             <div class="table-responsive">
-                                <table class="table table-sm mb-0" style="color:#f8d0d0; font-size:0.8rem; min-width:500px;">
+                                <table class="table table-sm mb-0" style="color:#f8d0d0; font-size:0.8rem; width:100%; table-layout:auto;">
                                     <thead>
                                         <tr style="border-bottom:1px solid #7f0000;">
-                                            <th style="color:#aaa;font-weight:500;width:22%;">Category</th>
-                                            <th style="color:#aaa;font-weight:500;width:28%;">Person</th>
-                                            <th class="text-end" style="color:#aaa;font-weight:500;width:18%;">Amount</th>
-                                            <th style="color:#aaa;font-weight:500;width:15%;">Date</th>
-                                            <th style="color:#aaa;font-weight:500;width:17%;">Description</th>
+                                            <th style="color:#aaa;font-weight:500;width:14%;">Category</th>
+                                            <th style="color:#aaa;font-weight:500;width:14%;">Person</th>
+                                            <th class="text-end" style="color:#aaa;font-weight:500;width:12%;">Amount</th>
+                                            <th style="color:#aaa;font-weight:500;width:12%;">Date</th>
+                                            <th style="color:#aaa;font-weight:500;">Description</th>
                                         </tr>
                                     </thead>
                                     <tbody id="ana_expenseRows">
@@ -2397,13 +2397,13 @@
 
                     return sorted.map(function(f) {
                         var amt = window._anaParseAmt(f.amount);
-                        var desc = f.description ? (f.description.length > 22 ? f.description.slice(0,22)+'…' : f.description) : '—';
+                        var desc = f.description || '—';
                         return '<tr style="border-bottom:1px solid '+bClr+';">' +
                             '<td style="font-size:0.78rem;">' + (f.category || f.type || '—') + '</td>' +
-                            '<td style="font-size:0.78rem;max-width:120px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;" title="'+(f.person||'')+'">' + (f.person || '—') + '</td>' +
-                            '<td class="text-end fw-bold" style="color:' + clr + ';font-size:0.78rem;">' + window._anaFmt(amt) + '</td>' +
-                            '<td style="color:#888;font-size:0.72rem;">' + String(f.date||'').slice(0,10) + '</td>' +
-                            '<td style="color:#aaa;font-size:0.72rem;" title="'+(f.description||'')+'">' + desc + '</td>' +
+                            '<td style="font-size:0.78rem;" title="'+(f.person||'')+'">' + (f.person || '—') + '</td>' +
+                            '<td class="text-end fw-bold" style="color:' + clr + ';font-size:0.78rem;white-space:nowrap;">' + window._anaFmt(amt) + '</td>' +
+                            '<td style="color:#888;font-size:0.72rem;white-space:nowrap;">' + String(f.date||'').slice(0,10) + '</td>' +
+                            '<td style="color:#aaa;font-size:0.72rem;">' + desc + '</td>' +
                         '</tr>';
                     }).join('');
                 }
@@ -2459,8 +2459,8 @@
                 if (!win) { alert('Popup Blocked! Please allow popups to print report.'); return; }
                 win.document.write('<html><head><title>Account Analytics Report</title><style>body{font-family:sans-serif;padding:30px;background:#fff;color:#000;}table{width:100%;border-collapse:collapse;margin:15px 0;}th,td{border:1px solid #ccc;padding:8px;text-align:left;font-size:12px;}h2,h3{color:#333;margin-top:25px;} .sum-box{padding:10px;border:1px solid #eee;margin-bottom:10px;}</style></head><body>');
                 win.document.write('<h1>WINGS FLY AVIATION ACADEMY</h1><h2>Account Analytics Report</h2><p>Generated: '+new Date().toLocaleString()+'</p>');
-                win.document.write('<h3>✅ Income Breakdown</h3><table><thead><tr><th>Category</th><th>Person</th><th>Amount</th><th>Date</th></tr></thead><tbody>'+inc+'</tbody></table>');
-                win.document.write('<h3>❌ Expense Breakdown</h3><table><thead><tr><th>Category</th><th>Person</th><th>Amount</th><th>Date</th></tr></thead><tbody>'+exp+'</tbody></table>');
+                win.document.write('<h3>✅ Income Breakdown</h3><table><thead><tr><th>Category</th><th>Person</th><th>Amount</th><th>Date</th><th>Description</th></tr></thead><tbody>'+inc+'</tbody></table>');
+                win.document.write('<h3>❌ Expense Breakdown</h3><table><thead><tr><th>Category</th><th>Person</th><th>Amount</th><th>Date</th><th>Description</th></tr></thead><tbody>'+exp+'</tbody></table>');
                 win.document.write('<scr'+'ipt>window.onload=function(){ window.print(); window.close(); };<\/script></body></html>');
                 win.document.close();
             } catch(e) { console.error('Print error:', e); alert('Print করতে সমস্যা হয়েছে।'); }
