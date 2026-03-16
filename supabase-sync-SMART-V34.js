@@ -263,9 +263,17 @@
 
   async function _upsertRecords(tableName, records) {
     if (!records || records.length === 0) return;
+
+    // ✅ V34.2 FIX: raw records-এ duplicate id থাকলে push হওয়ার আগেই সরাও
+    // এটা না থাকলে Supabase "ON CONFLICT DO UPDATE cannot affect a row a second time" error দেয়
+    const rawDeduped = [...new Map(records.map(r => [String(r.id), r])).values()];
+    if (rawDeduped.length !== records.length) {
+      log('⚠️', `Removed ${records.length - rawDeduped.length} raw duplicates from ${tableName} before upsert`);
+    }
+
     const now = new Date().toISOString();
     // ✅ V32: base64 photo strip করো (Egress কমায়)
-    const rows = records.map((r, idx) => {
+    const rows = rawDeduped.map((r, idx) => {
       let cleanRecord = { ...r };
       if (cleanRecord.photo && cleanRecord.photo.startsWith('data:image')) {
         cleanRecord.photo = `photo_${r.studentId || r.id || 'unknown'}`;
