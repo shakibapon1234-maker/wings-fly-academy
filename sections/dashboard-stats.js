@@ -282,11 +282,13 @@ function updateTargetProgress() {
   // Update UI
   const pb = document.getElementById('targetProgressBar');
   const percText = document.getElementById('targetPercentage');
+  const percBarText = document.getElementById('targetProgressText');
   const collText = document.getElementById('targetCollected');
   const totalText = document.getElementById('targetTotal');
 
   if (pb) pb.style.width = `${percentage}%`;
   if (percText) percText.innerText = `${percentage}%`;
+  if (percBarText) percBarText.innerText = `${percentage}%`;
   if (collText) collText.innerText = `৳${formatNumber(filteredIncome)}`;
   if (totalText) totalText.innerText = `৳${formatNumber(target)}`;
 }
