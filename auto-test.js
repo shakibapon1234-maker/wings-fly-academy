@@ -916,7 +916,7 @@
   };
   window.startAutoTestMonitor = function () {
     if (_bgInterval) clearInterval(_bgInterval);
-    _bgInterval = setInterval(runBackgroundMonitor, 5 * 60 * 1000);
+    _bgInterval = setInterval(runBackgroundMonitor, 10 * 60 * 1000); // ১০ মিনিট
     setTimeout(runBackgroundMonitor, 30 * 1000);
   };
 
