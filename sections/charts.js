@@ -158,6 +158,22 @@ function updateCharts() {
       }
     }
   });
+
+  // ✅ FIX: Center-এ total student count দেখাও
+  const totalStudents = globalData.students ? globalData.students.length : 0;
+  const centerEl = document.getElementById('dashTotalStudentsCenter');
+  if (centerEl) centerEl.textContent = totalStudents;
+
+  // ✅ Legend render করো
+  const legendEl = document.getElementById('courseChartLegend');
+  if (legendEl && courseLabels.length > 0) {
+    legendEl.innerHTML = courseLabels.map((label, i) =>
+      `<span style="display:inline-flex;align-items:center;gap:5px;margin:3px 8px 3px 0;font-size:0.75rem;color:#94a3b8;">
+        <span style="display:inline-block;width:10px;height:10px;border-radius:50%;background:${pieColors[i % pieColors.length]};"></span>
+        ${label} (${courseValues[i]})
+      </span>`
+    ).join('');
+  }
 }
 // NOTE: downloadLedgerExcel, mailLedgerReport etc. are defined in student-management.js
 // NOTE: exportData, importData, handleImportFile are defined in data-export.js

@@ -2187,34 +2187,31 @@
                     </div>
                 </div>
 
-                <!-- Two Column: Income | Expense -->
+                <!-- Full Width: Income & Expense একসাথে -->
                 <div class="row g-3">
-
                     <!-- Income Breakdown -->
-                    <div class="col-md-6">
-                        <div class="rounded-3 p-3 h-100" style="background:#071a0e; border:1px solid #1b5e20;">
-                            <h6 class="fw-bold mb-3" style="color:#00e676;">✅ Income Breakdown</h6>
+                    <div class="col-12">
+                        <div class="rounded-3 p-3" style="background:#071a0e; border:1px solid #1b5e20;">
+                            <h6 class="fw-bold mb-2" style="color:#00e676;">✅ Income Breakdown</h6>
                             <div class="table-responsive">
-                                <table class="table table-sm mb-0" style="color:#cce8d4; font-size:0.82rem;">
+                                <table class="table table-sm mb-0" style="color:#cce8d4; font-size:0.8rem; min-width:500px;">
                                     <thead>
                                         <tr style="border-bottom:1px solid #1b5e20;">
-                                            <th style="color:#aaa; font-weight:500;">Category</th>
-                                            <th style="color:#aaa; font-weight:500;">Person</th>
-                                            <th class="text-end" style="color:#aaa; font-weight:500;">Amount</th>
-                                            <th style="color:#aaa; font-weight:500;">Date</th>
+                                            <th style="color:#aaa;font-weight:500;width:22%;">Category</th>
+                                            <th style="color:#aaa;font-weight:500;width:28%;">Person</th>
+                                            <th class="text-end" style="color:#aaa;font-weight:500;width:18%;">Amount</th>
+                                            <th style="color:#aaa;font-weight:500;width:15%;">Date</th>
+                                            <th style="color:#aaa;font-weight:500;width:17%;">Description</th>
                                         </tr>
                                     </thead>
                                     <tbody id="ana_incomeRows">
-                                        <tr>
-                                            <td colspan="4" class="text-center text-muted py-3">লোড হচ্ছে...</td>
-                                        </tr>
+                                        <tr><td colspan="5" class="text-center text-muted py-3">লোড হচ্ছে...</td></tr>
                                     </tbody>
                                     <tfoot>
                                         <tr style="border-top:1px solid #1b5e20;">
                                             <td colspan="2" class="fw-bold" style="color:#00e676;">উপমোট</td>
-                                            <td id="ana_incomeSubtotal" class="text-end fw-bold" style="color:#00e676;">
-                                                ৳0</td>
-                                            <td></td>
+                                            <td id="ana_incomeSubtotal" class="text-end fw-bold" style="color:#00e676;">৳0</td>
+                                            <td colspan="2"></td>
                                         </tr>
                                     </tfoot>
                                 </table>
@@ -2223,30 +2220,28 @@
                     </div>
 
                     <!-- Expense Breakdown -->
-                    <div class="col-md-6">
-                        <div class="rounded-3 p-3 h-100" style="background:#1a0707; border:1px solid #7f0000;">
-                            <h6 class="fw-bold mb-3" style="color:#ff5252;">❌ Expense Breakdown</h6>
+                    <div class="col-12">
+                        <div class="rounded-3 p-3" style="background:#1a0707; border:1px solid #7f0000;">
+                            <h6 class="fw-bold mb-2" style="color:#ff5252;">❌ Expense Breakdown</h6>
                             <div class="table-responsive">
-                                <table class="table table-sm mb-0" style="color:#f8d0d0; font-size:0.82rem;">
+                                <table class="table table-sm mb-0" style="color:#f8d0d0; font-size:0.8rem; min-width:500px;">
                                     <thead>
                                         <tr style="border-bottom:1px solid #7f0000;">
-                                            <th style="color:#aaa; font-weight:500;">Category</th>
-                                            <th style="color:#aaa; font-weight:500;">Person</th>
-                                            <th class="text-end" style="color:#aaa; font-weight:500;">Amount</th>
-                                            <th style="color:#aaa; font-weight:500;">Date</th>
+                                            <th style="color:#aaa;font-weight:500;width:22%;">Category</th>
+                                            <th style="color:#aaa;font-weight:500;width:28%;">Person</th>
+                                            <th class="text-end" style="color:#aaa;font-weight:500;width:18%;">Amount</th>
+                                            <th style="color:#aaa;font-weight:500;width:15%;">Date</th>
+                                            <th style="color:#aaa;font-weight:500;width:17%;">Description</th>
                                         </tr>
                                     </thead>
                                     <tbody id="ana_expenseRows">
-                                        <tr>
-                                            <td colspan="4" class="text-center text-muted py-3">লোড হচ্ছে...</td>
-                                        </tr>
+                                        <tr><td colspan="5" class="text-center text-muted py-3">লোড হচ্ছে...</td></tr>
                                     </tbody>
                                     <tfoot>
                                         <tr style="border-top:1px solid #7f0000;">
                                             <td colspan="2" class="fw-bold" style="color:#ff5252;">উপমোট</td>
-                                            <td id="ana_expenseSubtotal" class="text-end fw-bold"
-                                                style="color:#ff5252;">৳0</td>
-                                            <td></td>
+                                            <td id="ana_expenseSubtotal" class="text-end fw-bold" style="color:#ff5252;">৳0</td>
+                                            <td colspan="2"></td>
                                         </tr>
                                     </tfoot>
                                 </table>
@@ -2391,7 +2386,7 @@
 
                 // Table Builder
                 function buildRows(rows, clr, bClr) {
-                    if (!rows.length) return '<tr><td colspan="4" class="text-center text-muted py-5" style="border:none;">কোনো রেকর্ড পাওয়া যায়নি (' + (filtered.length ? 'Filter Match check' : 'Empty List') + ')</td></tr>';
+                    if (!rows.length) return '<tr><td colspan="5" class="text-center text-muted py-5" style="border:none;">কোনো রেকর্ড পাওয়া যায়নি (' + (filtered.length ? 'Filter Match check' : 'Empty List') + ')</td></tr>';
                     
                     // Sort descending by date
                     var sorted = rows.slice().sort(function(a,b){
@@ -2402,11 +2397,13 @@
 
                     return sorted.map(function(f) {
                         var amt = window._anaParseAmt(f.amount);
-                        return '<tr style="border-bottom:1px solid '+bClr+'; transition:all 0.2s;">' +
-                            '<td><div class="fw-semibold">' + (f.category || f.type || '—') + '</div><div style="font-size:0.65rem;color:#888;">' + (f.description ? f.description.slice(0,25) + (f.description.length > 25 ? '...' : '') : '—') + '</div></td>' +
-                            '<td class="text-nowrap overflow-hidden" style="max-width:110px;" title="' + (f.person||'') + '">' + (f.person || '—') + '</td>' +
-                            '<td class="text-end fw-bold" style="color:' + clr + '">' + window._anaFmt(amt) + '</td>' +
-                            '<td style="color:#888;font-size:0.7rem;">' + String(f.date||'').slice(0,10) + '</td>' +
+                        var desc = f.description ? (f.description.length > 22 ? f.description.slice(0,22)+'…' : f.description) : '—';
+                        return '<tr style="border-bottom:1px solid '+bClr+';">' +
+                            '<td style="font-size:0.78rem;">' + (f.category || f.type || '—') + '</td>' +
+                            '<td style="font-size:0.78rem;max-width:120px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;" title="'+(f.person||'')+'">' + (f.person || '—') + '</td>' +
+                            '<td class="text-end fw-bold" style="color:' + clr + ';font-size:0.78rem;">' + window._anaFmt(amt) + '</td>' +
+                            '<td style="color:#888;font-size:0.72rem;">' + String(f.date||'').slice(0,10) + '</td>' +
+                            '<td style="color:#aaa;font-size:0.72rem;" title="'+(f.description||'')+'">' + desc + '</td>' +
                         '</tr>';
                     }).join('');
                 }
