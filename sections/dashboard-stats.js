@@ -100,33 +100,41 @@ function updateGlobalStats() {
   }
 
   // Filter students by batch
-  if (selectedBatch) {
-    const selectedBatchStr = String(selectedBatch);
-    const filteredStudents = (globalData.students || []).filter(s => String(s.batch) === selectedBatchStr);
-    runTotalStudents = filteredStudents.length;
+  if (selectedBatch && String(selectedBatch).trim() !== "") {
+    const selectedBatchStr = String(selectedBatch).trim();
+    const studentsInBatch = (globalData.students || []).filter(s => String(s.batch) === selectedBatchStr);
+    runTotalStudents = studentsInBatch.length;
 
-    // Student IDs of this batch
-    const studentIds = new Set(filteredStudents.map(s => s.studentId || s.id).filter(Boolean));
+    // Create a Set of Student IDs in this batch for fast lookup
+    const batchStudentIds = new Set(studentsInBatch.map(s => s.studentId || s.id).filter(Boolean));
 
     (globalData.finance || []).forEach(f => {
       if (f._deleted) return;
       if (!STAT_INCOME_TYPES.includes(f.type)) return;
+      
+      const fDate = f.date || '';
+      if (expenseDateStart && fDate < expenseDateStart) return;
+      if (expenseDateEnd && fDate > expenseDateEnd) return;
+
       const amt = parseFloat(f.amount) || 0;
-      const desc = f.description || '';
+      const fDesc = (f.description || '').toLowerCase();
+      const fCat = (f.category || '').toLowerCase();
+      const fSid = f.studentId || '';
 
-      // Match by studentId field directly
-      const byStudentId = f.studentId && studentIds.has(f.studentId);
-      // Match by description containing "Batch: X" or "| Batch: X"
-      const byDescBatch = desc.includes('Batch: ' + selectedBatchStr) || desc.includes('| Batch:' + selectedBatchStr);
-      // Match by studentId prefix (e.g. WF-6-)
-      const byIdPrefix = f.studentId && f.studentId.startsWith('WF-' + selectedBatchStr + '-');
+      // Match by Student ID field or if category name matches and student belongs to batch
+      const idMatch = fSid && batchStudentIds.has(fSid);
+      const feeMatch = fCat.includes('student') && idMatch; 
+      
+      // Fallback matching using batch number in description (regex for boundary match)
+      const batchPattern = new RegExp('\\b' + selectedBatchStr + '\\b', 'i');
+      const descMatch = batchPattern.test(fDesc);
 
-      if (byStudentId || byDescBatch || byIdPrefix) {
+      if (idMatch || feeMatch || descMatch) {
         runStudentIncome += amt;
       }
     });
   } else {
-    // No batch selected -> Show all
+    // No batch selected -> Show all (Fallback to all-time student collection)
     runTotalStudents = allTotalStudents;
     runStudentIncome = allStudentIncome;
   }
