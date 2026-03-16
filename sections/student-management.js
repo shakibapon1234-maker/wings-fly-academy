@@ -2488,6 +2488,9 @@ function populateBatchFilter() {
     return;
   }
 
+  // ✅ PRESERVE current selection
+  const currentBatchVal = select.value;
+
   // Populate Batch filter
   const batches = [...new Set(globalData.students.map(s => s.batch))].filter(b => b).sort((a, b) => a - b);
   console.log('📊 Populating batch filter with', batches.length, 'batches:', batches);
@@ -2495,6 +2498,12 @@ function populateBatchFilter() {
   batches.forEach(b => {
     select.innerHTML += `<option value="${b}">Batch ${b}</option>`;
   });
+
+  // ✅ RESTORE selection
+  if (currentBatchVal && batches.map(String).includes(String(currentBatchVal))) {
+    select.value = currentBatchVal;
+  }
+  
   console.log('✅ Batch filter populated successfully');
 
   // ✅ FIX: Populate Course filter — Settings এর courseNames + students এ existing courses মিলিয়ে
