@@ -185,8 +185,13 @@ function handleResetAllData() {
     // Update window reference
     window.globalData = globalData;
 
-    // localStorage এ সংরক্ষণ
-    saveToStorage();
+    // localStorage এ সংরক্ষণ — skipCloudSync=true, তারপর explicit 'factory-reset' reason দিয়ে push
+    saveToStorage(true);
+    // ✅ V33 FIX: 'factory-reset' keyword দিয়ে push — data loss protection bypass হবে
+    setTimeout(() => {
+      if (typeof window.wingsSync?.pushNow === 'function') window.wingsSync.pushNow('factory-reset');
+      else if (typeof window.saveToCloud === 'function') window.saveToCloud();
+    }, 800);
     console.log("✅ Factory reset complete - all data cleared");
 
     alert('✅ সফল: সম্পূর্ণ সিস্টেম রিসেট হয়েছে।\n\nসবকিছু একদম নতুন অবস্থায় ফিরে গেছে।');
@@ -658,7 +663,12 @@ function handleDataReset() {
     // Update globalData reference
     globalData = window.globalData;
 
-    saveToStorage();
+    saveToStorage(true);
+    // ✅ V33 FIX: 'factory-reset' keyword দিয়ে push — data loss protection সঠিকভাবে কাজ করবে
+    setTimeout(() => {
+      if (typeof window.wingsSync?.pushNow === 'function') window.wingsSync.pushNow('factory-reset-settings-preserved');
+      else if (typeof window.saveToCloud === 'function') window.saveToCloud();
+    }, 800);
     console.log("✅ Data reset complete, settings preserved");
     alert('✅ সফল: সকল ছাত্র-ছাত্রী এবং আর্থিক তথ্য মুছে ফেলা হয়েছে।\n\nআপনার সেটিংস সংরক্ষিত আছে।');
     window.location.reload();
@@ -703,7 +713,7 @@ function recalculateCashBalanceFromTransactions() {
 
   globalData.cashBalance = calculatedCashBalance;
 
-  saveToStorage();
+  saveToStorage(true); // ✅ V33 FIX: skipCloudSync=true — V33 debounce এ route হবে
   if (typeof renderCashBalance === 'function') renderCashBalance();
 
   console.log('💰 Cash balance recalculated:', calculatedCashBalance);

@@ -392,8 +392,17 @@
 
   // ============================================
   // MODULE 13: Cloud vs Local Sync Mismatch
+  // ✅ V33 FIX: window.__v33_sync_active flag চেক করো
+  //    V33 sync চলছে মানে এই module-এর independent cloud fetch দরকার নেই
+  //    এটা না করলে প্রতি 10 মিনিটে ~144 extra request/day হয়
   // ============================================
   async function healSyncMismatch() {
+    // ✅ V33: V33 sync active থাকলে এই module skip করো
+    if (window.__v33_sync_active) {
+      hLog('info', 'V33 sync active — module 13 cloud fetch skipped (egress saved)', 'SYNC');
+      return 0;
+    }
+
     if (!navigator.onLine) { hLog('info', 'Offline — sync check skip', 'SYNC'); return 0; }
 
     // Delete cooldown
