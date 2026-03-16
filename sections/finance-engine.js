@@ -118,8 +118,8 @@
     }
 
     // Bank / Mobile
-    let account = (globalData.bankAccounts || []).find(a => a.name === entry.method);
-    if (!account) account = (globalData.mobileBanking || []).find(a => a.name === entry.method);
+    let account = (globalData.bankAccounts || []).find(a => (a.bankName || a.name) === entry.method);
+    if (!account) account = (globalData.mobileBanking || []).find(a => (a.bankName || a.name) === entry.method);
     if (!account) return;
 
     account.balance = (parseFloat(account.balance) || 0) + delta;
@@ -149,10 +149,10 @@
 
     // Bank / Mobile reset → startBalance
     (gd.bankAccounts || []).forEach(acc => {
-      acc.balance = parseFloat(startBalances[acc.name]) || 0;
+      acc.balance = parseFloat(startBalances[acc.bankName || acc.name]) || 0;
     });
     (gd.mobileBanking || []).forEach(acc => {
-      acc.balance = parseFloat(startBalances[acc.name]) || 0;
+      acc.balance = parseFloat(startBalances[acc.bankName || acc.name]) || 0;
     });
 
     // Replay all non-deleted entries
