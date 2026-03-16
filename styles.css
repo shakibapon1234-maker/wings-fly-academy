@@ -580,13 +580,13 @@ body::after {
 .nav-item-link {
   display: flex;
   align-items: center;
-  padding: 11px 14px;
+  padding: 8px 14px;
   color: rgba(255, 255, 255, 0.4);
   text-decoration: none;
   transition: color 0.25s ease, background 0.25s ease, box-shadow 0.25s ease, transform 0.2s ease;
   border-left: none;
   border-radius: 12px;
-  margin: 3px 8px;
+  margin: 1px 8px;
   position: relative;
   overflow: hidden;
   background: transparent;
