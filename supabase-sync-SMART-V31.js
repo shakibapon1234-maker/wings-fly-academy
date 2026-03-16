@@ -200,9 +200,6 @@
 
     const metaPayload = {
       id: RECORD_ID,
-      students: gd.students || [],   // Added: ensure authoritative source is updated
-      finance: gd.finance || [],     // Added: ensure authoritative source is updated
-      employees: gd.employees || [], // Added: ensure authoritative source is updated
       settings: gd.settings || {},
       income_categories: gd.incomeCategories || [],
       expense_categories: gd.expenseCategories || [],
@@ -223,11 +220,6 @@
       loans: gd.loans || [],
       id_cards: gd.idCards || [],
       notices: gd.notices || [],
-      // ✅ CRITICAL: Partial push হলেও academy_data তে main arrays আপডেট করো
-      // নাহলে অন্য PC পুল করলে পুরোনো ডাটা পাবে।
-      students: gd.students || [],
-      finance: gd.finance || [],
-      employees: gd.employees || [],
       version: localVersion,
       last_updated: new Date().toISOString(),
       last_device: DEVICE_ID,
