@@ -270,17 +270,20 @@ function showWarningDetailsModal() {
   }
 
   const orphanRows = makeSection('Orphaned Payments', '#f59e0b', '💸', w.orphanedPayments,
-    ({ entry, index }) => `
+    ({ entry, index }) => {
+      const txId = entry.id !== undefined ? entry.id : index;
+      return `
       <tr style="border-bottom:1px solid rgba(255,255,255,0.06);">
         <td style="padding:8px 10px; color:rgba(255,255,255,0.88);">
           <div><strong>${entry.person || '—'}</strong> <span style="color:rgba(255,255,255,0.35); font-size:0.78rem;">— এই নামে student নেই</span></div>
           <div style="color:rgba(255,255,255,0.45); font-size:0.78rem;">${entry.date || '—'} | ${entry.category || '—'} | ৳${entry.amount || 0}</div>
         </td>
         <td style="padding:8px 10px; text-align:right; white-space:nowrap; vertical-align:middle;">
-          <button class="btn btn-sm btn-outline-warning border-0 rounded-pill px-2 py-0 me-1" style="font-size:0.78rem;" onclick="warnEditFinance(${index})">✏️ Edit</button>
-          <button class="btn btn-sm btn-outline-danger border-0 rounded-pill px-2 py-0" style="font-size:0.78rem;" onclick="warnAskOrphan(${index},'${(entry.person || '').replace(/'/g, "\\'")}')">🗑️ Delete?</button>
+          <button class="btn btn-sm btn-outline-warning border-0 rounded-pill px-2 py-0 me-1" style="font-size:0.78rem;" onclick="warnEditFinance('${txId}')">✏️ EDIT</button>
+          <button class="btn btn-sm btn-outline-danger border-0 rounded-pill px-2 py-0" data-id="${txId}" style="font-size:0.78rem;" onclick="warnAskOrphan('${txId}','${(entry.person || '').replace(/'/g, "\\'")}')">🗑️ DELETE?</button>
         </td>
-      </tr>`
+      </tr>`;\
+    }
   );
 
   const courseRows = makeSection('Invalid Course Names', '#a78bfa', '🎓', w.invalidCourses,
@@ -360,25 +363,36 @@ function showWarningDetailsModal() {
 }
 
 // ── Action Handlers ──
-function warnEditFinance(financeIndex) {
+function warnEditFinance(txId) {
   const m = bootstrap.Modal.getInstance(document.getElementById('warnDetailsModal'));
   if (m) m.hide();
   setTimeout(() => {
-    const tx = (window.globalData.finance || [])[financeIndex];
+    // id দিয়ে সরাসরি খোঁজো — array index নয়
+    const sid = String(txId);
+    const tx = (window.globalData.finance || []).find(f => String(f.id) === sid);
     if (tx && typeof editTransaction === 'function') {
-      editTransaction(tx.id !== undefined ? tx.id : financeIndex);
+      editTransaction(tx.id);
     } else {
       alert('Finance ledger-এ গিয়ে entry টি edit করুন।');
     }
   }, 400);
 }
 
-function warnAskOrphan(financeIndex, personName) {
-  const tx = (window.globalData.finance || [])[financeIndex];
+function warnAskOrphan(txId, personName) {
+  // id দিয়ে সরাসরি খোঁজো — array index নয়
+  const sid = String(txId);
+  const finance = window.globalData.finance || [];
+  const txIdx = finance.findIndex(f => String(f.id) === sid);
+  const tx = finance[txIdx];
   if (!tx) return;
   if (confirm(`"${personName}" নামের student আর নেই।\n\nDate: ${tx.date || '—'} | Category: ${tx.category || '—'} | ৳${tx.amount || 0}\n\nDelete করবেন?`)) {
-    window.globalData.finance.splice(financeIndex, 1);
-    if (typeof saveToStorage === 'function') saveToStorage();
+    // deleteTransaction ব্যবহার করো — recycle-bin-fix.js patch কাজ করবে
+    if (typeof window.deleteTransaction === 'function') {
+      window.deleteTransaction(tx.id);
+    } else {
+      finance.splice(txIdx, 1);
+      if (typeof saveToStorage === 'function') saveToStorage();
+    }
     if (typeof showSuccessToast === 'function') showSuccessToast('🗑️ Entry deleted!');
     const m = bootstrap.Modal.getInstance(document.getElementById('warnDetailsModal'));
     if (m) m.hide();
