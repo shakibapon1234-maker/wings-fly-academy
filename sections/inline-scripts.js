@@ -1062,3 +1062,168 @@ window.switchSettingsTab = switchSettingsTab;
 
 document.addEventListener("DOMContentLoaded", function () { var fm = document.getElementById("financeModal"); if (fm) { fm.addEventListener("show.bs.modal", function () { setTimeout(function () { if (typeof window.populateDropdowns === "function") window.populateDropdowns(); var d = document.querySelector("#financeForm input[name='date']"); if (d && !d.value) { var n = new Date(); d.value = n.toISOString().split("T")[0]; } }, 50); }); } });
 
+// ============================================================
+// WINGS FLY — populateDropdowns (MASTER FIX v1.0)
+// সব payment method dropdown একসাথে populate করে।
+// Source of truth: globalData.bankAccounts + globalData.mobileBanking
+// সব জায়গা থেকে call করা যাবে — idempotent, safe।
+// ============================================================
+(function () {
+
+  function _buildMethodList() {
+    var gd = window.globalData;
+    if (!gd) return ['Cash', 'Bkash', 'Nagad', 'Bank Transfer'];
+
+    var core = ['Cash', 'Bkash', 'Nagad', 'Bank Transfer'];
+    var bankNames = (gd.bankAccounts || []).map(function (a) { return a.name; }).filter(Boolean);
+    var mobileNames = (gd.mobileBanking || []).map(function (a) { return a.name; }).filter(Boolean);
+
+    // core methods সবার আগে, তারপর bank, তারপর mobile
+    var all = core.concat(bankNames).concat(mobileNames);
+
+    // duplicate সরাও, case-sensitive unique
+    var seen = {};
+    return all.filter(function (m) {
+      if (seen[m]) return false;
+      seen[m] = true;
+      return true;
+    });
+  }
+
+  function _fillSelect(el, options, placeholder, keepValue) {
+    if (!el) return;
+    var cur = keepValue ? el.value : '';
+    el.innerHTML = '<option value="">' + placeholder + '</option>';
+    options.forEach(function (m) {
+      var opt = document.createElement('option');
+      opt.value = m;
+      opt.textContent = m;
+      el.appendChild(opt);
+    });
+    if (cur) el.value = cur;
+  }
+
+  window.populateDropdowns = function () {
+    var gd = window.globalData;
+    if (!gd) return;
+
+    var methods = _buildMethodList();
+
+    // ── 1. Payment method selects (সব modal-এ) ──────────────
+    // studentMethodSelect   → Add/Edit Student (modals-student.html)
+    // pmtNewMethod          → Add Installment (modals-student.html)
+    // financeMethodSelect   → Add Transaction (finance modal)
+    // editTransMethodSelect → Edit Transaction (modals-other.html)
+    // examPaymentMethodSelect → Exam Registration (modals-other.html)
+    [
+      'studentMethodSelect',
+      'pmtNewMethod',
+      'financeMethodSelect',
+      'editTransMethodSelect',
+      'examPaymentMethodSelect'
+    ].forEach(function (id) {
+      _fillSelect(document.getElementById(id), methods, '-- Select Method --', true);
+    });
+
+    // ── 2. Account transfer selects (bank + mobile accounts only) ──
+    var bankNames = (gd.bankAccounts || []).map(function (a) { return a.name; }).filter(Boolean);
+    var mobileNames = (gd.mobileBanking || []).map(function (a) { return a.name; }).filter(Boolean);
+    var allAccounts = bankNames.concat(mobileNames);
+
+    [
+      'accTransferFrom',
+      'accTransferTo',
+      'unifiedAccountSelect'
+    ].forEach(function (id) {
+      _fillSelect(document.getElementById(id), allAccounts, '-- Select Account --', true);
+    });
+
+    // ── 3. Ledger method filter (All + methods) ──────────────
+    var lmf = document.getElementById('ledgerMethodFilter');
+    if (lmf) {
+      _fillSelect(lmf, methods, 'All Methods', true);
+    }
+
+    // ── 4. Ledger method filter in account details ────────────
+    var dmf = document.getElementById('detCategoryFilter');
+    // এটা category-based, skip
+
+    // ── 5. Add Transaction form এর method select ─────────────
+    // financeForm এর ভেতরে যদি name="method" select থাকে
+    var finForm = document.getElementById('financeForm');
+    if (finForm) {
+      var fmSel = finForm.querySelector('select[name="method"]');
+      if (fmSel && !fmSel.id) {
+        // id নেই — financeMethodSelect এর alternative
+        _fillSelect(fmSel, methods, '-- Select Method --', true);
+      }
+    }
+
+    // ── 6. Edit Transaction form এর method select ─────────────
+    var etForm = document.getElementById('editTransactionForm');
+    if (etForm) {
+      var etSel = etForm.querySelector('select[name="method"]');
+      if (etSel) {
+        _fillSelect(etSel, methods, '-- Select Method --', true);
+      }
+    }
+
+    console.log('[populateDropdowns] ✅ Methods:', methods.length, '| Accounts:', allAccounts.length);
+  };
+
+  // ── Modal open হলে auto-populate ─────────────────────────
+  // Bootstrap modal show event এ hook করো
+  document.addEventListener('show.bs.modal', function (e) {
+    var modalId = e.target && e.target.id;
+    var paymentModals = [
+      'studentModal',
+      'studentPaymentModal',
+      'financeModal',
+      'editTransactionModal',
+      'examRegistrationModal',
+      'accountModal'
+    ];
+    if (paymentModals.indexOf(modalId) !== -1) {
+      setTimeout(function () {
+        window.populateDropdowns();
+      }, 30);
+    }
+  });
+
+  // ── Page load এ একবার চালাও ──────────────────────────────
+  function _runOnReady() {
+    if (window.globalData) {
+      window.populateDropdowns();
+    } else {
+      // globalData load না হলে retry করো
+      var attempts = 0;
+      var retry = setInterval(function () {
+        attempts++;
+        if (window.globalData) {
+          clearInterval(retry);
+          window.populateDropdowns();
+        } else if (attempts > 20) {
+          clearInterval(retry);
+        }
+      }, 500);
+    }
+  }
+
+  if (document.readyState === 'loading') {
+    document.addEventListener('DOMContentLoaded', function () {
+      setTimeout(_runOnReady, 800);
+    });
+  } else {
+    setTimeout(_runOnReady, 800);
+  }
+
+  // ── syncPaymentMethodsWithAccounts এ hook করো ─────────────
+  // accounts-management.js থেকে account add/edit হলে auto-refresh
+  var _origSync = window.syncPaymentMethodsWithAccounts;
+  window.syncPaymentMethodsWithAccounts = function () {
+    if (typeof _origSync === 'function') _origSync();
+    setTimeout(window.populateDropdowns, 100);
+  };
+
+})();
+
