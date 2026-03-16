@@ -48,7 +48,7 @@
   const PULL_INTERVAL = 15 * 60 * 1000; // 15 minutes
 
   // ✅ V32: Version-only check interval (lightweight — শুধু version number আনে)
-  const VERSION_CHECK_INTERVAL = 1.5 * 60 * 1000; // 1.5 minutes
+  const VERSION_CHECK_INTERVAL = 3 * 60 * 1000; // 3 minutes — egress কমাতে (আগে 1.5 min ছিল)
 
   const PUSH_DEBOUNCE = 1500; // 1.5s debounce
   const DEVICE_ID = _getDeviceId();
@@ -102,11 +102,11 @@
       const v = this.get() + 1;
       localStorage.setItem(k, v.toString());
       // ১৫০টির বেশি হলে warn (Free Plan এ safe threshold)
-      if (v === 150) log('⚠️', 'EGRESS GUARD: আজকে ১৫০+ requests — sync ধীর করা হচ্ছে');
+      if (v === 200) log('⚠️', 'EGRESS GUARD: আজকে ২০০+ requests — sync ধীর করা হচ্ছে');
       return v;
     },
     isThrottled: function () {
-      return this.get() > 200; // ২০০+ হলে pull বন্ধ
+      return this.get() > 300; // ৩০০+ হলে pull বন্ধ
     }
   };
 

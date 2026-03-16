@@ -1227,7 +1227,7 @@
   };
   window.startAutoTestMonitor = function () {
     if (_bgInterval) clearInterval(_bgInterval);
-    _bgInterval = setInterval(runBackgroundMonitor, 10 * 60 * 1000); // ১০ মিনিট
+    _bgInterval = setInterval(runBackgroundMonitor, 20 * 60 * 1000); // ২০ মিনিট — egress কমাতে
     // ✅ V9 FIX: প্রথম run 2 মিনিট পরে — V34 sync এর initial pull শেষ হওয়ার পর
     // আগে 30s ছিল — তখন wingsSync ready হয় না, false alarm আসত
     setTimeout(runBackgroundMonitor, 2 * 60 * 1000);
