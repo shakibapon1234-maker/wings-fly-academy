@@ -465,12 +465,15 @@
 
     const localCount = (gd.students || []).length;
     const lastKnown = parseInt(localStorage.getItem('wings_last_known_count')) || 0;
-    if (lastKnown > 5 && localCount === 0 && !reason.toLowerCase().includes('factory-reset')) {
+    // ✅ V34.3 FIX: initialSyncComplete না হলে এই check skip করো
+    // কারণ: নতুন deploy-এর পর pull শেষ হওয়ার আগেই localCount=0 থাকে
+    // তখন false positive "data loss" detect হয় এবং push+pull দুটোই block হয়
+    if (window.initialSyncComplete && lastKnown > 5 && localCount === 0 && !reason.toLowerCase().includes('factory-reset')) {
       log('🚫', 'Mass data loss detected — push aborted');
       showNotification('🚫 Data loss রুখতে save বন্ধ', 'error');
       return false;
     }
-    localStorage.setItem('wings_last_known_count', localCount.toString());
+    if (localCount > 0) localStorage.setItem('wings_last_known_count', localCount.toString());
 
     // ✅ V34 FIX: localVersion++ এখানে নেই — pushToCloud() তে একবারই হয়
     // আগে এখানেও ++ হত → double increment হত
@@ -674,6 +677,8 @@
 
     try {
       // Mass data loss protection
+      // ✅ V34.3 FIX: localCount > 0 হলেই lastKnown update করো
+      // যাতে pull-এর আগে 0 দিয়ে overwrite না হয়
       const localCount = (window.globalData?.students || []).length;
       const lastKnown = parseInt(localStorage.getItem('wings_last_known_count')) || 0;
       if (lastKnown > 5 && localCount === 0 && !reason.toLowerCase().includes('factory-reset')) {
@@ -682,7 +687,7 @@
         isPushing = false;
         return false;
       }
-      localStorage.setItem('wings_last_known_count', localCount.toString());
+      if (localCount > 0) localStorage.setItem('wings_last_known_count', localCount.toString());
 
       // ✅ V33 MULTI-TAB OPTIMISTIC LOCK:
       // Push করার আগে cloud version চেক — অন্য tab/device এগিয়ে গেলে আগে pull করো
