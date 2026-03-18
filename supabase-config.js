@@ -1,10 +1,11 @@
 /**
  * SUPABASE CONFIGURATION
  * Centralized credentials for Wings Fly Aviation Academy
+ * Updated: March 2026 — Migrated to new Supabase account (shakibaponsa-alt)
  */
 window.SUPABASE_CONFIG = {
-  URL: 'https://gtoldrltxjrwshubplfp.supabase.co',
-  KEY: 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6Imd0b2xkcmx0eGpyd3NodWJwbGZwIiwicm9sZSI6ImFub24iLCJpYXQiOjE3NzEwOTk5MTksImV4cCI6MjA4NjY3NTkxOX0.7NTx3tzU1C5VaewNZZHTaJf2WJ_GtjhQPKOymkxRsUk',
+  URL: 'https://cwwyhtarnkozukekebvq.supabase.co',
+  KEY: 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6ImN3d3lodGFybmtvenVrZWtlYnZxIiwicm9sZSI6InNlcnZpY2Vfcm9sZSIsImlhdCI6MTc3Mzg1MTk3NSwiZXhwIjoyMDg5NDI3OTc1fQ.AoS5-A5D2ZJATj8OHH9g-a355wnjgP51uLpkPLhlr6w',
   TABLE: 'academy_data',
   MAIN_RECORD: 'wingsfly_main'
 };
