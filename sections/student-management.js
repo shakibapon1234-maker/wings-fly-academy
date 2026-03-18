@@ -79,8 +79,8 @@ function render(students) {
                class="rounded-circle" 
                style="width: 38px; height: 38px; object-fit: cover; border: 2px solid #00d9ff;"
                onerror="this.style.display='none'; this.nextElementSibling.style.display='flex';">
-          <div class="bg-primary-subtle text-primary rounded-circle align-items-center justify-content-center fw-bold" 
-               style="width: 38px; height: 38px; font-size: 0.9rem; display: none;">
+          <div class="rounded-circle align-items-center justify-content-center fw-bold" 
+               style="width: 38px; height: 38px; font-size: 1rem; display: none; background: rgba(0, 217, 255, 0.15); color: #00fff5; border: 1.5px solid rgba(0, 217, 255, 0.5); text-shadow: 0 0 5px rgba(0, 217, 255, 0.5);">
             ${(s.name || 'S').charAt(0).toUpperCase()}
           </div>
         `;
@@ -89,8 +89,8 @@ function render(students) {
         // Old key format — getStudentPhotoSrc দিয়ে async migrate করো, এখন initial দেখাও
         getStudentPhotoSrc(s.photo); // triggers background migration
         studentAvatar = `
-          <div class="bg-primary-subtle text-primary rounded-circle align-items-center justify-content-center fw-bold" 
-               style="width: 38px; height: 38px; font-size: 0.9rem; display: flex;">
+          <div class="rounded-circle align-items-center justify-content-center fw-bold" 
+               style="width: 38px; height: 38px; font-size: 1rem; display: flex; background: rgba(0, 217, 255, 0.15); color: #00fff5; border: 1.5px solid rgba(0, 217, 255, 0.5); text-shadow: 0 0 5px rgba(0, 217, 255, 0.5);">
             ${(s.name || 'S').charAt(0).toUpperCase()}
           </div>
         `;
@@ -98,8 +98,8 @@ function render(students) {
     } else {
       // If no photo, show initial letter
       studentAvatar = `
-        <div class="bg-primary-subtle text-primary rounded-circle d-flex align-items-center justify-content-center fw-bold" 
-             style="width: 38px; height: 38px; font-size: 0.9rem;">
+        <div class="rounded-circle d-flex align-items-center justify-content-center fw-bold" 
+             style="width: 38px; height: 38px; font-size: 1rem; background: rgba(0, 217, 255, 0.15); color: #00fff5; border: 1.5px solid rgba(0, 217, 255, 0.5); text-shadow: 0 0 5px rgba(0, 217, 255, 0.5);">
           ${(s.name || 'S').charAt(0).toUpperCase()}
         </div>
       `;
