@@ -97,13 +97,15 @@ function openStudentPaymentModal(rowIndex) {
         <td>${inst.date} ${inst.isMigrated ? '(Initial)' : ''}</td>
         <td><span class="badge bg-light text-dark border">${inst.method || 'N/A'}</span></td>
         <td class="text-end fw-bold">৳${formatNumber(inst.amount)}</td>
-        <td class="text-end d-flex gap-1 justify-content-end">
-          <button class="btn btn-sm btn-outline-primary" onclick="printReceipt(${rowIndex}, ${inst.amount})">
-            <i class="bi bi-printer"></i> RECEIPT
-          </button>
-          <button class="btn btn-sm btn-outline-danger" onclick="deleteInstallment(${rowIndex}, ${idx})" title="Delete this payment">
-            <i class="bi bi-trash"></i>
-          </button>
+        <td class="text-end">
+          <div class="d-flex gap-1 justify-content-end">
+            <button class="btn btn-sm btn-outline-primary" onclick="printReceipt(${rowIndex}, ${inst.amount})">
+              <i class="bi bi-printer"></i> RECEIPT
+            </button>
+            <button class="btn btn-sm btn-outline-danger" onclick="deleteInstallment(${rowIndex}, ${idx})" title="Delete this payment">
+              <i class="bi bi-trash"></i>
+            </button>
+          </div>
         </td>
       `;
       tbody.appendChild(tr);
