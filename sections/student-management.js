@@ -863,7 +863,29 @@ function showBatchSummary(batchName, studentList = null) {
 function calcDue() {
   const total = parseFloat(document.getElementById('inpTotal').value) || 0;
   const paid = parseFloat(document.getElementById('inpPaid').value) || 0;
-  document.getElementById('inpDue').value = Math.max(0, total - paid);
+  const paidEl = document.getElementById('inpPaid');
+  const dueEl = document.getElementById('inpDue');
+
+  // ✅ VALIDATION: Paid cannot exceed Total Fee
+  if (paid > total && total > 0) {
+    if (paidEl) {
+      paidEl.style.borderColor = '#ff4455';
+      paidEl.style.boxShadow = '0 0 8px rgba(255, 68, 85, 0.5)';
+    }
+    dueEl.value = 0;
+    if (typeof showErrorToast === 'function') {
+      showErrorToast('⚠️ Paid amount (৳' + paid + ') cannot exceed Total Fee (৳' + total + ')!');
+    }
+    return;
+  } else {
+    // Reset styles
+    if (paidEl) {
+      paidEl.style.borderColor = '';
+      paidEl.style.boxShadow = '';
+    }
+  }
+
+  dueEl.value = Math.max(0, total - paid);
 }
 
 // Student form handler
@@ -872,6 +894,21 @@ async function handleStudentSubmit(e) {
 
   const form = document.getElementById('studentForm');
   if (!form) { console.error('studentForm not found!'); return; }
+
+  // ✅ VALIDATION: Paid cannot exceed Total Fee
+  const totalVal = parseFloat(document.getElementById('inpTotal')?.value) || 0;
+  const paidVal = parseFloat(document.getElementById('inpPaid')?.value) || 0;
+  if (paidVal > totalVal && totalVal > 0) {
+    showErrorToast('❌ Paid amount (৳' + paidVal + ') cannot be greater than Total Fee (৳' + totalVal + ')! Please correct it.');
+    const paidEl = document.getElementById('inpPaid');
+    if (paidEl) {
+      paidEl.style.borderColor = '#ff4455';
+      paidEl.style.boxShadow = '0 0 8px rgba(255, 68, 85, 0.5)';
+      paidEl.focus();
+      setTimeout(() => { paidEl.style.borderColor = ''; paidEl.style.boxShadow = ''; }, 4000);
+    }
+    return;
+  }
 
   // ✅ BATCH & REQUIRED VALIDATION
   const nameInp = document.getElementById('studentName');

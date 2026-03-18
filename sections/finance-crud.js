@@ -144,9 +144,17 @@ function handleAddInstallment() {
     return;
   }
 
-  // Confirm if amount exceeds due
-  if (amount > (student.due + 1)) { // Allow 1tk buffer for rounding
-    if (!confirm(`Warning: Payment amount (৳${formatNumber(amount)}) exceeds current due (৳${formatNumber(student.due)}). Continue?`)) return;
+  // ✅ BLOCK: Payment cannot exceed due amount
+  if (amount > (parseFloat(student.due) || 0)) {
+    showErrorToast('❌ Payment amount (৳' + formatNumber(amount) + ') cannot exceed current Due (৳' + formatNumber(student.due) + ')! Please enter a valid amount.');
+    document.getElementById('pmtNewAmount').style.borderColor = '#ff4455';
+    document.getElementById('pmtNewAmount').style.boxShadow = '0 0 8px rgba(255, 68, 85, 0.5)';
+    document.getElementById('pmtNewAmount').focus();
+    setTimeout(() => {
+      document.getElementById('pmtNewAmount').style.borderColor = '';
+      document.getElementById('pmtNewAmount').style.boxShadow = '';
+    }, 4000);
+    return;
   }
 
   // 1. Update Student Data
@@ -483,6 +491,35 @@ async function handleFinanceSubmit(e) {
     const personField = document.getElementById('financePerson') || document.querySelector('[name="person"]');
     if (personField) personField.focus();
     return;
+  }
+
+  // ✅ VALIDATION: Balance cannot go negative for Expense/Loan Given
+  const finAmount = parseFloat(formData.amount) || 0;
+  const isDebit = (type === 'Expense' || type === 'Loan Given' || type === 'Loan Giving' || type === 'Transfer Out');
+  if (isDebit && finAmount > 0 && formData.method) {
+    let availableBalance = 0;
+    const methodName = formData.method.trim();
+
+    if (methodName === 'Cash') {
+      availableBalance = parseFloat(window.globalData.cashBalance) || 0;
+    } else {
+      // Check bank accounts
+      const bankAcc = (window.globalData.bankAccounts || []).find(a => a.name === methodName);
+      if (bankAcc) {
+        availableBalance = parseFloat(bankAcc.balance) || 0;
+      } else {
+        // Check mobile banking
+        const mobAcc = (window.globalData.mobileBanking || []).find(a => a.name === methodName);
+        if (mobAcc) {
+          availableBalance = parseFloat(mobAcc.balance) || 0;
+        }
+      }
+    }
+
+    if (finAmount > availableBalance) {
+      showErrorToast('❌ Insufficient balance in "' + methodName + '"! Available: ৳' + formatNumber(availableBalance) + ', Attempted: ৳' + formatNumber(finAmount));
+      return;
+    }
   }
 
   // Add transaction to data

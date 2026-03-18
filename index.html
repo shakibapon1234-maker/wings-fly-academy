@@ -1926,6 +1926,16 @@
                 var t = parseFloat(document.getElementById('inpTotal') && document.getElementById('inpTotal').value) || 0;
                 var p = parseFloat(document.getElementById('inpPaid') && document.getElementById('inpPaid').value) || 0;
                 var d = document.getElementById('inpDue');
+                var pEl = document.getElementById('inpPaid');
+                // ✅ VALIDATION: Paid cannot exceed Total Fee
+                if (p > t && t > 0) {
+                    if (pEl) { pEl.style.borderColor = '#ff4455'; pEl.style.boxShadow = '0 0 8px rgba(255,68,85,0.5)'; }
+                    if (d) d.value = 0;
+                    if (typeof showErrorToast === 'function') showErrorToast('⚠️ Paid (৳' + p + ') cannot exceed Total Fee (৳' + t + ')!');
+                    return;
+                } else {
+                    if (pEl) { pEl.style.borderColor = ''; pEl.style.boxShadow = ''; }
+                }
                 if (d) d.value = Math.max(0, t - p);
             };
 
