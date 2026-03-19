@@ -1,7 +1,7 @@
 /**
  * ============================================================
  * WINGS FLY AVIATION ACADEMY
- * SMART SYNC SYSTEM V34 — DATA-INTEGRITY EDITION (patch 34.1)
+ * SMART SYNC SYSTEM V34 — DATA-INTEGRITY EDITION (patch 34.5)
  * ============================================================
  *
  * 🔴 V34.1 hotfix (এই build):
@@ -154,7 +154,12 @@
       supabaseClient = window.supabase.createClient(SUPABASE_URL, SUPABASE_KEY);
       localVersion = parseInt(localStorage.getItem('wings_local_version')) || 0;
       isInitialized = true;
-      log('✅', `V32 Initialized (v${localVersion}) | EGRESS OPTIMIZER ACTIVE`);
+      // ✅ V34.5: lastKnown finance initialize করো — না থাকলে 0
+      if (!localStorage.getItem('wings_last_known_finance')) {
+        const _initFin = (window.globalData?.finance || []).length;
+        if (_initFin > 0) localStorage.setItem('wings_last_known_finance', _initFin.toString());
+      }
+      log('✅', `V34.5 Initialized (v${localVersion}) | EGRESS OPTIMIZER ACTIVE`);
       return true;
     } catch (e) { log('❌', 'Init failed:', e); return false; }
   }
@@ -247,7 +252,20 @@
       _dirty.delete('students');
     }
     if (_dirty.has('finance')) {
-      tasks.push(_upsertRecords(TBL_FINANCE, gd.finance || []));
+      // ✅ V34.5 FIX: Finance count guard — accidental loss রুখে দেয়
+      const _localFinCount = (gd.finance || []).length;
+      const _lastKnownFin = parseInt(localStorage.getItem('wings_last_known_finance')) || 0;
+      const _finDeletedCount = (gd.deletedItems || []).filter(d => d.type === 'finance' || (d.item && d.item.amount !== undefined)).length;
+      const _finEffective = _localFinCount + _finDeletedCount;
+      const _finSafe = _localFinCount > 0 && (_lastKnownFin === 0 || _localFinCount >= Math.max(1, _lastKnownFin - 5));
+      const _finIntentional = _finEffective >= _lastKnownFin - 1;
+
+      if (_finSafe || _finIntentional) {
+        tasks.push(_upsertRecords(TBL_FINANCE, gd.finance || []));
+        if (_localFinCount > 0) localStorage.setItem('wings_last_known_finance', _localFinCount.toString());
+      } else {
+        log('🚫', `Finance push blocked — local:${_localFinCount} + deleted:${_finDeletedCount} < known:${_lastKnownFin}`);
+      }
       _dirty.delete('finance');
     }
     if (_dirty.has('employees')) {
@@ -299,7 +317,23 @@
     const now = new Date().toISOString();
     // ✅ V32: base64 photo strip করো (Egress কমায়)
     // ✅ V34.4 FIX: deletedItems চেক করো — cloud এ deleted=true থাকলে push এ deleted=false করা উচিত নয়
-    const _deletedIds = new Set((window.globalData?.deletedItems || []).map(d => String(d.id || d.studentId || d.rowIndex)).filter(Boolean));
+    // ✅ V34.5 FIX: deletedItems দুই structure এ আসতে পারে — flat {id:...} বা nested {item:{id:...}}
+    const _deletedIds = new Set(
+      (window.globalData?.deletedItems || []).flatMap(d => {
+        const ids = [];
+        // Nested structure: {item: {id, studentId, rowIndex, ...}}
+        if (d.item) {
+          ['id', '_id', 'studentId', 'rowIndex', 'id_card_no'].forEach(k => {
+            if (d.item[k] !== undefined && d.item[k] !== null) ids.push(String(d.item[k]));
+          });
+        }
+        // Flat structure: {id, studentId, rowIndex}
+        ['id', 'studentId', 'rowIndex'].forEach(k => {
+          if (d[k] !== undefined && d[k] !== null) ids.push(String(d[k]));
+        });
+        return ids;
+      }).filter(Boolean)
+    );
 
     const rows = rawDeduped.map((r, idx) => {
       let cleanRecord = { ...r };
@@ -381,6 +415,13 @@
   async function _pullPartial(silent = false) {
     const gd = window.globalData;
     if (!gd) return;
+
+    // ✅ V34.5 FIX: Pull rollback snapshot — failure হলে restore করো
+    const _rollback = {
+      students: [...(gd.students || [])],
+      finance: [...(gd.finance || [])],
+      employees: [...(gd.employees || [])],
+    };
 
     let anyUpdate = false;
 
@@ -974,7 +1015,7 @@
     }
 
     log('🚀', '━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━');
-    log('🚀', 'Wings Fly Smart Sync V34 — DATA INTEGRITY EDITION');
+    log('🚀', 'Wings Fly Smart Sync V34.5 — DATA INTEGRITY EDITION');
     log('🚀', '━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━');
     log('💡', `Realtime WebSocket: ❌ DISABLED (Egress সাশ্রয়)`);
     log('💡', `Pull interval: 15 minutes`);
