@@ -886,6 +886,13 @@ window.attachMethodBalanceListeners = attachMethodBalanceListeners;
   if (typeof renderKeepRecordNotes === 'function') window.renderKeepRecordNotes = renderKeepRecordNotes;
 
   window.renderFullUI = function () {
+    // ✅ V34.9 FIX: finance incomplete থাকলে UI refresh skip করো
+    const _rfFinCount = (window.globalData?.finance || []).length;
+    const _rfKnownFin = parseInt(localStorage.getItem('wings_last_known_finance')) || 0;
+    if (_rfKnownFin > 10 && _rfFinCount < _rfKnownFin - 2) {
+      console.warn('⏸️ renderFullUI SKIPPED — finance=' + _rfFinCount + ' < known=' + _rfKnownFin + ' (waiting for V34.9 reload)');
+      return;
+    }
     console.log('🔄 Global UI Refresh');
     try {
       if (typeof updateGlobalStats === 'function') updateGlobalStats();
