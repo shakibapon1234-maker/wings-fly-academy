@@ -30,7 +30,8 @@
       localStorage.setItem('wingsfly_data', JSON.stringify(gd));
       localStorage.setItem('wingsfly_deleted_backup', JSON.stringify(gd.deletedItems || []));
       localStorage.setItem('wingsfly_activity_backup', JSON.stringify(gd.activityHistory || []));
-      if (typeof window.saveToStorage === 'function') window.saveToStorage();
+      // ✅ V34.9 FIX: saveToStorage() call সরানো হয়েছে — infinite loop বন্ধ
+      // saveToStorage() → localStorage.setItem('wingsfly_data') → _save() → loop!
     } catch (e) { console.error('[RecycleFix] save error:', e); }
   }
 
