@@ -1,7 +1,7 @@
 /**
  * ════════════════════════════════════════════════════════════
  * WINGS FLY AVIATION ACADEMY
- * SMART SYNC SYSTEM — V35.1.1 "MAX COUNT WINS — IMPROVED"
+ * SMART SYNC SYSTEM — V35.1.2 "REFRESH FIX — NO RACE CONDITION"
  * ════════════════════════════════════════════════════════════
  *
  * ✅ V35.1.1 Critical Fix (March 20, 2026):
@@ -486,7 +486,10 @@
   }
 
   // STARTUP INTEGRITY CHECK - V35.1 FIXED
+  let _integrityCheckDidPull = false; // ✅ V35.1.2 FIX: track if integrity check already pulled
+
   async function _startupIntegrityCheck() {
+    _integrityCheckDidPull = false;
     const gd = window.globalData;
     if (!gd) return;
     
@@ -502,6 +505,7 @@
         try {
           await pullFromCloud(false, true);
           if (typeof window.renderFullUI === 'function') window.renderFullUI();
+          _integrityCheckDidPull = true;
           _log('✅', 'First-load cloud pull complete');
         } catch (e) {
           _log('❌', 'First-load pull failed', e);
@@ -557,6 +561,7 @@
       await Promise.all(tasks);
       _saveLocal();
       if (typeof window.renderFullUI === 'function') window.renderFullUI();
+      _integrityCheckDidPull = true;
       _log('✅', 'Startup integrity restored');
       _showUserMessage('Data recovered from cloud', 'success');
     } catch (e) {
@@ -603,7 +608,7 @@
   async function _start() {
     if (!_init()) { setTimeout(_start, 2000); return; }
     _log('🚀', '══════════════════════════════════════');
-    _log('🚀', 'Wings Fly V35.1.1 — MAX COUNT WINS (FIXED)');
+    _log('🚀', 'Wings Fly V35.1.2 — REFRESH FIX (NO RACE CONDITION)');
     _log('🚀', '══════════════════════════════════════');
     _log('💡', `Tolerance: 10% adaptive | Egress: ${Egress.count()} | Data age: ${SyncFreshness.getAge()}`);
     await _checkPartialTables();
@@ -613,12 +618,18 @@
     _patchSaveToStorage();
     window.__v35_sync_active = true;
     await _startupIntegrityCheck();
-    await pullFromCloud(false);
+    // ✅ V35.1.2 FIX: integrity check-এ যদি pull হয়ে থাকে তাহলে আবার pull করা দরকার নেই
+    // এই race condition-এর কারণে students=0 দেখাচ্ছিল refresh-এ
+    if (!_integrityCheckDidPull) {
+      await pullFromCloud(false);
+    } else {
+      _log('✅', 'Pull skipped — integrity check already fetched fresh data');
+    }
     setInterval(_versionCheck, NetworkQuality.getCheckInterval());
     setInterval(() => { if (_tabVisible && !Egress.throttled()) pullFromCloud(true); }, CFG.FULL_PULL_MS);
     setTimeout(_installMonitor, 3000);
     _log('🎉', 'V35.1.1 ready!');
-    _showStatus('🔄 V35.1.1 ready');
+    _showStatus('🔄 V35.1.2 ready');
   }
 
   // PUBLIC API
@@ -645,5 +656,5 @@
   if (document.readyState === 'loading') document.addEventListener('DOMContentLoaded', _start);
   else _start();
 
-  _log('📦', 'V35.1.1 loaded — MAX COUNT WINS (IMPROVED + EMPTY STATE FIX)');
+  _log('📦', 'V35.1.2 loaded — REFRESH FIX: No race condition on startup');
 })();
