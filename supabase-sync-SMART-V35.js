@@ -941,15 +941,20 @@
     pullNow:   () => pullFromCloud(false, true),
     markDirty: (field) => window.markDirty && window.markDirty(field),
     getStatus: () => ({
-      version:     _localVer,
-      online:      _online,
-      partialOK:   _partialOK,
-      dirty:       [..._dirty],
-      initialSync: window.initialSyncComplete,
-      egress:      Egress.count(),
-      tabVisible:  _tabVisible,
-      maxFinance:  MaxCount.get('finance'),
-      maxStudents: MaxCount.get('students'),
+      // V35 names
+      version:             _localVer,
+      online:              _online,
+      partialOK:           _partialOK,
+      dirty:               [..._dirty],
+      initialSync:         window.initialSyncComplete,
+      egress:              Egress.count(),
+      tabVisible:          _tabVisible,
+      maxFinance:          MaxCount.get('finance'),
+      maxStudents:         MaxCount.get('students'),
+      // V34 backward-compatible aliases (auto-test.js)
+      egressToday:         Egress.count(),
+      initialSyncComplete: window.initialSyncComplete,
+      partialReady:        _partialOK,
     }),
   };
 
