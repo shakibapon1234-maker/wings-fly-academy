@@ -159,7 +159,7 @@
         const _initFin = (window.globalData?.finance || []).length;
         if (_initFin > 0) localStorage.setItem('wings_last_known_finance', _initFin.toString());
       }
-      log('✅', `V34.5 Initialized (v${localVersion}) | EGRESS OPTIMIZER ACTIVE`);
+      log('✅', `V34.6 Initialized (v${localVersion}) | EGRESS OPTIMIZER ACTIVE`);
       return true;
     } catch (e) { log('❌', 'Init failed:', e); return false; }
   }
@@ -486,6 +486,26 @@
       if (typeof window.renderFullUI === 'function') window.renderFullUI();
     }
 
+    // ✅ V34.6 FIX: Pull এর পরে lastKnown সবসময় update করো
+    // এটাই মূল সমস্যা ছিল — pull এ 53 finance আসার পরেও
+    // wings_last_known_finance = 34 থাকত, তাই পরের push এ 34টা push হয়ে যেত
+    const _pulledFinCount = (gd.finance || []).length;
+    const _pulledStudCount = (gd.students || []).length;
+    if (_pulledFinCount > 0) {
+      const _prevFinKnown = parseInt(localStorage.getItem('wings_last_known_finance')) || 0;
+      if (_pulledFinCount > _prevFinKnown) {
+        localStorage.setItem('wings_last_known_finance', _pulledFinCount.toString());
+        log('📌', `lastKnown finance updated: ${_prevFinKnown} → ${_pulledFinCount}`);
+      }
+    }
+    if (_pulledStudCount > 0) {
+      const _prevStudKnown = parseInt(localStorage.getItem('wings_last_known_count')) || 0;
+      if (_pulledStudCount > _prevStudKnown) {
+        localStorage.setItem('wings_last_known_count', _pulledStudCount.toString());
+        log('📌', `lastKnown students updated: ${_prevStudKnown} → ${_pulledStudCount}`);
+      }
+    }
+
     return anyUpdate;
   }
 
@@ -665,6 +685,14 @@
             if (typeof window.renderFullUI === 'function') window.renderFullUI();
           }
         }
+
+        // ✅ V34.6 FIX: pullFromCloud এর পরেও lastKnown force update
+        // _pullPartial এ update হয়েছে কিনা নিশ্চিত করতে এখানেও করো
+        const _finNow = (window.globalData?.finance || []).length;
+        const _studNow = (window.globalData?.students || []).length;
+        if (_finNow > 0) localStorage.setItem('wings_last_known_finance', _finNow.toString());
+        if (_studNow > 0) localStorage.setItem('wings_last_known_count', _studNow.toString());
+        log('📌', `V34.6 lastKnown forced: students=${_studNow} finance=${_finNow}`);
 
         window.initialSyncComplete = true;
         lastPullTime = Date.now();
