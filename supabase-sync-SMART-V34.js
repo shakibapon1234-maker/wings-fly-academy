@@ -486,17 +486,30 @@
       if (typeof window.renderFullUI === 'function') window.renderFullUI();
     }
 
-    // ✅ V34.6 FIX: Pull এর পরে lastKnown সবসময় update করো
-    // এটাই মূল সমস্যা ছিল — pull এ 53 finance আসার পরেও
-    // wings_last_known_finance = 34 থাকত, তাই পরের push এ 34টা push হয়ে যেত
+    // ✅ V34.9 FIX: Pull এর পরে finance count < lastKnown হলে force full reload
     const _pulledFinCount = (gd.finance || []).length;
     const _pulledStudCount = (gd.students || []).length;
-    if (_pulledFinCount > 0) {
-      const _prevFinKnown = parseInt(localStorage.getItem('wings_last_known_finance')) || 0;
-      if (_pulledFinCount > _prevFinKnown) {
-        localStorage.setItem('wings_last_known_finance', _pulledFinCount.toString());
-        log('📌', `lastKnown finance updated: ${_prevFinKnown} → ${_pulledFinCount}`);
-      }
+    const _knownFin = parseInt(localStorage.getItem('wings_last_known_finance')) || 0;
+    const _knownStud = parseInt(localStorage.getItem('wings_last_known_count')) || 0;
+
+    // যদি pull এর পরেও finance কম থাকে — cloud থেকে force reload
+    if (_knownFin > 10 && _pulledFinCount < _knownFin - 2) {
+      log('🚨', `_pullPartial: finance mismatch (${_pulledFinCount} < ${_knownFin}) — force reloading from cloud`);
+      try {
+        const { data: _fullFin } = await supabaseClient.from(TBL_FINANCE).select('data')
+          .eq('academy_id', ACADEMY_ID).eq('deleted', false);
+        if (_fullFin && _fullFin.length > _pulledFinCount) {
+          gd.finance = _fullFin.map(r => r.data);
+          localStorage.setItem('wings_last_known_finance', _fullFin.length.toString());
+          log('✅', `Force reloaded finance: ${_fullFin.length}`);
+        }
+      } catch(e) { log('⚠️', 'Force reload failed:', e); }
+    } else if (_pulledFinCount > _knownFin) {
+      localStorage.setItem('wings_last_known_finance', _pulledFinCount.toString());
+    }
+
+    if (_pulledStudCount > _knownStud) {
+      localStorage.setItem('wings_last_known_count', _pulledStudCount.toString());
     }
     if (_pulledStudCount > 0) {
       const _prevStudKnown = parseInt(localStorage.getItem('wings_last_known_count')) || 0;
