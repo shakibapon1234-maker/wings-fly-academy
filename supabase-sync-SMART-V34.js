@@ -1084,6 +1084,8 @@
 
     if (_finMismatch || _studMismatch) {
       log('🚨', `Startup integrity FAIL — finance:${_startupFinCount}/${_startupFinKnown} students:${_startupStudCount}/${_startupStudKnown} — Force loading from cloud...`);
+      const _ov = document.getElementById('dashboardOverview');
+      if (_ov) _ov.style.visibility = 'hidden';
       try {
         const _tasks = [];
         if (_finMismatch) {
@@ -1120,6 +1122,9 @@
         log('✅', 'Startup integrity restored!');
       } catch (e) {
         log('⚠️', 'Startup integrity check failed:', e);
+      } finally {
+        const _ov2 = document.getElementById('dashboardOverview');
+        if (_ov2) _ov2.style.visibility = '';
       }
     } else {
       log('✅', `Startup integrity OK — finance:${_startupFinCount} students:${_startupStudCount}`);
