@@ -80,10 +80,13 @@
   const _dirty = new Set();
 
   // ── Last pull timestamps ──────────────────────────────────
+  // ✅ FIX: Always full pull — incremental pull বন্ধ
+  // Incremental pull এ _lastPull timestamp থাকলে নতুন records মিস হয়
+  // তাই সবসময় null রাখো — full pull হবে
   const _lastPull = {
-    students: localStorage.getItem('wf_lastpull_students') || null,
-    finance: localStorage.getItem('wf_lastpull_finance') || null,
-    employees: localStorage.getItem('wf_lastpull_employees') || null,
+    students: null,
+    finance: null,
+    employees: null,
   };
 
   // ── Partial tables ready flag ─────────────────────────────
@@ -369,8 +372,9 @@
         else existing.set(innerKey, row.data);
       });
       gd.students = Array.from(existing.values());
-      _lastPull.students = new Date().toISOString();
-      localStorage.setItem('wf_lastpull_students', _lastPull.students);
+      // ✅ FIX: lastpull timestamp save করা বন্ধ — always full pull
+      // _lastPull.students = new Date().toISOString();
+      // localStorage.setItem('wf_lastpull_students', _lastPull.students);
       if (!silent) log('📥', `Pulled ${newStudents.length} student updates`);
     }
 
@@ -385,8 +389,9 @@
         else existing.set(innerKey, row.data);
       });
       gd.finance = Array.from(existing.values());
-      _lastPull.finance = new Date().toISOString();
-      localStorage.setItem('wf_lastpull_finance', _lastPull.finance);
+      // ✅ FIX: lastpull timestamp save করা বন্ধ
+      // _lastPull.finance = new Date().toISOString();
+      // localStorage.setItem('wf_lastpull_finance', _lastPull.finance);
       if (!silent) log('📥', `Pulled ${newFinance.length} finance updates`);
     }
 
@@ -401,8 +406,9 @@
         else existing.set(innerKey, row.data);
       });
       gd.employees = Array.from(existing.values());
-      _lastPull.employees = new Date().toISOString();
-      localStorage.setItem('wf_lastpull_employees', _lastPull.employees);
+      // ✅ FIX: lastpull timestamp save করা বন্ধ
+      // _lastPull.employees = new Date().toISOString();
+      // localStorage.setItem('wf_lastpull_employees', _lastPull.employees);
       if (!silent) log('📥', `Pulled ${newEmployees.length} employee updates`);
     }
 
@@ -721,6 +727,8 @@
         }
       } catch (e) { /* version check fail হলেও push চালিয়ে যাও */ }
 
+      // ✅ FIX: Version overflow guard — 9000 এর বেশি হলে reset
+      if (localVersion > 8900) { localVersion = 500; }
       localVersion++;
       log('📤', `Pushing v${localVersion} (${reason}) | partial=${_partialTablesReady}`);
 

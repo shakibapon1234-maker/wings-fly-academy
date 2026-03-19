@@ -33,10 +33,20 @@
   'use strict';
 
   const HEAL_INTERVAL = 1200 * 1000;  // প্রতি ২০ মিনিটে (1200 সেকেন্ড) — egress কমাতে
-  const SUPABASE_URL = window.SUPABASE_CONFIG?.URL || 'https://gtoldrltxjrwshubplfp.supabase.co';
-  const SUPABASE_KEY = window.SUPABASE_CONFIG?.KEY || 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6Imd0b2xkcmx0eGpyd3NodWJwbGZwIiwicm9sZSI6ImFub24iLCJpYXQiOjE3NzEwOTk5MTksImV4cCI6MjA4NjY3NTkxOX0.7NTx3tzU1C5VaewNZZHTaJf2WJ_GtjhQPKOymkxRsUk';
-  const API_URL = `${SUPABASE_URL}/rest/v1/academy_data?id=eq.wingsfly_main&select=*`;
-  const HEADERS = { 'apikey': SUPABASE_KEY, 'Authorization': 'Bearer ' + SUPABASE_KEY };
+
+  // ✅ FIX: সবসময় window.SUPABASE_CONFIG থেকে নাও — hardcoded পুরানো URL বাদ
+  // পুরানো account: gtoldrltxjrwshubplfp ← এটা আর ব্যবহার হবে না
+  // নতুন account: supabase-config.js এ আছে
+  const SUPABASE_URL = window.SUPABASE_CONFIG?.URL || '';
+  const SUPABASE_KEY = window.SUPABASE_CONFIG?.KEY || '';
+  const TABLE_NAME   = window.SUPABASE_CONFIG?.TABLE || 'academy_data';
+  const RECORD_ID    = window.SUPABASE_CONFIG?.MAIN_RECORD || 'wingsfly_main';
+  const API_URL = SUPABASE_URL
+    ? `${SUPABASE_URL}/rest/v1/${TABLE_NAME}?id=eq.${RECORD_ID}&select=version,last_device,last_action`
+    : null;
+  const HEADERS = SUPABASE_KEY
+    ? { 'apikey': SUPABASE_KEY, 'Authorization': 'Bearer ' + SUPABASE_KEY }
+    : {};
 
   // ── Finance-engine constants (sync with finance-engine.js) ──
   const ACCOUNT_IN = () => typeof window.FE_ACCOUNT_IN !== 'undefined'
@@ -402,6 +412,9 @@
       hLog('info', 'V33 sync active — module 13 cloud fetch skipped (egress saved)', 'SYNC');
       return 0;
     }
+
+    // ✅ FIX: API_URL না থাকলে skip করো
+    if (!API_URL) { hLog('warn', 'SUPABASE_CONFIG নেই — Module 13 skip', 'SYNC'); return 0; }
 
     if (!navigator.onLine) { hLog('info', 'Offline — sync check skip', 'SYNC'); return 0; }
 

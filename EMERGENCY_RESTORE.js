@@ -10530,36 +10530,29 @@
 };
 
     function restore() {
-        console.log('🔄 Checking if emergency restoration is needed...');
-        const rawData = localStorage.getItem('wingsfly_data');
-        const currentData = JSON.parse(rawData || '{}');
-        const currentStudents = currentData.students || [];
-        const currentEmployees = currentData.employees || [];
+        // ✅ MIGRATION LOCK (March 2026):
+        // নতুন Supabase account এ migrate করা হয়েছে।
+        // এই backup file টি পুরানো account এর data (Feb 22 backup)।
+        // এটা আর auto-restore করা যাবে না — নতুন cloud এ latest data আছে।
+        //
+        // Manual emergency restore প্রয়োজন হলে browser console এ টাইপ করুন:
+        // window.emergencyRestoreManual()
 
-        // ✅ SECURITY FIX: 
-        // ১. যদি কোনো ডেটা থাকে (student বা employee), তবে অটো-রেস্টোর করবেন না।
-        // ২. যদি ইন্টারনেট থাকে, তবে ক্লাউড সিঙ্ককে সুযোগ দিন।
-        // ৩. শুধু তখনই রেস্টোর করবেন যখন ডেটা একদম শূন্য এবং নেট নেই।
+        console.log('🔒 EMERGENCY_RESTORE: Migration lock active — auto-restore disabled.');
+        console.log('   নতুন Supabase account active। Cloud থেকে data load হবে।');
 
-        if (!rawData || (currentStudents.length === 0 && currentEmployees.length === 0)) {
-            // সত্যিকারের ডেটা লস (একদম খালি)
-            if (navigator.onLine) {
-                console.log('🌐 Internet is online. Skipping local emergency restore to allow Cloud Sync to recover data.');
-                return;
-            }
-
-            console.log('⚠️ Critical Data Loss Detected (Offline). Prompting for restore...');
-            if (confirm('⚠️ Data Loss Detected (Offline)! \n\nNo local data found. Would you like to restore from the Feb 22 emergency backup? \n\n(If you have internet, click Cancel and refresh to sync from Cloud instead).')) {
+        window.emergencyRestoreManual = function() {
+            const rawData = localStorage.getItem('wingsfly_data');
+            const currentData = JSON.parse(rawData || '{}');
+            const currentStudents = (currentData.students || []).length;
+            const msg = '⚠️ Emergency Restore!\n\nবর্তমান students: ' + currentStudents + ' জন\nBackup এ students: ' + (backupData.students||[]).length + ' জন\n\nএই restore করলে বর্তমান সব data মুছে যাবে!\nShould u proceed?';
+            if (confirm(msg)) {
                 localStorage.setItem('wingsfly_data', JSON.stringify(backupData));
-                console.log('✅ Restoration complete! Reloading page...');
+                localStorage.setItem('wings_local_version', '0');
+                console.log('Manual restore complete. Reloading...');
                 window.location.reload();
             }
-        } else if (currentStudents.length > 0 && currentStudents.length < 15) {
-            // ডেটা আছে কিন্তু কম (আংশিক লস হতে পারে)
-            console.log('ℹ️ Local data found (Count: ' + currentStudents.length + '). Skipping auto-restore to avoid overwriting newer data (like HR/Staff).');
-        } else {
-            console.log('✅ Data exists. No restoration needed.');
-        }
+        };
     }
 
     if (document.readyState === 'loading') {
