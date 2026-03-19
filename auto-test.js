@@ -512,9 +512,9 @@
     // ── 5. Egress counter health ──────────────────────────
     const egress = status?.egressToday ?? ws.getEgress?.() ?? -1;
     if (egress === -1) warn('Egress counter unavailable');
-    else if (egress < 150) pass(`Egress today OK: ${egress} requests`);
-    else if (egress < 200) warn(`Egress high: ${egress} requests`, '150+ threshold পার হয়েছে');
-    else fail(`Egress throttled! ${egress} requests`, '200+ — pull বন্ধ হয়ে গেছে');
+    else if (egress < 400) pass(`Egress today OK: ${egress} requests`);
+    else if (egress < 550) warn(`Egress high: ${egress} requests`, '400+ threshold পার হয়েছে');
+    else fail(`Egress throttled! ${egress} requests`, '600+ — pull বন্ধ হয়ে গেছে');
 
     // ── 6. Version local vs cloud ─────────────────────────
     const localVer = parseInt(localStorage.getItem('wings_local_version')) || 0;
