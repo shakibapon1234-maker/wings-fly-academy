@@ -14,6 +14,21 @@ function takeSnapshot() {
   try {
     var _KEY = 'wingsfly_snapshots';
     var _MAX = 7;
+    // ✅ V34.7 FIX: Snapshot নেওয়ার আগে data integrity check করো
+    // যদি local finance < lastKnown হয় তাহলে snapshot skip করো
+    // এটা login এর পরে corrupt data snapshot হওয়া বন্ধ করে
+    var _finCount = (window.globalData?.finance || []).length;
+    var _studCount = (window.globalData?.students || []).length;
+    var _lastKnownFin = parseInt(localStorage.getItem('wings_last_known_finance')) || 0;
+    var _lastKnownStud = parseInt(localStorage.getItem('wings_last_known_count')) || 0;
+    if (_lastKnownFin > 10 && _finCount < _lastKnownFin - 2) {
+      console.warn('[Snapshot] SKIPPED — finance data incomplete: local=' + _finCount + ' known=' + _lastKnownFin);
+      return;
+    }
+    if (_lastKnownStud > 5 && _studCount < _lastKnownStud - 2) {
+      console.warn('[Snapshot] SKIPPED — student data incomplete: local=' + _studCount + ' known=' + _lastKnownStud);
+      return;
+    }
     // localStorage থেকে নাও, না থাকলে window.globalData থেকে নাও
     var data = localStorage.getItem('wingsfly_data');
     if (!data && window.globalData) {
