@@ -179,8 +179,18 @@ function showDashboard(username) {
           if (!window.globalData.deletedItems) window.globalData.deletedItems = [];
           if (!window.globalData.activityHistory) window.globalData.activityHistory = [];
         }
+        // ✅ V34.7 FIX: Snapshot এর আগে finance integrity check
+        var _finNow = (window.globalData?.finance || []).length;
+        var _studNow = (window.globalData?.students || []).length;
+        var _knownFin = parseInt(localStorage.getItem('wings_last_known_finance')) || 0;
+        var _knownStud = parseInt(localStorage.getItem('wings_last_known_count')) || 0;
+        if ((_knownFin > 10 && _finNow < _knownFin - 2) || (_knownStud > 5 && _studNow < _knownStud - 2)) {
+          console.warn('📸 Login snapshot SKIPPED — data incomplete: finance=' + _finNow + '/' + _knownFin + ' students=' + _studNow + '/' + _knownStud);
+          return;
+        }
         takeSnapshot();
         console.log('📸 Login snapshot taken (5s after cloud sync)');
+      }, 5000);
       }, 5000);
     }).catch(() => {
       // Cloud pull fail হলেও local data দিয়ে dashboard দেখাও
@@ -188,9 +198,15 @@ function showDashboard(username) {
       loadDashboard();
       // Cloud fail হলে ১০ সেকেন্ড পর retry করে snapshot নাও
       setTimeout(function () {
-        if (window.globalData && (window.globalData.students || []).length > 0) {
+        var _finNow2 = (window.globalData?.finance || []).length;
+        var _knownFin2 = parseInt(localStorage.getItem('wings_last_known_finance')) || 0;
+        if (window.globalData && (window.globalData.students || []).length > 0
+            && !(_knownFin2 > 10 && _finNow2 < _knownFin2 - 2)) {
           takeSnapshot();
           console.log('📸 Login snapshot taken (fallback, 10s)');
+        } else {
+          console.warn('📸 Fallback snapshot SKIPPED — finance=' + _finNow2 + '/' + _knownFin2);
+        }
         }
       }, 10000);
     });
