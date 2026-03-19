@@ -225,6 +225,14 @@ async function saveToStorage(skipCloudSync = false) {
     if (!window.globalData.deletedItems) window.globalData.deletedItems = [];
     if (!window.globalData.activityHistory) window.globalData.activityHistory = [];
 
+    // ✅ V34.9 FIX: Finance integrity check — কম finance থাকলে save বন্ধ
+    const _saveFinCount = (window.globalData.finance || []).length;
+    const _saveKnownFin = parseInt(localStorage.getItem('wings_last_known_finance')) || 0;
+    if (_saveKnownFin > 10 && _saveFinCount < _saveKnownFin - 2) {
+      console.warn('🚫 saveToStorage BLOCKED — finance=' + _saveFinCount + ' < known=' + _saveKnownFin + ' (data loss prevention)');
+      return false;
+    }
+
     // Backup রাখো যাতে cloud pull এ হারিয়ে না যায়
     localStorage.setItem('wingsfly_deleted_backup', JSON.stringify(window.globalData.deletedItems));
     localStorage.setItem('wingsfly_activity_backup', JSON.stringify(window.globalData.activityHistory));
