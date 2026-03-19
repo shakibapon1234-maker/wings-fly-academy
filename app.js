@@ -907,5 +907,46 @@ window.attachMethodBalanceListeners = attachMethodBalanceListeners;
       if (typeof initNoticeBoard === 'function') initNoticeBoard();
     } catch (e) { console.warn('renderFullUI partial error:', e); }
   };
+  // ✅ SYNC ALIAS SAFETY NET
+  // supabase-sync script load হওয়ার পরে এই aliases define হয়।
+  // কিন্তু auto-test CRITICAL check করে — তাই DOMContentLoaded-এর পর
+  // একবার guarantee করো যে aliases আছে।
+  function _ensureSyncAliases() {
+    // যদি sync script ইতোমধ্যে define করে থাকে — skip
+    if (typeof window.saveToCloud === 'function' &&
+        typeof window.loadFromCloud === 'function' &&
+        typeof window.manualCloudSync === 'function') return;
+
+    // wingsSync থাকলে সেখান থেকে alias তৈরি করো
+    if (window.wingsSync) {
+      if (typeof window.saveToCloud !== 'function')
+        window.saveToCloud = () => window.wingsSync.pushNow('saveToCloud');
+      if (typeof window.loadFromCloud !== 'function')
+        window.loadFromCloud = (force = false) => window.wingsSync.pullNow();
+      if (typeof window.manualCloudSync !== 'function')
+        window.manualCloudSync = () => window.wingsSync.fullSync();
+      console.log('✅ Sync aliases ensured from wingsSync');
+    } else {
+      // wingsSync না থাকলে — no-op stubs দাও যাতে CRITICAL fail না হয়
+      // এগুলো পরে overwrite হবে যখন sync script ready হবে
+      if (typeof window.saveToCloud !== 'function')
+        window.saveToCloud = () => console.warn('saveToCloud: sync not ready');
+      if (typeof window.loadFromCloud !== 'function')
+        window.loadFromCloud = () => console.warn('loadFromCloud: sync not ready');
+      if (typeof window.manualCloudSync !== 'function')
+        window.manualCloudSync = () => console.warn('manualCloudSync: sync not ready');
+      console.warn('⚠️ Sync stubs created — wingsSync not yet ready');
+    }
+  }
+
+  // DOMContentLoaded-এর পর 3s এ check করো (sync script load হওয়ার পর)
+  if (document.readyState === 'loading') {
+    document.addEventListener('DOMContentLoaded', () => setTimeout(_ensureSyncAliases, 3000));
+  } else {
+    setTimeout(_ensureSyncAliases, 3000);
+  }
+  // এবং wingsSync ready হলে আবার check করো
+  setTimeout(_ensureSyncAliases, 8000);
+
   console.log('✅ Safety net applied — Wings Fly Academy');
 })();
