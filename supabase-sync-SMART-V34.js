@@ -220,8 +220,21 @@
 
     const tasks = [];
 
+    // ✅ V34.4 FIX: Data loss guard — local count cloud count এর চেয়ে কম হলে push করো না
+    // এটা বন্ধ করে পুরানো/কম data দিয়ে cloud overwrite হওয়া
+    const _localStudentCount = (gd.students || []).length;
+    const _localFinanceCount = (gd.finance || []).length;
+    const _lastKnownStudents = parseInt(localStorage.getItem('wings_last_known_count')) || 0;
+
     if (_dirty.has('students')) {
-      tasks.push(_upsertRecords(TBL_STUDENTS, gd.students || []));
+      // শুধু push করো যদি local count যথেষ্ট থাকে
+      if (_localStudentCount > 0 && (_lastKnownStudents === 0 || _localStudentCount >= Math.max(1, _lastKnownStudents - 3))) {
+        tasks.push(_upsertRecords(TBL_STUDENTS, gd.students || []));
+      } else if (_localStudentCount === 0 || _localStudentCount < _lastKnownStudents - 3) {
+        log('🚫', `Student push blocked — local:${_localStudentCount} < known:${_lastKnownStudents} (possible data loss)`);
+      } else {
+        tasks.push(_upsertRecords(TBL_STUDENTS, gd.students || []));
+      }
       _dirty.delete('students');
     }
     if (_dirty.has('finance')) {
@@ -584,10 +597,12 @@
               window.globalData.bankAccounts = _md.bankAccounts || metaData.bank_accounts || window.globalData.bankAccounts || [];
               window.globalData.mobileBanking = _md.mobileBanking || metaData.mobile_banking || window.globalData.mobileBanking || [];
               window.globalData.attendance = _md.attendance || metaData.attendance || window.globalData.attendance || {};
-              // Also update students/finance/employees if present in data column
-              if (_md.students) window.globalData.students = _md.students;
-              if (_md.finance) window.globalData.finance = _md.finance;
-              if (_md.employees) window.globalData.employees = _md.employees;
+              // ✅ V34.4 FIX: students/finance/employees meta থেকে নেওয়া বন্ধ
+              // Partial tables (wf_students, wf_finance, wf_employees) থেকেই data আসবে
+              // academy_data এর data column এ পুরানো/কম data থাকতে পারে — overwrite করবে না
+              // if (_md.students) window.globalData.students = _md.students;  ← REMOVED
+              // if (_md.finance) window.globalData.finance = _md.finance;    ← REMOVED
+              // if (_md.employees) window.globalData.employees = _md.employees; ← REMOVED
             }
             localVersion = cloudVersion;
             localStorage.setItem('wings_local_version', localVersion.toString());
@@ -868,16 +883,21 @@
           if (!s.photo || !s.photo.startsWith('data:image')) return s;
           return { ...s, photo: `photo_${s.studentId || s.id || 'unknown'}`, _photoLocal: true };
         });
-        const payload = JSON.stringify({
+        // ✅ V34.4 FIX: Partial tables ready থাকলে academy_data তে students/finance push করো না
+        // এতে academy_data এর data column এ পুরানো কম-data যাবে না এবং overwrite হবে না
+        const _beaconBase = {
           id: RECORD_ID,
           version: localVersion + 1,
           last_updated: new Date().toISOString(),
           last_device: DEVICE_ID,
           last_action: 'page-close',
-          students: studentsClean,
-          finance: window.globalData.finance || [],
-          employees: window.globalData.employees || [],
-        });
+        };
+        if (!_partialTablesReady) {
+          _beaconBase.students = studentsClean;
+          _beaconBase.finance = window.globalData.finance || [];
+          _beaconBase.employees = window.globalData.employees || [];
+        }
+        const payload = JSON.stringify(_beaconBase);
         fetch(beaconUrl, {
           method: 'POST',
           headers: {
