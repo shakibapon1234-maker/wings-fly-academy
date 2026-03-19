@@ -191,7 +191,6 @@ function showDashboard(username) {
         takeSnapshot();
         console.log('📸 Login snapshot taken (5s after cloud sync)');
       }, 5000);
-      }, 5000);
     }).catch(() => {
       // Cloud pull fail হলেও local data দিয়ে dashboard দেখাও
       console.warn('⚠️ Cloud pull failed — loading from local data');
@@ -206,7 +205,6 @@ function showDashboard(username) {
           console.log('📸 Login snapshot taken (fallback, 10s)');
         } else {
           console.warn('📸 Fallback snapshot SKIPPED — finance=' + _finNow2 + '/' + _knownFin2);
-        }
         }
       }, 10000);
     });
