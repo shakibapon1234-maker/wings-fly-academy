@@ -502,6 +502,8 @@
           gd.finance = _fullFin.map(r => r.data);
           localStorage.setItem('wings_last_known_finance', _fullFin.length.toString());
           log('✅', `Force reloaded finance: ${_fullFin.length}`);
+          _save();
+          if (typeof window.renderFullUI === 'function') window.renderFullUI();
         }
       } catch(e) { log('⚠️', 'Force reload failed:', e); }
     } else if (_pulledFinCount > _knownFin) {
@@ -1120,6 +1122,9 @@
         if (typeof window.updateGlobalStats === 'function') window.updateGlobalStats();
         if (typeof window.renderDashboard === 'function') window.renderDashboard();
         log('✅', 'Startup integrity restored!');
+        // ✅ Force UI refresh after reload
+        if (typeof window.renderFullUI === 'function') window.renderFullUI();
+        else if (typeof window.updateGlobalStats === 'function') window.updateGlobalStats();
       } catch (e) {
         log('⚠️', 'Startup integrity check failed:', e);
       } finally {
