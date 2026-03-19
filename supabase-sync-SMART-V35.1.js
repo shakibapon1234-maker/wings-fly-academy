@@ -1,8 +1,14 @@
 /**
  * ════════════════════════════════════════════════════════════
  * WINGS FLY AVIATION ACADEMY
- * SMART SYNC SYSTEM — V35.1 "MAX COUNT WINS — IMPROVED"
+ * SMART SYNC SYSTEM — V35.1.1 "MAX COUNT WINS — IMPROVED"
  * ════════════════════════════════════════════════════════════
+ *
+ * ✅ V35.1.1 Critical Fix (March 20, 2026):
+ *   - FIXED: Empty localStorage causing students=0 on refresh
+ *   - Empty localStorage now bypasses MaxCount check
+ *   - First-load directly pulls from cloud
+ *   - Prevents false-positive data loss detection
  *
  * ✅ V35.1 Improvements over V35:
  *
@@ -28,7 +34,7 @@
  *      → Good network = normal speed
  *
  * Author: Wings Fly IT Team
- * Version: 35.1
+ * Version: 35.1.1
  * Date: March 2026
  * ════════════════════════════════════════════════════════════
  */
@@ -91,6 +97,13 @@
     isSafe: function (key, localCount, options = {}) {
       const max = this.get(key);
       if (max === 0) return { safe: true, reason: 'first-time' };
+      
+      // 🔥 FIX: If localStorage is empty (localCount=0), treat as first-load, not data loss
+      const hasLocalData = localStorage.getItem('wingsfly_data');
+      if (!hasLocalData && localCount === 0) {
+        _log('⚠️', `MaxCount ${key}: Empty localStorage, treating as first-load`);
+        return { safe: true, reason: 'empty-localStorage', localCount, max };
+      }
       
       const deletedCount = options.deletedCount || 0;
       const netCount = localCount + deletedCount;
@@ -472,11 +485,33 @@
     }, 30000);
   }
 
-  // STARTUP INTEGRITY CHECK - V35.1
+  // STARTUP INTEGRITY CHECK - V35.1 FIXED
   async function _startupIntegrityCheck() {
     const gd = window.globalData;
     if (!gd) return;
+    
     const finCount = (gd.finance || []).length, stuCount = (gd.students || []).length;
+    const hasLocalData = localStorage.getItem('wingsfly_data');
+    
+    // 🔥 FIX: Empty localStorage = first load, bypass MaxCount check
+    if (!hasLocalData || (finCount === 0 && stuCount === 0)) {
+      _log('⚠️', 'Empty localStorage detected — forcing cloud pull (bypass MaxCount)');
+      if (_online && _sb) {
+        const ov = document.getElementById('dashboardOverview');
+        if (ov) ov.style.visibility = 'hidden';
+        try {
+          await pullFromCloud(false, true);
+          if (typeof window.renderFullUI === 'function') window.renderFullUI();
+          _log('✅', 'First-load cloud pull complete');
+        } catch (e) {
+          _log('❌', 'First-load pull failed', e);
+        } finally {
+          if (ov) ov.style.visibility = '';
+        }
+      }
+      return;
+    }
+    
     const finDeleted = MaxCount.getDeletedCount('finance'), stuDeleted = MaxCount.getDeletedCount('students');
     const finCheck = MaxCount.isSafe('finance', finCount, { deletedCount: finDeleted });
     const stuCheck = MaxCount.isSafe('students', stuCount, { deletedCount: stuDeleted });
@@ -568,7 +603,7 @@
   async function _start() {
     if (!_init()) { setTimeout(_start, 2000); return; }
     _log('🚀', '══════════════════════════════════════');
-    _log('🚀', 'Wings Fly V35.1 — MAX COUNT WINS (IMPROVED)');
+    _log('🚀', 'Wings Fly V35.1.1 — MAX COUNT WINS (FIXED)');
     _log('🚀', '══════════════════════════════════════');
     _log('💡', `Tolerance: 10% adaptive | Egress: ${Egress.count()} | Data age: ${SyncFreshness.getAge()}`);
     await _checkPartialTables();
@@ -582,8 +617,8 @@
     setInterval(_versionCheck, NetworkQuality.getCheckInterval());
     setInterval(() => { if (_tabVisible && !Egress.throttled()) pullFromCloud(true); }, CFG.FULL_PULL_MS);
     setTimeout(_installMonitor, 3000);
-    _log('🎉', 'V35.1 ready!');
-    _showStatus('🔄 V35.1 ready');
+    _log('🎉', 'V35.1.1 ready!');
+    _showStatus('🔄 V35.1.1 ready');
   }
 
   // PUBLIC API
@@ -610,5 +645,5 @@
   if (document.readyState === 'loading') document.addEventListener('DOMContentLoaded', _start);
   else _start();
 
-  _log('📦', 'V35.1 loaded — MAX COUNT WINS (IMPROVED)');
+  _log('📦', 'V35.1.1 loaded — MAX COUNT WINS (IMPROVED + EMPTY STATE FIX)');
 })();
