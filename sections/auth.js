@@ -173,40 +173,84 @@ function showDashboard(username) {
     window.loadFromCloud(true).then(() => {  // force=true: 15s block bypass করবে
       console.log('✅ Login sync complete — loading dashboard');
       loadDashboard();
-      // ✅ Cloud pull শেষ হওয়ার ৫ সেকেন্ড পর snapshot — সঠিক data নিশ্চিত
-      setTimeout(function () {
+      // ✅ V34.8 FIX: Cloud pull শেষ হওয়ার পরে snapshot — cloud count দিয়ে verify করে
+      setTimeout(async function () {
         if (window.globalData) {
           if (!window.globalData.deletedItems) window.globalData.deletedItems = [];
           if (!window.globalData.activityHistory) window.globalData.activityHistory = [];
         }
-        // ✅ V34.7 FIX: Snapshot এর আগে finance integrity check
-        var _finNow = (window.globalData?.finance || []).length;
-        var _studNow = (window.globalData?.students || []).length;
-        var _knownFin = parseInt(localStorage.getItem('wings_last_known_finance')) || 0;
-        var _knownStud = parseInt(localStorage.getItem('wings_last_known_count')) || 0;
-        if ((_knownFin > 10 && _finNow < _knownFin - 2) || (_knownStud > 5 && _studNow < _knownStud - 2)) {
-          console.warn('📸 Login snapshot SKIPPED — data incomplete: finance=' + _finNow + '/' + _knownFin + ' students=' + _studNow + '/' + _knownStud);
-          return;
+        try {
+          // Supabase থেকে actual count নিয়ে verify করো
+          var _sb = window.supabase.createClient(window.SUPABASE_CONFIG.URL, window.SUPABASE_CONFIG.KEY);
+          var _cloudFin = await _sb.from('wf_finance').select('id', { count: 'exact', head: true })
+            .eq('academy_id', 'wingsfly_main').eq('deleted', false);
+          var _cloudStud = await _sb.from('wf_students').select('id', { count: 'exact', head: true })
+            .eq('academy_id', 'wingsfly_main').eq('deleted', false);
+          var _cloudFinCount = _cloudFin.count || 0;
+          var _cloudStudCount = _cloudStud.count || 0;
+          var _localFinCount = (window.globalData?.finance || []).length;
+          var _localStudCount = (window.globalData?.students || []).length;
+
+          console.log('📸 Snapshot verify — local fin:' + _localFinCount + ' cloud:' + _cloudFinCount + ' | local stud:' + _localStudCount + ' cloud:' + _cloudStudCount);
+
+          // যদি local এ cloud এর চেয়ে ৩+ কম থাকে — cloud থেকে reload করো তারপর snapshot নাও
+          if (_cloudFinCount > 0 && _localFinCount < _cloudFinCount - 2) {
+            console.warn('📸 Snapshot: local finance incomplete (' + _localFinCount + '<' + _cloudFinCount + ') — reloading from cloud...');
+            var _freshFin = await _sb.from('wf_finance').select('data')
+              .eq('academy_id', 'wingsfly_main').eq('deleted', false);
+            if (_freshFin.data && _freshFin.data.length > 0) {
+              window.globalData.finance = _freshFin.data.map(function(r) { return r.data; });
+              localStorage.setItem('wings_last_known_finance', _freshFin.data.length.toString());
+            }
+          }
+          if (_cloudStudCount > 0 && _localStudCount < _cloudStudCount - 2) {
+            console.warn('📸 Snapshot: local students incomplete (' + _localStudCount + '<' + _cloudStudCount + ') — reloading from cloud...');
+            var _freshStud = await _sb.from('wf_students').select('data')
+              .eq('academy_id', 'wingsfly_main').eq('deleted', false);
+            if (_freshStud.data && _freshStud.data.length > 0) {
+              window.globalData.students = _freshStud.data.map(function(r) { return r.data; });
+              localStorage.setItem('wings_last_known_count', _freshStud.data.length.toString());
+            }
+          }
+          // Save corrected data and take snapshot
+          localStorage.setItem('wingsfly_data', JSON.stringify(window.globalData));
+          if (typeof window.updateGlobalStats === 'function') window.updateGlobalStats();
+          if (typeof window.renderDashboard === 'function') window.renderDashboard();
+        } catch (e) {
+          console.warn('📸 Snapshot cloud-verify failed, using local data:', e);
         }
         takeSnapshot();
-        console.log('📸 Login snapshot taken (5s after cloud sync)');
+        console.log('📸 Login snapshot taken (V34.8 — cloud-verified)');
       }, 5000);
     }).catch(() => {
       // Cloud pull fail হলেও local data দিয়ে dashboard দেখাও
       console.warn('⚠️ Cloud pull failed — loading from local data');
       loadDashboard();
-      // Cloud fail হলে ১০ সেকেন্ড পর retry করে snapshot নাও
-      setTimeout(function () {
-        var _finNow2 = (window.globalData?.finance || []).length;
-        var _knownFin2 = parseInt(localStorage.getItem('wings_last_known_finance')) || 0;
-        if (window.globalData && (window.globalData.students || []).length > 0
-            && !(_knownFin2 > 10 && _finNow2 < _knownFin2 - 2)) {
+      // Cloud fail হলে ১৫ সেকেন্ড পর retry — V34.8: cloud-verify সহ
+      setTimeout(async function () {
+        try {
+          var _sb2 = window.supabase.createClient(window.SUPABASE_CONFIG.URL, window.SUPABASE_CONFIG.KEY);
+          var _cf2 = await _sb2.from('wf_finance').select('id', { count: 'exact', head: true })
+            .eq('academy_id', 'wingsfly_main').eq('deleted', false);
+          var _cloudFinCount2 = _cf2.count || 0;
+          var _localFin2 = (window.globalData?.finance || []).length;
+          if (_cloudFinCount2 > 0 && _localFin2 < _cloudFinCount2 - 2) {
+            var _ff2 = await _sb2.from('wf_finance').select('data')
+              .eq('academy_id', 'wingsfly_main').eq('deleted', false);
+            if (_ff2.data && _ff2.data.length > 0) {
+              window.globalData.finance = _ff2.data.map(function(r) { return r.data; });
+              localStorage.setItem('wings_last_known_finance', _ff2.data.length.toString());
+              localStorage.setItem('wingsfly_data', JSON.stringify(window.globalData));
+              if (typeof window.updateGlobalStats === 'function') window.updateGlobalStats();
+              if (typeof window.renderDashboard === 'function') window.renderDashboard();
+            }
+          }
+        } catch (e) { console.warn('📸 Fallback cloud-verify failed:', e); }
+        if (window.globalData && (window.globalData.students || []).length > 0) {
           takeSnapshot();
-          console.log('📸 Login snapshot taken (fallback, 10s)');
-        } else {
-          console.warn('📸 Fallback snapshot SKIPPED — finance=' + _finNow2 + '/' + _knownFin2);
+          console.log('📸 Login snapshot taken (fallback V34.8, 15s)');
         }
-      }, 10000);
+      }, 15000);
     });
   } else {
     loadDashboard();
