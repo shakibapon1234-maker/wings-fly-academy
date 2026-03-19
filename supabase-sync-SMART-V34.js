@@ -289,18 +289,23 @@
 
     const now = new Date().toISOString();
     // ✅ V32: base64 photo strip করো (Egress কমায়)
+    // ✅ V34.4 FIX: deletedItems চেক করো — cloud এ deleted=true থাকলে push এ deleted=false করা উচিত নয়
+    const _deletedIds = new Set((window.globalData?.deletedItems || []).map(d => String(d.id || d.studentId || d.rowIndex)).filter(Boolean));
+
     const rows = rawDeduped.map((r, idx) => {
       let cleanRecord = { ...r };
       if (cleanRecord.photo && cleanRecord.photo.startsWith('data:image')) {
         cleanRecord.photo = `photo_${r.studentId || r.id || 'unknown'}`;
         cleanRecord._photoLocal = true;
       }
+      const stableId = _stableId(r, idx);
+      const isDeleted = _deletedIds.has(String(r.id || r.studentId || r.rowIndex || ''));
       return {
-        id: _stableId(r, idx), // ✅ V34: stable ID — প্রতিবার একই
+        id: stableId, // ✅ V34: stable ID — প্রতিবার একই
         academy_id: ACADEMY_ID,
         data: cleanRecord,
         updated_at: now,
-        deleted: false,
+        deleted: isDeleted, // ✅ V34.4: deletedItems এ থাকলে deleted=true রাখো
       };
     });
 
