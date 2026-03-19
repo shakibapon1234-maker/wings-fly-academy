@@ -227,13 +227,22 @@
     const _lastKnownStudents = parseInt(localStorage.getItem('wings_last_known_count')) || 0;
 
     if (_dirty.has('students')) {
-      // শুধু push করো যদি local count যথেষ্ট থাকে
-      if (_localStudentCount > 0 && (_lastKnownStudents === 0 || _localStudentCount >= Math.max(1, _lastKnownStudents - 3))) {
+      // ✅ V34.5 FIX: deletedItems count যোগ করে check করো
+      // যদি (local + deleted) = lastKnown হয় তাহলে intentional delete — push করো
+      const _deletedCount = (gd.deletedItems || []).filter(d => d.type === 'student' || d.studentId).length;
+      const _effectiveCount = _localStudentCount + _deletedCount;
+      const _isIntentionalDelete = _effectiveCount >= _lastKnownStudents - 1;
+      const _isSafeCount = _localStudentCount > 0 && (_lastKnownStudents === 0 || _localStudentCount >= Math.max(1, _lastKnownStudents - 3));
+
+      if (_isSafeCount || _isIntentionalDelete) {
+        // Safe push — হয় count যথেষ্ট, অথবা intentional delete
         tasks.push(_upsertRecords(TBL_STUDENTS, gd.students || []));
-      } else if (_localStudentCount === 0 || _localStudentCount < _lastKnownStudents - 3) {
-        log('🚫', `Student push blocked — local:${_localStudentCount} < known:${_lastKnownStudents} (possible data loss)`);
+        // lastKnown update করো
+        if (_localStudentCount > 0) localStorage.setItem('wings_last_known_count', _localStudentCount.toString());
+        log('📤', `Student push OK — local:${_localStudentCount} deleted:${_deletedCount} known:${_lastKnownStudents}`);
       } else {
-        tasks.push(_upsertRecords(TBL_STUDENTS, gd.students || []));
+        // সত্যিকারের data loss — block করো
+        log('🚫', `Student push blocked — local:${_localStudentCount} + deleted:${_deletedCount} < known:${_lastKnownStudents} (accidental loss?)`);
       }
       _dirty.delete('students');
     }
