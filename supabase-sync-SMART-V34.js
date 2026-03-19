@@ -48,7 +48,7 @@
   const PULL_INTERVAL = 15 * 60 * 1000; // 15 minutes
 
   // ✅ V32: Version-only check interval (lightweight — শুধু version number আনে)
-  const VERSION_CHECK_INTERVAL = 3 * 60 * 1000; // 3 minutes — egress কমাতে (আগে 1.5 min ছিল)
+  const VERSION_CHECK_INTERVAL = 10 * 60 * 1000; // 10 minutes — egress কমাতে
 
   const PUSH_DEBOUNCE = 1500; // 1.5s debounce
   const DEVICE_ID = _getDeviceId();
@@ -109,7 +109,7 @@
       return v;
     },
     isThrottled: function () {
-      return this.get() > 300; // ৩০০+ হলে pull বন্ধ
+      return this.get() > 600; // ৬০০+ হলে pull বন্ধ
     }
   };
 
