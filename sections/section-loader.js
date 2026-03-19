@@ -99,17 +99,39 @@
         newScript.async = false;
         if (oldScript.parentNode) oldScript.parentNode.replaceChild(newScript, oldScript);
       } else {
-        // Inline script — use new Function() for guaranteed global execution
-        // document.head.appendChild fails for deeply nested scripts in some browsers
+        // Inline script execution
+        // ✅ FIX: new Function() fails on template literals, Bengali unicode chars,
+        // and </script> strings inside code. Use document.head injection instead —
+        // it handles ALL valid JS correctly (same as a normal <script> tag).
         const code = oldScript.textContent || oldScript.innerText || '';
         if (code.trim()) {
+          let executed = false;
+
+          // Method 1: document.head script injection (handles template literals, unicode, etc.)
           try {
-            // eslint-disable-next-line no-new-func
-            const fn = new Function(code);
-            fn.call(window);
-            console.log('[SectionLoader] ✅ Script executed via new Function()');
-          } catch (e) {
-            console.error('[SectionLoader] ❌ Script execution error:', e);
+            const newScript = document.createElement('script');
+            newScript.textContent = code;
+            document.head.appendChild(newScript);
+            document.head.removeChild(newScript);
+            console.log('[SectionLoader] ✅ Script executed via head injection');
+            executed = true;
+          } catch (e1) {
+            console.warn('[SectionLoader] ⚠️ head injection failed, trying Blob URL:', e1.message);
+          }
+
+          // Method 2: Blob URL fallback (async — for strict CSP environments)
+          if (!executed) {
+            try {
+              const blob = new Blob([code], { type: 'text/javascript' });
+              const blobUrl = URL.createObjectURL(blob);
+              const s = document.createElement('script');
+              s.src = blobUrl;
+              s.onload = () => { URL.revokeObjectURL(blobUrl); console.log('[SectionLoader] ✅ Script executed via Blob URL'); };
+              s.onerror = (e) => { URL.revokeObjectURL(blobUrl); console.error('[SectionLoader] ❌ Blob URL error:', e); };
+              document.head.appendChild(s);
+            } catch (e2) {
+              console.error('[SectionLoader] ❌ Script execution failed (all methods):', e2);
+            }
           }
         }
         // DOM থেকে পুরনো script remove করো

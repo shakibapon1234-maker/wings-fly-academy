@@ -908,45 +908,39 @@ window.attachMethodBalanceListeners = attachMethodBalanceListeners;
     } catch (e) { console.warn('renderFullUI partial error:', e); }
   };
   // ✅ SYNC ALIAS SAFETY NET
-  // supabase-sync script load হওয়ার পরে এই aliases define হয়।
-  // কিন্তু auto-test CRITICAL check করে — তাই DOMContentLoaded-এর পর
-  // একবার guarantee করো যে aliases আছে।
-  function _ensureSyncAliases() {
-    // যদি sync script ইতোমধ্যে define করে থাকে — skip
+  // supabase-sync script load হওয়ার পরে window.wingsSync define হয়।
+  // auto-test CRITICAL list-এ saveToCloud/loadFromCloud/manualCloudSync আছে।
+  // এই poller wingsSync ready হওয়ার সাথে সাথে aliases গ্যারান্টি করে।
+  (function _syncAliasPoller(attempt) {
+    // ইতোমধ্যে সব আছে — কিছু করার নেই
     if (typeof window.saveToCloud === 'function' &&
         typeof window.loadFromCloud === 'function' &&
         typeof window.manualCloudSync === 'function') return;
 
-    // wingsSync থাকলে সেখান থেকে alias তৈরি করো
     if (window.wingsSync) {
+      // wingsSync ready — সঠিক aliases তৈরি করো
       if (typeof window.saveToCloud !== 'function')
         window.saveToCloud = () => window.wingsSync.pushNow('saveToCloud');
       if (typeof window.loadFromCloud !== 'function')
-        window.loadFromCloud = (force = false) => window.wingsSync.pullNow();
+        window.loadFromCloud = (force) => window.wingsSync.pullNow();
       if (typeof window.manualCloudSync !== 'function')
         window.manualCloudSync = () => window.wingsSync.fullSync();
-      console.log('✅ Sync aliases ensured from wingsSync');
+      console.log('✅ Sync aliases ready (attempt ' + attempt + ')');
+    } else if (attempt < 30) {
+      // প্রতি 2s পর retry — মোট 60s
+      setTimeout(() => _syncAliasPoller(attempt + 1), 2000);
     } else {
-      // wingsSync না থাকলে — no-op stubs দাও যাতে CRITICAL fail না হয়
-      // এগুলো পরে overwrite হবে যখন sync script ready হবে
+      // 60s পরেও wingsSync নেই — sync script load হয়নি বা crash করেছে
+      // Fallback stubs দাও যাতে app সম্পূর্ণ ভেঙে না পড়ে
+      console.error('❌ wingsSync 60s পরেও ready হয়নি — sync script check করুন');
       if (typeof window.saveToCloud !== 'function')
-        window.saveToCloud = () => console.warn('saveToCloud: sync not ready');
+        window.saveToCloud = () => console.error('saveToCloud: sync script not loaded');
       if (typeof window.loadFromCloud !== 'function')
-        window.loadFromCloud = () => console.warn('loadFromCloud: sync not ready');
+        window.loadFromCloud = () => console.error('loadFromCloud: sync script not loaded');
       if (typeof window.manualCloudSync !== 'function')
-        window.manualCloudSync = () => console.warn('manualCloudSync: sync not ready');
-      console.warn('⚠️ Sync stubs created — wingsSync not yet ready');
+        window.manualCloudSync = () => console.error('manualCloudSync: sync script not loaded');
     }
-  }
-
-  // DOMContentLoaded-এর পর 3s এ check করো (sync script load হওয়ার পর)
-  if (document.readyState === 'loading') {
-    document.addEventListener('DOMContentLoaded', () => setTimeout(_ensureSyncAliases, 3000));
-  } else {
-    setTimeout(_ensureSyncAliases, 3000);
-  }
-  // এবং wingsSync ready হলে আবার check করো
-  setTimeout(_ensureSyncAliases, 8000);
+  })(0);
 
   console.log('✅ Safety net applied — Wings Fly Academy');
 })();
