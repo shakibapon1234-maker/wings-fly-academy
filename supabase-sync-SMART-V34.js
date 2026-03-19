@@ -556,26 +556,32 @@
           const cloudVersion = parseInt(metaData.version) || 0;
           if (cloudVersion > localVersion) {
             if (window.globalData) {
-              window.globalData.cashBalance = metaData.cash_balance || window.globalData.cashBalance || 0;
-              window.globalData.settings = metaData.settings || window.globalData.settings || {};
-              window.globalData.nextId = metaData.next_id || window.globalData.nextId || 1001;
-              window.globalData.paymentMethods = metaData.payment_methods || window.globalData.paymentMethods || [];
-              window.globalData.incomeCategories = metaData.income_categories || window.globalData.incomeCategories || [];
-              window.globalData.expenseCategories = metaData.expense_categories || window.globalData.expenseCategories || [];
-              window.globalData.courseNames = metaData.course_names || window.globalData.courseNames || [];
-              window.globalData.users = metaData.users || window.globalData.users || [];
-              window.globalData.deletedItems = metaData.deleted_items || window.globalData.deletedItems || [];
-              window.globalData.activityHistory = metaData.activity_history || window.globalData.activityHistory || [];
-              window.globalData.loans = metaData.loans || window.globalData.loans || [];
-              window.globalData.keepRecords = metaData.keep_records || window.globalData.keepRecords || [];
-              window.globalData.idCards = metaData.id_cards || window.globalData.idCards || [];
-              window.globalData.notices = metaData.notices || window.globalData.notices || [];
-              window.globalData.examRegistrations = metaData.exam_registrations || window.globalData.examRegistrations || [];
-              window.globalData.visitors = metaData.visitors || window.globalData.visitors || [];
-              window.globalData.employeeRoles = metaData.employee_roles || window.globalData.employeeRoles || [];
-              window.globalData.bankAccounts = metaData.bank_accounts || window.globalData.bankAccounts || [];
-              window.globalData.mobileBanking = metaData.mobile_banking || window.globalData.mobileBanking || [];
-              window.globalData.attendance = metaData.attendance || window.globalData.attendance || {};
+              // ✅ FIX: নতুন Supabase schema তে data column থেকে নেওয়া হচ্ছে
+              const _md = metaData.data || {};
+              window.globalData.cashBalance = _md.cashBalance !== undefined ? _md.cashBalance : (metaData.cash_balance || window.globalData.cashBalance || 0);
+              window.globalData.settings = _md.settings || metaData.settings || window.globalData.settings || {};
+              window.globalData.nextId = _md.nextId || metaData.next_id || window.globalData.nextId || 1001;
+              window.globalData.paymentMethods = _md.paymentMethods || metaData.payment_methods || window.globalData.paymentMethods || [];
+              window.globalData.incomeCategories = _md.incomeCategories || metaData.income_categories || window.globalData.incomeCategories || [];
+              window.globalData.expenseCategories = _md.expenseCategories || metaData.expense_categories || window.globalData.expenseCategories || [];
+              window.globalData.courseNames = _md.courseNames || metaData.course_names || window.globalData.courseNames || [];
+              window.globalData.users = _md.users || metaData.users || window.globalData.users || [];
+              window.globalData.deletedItems = _md.deletedItems || metaData.deleted_items || window.globalData.deletedItems || [];
+              window.globalData.activityHistory = _md.activityHistory || metaData.activity_history || window.globalData.activityHistory || [];
+              window.globalData.loans = _md.loans || metaData.loans || window.globalData.loans || [];
+              window.globalData.keepRecords = _md.keepRecords || metaData.keep_records || window.globalData.keepRecords || [];
+              window.globalData.idCards = _md.idCards || metaData.id_cards || window.globalData.idCards || [];
+              window.globalData.notices = _md.notices || metaData.notices || window.globalData.notices || [];
+              window.globalData.examRegistrations = _md.examRegistrations || metaData.exam_registrations || window.globalData.examRegistrations || [];
+              window.globalData.visitors = _md.visitors || metaData.visitors || window.globalData.visitors || [];
+              window.globalData.employeeRoles = _md.employeeRoles || metaData.employee_roles || window.globalData.employeeRoles || [];
+              window.globalData.bankAccounts = _md.bankAccounts || metaData.bank_accounts || window.globalData.bankAccounts || [];
+              window.globalData.mobileBanking = _md.mobileBanking || metaData.mobile_banking || window.globalData.mobileBanking || [];
+              window.globalData.attendance = _md.attendance || metaData.attendance || window.globalData.attendance || {};
+              // Also update students/finance/employees if present in data column
+              if (_md.students) window.globalData.students = _md.students;
+              if (_md.finance) window.globalData.finance = _md.finance;
+              if (_md.employees) window.globalData.employees = _md.employees;
             }
             localVersion = cloudVersion;
             localStorage.setItem('wings_local_version', localVersion.toString());
@@ -615,30 +621,33 @@
       }
 
       // Update globalData
+      // ✅ V34 FIX: নতুন Supabase schema তে সব ডাটা data column এ JSON হিসেবে আছে
+      // তাই data.data থেকে নেওয়া হচ্ছে, fallback হিসেবে পুরনো flat columns ও চেক করা হচ্ছে
+      const _d = data.data || {};
       window.globalData = {
-        students: data.students || [],
-        employees: data.employees || [],
-        finance: data.finance || [],
-        settings: data.settings || {},
-        incomeCategories: data.income_categories || [],
-        expenseCategories: data.expense_categories || [],
-        paymentMethods: data.payment_methods || [],
-        cashBalance: data.cash_balance || 0,
-        bankAccounts: data.bank_accounts || [],
-        mobileBanking: data.mobile_banking || [],
-        courseNames: data.course_names || [],
-        attendance: data.attendance || {},
-        nextId: data.next_id || 1001,
-        users: data.users || [],
-        examRegistrations: data.exam_registrations || [],
-        visitors: data.visitors || [],
-        employeeRoles: data.employee_roles || [],
-        deletedItems: data.deleted_items || [],
-        activityHistory: data.activity_history || [],
-        keepRecords: data.keep_records || [],
-        loans: data.loans || [],
-        idCards: data.id_cards || [],
-        notices: data.notices || [],
+        students: _d.students || data.students || [],
+        employees: _d.employees || data.employees || [],
+        finance: _d.finance || data.finance || [],
+        settings: _d.settings || data.settings || {},
+        incomeCategories: _d.incomeCategories || data.income_categories || [],
+        expenseCategories: _d.expenseCategories || data.expense_categories || [],
+        paymentMethods: _d.paymentMethods || data.payment_methods || [],
+        cashBalance: _d.cashBalance !== undefined ? _d.cashBalance : (data.cash_balance || 0),
+        bankAccounts: _d.bankAccounts || data.bank_accounts || [],
+        mobileBanking: _d.mobileBanking || data.mobile_banking || [],
+        courseNames: _d.courseNames || data.course_names || [],
+        attendance: _d.attendance || data.attendance || {},
+        nextId: _d.nextId || data.next_id || 1001,
+        users: _d.users || data.users || [],
+        examRegistrations: _d.examRegistrations || data.exam_registrations || [],
+        visitors: _d.visitors || data.visitors || [],
+        employeeRoles: _d.employeeRoles || data.employee_roles || [],
+        deletedItems: _d.deletedItems || data.deleted_items || [],
+        activityHistory: _d.activityHistory || data.activity_history || [],
+        keepRecords: _d.keepRecords || data.keep_records || [],
+        loans: _d.loans || data.loans || [],
+        idCards: _d.idCards || data.id_cards || [],
+        notices: _d.notices || data.notices || [],
       };
 
       localVersion = cloudVersion;
