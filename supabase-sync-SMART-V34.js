@@ -1043,7 +1043,7 @@
     }
 
     log('🚀', '━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━');
-    log('🚀', 'Wings Fly Smart Sync V34.5 — DATA INTEGRITY EDITION');
+    log('🚀', 'Wings Fly Smart Sync V34.7 — DATA INTEGRITY EDITION');
     log('🚀', '━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━');
     log('💡', `Realtime WebSocket: ❌ DISABLED (Egress সাশ্রয়)`);
     log('💡', `Pull interval: 15 minutes`);
@@ -1059,8 +1059,60 @@
     _patchSaveToStorage();
     _disableAutoHealCloudFetch();
 
+    // ✅ V34.7 STARTUP INTEGRITY CHECK
+    // Startup এ local finance < lastKnown হলে Egress bypass করে force load
+    const _startupFinCount = (window.globalData?.finance || []).length;
+    const _startupFinKnown = parseInt(localStorage.getItem('wings_last_known_finance')) || 0;
+    const _startupStudCount = (window.globalData?.students || []).length;
+    const _startupStudKnown = parseInt(localStorage.getItem('wings_last_known_count')) || 0;
+
+    const _finMismatch = _startupFinKnown > 10 && _startupFinCount < _startupFinKnown - 2;
+    const _studMismatch = _startupStudKnown > 5 && _startupStudCount < _startupStudKnown - 2;
+
+    if (_finMismatch || _studMismatch) {
+      log('🚨', `Startup integrity FAIL — finance:${_startupFinCount}/${_startupFinKnown} students:${_startupStudCount}/${_startupStudKnown} — Force loading from cloud...`);
+      try {
+        const _tasks = [];
+        if (_finMismatch) {
+          _tasks.push(
+            supabaseClient.from(TBL_FINANCE).select('data')
+              .eq('academy_id', ACADEMY_ID).eq('deleted', false)
+              .then(({ data }) => {
+                if (data && data.length > 0) {
+                  window.globalData.finance = data.map(r => r.data);
+                  localStorage.setItem('wings_last_known_finance', data.length.toString());
+                  log('✅', `Startup force-loaded finance: ${data.length}`);
+                }
+              })
+          );
+        }
+        if (_studMismatch) {
+          _tasks.push(
+            supabaseClient.from(TBL_STUDENTS).select('data')
+              .eq('academy_id', ACADEMY_ID).eq('deleted', false)
+              .then(({ data }) => {
+                if (data && data.length > 0) {
+                  window.globalData.students = data.map(r => r.data);
+                  localStorage.setItem('wings_last_known_count', data.length.toString());
+                  log('✅', `Startup force-loaded students: ${data.length}`);
+                }
+              })
+          );
+        }
+        await Promise.all(_tasks);
+        // Save corrected data to localStorage
+        localStorage.setItem('wingsfly_data', JSON.stringify(window.globalData));
+        if (typeof window.updateGlobalStats === 'function') window.updateGlobalStats();
+        if (typeof window.renderDashboard === 'function') window.renderDashboard();
+        log('✅', 'Startup integrity restored!');
+      } catch (e) {
+        log('⚠️', 'Startup integrity check failed:', e);
+      }
+    } else {
+      log('✅', `Startup integrity OK — finance:${_startupFinCount} students:${_startupStudCount}`);
+    }
+
     // Initial pull
-    await pullFromCloud(false);
 
     // ✅ V32: Realtime বন্ধ — এর বদলে lightweight version check
     // প্রতি 3 মিনিটে শুধু version number চেক (50 bytes মাত্র)
