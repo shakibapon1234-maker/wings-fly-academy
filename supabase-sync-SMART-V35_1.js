@@ -273,8 +273,8 @@
 
         const gd = window.globalData || {};
         const local = { students: gd.students || [], finance: gd.finance || [], employees: gd.employees || [] };
-        gd.students = _mergeRecords(local.students, stuRes.data, s => s.id);
-        gd.finance = _mergeRecords(local.finance, finRes.data, f => f.id);
+        gd.students = _mergeRecords(local.students, stuRes.data, s => s.studentId || s.id || s.name);
+        gd.finance = _mergeRecords(local.finance, finRes.data, f => f.id || f.timestamp);
         gd.employees = _mergeRecords(local.employees, empRes.data, e => e.id);
 
         const mainRec = mainRes.data?.[0];
@@ -387,9 +387,9 @@
       if (_partialOK) {
         const tasks = [];
         if (_dirty.has('students') || _dirty.size === 0) {
-          const stuRows = (gd.students || []).map(s => ({ id: `${CFG.ACADEMY_ID}_stu_${s.id}`, academy_id: CFG.ACADEMY_ID, record_id: s.id, data: s, deleted: false }));
+          const stuRows = (gd.students || []).map(s => { const sid = s.studentId || s.id || s.name; return { id: `${CFG.ACADEMY_ID}_stu_${sid}`, academy_id: CFG.ACADEMY_ID, record_id: sid, data: s, deleted: false }; });
           const stuDelRows = ((gd.deletedItems?.students || []).map(item => {
-            const recId = item.id || item.item?.id;
+            const recId = item.studentId || item.id || item.item?.studentId || item.item?.id;
             return recId ? { id: `${CFG.ACADEMY_ID}_stu_${recId}`, academy_id: CFG.ACADEMY_ID, record_id: recId, data: null, deleted: true } : null;
           })).filter(x => x);
           const allStu = [...stuRows, ...stuDelRows];
@@ -551,8 +551,8 @@
       }
       if (!stuCheck.safe && _partialOK) {
         tasks.push(_sb.from(CFG.TBL_STUDENTS).select('data').eq('academy_id', CFG.ACADEMY_ID).eq('deleted', false).then(({ data }) => {
-          if (data && data.length > stuCount) {
-            gd.students = data.map(r => r.data);
+          if (data && data.length > 0 && data.length > stuCount) {
+            gd.students = data.map(r => r.data).filter(s => s);
             MaxCount.update('students', gd.students.length);
             _log('✅', `Force loaded students: ${gd.students.length}`);
           }

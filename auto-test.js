@@ -367,7 +367,7 @@
     if (ver) pass('Local version tracking', `v${ver}`);
     else warn('wings_local_version missing');
 
-    const syncTs = localStorage.getItem('lastSyncTime');
+    const syncTs = localStorage.getItem('wings_last_sync_time') || localStorage.getItem('lastSyncTime');
     if (syncTs) {
       const ageMin = Math.round((Date.now() - parseInt(syncTs)) / 60000);
       if (ageMin < 120) pass('Last sync recent', `${ageMin} মিনিট আগে`);
