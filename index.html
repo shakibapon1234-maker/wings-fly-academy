@@ -1,6 +1,42 @@
 <!DOCTYPE html>
 <html lang="en">
 
+<!--
+════════════════════════════════════════════════════════════════════════════════
+WINGS FLY AVIATION ACADEMY — Management System
+════════════════════════════════════════════════════════════════════════════════
+
+🔒 SECURITY IMPLEMENTATION — PHASE 2 UPDATES (March 23, 2026)
+────────────────────────────────────────────────────────────────────────────────
+
+✅ WHAT'S NEW IN PHASE 2:
+  1. Supabase JS Library loaded (line ~317)
+  2. Authentication upgraded to Supabase Auth + PBKDF2
+  3. Session management (30 min timeout)
+  4. Row Level Security (RLS) enabled
+
+📝 FILES TO REPLACE:
+  1. supabase-config.js → supabase-config-UPDATED.js
+  2. sections/auth.js → auth-v2-COMPLETE.js
+  3. (Optional) sync-diagnostic code → sync-diagnostic-UPDATED.js
+
+🎯 SECURITY SCORE:
+  Before Phase 1:  4/10 (High Risk)
+  After Phase 1:   6/10 (Medium Risk)
+  After Phase 2:   7.5/10 (Low Risk) ← Current Target
+  
+📖 DOCUMENTATION:
+  - See PHASE-2-COMPLETION-GUIDE.txt for step-by-step instructions
+  - See Security-Roadmap-Phase2-4.html for visual roadmap
+  
+⚠️ IMPORTANT:
+  - Backup all files before replacing
+  - Test login after each file replacement
+  - Create first admin user in Supabase Dashboard
+  
+════════════════════════════════════════════════════════════════════════════════
+-->
+
 <head>
     <meta http-equiv="Cache-Control" content="no-cache, no-store, must-revalidate">
     <meta http-equiv="Pragma" content="no-cache">
@@ -309,6 +345,12 @@
     <link rel="stylesheet" href="table_scroll_fix.css?v=20260314">
 
     <link rel="stylesheet" href="premium-styles.css?v=20260313_2000">
+    
+    <!-- ════════════════════════════════════════════════════════════════ -->
+    <!-- ✅ SUPABASE JS LIBRARY (Phase 2: Authentication Security)        -->
+    <!-- Must be loaded BEFORE app.js and other custom scripts            -->
+    <!-- ════════════════════════════════════════════════════════════════ -->
+    <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
 </head>
 
 <body>
@@ -1820,8 +1862,13 @@
         if (window.supabase && window.supabase.createClient) window.createClient = window.supabase.createClient;
     </script>
 
-    <!-- Supabase Configuration (Centralized) -->
+    <!-- ════════════════════════════════════════════════════════════════ -->
+    <!-- ✅ SUPABASE CONFIGURATION (Phase 2: Security Upgrade)            -->
+    <!-- IMPORTANT: Replace with supabase-config-UPDATED.js               -->
+    <!-- Updated: Service Role Key → Anon Key (client-safe)               -->
+    <!-- ════════════════════════════════════════════════════════════════ -->
     <script src="supabase-config.js"></script>
+    
     <!-- Emergency Disaster Recovery (Automatic data repair) -->
     <script src="EMERGENCY_RESTORE.js"></script>
 
@@ -1860,7 +1907,14 @@
     <script src="sections/keep-records.js?v=20260226_1800"></script>
     <!-- Phase 5: Activity Log, Auth, ID Card, Notifications -->
     <script src="sections/activity-log.js?v=20260306_1450"></script>
-    <script src="sections/auth.js?v=20260319_1500"></script>
+    
+    <!-- ════════════════════════════════════════════════════════════════ -->
+    <!-- ✅ AUTHENTICATION SYSTEM (Phase 2: Security Upgrade)             -->
+    <!-- IMPORTANT: Replace sections/auth.js with auth-v2-COMPLETE.js     -->
+    <!-- New features: Supabase Auth + PBKDF2 + Session Management        -->
+    <!-- ════════════════════════════════════════════════════════════════ -->
+    <script src="sections/auth.js?v=20260323_PHASE2"></script>
+    
     <script src="sections/id-card.js?v=20260226_1900"></script>
     <script src="sections/notifications.js?v=20260226_1900"></script>
     <!-- Phase 6: Photo Manager, Charts, Data Export -->

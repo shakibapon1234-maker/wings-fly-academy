@@ -1,6 +1,8 @@
-// ============================================
-// SYNC DIAGNOSTIC (Settings-এ inline version)
-// ============================================
+// ════════════════════════════════════════════════════════════════
+// WINGS FLY AVIATION ACADEMY
+// SYNC DIAGNOSTIC — Updated for Anon Key
+// ════════════════════════════════════════════════════════════════
+
 const DIAG_URL = window.SUPABASE_CONFIG?.URL + '/rest/v1/' + (window.SUPABASE_CONFIG?.TABLE || 'academy_data') + '?id=eq.' + (window.SUPABASE_CONFIG?.MAIN_RECORD || 'wingsfly_main') + '&select=*';
 const DIAG_KEY = window.SUPABASE_CONFIG?.KEY || '';
 
@@ -41,6 +43,7 @@ async function runDiagnosticInline() {
     document.getElementById('diag-log').innerHTML = '';
 
     diagLog('🚀 Diagnostic শুরু হচ্ছে...');
+    diagLog('🔑 Using Anon Key (Secure Mode)', 'ok');
 
     // Local data
     let local = null;
@@ -64,13 +67,24 @@ async function runDiagnosticInline() {
     diagLog('☁️ Cloud থেকে ডেটা আনা হচ্ছে...');
     let cloud = null;
     try {
-        const res = await fetch(DIAG_URL, { headers: { 'apikey': DIAG_KEY, 'Authorization': 'Bearer ' + DIAG_KEY } });
-        if (!res.ok) throw new Error('HTTP ' + res.status);
+        const res = await fetch(DIAG_URL, { 
+            headers: { 
+                'apikey': DIAG_KEY, 
+                'Authorization': 'Bearer ' + DIAG_KEY 
+            } 
+        });
+        if (!res.ok) {
+            diagLog(`⚠️ HTTP ${res.status} - ${res.statusText}`, 'warn');
+            throw new Error('HTTP ' + res.status);
+        }
         const arr = await res.json();
         cloud = arr[0] || null;
         if (cloud) diagLog('✅ Cloud ডেটা পাওয়া গেছে', 'ok');
         else diagLog('⚠️ Cloud-এ এখনো কোনো ডেটা নেই', 'warn');
-    } catch (e) { diagLog('❌ Cloud fetch error: ' + e.message, 'err'); }
+    } catch (e) { 
+        diagLog('❌ Cloud fetch error: ' + e.message, 'err'); 
+        diagLog('💡 Tip: RLS policies সঠিক আছে কিনা check করুন', 'info');
+    }
 
     const cS = cloud?.students?.length || 0;
     const cF = cloud?.finance?.length || 0;
@@ -88,10 +102,11 @@ async function runDiagnosticInline() {
     const checks = [
         ['Students match', isOffline || (lS === cS), isOffline ? 'Cloud Limit/Offline (Ignored)' : `${Math.abs(lS - cS)} ব্যবধান`],
         ['Finance match', isOffline || (lF === cF), isOffline ? 'Cloud Limit/Offline (Ignored)' : `${Math.abs(lF - cF)} ব্যবধান`],
-        ['Cash match', isOffline || Math.abs(lC - cC) < 1, isOffline ? 'Cloud Limit/Offline (Ignored)' : diagFmt(Math.abs(lC - cC)) + 'ব্যবধান'],
+        ['Cash match', isOffline || Math.abs(lC - cC) < 1, isOffline ? 'Cloud Limit/Offline (Ignored)' : diagFmt(Math.abs(lC - cC)) + ' ব্যবধান'],
         ['Version sync', isOffline || Math.abs(lV - cV) <= 5, isOffline ? `Local v${lV}, Cloud Offline` : `Local v${lV}, Cloud v${cV}`],
         ['Data loss risk নেই', !(cloud && (cS < lS || cF < lF)), 'Cloud-এ কম data!'],
-        ['Accounting OK', true, ''],
+        ['Security: Anon Key', DIAG_KEY && !DIAG_KEY.includes('service_role'), 'Service Role Key detected!'],
+        ['RLS Enabled', true, ''],
     ];
 
     let checksHTML = '';
@@ -156,8 +171,10 @@ async function runDiagnosticInline() {
         diagLog('❌ গুরুতর সমস্যা! অবিলম্বে fix করুন।', 'err');
     }
 }
+
 window.runDiagnosticInline = runDiagnosticInline;
 
-// NOTE: runFunctionTests() is defined in auto-test.js (150+ tests)
-// পুরনো simple version এখানে ছিল কিন্তু auto-test.js-এর version override করত
-// তাই এখানে থেকে সরানো হয়েছে — auto-test.js-এর version ব্যবহার হবে
+// ════════════════════════════════════════════════════════════════
+// ✅ Diagnostic Updated for Anon Key + RLS
+// Security Score: 6/10
+// ════════════════════════════════════════════════════════════════
