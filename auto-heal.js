@@ -407,9 +407,9 @@
   //    এটা না করলে প্রতি 10 মিনিটে ~144 extra request/day হয়
   // ============================================
   async function healSyncMismatch() {
-    // ✅ V33: V33 sync active থাকলে এই module skip করো
-    if (window.__v33_sync_active) {
-      hLog('info', 'V33 sync active — module 13 cloud fetch skipped (egress saved)', 'SYNC');
+    // ✅ V33/V35: sync active থাকলে এই module skip করো
+    if (window.__v33_sync_active || window.__v35_sync_active) {
+      hLog('info', 'V35 sync active — module 13 cloud fetch skipped (egress saved)', 'SYNC');
       return 0;
     }
 

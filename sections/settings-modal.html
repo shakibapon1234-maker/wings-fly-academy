@@ -934,34 +934,6 @@
                                         }
                                         window.renderNewSubidPermGrid = renderNewSubidPermGrid;
 
-                                        function renderSubIdList() {
-                                            const gd = window.globalData;
-                                            if (!gd || !gd.users) return;
-                                            const container = document.getElementById('subid-list-container');
-                                            if (!container) return;
-
-                                            const subAccounts = gd.users.filter(u => u.role === 'subid');
-                                            if (subAccounts.length === 0) {
-                                                container.innerHTML = '<div class="text-center text-muted small py-2">কোনো সাব আইডি নেই</div>';
-                                                return;
-                                            }
-
-                                            let html = '<table class="table table-sm table-borderless text-white mb-0" style="font-size:0.8rem;">';
-                                            subAccounts.forEach((u, idx) => {
-                                                html += `
-                                                    <tr>
-                                                        <td><i class="bi bi-person me-2"></i>${u.username}</td>
-                                                        <td class="text-end">
-                                                            <button class="btn btn-sm text-danger p-0" onclick="deleteSubIdAccount('${u.username}')">
-                                                                <i class="bi bi-trash"></i>
-                                                            </button>
-                                                        </td>
-                                                    </tr>
-                                                `;
-                                            });
-                                            html += '</table>';
-                                            container.innerHTML = html;
-                                        }
 
                                         // ── Permission tabs list (auth.js WF_ALL_TABS এর সাথে sync) ──
                                         var WF_PERM_TABS = [

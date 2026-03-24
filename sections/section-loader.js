@@ -40,7 +40,7 @@
         const url = isFileProtocol ? htmlFile : htmlFile + '?v=' + Date.now();
         const res = await fetch(url);
         if (!res.ok) throw new Error('HTTP ' + res.status);
-        const html = await res.text();
+        const rawHtml = await res.text();
 
         const el = document.getElementById(placeholderId);
         if (!el) {
@@ -49,16 +49,25 @@
           return;
         }
 
+        // ✅ V2: Extract raw script contents BEFORE innerHTML parsing
+        // innerHTML corrupts Unicode chars and special sequences inside <script> blocks
+        const rawScripts = _extractRawScripts(rawHtml);
+
+        // Strip <script> blocks from HTML before injecting into DOM
+        // This prevents double-execution and avoids DOM textContent corruption
+        const htmlWithoutScripts = rawHtml.replace(/<script[\s\S]*?<\/script>/gi, '');
+
         // We append if it's the "__modalPlaceholderOther" to allow multiple modals to coexist
         if (placeholderId === '__modalPlaceholderOther') {
           const container = document.createElement('div');
-          container.innerHTML = html;
+          container.innerHTML = htmlWithoutScripts;
           el.appendChild(container);
-          _reExecScripts(container);
         } else {
-          el.innerHTML = html;
-          _reExecScripts(el);
+          el.innerHTML = htmlWithoutScripts;
         }
+
+        // Execute scripts from RAW text (not from DOM)
+        _execRawScripts(rawScripts);
 
         console.log('[SectionLoader] ✅ Injection complete for:', modalId);
         _loaded.add(modalId);
@@ -89,53 +98,77 @@
     await loadPromise;
   }
 
-  function _reExecScripts(parentEl) {
-    const scripts = parentEl.querySelectorAll('script');
-    scripts.forEach(function (oldScript) {
-      if (oldScript.src) {
-        // External src script — in-place replace (browser will fetch & execute)
-        const newScript = document.createElement('script');
-        newScript.src = oldScript.src;
-        newScript.async = false;
-        if (oldScript.parentNode) oldScript.parentNode.replaceChild(newScript, oldScript);
-      } else {
-        // Inline script execution
-        // ✅ FIX: new Function() fails on template literals, Bengali unicode chars,
-        // and </script> strings inside code. Use document.head injection instead —
-        // it handles ALL valid JS correctly (same as a normal <script> tag).
-        const code = oldScript.textContent || oldScript.innerText || '';
+  /**
+   * ✅ V2-RAW: Extract inline script contents from raw HTML text using regex.
+   * This bypasses innerHTML parsing entirely, preventing character corruption
+   * of Unicode chars (Bengali ৳, −), template literals, and </script> strings.
+   */
+  function _extractRawScripts(rawHtml) {
+    const scripts = [];
+    // Match <script>...</script> blocks (no src attribute = inline)
+    // Using a stateful approach to correctly handle </script> inside strings
+    const regex = /<script(?:\s[^>]*)?>[\s\S]*?<\/script>/gi;
+    let match;
+    while ((match = regex.exec(rawHtml)) !== null) {
+      const tag = match[0];
+      // Skip external scripts (those with src="...")
+      if (/\bsrc\s*=\s*["']/i.test(tag.substring(0, tag.indexOf('>')))) {
+        continue;
+      }
+      // Extract content between <script...> and </script>
+      const openEnd = tag.indexOf('>') + 1;
+      const closeStart = tag.lastIndexOf('</script>');
+      if (openEnd > 0 && closeStart > openEnd) {
+        const code = tag.substring(openEnd, closeStart);
         if (code.trim()) {
-          let executed = false;
-
-          // Method 1: document.head script injection (handles template literals, unicode, etc.)
-          try {
-            const newScript = document.createElement('script');
-            newScript.textContent = code;
-            document.head.appendChild(newScript);
-            document.head.removeChild(newScript);
-            console.log('[SectionLoader] ✅ Script executed via head injection');
-            executed = true;
-          } catch (e1) {
-            console.warn('[SectionLoader] ⚠️ head injection failed, trying Blob URL:', e1.message);
-          }
-
-          // Method 2: Blob URL fallback (async — for strict CSP environments)
-          if (!executed) {
-            try {
-              const blob = new Blob([code], { type: 'text/javascript' });
-              const blobUrl = URL.createObjectURL(blob);
-              const s = document.createElement('script');
-              s.src = blobUrl;
-              s.onload = () => { URL.revokeObjectURL(blobUrl); console.log('[SectionLoader] ✅ Script executed via Blob URL'); };
-              s.onerror = (e) => { URL.revokeObjectURL(blobUrl); console.error('[SectionLoader] ❌ Blob URL error:', e); };
-              document.head.appendChild(s);
-            } catch (e2) {
-              console.error('[SectionLoader] ❌ Script execution failed (all methods):', e2);
-            }
-          }
+          scripts.push(code);
         }
-        // DOM থেকে পুরনো script remove করো
-        if (oldScript.parentNode) oldScript.parentNode.removeChild(oldScript);
+      }
+    }
+    return scripts;
+  }
+
+  /**
+   * ✅ V2-RAW: Execute script contents extracted from raw HTML.
+   * Uses Blob URL as primary method (isolates from DOM parser),
+   * with document.head injection as fallback.
+   */
+  function _execRawScripts(scriptContents) {
+    scriptContents.forEach(function (code, index) {
+      let executed = false;
+
+      // Method 1: Blob URL (primary — best Unicode isolation)
+      try {
+        const blob = new Blob([code], { type: 'text/javascript;charset=utf-8' });
+        const blobUrl = URL.createObjectURL(blob);
+        const s = document.createElement('script');
+        s.src = blobUrl;
+        s.async = false; // preserve execution order
+        s.onload = function () {
+          URL.revokeObjectURL(blobUrl);
+          console.log('[SectionLoader] ✅ Script #' + (index + 1) + ' executed via Blob URL');
+        };
+        s.onerror = function (e) {
+          URL.revokeObjectURL(blobUrl);
+          console.error('[SectionLoader] ❌ Script #' + (index + 1) + ' Blob URL error:', e);
+        };
+        document.head.appendChild(s);
+        executed = true;
+      } catch (e1) {
+        console.warn('[SectionLoader] ⚠️ Blob URL failed for Script #' + (index + 1) + ':', e1.message);
+      }
+
+      // Method 2: document.head injection fallback
+      if (!executed) {
+        try {
+          const newScript = document.createElement('script');
+          newScript.textContent = code;
+          document.head.appendChild(newScript);
+          document.head.removeChild(newScript);
+          console.log('[SectionLoader] ✅ Script #' + (index + 1) + ' executed via head injection');
+        } catch (e2) {
+          console.error('[SectionLoader] ❌ Script #' + (index + 1) + ' all methods failed:', e2);
+        }
       }
     });
   }
