@@ -401,68 +401,12 @@
   }
 
   // ============================================
-  // MODULE 13: Cloud vs Local Sync Mismatch
-  // ✅ V33 FIX: window.__v33_sync_active flag চেক করো
-  //    V33 sync চলছে মানে এই module-এর independent cloud fetch দরকার নেই
-  //    এটা না করলে প্রতি 10 মিনিটে ~144 extra request/day হয়
+  // MODULE 13: Cloud vs Local Sync Mismatch (DISABLED)
+  // ✅ V35.1.2: Completely disabled as per user request to save egress. 
+  // Sync is now perfectly handled by V35.1 module.
   // ============================================
   async function healSyncMismatch() {
-    // ✅ V33/V35: sync active থাকলে এই module skip করো
-    if (window.__v33_sync_active || window.__v35_sync_active) {
-      hLog('info', 'V35 sync active — module 13 cloud fetch skipped (egress saved)', 'SYNC');
-      return 0;
-    }
-
-    // ✅ FIX: API_URL না থাকলে skip করো
-    if (!API_URL) { hLog('warn', 'SUPABASE_CONFIG নেই — Module 13 skip', 'SYNC'); return 0; }
-
-    if (!navigator.onLine) { hLog('info', 'Offline — sync check skip', 'SYNC'); return 0; }
-
-    // Delete cooldown
-    const cur = parseInt(localStorage.getItem('wings_total_deleted') || '0');
-    if (cur > _lastDeleteCount) { _lastDeleteCount = cur; _lastDeleteTime = Date.now(); }
-    if (_lastDeleteTime > 0 && (Date.now() - _lastDeleteTime) < 180000) {
-      hLog('info', `Delete cooldown — sync pull skip (${Math.round((180000-(Date.now()-_lastDeleteTime))/1000)}s)`, 'SYNC');
-      return 0;
-    }
-
-    let fixed = 0;
-    try {
-      const res = await fetch(API_URL, { headers: HEADERS, signal: AbortSignal.timeout(8000) });
-      if (!res.ok) { hLog('warn', `Cloud check failed: HTTP ${res.status}`, 'SYNC'); return 0; }
-      const arr = await res.json();
-      const cloud = arr[0];
-
-      if (!cloud) {
-        hLog('fix', 'Cloud-এ data নেই — push করা হচ্ছে', 'SYNC');
-        if (typeof window.scheduleSyncPush === 'function') window.scheduleSyncPush('Heal: Cloud empty push');
-        else if (typeof window.saveToCloud === 'function') await window.saveToCloud();
-        healToast('Cloud empty — data push হয়েছে', 'fix'); fixed++;
-        return fixed;
-      }
-
-      const localVer = parseInt(localStorage.getItem('wings_local_version')) || 0;
-      const cloudVer = parseInt(cloud.version) || 0;
-      const cloudAction = (cloud.last_action || '').toLowerCase();
-
-      if (cloudAction.includes('delete') && cloudVer >= localVer) {
-        hLog('info', `Cloud action is delete — skip pull (v${cloudVer})`, 'SYNC'); return 0;
-      }
-
-      if (cloudVer > localVer + 1) {
-        hLog('fix', `Cloud v${cloudVer} > Local v${localVer} (gap: ${cloudVer-localVer}) — pull`, 'SYNC');
-        if (cloudVer - localVer > 10 && typeof window.loadFromCloud === 'function') {
-          await window.loadFromCloud(true);
-          if (typeof window.renderFullUI === 'function') window.renderFullUI();
-        }
-        healToast(`Multi-PC sync: Cloud v${cloudVer} pull`, 'fix'); fixed++;
-      } else if (localVer > cloudVer + 2) {
-        hLog('fix', `Local v${localVer} >> Cloud v${cloudVer} — push`, 'SYNC');
-        if (typeof window.scheduleSyncPush === 'function') window.scheduleSyncPush('Heal: Local ahead, push');
-        fixed++;
-      }
-    } catch (e) { hLog('err', 'Sync heal error: ' + e.message, 'SYNC'); }
-    return fixed;
+    return 0;
   }
 
   // ============================================

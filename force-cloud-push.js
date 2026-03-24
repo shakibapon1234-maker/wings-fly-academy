@@ -12,7 +12,7 @@
  */
 
 (async function forceCloudPush() {
-  const URL = window.SUPABASE_CONFIG?.URL || 'https://gtoldrltxjrwshubplfp.supabase.co';
+  const URL = window.SUPABASE_CONFIG?.URL || 'https://cwwyhtarnkozukekebvq.supabase.co';
   const KEY = window.SUPABASE_CONFIG?.KEY || '';
   const HEADERS = {
     'Content-Type': 'application/json',

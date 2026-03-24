@@ -53,6 +53,13 @@
     if (!gd) return;
     if (!Array.isArray(gd.deletedItems)) gd.deletedItems = [];
 
+    // ✅ FIX: Duplicate trash prevention (if original function also calls moveToTrash)
+    if (item._trash_moved) {
+      console.log('[RecycleFix] Skip — already moved to trash:', item.id);
+      return;
+    }
+    item._trash_moved = true; // Mark the object as trashed to prevent duplicate entries
+
     // Ensure item has an ID
     if (!item.id && !item._id) {
       item._trash_tmp_id = _uid('TMP');

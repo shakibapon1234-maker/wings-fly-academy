@@ -294,8 +294,6 @@
         MaxCount.update('students', gd.students.length);
         MaxCount.update('finance', gd.finance.length);
         _saveLocal();
-        // ✅ FIX: শুধু user-initiated pull-এ renderFullUI করো
-        if (!_suppressRender && typeof window.renderFullUI === 'function') window.renderFullUI();
         SyncFreshness.update();
         NetworkQuality.recordSuccess();
         _log('✅', `Pull OK - stu:${gd.students.length} fin:${gd.finance.length} v${_localVer}`);
@@ -319,8 +317,6 @@
         MaxCount.update('students', window.globalData.students.length);
         MaxCount.update('finance', window.globalData.finance.length);
         _saveLocal();
-        // ✅ FIX: শুধু user-initiated pull-এ renderFullUI করো
-        if (!_suppressRender && typeof window.renderFullUI === 'function') window.renderFullUI();
         SyncFreshness.update();
         NetworkQuality.recordSuccess();
         _log('✅', `Legacy pull OK v${_localVer}`);
@@ -761,15 +757,27 @@
 
   // PUBLIC API
   window.wingsSync = {
-    fullSync: async () => { await pullFromCloud(false, true); await pushToCloud('Manual full sync'); },
+    fullSync: async () => { 
+      await pullFromCloud(false, true); 
+      await pushToCloud('Manual full sync'); 
+      if (typeof window.renderFullUI === 'function') window.renderFullUI();
+    },
     pushNow: (reason) => pushToCloud(reason || 'Manual'),
-    pullNow: () => pullFromCloud(false, true),
+    pullNow: async () => {
+      await pullFromCloud(false, true);
+      if (typeof window.renderFullUI === 'function') window.renderFullUI();
+    },
     markDirty: (field) => window.markDirty && window.markDirty(field),
     getStatus: () => ({ version: _localVer, online: _online, partialOK: _partialOK, dirty: [..._dirty], initialSync: window.initialSyncComplete,
       egress: Egress.count(), tabVisible: _tabVisible, maxFinance: MaxCount.get('finance'), maxStudents: MaxCount.get('students'),
       networkQuality: NetworkQuality.getQuality(), dataAge: SyncFreshness.getAge(), egressToday: Egress.count(),
       initialSyncComplete: window.initialSyncComplete, partialReady: _partialOK }),
-    forceRecovery: async () => { _log('🔄', 'Manual recovery'); await pullFromCloud(true, true); _showUserMessage('Recovery complete', 'success'); },
+    forceRecovery: async () => { 
+      _log('🔄', 'Manual recovery'); 
+      await pullFromCloud(true, true); 
+      if (typeof window.renderFullUI === 'function') window.renderFullUI();
+      _showUserMessage('Recovery complete', 'success'); 
+    },
   };
 
   // Legacy aliases

@@ -341,57 +341,35 @@ function showDashboard(username) {
   localStorage.setItem('wingsfly_active_tab', 'dashboard');
   sessionStorage.setItem('wf_just_logged_in', 'true');
 
-  // V34.8: Cloud verify then show dashboard
-  if (typeof window.loadFromCloud === 'function') {
-    var _ov = document.getElementById('dashboardOverview');
-    if (_ov) _ov.style.visibility = 'hidden';
-    var _removeOverlay = function() { var el = document.getElementById('dashboardOverview'); if (el) el.style.visibility = ''; };
-    var _overlayTimeout = setTimeout(_removeOverlay, 8000);
-
-    console.log('🔄 Login: pulling fresh data from cloud before rendering dashboard...');
-    window.loadFromCloud(true).then(async () => {
-      console.log('✅ Login sync complete — verifying data integrity...');
+  // V34.8 -> V35.1: Instant Dashboard load, Background Sync
+  loadDashboard();
+  
+  if (typeof window.loadFromCloud === 'function' || (window.wingsSync && typeof window.wingsSync.pullNow === 'function')) {
+    console.log('🔄 Login: Background sync started...');
+    // Do it in the background
+    setTimeout(async () => {
       try {
-        if (window.supabase && window.SUPABASE_CONFIG) {
-          var _sb = window.supabase.createClient(window.SUPABASE_CONFIG.URL, window.SUPABASE_CONFIG.KEY);
-          var _cf = await _sb.from('wf_finance').select('id', { count: 'exact', head: true }).eq('academy_id', 'wingsfly_main').eq('deleted', false);
-          var _cs = await _sb.from('wf_students').select('id', { count: 'exact', head: true }).eq('academy_id', 'wingsfly_main').eq('deleted', false);
-          var _cloudFin = _cf.count || 0, _cloudStud = _cs.count || 0;
-          var _localFin = (window.globalData?.finance || []).length;
-          var _localStud = (window.globalData?.students || []).length;
-          console.log('🔍 Integrity — fin:' + _localFin + '/' + _cloudFin + ' stud:' + _localStud + '/' + _cloudStud);
-          if (_cloudFin > 0 && _localFin < _cloudFin - 2) {
-            var _ff = await _sb.from('wf_finance').select('data').eq('academy_id', 'wingsfly_main').eq('deleted', false);
-            if (_ff.data && _ff.data.length > 0) { window.globalData.finance = _ff.data.map(function(r){return r.data;}); localStorage.setItem('wings_last_known_finance', _ff.data.length.toString()); }
-          }
-          if (_cloudStud > 0 && _localStud < _cloudStud - 2) {
-            var _fs = await _sb.from('wf_students').select('data').eq('academy_id', 'wingsfly_main').eq('deleted', false);
-            if (_fs.data && _fs.data.length > 0) { window.globalData.students = _fs.data.map(function(r){return r.data;}); localStorage.setItem('wings_last_known_count', _fs.data.length.toString()); }
-          }
-          localStorage.setItem('wingsfly_data', JSON.stringify(window.globalData));
+        if (window.wingsSync && typeof window.wingsSync.pullNow === 'function') {
+          await window.wingsSync.pullNow();
+        } else {
+          await window.loadFromCloud(true);
         }
-      } catch(e) { console.warn('⚠️ Verify failed:', e); }
-      clearTimeout(_overlayTimeout); _removeOverlay();
-      loadDashboard();
-      setTimeout(function () {
-        if (window.globalData) { if (!window.globalData.deletedItems) window.globalData.deletedItems = []; if (!window.globalData.activityHistory) window.globalData.activityHistory = []; }
-        localStorage.setItem('wingsfly_data', JSON.stringify(window.globalData));
-        if (typeof takeSnapshot === 'function') takeSnapshot();
-        console.log('📸 Login snapshot taken (cloud-verified)');
-      }, 2000);
-    }).catch(async () => {
-      console.warn('⚠️ Cloud pull failed — loading local data...');
-      clearTimeout(_overlayTimeout); _removeOverlay();
-      loadDashboard();
-      setTimeout(function () {
-        if (window.globalData && (window.globalData.students || []).length > 0) {
-          if (typeof takeSnapshot === 'function') takeSnapshot();
-          console.log('📸 Login snapshot taken (fallback)');
-        }
-      }, 2000);
-    });
-  } else {
-    loadDashboard();
+        console.log('✅ Login background sync complete');
+        
+        // Take a snapshot after sync completes
+        setTimeout(function () {
+          if (window.globalData) { 
+            if (!window.globalData.deletedItems) window.globalData.deletedItems = []; 
+            if (!window.globalData.activityHistory) window.globalData.activityHistory = []; 
+            localStorage.setItem('wingsfly_data', JSON.stringify(window.globalData));
+            if (typeof takeSnapshot === 'function') takeSnapshot();
+            console.log('📸 Login background snapshot taken');
+          }
+        }, 2000);
+      } catch (e) {
+        console.warn('⚠️ Login background pull failed:', e);
+      }
+    }, 500);
   }
 
   if (typeof checkDailyBackup === 'function') checkDailyBackup();
