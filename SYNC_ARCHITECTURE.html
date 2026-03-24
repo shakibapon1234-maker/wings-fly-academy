@@ -1,0 +1,444 @@
+<!DOCTYPE html>
+<html lang="bn">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Wings Fly — Sync Architecture & Risk Analysis</title>
+  <style>
+    * { box-sizing: border-box; margin: 0; padding: 0; }
+    body {
+      font-family: 'Segoe UI', system-ui, sans-serif;
+      background: #0a0e1a;
+      color: #e2e8f0;
+      padding: 32px;
+      min-height: 100vh;
+    }
+    h1 { font-size: 1.6rem; color: #00d4ff; margin-bottom: 4px; }
+    .subtitle { color: #64748b; font-size: 0.85rem; margin-bottom: 32px; }
+
+    /* ── Section Titles ── */
+    h2 {
+      font-size: 1.05rem;
+      color: #a78bfa;
+      margin: 32px 0 16px;
+      border-bottom: 1px solid rgba(167,139,250,0.2);
+      padding-bottom: 8px;
+    }
+
+    /* ── FLOW DIAGRAM ── */
+    .flow {
+      display: flex;
+      flex-wrap: wrap;
+      gap: 0;
+      align-items: center;
+      justify-content: center;
+      margin-bottom: 16px;
+    }
+    .node {
+      background: linear-gradient(135deg, #1e293b, #0f172a);
+      border: 1.5px solid #334155;
+      border-radius: 12px;
+      padding: 16px 20px;
+      min-width: 160px;
+      text-align: center;
+      position: relative;
+    }
+    .node.primary   { border-color: #00d4ff; box-shadow: 0 0 16px rgba(0,212,255,0.15); }
+    .node.cloud     { border-color: #a78bfa; box-shadow: 0 0 16px rgba(167,139,250,0.15); }
+    .node.heal      { border-color: #00ff88; box-shadow: 0 0 16px rgba(0,255,136,0.15); }
+    .node.security  { border-color: #f59e0b; box-shadow: 0 0 16px rgba(245,158,11,0.15); }
+    .node .icon { font-size: 1.6rem; display: block; margin-bottom: 6px; }
+    .node .label { font-size: 0.78rem; font-weight: 700; text-transform: uppercase; letter-spacing: 0.05em; }
+    .node .detail { font-size: 0.68rem; color: #94a3b8; margin-top: 4px; }
+    .arrow {
+      font-size: 1.4rem;
+      color: #334155;
+      padding: 0 6px;
+      display: flex;
+      align-items: center;
+    }
+    .arrow.up { transform: rotate(-90deg); }
+
+    /* ── Full Flow Grid ── */
+    .full-flow {
+      display: grid;
+      grid-template-columns: repeat(auto-fit, minmax(140px, 1fr));
+      gap: 12px;
+      margin-bottom: 8px;
+    }
+    .step {
+      background: #1e293b;
+      border: 1px solid #334155;
+      border-radius: 10px;
+      padding: 14px 12px;
+      position: relative;
+    }
+    .step-num {
+      position: absolute;
+      top: -10px; left: 12px;
+      background: #a78bfa;
+      color: #fff;
+      font-size: 0.65rem;
+      font-weight: 700;
+      padding: 2px 8px;
+      border-radius: 20px;
+    }
+    .step h4 { font-size: 0.8rem; color: #e2e8f0; margin-bottom: 6px; }
+    .step p { font-size: 0.72rem; color: #64748b; line-height: 1.5; }
+    .step.ok { border-color: #00ff88; }
+    .step.warn { border-color: #f59e0b; }
+    .step.block { border-color: #ef4444; }
+
+    /* ── Risk Table ── */
+    table { width: 100%; border-collapse: collapse; font-size: 0.8rem; }
+    th { background: #1e293b; color: #94a3b8; padding: 10px 14px; text-align: left; font-weight: 600; }
+    td { padding: 10px 14px; border-bottom: 1px solid rgba(255,255,255,0.05); vertical-align: top; }
+    tr:hover td { background: rgba(255,255,255,0.02); }
+    .badge {
+      display: inline-block;
+      padding: 2px 8px;
+      border-radius: 20px;
+      font-size: 0.68rem;
+      font-weight: 700;
+    }
+    .badge.low    { background: rgba(0,255,136,0.15); color: #00ff88; }
+    .badge.med    { background: rgba(245,158,11,0.15); color: #f59e0b; }
+    .badge.high   { background: rgba(239,68,68,0.15);  color: #ef4444; }
+    .badge.fixed  { background: rgba(167,139,250,0.2); color: #a78bfa; }
+    .badge.none   { background: rgba(100,116,139,0.15); color: #64748b; }
+
+    /* ── Security Layers ── */
+    .layers {
+      display: grid;
+      grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
+      gap: 12px;
+    }
+    .layer {
+      background: #1e293b;
+      border: 1px solid #334155;
+      border-radius: 10px;
+      padding: 14px;
+    }
+    .layer h4 { font-size: 0.82rem; margin-bottom: 8px; color: #e2e8f0; }
+    .layer ul { list-style: none; }
+    .layer ul li {
+      font-size: 0.73rem;
+      color: #94a3b8;
+      padding: 3px 0;
+      border-bottom: 1px solid rgba(255,255,255,0.04);
+    }
+    .layer ul li::before { content: '✓ '; color: #00ff88; }
+    .layer ul li.warn::before { content: '⚠ '; color: #f59e0b; }
+    .layer ul li.fixed::before { content: '🔧 '; }
+
+    /* ── Footer ── */
+    .footer {
+      margin-top: 40px;
+      padding-top: 16px;
+      border-top: 1px solid #1e293b;
+      font-size: 0.72rem;
+      color: #334155;
+      text-align: center;
+    }
+  </style>
+</head>
+<body>
+
+  <h1>🛡️ Wings Fly Aviation Academy</h1>
+  <div class="subtitle">Sync Architecture, Security Layers & Risk Analysis — Generated 2026-03-25</div>
+
+  <!-- ═══════════════════════════════════════════════ -->
+  <h2>① Core Data Flow — কোনো Action করলে কী হয়</h2>
+  <!-- ═══════════════════════════════════════════════ -->
+
+  <div class="full-flow">
+    <div class="step ok">
+      <div class="step-num">1</div>
+      <h4>👤 User Action</h4>
+      <p>Student add, payment, delete — যেকোনো CRUD</p>
+    </div>
+    <div class="step ok">
+      <div class="step-num">2</div>
+      <h4>✅ Validation</h4>
+      <p>DataValidator XSS check, required fields, amount range</p>
+    </div>
+    <div class="step ok">
+      <div class="step-num">3</div>
+      <h4>💾 localStorage</h4>
+      <p>wingsfly_data → সাথে সাথে save. Offline-ও কাজ করে</p>
+    </div>
+    <div class="step ok">
+      <div class="step-num">4</div>
+      <h4>⏱️ Debounce (3s)</div>
+      <p>3 সেকেন্ড idle হলে cloud push শুরু</p>
+    </div>
+    <div class="step ok">
+      <div class="step-num">5</div>
+      <h4>📊 MaxCount Check</h4>
+      <p>Students < max? Finance < max? না হলে PUSH BLOCK → pull</p>
+    </div>
+    <div class="step ok">
+      <div class="step-num">6</div>
+      <h4>🔢 Version Lock</h4>
+      <p>RPC increment_version — atomic, race condition নেই</p>
+    </div>
+    <div class="step ok">
+      <div class="step-num">7</div>
+      <h4>☁️ Supabase</h4>
+      <p>Push OK → cloud updated, সব device sync পাবে</p>
+    </div>
+    <div class="step warn">
+      <div class="step-num">8</div>
+      <h4>🚨 Conflict?</h4>
+      <p>Block হলে flag → auto-heal Module 14 → user warning modal</p>
+    </div>
+  </div>
+
+  <!-- ═══════════════════════════════════════════════ -->
+  <h2>② Multi-Device Sync — দুটো Device একসাথে থাকলে</h2>
+  <!-- ═══════════════════════════════════════════════ -->
+
+  <div class="full-flow">
+    <div class="step ok">
+      <div class="step-num">A</div>
+      <h4>📱 Device A</h4>
+      <p>কাজ করছে, local version=100</p>
+    </div>
+    <div class="step ok">
+      <div class="step-num">B</div>
+      <h4>💻 Device B</h4>
+      <p>একসাথে কাজ, cloud version=101 <br>(Device B আগে push করেছে)</p>
+    </div>
+    <div class="step warn">
+      <div class="step-num">C</div>
+      <h4>🔍 Version Gap</h4>
+      <p>Device A push করতে চায়, cloud=101, local=100 → gap=1</p>
+    </div>
+    <div class="step ok">
+      <div class="step-num">D</div>
+      <h4>🔄 Auto Pull</h4>
+      <p>Gap ≥ threshold → Device A আগে cloud থেকে pull করে</p>
+    </div>
+    <div class="step ok">
+      <div class="step-num">E</div>
+      <h4>📊 MaxCount Win</h4>
+      <p>Pull-এর পর local < cloud count → push block <br>→ cloud data জিতে (data loss নেই)</p>
+    </div>
+    <div class="step warn">
+      <div class="step-num">F</div>
+      <h4>⚠️ Alert Modal</h4>
+      <p>Conflict flag set → Module 14 → user-কে জানানো হয়</p>
+    </div>
+  </div>
+
+  <!-- ═══════════════════════════════════════════════ -->
+  <h2>③ Auto-Heal Engine — 14টি Module</h2>
+  <!-- ═══════════════════════════════════════════════ -->
+
+  <div style="display:grid; grid-template-columns: repeat(auto-fit, minmax(160px,1fr)); gap:10px; margin-bottom:16px;">
+    <div class="step ok"><h4>M1 Student Dues</h4><p>Due recalculate</p></div>
+    <div class="step ok"><h4>M2 Cash Balance</h4><p>NaN fix</p></div>
+    <div class="step ok"><h4>M3 Dupe Finance</h4><p>Duplicate txn remove</p></div>
+    <div class="step ok"><h4>M4 UI Refresh</h4><p>Dashboard 0 fix</p></div>
+    <div class="step ok"><h4>M5 Dup Students</h4><p>warn only</p></div>
+    <div class="step ok"><h4>M6 Employee/Bank</h4><p>Campo fix</p></div>
+    <div class="step ok"><h4>M7 Orphan Payments</h4><p>warn only</p></div>
+    <div class="step ok"><h4>M8 Finance Recalc</h4><p>Balance rebuild</p></div>
+    <div class="step ok"><h4>M9 Array Init</h4><p>Missing fields → []</p></div>
+    <div class="step ok"><h4>M10 Overpayment</h4><p>warn only</p></div>
+    <div class="step ok"><h4>M11 Paid/Finance</h4><p>Mismatch fix</p></div>
+    <div class="step ok"><h4>M12 Balance Rebuild</h4><p>Every 5 cycles</p></div>
+    <div class="step ok"><h4>M13 Sync (disabled)</h4><p>Replaced by V37</p></div>
+    <div class="step ok" style="border-color:#00d4ff;"><h4>M14 Conflict Watchdog</h4><p>⭐ নতুন — warning modal</p></div>
+  </div>
+
+  <!-- ═══════════════════════════════════════════════ -->
+  <h2>④ Security Layers — কয়টি স্তর আছে</h2>
+  <!-- ═══════════════════════════════════════════════ -->
+
+  <div class="layers">
+    <div class="layer">
+      <h4>🔐 Authentication</h4>
+      <ul>
+        <li>PBKDF2 password hashing</li>
+        <li>Session via sessionStorage</li>
+        <li>Role-based access (admin/staff)</li>
+        <li class="fixed">Logout clears localStorage (নতুন fix)</li>
+      </ul>
+    </div>
+    <div class="layer">
+      <h4>🚦 Rate Limiter</h4>
+      <ul>
+        <li>5 failed login → 15 min lock</li>
+        <li>Progressive lockout (doubles)</li>
+        <li>Persisted in localStorage</li>
+      </ul>
+    </div>
+    <div class="layer">
+      <h4>🛡️ DataValidator</h4>
+      <ul>
+        <li>XSS detection & sanitize</li>
+        <li>Required field check</li>
+        <li>Amount range check</li>
+        <li>Duplicate ID check</li>
+      </ul>
+    </div>
+    <div class="layer">
+      <h4>📋 AuditLogger</h4>
+      <ul>
+        <li>All CRUD logged</li>
+        <li>Login/logout logged</li>
+        <li>Export/import logged</li>
+        <li>30-day auto cleanup</li>
+      </ul>
+    </div>
+    <div class="layer">
+      <h4>🔒 SecurityShield</h4>
+      <ul>
+        <li>Clickjacking prevention</li>
+        <li>Form XSS sanitize</li>
+        <li>DOM injection monitor</li>
+        <li>CSRF token</li>
+      </ul>
+    </div>
+    <div class="layer">
+      <h4>💾 SecureBackup</h4>
+      <ul>
+        <li>AES-GCM 256-bit encrypt</li>
+        <li>PBKDF2 key derivation</li>
+        <li>Password protected export</li>
+      </ul>
+    </div>
+    <div class="layer">
+      <h4>🔧 Auto-Heal</h4>
+      <ul>
+        <li>14 modules, প্রতি 20 min</li>
+        <li>Network reconnect sync</li>
+        <li class="fixed">M14 Conflict warning (নতুন)</li>
+      </ul>
+    </div>
+    <div class="layer">
+      <h4>☁️ Supabase</h4>
+      <ul>
+        <li>Anon key only (safe)</li>
+        <li>RLS policies active</li>
+        <li>Server-side version lock</li>
+        <li>Egress throttle (24h)</li>
+      </ul>
+    </div>
+  </div>
+
+  <!-- ═══════════════════════════════════════════════ -->
+  <h2>⑤ Risk Assessment — অফিস Deploy এর আগে</h2>
+  <!-- ═══════════════════════════════════════════════ -->
+
+  <table>
+    <thead>
+      <tr>
+        <th>Risk</th>
+        <th>Status</th>
+        <th>বিবরণ</th>
+      </tr>
+    </thead>
+    <tbody>
+      <tr>
+        <td>Shared PC এ logout না করলে data দেখা</td>
+        <td><span class="badge fixed">✅ Fixed</span></td>
+        <td>Logout এ localStorage clear হয় এখন (auth.js)</td>
+      </tr>
+      <tr>
+        <td>দুইজন একসাথে data দিলে overwrite</td>
+        <td><span class="badge fixed">✅ Protected</span></td>
+        <td>MaxCount Win + version lock — last writer doesn't always win</td>
+      </tr>
+      <tr>
+        <td>Sync conflict হলে জানতে না পারা</td>
+        <td><span class="badge fixed">✅ Fixed</span></td>
+        <td>Module 14 → ConflictTracker → Warning Modal</td>
+      </tr>
+      <tr>
+        <td>Browser cache clear হলে data হারানো</td>
+        <td><span class="badge low">✅ Safe</span></td>
+        <td>Login করলে cloud থেকে pull হয়</td>
+      </tr>
+      <tr>
+        <td>Network কেটে গেলে data হারানো</td>
+        <td><span class="badge low">✅ Safe</span></td>
+        <td>sendBeacon (tab close) + reconnect auto-sync</td>
+      </tr>
+      <tr>
+        <td>CSP violations (CDN block)</td>
+        <td><span class="badge fixed">✅ Fixed</span></td>
+        <td>service-worker.js থেকে CDN URLs সরানো হয়েছে</td>
+      </tr>
+      <tr>
+        <td>Brute force login attack</td>
+        <td><span class="badge low">✅ Safe</span></td>
+        <td>RateLimiter: 5 fail → 15 min lock (progressive)</td>
+      </tr>
+      <tr>
+        <td>XSS injection</td>
+        <td><span class="badge low">✅ Safe</span></td>
+        <td>DataValidator + SecurityShield — form submit এ sanitize</td>
+      </tr>
+      <tr>
+        <td>Student photo cloud backup নেই</td>
+        <td><span class="badge med">⚠️ Remaining</span></td>
+        <td>Photo IndexedDB-তে, cloud sync নেই। Manual backup নিন।</td>
+      </tr>
+      <tr>
+        <td>Supabase Anon Key exposed (code-এ)</td>
+        <td><span class="badge med">⚠️ Known</span></td>
+        <td>Anon key publicly safe, কিন্তু RLS rules ঠিকঠাক রাখুন</td>
+      </tr>
+      <tr>
+        <td>Activity log cloud-এ নেই</td>
+        <td><span class="badge med">⚠️ Remaining</span></td>
+        <td>AuditLogger localStorage-এ, cloud sync হয় না। Browser clear হলে log হারায়।</td>
+      </tr>
+      <tr>
+        <td>Auto-heal cycle প্রতি 20 min — দেরি</td>
+        <td><span class="badge low">✅ Acceptable</span></td>
+        <td>Conflict modal 20 min delay possible। Real-time হলে egress বাড়বে।</td>
+      </tr>
+    </tbody>
+  </table>
+
+  <!-- ═══════════════════════════════════════════════ -->
+  <h2>⑥ Deploy Checklist — অফিসে চালানোর আগে</h2>
+  <!-- ═══════════════════════════════════════════════ -->
+
+  <div class="full-flow">
+    <div class="step ok">
+      <h4>✅ Service Worker Update</h4>
+      <p>Cache version বাড়ান: <code>wingsfly-cache-v9</code></p>
+    </div>
+    <div class="step ok">
+      <h4>✅ Sync Test</h4>
+      <p>দুটো browser খুলে একসাথে data দিন, conflict modal দেখুন</p>
+    </div>
+    <div class="step warn">
+      <h4>⚠️ Photo Backup</h4>
+      <p>Student photos manual backup নিন (export) — cloud sync নেই</p>
+    </div>
+    <div class="step ok">
+      <h4>✅ Logout Test</h4>
+      <p>Logout → browser থেকে data গেছে কিনা confirm করুন</p>
+    </div>
+    <div class="step warn">
+      <h4>⚠️ Supabase RLS</h4>
+      <p>academy_data table-এ RLS policy active আছে কিনা দেখুন</p>
+    </div>
+    <div class="step ok">
+      <h4>✅ Encrypted Backup</h4>
+      <p>Deploy এর আগে SecureBackup দিয়ে encrypted backup নিন</p>
+    </div>
+  </div>
+
+  <div class="footer">
+    Wings Fly Aviation Academy — Architecture Document | Auto-generated | Last updated: 2026-03-25
+    | Files: supabase-sync-SMART-V37.js · auto-heal.js · data-protection.js · advanced-security.js · auth.js
+  </div>
+
+</body>
+</html>
