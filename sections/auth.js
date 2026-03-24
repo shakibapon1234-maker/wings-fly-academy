@@ -40,14 +40,21 @@ function initSupabase() {
       return null;
     }
 
-    const { createClient } = window.supabase;
-    supabaseClient = createClient(
-      window.SUPABASE_CONFIG.URL,
-      window.SUPABASE_CONFIG.KEY
-    );
+    if (typeof window.getWingsSupabaseClient === 'function') {
+      supabaseClient = window.getWingsSupabaseClient();
+    } else {
+      const { createClient } = window.supabase;
+      supabaseClient = createClient(
+        window.SUPABASE_CONFIG.URL,
+        window.SUPABASE_CONFIG.KEY
+      );
+    }
 
-    supabaseAvailable = true;
-    console.log('✅ Supabase client initialized');
+    supabaseAvailable = !!supabaseClient;
+    if (supabaseClient) {
+      window.supabaseClient = supabaseClient;
+      console.log('✅ Supabase client initialized (shared singleton)');
+    }
     return supabaseClient;
 
   } catch (e) {
@@ -1087,7 +1094,7 @@ window.hashPassword = hashPassword;
 window.hashPasswordPBKDF2 = hashPasswordPBKDF2;
 window.hashPasswordSHA256 = hashPasswordSHA256;
 window.migratePasswordIfNeeded = migratePasswordIfNeeded;
-window.supabaseClient = supabaseClient;
+// window.supabaseClient set in initSupabase() after singleton connect
 
 // ════════════════════════════════════════════════════════════════
 // ✅ AUTH V2.3 LOADED — MERGED

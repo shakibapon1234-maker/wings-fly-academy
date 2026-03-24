@@ -262,7 +262,10 @@
     if (_ready) return true;
     if (typeof window.supabase === 'undefined') return false;
     try {
-      _sb = window.supabase.createClient(CFG.URL, CFG.KEY);
+      _sb = typeof window.getWingsSupabaseClient === 'function'
+        ? window.getWingsSupabaseClient()
+        : window.supabase.createClient(CFG.URL, CFG.KEY);
+      if (!_sb) return false;
       _localVer = parseInt(localStorage.getItem('wings_local_version') || '0');
       _ready = true;
       _log('✅', `V37.0 initialized v${_localVer}`);

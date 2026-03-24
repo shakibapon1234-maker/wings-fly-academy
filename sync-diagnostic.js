@@ -6,6 +6,33 @@
 const DIAG_URL = window.SUPABASE_CONFIG?.URL + '/rest/v1/' + (window.SUPABASE_CONFIG?.TABLE || 'academy_data') + '?id=eq.' + (window.SUPABASE_CONFIG?.MAIN_RECORD || 'wingsfly_main') + '&select=*';
 const DIAG_KEY = window.SUPABASE_CONFIG?.KEY || '';
 
+/** Row counts from partial sync tables (V36+). Main academy row often omits students/finance arrays. */
+async function diagCountPartialTable(table) {
+    const CFG = window.SUPABASE_CONFIG;
+    if (!CFG?.URL || !CFG.KEY || !table) return null;
+    const aid = encodeURIComponent(CFG.ACADEMY_ID || 'wingsfly_main');
+    const url = `${CFG.URL}/rest/v1/${table}?academy_id=eq.${aid}&deleted=eq.false&select=id`;
+    try {
+        const res = await fetch(url, {
+            headers: {
+                apikey: CFG.KEY,
+                Authorization: 'Bearer ' + CFG.KEY,
+                Prefer: 'count=exact',
+                Range: '0-0'
+            }
+        });
+        if (!res.ok) return null;
+        const cr = res.headers.get('content-range');
+        if (!cr) return null;
+        const total = cr.split('/')[1];
+        if (total === undefined || total === '*') return null;
+        const n = parseInt(total, 10);
+        return Number.isFinite(n) ? n : null;
+    } catch (e) {
+        return null;
+    }
+}
+
 function diagFmt(n) { return '৳' + Number(n || 0).toLocaleString('en-IN'); }
 function diagTime(ts) {
     if (!ts) return '—';
@@ -63,16 +90,26 @@ async function runDiagnosticInline() {
     document.getElementById('d-localCash').textContent = diagFmt(lC);
     document.getElementById('d-localVer').textContent = 'v' + lV;
 
-    // Cloud data
+    // Cloud data (main row + partial table counts — SMART sync stores students/finance in wf_*)
     diagLog('☁️ Cloud থেকে ডেটা আনা হচ্ছে...');
     let cloud = null;
+    let cS_partial = null;
+    let cF_partial = null;
     try {
-        const res = await fetch(DIAG_URL, { 
-            headers: { 
-                'apikey': DIAG_KEY, 
-                'Authorization': 'Bearer ' + DIAG_KEY 
-            } 
-        });
+        const CFG = window.SUPABASE_CONFIG || {};
+        const hdr = { apikey: DIAG_KEY, Authorization: 'Bearer ' + DIAG_KEY };
+        const tblStu = CFG.TBL_STUDENTS || 'wf_students';
+        const tblFin = CFG.TBL_FINANCE || 'wf_finance';
+        const [res, stuN, finN] = await Promise.all([
+            fetch(DIAG_URL, { headers: hdr }),
+            diagCountPartialTable(tblStu),
+            diagCountPartialTable(tblFin)
+        ]);
+        cS_partial = stuN;
+        cF_partial = finN;
+        if (stuN != null || finN != null) {
+            diagLog('☁️ Partial tables: wf_students≈' + (stuN ?? '—') + ', wf_finance≈' + (finN ?? '—'), 'info');
+        }
         if (!res.ok) {
             diagLog(`⚠️ HTTP ${res.status} - ${res.statusText}`, 'warn');
             throw new Error('HTTP ' + res.status);
@@ -81,13 +118,13 @@ async function runDiagnosticInline() {
         cloud = arr[0] || null;
         if (cloud) diagLog('✅ Cloud ডেটা পাওয়া গেছে', 'ok');
         else diagLog('⚠️ Cloud-এ এখনো কোনো ডেটা নেই', 'warn');
-    } catch (e) { 
-        diagLog('❌ Cloud fetch error: ' + e.message, 'err'); 
+    } catch (e) {
+        diagLog('❌ Cloud fetch error: ' + e.message, 'err');
         diagLog('💡 Tip: RLS policies সঠিক আছে কিনা check করুন', 'info');
     }
 
-    const cS = cloud?.students?.length || 0;
-    const cF = cloud?.finance?.length || 0;
+    const cS = (cS_partial != null ? cS_partial : (cloud?.students?.length || 0));
+    const cF = (cF_partial != null ? cF_partial : (cloud?.finance?.length || 0));
     const cC = cloud?.cash_balance || 0;
     const cV = cloud?.version || 0;
 
@@ -98,7 +135,8 @@ async function runDiagnosticInline() {
 
     // Checks
     let pass = 0;
-    const isOffline = !cloud || (cS === 0 && lS > 0);
+    // Only skip strict match when cloud main row unavailable (not when counts were zero due to legacy shape).
+    const isOffline = !cloud;
     const checks = [
         ['Students match', isOffline || (lS === cS), isOffline ? 'Cloud Limit/Offline (Ignored)' : `${Math.abs(lS - cS)} ব্যবধান`],
         ['Finance match', isOffline || (lF === cF), isOffline ? 'Cloud Limit/Offline (Ignored)' : `${Math.abs(lF - cF)} ব্যবধান`],

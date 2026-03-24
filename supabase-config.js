@@ -72,6 +72,20 @@ window.SUPABASE_CONFIG = {
   }
 };
 
+/**
+ * One shared Supabase client for the whole app (sync + auth).
+ * Multiple createClient() calls trigger GoTrueClient "multiple instances" warnings.
+ */
+window.getWingsSupabaseClient = function getWingsSupabaseClient() {
+  if (window.__wings_supabase_singleton) return window.__wings_supabase_singleton;
+  if (typeof window.supabase === 'undefined' || !window.supabase.createClient) return null;
+  const C = window.SUPABASE_CONFIG;
+  if (!C || !C.URL || !C.KEY) return null;
+  window.__wings_supabase_singleton = window.supabase.createClient(C.URL, C.KEY);
+  window.supabaseClient = window.__wings_supabase_singleton;
+  return window.__wings_supabase_singleton;
+};
+
 // Auto-validate on load
 if (typeof document !== 'undefined') {
   document.addEventListener('DOMContentLoaded', () => {
