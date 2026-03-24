@@ -28,7 +28,7 @@
     if (!gd) return;
     try {
       localStorage.setItem('wingsfly_data', JSON.stringify(gd));
-      localStorage.setItem('wingsfly_deleted_backup', JSON.stringify(gd.deletedItems || []));
+      localStorage.setItem('wingsfly_deleted_backup', JSON.stringify(gd.deletedItems || {}));
       localStorage.setItem('wingsfly_activity_backup', JSON.stringify(gd.activityHistory || []));
       // ✅ V34.9 FIX: saveToStorage() call সরানো হয়েছে — infinite loop বন্ধ
       // saveToStorage() → localStorage.setItem('wingsfly_data') → _save() → loop!
@@ -48,10 +48,33 @@
   // ═══════════════════════════════════════════════
   // 1. CORE: moveToTrash (সব delete এর gateway)
   // ═══════════════════════════════════════════════
+  // ── Helper: Ensure deletedItems is proper object (NOT array) ──
+  function _ensureDeletedItems(gd) {
+    if (Array.isArray(gd.deletedItems)) {
+      // Convert legacy array → proper object structure
+      var fixed = { students: [], finance: [], employees: [] };
+      (gd.deletedItems || []).forEach(function(item) {
+        var t = (item.type || '').toLowerCase();
+        if (t === 'student' || (item.item && item.item.studentId)) fixed.students.push(item);
+        else if (t === 'finance' || (item.item && item.item.amount !== undefined)) fixed.finance.push(item);
+        else if (t === 'employee') fixed.employees.push(item);
+      });
+      gd.deletedItems = fixed;
+      console.log('[RecycleFix] ✅ Converted deletedItems array → object');
+    } else if (!gd.deletedItems || typeof gd.deletedItems !== 'object') {
+      gd.deletedItems = { students: [], finance: [], employees: [] };
+    }
+    // Ensure all keys exist
+    if (!Array.isArray(gd.deletedItems.students)) gd.deletedItems.students = [];
+    if (!Array.isArray(gd.deletedItems.finance)) gd.deletedItems.finance = [];
+    if (!Array.isArray(gd.deletedItems.employees)) gd.deletedItems.employees = [];
+    return gd.deletedItems;
+  }
+
   window.moveToTrash = function (type, item) {
     var gd = window.globalData;
     if (!gd) return;
-    if (!Array.isArray(gd.deletedItems)) gd.deletedItems = [];
+    _ensureDeletedItems(gd);
 
     // ✅ FIX: Duplicate trash prevention (if original function also calls moveToTrash)
     if (item._trash_moved) {
@@ -73,10 +96,22 @@
       deletedBy: _user()
     };
 
-    gd.deletedItems.unshift(entry);
-
-    // Max 300 items in bin
-    if (gd.deletedItems.length > 300) gd.deletedItems = gd.deletedItems.slice(0, 300);
+    // Push to correct category (sync system needs object with students/finance/employees)
+    var t = (type || '').toLowerCase();
+    if (t === 'student') {
+      gd.deletedItems.students.unshift(entry);
+      if (gd.deletedItems.students.length > 300) gd.deletedItems.students = gd.deletedItems.students.slice(0, 300);
+    } else if (t === 'finance') {
+      gd.deletedItems.finance.unshift(entry);
+      if (gd.deletedItems.finance.length > 300) gd.deletedItems.finance = gd.deletedItems.finance.slice(0, 300);
+    } else if (t === 'employee') {
+      gd.deletedItems.employees.unshift(entry);
+      if (gd.deletedItems.employees.length > 300) gd.deletedItems.employees = gd.deletedItems.employees.slice(0, 300);
+    } else {
+      if (!Array.isArray(gd.deletedItems.other)) gd.deletedItems.other = [];
+      gd.deletedItems.other.unshift(entry);
+      if (gd.deletedItems.other.length > 300) gd.deletedItems.other = gd.deletedItems.other.slice(0, 300);
+    }
 
     // ✅ FIX: Sync cooldown trigger — যেকোনো ডিলিটের পর sync pull block হবে
     try {
@@ -129,8 +164,16 @@
   window.restoreDeletedItem = function (id) {
     var gd = window.globalData;
     if (!gd) return;
+    _ensureDeletedItems(gd);
 
-    var d = (gd.deletedItems || []).find(function (x) { return x.id === id; });
+    // Search across all categories
+    var allItems = [].concat(
+      gd.deletedItems.students || [],
+      gd.deletedItems.finance || [],
+      gd.deletedItems.employees || [],
+      gd.deletedItems.other || []
+    );
+    var d = allItems.find(function (x) { return x.id === id; });
     if (!d) { console.warn('[RecycleFix] restoreDeletedItem: id not found', id); return; }
 
     var t = (d.type || '').toLowerCase();
@@ -353,8 +396,12 @@
       }
     }
 
-    // Remove from Recycle Bin
-    gd.deletedItems = (gd.deletedItems || []).filter(function (x) { return x.id !== id; });
+    // Remove from Recycle Bin (search all categories)
+    ['students','finance','employees','other'].forEach(function(cat) {
+      if (Array.isArray(gd.deletedItems[cat])) {
+        gd.deletedItems[cat] = gd.deletedItems[cat].filter(function(x) { return x.id !== id; });
+      }
+    });
     _save();
 
     // Log Activity
@@ -390,11 +437,23 @@
   window.permanentDelete = function (id) {
     var gd = window.globalData;
     if (!gd) return;
+    _ensureDeletedItems(gd);
 
-    var d = (gd.deletedItems || []).find(function (x) { return x.id === id; });
+    var allItems = [].concat(
+      gd.deletedItems.students || [],
+      gd.deletedItems.finance || [],
+      gd.deletedItems.employees || [],
+      gd.deletedItems.other || []
+    );
+    var d = allItems.find(function (x) { return x.id === id; });
     var name = d ? (d.item.name || d.item.studentName || d.item.title || d.item.description || 'Item') : 'Item';
 
-    gd.deletedItems = (gd.deletedItems || []).filter(function (x) { return x.id !== id; });
+    // Remove from all categories
+    ['students','finance','employees','other'].forEach(function(cat) {
+      if (Array.isArray(gd.deletedItems[cat])) {
+        gd.deletedItems[cat] = gd.deletedItems[cat].filter(function(x) { return x.id !== id; });
+      }
+    });
     _save();
 
     if (d) window.logActivity('DELETE', d.type, d.type + ' permanently deleted: ' + name, {});
@@ -768,14 +827,17 @@
 
     var gd = window.globalData;
     if (!gd) { wrap.innerHTML = '<p style="color:#888;text-align:center;">Data লোড হয়নি।</p>'; return; }
-    if (!Array.isArray(gd.deletedItems)) {
-      try {
-        var bk = localStorage.getItem('wingsfly_deleted_backup');
-        gd.deletedItems = bk ? JSON.parse(bk) : [];
-      } catch (e) { gd.deletedItems = []; }
-    }
+    _ensureDeletedItems(gd);
 
-    var deleted = gd.deletedItems.slice();
+    // Flatten all categories into single array for display
+    var deleted = [].concat(
+      gd.deletedItems.students || [],
+      gd.deletedItems.finance || [],
+      gd.deletedItems.employees || [],
+      gd.deletedItems.other || []
+    );
+    // Sort by deletedAt desc
+    deleted.sort(function(a, b) { return new Date(b.deletedAt) - new Date(a.deletedAt); });
     var fType = (document.getElementById('binFilterType') ? document.getElementById('binFilterType').value : 'all');
     var fSearch = (document.getElementById('binSearchInput') ? document.getElementById('binSearchInput').value.trim().toLowerCase() : '');
 
@@ -1006,7 +1068,7 @@
     // Core function ensure
     var gd = window.globalData;
     if (gd) {
-      if (!Array.isArray(gd.deletedItems)) gd.deletedItems = [];
+      _ensureDeletedItems(gd);
       if (!Array.isArray(gd.activityHistory)) gd.activityHistory = [];
       if (!Array.isArray(gd.keepRecords)) gd.keepRecords = [];
       if (!Array.isArray(gd.breakdownRecords)) gd.breakdownRecords = [];
