@@ -11,13 +11,15 @@ const FILES_TO_CACHE = [
   './',
   './index.html',
   './app.js',
-  './supabase-sync-SMART-V37.js',  // ✅ V37 filename updated
+  './supabase-sync-SMART-V31.js',
   './supabase-config.js',
   './styles.css',
   './manifest.json',
-  // NOTE: CDN URLs (Bootstrap, Font Awesome, Chart.js etc.) are intentionally
-  // excluded here because they are loaded via <script>/<link> tags in index.html
-  // and caching them via fetch() causes CSP violations on the deployed site.
+  // Bootstrap (CDN fallback)
+  'https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/css/bootstrap.min.css',
+  'https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/js/bootstrap.bundle.min.js',
+  // Font Awesome
+  'https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css',
 ];
 
 // ── Install: সব file cache করো ──

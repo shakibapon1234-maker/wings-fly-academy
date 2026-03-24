@@ -5,7 +5,7 @@
  * Background-এ চলে, সমস্যা detect করে নিজে fix করে।
  * কোনো command ছাড়াই কাজ করে।
  *
- * HEAL MODULES (14টি):
+ * HEAL MODULES (13টি):
  *  1.  Student due recalculation
  *  2.  Cash balance integrity
  *  3.  Duplicate finance entry removal
@@ -19,7 +19,6 @@
  *  11. Paid vs Finance mismatch fix
  *  12. Finance-engine balance rebuild (periodic)
  *  13. Cloud vs Local sync mismatch (version-based)
- *  14. Sync Conflict Watchdog (নতুন) — user কে alert করে
  *
  * ✅ v4.0 পরিবর্তন:
  *   - Unified UI: stats + log একই panel
@@ -411,125 +410,6 @@
   }
 
   // ============================================
-  // MODULE 14: Sync Conflict Watchdog (নতুন)
-  // সিন্ক conflict হলে user কে সাথে সাথে alert করা
-  // ============================================
-  function healSyncConflictWatchdog() {
-    // ConflictTracker flag পড়া (supabase-sync-SMART-V37.js লেখে)
-    let conflict = null;
-    try {
-      const raw = localStorage.getItem('wf_last_conflict');
-      if (raw) conflict = JSON.parse(raw);
-    } catch (e) { return 0; }
-
-    if (!conflict) return 0;
-    if (conflict.seen) return 0;  // user আগেই দেখেছে
-
-    // 30 সেকেন্ডের মধ্যে হলে show করব না (সিন্ক শেষ হওয়ার আগে)
-    if (Date.now() - conflict.time < 30000) return 0;
-
-    const ageMin = Math.round((Date.now() - conflict.time) / 60000);
-    const typeLabel = {
-      push_blocked: 'ডাটা Save ব্লক হয়েছিল',
-      version_gap:  'অন্য Device আগে Sync করেছে',
-      count_drop:   'ডাটা Count কমে গেছে',
-    }[conflict.type] || 'Sync সমস্যা';
-
-    hLog('warn', `Conflict detected: ${conflict.type} (${ageMin} min ago) — ${conflict.detail}`, 'CONFLICT');
-
-    // Activity log এ লেখা
-    if (typeof window.logActivity === 'function') {
-      window.logActivity('heal', 'SYNC_CONFLICT',
-        `⚠️ Sync Conflict: ${typeLabel} — ${conflict.detail}`,
-        { type: conflict.type, localCount: conflict.localCount, cloudCount: conflict.cloudCount, ageMin }
-      );
-    }
-
-    // বড় Warning Modal দেখানো
-    _showConflictWarningModal(conflict, typeLabel, ageMin);
-
-    return 1;  // 1 = found conflict
-  }
-
-  // বড় Center Warning Modal
-  function _showConflictWarningModal(conflict, typeLabel, ageMin) {
-    // একাধিক modal prevent করা
-    if (document.getElementById('wf-conflict-modal')) return;
-
-    const overlay = document.createElement('div');
-    overlay.id = 'wf-conflict-modal';
-    overlay.style.cssText = [
-      'position:fixed', 'inset:0', 'z-index:99999',
-      'display:flex', 'align-items:center', 'justify-content:center',
-      'background:rgba(0,0,0,0.65)', 'backdrop-filter:blur(4px)',
-      'animation:wfConflictFadeIn 0.3s ease',
-    ].join(';');
-
-    const localN  = conflict.localCount;
-    const cloudN  = conflict.cloudCount;
-    const diff    = cloudN - localN;
-    const diffTxt = diff > 0
-      ? `Cloud-এ ${diff}টি বেশি record ছিল`
-      : `Cloud-এ ${Math.abs(diff)}টি কম record`;
-
-    overlay.innerHTML = `
-      <style>
-        @keyframes wfConflictFadeIn { from { opacity:0; transform:scale(0.92); } to { opacity:1; transform:scale(1); } }
-        #wf-conflict-modal .wf-cm-btn {
-          padding:10px 22px; border-radius:8px; border:none;
-          font-size:0.9rem; font-weight:600; cursor:pointer; transition:opacity 0.2s;
-        }
-        #wf-conflict-modal .wf-cm-btn:hover { opacity:0.85; }
-      </style>
-      <div style="
-        background:linear-gradient(135deg,#1a0a2e,#0d1b40);
-        border:2px solid #f59e0b;
-        border-radius:16px;
-        padding:32px 36px;
-        max-width:480px;
-        width:90%;
-        box-shadow:0 20px 60px rgba(0,0,0,0.7),0 0 40px rgba(245,158,11,0.2);
-        color:#fff;
-        font-family:system-ui,sans-serif;
-      ">
-        <div style="font-size:2.5rem;text-align:center;margin-bottom:12px;">⚠️</div>
-        <h3 style="color:#f59e0b;text-align:center;margin:0 0 8px;font-size:1.25rem;">Sync Conflict সতর্কবার্তা!</h3>
-        <p style="text-align:center;color:#cbd5e1;font-size:0.85rem;margin:0 0 20px;">${typeLabel} — ${ageMin} মিনিট আগে</p>
-
-        <div style="background:rgba(245,158,11,0.1);border:1px solid rgba(245,158,11,0.3);border-radius:10px;padding:14px 18px;margin-bottom:20px;font-size:0.85rem;line-height:1.7;">
-          <div style="color:#fbbf24;font-weight:600;margin-bottom:6px;">📋 বিস্তারিত:</div>
-          <div style="color:#e2e8f0;">${conflict.detail}</div>
-          ${diff !== 0 ? `<div style="color:#94a3b8;margin-top:6px;font-size:0.8rem;">${diffTxt}</div>` : ''}
-        </div>
-
-        <div style="background:rgba(16,185,129,0.08);border:1px solid rgba(16,185,129,0.2);border-radius:10px;padding:12px 16px;margin-bottom:24px;font-size:0.8rem;color:#6ee7b7;">
-          ✅ System স্বয়ংক্রিয়ভাবে Cloud থেকে latest data pull করেছে।
-          আপনার শেষ কাজটি সঠিকভাবে save হয়েছে কিনা একবার confirm করুন।
-        </div>
-
-        <div style="display:flex;gap:10px;">
-          <button class="wf-cm-btn" onclick="
-            window.wingsSync && window.wingsSync.pullNow && window.wingsSync.pullNow().then(function(){ window.renderFullUI && window.renderFullUI(); });
-            window.wfConflictTracker && window.wfConflictTracker.markSeen();
-            document.getElementById('wf-conflict-modal').remove();
-          " style="flex:1;background:linear-gradient(135deg,#f59e0b,#d97706);color:#000;">
-            🔄 এখনই Refresh করুন
-          </button>
-          <button class="wf-cm-btn" onclick="
-            window.wfConflictTracker && window.wfConflictTracker.markSeen();
-            document.getElementById('wf-conflict-modal').remove();
-          " style="flex:0.7;background:rgba(255,255,255,0.08);color:#94a3b8;border:1px solid rgba(255,255,255,0.15);">
-            জানি, বন্ধ করুন
-          </button>
-        </div>
-      </div>
-    `;
-
-    document.body.appendChild(overlay);
-    hLog('warn', '🚨 Conflict warning modal দেখানো হয়েছে', 'CONFLICT');
-  }
-
-  // ============================================
   // Network reconnect handler
   // ============================================
   let _pendingReconnectSync = false;
@@ -602,7 +482,6 @@
     await run('PAID-FIN',   () => healPaidFinanceMismatch());
     await run('REBUILD',    () => healPeriodicBalanceRebuild());
     await run('SYNC',       () => healSyncMismatch());
-    await run('CONFLICT',   () => healSyncConflictWatchdog());  // ✅ Module 14
 
     if (totalFixed > 0) {
       healStats.totalFixes += totalFixed;
