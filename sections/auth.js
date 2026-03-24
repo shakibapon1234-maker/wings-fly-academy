@@ -2,7 +2,7 @@
  * ════════════════════════════════════════════════════════════════
  * WINGS FLY AVIATION ACADEMY
  * AUTH — Login, Logout, Dashboard Load, Tab Switch
- * MERGED: Phase 2 Security + Original Navigation
+ * MERGED: Phase 2 Security + Full Navigation + Cloud Settings Sync
  * ════════════════════════════════════════════════════════════════
  *
  * ✅ PBKDF2 Password Hashing (100,000 iterations)
@@ -15,9 +15,10 @@
  * ✅ Forgot Password modal
  * ✅ Auto Lockout
  *
- * Version: 2.2 (March 24, 2026)
+ * Version: 2.3 (March 24, 2026)
  * Phase: 2 of 4
  * Security Score: 7.5/10
+ * Fix: Forgot Password now loads settings from cloud → works in any browser
  */
 
 // ════════════════════════════════════════════════════════════════
@@ -903,23 +904,48 @@ document.addEventListener('DOMContentLoaded', function () {
   });
 });
 
-window.wfShowForgotModal = function () {
+window.wfShowForgotModal = async function () {
   var overlay = document.getElementById('wfForgotOverlay');
   if (!overlay) { setTimeout(window.wfShowForgotModal, 200); return; }
 
   if (!window.globalData) window.globalData = {};
-  if (!window.globalData.settings) {
+  if (!window.globalData.settings || !window.globalData.settings.recoveryQuestion) {
+    // প্রথমে localStorage থেকে চেষ্টা
     try {
       var mainRaw = localStorage.getItem('wingsfly_data');
       if (mainRaw) {
         var mainParsed = JSON.parse(mainRaw);
         if (mainParsed && mainParsed.settings) window.globalData.settings = mainParsed.settings;
+        if (mainParsed && mainParsed.users) window.globalData.users = mainParsed.users;
       }
-      if (!window.globalData.settings) {
+      if (!window.globalData.settings || !window.globalData.settings.recoveryQuestion) {
         var settRaw = localStorage.getItem('wingsfly_settings');
         if (settRaw) window.globalData.settings = JSON.parse(settRaw);
       }
     } catch (e) { console.warn('Settings load failed in forgot modal', e); }
+
+    // ✅ V2.3 FIX: localStorage-এ না থাকলে cloud থেকে লোড (অন্য browser-এও কাজ করবে)
+    if (!window.globalData.settings || !window.globalData.settings.recoveryQuestion) {
+      try {
+        var cfg = window.SUPABASE_CONFIG;
+        if (cfg && cfg.URL && cfg.KEY) {
+          var cloudUrl = cfg.URL + '/rest/v1/' + cfg.TABLE + '?id=eq.' + cfg.MAIN_RECORD + '&select=settings,users';
+          var res = await fetch(cloudUrl, { headers: { 'apikey': cfg.KEY, 'Authorization': 'Bearer ' + cfg.KEY } });
+          if (res.ok) {
+            var arr = await res.json();
+            var rec = arr && arr[0];
+            if (rec && rec.settings) {
+              window.globalData.settings = rec.settings;
+              console.log('✅ Forgot modal: Settings loaded from cloud');
+            }
+            if (rec && rec.users && rec.users.length > 0) {
+              window.globalData.users = rec.users;
+              console.log('✅ Forgot modal: Users loaded from cloud');
+            }
+          }
+        }
+      } catch (e) { console.warn('Cloud settings load failed in forgot modal:', e); }
+    }
   }
 
   var gd = window.globalData;
@@ -1030,9 +1056,9 @@ window.migratePasswordIfNeeded = migratePasswordIfNeeded;
 window.supabaseClient = supabaseClient;
 
 // ════════════════════════════════════════════════════════════════
-// ✅ AUTH V2.2 LOADED — MERGED
-// Phase 2 Security + Original Navigation
+// ✅ AUTH V2.3 LOADED — MERGED
+// Phase 2 Security + Full Navigation + Cloud Settings Sync
 // Security Score: 7.5/10
 // ════════════════════════════════════════════════════════════════
 
-console.log('✅ Auth V2.2 loaded — Phase 2 Security + Full Navigation');
+console.log('✅ Auth V2.3 loaded — Cross-browser Recovery Question fix applied');

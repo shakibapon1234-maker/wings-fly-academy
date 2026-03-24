@@ -1,7 +1,7 @@
 /**
  * ════════════════════════════════════════════════════════════
  * WINGS FLY AVIATION ACADEMY
- * SMART SYNC SYSTEM — V35.1.2 "REFRESH FIX — NO RACE CONDITION + 30MIN PULL"
+ * SMART SYNC SYSTEM — V35.2 "EGRESS OPTIMIZED — 60MIN PULL + CLOUD SETTINGS SYNC"
  * ════════════════════════════════════════════════════════════
  *
  * ✅ V35.1.1 Critical Fix (March 20, 2026):
@@ -52,11 +52,11 @@
     TBL_FINANCE:   'wf_finance',
     TBL_EMPLOYEES: 'wf_employees',
     ACADEMY_ID:    'wingsfly_main',
-    VERSION_CHECK_MS: 15 * 60 * 1000,
-    FULL_PULL_MS:     30 * 60 * 1000,   // ✅ Updated: 60min → 30min (better multi-PC sync)
-    PUSH_DEBOUNCE_MS: 2000,
-    EGRESS_WARN:  200,
-    EGRESS_LIMIT: 600,
+    VERSION_CHECK_MS: 30 * 60 * 1000,   // ✅ V35.2: 15min → 30min (egress কমাতে)
+    FULL_PULL_MS:     60 * 60 * 1000,   // ✅ V35.2: 30min → 60min (egress কমাতে)
+    PUSH_DEBOUNCE_MS: 3000,             // ✅ V35.2: 2s → 3s debounce
+    EGRESS_WARN:  150,                  // ✅ V35.2: আগেভাগে warning
+    EGRESS_LIMIT: 400,                  // ✅ V35.2: 600 → 400 (conservative limit)
     SYNC_FRESHNESS_MS: 24 * 60 * 60 * 1000,
   };
 
@@ -286,6 +286,15 @@
           gd.cashBalance = mainRec.cash_balance ?? gd.cashBalance ?? 0;
           gd.bankAccounts = mainRec.bank_accounts || gd.bankAccounts || [];
           gd.mobileBanking = mainRec.mobile_banking || gd.mobileBanking || [];
+          // ✅ V35.2: Cloud থেকে settings sync (recovery question, users অন্য browser-এ কাজ করবে)
+          if (mainRec.settings) {
+            gd.settings = Object.assign({}, gd.settings || {}, mainRec.settings);
+            _log('✅', 'Settings synced from cloud (recovery question available)');
+          }
+          if (mainRec.users && Array.isArray(mainRec.users) && mainRec.users.length > 0) {
+            gd.users = mainRec.users;
+            _log('✅', 'Users synced from cloud');
+          }
           _localVer = mainRec.version || _localVer;
           localStorage.setItem('wings_local_version', _localVer.toString());
         }
@@ -311,6 +320,9 @@
           students: rec.students || [], finance: rec.finance || [], employees: rec.employees || [],
           cashBalance: rec.cash_balance || 0, bankAccounts: rec.bank_accounts || [],
           mobileBanking: rec.mobile_banking || [], deletedItems: rec.deleted_items || {},
+          // ✅ V35.2: settings ও users legacy pull-এও sync
+          settings: rec.settings || window.globalData?.settings || {},
+          users: (rec.users && rec.users.length > 0) ? rec.users : (window.globalData?.users || []),
         };
         _localVer = rec.version || 0;
         localStorage.setItem('wings_local_version', _localVer.toString());
@@ -511,8 +523,30 @@
           tasks.push(Promise.resolve().then(() => _saveSnapshot('finance', snapshot)));
         }
 
-        // Main table update (version, cash, banks) — always push
-        tasks.push(_sb.from(CFG.TABLE).upsert({ id: CFG.RECORD, version: _localVer, last_updated: new Date().toISOString(), last_device: DEVICE_ID, last_action: reason, cash_balance: gd.cashBalance || 0, bank_accounts: gd.bankAccounts || [], mobile_banking: gd.mobileBanking || [] }, { onConflict: 'id' }));
+        // Main table update (version, cash, banks, settings, users) — always push
+        // ✅ V35.2: settings ও users column না থাকলে graceful fallback
+        const mainPayload = { 
+          id: CFG.RECORD, 
+          version: _localVer, 
+          last_updated: new Date().toISOString(), 
+          last_device: DEVICE_ID, 
+          last_action: reason, 
+          cash_balance: gd.cashBalance || 0, 
+          bank_accounts: gd.bankAccounts || [], 
+          mobile_banking: gd.mobileBanking || [],
+          settings: gd.settings || null,
+          users: gd.users || null,
+        };
+        tasks.push(
+          _sb.from(CFG.TABLE).upsert(mainPayload, { onConflict: 'id' }).then(res => {
+            if (res.error && res.error.message && res.error.message.includes('column')) {
+              // settings/users column নেই — column ছাড়া আবার push
+              _log('⚠️', 'settings/users column নেই — fallback push');
+              const fallback = { id: CFG.RECORD, version: _localVer, last_updated: mainPayload.last_updated, last_device: DEVICE_ID, last_action: reason, cash_balance: gd.cashBalance || 0, bank_accounts: gd.bankAccounts || [], mobile_banking: gd.mobileBanking || [] };
+              return _sb.from(CFG.TABLE).upsert(fallback, { onConflict: 'id' });
+            }
+          })
+        );
 
         await Promise.all(tasks);
         _dirty.clear();
@@ -731,7 +765,7 @@
   async function _start() {
     if (!_init()) { setTimeout(_start, 2000); return; }
     _log('🚀', '══════════════════════════════════════');
-    _log('🚀', 'Wings Fly V35.1.2 — REFRESH FIX + 30MIN FULL PULL');
+    _log('🚀', 'Wings Fly V35.2 — EGRESS OPTIMIZED + CLOUD SETTINGS SYNC');
     _log('🚀', '══════════════════════════════════════');
     _log('💡', `Tolerance: 10% adaptive | Egress: ${Egress.count()} | Data age: ${SyncFreshness.getAge()}`);
     await _checkPartialTables();
