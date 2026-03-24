@@ -911,7 +911,7 @@
     getStatus: () => ({
       version: _localVer, online: _online, partialOK: _partialOK,
       dirty: [..._dirty], initialSync: window.initialSyncComplete,
-      egress: Egress.count(), egressInfo: Egress.getInfo(),
+      egress: Egress.count(), egressInfo: Egress.getInfo(), egressToday: Egress.count(),
       tabVisible: _tabVisible,
       maxFinance: MaxCount.get('finance'), maxStudents: MaxCount.get('students'),
       networkQuality: NetworkQuality.getQuality(),

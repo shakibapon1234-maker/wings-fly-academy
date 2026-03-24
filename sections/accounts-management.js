@@ -1614,7 +1614,8 @@ function openAIAccountsAssistant() {
   (gd.bankAccounts || []).forEach(a => { if (parseFloat(a.balance) === 0) zeroAccounts++; });
   (gd.mobileBanking || []).forEach(a => { if (parseFloat(a.balance) === 0) zeroAccounts++; });
   if (zeroAccounts > 0) {
-      errorMsgs.push(`<div class="mb-2"><i class="bi bi-info-circle text-warning"></i> <b>পরামর্শ:</b> আপনার <b>${zeroAccounts}</b> টি অ্যাকাউন্টে ৳0 ব্যালেন্স রয়েছে। অব্যবহৃত অ্যাকাউন্টগুলো ডিলিট করে ড্রপডাউন ক্লিন রাখতে পারেন।</div>`);
+      const fixBtn = `<button onclick="window.autoFixZeroAccounts()" class="btn btn-sm ms-2 px-2 py-1" style="background:linear-gradient(135deg,#ff00cc,#333399);border:none;color:#fff;font-size:0.75rem;border-radius:6px;font-weight:600;box-shadow:0 2px 5px rgba(255,0,204,0.3);"><i class="bi bi-magic me-1"></i> Auto Fix</button>`;
+      errorMsgs.push(`<div class="mb-2"><i class="bi bi-info-circle text-warning"></i> <b>পরামর্শ:</b> আপনার <b>${zeroAccounts}</b> টি অ্যাকাউন্টে ৳0 ব্যালেন্স রয়েছে। অব্যবহৃত অ্যাকাউন্টগুলো ডিলিট করে ড্রপডাউন ক্লিন রাখতে পারেন।${fixBtn}</div>`);
   }
 
   // Rule 3: Missing categories in Advance/Investment
@@ -1651,6 +1652,49 @@ function openAIAccountsAssistant() {
          btn.style.color = '#a0c4ff';
      }
   });
+}
+
+// Global Auto-Fix function for Zero-balance accounts
+window.autoFixZeroAccounts = function() {
+    const gd = window.globalData || {};
+    let count = 0;
+    
+    if (gd.bankAccounts) {
+        const initial = gd.bankAccounts.length;
+        gd.bankAccounts = gd.bankAccounts.filter(a => parseFloat(a.balance) !== 0);
+        count += (initial - gd.bankAccounts.length);
+    }
+    
+    if (gd.mobileBanking) {
+        const initial = gd.mobileBanking.length;
+        gd.mobileBanking = gd.mobileBanking.filter(a => parseFloat(a.balance) !== 0);
+        count += (initial - gd.mobileBanking.length);
+    }
+    
+    if (count > 0) {
+        if (typeof saveToStorage === 'function') saveToStorage();
+        if (typeof populateTransferDropdownsNow === 'function') populateTransferDropdownsNow();
+        if (typeof populatePaymentDropdownsNow === 'function') populatePaymentDropdownsNow();
+        if (typeof populateLedgerFilter === 'function') populateLedgerFilter();
+        
+        // Re-calculate the layout
+        if (typeof renderAccounts === 'function') renderAccounts();
+        
+        Swal.fire({
+            title: '<div class="fw-bold" style="color:#00e676;">✅ Auto Solved!</div>',
+            html: `<div style="color:#e0f0ff;font-size:0.95rem;">${count} টি শূন্য-ব্যালেন্স (৳0) অ্যাকাউন্ট সফলভাবে ডিলিট করা হয়েছে!</div>`,
+            background: '#0d1b2a',
+            color: '#e0f0ff',
+            iconColor: '#00e676',
+            icon: 'success',
+            customClass: { popup: 'border border-success rounded-4' },
+            confirmButtonText: 'Great!',
+            confirmButtonColor: '#00e676'
+        }).then(() => {
+            // Re-open Assistant to refresh view
+            openAIAccountsAssistant();
+        });
+    }
 }
 
 // Attach to window so it's accessible globally
