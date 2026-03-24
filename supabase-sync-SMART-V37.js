@@ -1,8 +1,21 @@
 /**
  * ════════════════════════════════════════════════════════════════
  * WINGS FLY AVIATION ACADEMY
- * SMART SYNC SYSTEM — V36.0 "EGRESS RESET + VERSION GAP FIX"
+ * SMART SYNC SYSTEM — V37.0 "SERVER-SIDE VERSION + BEFOREUNLOAD FIX"
  * ════════════════════════════════════════════════════════════════
+ *
+ * ✅ V37.0 Changes over V36.0:
+ *
+ *   1. SERVER-SIDE VERSION INCREMENT (Race condition fix)
+ *      → Client থেকে _localVer++ বাদ দেওয়া হয়েছে
+ *      → Supabase RPC function increment_version() ব্যবহার হয়
+ *      → দুই device একসাথে push করলেও version collision হবে না
+ *      → Fallback: RPC fail হলে পুরনো client-side method চলবে
+ *
+ *   2. BEFOREUNLOAD FULL DATA PUSH (Data loss fix)
+ *      → Tab বন্ধে শুধু cash নয়, pending dirty data-ও push হয়
+ *      → navigator.sendBeacon ব্যবহার করে reliable delivery
+ *      → Partial tables (students, finance) dirty থাকলে sync হয়
  *
  * ✅ V36.0 Changes over V35.1.2:
  *
@@ -217,7 +230,7 @@
       _sb = window.supabase.createClient(CFG.URL, CFG.KEY);
       _localVer = parseInt(localStorage.getItem('wings_local_version') || '0');
       _ready = true;
-      _log('✅', `V36.0 initialized v${_localVer}`);
+      _log('✅', `V37.0 initialized v${_localVer}`);
       return true;
     } catch (e) { _log('❌', 'Init failed', e); return false; }
   }
@@ -391,7 +404,29 @@
   }
 
   function _loadSnapshot(table) { try { const raw = localStorage.getItem('wf_push_snapshot_' + table); return raw ? JSON.parse(raw) : {}; } catch { return {}; } }
-  function _saveSnapshot(table, snapshot) { try { localStorage.setItem('wf_push_snapshot_' + table, JSON.stringify(snapshot)); } catch (e) { _log('⚠️', 'Snapshot save error', e); } }
+  function _saveSnapshot(table, snapshot) {
+    try {
+      const str = JSON.stringify(snapshot);
+      // ✅ FIX: Size guard (max 500KB per table)
+      if (str.length > 500000) {
+        _log('⚠️', `Snapshot too large (${Math.round(str.length/1024)}KB) — trimming old keys`);
+        const keys = Object.keys(snapshot);
+        if (keys.length > 1000) {
+          const trimmed = {};
+          keys.slice(-1000).forEach(k => trimmed[k] = snapshot[k]);
+          localStorage.setItem('wf_push_snapshot_' + table, JSON.stringify(trimmed));
+          return;
+        }
+      }
+      localStorage.setItem('wf_push_snapshot_' + table, str);
+    } catch (e) {
+      _log('⚠️', 'Snapshot save error', e);
+      // ✅ FIX: Clear if storage full
+      if (e.name === 'QuotaExceededError') {
+        localStorage.removeItem('wf_push_snapshot_' + table);
+      }
+    }
+  }
 
   function _getDelta(table, records, keyFn) {
     const prevSnapshot = _loadSnapshot(table);
@@ -433,20 +468,41 @@
       if (!finCheck.safe) { _log('🚫', 'Push BLOCKED - Finance'); _showUserMessage(finCheck.message + ' Push blocked.', 'error'); _log('🔄', 'Auto-recovery: pulling'); await pullFromCloud(false, true); return false; }
       if (!stuCheck.safe) { _log('🚫', 'Push BLOCKED - Students'); _showUserMessage(stuCheck.message + ' Push blocked.', 'error'); _log('🔄', 'Auto-recovery: pulling'); await pullFromCloud(false, true); return false; }
 
-      const { data: vdata } = await _sb.from(CFG.TABLE).select('version,last_device').eq('id', CFG.RECORD).limit(1);
-      const cloudRec = vdata?.[0], cloudVer = cloudRec?.version || 0;
-      const isOtherDevice = cloudRec?.last_device && cloudRec.last_device !== DEVICE_ID;
-      if (isOtherDevice && cloudVer >= _localVer) {
-        _log('⚠️', `Other device ahead v${cloudVer}, syncing version only`);
-        _localVer = cloudVer;
-        localStorage.setItem('wings_local_version', _localVer.toString());
-        _suppressRender = true;
-        await pullFromCloud(false, true);
-        _suppressRender = false;
+      // ✅ V37: SERVER-SIDE VERSION INCREMENT (race condition fix)
+      // Supabase atomically increments — দুই device collision হবে না
+      let _rpcOK = false;
+      try {
+        const { data: rpcVer, error: rpcErr } = await _sb.rpc(
+          'increment_version', { record_id: CFG.RECORD }
+        );
+        if (!rpcErr && rpcVer) {
+          _localVer = rpcVer;
+          localStorage.setItem('wings_local_version', _localVer.toString());
+          _log('✅', `Server version: ${_localVer}`);
+          _rpcOK = true;
+        } else {
+          _log('⚠️', 'RPC increment_version failed — using fallback', rpcErr);
+        }
+      } catch (rpcEx) {
+        _log('⚠️', 'RPC error — using fallback', rpcEx);
       }
 
-      _localVer++;
-      localStorage.setItem('wings_local_version', _localVer.toString());
+      // Fallback: পুরনো client-side method (RPC না থাকলে)
+      if (!_rpcOK) {
+        const { data: vdata } = await _sb.from(CFG.TABLE).select('version,last_device').eq('id', CFG.RECORD).limit(1);
+        const cloudRec = vdata?.[0], cloudVer = cloudRec?.version || 0;
+        const isOtherDevice = cloudRec?.last_device && cloudRec.last_device !== DEVICE_ID;
+        if (isOtherDevice && cloudVer >= _localVer) {
+          _log('⚠️', `Other device ahead v${cloudVer}, syncing version only`);
+          _localVer = cloudVer;
+          localStorage.setItem('wings_local_version', _localVer.toString());
+          _suppressRender = true;
+          await pullFromCloud(false, true);
+          _suppressRender = false;
+        }
+        _localVer++;
+        localStorage.setItem('wings_local_version', _localVer.toString());
+      }
 
       if (_partialOK) {
         const tasks = [];
@@ -684,15 +740,81 @@
     });
   }
 
+  // ── NETWORK & VISIBILITY ──────────────────────────────────────
   function _setupBeforeUnload() {
     window.addEventListener('beforeunload', () => {
-      if (!_debounce && !_pushing) return;
-      clearTimeout(_debounce);
       if (!window.globalData) return;
+      const gd = window.globalData;
+
+      // ✅ V37: Main record payload (সবসময়)
+      const mainPayload = {
+        id: CFG.RECORD,
+        version: _localVer + 1,
+        last_updated: new Date().toISOString(),
+        last_device: DEVICE_ID,
+        last_action: 'page-close',
+        cash_balance: gd.cashBalance || 0,
+        bank_accounts: gd.bankAccounts || [],
+        mobile_banking: gd.mobileBanking || [],
+      };
+
+      // ✅ V37: Beacon URL (upsert on conflict)
+      const mainUrl = `${CFG.URL}/rest/v1/${CFG.TABLE}?on_conflict=id`;
+      const headers = { 'Content-Type': 'application/json', 'apikey': CFG.KEY, 'Authorization': `Bearer ${CFG.KEY}`, 'Prefer': 'resolution=merge-duplicates' };
+
+      // sendBeacon — browser গ্যারান্টি দেয় এটি পাঠাবে
       try {
-        const url = `${CFG.URL}/rest/v1/${CFG.TABLE}?on_conflict=id`;
-        fetch(url, { method: 'POST', headers: { 'Content-Type': 'application/json', 'apikey': CFG.KEY, 'Authorization': `Bearer ${CFG.KEY}`, 'Prefer': 'resolution=merge-duplicates' }, body: JSON.stringify({ id: CFG.RECORD, version: _localVer + 1, last_updated: new Date().toISOString(), last_device: DEVICE_ID, last_action: 'page-close', cash_balance: window.globalData.cashBalance || 0 }), keepalive: true }).catch(() => {});
-      } catch (e) {}
+        navigator.sendBeacon(
+          mainUrl,
+          new Blob([JSON.stringify(mainPayload)], { type: 'application/json' })
+        );
+        _log('📤', 'BeforeUnload: main record beacon sent');
+      } catch (e) {
+        // sendBeacon fail হলে keepalive fetch fallback
+        fetch(mainUrl, { method: 'POST', headers, body: JSON.stringify(mainPayload), keepalive: true }).catch(() => {});
+      }
+
+      // ✅ V37: Dirty data থাকলে partial tables-ও push করুন
+      if (_dirty.size > 0 && _partialOK) {
+
+        // Students dirty থাকলে
+        if (_dirty.has('students') && (gd.students || []).length > 0) {
+          const stuRows = (gd.students || []).slice(0, 50).map(s => {
+            const sid = s.studentId || s.id || s.name;
+            return { id: `${CFG.ACADEMY_ID}_stu_${sid}`, academy_id: CFG.ACADEMY_ID, data: s, deleted: false };
+          });
+          const stuUrl = `${CFG.URL}/rest/v1/${CFG.TBL_STUDENTS}?on_conflict=id`;
+          try {
+            navigator.sendBeacon(
+              stuUrl,
+              new Blob([JSON.stringify(stuRows)], { type: 'application/json' })
+            );
+            _log('📤', `BeforeUnload: ${stuRows.length} students beacon sent`);
+          } catch (e) {
+            fetch(stuUrl, { method: 'POST', headers, body: JSON.stringify(stuRows), keepalive: true }).catch(() => {});
+          }
+        }
+
+        // Finance dirty থাকলে
+        if (_dirty.has('finance') && (gd.finance || []).length > 0) {
+          const finRows = (gd.finance || []).slice(0, 50).map(f => ({
+            id: `${CFG.ACADEMY_ID}_fin_${f.id}`,
+            academy_id: CFG.ACADEMY_ID,
+            data: f,
+            deleted: false
+          }));
+          const finUrl = `${CFG.URL}/rest/v1/${CFG.TBL_FINANCE}?on_conflict=id`;
+          try {
+            navigator.sendBeacon(
+              finUrl,
+              new Blob([JSON.stringify(finRows)], { type: 'application/json' })
+            );
+            _log('📤', `BeforeUnload: ${finRows.length} finance beacon sent`);
+          } catch (e) {
+            fetch(finUrl, { method: 'POST', headers, body: JSON.stringify(finRows), keepalive: true }).catch(() => {});
+          }
+        }
+      }
     });
   }
 
@@ -702,7 +824,7 @@
   async function _start() {
     if (!_init()) { setTimeout(_start, 2000); return; }
     _log('🚀', '══════════════════════════════════════');
-    _log('🚀', 'Wings Fly V36.0 — EGRESS RESET + VERSION GAP FIX');
+    _log('🚀', 'Wings Fly V37.0 — SERVER VERSION + BEFOREUNLOAD FIX');
     _log('🚀', '══════════════════════════════════════');
     _log('💡', `Egress: ${Egress.count()}/${CFG.EGRESS_LIMIT} | Data age: ${SyncFreshness.getAge()} | v${_localVer}`);
     
@@ -726,8 +848,8 @@
     setInterval(_versionCheck, NetworkQuality.getCheckInterval());
     setInterval(() => { if (_tabVisible && !Egress.hardThrottled()) pullFromCloud(true); }, CFG.FULL_PULL_MS);
     setTimeout(_installMonitor, 3000);
-    _log('🎉', 'V36.0 ready!');
-    _showStatus('✅ V36.0 ready');
+    _log('🎉', 'V37.0 ready!');
+    _showStatus('✅ V37.0 ready');
   }
 
   // ── PUBLIC API V36 ────────────────────────────────────────────
@@ -739,8 +861,16 @@
     markDirty: (field) => window.markDirty && window.markDirty(field),
     forceRecovery: async () => { _log('🔄', 'Manual recovery'); await pullFromCloud(true, true); if (typeof window.renderFullUI === 'function') window.renderFullUI(); _showUserMessage('Recovery complete', 'success'); },
     
-    // ✅ V36 NEW: Egress reset
-    resetEgress: () => Egress.reset(),
+    // ✅ V36 NEW: Egress reset with PIN guard
+    resetEgress: (pin) => {
+      const ADMIN_PIN = localStorage.getItem('wings_admin_pin') || 'wf2026';
+      if (pin !== ADMIN_PIN) {
+        console.warn('❌ Invalid PIN for Egress Reset. Default is "wf2026".');
+        return false;
+      }
+      Egress.reset();
+      return true;
+    },
     
     // ✅ V36 NEW: Force version sync (version gap fix)
     forceVersionSync: async () => {
