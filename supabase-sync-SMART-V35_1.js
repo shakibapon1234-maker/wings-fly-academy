@@ -1,7 +1,7 @@
 /**
  * ════════════════════════════════════════════════════════════
  * WINGS FLY AVIATION ACADEMY
- * SMART SYNC SYSTEM — V35.1.2 "REFRESH FIX — NO RACE CONDITION"
+ * SMART SYNC SYSTEM — V35.1.2 "REFRESH FIX — NO RACE CONDITION + 30MIN PULL"
  * ════════════════════════════════════════════════════════════
  *
  * ✅ V35.1.1 Critical Fix (March 20, 2026):
@@ -53,7 +53,7 @@
     TBL_EMPLOYEES: 'wf_employees',
     ACADEMY_ID:    'wingsfly_main',
     VERSION_CHECK_MS: 15 * 60 * 1000,
-    FULL_PULL_MS:     60 * 60 * 1000,
+    FULL_PULL_MS:     30 * 60 * 1000,   // ✅ Updated: 60min → 30min (better multi-PC sync)
     PUSH_DEBOUNCE_MS: 2000,
     EGRESS_WARN:  200,
     EGRESS_LIMIT: 600,
@@ -731,7 +731,7 @@
   async function _start() {
     if (!_init()) { setTimeout(_start, 2000); return; }
     _log('🚀', '══════════════════════════════════════');
-    _log('🚀', 'Wings Fly V35.1.2 — REFRESH FIX (NO RACE CONDITION)');
+    _log('🚀', 'Wings Fly V35.1.2 — REFRESH FIX + 30MIN FULL PULL');
     _log('🚀', '══════════════════════════════════════');
     _log('💡', `Tolerance: 10% adaptive | Egress: ${Egress.count()} | Data age: ${SyncFreshness.getAge()}`);
     await _checkPartialTables();
