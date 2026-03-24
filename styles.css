@@ -541,6 +541,26 @@ body::after {
   }
 }
 
+/* Sidebar Logo Activity Spin */
+#sidebarLogoImg {
+  border-radius: 50%;
+  transition: transform 0.3s ease;
+}
+
+#sidebarLogoImg.is-active {
+  animation: sidebarLogoSpin 2s linear infinite;
+}
+
+@keyframes sidebarLogoSpin {
+  from {
+    transform: rotate(0deg);
+  }
+
+  to {
+    transform: rotate(360deg);
+  }
+}
+
 .brand-text {
   flex: 1;
 }
