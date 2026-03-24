@@ -135,9 +135,20 @@
    */
   function _execRawScripts(scriptContents) {
     scriptContents.forEach(function (code, index) {
-      let executed = false;
+      function runViaHeadInline() {
+        try {
+          const newScript = document.createElement('script');
+          newScript.textContent = code;
+          document.head.appendChild(newScript);
+          document.head.removeChild(newScript);
+          console.log('[SectionLoader] ✅ Script #' + (index + 1) + ' executed via head injection');
+        } catch (e2) {
+          console.error('[SectionLoader] ❌ Script #' + (index + 1) + ' all methods failed:', e2);
+        }
+      }
 
-      // Method 1: Blob URL (primary — best Unicode isolation)
+      // Method 1: Blob URL (primary — best Unicode isolation). CSP must include script-src ... blob:
+      // If the blob load fails (e.g. strict CSP), onerror runs Method 2 — do not mark "done" before load.
       try {
         const blob = new Blob([code], { type: 'text/javascript;charset=utf-8' });
         const blobUrl = URL.createObjectURL(blob);
@@ -150,25 +161,13 @@
         };
         s.onerror = function (e) {
           URL.revokeObjectURL(blobUrl);
-          console.error('[SectionLoader] ❌ Script #' + (index + 1) + ' Blob URL error:', e);
+          console.warn('[SectionLoader] ⚠️ Script #' + (index + 1) + ' blob blocked/failed, using inline fallback:', e);
+          runViaHeadInline();
         };
         document.head.appendChild(s);
-        executed = true;
       } catch (e1) {
-        console.warn('[SectionLoader] ⚠️ Blob URL failed for Script #' + (index + 1) + ':', e1.message);
-      }
-
-      // Method 2: document.head injection fallback
-      if (!executed) {
-        try {
-          const newScript = document.createElement('script');
-          newScript.textContent = code;
-          document.head.appendChild(newScript);
-          document.head.removeChild(newScript);
-          console.log('[SectionLoader] ✅ Script #' + (index + 1) + ' executed via head injection');
-        } catch (e2) {
-          console.error('[SectionLoader] ❌ Script #' + (index + 1) + ' all methods failed:', e2);
-        }
+        console.warn('[SectionLoader] ⚠️ Blob URL setup failed for Script #' + (index + 1) + ':', e1.message);
+        runViaHeadInline();
       }
     });
   }
