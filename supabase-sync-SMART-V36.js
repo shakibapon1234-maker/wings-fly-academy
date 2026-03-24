@@ -320,6 +320,17 @@
         window.globalData = gd;
         MaxCount.update('students', gd.students.length);
         MaxCount.update('finance', gd.finance.length);
+
+        // ✅ V36 FIX: After successful pull, save the snapshots!
+        // This prevents the "First Push after Initial Pull" from attempting a redundant full push
+        try {
+          const sSnap = {}; gd.students.forEach(s => { const k = s.studentId || s.id || s.name; if(k) sSnap[k] = _hashRecord(s); });
+          const fSnap = {}; gd.finance.forEach(f => { const k = f.id || f.timestamp; if(k) fSnap[k] = _hashRecord(f); });
+          _saveSnapshot('students', sSnap);
+          _saveSnapshot('finance', fSnap);
+          _log('📸', 'Saved full snapshots after pull (Fixes First-Push bug)');
+        } catch (err) { _log('⚠️', 'Failed to save snapshot during pull', err); }
+
         _saveLocal();
         SyncFreshness.update();
         NetworkQuality.recordSuccess();
@@ -445,35 +456,55 @@
           const { changed, deleted, snapshot } = _getDelta('students', gd.students || [], s => s.studentId || s.id || s.name);
           stuTotal = (gd.students || []).length;
           stuPushed = changed.length + deleted.length;
-          if (changed.length > 0) {
-            const stuRows = changed.map(s => {
-              const sid = s.studentId || s.id || s.name;
-              return { id: `${CFG.ACADEMY_ID}_stu_${sid}`, academy_id: CFG.ACADEMY_ID, record_id: sid, data: s, deleted: false };
-            });
-            tasks.push(_sb.from(CFG.TBL_STUDENTS).upsert(stuRows, { onConflict: 'id' }).then(() => { _log('📤', `Students: ${changed.length}/${stuTotal} changed → pushed`); }));
-          }
-          const stuDelRows = ((gd.deletedItems?.students || []).map(item => {
-            const recId = item.studentId || item.id || item.item?.studentId || item.item?.id;
-            return recId ? { id: `${CFG.ACADEMY_ID}_stu_${recId}`, academy_id: CFG.ACADEMY_ID, record_id: recId, data: null, deleted: true } : null;
-          })).filter(x => x);
-          if (stuDelRows.length > 0) tasks.push(_sb.from(CFG.TBL_STUDENTS).upsert(stuDelRows, { onConflict: 'id' }));
-          tasks.push(Promise.resolve().then(() => _saveSnapshot('students', snapshot)));
+          
+          const doStuPush = async () => {
+            if (changed.length > 0) {
+              const stuRows = changed.map(s => {
+                const sid = s.studentId || s.id || s.name;
+                return { id: `${CFG.ACADEMY_ID}_stu_${sid}`, academy_id: CFG.ACADEMY_ID, record_id: sid, data: s, deleted: false };
+              });
+              const res = await _sb.from(CFG.TBL_STUDENTS).upsert(stuRows, { onConflict: 'id' });
+              if (res && res.error) throw res.error;
+              _log('📤', `Students: ${changed.length}/${stuTotal} changed → pushed`);
+            }
+            const stuDelRows = ((gd.deletedItems?.students || []).map(item => {
+              const recId = item.studentId || item.id || item.item?.studentId || item.item?.id;
+              return recId ? { id: `${CFG.ACADEMY_ID}_stu_${recId}`, academy_id: CFG.ACADEMY_ID, record_id: recId, data: null, deleted: true } : null;
+            })).filter(x => x);
+            if (stuDelRows.length > 0) {
+              const resDel = await _sb.from(CFG.TBL_STUDENTS).upsert(stuDelRows, { onConflict: 'id' });
+              if (resDel && resDel.error) throw resDel.error;
+            }
+            // ✅ V36 FIX: ONLY save snapshot if push succeeds
+            _saveSnapshot('students', snapshot);
+          };
+          tasks.push(doStuPush());
         }
 
         if (_dirty.has('finance') || _dirty.size === 0) {
           const { changed, deleted, snapshot } = _getDelta('finance', gd.finance || [], f => f.id || f.timestamp);
           finTotal = (gd.finance || []).length;
           finPushed = changed.length + deleted.length;
-          if (changed.length > 0) {
-            const finRows = changed.map(f => ({ id: `${CFG.ACADEMY_ID}_fin_${f.id}`, academy_id: CFG.ACADEMY_ID, record_id: f.id, data: f, deleted: false }));
-            tasks.push(_sb.from(CFG.TBL_FINANCE).upsert(finRows, { onConflict: 'id' }).then(() => { _log('📤', `Finance: ${changed.length}/${finTotal} changed → pushed`); }));
-          }
-          const finDelRows = ((gd.deletedItems?.finance || []).map(item => {
-            const recId = item.id || item.item?.id;
-            return recId ? { id: `${CFG.ACADEMY_ID}_fin_${recId}`, academy_id: CFG.ACADEMY_ID, record_id: recId, data: null, deleted: true } : null;
-          })).filter(x => x);
-          if (finDelRows.length > 0) tasks.push(_sb.from(CFG.TBL_FINANCE).upsert(finDelRows, { onConflict: 'id' }));
-          tasks.push(Promise.resolve().then(() => _saveSnapshot('finance', snapshot)));
+          
+          const doFinPush = async () => {
+            if (changed.length > 0) {
+              const finRows = changed.map(f => ({ id: `${CFG.ACADEMY_ID}_fin_${f.id}`, academy_id: CFG.ACADEMY_ID, record_id: f.id, data: f, deleted: false }));
+              const res = await _sb.from(CFG.TBL_FINANCE).upsert(finRows, { onConflict: 'id' });
+              if (res && res.error) throw res.error;
+              _log('📤', `Finance: ${changed.length}/${finTotal} changed → pushed`);
+            }
+            const finDelRows = ((gd.deletedItems?.finance || []).map(item => {
+              const recId = item.id || item.item?.id;
+              return recId ? { id: `${CFG.ACADEMY_ID}_fin_${recId}`, academy_id: CFG.ACADEMY_ID, record_id: recId, data: null, deleted: true } : null;
+            })).filter(x => x);
+            if (finDelRows.length > 0) {
+              const resDel = await _sb.from(CFG.TBL_FINANCE).upsert(finDelRows, { onConflict: 'id' });
+              if (resDel && resDel.error) throw resDel.error;
+            }
+            // ✅ V36 FIX: ONLY save snapshot if push succeeds
+            _saveSnapshot('finance', snapshot);
+          };
+          tasks.push(doFinPush());
         }
 
         // ✅ Always push main record (version, cash, settings, users)

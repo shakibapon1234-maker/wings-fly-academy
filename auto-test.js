@@ -1193,7 +1193,7 @@
         issues.push('⚠️ initialSyncComplete = false — Cloud sync হয়নি');
 
       // Check 7: Egress throttle check
-      const eg = window.wingsSync.getEgress?.();
+      const eg = window.wingsSync.getStatus?.();
       if (eg >= 200) issues.push(`❌ Egress throttled (${eg} req) — Cloud pull বন্ধ`);
       else if (eg >= 150) issues.push(`⚠️ Egress high: ${eg} requests আজকে`);
 
