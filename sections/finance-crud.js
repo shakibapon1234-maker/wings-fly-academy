@@ -189,7 +189,10 @@ function handleAddInstallment() {
     .reduce((sum, f) => sum + (parseFloat(f.amount) || 0), 0);
   const paidBeforeThisEntry = (parseFloat(student.paid) || 0) - amount; // এই entry যোগের আগে কত ছিল
 
-  if (financeTotal <= paidBeforeThisEntry + 1) { // 1tk buffer for rounding
+  // ✅ FIX: সঠিক logic — financeTotal যদি paidBeforeThisEntry এর চেয়ে কম হয়
+  // তার মানে এই payment এখনো finance-এ নেই, তাই push করো।
+  // যদি financeTotal ইতিমধ্যে paidBeforeThisEntry এর সমান বা বেশি হয়, তাহলে duplicate।
+  if (financeTotal < paidBeforeThisEntry + 1) { // financeTotal < পূর্বের paid → এটা নতুন entry, push করো
     globalData.finance.push(financeEntry);
     // 3. Update Account Balance
     if (typeof window.feApplyEntryToAccount === 'function') {
