@@ -643,9 +643,11 @@
           try {
               const el = document.getElementById(s.pid);
               if (!el) return;
-              const html = await _fetchWithCache(s.file);
-              el.innerHTML = html;
-              _reExecScripts(el);
+              const rawHtml = await _fetchWithCache(s.file);
+              const rawScripts = _extractRawScripts(rawHtml);
+              const htmlWithoutScripts = rawHtml.replace(/<script[\s\S]*?<\/script>/gi, '');
+              el.innerHTML = htmlWithoutScripts;
+              _execRawScripts(rawScripts);
               console.log('[SectionLoader] 💠 Loaded static section:', s.file);
           } catch (e) {
               console.warn('[SectionLoader] Failed to load static section:', s.file, e);

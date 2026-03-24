@@ -242,6 +242,15 @@
           detail: 'আগে পাওয়া যেত, এখন নেই',
           reason: `index.html-এ এই id="${id}" element সরানো বা rename হয়েছে। এর উপর নির্ভরশীল features কাজ করবে না।`,
         });
+      } else if (oldDom[id] === false && newDom[id] === true) {
+        changes.push({
+          type: 'dom_restored',
+          icon: '✅',
+          severity: 'success',
+          title: `DOM Element ফিরে এসেছে: #${id}`,
+          detail: 'আগে ছিল না, এখন পাওয়া গেছে',
+          reason: 'element-টি ঠিকমতো DOM-এ append/load হয়েছে।',
+        });
       }
     });
 

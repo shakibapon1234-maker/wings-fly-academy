@@ -191,7 +191,7 @@ async function trySupabaseLogin(username, password) {
       .single();
 
     if (profileError || !profile) {
-      console.warn('Profile not found for user');
+      console.log('ℹ️ Profile not found for user in Supabase, falling back...');
       return { success: false, error: 'Profile not found' };
     }
 
