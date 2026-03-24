@@ -388,6 +388,40 @@ function logout() {
     try { supabaseClient.auth.signOut(); } catch (e) { console.warn('Supabase logout error:', e); }
   }
 
+  // ✅ SECURITY FIX: Clear sensitive data from localStorage on logout
+  // This prevents other users on the same PC from seeing data after logout
+  // Non-sensitive keys (active tab, device id, version, egress counter) are kept
+  const SENSITIVE_KEYS = [
+    'wingsfly_data',
+    'wingsfly_deleted_backup',
+    'wingsfly_activity_backup',
+    'wingsfly_users_backup',
+    'wf_push_snapshot_students',
+    'wf_push_snapshot_finance',
+    'wings_last_known_finance',
+    'wings_last_known_count',
+    'wings_last_sync_time',
+    'wf_max_finance',
+    'wf_max_students',
+    'wings_local_version',
+  ];
+  SENSITIVE_KEYS.forEach(function(key) {
+    localStorage.removeItem(key);
+  });
+  console.log('🗑️ Sensitive localStorage data cleared on logout');
+
+  // In-memory globalData reset (prevents data leak via window.globalData)
+  if (window.globalData) {
+    window.globalData = {
+      students: [], employees: [], finance: [],
+      settings: {}, users: [], cashBalance: 0,
+      bankAccounts: [], mobileBanking: [],
+      incomeCategories: [], expenseCategories: [],
+      paymentMethods: [], courseNames: [],
+      deletedItems: [], activityHistory: []
+    };
+  }
+
   sessionStorage.removeItem('isLoggedIn');
   sessionStorage.removeItem('username');
   sessionStorage.removeItem('currentUser');

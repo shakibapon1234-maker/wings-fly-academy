@@ -81,6 +81,41 @@
   const DEVICE_ID = _getOrCreateDeviceId();
   window.initialSyncComplete = false;
 
+  // ── CONFLICT TRACKER — Auto-Heal Module 14 এর জন্য ─────────────
+  const ConflictTracker = {
+    // Conflict flag লেখা
+    record: function(type, detail, localCount, cloudCount) {
+      const entry = {
+        time: Date.now(),
+        type: type,         // 'push_blocked' | 'version_gap' | 'count_drop'
+        detail: detail,
+        localCount: localCount || 0,
+        cloudCount: cloudCount || 0,
+        device: DEVICE_ID,
+        seen: false,        // user দেখেছে কিনা
+      };
+      localStorage.setItem('wf_last_conflict', JSON.stringify(entry));
+      _log('🚨', `Conflict recorded: ${type} — ${detail}`);
+      // wingsSync public API তেও expose করা
+      window._wfLastConflict = entry;
+    },
+    // Flag পড়া (auto-heal ব্যবহার করবে)
+    get: function() {
+      try { return JSON.parse(localStorage.getItem('wf_last_conflict') || 'null'); } catch { return null; }
+    },
+    // User দেখেছে, flag mark করা
+    markSeen: function() {
+      const c = this.get();
+      if (c) { c.seen = true; localStorage.setItem('wf_last_conflict', JSON.stringify(c)); }
+    },
+    // Clear
+    clear: function() {
+      localStorage.removeItem('wf_last_conflict');
+      window._wfLastConflict = null;
+    },
+  };
+  window.wfConflictTracker = ConflictTracker;
+
   // ── EGRESS COUNTER V36 — ROLLING 24H WINDOW ─────────────────
   const Egress = {
     // ✅ V36: Calendar day key (reset at midnight)
@@ -465,8 +500,24 @@
       const finCheck = MaxCount.isSafe('finance', finCount, { deletedCount: finDeleted });
       const stuCheck = MaxCount.isSafe('students', stuCount, { deletedCount: stuDeleted });
 
-      if (!finCheck.safe) { _log('🚫', 'Push BLOCKED - Finance'); _showUserMessage(finCheck.message + ' Push blocked.', 'error'); _log('🔄', 'Auto-recovery: pulling'); await pullFromCloud(false, true); return false; }
-      if (!stuCheck.safe) { _log('🚫', 'Push BLOCKED - Students'); _showUserMessage(stuCheck.message + ' Push blocked.', 'error'); _log('🔄', 'Auto-recovery: pulling'); await pullFromCloud(false, true); return false; }
+      if (!finCheck.safe) {
+        _log('🚫', 'Push BLOCKED - Finance');
+        _showUserMessage(finCheck.message + ' Push blocked.', 'error');
+        // ✅ CONFLICT FLAG: Auto-Heal Module 14 এ notify করার জন্য
+        ConflictTracker.record('push_blocked', `Finance count কম: local=${finCount}, MaxCount=${finCheck.max}`, finCount, finCheck.max);
+        _log('🔄', 'Auto-recovery: pulling');
+        await pullFromCloud(false, true);
+        return false;
+      }
+      if (!stuCheck.safe) {
+        _log('🚫', 'Push BLOCKED - Students');
+        _showUserMessage(stuCheck.message + ' Push blocked.', 'error');
+        // ✅ CONFLICT FLAG: Auto-Heal Module 14 এ notify করার জন্য
+        ConflictTracker.record('push_blocked', `Student count কম: local=${stuCount}, MaxCount=${stuCheck.max}`, stuCount, stuCheck.max);
+        _log('🔄', 'Auto-recovery: pulling');
+        await pullFromCloud(false, true);
+        return false;
+      }
 
       // ✅ V37: SERVER-SIDE VERSION INCREMENT (race condition fix)
       // Supabase atomically increments — দুই device collision হবে না
@@ -639,6 +690,13 @@
       if (gap >= CFG.VERSION_GAP_WARN) {
         // ✅ V36: Auto pull when gap is large
         _log('🔄', `Large gap (${gap}) — forcing full pull`);
+        // ✅ CONFLICT FLAG: বড় gap মানে অন্য device আগে sync করেছে
+        ConflictTracker.record(
+          'version_gap',
+          `অন্য device cloud-এ আগে sync করেছে। Version gap: ${gap} (cloud=${cloudVer}, local=${_localVer})`,
+          _localVer,
+          cloudVer
+        );
         const pulled = await pullFromCloud(false, true);
         if (pulled && gap >= CFG.VERSION_GAP_FULL) {
           // ✅ V36: Force UI refresh for very large gaps
