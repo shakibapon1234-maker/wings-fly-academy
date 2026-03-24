@@ -461,7 +461,7 @@
             if (changed.length > 0) {
               const stuRows = changed.map(s => {
                 const sid = s.studentId || s.id || s.name;
-                return { id: `${CFG.ACADEMY_ID}_stu_${sid}`, academy_id: CFG.ACADEMY_ID, record_id: sid, data: s, deleted: false };
+                return { id: `${CFG.ACADEMY_ID}_stu_${sid}`, academy_id: CFG.ACADEMY_ID, data: s, deleted: false };
               });
               const res = await _sb.from(CFG.TBL_STUDENTS).upsert(stuRows, { onConflict: 'id' });
               if (res && res.error) throw res.error;
@@ -469,7 +469,7 @@
             }
             const stuDelRows = ((gd.deletedItems?.students || []).map(item => {
               const recId = item.studentId || item.id || item.item?.studentId || item.item?.id;
-              return recId ? { id: `${CFG.ACADEMY_ID}_stu_${recId}`, academy_id: CFG.ACADEMY_ID, record_id: recId, data: null, deleted: true } : null;
+              return recId ? { id: `${CFG.ACADEMY_ID}_stu_${recId}`, academy_id: CFG.ACADEMY_ID, data: null, deleted: true } : null;
             })).filter(x => x);
             if (stuDelRows.length > 0) {
               const resDel = await _sb.from(CFG.TBL_STUDENTS).upsert(stuDelRows, { onConflict: 'id' });
@@ -488,14 +488,14 @@
           
           const doFinPush = async () => {
             if (changed.length > 0) {
-              const finRows = changed.map(f => ({ id: `${CFG.ACADEMY_ID}_fin_${f.id}`, academy_id: CFG.ACADEMY_ID, record_id: f.id, data: f, deleted: false }));
+              const finRows = changed.map(f => ({ id: `${CFG.ACADEMY_ID}_fin_${f.id}`, academy_id: CFG.ACADEMY_ID, data: f, deleted: false }));
               const res = await _sb.from(CFG.TBL_FINANCE).upsert(finRows, { onConflict: 'id' });
               if (res && res.error) throw res.error;
               _log('📤', `Finance: ${changed.length}/${finTotal} changed → pushed`);
             }
             const finDelRows = ((gd.deletedItems?.finance || []).map(item => {
               const recId = item.id || item.item?.id;
-              return recId ? { id: `${CFG.ACADEMY_ID}_fin_${recId}`, academy_id: CFG.ACADEMY_ID, record_id: recId, data: null, deleted: true } : null;
+              return recId ? { id: `${CFG.ACADEMY_ID}_fin_${recId}`, academy_id: CFG.ACADEMY_ID, data: null, deleted: true } : null;
             })).filter(x => x);
             if (finDelRows.length > 0) {
               const resDel = await _sb.from(CFG.TBL_FINANCE).upsert(finDelRows, { onConflict: 'id' });

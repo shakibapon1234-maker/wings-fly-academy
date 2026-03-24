@@ -596,6 +596,14 @@ WINGS FLY AVIATION ACADEMY — Management System
                                         </label>
                                     </div>
                                 </li>
+                                <li><hr class="dropdown-divider"></li>
+                                <li>
+                                    <button class="dropdown-item rounded-2 py-2 d-flex align-items-center gap-2 text-danger"
+                                        onclick="if(window.wingsSync) { window.wingsSync.resetEgress(); } else { alert('Sync Engine Not Ready'); }">
+                                        <i class="bi bi-arrow-counterclockwise"></i>
+                                        <span>Reset Egress Limit</span>
+                                    </button>
+                                </li>
                             </ul>
                         </div>
 
