@@ -577,16 +577,13 @@
               if (res && res.error) throw res.error;
               _log('📤', `Students: ${changed.length}/${stuTotal} changed → pushed`);
             }
-            // Tombstones: keys removed since last snapshot only (gd.deletedItems is an array, not .students)
-            const stuDelRows = deleted.map(function (key) {
-              if (!key) return null;
-              const id = `${CFG.ACADEMY_ID}_stu_${key}`;
-              return { id: id, academy_id: CFG.ACADEMY_ID, data: null, deleted: true };
-            }).filter(Boolean);
+            const stuDelRows = ((gd.deletedItems?.students || []).map(item => {
+              const recId = item.studentId || item.id || item.item?.studentId || item.item?.id;
+              return recId ? { id: `${CFG.ACADEMY_ID}_stu_${recId}`, academy_id: CFG.ACADEMY_ID, data: null, deleted: true } : null;
+            })).filter(x => x);
             if (stuDelRows.length > 0) {
               const resDel = await _sb.from(CFG.TBL_STUDENTS).upsert(stuDelRows, { onConflict: 'id' });
               if (resDel && resDel.error) throw resDel.error;
-              _log('📤', `Students: ${stuDelRows.length} tombstone(s) → cloud (deleted)`);
             }
             // ✅ V36 FIX: ONLY save snapshot if push succeeds
             _saveSnapshot('students', snapshot);
@@ -606,15 +603,13 @@
               if (res && res.error) throw res.error;
               _log('📤', `Finance: ${changed.length}/${finTotal} changed → pushed`);
             }
-            const finDelRows = deleted.map(function (key) {
-              if (key === undefined || key === null || key === '') return null;
-              const id = `${CFG.ACADEMY_ID}_fin_${key}`;
-              return { id: id, academy_id: CFG.ACADEMY_ID, data: null, deleted: true };
-            }).filter(Boolean);
+            const finDelRows = ((gd.deletedItems?.finance || []).map(item => {
+              const recId = item.id || item.item?.id;
+              return recId ? { id: `${CFG.ACADEMY_ID}_fin_${recId}`, academy_id: CFG.ACADEMY_ID, data: null, deleted: true } : null;
+            })).filter(x => x);
             if (finDelRows.length > 0) {
               const resDel = await _sb.from(CFG.TBL_FINANCE).upsert(finDelRows, { onConflict: 'id' });
               if (resDel && resDel.error) throw resDel.error;
-              _log('📤', `Finance: ${finDelRows.length} tombstone(s) → cloud (deleted)`);
             }
             // ✅ V36 FIX: ONLY save snapshot if push succeeds
             _saveSnapshot('finance', snapshot);
