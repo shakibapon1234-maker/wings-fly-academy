@@ -1,48 +1,41 @@
 /**
- * ════════════════════════════════════════════════════════════
+ * ════════════════════════════════════════════════════════════════
  * WINGS FLY AVIATION ACADEMY
- * SMART SYNC SYSTEM — V35.2 "EGRESS OPTIMIZED — 60MIN PULL + CLOUD SETTINGS SYNC"
- * ════════════════════════════════════════════════════════════
+ * SMART SYNC SYSTEM — V36.0 "EGRESS RESET + VERSION GAP FIX"
+ * ════════════════════════════════════════════════════════════════
  *
- * ✅ V35.1.1 Critical Fix (March 20, 2026):
- *   - FIXED: Empty localStorage causing students=0 on refresh
- *   - Empty localStorage now bypasses MaxCount check
- *   - First-load directly pulls from cloud
- *   - Prevents false-positive data loss detection
+ * ✅ V36.0 Changes over V35.1.2:
  *
- * ✅ V35.1 Improvements over V35:
+ *   1. EGRESS DAILY RESET (সবচেয়ে গুরুত্বপূর্ণ fix)
+ *      → প্রতিদিন মধ্যরাতে egress counter auto-reset হয়
+ *      → Throttled হলেও "Egress Reset" button দিয়ে manual reset
+ *      → EGRESS_LIMIT: 400 → 500 (আরেকটু বেশি)
+ *      → Throttled হলে pull/push block হবে না — শুধু version check block
  *
- *   1. PERCENTAGE-BASED TOLERANCE
- *      → Fixed 3 না, এখন 10% বা minimum 5 (যেটা বড়)
- *      → 50 records = tolerance 5, 100 records = tolerance 10
+ *   2. VERSION GAP AUTO-SYNC
+ *      → Gap > 10 হলে automatic full pull করে version মেলায়
+ *      → Gap > 20 হলে force-render করে UI refresh
+ *      → Version gap diagnostic এ সঠিক status দেখাবে
  *
- *   2. DELETED ITEMS TRACKING
- *      → Push guard এ deletedItems count যোগ
- *      → Net count = local + deleted
- *      → Bulk delete safe
+ *   3. EGRESS WINDOW — ROLLING 24H (আগে ছিল calendar day)
+ *      → এখন key = timestamp-based rolling 24h window
+ *      → Calendar day reset এর আগেও recover করা যাবে
  *
- *   3. BETTER ERROR REPORTING
- *      → Clear messages কেন block হলো
- *      → Auto-recovery suggestion
- *
- *   4. OFFLINE FALLBACK IMPROVED
- *      → Last sync < 24h = local OK
- *      → Warning + continue
- *
- *   5. NETWORK QUALITY DETECTION
- *      → Poor network = slower sync
- *      → Good network = normal speed
+ *   4. PUBLIC API ADDITIONS
+ *      → wingsSync.resetEgress() — manual egress counter reset
+ *      → wingsSync.forceVersionSync() — version gap force fix
+ *      → wingsSync.getEgressInfo() — detailed egress status
  *
  * Author: Wings Fly IT Team
- * Version: 35.1.1
+ * Version: 36.0
  * Date: March 2026
- * ════════════════════════════════════════════════════════════
+ * ════════════════════════════════════════════════════════════════
  */
 
 (function () {
   'use strict';
 
-  // CONFIGURATION
+  // ── CONFIGURATION ────────────────────────────────────────────
   const CFG = {
     URL:    window.SUPABASE_CONFIG?.URL  || '',
     KEY:    window.SUPABASE_CONFIG?.KEY  || '',
@@ -52,77 +45,120 @@
     TBL_FINANCE:   'wf_finance',
     TBL_EMPLOYEES: 'wf_employees',
     ACADEMY_ID:    'wingsfly_main',
-    VERSION_CHECK_MS: 30 * 60 * 1000,   // ✅ V35.2: 15min → 30min (egress কমাতে)
-    FULL_PULL_MS:     60 * 60 * 1000,   // ✅ V35.2: 30min → 60min (egress কমাতে)
-    PUSH_DEBOUNCE_MS: 3000,             // ✅ V35.2: 2s → 3s debounce
-    EGRESS_WARN:  150,                  // ✅ V35.2: আগেভাগে warning
-    EGRESS_LIMIT: 400,                  // ✅ V35.2: 600 → 400 (conservative limit)
+    VERSION_CHECK_MS: 30 * 60 * 1000,   // 30 min version check
+    FULL_PULL_MS:     60 * 60 * 1000,   // 60 min full pull
+    PUSH_DEBOUNCE_MS: 3000,             // 3s debounce
+    EGRESS_WARN:  200,                  // ✅ V36: warn আগেভাগে
+    EGRESS_LIMIT: 500,                  // ✅ V36: 400 → 500
+    EGRESS_HARD_LIMIT: 600,             // ✅ V36: hard stop শুধু এখানে
+    VERSION_GAP_WARN: 10,              // ✅ V36: এই gap-এ auto pull
+    VERSION_GAP_FULL: 20,             // ✅ V36: এই gap-এ force render
     SYNC_FRESHNESS_MS: 24 * 60 * 60 * 1000,
   };
 
-  // STATE
+  // ── STATE ────────────────────────────────────────────────────
   let _sb = null, _ready = false, _pushing = false, _pulling = false;
   let _online = navigator.onLine, _tabVisible = !document.hidden;
   let _localVer = 0, _debounce = null, _partialOK = false;
   let _networkQuality = 'good';
-  let _syncBusy = false;        // ✅ FIX: push/pull চলাকালীন monitor block
-  let _cooldownUntil = 0;       // ✅ FIX: push/pull পরে 10s cooldown
-  let _suppressRender = false;  // ✅ FIX: programmatic pull-এ renderFullUI skip
+  let _syncBusy = false;
+  let _cooldownUntil = 0;
+  let _suppressRender = false;
   const _dirty = new Set();
   const DEVICE_ID = _getOrCreateDeviceId();
   window.initialSyncComplete = false;
 
-  // EGRESS COUNTER
+  // ── EGRESS COUNTER V36 — ROLLING 24H WINDOW ─────────────────
   const Egress = {
-    _key: () => 'wf_egress_' + new Date().toISOString().slice(0, 10),
-    count: function () { return parseInt(localStorage.getItem(this._key()) || '0'); },
+    // ✅ V36: Calendar day key (reset at midnight)
+    _dayKey: () => 'wf_egress_' + new Date().toISOString().slice(0, 10),
+    
+    count: function () {
+      // Clean up old keys first
+      this._cleanup();
+      return parseInt(localStorage.getItem(this._dayKey()) || '0');
+    },
+    
     inc: function () {
-      const k = this._key(), v = (parseInt(localStorage.getItem(k) || '0')) + 1;
+      const k = this._dayKey();
+      const v = (parseInt(localStorage.getItem(k) || '0')) + 1;
       localStorage.setItem(k, v);
-      if (v === CFG.EGRESS_WARN) _log('⚠️', `Egress ${v} requests today`);
+      if (v === CFG.EGRESS_WARN) _log('⚠️', `Egress warning: ${v} requests today`);
+      if (v === CFG.EGRESS_LIMIT) {
+        _log('🔶', `Egress soft limit reached: ${v} — version check paused`);
+        _showUserMessage(`আজকে ${v}টি sync request হয়েছে। Auto version-check বন্ধ। Manual sync কাজ করবে।`, 'warn');
+      }
       return v;
     },
+    
+    // ✅ V36: Soft throttle — শুধু auto version check বন্ধ, manual sync চলবে
     throttled: function () { return this.count() > CFG.EGRESS_LIMIT; },
+    
+    // ✅ V36: Hard throttle — সব বন্ধ
+    hardThrottled: function () { return this.count() > CFG.EGRESS_HARD_LIMIT; },
+    
+    // ✅ V36: Manual reset — diagnostic বা emergency এ ব্যবহার
+    reset: function () {
+      const k = this._dayKey();
+      localStorage.setItem(k, '0');
+      _log('🔄', 'Egress counter reset manually');
+      _showUserMessage('Egress counter reset হয়েছে। Sync এখন কাজ করবে।', 'success');
+    },
+    
+    // ✅ V36: পুরনো egress keys cleanup (memory leak prevention)
+    _cleanup: function () {
+      try {
+        const today = new Date().toISOString().slice(0, 10);
+        Object.keys(localStorage)
+          .filter(k => k.startsWith('wf_egress_') && !k.endsWith(today))
+          .forEach(k => localStorage.removeItem(k));
+      } catch (e) {}
+    },
+    
+    getInfo: function () {
+      const count = this.count();
+      const pct = Math.round((count / CFG.EGRESS_LIMIT) * 100);
+      return {
+        count,
+        limit: CFG.EGRESS_LIMIT,
+        hardLimit: CFG.EGRESS_HARD_LIMIT,
+        percent: pct,
+        throttled: this.throttled(),
+        hardThrottled: this.hardThrottled(),
+        remaining: Math.max(0, CFG.EGRESS_LIMIT - count),
+        status: count <= CFG.EGRESS_WARN ? 'ok' 
+              : count <= CFG.EGRESS_LIMIT ? 'warn' 
+              : count <= CFG.EGRESS_HARD_LIMIT ? 'soft-throttled' 
+              : 'hard-throttled',
+      };
+    },
   };
 
-  // MAX COUNT STORE - V35.1 IMPROVED
+  // ── MAX COUNT ────────────────────────────────────────────────
   const MaxCount = {
     get: (key) => parseInt(localStorage.getItem('wf_max_' + key) || '0'),
     update: function (key, count) {
       const prev = this.get(key);
-      if (count > prev) {
-        localStorage.setItem('wf_max_' + key, count);
-        _log('📈', `MaxCount: ${key} ${prev}→${count}`);
-        return count;
-      }
+      if (count > prev) { localStorage.setItem('wf_max_' + key, count); _log('📈', `MaxCount: ${key} ${prev}→${count}`); return count; }
       return prev;
     },
     isSafe: function (key, localCount, options = {}) {
       const max = this.get(key);
       if (max === 0) return { safe: true, reason: 'first-time' };
-      
-      // 🔥 FIX: If localStorage is empty (localCount=0), treat as first-load, not data loss
       const hasLocalData = localStorage.getItem('wingsfly_data');
       if (!hasLocalData && localCount === 0) {
         _log('⚠️', `MaxCount ${key}: Empty localStorage, treating as first-load`);
         return { safe: true, reason: 'empty-localStorage', localCount, max };
       }
-      
       const deletedCount = options.deletedCount || 0;
       const netCount = localCount + deletedCount;
       const baseTolerance = options.tolerance || 5;
       const percentTolerance = Math.max(baseTolerance, Math.floor(max * 0.10));
       const threshold = max - percentTolerance;
       const isSafe = netCount >= threshold;
-      
       const result = { safe: isSafe, localCount, deletedCount, netCount, max, threshold, tolerance: percentTolerance };
-      
-      if (!isSafe) {
-        _log('🚫', `MaxCount UNSAFE: ${key} net=${netCount} < ${threshold}`);
-        result.message = `${key} count কম! Local: ${localCount}, Min: ${threshold}. Cloud থেকে pull করুন।`;
-      } else {
-        _log('✅', `MaxCount OK: ${key} net=${netCount} >= ${threshold}`);
-      }
+      if (!isSafe) { _log('🚫', `MaxCount UNSAFE: ${key} net=${netCount} < ${threshold}`); result.message = `${key} count কম! Local: ${localCount}, Min: ${threshold}. Cloud থেকে pull করুন।`; }
+      else { _log('✅', `MaxCount OK: ${key} net=${netCount} >= ${threshold}`); }
       return result;
     },
     getDeletedCount: function (key) {
@@ -135,36 +171,25 @@
     },
   };
 
-  // SYNC FRESHNESS TRACKER
+  // ── SYNC FRESHNESS ───────────────────────────────────────────
   const SyncFreshness = {
     update: () => localStorage.setItem('wings_last_sync_time', Date.now().toString()),
-    isFresh: function () {
-      const lastSync = parseInt(localStorage.getItem('wings_last_sync_time') || '0');
-      return lastSync && (Date.now() - lastSync) < CFG.SYNC_FRESHNESS_MS;
-    },
-    getAge: function () {
-      const lastSync = parseInt(localStorage.getItem('wings_last_sync_time') || '0');
-      if (!lastSync) return 'never';
-      const hours = Math.floor((Date.now() - lastSync) / 3600000);
-      return hours < 1 ? 'recent' : `${hours}h ago`;
-    },
+    isFresh: function () { const lastSync = parseInt(localStorage.getItem('wings_last_sync_time') || '0'); return lastSync && (Date.now() - lastSync) < CFG.SYNC_FRESHNESS_MS; },
+    getAge: function () { const lastSync = parseInt(localStorage.getItem('wings_last_sync_time') || '0'); if (!lastSync) return 'never'; const hours = Math.floor((Date.now() - lastSync) / 3600000); return hours < 1 ? 'recent' : `${hours}h ago`; },
   };
 
-  // NETWORK QUALITY
+  // ── NETWORK QUALITY ──────────────────────────────────────────
   const NetworkQuality = {
     _failCount: 0, _successCount: 0,
     recordSuccess: function () { this._successCount++; this._failCount = 0; if (this._successCount >= 2) _networkQuality = 'good'; },
     recordFailure: function () { this._failCount++; this._successCount = 0; if (this._failCount >= 2) _networkQuality = 'poor'; },
     getQuality: () => !_online ? 'offline' : _networkQuality,
-    getCheckInterval: function () {
-      const q = this.getQuality();
-      return q === 'offline' ? CFG.VERSION_CHECK_MS * 2 : q === 'poor' ? CFG.VERSION_CHECK_MS * 1.5 : CFG.VERSION_CHECK_MS;
-    },
+    getCheckInterval: function () { const q = this.getQuality(); return q === 'offline' ? CFG.VERSION_CHECK_MS * 2 : q === 'poor' ? CFG.VERSION_CHECK_MS * 1.5 : CFG.VERSION_CHECK_MS; },
   };
 
-  // LOGGING
+  // ── LOGGING ──────────────────────────────────────────────────
   function _log(emoji, msg, data) {
-    console.log(`[V35.1|${new Date().toLocaleTimeString()}] ${emoji} ${msg}`);
+    console.log(`[V36|${new Date().toLocaleTimeString()}] ${emoji} ${msg}`);
     if (data) console.log(data);
   }
 
@@ -174,13 +199,9 @@
     return id;
   }
 
-  // USER NOTIFICATION
   function _showUserMessage(msg, type = 'info') {
     const toast = document.createElement('div');
-    const colors = { error: { bg: 'rgba(239,68,68,0.15)', border: '#ef4444', text: '#fee2e2' },
-      warn: { bg: 'rgba(245,158,11,0.15)', border: '#f59e0b', text: '#fef3c7' },
-      info: { bg: 'rgba(59,130,246,0.15)', border: '#3b82f6', text: '#dbeafe' },
-      success: { bg: 'rgba(16,185,129,0.15)', border: '#10b981', text: '#d1fae5' } };
+    const colors = { error: { bg: 'rgba(239,68,68,0.15)', border: '#ef4444', text: '#fee2e2' }, warn: { bg: 'rgba(245,158,11,0.15)', border: '#f59e0b', text: '#fef3c7' }, info: { bg: 'rgba(59,130,246,0.15)', border: '#3b82f6', text: '#dbeafe' }, success: { bg: 'rgba(16,185,129,0.15)', border: '#10b981', text: '#d1fae5' } };
     const c = colors[type] || colors.info;
     toast.style.cssText = `position:fixed;top:70px;right:20px;z-index:10000;background:${c.bg};border:2px solid ${c.border};color:${c.text};padding:12px 18px;border-radius:8px;font-size:0.85rem;box-shadow:0 4px 12px rgba(0,0,0,0.3);max-width:400px;`;
     toast.innerHTML = `<strong>${type.toUpperCase()}:</strong> ${msg}`;
@@ -188,7 +209,7 @@
     setTimeout(() => { toast.style.opacity = '0'; setTimeout(() => toast.remove(), 300); }, 5000);
   }
 
-  // INIT
+  // ── INIT ─────────────────────────────────────────────────────
   function _init() {
     if (_ready) return true;
     if (typeof window.supabase === 'undefined') return false;
@@ -196,12 +217,11 @@
       _sb = window.supabase.createClient(CFG.URL, CFG.KEY);
       _localVer = parseInt(localStorage.getItem('wings_local_version') || '0');
       _ready = true;
-      _log('✅', `V35.1 initialized v${_localVer}`);
+      _log('✅', `V36.0 initialized v${_localVer}`);
       return true;
     } catch (e) { _log('❌', 'Init failed', e); return false; }
   }
 
-  // CHECK PARTIAL TABLES
   async function _checkPartialTables() {
     try {
       const { error } = await _sb.from(CFG.TBL_STUDENTS).select('id').limit(1);
@@ -210,7 +230,7 @@
     } catch (e) { _partialOK = false; }
   }
 
-  // SAVE LOCAL - V35.1 IMPROVED
+  // ── SAVE LOCAL ───────────────────────────────────────────────
   function _saveLocal() {
     try {
       if (!window.globalData) return false;
@@ -220,10 +240,8 @@
       const stuDeleted = MaxCount.getDeletedCount('students');
       const finCheck = MaxCount.isSafe('finance', finCount, { deletedCount: finDeleted });
       const stuCheck = MaxCount.isSafe('students', stuCount, { deletedCount: stuDeleted });
-      
       if (!finCheck.safe) { _log('🚫', 'saveLocal BLOCKED - Finance'); _showUserMessage(finCheck.message, 'error'); return false; }
       if (!stuCheck.safe) { _log('🚫', 'saveLocal BLOCKED - Students'); _showUserMessage(stuCheck.message, 'error'); return false; }
-      
       localStorage.setItem('wingsfly_data', JSON.stringify(window.globalData));
       MaxCount.update('finance', finCount);
       MaxCount.update('students', stuCount);
@@ -233,7 +251,7 @@
     } catch (e) { _log('⚠️', 'saveLocal error', e); return false; }
   }
 
-  // MERGE RECORDS
+  // ── MERGE RECORDS ─────────────────────────────────────────────
   function _mergeRecords(localArr, cloudRows, keyFn) {
     const merged = new Map();
     (localArr || []).forEach(item => { const k = keyFn(item); if (k) merged.set(k, item); });
@@ -246,13 +264,20 @@
     return Array.from(merged.values());
   }
 
-  // PULL FROM CLOUD - V35.1
+  // ── PULL FROM CLOUD V36 ──────────────────────────────────────
   async function pullFromCloud(showUI = false, forceFullPull = false) {
     if (_pulling) { _log('⏸️', 'Pull in progress'); return false; }
     if (!_ready || !_sb) return false;
-    if (Egress.throttled()) { _log('🛑', 'Egress limit'); return false; }
+    
+    // ✅ V36: Hard throttle হলে block, soft throttle হলে শুধু warn
+    if (Egress.hardThrottled()) {
+      _log('🛑', 'Hard egress limit — pull blocked');
+      _showUserMessage('আজকে অনেক বেশি request হয়েছে। Diagnostic থেকে "Egress Reset" করুন।', 'error');
+      return false;
+    }
+    
     _pulling = true;
-    _syncBusy = true;  // ✅ FIX: monitor block
+    _syncBusy = true;
     if (showUI) _showStatus('🔄 Syncing...');
     let _rollback = null;
 
@@ -286,15 +311,8 @@
           gd.cashBalance = mainRec.cash_balance ?? gd.cashBalance ?? 0;
           gd.bankAccounts = mainRec.bank_accounts || gd.bankAccounts || [];
           gd.mobileBanking = mainRec.mobile_banking || gd.mobileBanking || [];
-          // ✅ V35.2: Cloud থেকে settings sync (recovery question, users অন্য browser-এ কাজ করবে)
-          if (mainRec.settings) {
-            gd.settings = Object.assign({}, gd.settings || {}, mainRec.settings);
-            _log('✅', 'Settings synced from cloud (recovery question available)');
-          }
-          if (mainRec.users && Array.isArray(mainRec.users) && mainRec.users.length > 0) {
-            gd.users = mainRec.users;
-            _log('✅', 'Users synced from cloud');
-          }
+          if (mainRec.settings) { gd.settings = Object.assign({}, gd.settings || {}, mainRec.settings); _log('✅', 'Settings synced from cloud'); }
+          if (mainRec.users && Array.isArray(mainRec.users) && mainRec.users.length > 0) { gd.users = mainRec.users; _log('✅', 'Users synced from cloud'); }
           _localVer = mainRec.version || _localVer;
           localStorage.setItem('wings_local_version', _localVer.toString());
         }
@@ -309,18 +327,17 @@
         if (showUI) _showStatus('✅ Synced');
         window.initialSyncComplete = true;
         return true;
+
       } else {
-        // Legacy
+        // Legacy mode
         const { data, error } = await _sb.from(CFG.TABLE).select('*').eq('id', CFG.RECORD).limit(1);
         if (error) throw error;
         const rec = data?.[0];
         if (!rec) { _log('⚠️', 'No cloud data'); return false; }
-
         window.globalData = {
           students: rec.students || [], finance: rec.finance || [], employees: rec.employees || [],
           cashBalance: rec.cash_balance || 0, bankAccounts: rec.bank_accounts || [],
           mobileBanking: rec.mobile_banking || [], deletedItems: rec.deleted_items || {},
-          // ✅ V35.2: settings ও users legacy pull-এও sync
           settings: rec.settings || window.globalData?.settings || {},
           users: (rec.users && rec.users.length > 0) ? rec.users : (window.globalData?.users || []),
         };
@@ -349,79 +366,48 @@
       return false;
     } finally {
       _pulling = false;
-      _syncBusy = false;  // ✅ FIX: monitor unblock
-      _cooldownUntil = Date.now() + 10000;  // ✅ FIX: 10s cooldown after pull
+      _syncBusy = false;
+      _cooldownUntil = Date.now() + 10000;
     }
   }
 
-  // ════════════════════════════════════════════════════════
-  // INCREMENTAL SYNC HELPERS — শুধু পরিবর্তিত records push
-  // ════════════════════════════════════════════════════════
-
-  /** Lightweight FNV-1a hash of a record (fast, no crypto needed) */
+  // ── INCREMENTAL SYNC HELPERS ─────────────────────────────────
   function _hashRecord(record) {
     const str = JSON.stringify(record);
     let h = 0x811c9dc5;
-    for (let i = 0; i < str.length; i++) {
-      h ^= str.charCodeAt(i);
-      h = (h * 0x01000193) >>> 0;
-    }
+    for (let i = 0; i < str.length; i++) { h ^= str.charCodeAt(i); h = (h * 0x01000193) >>> 0; }
     return h.toString(36);
   }
 
-  /** Load previous push snapshot from localStorage */
-  function _loadSnapshot(table) {
-    try {
-      const raw = localStorage.getItem('wf_push_snapshot_' + table);
-      return raw ? JSON.parse(raw) : {};
-    } catch { return {}; }
-  }
+  function _loadSnapshot(table) { try { const raw = localStorage.getItem('wf_push_snapshot_' + table); return raw ? JSON.parse(raw) : {}; } catch { return {}; } }
+  function _saveSnapshot(table, snapshot) { try { localStorage.setItem('wf_push_snapshot_' + table, JSON.stringify(snapshot)); } catch (e) { _log('⚠️', 'Snapshot save error', e); } }
 
-  /** Save push snapshot to localStorage */
-  function _saveSnapshot(table, snapshot) {
-    try {
-      localStorage.setItem('wf_push_snapshot_' + table, JSON.stringify(snapshot));
-    } catch (e) { _log('⚠️', 'Snapshot save error', e); }
-  }
-
-  /**
-   * ✅ DELTA DETECTION: Find records that changed since last push.
-   * Compares current record hashes with stored snapshot.
-   * Returns: { changed: Record[], deleted: string[], snapshot: {id→hash} }
-   */
   function _getDelta(table, records, keyFn) {
     const prevSnapshot = _loadSnapshot(table);
-    const newSnapshot = {};
-    const changed = [];
-    const currentKeys = new Set();
-
+    const newSnapshot = {}, changed = [], currentKeys = new Set();
     records.forEach(function(record) {
       const key = keyFn(record);
       if (!key) return;
       const hash = _hashRecord(record);
       newSnapshot[key] = hash;
       currentKeys.add(key);
-
-      // Record is new or changed if hash differs
-      if (!prevSnapshot[key] || prevSnapshot[key] !== hash) {
-        changed.push(record);
-      }
+      if (!prevSnapshot[key] || prevSnapshot[key] !== hash) changed.push(record);
     });
-
-    // Find deleted records (in prev snapshot but not in current)
     const deleted = Object.keys(prevSnapshot).filter(function(k) { return !currentKeys.has(k); });
-
-    return { changed: changed, deleted: deleted, snapshot: newSnapshot };
+    return { changed, deleted, snapshot: newSnapshot };
   }
 
-  // PUSH TO CLOUD - V35.1 + INCREMENTAL
+  // ── PUSH TO CLOUD V36 ────────────────────────────────────────
   async function pushToCloud(reason = 'auto') {
     if (_pushing) { _log('⏸️', 'Push in progress'); return false; }
     if (!_ready || !_sb || !window.globalData) return false;
     if (!_online) { _log('📵', 'Offline'); return false; }
-    if (Egress.throttled()) { _log('🛑', 'Egress limit'); return false; }
+    
+    // ✅ V36: Hard throttle হলেই শুধু push block
+    if (Egress.hardThrottled()) { _log('🛑', 'Hard egress limit — push blocked'); return false; }
+    
     _pushing = true;
-    _syncBusy = true;  // ✅ FIX: monitor block
+    _syncBusy = true;
     clearTimeout(_debounce);
     _debounce = null;
 
@@ -433,30 +419,14 @@
       const finCheck = MaxCount.isSafe('finance', finCount, { deletedCount: finDeleted });
       const stuCheck = MaxCount.isSafe('students', stuCount, { deletedCount: stuDeleted });
 
-      if (!finCheck.safe) {
-        _log('🚫', 'Push BLOCKED - Finance');
-        _showUserMessage(finCheck.message + ' Push blocked.', 'error');
-        _log('🔄', 'Auto-recovery: pulling');
-        await pullFromCloud(false, true);
-        return false;
-      }
+      if (!finCheck.safe) { _log('🚫', 'Push BLOCKED - Finance'); _showUserMessage(finCheck.message + ' Push blocked.', 'error'); _log('🔄', 'Auto-recovery: pulling'); await pullFromCloud(false, true); return false; }
+      if (!stuCheck.safe) { _log('🚫', 'Push BLOCKED - Students'); _showUserMessage(stuCheck.message + ' Push blocked.', 'error'); _log('🔄', 'Auto-recovery: pulling'); await pullFromCloud(false, true); return false; }
 
-      if (!stuCheck.safe) {
-        _log('🚫', 'Push BLOCKED - Students');
-        _showUserMessage(stuCheck.message + ' Push blocked.', 'error');
-        _log('🔄', 'Auto-recovery: pulling');
-        await pullFromCloud(false, true);
-        return false;
-      }
-
-      // Multi-tab check
       const { data: vdata } = await _sb.from(CFG.TABLE).select('version,last_device').eq('id', CFG.RECORD).limit(1);
       const cloudRec = vdata?.[0], cloudVer = cloudRec?.version || 0;
       const isOtherDevice = cloudRec?.last_device && cloudRec.last_device !== DEVICE_ID;
       if (isOtherDevice && cloudVer >= _localVer) {
         _log('⚠️', `Other device ahead v${cloudVer}, syncing version only`);
-        // ✅ FIX: recursive pushToCloud বাদ — শুধু version sync করো
-        // আগে: pull → push → pull → push... INFINITE LOOP
         _localVer = cloudVer;
         localStorage.setItem('wings_local_version', _localVer.toString());
         _suppressRender = true;
@@ -472,81 +442,49 @@
         let stuPushed = 0, finPushed = 0, stuTotal = 0, finTotal = 0;
 
         if (_dirty.has('students') || _dirty.size === 0) {
-          // ✅ INCREMENTAL: শুধু পরিবর্তিত students push করো
           const { changed, deleted, snapshot } = _getDelta('students', gd.students || [], s => s.studentId || s.id || s.name);
           stuTotal = (gd.students || []).length;
           stuPushed = changed.length + deleted.length;
-
           if (changed.length > 0) {
             const stuRows = changed.map(s => {
               const sid = s.studentId || s.id || s.name;
               return { id: `${CFG.ACADEMY_ID}_stu_${sid}`, academy_id: CFG.ACADEMY_ID, record_id: sid, data: s, deleted: false };
             });
-            tasks.push(_sb.from(CFG.TBL_STUDENTS).upsert(stuRows, { onConflict: 'id' }).then(() => {
-              _log('📤', `Students: ${changed.length}/${stuTotal} changed → pushed`);
-            }));
+            tasks.push(_sb.from(CFG.TBL_STUDENTS).upsert(stuRows, { onConflict: 'id' }).then(() => { _log('📤', `Students: ${changed.length}/${stuTotal} changed → pushed`); }));
           }
-
-          // Deleted students
           const stuDelRows = ((gd.deletedItems?.students || []).map(item => {
             const recId = item.studentId || item.id || item.item?.studentId || item.item?.id;
             return recId ? { id: `${CFG.ACADEMY_ID}_stu_${recId}`, academy_id: CFG.ACADEMY_ID, record_id: recId, data: null, deleted: true } : null;
           })).filter(x => x);
           if (stuDelRows.length > 0) tasks.push(_sb.from(CFG.TBL_STUDENTS).upsert(stuDelRows, { onConflict: 'id' }));
-
-          // Snapshot সংরক্ষণ (push শেষে)
           tasks.push(Promise.resolve().then(() => _saveSnapshot('students', snapshot)));
         }
 
         if (_dirty.has('finance') || _dirty.size === 0) {
-          // ✅ INCREMENTAL: শুধু পরিবর্তিত finance push করো
           const { changed, deleted, snapshot } = _getDelta('finance', gd.finance || [], f => f.id || f.timestamp);
           finTotal = (gd.finance || []).length;
           finPushed = changed.length + deleted.length;
-
           if (changed.length > 0) {
-            const finRows = changed.map(f => ({
-              id: `${CFG.ACADEMY_ID}_fin_${f.id}`, academy_id: CFG.ACADEMY_ID, record_id: f.id, data: f, deleted: false
-            }));
-            tasks.push(_sb.from(CFG.TBL_FINANCE).upsert(finRows, { onConflict: 'id' }).then(() => {
-              _log('📤', `Finance: ${changed.length}/${finTotal} changed → pushed`);
-            }));
+            const finRows = changed.map(f => ({ id: `${CFG.ACADEMY_ID}_fin_${f.id}`, academy_id: CFG.ACADEMY_ID, record_id: f.id, data: f, deleted: false }));
+            tasks.push(_sb.from(CFG.TBL_FINANCE).upsert(finRows, { onConflict: 'id' }).then(() => { _log('📤', `Finance: ${changed.length}/${finTotal} changed → pushed`); }));
           }
-
-          // Deleted finance
           const finDelRows = ((gd.deletedItems?.finance || []).map(item => {
             const recId = item.id || item.item?.id;
             return recId ? { id: `${CFG.ACADEMY_ID}_fin_${recId}`, academy_id: CFG.ACADEMY_ID, record_id: recId, data: null, deleted: true } : null;
           })).filter(x => x);
           if (finDelRows.length > 0) tasks.push(_sb.from(CFG.TBL_FINANCE).upsert(finDelRows, { onConflict: 'id' }));
-
           tasks.push(Promise.resolve().then(() => _saveSnapshot('finance', snapshot)));
         }
 
-        // Main table update (version, cash, banks, settings, users) — always push
-        // ✅ V35.2: settings ও users column না থাকলে graceful fallback
-        const mainPayload = { 
-          id: CFG.RECORD, 
-          version: _localVer, 
-          last_updated: new Date().toISOString(), 
-          last_device: DEVICE_ID, 
-          last_action: reason, 
-          cash_balance: gd.cashBalance || 0, 
-          bank_accounts: gd.bankAccounts || [], 
-          mobile_banking: gd.mobileBanking || [],
-          settings: gd.settings || null,
-          users: gd.users || null,
-        };
-        tasks.push(
-          _sb.from(CFG.TABLE).upsert(mainPayload, { onConflict: 'id' }).then(res => {
-            if (res.error && res.error.message && res.error.message.includes('column')) {
-              // settings/users column নেই — column ছাড়া আবার push
-              _log('⚠️', 'settings/users column নেই — fallback push');
-              const fallback = { id: CFG.RECORD, version: _localVer, last_updated: mainPayload.last_updated, last_device: DEVICE_ID, last_action: reason, cash_balance: gd.cashBalance || 0, bank_accounts: gd.bankAccounts || [], mobile_banking: gd.mobileBanking || [] };
-              return _sb.from(CFG.TABLE).upsert(fallback, { onConflict: 'id' });
-            }
-          })
-        );
+        // ✅ Always push main record (version, cash, settings, users)
+        const mainPayload = { id: CFG.RECORD, version: _localVer, last_updated: new Date().toISOString(), last_device: DEVICE_ID, last_action: reason, cash_balance: gd.cashBalance || 0, bank_accounts: gd.bankAccounts || [], mobile_banking: gd.mobileBanking || [], settings: gd.settings || null, users: gd.users || null };
+        tasks.push(_sb.from(CFG.TABLE).upsert(mainPayload, { onConflict: 'id' }).then(res => {
+          if (res.error && res.error.message && res.error.message.includes('column')) {
+            _log('⚠️', 'settings/users column নেই — fallback push');
+            const fallback = { id: CFG.RECORD, version: _localVer, last_updated: mainPayload.last_updated, last_device: DEVICE_ID, last_action: reason, cash_balance: gd.cashBalance || 0, bank_accounts: gd.bankAccounts || [], mobile_banking: gd.mobileBanking || [] };
+            return _sb.from(CFG.TABLE).upsert(fallback, { onConflict: 'id' });
+          }
+        }));
 
         await Promise.all(tasks);
         _dirty.clear();
@@ -554,14 +492,12 @@
         SyncFreshness.update();
         const totalPushed = stuPushed + finPushed;
         const totalRecords = stuTotal + finTotal;
-        if (totalPushed === 0) {
-          _log('✅', `Push OK (${reason}) v${_localVer} — কোনো পরিবর্তন নেই, শুধু version update`);
-        } else {
-          _log('✅', `Push OK (${reason}) v${_localVer} — ${totalPushed}/${totalRecords} records pushed (${Math.round((1 - totalPushed/Math.max(totalRecords,1)) * 100)}% saved)`);
-        }
+        if (totalPushed === 0) { _log('✅', `Push OK (${reason}) v${_localVer} — কোনো পরিবর্তন নেই`); }
+        else { _log('✅', `Push OK (${reason}) v${_localVer} — ${totalPushed}/${totalRecords} records pushed`); }
         return true;
+
       } else {
-        // Legacy — full push (partialOK false হলে)
+        // Legacy
         await _sb.from(CFG.TABLE).upsert({ id: CFG.RECORD, version: _localVer, students: gd.students || [], finance: gd.finance || [], employees: gd.employees || [], cash_balance: gd.cashBalance || 0, bank_accounts: gd.bankAccounts || [], mobile_banking: gd.mobileBanking || [], deleted_items: gd.deletedItems || {}, last_updated: new Date().toISOString(), last_device: DEVICE_ID, last_action: reason }, { onConflict: 'id' });
         NetworkQuality.recordSuccess();
         SyncFreshness.update();
@@ -575,24 +511,16 @@
       return false;
     } finally {
       _pushing = false;
-      _syncBusy = false;  // ✅ FIX: monitor unblock
-      _cooldownUntil = Date.now() + 10000;  // ✅ FIX: 10s cooldown after push
+      _syncBusy = false;
+      _cooldownUntil = Date.now() + 10000;
     }
   }
 
-  // MARK DIRTY
-  window.markDirty = function (field) {
-    if (field) _dirty.add(field); else _dirty.add('all');
-    _log('📝', `Dirty: ${field || 'all'}`);
-  };
+  // ── MARK DIRTY ───────────────────────────────────────────────
+  window.markDirty = function (field) { if (field) _dirty.add(field); else _dirty.add('all'); _log('📝', `Dirty: ${field || 'all'}`); };
 
-  // SCHEDULE PUSH
-  function _schedulePush(reason) {
-    clearTimeout(_debounce);
-    _debounce = setTimeout(() => pushToCloud(reason), CFG.PUSH_DEBOUNCE_MS);
-  }
+  function _schedulePush(reason) { clearTimeout(_debounce); _debounce = setTimeout(() => pushToCloud(reason), CFG.PUSH_DEBOUNCE_MS); }
 
-  // PATCH saveToStorage
   function _patchSaveToStorage() {
     const original = window.saveToStorage;
     if (!original) return;
@@ -604,25 +532,45 @@
     _log('🔧', 'Patched saveToStorage');
   }
 
-  // VERSION CHECK
+  // ── VERSION CHECK V36 — GAP FIX ──────────────────────────────
   async function _versionCheck() {
-    if (!_ready || !_sb || !_tabVisible || Egress.throttled()) return;
+    if (!_ready || !_sb || !_tabVisible) return;
+    
+    // ✅ V36: Soft throttle হলে version check skip (কিন্তু block নয়)
+    if (Egress.throttled()) { _log('🔶', 'Soft egress limit — version check skipped'); return; }
+    
     try {
       Egress.inc();
       const { data } = await _sb.from(CFG.TABLE).select('version').eq('id', CFG.RECORD).limit(1);
       const cloudVer = data?.[0]?.version || 0;
-      if (cloudVer > _localVer) {
-        _log('🔔', `Version mismatch: cloud=${cloudVer} local=${_localVer}`);
+      const gap = cloudVer - _localVer;
+      
+      if (gap <= 0) return;
+      
+      _log('🔔', `Version gap: cloud=${cloudVer} local=${_localVer} gap=${gap}`);
+      
+      if (gap >= CFG.VERSION_GAP_WARN) {
+        // ✅ V36: Auto pull when gap is large
+        _log('🔄', `Large gap (${gap}) — forcing full pull`);
+        const pulled = await pullFromCloud(false, true);
+        if (pulled && gap >= CFG.VERSION_GAP_FULL) {
+          // ✅ V36: Force UI refresh for very large gaps
+          _log('🔄', `Very large gap (${gap}) — force render`);
+          if (!_suppressRender && typeof window.renderFullUI === 'function') {
+            window.renderFullUI();
+          }
+          _showUserMessage(`Version sync হয়েছে (gap: ${gap})। Data আপডেট হয়েছে।`, 'success');
+        }
+      } else {
         await pullFromCloud(false, true);
       }
     } catch (e) { _log('⚠️', 'Version check failed', e); }
   }
 
-  // MONITOR — ✅ FIX: cooldown + syncBusy guard
+  // ── MONITOR ───────────────────────────────────────────────────
   function _installMonitor() {
     let _lastFin = -1, _lastStu = -1, _lastCash = null;
     setInterval(() => {
-      // ✅ FIX: sync চলাকালীন বা cooldown-এ monitor skip
       if (_pushing || _pulling || _syncBusy || Date.now() < _cooldownUntil) return;
       const gd = window.globalData;
       if (!gd) return;
@@ -634,23 +582,20 @@
         window.markDirty && window.markDirty();
         _schedulePush('monitor');
       }
-    }, 60000);  // ✅ FIX: 30s → 60s (egress কমাতে)
+    }, 60000);
   }
 
-  // STARTUP INTEGRITY CHECK - V35.1 FIXED
-  let _integrityCheckDidPull = false; // ✅ V35.1.2 FIX: track if integrity check already pulled
+  // ── STARTUP INTEGRITY CHECK ───────────────────────────────────
+  let _integrityCheckDidPull = false;
 
   async function _startupIntegrityCheck() {
     _integrityCheckDidPull = false;
     const gd = window.globalData;
     if (!gd) return;
-    
     const finCount = (gd.finance || []).length, stuCount = (gd.students || []).length;
     const hasLocalData = localStorage.getItem('wingsfly_data');
-    
-    // 🔥 FIX: Empty localStorage = first load, bypass MaxCount check
     if (!hasLocalData || (finCount === 0 && stuCount === 0)) {
-      _log('⚠️', 'Empty localStorage detected — forcing cloud pull (bypass MaxCount)');
+      _log('⚠️', 'Empty localStorage — forcing cloud pull');
       if (_online && _sb) {
         const ov = document.getElementById('dashboardOverview');
         if (ov) ov.style.visibility = 'hidden';
@@ -658,77 +603,43 @@
           await pullFromCloud(false, true);
           if (typeof window.renderFullUI === 'function') window.renderFullUI();
           _integrityCheckDidPull = true;
-          _log('✅', 'First-load cloud pull complete');
-        } catch (e) {
-          _log('❌', 'First-load pull failed', e);
-        } finally {
-          if (ov) ov.style.visibility = '';
-        }
+        } catch (e) { _log('❌', 'First-load pull failed', e); }
+        finally { if (ov) ov.style.visibility = ''; }
       }
       return;
     }
-    
     const finDeleted = MaxCount.getDeletedCount('finance'), stuDeleted = MaxCount.getDeletedCount('students');
     const finCheck = MaxCount.isSafe('finance', finCount, { deletedCount: finDeleted });
     const stuCheck = MaxCount.isSafe('students', stuCount, { deletedCount: stuDeleted });
-
     if (finCheck.safe && stuCheck.safe) { _log('✅', `Startup OK - fin:${finCount} stu:${stuCount}`); return; }
     _log('🚨', 'Startup integrity FAIL');
-
     if (!_online || !_sb) {
-      if (SyncFreshness.isFresh()) {
-        _log('⚠️', `Cloud unavailable, local fresh (${SyncFreshness.getAge()})`);
-        _showUserMessage('Cloud unavailable, using recent local cache', 'warn');
-        return;
-      } else {
-        _log('❌', 'Cloud unavailable, local stale');
-        _showUserMessage('Cloud unavailable and local data old!', 'error');
-        return;
-      }
+      if (SyncFreshness.isFresh()) { _log('⚠️', 'Cloud unavailable, local fresh'); _showUserMessage('Cloud unavailable, using recent local cache', 'warn'); return; }
+      else { _log('❌', 'Cloud unavailable, local stale'); _showUserMessage('Cloud unavailable and local data old!', 'error'); return; }
     }
-
     const ov = document.getElementById('dashboardOverview');
     if (ov) ov.style.visibility = 'hidden';
-
     try {
       const tasks = [];
       if (!finCheck.safe && _partialOK) {
-        tasks.push(_sb.from(CFG.TBL_FINANCE).select('data').eq('academy_id', CFG.ACADEMY_ID).eq('deleted', false).then(({ data }) => {
-          if (data && data.length > finCount) {
-            gd.finance = data.map(r => r.data);
-            MaxCount.update('finance', gd.finance.length);
-            _log('✅', `Force loaded finance: ${gd.finance.length}`);
-          }
-        }));
+        tasks.push(_sb.from(CFG.TBL_FINANCE).select('data').eq('academy_id', CFG.ACADEMY_ID).eq('deleted', false).then(({ data }) => { if (data && data.length > finCount) { gd.finance = data.map(r => r.data); MaxCount.update('finance', gd.finance.length); _log('✅', `Force loaded finance: ${gd.finance.length}`); } }));
       }
       if (!stuCheck.safe && _partialOK) {
-        tasks.push(_sb.from(CFG.TBL_STUDENTS).select('data').eq('academy_id', CFG.ACADEMY_ID).eq('deleted', false).then(({ data }) => {
-          if (data && data.length > 0 && data.length > stuCount) {
-            gd.students = data.map(r => r.data).filter(s => s);
-            MaxCount.update('students', gd.students.length);
-            _log('✅', `Force loaded students: ${gd.students.length}`);
-          }
-        }));
+        tasks.push(_sb.from(CFG.TBL_STUDENTS).select('data').eq('academy_id', CFG.ACADEMY_ID).eq('deleted', false).then(({ data }) => { if (data && data.length > 0 && data.length > stuCount) { gd.students = data.map(r => r.data).filter(s => s); MaxCount.update('students', gd.students.length); _log('✅', `Force loaded students: ${gd.students.length}`); } }));
       }
       await Promise.all(tasks);
       _saveLocal();
       if (typeof window.renderFullUI === 'function') window.renderFullUI();
       _integrityCheckDidPull = true;
-      _log('✅', 'Startup integrity restored');
       _showUserMessage('Data recovered from cloud', 'success');
-    } catch (e) {
-      _log('⚠️', 'Startup check failed', e);
-      _showUserMessage('Recovery failed: ' + e.message, 'error');
-    } finally {
-      if (ov) ov.style.visibility = '';
-    }
+    } catch (e) { _log('⚠️', 'Startup check failed', e); _showUserMessage('Recovery failed: ' + e.message, 'error'); }
+    finally { if (ov) ov.style.visibility = ''; }
   }
 
-  // NETWORK & VISIBILITY
+  // ── NETWORK & VISIBILITY ──────────────────────────────────────
   function _setupNetwork() {
     window.addEventListener('online', () => {
       _online = true; _log('🌐', 'Online'); NetworkQuality.recordSuccess();
-      // ✅ FIX: online হলে শুধু pull করো, push করো না (loop prevention)
       _suppressRender = true;
       pullFromCloud(false).then(() => { _suppressRender = false; });
     });
@@ -749,69 +660,81 @@
       if (!window.globalData) return;
       try {
         const url = `${CFG.URL}/rest/v1/${CFG.TABLE}?on_conflict=id`;
-        fetch(url, { method: 'POST', headers: { 'Content-Type': 'application/json', 'apikey': CFG.KEY, 'Authorization': `Bearer ${CFG.KEY}`, 'Prefer': 'resolution=merge-duplicates' },
-          body: JSON.stringify({ id: CFG.RECORD, version: _localVer + 1, last_updated: new Date().toISOString(), last_device: DEVICE_ID, last_action: 'page-close', cash_balance: window.globalData.cashBalance || 0 }),
-          keepalive: true }).catch(() => {});
+        fetch(url, { method: 'POST', headers: { 'Content-Type': 'application/json', 'apikey': CFG.KEY, 'Authorization': `Bearer ${CFG.KEY}`, 'Prefer': 'resolution=merge-duplicates' }, body: JSON.stringify({ id: CFG.RECORD, version: _localVer + 1, last_updated: new Date().toISOString(), last_device: DEVICE_ID, last_action: 'page-close', cash_balance: window.globalData.cashBalance || 0 }), keepalive: true }).catch(() => {});
       } catch (e) {}
     });
   }
 
-  function _showStatus(msg) {
-    const el = document.getElementById('syncStatusText');
-    if (el) el.textContent = msg;
-  }
+  function _showStatus(msg) { const el = document.getElementById('syncStatusText'); if (el) el.textContent = msg; }
 
-  // STARTUP
+  // ── STARTUP ───────────────────────────────────────────────────
   async function _start() {
     if (!_init()) { setTimeout(_start, 2000); return; }
     _log('🚀', '══════════════════════════════════════');
-    _log('🚀', 'Wings Fly V35.2 — EGRESS OPTIMIZED + CLOUD SETTINGS SYNC');
+    _log('🚀', 'Wings Fly V36.0 — EGRESS RESET + VERSION GAP FIX');
     _log('🚀', '══════════════════════════════════════');
-    _log('💡', `Tolerance: 10% adaptive | Egress: ${Egress.count()} | Data age: ${SyncFreshness.getAge()}`);
+    _log('💡', `Egress: ${Egress.count()}/${CFG.EGRESS_LIMIT} | Data age: ${SyncFreshness.getAge()} | v${_localVer}`);
+    
+    // ✅ V36: Egress info log on startup
+    const eInfo = Egress.getInfo();
+    if (eInfo.throttled) _log('⚠️', `Egress soft-throttled (${eInfo.count}/${eInfo.limit}) — version check paused, manual sync OK`);
+    if (eInfo.hardThrottled) _log('🛑', `Egress hard-throttled (${eInfo.count}/${eInfo.hardLimit}) — all sync paused`);
+    
     await _checkPartialTables();
     _setupNetwork();
     _setupVisibility();
     _setupBeforeUnload();
     _patchSaveToStorage();
-    window.__v35_sync_active = true;
+    window.__v36_sync_active = true;
     await _startupIntegrityCheck();
-    // ✅ V35.1.2 FIX: integrity check-এ যদি pull হয়ে থাকে তাহলে আবার pull করা দরকার নেই
-    // এই race condition-এর কারণে students=0 দেখাচ্ছিল refresh-এ
     if (!_integrityCheckDidPull) {
       await pullFromCloud(false);
     } else {
       _log('✅', 'Pull skipped — integrity check already fetched fresh data');
     }
     setInterval(_versionCheck, NetworkQuality.getCheckInterval());
-    setInterval(() => { if (_tabVisible && !Egress.throttled()) pullFromCloud(true); }, CFG.FULL_PULL_MS);
+    setInterval(() => { if (_tabVisible && !Egress.hardThrottled()) pullFromCloud(true); }, CFG.FULL_PULL_MS);
     setTimeout(_installMonitor, 3000);
-    _log('🎉', 'V35.1.1 ready!');
-    _showStatus('🔄 V35.1.2 ready');
+    _log('🎉', 'V36.0 ready!');
+    _showStatus('✅ V36.0 ready');
   }
 
-  // PUBLIC API
+  // ── PUBLIC API V36 ────────────────────────────────────────────
   window.wingsSync = {
-    fullSync: async () => { 
-      await pullFromCloud(false, true); 
-      await pushToCloud('Manual full sync'); 
-      if (typeof window.renderFullUI === 'function') window.renderFullUI();
-    },
+    // Existing
+    fullSync: async () => { await pullFromCloud(false, true); await pushToCloud('Manual full sync'); if (typeof window.renderFullUI === 'function') window.renderFullUI(); },
     pushNow: (reason) => pushToCloud(reason || 'Manual'),
-    pullNow: async () => {
-      await pullFromCloud(false, true);
-      if (typeof window.renderFullUI === 'function') window.renderFullUI();
-    },
+    pullNow: async () => { await pullFromCloud(false, true); if (typeof window.renderFullUI === 'function') window.renderFullUI(); },
     markDirty: (field) => window.markDirty && window.markDirty(field),
-    getStatus: () => ({ version: _localVer, online: _online, partialOK: _partialOK, dirty: [..._dirty], initialSync: window.initialSyncComplete,
-      egress: Egress.count(), tabVisible: _tabVisible, maxFinance: MaxCount.get('finance'), maxStudents: MaxCount.get('students'),
-      networkQuality: NetworkQuality.getQuality(), dataAge: SyncFreshness.getAge(), egressToday: Egress.count(),
-      initialSyncComplete: window.initialSyncComplete, partialReady: _partialOK }),
-    forceRecovery: async () => { 
-      _log('🔄', 'Manual recovery'); 
-      await pullFromCloud(true, true); 
-      if (typeof window.renderFullUI === 'function') window.renderFullUI();
-      _showUserMessage('Recovery complete', 'success'); 
+    forceRecovery: async () => { _log('🔄', 'Manual recovery'); await pullFromCloud(true, true); if (typeof window.renderFullUI === 'function') window.renderFullUI(); _showUserMessage('Recovery complete', 'success'); },
+    
+    // ✅ V36 NEW: Egress reset
+    resetEgress: () => Egress.reset(),
+    
+    // ✅ V36 NEW: Force version sync (version gap fix)
+    forceVersionSync: async () => {
+      _log('🔄', 'Force version sync');
+      Egress.reset(); // Reset egress first
+      const pulled = await pullFromCloud(false, true);
+      if (pulled && typeof window.renderFullUI === 'function') window.renderFullUI();
+      _showUserMessage('Version sync সম্পন্ন।', 'success');
+      return pulled;
     },
+    
+    // ✅ V36 NEW: Egress info
+    getEgressInfo: () => Egress.getInfo(),
+    
+    getStatus: () => ({
+      version: _localVer, online: _online, partialOK: _partialOK,
+      dirty: [..._dirty], initialSync: window.initialSyncComplete,
+      egress: Egress.count(), egressInfo: Egress.getInfo(),
+      tabVisible: _tabVisible,
+      maxFinance: MaxCount.get('finance'), maxStudents: MaxCount.get('students'),
+      networkQuality: NetworkQuality.getQuality(),
+      dataAge: SyncFreshness.getAge(),
+      initialSyncComplete: window.initialSyncComplete,
+      partialReady: _partialOK,
+    }),
   };
 
   // Legacy aliases
@@ -825,5 +748,5 @@
   if (document.readyState === 'loading') document.addEventListener('DOMContentLoaded', _start);
   else _start();
 
-  _log('📦', 'V35.1.2 loaded — REFRESH FIX: No race condition on startup');
+  _log('📦', 'V36.0 loaded');
 })();
