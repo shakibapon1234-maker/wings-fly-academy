@@ -820,6 +820,28 @@
 
   function _showStatus(msg) { const el = document.getElementById('syncStatusText'); if (el) el.textContent = msg; }
 
+  // ── REALTIME SUBSCRIPTION ─────────────────────────────────────
+  function _setupRealtime() {
+    if (!_sb) return;
+
+    _sb.channel('version-watch')
+      .on('postgres_changes', {
+        event: 'UPDATE',
+        schema: 'public',
+        table: CFG.TABLE,
+        filter: `id=eq.${CFG.RECORD}`
+      }, payload => {
+        const cloudVer = payload.new?.version;
+        if (cloudVer && cloudVer > _localVer) {
+          _log('🔔', `Realtime: cloud v${cloudVer}`);
+          pullFromCloud(false, true);
+        }
+      })
+      .subscribe();
+
+    _log('📡', 'Realtime subscription active');
+  }
+
   // ── STARTUP ───────────────────────────────────────────────────
   async function _start() {
     if (!_init()) { setTimeout(_start, 2000); return; }
@@ -845,7 +867,8 @@
     } else {
       _log('✅', 'Pull skipped — integrity check already fetched fresh data');
     }
-    setInterval(_versionCheck, NetworkQuality.getCheckInterval());
+    // ✅ V37: Use Realtime instead of setInterval polling for version
+    _setupRealtime();
     setInterval(() => { if (_tabVisible && !Egress.hardThrottled()) pullFromCloud(true); }, CFG.FULL_PULL_MS);
     setTimeout(_installMonitor, 3000);
     _log('🎉', 'V37.0 ready!');
