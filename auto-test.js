@@ -78,6 +78,7 @@
     'DATA': '#ff9933',
     'SYNC': '#ffcc00',
     'V34SYNC': '#00eeff',
+    'V36SYNC': '#00ffcc',
     'MODULES': '#00ff88',
     'FINANCE': '#00d4ff',
     'PERF': '#aa88ff',
@@ -395,7 +396,7 @@
     else fail('Supabase JS missing', 'CDN লোড হয়নি');
 
     if (window.wingsSync?.fullSync) pass('wingsSync.fullSync ready');
-    else fail('wingsSync missing', 'supabase-sync-SMART-V34.js লোড হয়নি');
+    else fail('wingsSync missing', 'supabase-sync-SMART-V36.js লোড হয়নি');
     if (window.wingsSync?.pushNow) pass('wingsSync.pushNow ready');
     else fail('wingsSync.pushNow missing');
 
@@ -468,20 +469,30 @@
   }
 
   // ═══════════════════════════════════════════════════════════
-  // CATEGORY 3.5: V34 SYNC — V34 Integrity Deep Tests
+  // CATEGORY 3.5: V36 SYNC — Integrity + Egress + Version Gap Tests
   // ═══════════════════════════════════════════════════════════
   async function testV34Sync() {
-    _sectionHeader('🔷 V34 SYNC — Data Integrity Deep Tests', 'V34SYNC');
+    _sectionHeader('🔷 V36 SYNC — Data Integrity + Egress + Version Gap Tests', 'V36SYNC');
 
     const gd = window.globalData;
     const ws = window.wingsSync;
 
     // ── 1. wingsSync API পুরোপুরি আছে? ───────────────────
-    if (!ws) { fail('wingsSync object missing', 'V34 লোড হয়নি — index.html চেক করুন'); return; }
+    if (!ws) { fail('wingsSync object missing', 'V36 লোড হয়নি — index.html চেক করুন'); return; }
     ['fullSync', 'pushNow', 'pullNow', 'markDirty', 'getStatus'].forEach(fn => {
       if (typeof ws[fn] === 'function') pass(`wingsSync.${fn}() ready`);
-      else fail(`wingsSync.${fn}() missing`, 'V34 API incomplete');
+      else fail(`wingsSync.${fn}() missing`, 'V36 API incomplete');
     });
+
+    // ── 1b. V36 নতুন API আছে? ────────────────────────────
+    if (typeof ws.resetEgress === 'function') pass('wingsSync.resetEgress() ready ✓ (V36 NEW)');
+    else fail('wingsSync.resetEgress() missing', 'V36 ফাইল সঠিকভাবে লোড হয়নি');
+
+    if (typeof ws.forceVersionSync === 'function') pass('wingsSync.forceVersionSync() ready ✓ (V36 NEW)');
+    else fail('wingsSync.forceVersionSync() missing', 'V36 ফাইল সঠিকভাবে লোড হয়নি');
+
+    if (typeof ws.getEgressInfo === 'function') pass('wingsSync.getEgressInfo() ready ✓ (V36 NEW)');
+    else fail('wingsSync.getEgressInfo() missing', 'V36 ফাইল সঠিকভাবে লোড হয়নি');
 
     // ── 2. getStatus() সব field আছে? ─────────────────────
     let status = null;
@@ -506,12 +517,26 @@
     else
       warn('Partial tables NOT ready', 'Legacy full-push mode চলছে — wf_students/wf_finance table দরকার');
 
-    // ── 5. Egress counter health ──────────────────────────
-    const egress = status?.egressToday ?? ws.getEgress?.() ?? -1;
+    // ── 5. Egress counter health (V36 — soft/hard throttle) ─
+    let egressInfo = null;
+    try {
+      egressInfo = typeof ws.getEgressInfo === 'function' ? ws.getEgressInfo() : null;
+    } catch(e) {}
+
+    const egress = egressInfo?.count ?? status?.egressToday ?? -1;
     if (egress === -1) warn('Egress counter unavailable');
-    else if (egress < 400) pass(`Egress today OK: ${egress} requests`);
-    else if (egress < 550) warn(`Egress high: ${egress} requests`, '400+ threshold পার হয়েছে');
-    else fail(`Egress throttled! ${egress} requests`, '600+ — pull বন্ধ হয়ে গেছে');
+    else if (egress <= 200) pass(`Egress OK: ${egress}/${egressInfo?.limit || 500} requests`);
+    else if (egress <= 500) warn(`Egress high: ${egress} requests`, 'Auto version-check পাউজ হতে পারে — manual sync চলবে');
+    else if (egress <= 600) fail(`Egress throttled! ${egress} requests`, 'wingsSync.resetEgress() চালান, অথবা midnight পর্যন্ত অপেক্ষা করুন');
+    else fail(`Egress hard-throttled! ${egress} requests`, 'সব sync বন্ধ — wingsSync.resetEgress() চালান');
+
+    // ── 5b. Egress info detail (V36) ──────────────────────
+    if (egressInfo) {
+      if (egressInfo.status === 'ok') pass(`Egress status: OK (${egressInfo.percent}% used)`);
+      else if (egressInfo.status === 'warn') warn(`Egress status: WARN (${egressInfo.percent}% used)`, `${egressInfo.remaining} remaining`);
+      else if (egressInfo.status === 'soft-throttled') fail(`Egress soft-throttled`, `wingsSync.resetEgress() দিয়ে reset করুন`);
+      else fail(`Egress hard-throttled`, `wingsSync.resetEgress() দিয়ে reset করুন`);
+    }
 
     // ── 6. Version local vs cloud ─────────────────────────
     const localVer = parseInt(localStorage.getItem('wings_local_version')) || 0;
@@ -531,20 +556,19 @@
             pass('Cloud READ OK ✓', `Cloud v${cloud.version}, last: ${cloud.last_action || '—'}`);
             const cloudVer = parseInt(cloud.version) || 0;
             const diff = Math.abs(localVer - cloudVer);
+            // ✅ V36: gap thresholds updated (10 = auto-pull, 20 = force render)
             if (diff === 0) pass('Version perfectly in sync ✓', `v${localVer}`);
             else if (diff <= 3) warn(`Version gap: ${diff}`, `Local v${localVer} Cloud v${cloudVer}`);
-            else fail(`Version gap too large: ${diff}!`, `Local v${localVer} Cloud v${cloudVer} — full sync দরকার`);
+            else if (diff <= 10) warn(`Version gap: ${diff} — auto-pull চলবে`, `Local v${localVer} Cloud v${cloudVer} — wingsSync.forceVersionSync() দিয়ে এখনই fix করুন`);
+            else fail(`Version gap too large: ${diff}!`, `Local v${localVer} Cloud v${cloudVer} — wingsSync.forceVersionSync() চালান`);
           } else {
             warn('Cloud-এ data নেই', 'প্রথমবার বা factory reset হয়েছে');
           }
         } else fail('Cloud READ failed', `HTTP ${res.status}`);
       } catch (e) { fail('Cloud READ error', e.message); }
 
-      // ── 8. Push → Pull round-trip test ────────────────
-      // একটি test marker meta-তে লিখে আবার read করে confirm করি
+      // ── 8. Push callable test ─────────────────────────
       try {
-        // ✅ FIX: pushNow শুধু callable কিনা চেক করি — আসলে push করি না
-        // আসলে push করলে pull → renderFullUI → monitor → push loop হয়
         if (typeof ws.pushNow === 'function') {
           pass('pushNow callable ✓', 'Actual push skipped to prevent sync loop');
         }
@@ -563,13 +587,13 @@
     }
 
     // ── 10. _stableId() logic test (in-memory) ────────────
-    // V34 এর stable ID ঠিকমতো কাজ করছে কিনা simulate করি
+    // V36 stable ID ঠিকমতো কাজ করছে কিনা simulate করি
     (() => {
       // Record with id
       const r1 = { id: 'abc123', name: 'Test' };
       const id1a = r1.id || r1.rowIndex || ('tmp_' + Date.now());
       const id1b = r1.id || r1.rowIndex || ('tmp_' + Date.now());
-      // V34 এ এই দুটো সবসময় সমান হবে
+      // V36 এ এই দুটো সবসময় সমান হবে
       if (id1a === id1b && !id1a.startsWith('tmp_'))
         pass('_stableId: id field → stable key ✓', id1a);
       else
@@ -581,9 +605,9 @@
       if (id2 === '42') pass('_stableId: rowIndex → stable key ✓', id2);
       else fail('_stableId: rowIndex unstable');
 
-      // Record with no id — V34 hash, old code would be tmp_random
+      // Record with no id — V36 hash, old code would be tmp_random
       const r3 = { name: 'Test3', date: '2026-01-01' };
-      // V34 এ hash হবে, তাই 'auto_' prefix থাকবে
+      // V36 এ hash হবে, তাই 'auto_' prefix থাকবে
       // এখানে আমরা শুধু duplicate check করি
       const seed = (r3.name || '') + '_' + (r3.date || '');
       let h = 0;
@@ -614,18 +638,18 @@
       mapOld.set(String(pullRow.id), pullRow.data); // row_uuid_99999 — নতুন entry হয়ে যাবে!
       const oldHasDuplicate = mapOld.has('WF-1001') && mapOld.has('row_uuid_99999');
 
-      // NEW (V34): inner data.id দিয়ে match
+      // NEW (V36): inner data.id দিয়ে match
       const mapNew = new Map(localStudents.map(s => [String(s.id), s]));
       const innerKey = String(pullRow.data?.id || pullRow.id);
       mapNew.set(innerKey, pullRow.data); // WF-1001 — সঠিক update
       const newCorrect = mapNew.get('WF-1001')?.paid === 6000 && !mapNew.has('row_uuid_99999');
 
       if (oldHasDuplicate)
-        pass('Old merge bug confirmed — V34 fix needed ✓ (expected)');
+        pass('Old merge bug confirmed — merge bug confirmed ✓ (expected)');
       if (newCorrect)
-        pass('V34 pull merge correct ✓ — inner data.id দিয়ে match হয়েছে', 'paid: 5000 → 6000, no duplicate');
+        pass('V36 pull merge correct ✓ — inner data.id দিয়ে match হয়েছে', 'paid: 5000 → 6000, no duplicate');
       else
-        fail('V34 pull merge broken!', 'innerKey match কাজ করছে না');
+        fail('V36 pull merge broken!', 'innerKey match কাজ করছে না');
     })();
 
     // ── 12. Photo strip verification ──────────────────────
@@ -636,7 +660,7 @@
         { id: 'WF-1003', name: 'Charlie', photo: null },
       ];
 
-      // Simulate V34 strip logic
+      // Simulate V36 strip logic
       const stripped = testStudents.map(s => {
         if (!s.photo || !s.photo.startsWith('data:image')) return s;
         return { ...s, photo: `photo_${s.studentId || s.id || 'unknown'}`, _photoLocal: true };
@@ -674,7 +698,7 @@
     // ── 13. Version double-increment protection ───────────
     (() => {
       const verBefore = parseInt(localStorage.getItem('wings_local_version')) || 0;
-      // V34 এ _pushFull() নিজে increment করে না — pushToCloud() করে
+      // V36 এ pushToCloud() নিজে increment করে না — pushToCloud() করে
       // আমরা শুধু check করি যে localVersion যুক্তিসঙ্গত
       if (verBefore >= 0) pass(`Version counter sane ✓`, `v${verBefore}`);
       else fail('Version counter negative!');
@@ -692,14 +716,14 @@
         pass('markDirty("students") function exists ✓');
         pass('markDirty("finance") function exists ✓');
       } else {
-        fail('window.markDirty missing', 'V34 patch হয়নি');
+        fail('window.markDirty missing', 'V36 patch হয়নি');
       }
     })();
 
     // ── 15. saveToStorage intercept check ─────────────────
     (() => {
       if (typeof window.saveToStorage === 'function') {
-        // V34 এ saveToStorage কে patch করা হয়েছে — original এর wrapper
+        // V36 এ saveToStorage কে patch করা হয়েছে — original এর wrapper
         // এটা check করি যে function টা আছে এবং callable
         pass('saveToStorage() intercepted & ready ✓');
         // scheduleSyncPush ও থাকা উচিত
@@ -1079,7 +1103,7 @@
     setProgress('🟡 Sync check চলছে...');
     await testSync();
 
-    setProgress('🔷 V34 Sync integrity check চলছে...');
+    setProgress('🔷 V36 Sync integrity check চলছে...');
     await testV34Sync();
 
     setProgress('🟢 Module check চলছে...');
@@ -1126,7 +1150,7 @@
     if (!window.globalData) return;
 
     // ✅ V9 FIX: wingsSync এখনো ready না হলে silent skip করো
-    // V34 sync load হতে কিছুটা সময় লাগে — error দেওয়ার দরকার নেই
+    // V36 sync load হতে কিছুটা সময় লাগে — error দেওয়ার দরকার নেই
     if (!window.wingsSync) {
       console.log('[AutoTest BG] ⏳ wingsSync এখনো ready হয়নি — skip (next cycle এ check হবে)');
       return;
@@ -1158,11 +1182,11 @@
     // Check 4: Finance engine
     if (!exists('feRebuildAllBalances')) issues.push('❌ finance-engine.js লোড হয়নি!');
 
-    // ── V34 SYNC BACKGROUND CHECKS ─────────────────────────
+    // ── V36 SYNC BACKGROUND CHECKS ─────────────────────────
 
     // Check 5: wingsSync alive?
     if (!window.wingsSync) {
-      issues.push('❌ wingsSync missing — V34 sync বন্ধ!');
+      issues.push('❌ wingsSync missing — V36 sync বন্ধ!');
     } else {
       // Check 6: initialSyncComplete
       if (window.initialSyncComplete !== true)
@@ -1207,7 +1231,7 @@
         window.logActivity('system', 'WARN', `🔍 BG Test Issues: ${issues.join(' | ')}`, { issues });
       }
     } else {
-      console.log(`[AutoTest BG] ✅ সব ঠিক (V34 sync OK) — ${new Date().toLocaleTimeString('bn-BD')}`);
+      console.log(`[AutoTest BG] ✅ সব ঠিক (V36 sync OK) — ${new Date().toLocaleTimeString('bn-BD')}`);
     }
   }
 
@@ -1217,7 +1241,7 @@
   window.startAutoTestMonitor = function () {
     if (_bgInterval) clearInterval(_bgInterval);
     _bgInterval = setInterval(runBackgroundMonitor, 20 * 60 * 1000); // ২০ মিনিট — egress কমাতে
-    // ✅ V9 FIX: প্রথম run 2 মিনিট পরে — V34 sync এর initial pull শেষ হওয়ার পর
+    // ✅ V9 FIX: প্রথম run 2 মিনিট পরে — V36 sync এর initial pull শেষ হওয়ার পর
     // আগে 30s ছিল — তখন wingsSync ready হয় না, false alarm আসত
     setTimeout(runBackgroundMonitor, 2 * 60 * 1000);
   };
@@ -1228,7 +1252,7 @@
     function _waitForSyncThenStart(attempt) {
       if (window.wingsSync) {
         window.startAutoTestMonitor();
-        console.log(`%c🧬 Wings Fly Auto Test Suite v${SUITE_VERSION} — loaded & BG monitor active (V34 checks included)`, 'color:#00eeff;font-weight:bold');
+        console.log(`%c🧬 Wings Fly Auto Test Suite v${SUITE_VERSION} — loaded & BG monitor active (V36 checks included)`, 'color:#00eeff;font-weight:bold');
       } else if (attempt < 20) {
         // প্রতি 3 সেকেন্ডে retry — মোট 60 সেকেন্ড পর্যন্ত অপেক্ষা
         setTimeout(() => _waitForSyncThenStart(attempt + 1), 3000);
@@ -1242,7 +1266,7 @@
   }
 
   // ✅ V9 FIX: DOMContentLoaded এর পর 8s অপেক্ষা করো
-  // আগে 5s ছিল — V34 sync init হতে বেশি সময় লাগে
+  // আগে 5s ছিল — V36 sync init হতে বেশি সময় লাগে
   if (document.readyState === 'loading') document.addEventListener('DOMContentLoaded', () => setTimeout(_init, 8000));
   else setTimeout(_init, 8000);
 
