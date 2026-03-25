@@ -70,19 +70,34 @@ async function runDiagnosticInline() {
     // Cloud data
     diagLog('☁️ Cloud থেকে ডেটা আনা হচ্ছে...');
     let cloud = null;
+    let cS = 0; let cF = 0; let cC = 0; let cV = 0;
     try {
         const res = await fetch(DIAG_URL, { headers: { 'apikey': DIAG_KEY, 'Authorization': 'Bearer ' + DIAG_KEY } });
         if (!res.ok) throw new Error('HTTP ' + res.status);
         const arr = await res.json();
         cloud = arr[0] || null;
-        if (cloud) diagLog('✅ Cloud ডেটা পাওয়া গেছে', 'ok');
-        else diagLog('⚠️ Cloud-এ এখনো কোনো ডেটা নেই', 'warn');
+        if (cloud) {
+           diagLog('✅ Main Cloud ডেটা পাওয়া গেছে', 'ok');
+           cC = cloud.cash_balance || 0;
+           cV = cloud.version || 0;
+        } else { diagLog('⚠️ Cloud-এ এখনো কোনো ডেটা নেই', 'warn'); }
+        
+        // V37 Partial Table Counts
+        diagLog('☁️ Partial Tables (Students, Finance) চেক করা হচ্ছে...');
+        const cfg = window.SUPABASE_CONFIG || {};
+        const urlStr = cfg.URL + '/rest/v1/wf_students?academy_id=eq.' + (cfg.MAIN_RECORD || 'wingsfly_main') + '&select=id';
+        const urlFin = cfg.URL + '/rest/v1/wf_finance?academy_id=eq.' + (cfg.MAIN_RECORD || 'wingsfly_main') + '&select=id';
+        
+        try {
+            const sRes = await fetch(urlStr, { headers: { 'apikey': cfg.KEY, 'Authorization': 'Bearer ' + cfg.KEY } });
+            if (sRes.ok) cS = (await sRes.json()).length;
+            const fRes = await fetch(urlFin, { headers: { 'apikey': cfg.KEY, 'Authorization': 'Bearer ' + cfg.KEY } });
+            if (fRes.ok) cF = (await fRes.json()).length;
+            diagLog('✅ Partial Tables ডেটা পাওয়া গেছে', 'ok');
+        } catch(pe) {
+            diagLog('⚠️ Partial Tables count error: ' + pe.message, 'warn');
+        }
     } catch (e) { diagLog('❌ Cloud fetch error: ' + e.message, 'err'); }
-
-    const cS = cloud?.students?.length || 0;
-    const cF = cloud?.finance?.length || 0;
-    const cC = cloud?.cash_balance || 0;
-    const cV = cloud?.version || 0;
 
     document.getElementById('d-cloudStudents').textContent = cS;
     document.getElementById('d-cloudFinance').textContent = cF;

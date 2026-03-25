@@ -1113,3 +1113,5 @@
   // Start
   if (document.readyState === 'loading') document.addEventListener('DOMContentLoaded', _start);
   else _start();
+
+})();

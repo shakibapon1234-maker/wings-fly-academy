@@ -574,14 +574,14 @@ WINGS FLY AVIATION ACADEMY — Management System
                                 </li>
                                 <li>
                                     <button class="dropdown-item rounded-2 py-2 d-flex align-items-center gap-2"
-                                        onclick="loadFromCloud()">
+                                        onclick="wingsSync.pullNow().then(() => { if(typeof showSuccessToast === 'function') showSuccessToast('Cloud Data Pulled Successfully!'); else alert('Cloud Data Pulled Successfully!'); })">
                                         <i class="bi bi-cloud-download text-info"></i>
                                         <span>Pull from Cloud</span>
                                     </button>
                                 </li>
                                 <li>
                                     <button class="dropdown-item rounded-2 py-2 d-flex align-items-center gap-2"
-                                        onclick="saveToCloud()">
+                                        onclick="wingsSync.pushNow('Manual Push').then(() => { if(typeof showSuccessToast === 'function') showSuccessToast('Data Pushed to Cloud!'); else alert('Data Pushed to Cloud!'); })">
                                         <i class="bi bi-cloud-upload text-success"></i>
                                         <span>Push to Cloud</span>
                                     </button>
@@ -1883,8 +1883,8 @@ WINGS FLY AVIATION ACADEMY — Management System
     <script src="EMERGENCY_RESTORE.js"></script>
 
 
-    <!-- Supabase Sync System (V37.0 — Egress Reset + Version Gap Fix) -->
-    <script src="supabase-sync-SMART-V37.js?v=20260324_1620"></script>
+    <!-- Supabase Sync System (V39.0) -->
+    <script src="supabase-sync-SMART-V39.js"></script>
 
     <!-- Main Application (Sync code now embedded inside) -->
     <script src="sections/loan-management.js?v=20260226_1500"></script>
