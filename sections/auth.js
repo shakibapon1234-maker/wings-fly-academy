@@ -432,28 +432,23 @@ function logout() {
     try { supabaseClient.auth.signOut(); } catch (e) { console.warn('Supabase logout error:', e); }
   }
 
-  // ✅ SECURITY FIX: We NO LONGER clear `wingsfly_data` on logout!
-  // This prevents the "Data Erased" warning and keeps data safe for offline use.
-  // We only clear session variables now.
-  const SENSITIVE_KEYS = [
-    'wf_push_snapshot_students',
-    'wf_push_snapshot_finance',
-  ];
-  SENSITIVE_KEYS.forEach(function(key) {
-    localStorage.removeItem(key);
-  });
-  console.log('🗑️ Sensitive localStorage data cleared on logout');
+  // ✅ V38 FIX: Snapshot keys আর delete করা হবে না!
+  // আগে এই দুইটা key delete হত → পরের login এ _getDelta() সব record "নতুন" মনে করত
+  // → MaxCount=22 কিন্তু empty globalData দিয়ে push attempt → push BLOCKED → data zero!
+  // FIX: Snapshot keys সম্পূর্ণ সরিয়ে দেওয়া হয়েছে SENSITIVE_KEYS থেকে।
+  // এই keys logout এর পরেও localStorage এ থাকবে — এটাই correct behavior।
+  console.log('✅ V38: Sync snapshot keys preserved on logout (no data loss risk)');
 
-  // In-memory globalData reset (prevents data leak via window.globalData)
+  // ✅ V38 FIX: globalData আর সম্পূর্ণ empty করা হবে না!
+  // আগের সমস্যা: সব empty করা হত → snapshot/auto-heal সেই empty data save করত
+  // → MaxCount=22 কিন্তু local=0 → push BLOCKED → data zero!
+  // এখন: শুধু session-specific fields clear হবে, real data (students/finance) থাকবে।
   if (window.globalData) {
-    window.globalData = {
-      students: [], employees: [], finance: [],
-      settings: {}, users: [], cashBalance: 0,
-      bankAccounts: [], mobileBanking: [],
-      incomeCategories: [], expenseCategories: [],
-      paymentMethods: [], courseNames: [],
-      deletedItems: [], activityHistory: []
-    };
+    window.globalData.users = [];
+    window.globalData.settings = {};
+    // ✅ students, finance, cashBalance, bankAccounts, mobileBanking রেখে দাও
+    // logout এর পরেও এই data localStorage এ safe আছে এবং
+    // পরের login এ _startupIntegrityCheck সঠিক MaxCount পাবে।
   }
 
   sessionStorage.removeItem('isLoggedIn');
