@@ -87,17 +87,7 @@
         if (!gd) return;
 
         // 1. Course dropdowns — সব জায়গায়
-        var courses = gd.courseNames || [];
-        if (gd.students && Array.isArray(gd.students)) {
-            var existing = gd.students.map(function (s) { return s.course; }).filter(Boolean);
-            var allC = courses.concat(existing);
-            var seenC = {};
-            courses = allC.filter(function (c) {
-                if (!c || seenC[c]) return false;
-                seenC[c] = true;
-                return true;
-            });
-        }
+        var courses = (gd.courseNames || []).slice();
         courses.sort();
 
         // সব course-related dropdown IDs

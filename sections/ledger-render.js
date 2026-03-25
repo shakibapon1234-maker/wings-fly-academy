@@ -10,9 +10,7 @@
 
 function populateDropdowns() {
   const gd = window.globalData || {};
-  const settingsCourses = gd.courseNames || [];
-  const studentCourses = gd.students ? gd.students.map(s => s.course).filter(Boolean) : [];
-  const courses = [...new Set([...settingsCourses, ...studentCourses])].sort();
+  const courses = [...new Set(gd.courseNames || [])].sort();
 
   // 1. Course Dropdowns
   const courseSelects = [
@@ -132,45 +130,11 @@ function renderSettingsLists() {
 
   // === Dynamic Sync from Actual Data ===
   
-  // 1. Income & Expense Categories from Finance Data
-  const existingIncomes = new Set();
-  const existingExpenses = new Set();
-  if (gd.finance && Array.isArray(gd.finance)) {
-    gd.finance.forEach(f => {
-      if (!f.category) return;
-      if (f.type === 'Income' || f.type === 'Loan Received') existingIncomes.add(f.category);
-      else existingExpenses.add(f.category);
-    });
-  }
-  gd.incomeCategories = [...new Set([...(gd.incomeCategories || []), ...existingIncomes])].sort();
-  gd.expenseCategories = [...new Set([...(gd.expenseCategories || []), ...existingExpenses])].sort();
-
-  // 2. Courses from Student Data
-  const existingCourses = new Set();
-  if (gd.students && Array.isArray(gd.students)) {
-    gd.students.forEach(s => {
-      if (s.course) existingCourses.add(s.course);
-    });
-  }
-  gd.courseNames = [...new Set([...(gd.courseNames || []), ...existingCourses])].sort();
-
-  // 3. Employee Roles from Employee Data
-  const existingRoles = new Set();
-  if (gd.employees && Array.isArray(gd.employees)) {
-    gd.employees.forEach(e => {
-      if (e.role) existingRoles.add(e.role);
-    });
-  }
-  gd.employeeRoles = [...new Set([...(gd.employeeRoles || ['Instructor', 'Admin', 'Staff', 'Manager']), ...existingRoles])].sort();
-
-  // Save dynamically merged data to storage
-  if (typeof saveToStorage === 'function') saveToStorage();
-  else localStorage.setItem('wingsfly_data', JSON.stringify(gd));
-
-  const incCats = gd.incomeCategories;
-  const expCats = gd.expenseCategories;
-  const courses = gd.courseNames;
-  const roles = gd.employeeRoles;
+  // === Strict Sync: Use ONLY Settings Data ===
+  const incCats = [...new Set(gd.incomeCategories || [])].sort();
+  const expCats = [...new Set(gd.expenseCategories || [])].sort();
+  const courses = [...new Set(gd.courseNames || [])].sort();
+  const roles = [...new Set(gd.employeeRoles || ['Instructor', 'Admin', 'Staff', 'Manager'])].sort();
 
   // Income List
   const incList = document.getElementById('settingsIncomeCatList');
