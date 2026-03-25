@@ -340,8 +340,17 @@
   async function pullFromCloud(showUI = false, forceFullPull = false) {
     if (_pulling) { _log('⏸️', 'Pull in progress'); return false; }
     if (!_ready || !_sb) return false;
-    if (Egress.hardThrottled()) {
-      _log('🛑', 'Hard egress limit — pull blocked');
+    if (_online) {
+      try {
+        const checkLimit = await _sb.rpc('check_daily_sync_limit');
+        if (checkLimit.data && checkLimit.data.success === false) {
+          _log('🛑', 'Server Egress Limit Crossed — Pull blocked');
+          _showUserMessage('Daily Sync Limit Exceeded (300/day)! Server Blocked.', 'error');
+          return false;
+        }
+      } catch(e) { /* ignore */ }
+    } else if (Egress.hardThrottled()) {
+      _log('🛑', 'Hard egress limit (Offline) — pull blocked');
       _showUserMessage('অনেক বেশি request। Diagnostic থেকে "Egress Reset" করুন।', 'error');
       return false;
     }
@@ -546,7 +555,14 @@
     if (_pushing) { _log('⏸️', 'Push in progress'); return false; }
     if (!_ready || !_sb || !window.globalData) return false;
     if (!_online) { _log('📵', 'Offline'); return false; }
-    if (Egress.hardThrottled()) { _log('🛑', 'Hard egress limit — push blocked'); return false; }
+    try {
+      const checkLimit = await _sb.rpc('check_daily_sync_limit');
+      if (checkLimit.data && checkLimit.data.success === false) {
+        _log('🛑', 'Server Egress Limit Crossed — Push blocked');
+        return false;
+      }
+    } catch(e) { /* ignore */ }
+    if (Egress.hardThrottled() && !_online) { _log('🛑', 'Hard egress limit (Offline) — push blocked'); return false; }
 
     _pushing = true;
     _syncBusy = true;
