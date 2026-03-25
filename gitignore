@@ -1,0 +1,14 @@
+_file_versions/
+node_modules/
+.DS_Store
+*.log
+
+# ── Sensitive config — GitHub-এ push করবেন না ──
+supabase-config.js
+.env
+.env.local
+.env.production
+
+# ── Backup folders ──
+_PROJECT_BACKUPS/
+BACKUP_NOW/

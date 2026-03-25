@@ -67,7 +67,7 @@ function initSupabase() {
 // PASSWORD HASHING
 // ════════════════════════════════════════════════════════════════
 
-// PBKDF2 (Secure — Phase 2)
+// PBKDF2 (Secure — Phase 2, OWASP Standard 210,000 iterations)
 async function hashPasswordPBKDF2(password, username) {
   try {
     const encoder = new TextEncoder();
@@ -85,7 +85,7 @@ async function hashPasswordPBKDF2(password, username) {
       {
         name: 'PBKDF2',
         salt: salt,
-        iterations: 10000,
+        iterations: 210000,
         hash: 'SHA-256'
       },
       keyMaterial,
@@ -98,6 +98,19 @@ async function hashPasswordPBKDF2(password, username) {
 
   } catch (e) {
     console.error('❌ PBKDF2 hashing failed:', e);
+    return hashPassword(password);
+  }
+}
+
+// Legacy PBKDF2 (10,000 iterations) for migration
+async function hashPasswordPBKDF2_legacy(password, username) {
+  try {
+    const encoder = new TextEncoder();
+    const salt = encoder.encode(username + '_wings_fly_salt_2026');
+    const keyMaterial = await crypto.subtle.importKey('raw', encoder.encode(password), 'PBKDF2', false, ['deriveBits']);
+    const derivedBits = await crypto.subtle.deriveBits({ name: 'PBKDF2', salt: salt, iterations: 10000, hash: 'SHA-256' }, keyMaterial, 256);
+    return Array.from(new Uint8Array(derivedBits)).map(b => b.toString(16).padStart(2, '0')).join('');
+  } catch (e) {
     return hashPassword(password);
   }
 }
@@ -278,12 +291,13 @@ async function handleLegacyLogin(username, password) {
 
   // Hash the input password for comparison
   const hashedSHA256 = await hashPassword(password);
+  const hashedPBKDF2_legacy = await hashPasswordPBKDF2_legacy(password, username);
   const hashedPBKDF2 = await hashPasswordPBKDF2(password, username);
 
   // Find user locally first
   let validUser = window.globalData.users.find(u =>
     u.username.toLowerCase() === username.toLowerCase() &&
-    (u.password === hashedSHA256 || u.password === hashedPBKDF2 || u.password === password)
+    (u.password === hashedSHA256 || u.password === hashedPBKDF2_legacy || u.password === hashedPBKDF2 || u.password === password)
   );
 
   // ☁️ NEW BROWSER FALLBACK: Fetch users from Cloud if not found locally
@@ -304,7 +318,7 @@ async function handleLegacyLogin(username, password) {
           if (cloudUsers && Array.isArray(cloudUsers)) {
              validUser = cloudUsers.find(u =>
                u.username.toLowerCase() === username.toLowerCase() &&
-               (u.password === hashedSHA256 || u.password === hashedPBKDF2 || u.password === password)
+               (u.password === hashedSHA256 || u.password === hashedPBKDF2_legacy || u.password === hashedPBKDF2 || u.password === password)
              );
              if (validUser) {
                console.log('✅ User validated from Cloud!');
@@ -330,15 +344,17 @@ async function handleLegacyLogin(username, password) {
   // Auto-migrate plain text password to hash
   await migratePasswordIfNeeded(validUser, password);
 
-  // Auto-upgrade SHA-256 to PBKDF2
-  if (validUser.password === hashedSHA256 && validUser.password !== hashedPBKDF2) {
-    validUser.password = hashedPBKDF2;
-    if (typeof saveToStorage === 'function') {
-      try {
-        await saveToStorage(true);
-        console.log('🔐 Password upgraded to PBKDF2');
-      } catch (e) {
-        console.warn('Could not save upgraded password:', e);
+  // Auto-upgrade SHA-256 or Legacy-10k PBKDF2 to Secure PBKDF2-210k
+  if (validUser.password === hashedSHA256 || validUser.password === hashedPBKDF2_legacy || validUser.password === password) {
+    if (validUser.password !== hashedPBKDF2) {
+      validUser.password = hashedPBKDF2;
+      if (typeof saveToStorage === 'function') {
+        try {
+          await saveToStorage(true);
+          console.log('🔐 Password upgraded to Secure PBKDF2 (210,000 iterations)');
+        } catch (e) {
+          console.warn('Could not save upgraded password:', e);
+        }
       }
     }
   }
