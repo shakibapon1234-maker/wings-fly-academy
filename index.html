@@ -2312,6 +2312,28 @@ WINGS FLY AVIATION ACADEMY — Management System
             }
         })();
     </script>
+    <script>
+window.addEventListener('load', function() {
+  setTimeout(async function() {
+    if (!sessionStorage.getItem('isLoggedIn')) return;
+    
+    const raw = localStorage.getItem('wingsfly_data');
+    const parsed = raw ? JSON.parse(raw) : null;
+    const stu = parsed ? (parsed.students || []).length : 0;
+    
+    if (stu === 0) {
+      console.log('🔄 Auto-syncing from cloud...');
+      if (typeof window.wingsSync !== 'undefined') {
+        await window.wingsSync.pullNow();
+        setTimeout(function() {
+          if (typeof window.renderFullUI === 'function') window.renderFullUI();
+          if (typeof window.updateGlobalStats === 'function') updateGlobalStats();
+        }, 500);
+      }
+    }
+  }, 2000);
+});
+</script>
 </body>
 
 </html>
