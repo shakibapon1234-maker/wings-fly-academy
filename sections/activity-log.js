@@ -66,7 +66,10 @@ function loadActivityHistory() {
   const container = document.getElementById('activityHistoryList');
   if (!container) return;
 
-  const history = window.globalData.activityHistory || [];
+  let history = window.globalData.activityHistory || [];
+  // Filter out system and auto-heal spam from the display
+  history = history.filter(h => h.type !== 'heal' && h.type !== 'system' && h.type !== 'autotest');
+
   const filterVal = document.getElementById('historyFilter')?.value || 'all';
 
   const filtered = filterVal === 'all' ? history : history.filter(h => h.type === filterVal);

@@ -123,7 +123,7 @@
 
     // Log to activity
     var name = item.name || item.studentName || item.title || item.description || item.id || 'Item';
-    window.logActivity('DELETE', type, type + ' deleted: ' + name, item);
+    window.logActivity(type, 'DELETE', type + ' deleted: ' + name, item);
 
     console.log('[RecycleFix] ✓ Moved to Recycle Bin:', type, name);
     return entry.id;
@@ -132,9 +132,13 @@
   // ═══════════════════════════════════════════════
   // 2. CORE: logActivity (সব action log করবে)
   // ═══════════════════════════════════════════════
-  window.logActivity = function (action, type, description, data) {
+  window.logActivity = function (type, action, description, data) {
     var gd = window.globalData;
     if (!gd) return;
+    
+    // Ignore auto-heal, system and autotest logs
+    if (type === 'heal' || type === 'system' || type === 'autotest') return;
+
     if (!Array.isArray(gd.activityHistory)) gd.activityHistory = [];
 
     var entry = {
@@ -406,7 +410,7 @@
 
     // Log Activity
     var name = item.name || item.studentName || item.title || item.description || 'Item';
-    window.logActivity('RESTORE', t, t + ' restored: ' + name, item);
+    window.logActivity(t, 'RESTORE', t + ' restored: ' + name, item);
 
     // Dynamic UI Refresh
     setTimeout(function () {
@@ -456,7 +460,7 @@
     });
     _save();
 
-    if (d) window.logActivity('DELETE', d.type, d.type + ' permanently deleted: ' + name, {});
+    if (d) window.logActivity(d.type, 'DELETE', d.type + ' permanently deleted: ' + name, {});
 
     if (typeof window.renderRecycleBin === 'function') setTimeout(window.renderRecycleBin, 100);
     if (typeof window.showSuccessToast === 'function') window.showSuccessToast('🗑️ ' + name + ' চিরতরে মুছে ফেলা হয়েছে!');

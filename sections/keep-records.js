@@ -111,23 +111,32 @@ function saveNote() {
 window.saveNote = saveNote;
 
 function deleteNote(id) {
-  // ⚠️ Confirm, moveToTrash, logActivity - patch করবে।
   const allRecords = getKeepRecords();
   const noteToDelete = allRecords.find(r => r.id === id);
 
   if (!noteToDelete) {
-    showErrorToast('❌ নোট পাওয়া যায়নি।');
+    if (typeof showErrorToast === 'function') showErrorToast('❌ নোট পাওয়া যায়নি।');
     return;
   }
+
+  if (!confirm('আপনি কি নিশ্চিত যে এই নোটটি মুছে ফেলতে চান?')) return;
 
   // ── localStorage থেকে সরাও ──
   const remaining = allRecords.filter(r => r.id !== id);
   saveKeepRecords(remaining);
 
+  // ── Recycle Bin and Activity Log ──
+  if (typeof window.moveToTrash === 'function') {
+    window.moveToTrash('keeprecord', noteToDelete);
+  }
+  if (typeof window.logActivity === 'function') {
+    window.logActivity('keeprecord', 'DELETE', `🗑️ Note deleted: ${noteToDelete.title || noteToDelete.content || 'Note'}`, noteToDelete);
+  }
+
   // ── globalData save ──
   if (typeof saveToStorage === 'function') saveToStorage();
 
-  showSuccessToast('🗑️ নোট Recycle Bin-এ গেছে।');
+  if (typeof showSuccessToast === 'function') showSuccessToast('🗑️ নোট Recycle Bin-এ গেছে।');
   renderKeepRecordNotes();
   updateNoteTagDropdown();
 }
