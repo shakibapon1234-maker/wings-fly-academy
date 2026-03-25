@@ -1,36 +1,59 @@
 // ════════════════════════════════════════════════════════════════
 // WINGS FLY AVIATION ACADEMY
-// SYNC DIAGNOSTIC — V2.1 Fixed (Partial Table Architecture)
+// SYNC DIAGNOSTIC — V2.2 Fixed (Reliable Count + Match Logic Fix)
 // ════════════════════════════════════════════════════════════════
 
 const DIAG_URL = window.SUPABASE_CONFIG?.URL + '/rest/v1/' + (window.SUPABASE_CONFIG?.TABLE || 'academy_data') + '?id=eq.' + (window.SUPABASE_CONFIG?.MAIN_RECORD || 'wingsfly_main') + '&select=*';
 const DIAG_KEY = window.SUPABASE_CONFIG?.KEY || '';
 
-/** Row counts from partial sync tables (V36+). Main academy row often omits students/finance arrays. */
+/** Row counts from partial sync tables (V36+). Uses two fallback methods for reliability. */
 async function diagCountPartialTable(table) {
     const CFG = window.SUPABASE_CONFIG;
     if (!CFG?.URL || !CFG.KEY || !table) return null;
-    const aid = encodeURIComponent(CFG.ACADEMY_ID || 'wingsfly_main');
-    const url = `${CFG.URL}/rest/v1/${table}?academy_id=eq.${aid}&deleted=eq.false&select=id`;
+    const aid = CFG.ACADEMY_ID || 'wingsfly_main';
+
+    // Method 1: GET with count=exact header (standard Supabase approach)
     try {
+        const url = `${CFG.URL}/rest/v1/${table}?academy_id=eq.${encodeURIComponent(aid)}&deleted=eq.false&select=id`;
         const res = await fetch(url, {
             headers: {
                 apikey: CFG.KEY,
                 Authorization: 'Bearer ' + CFG.KEY,
                 Prefer: 'count=exact',
-                Range: '0-999999'
+                'Range-Unit': 'items',
+                Range: '0-9999'
             }
         });
-        if (!res.ok) return null;
-        const cr = res.headers.get('content-range');
-        if (!cr) return null;
-        const total = cr.split('/')[1];
-        if (total === undefined || total === '*') return null;
-        const n = parseInt(total, 10);
-        return Number.isFinite(n) ? n : null;
-    } catch (e) {
-        return null;
-    }
+        if (res.ok) {
+            const cr = res.headers.get('content-range');
+            if (cr && cr.includes('/')) {
+                const total = cr.split('/')[1];
+                if (total && total !== '*') {
+                    const n = parseInt(total, 10);
+                    if (Number.isFinite(n)) return n;
+                }
+            }
+            // Fallback: count JSON rows if header missing
+            try {
+                const rows = await res.json();
+                if (Array.isArray(rows)) return rows.length;
+            } catch(je) {}
+        }
+    } catch (e) { /* fall through to method 2 */ }
+
+    // Method 2: No Range header (some Supabase RLS configs block Range)
+    try {
+        const url2 = `${CFG.URL}/rest/v1/${table}?academy_id=eq.${encodeURIComponent(aid)}&deleted=eq.false&select=id&limit=5000`;
+        const res2 = await fetch(url2, {
+            headers: { apikey: CFG.KEY, Authorization: 'Bearer ' + CFG.KEY }
+        });
+        if (res2.ok) {
+            const rows2 = await res2.json();
+            if (Array.isArray(rows2)) return rows2.length;
+        }
+    } catch (e2) { /* ignore */ }
+
+    return null;
 }
 
 /** Fetch cash_balance from main academy_data row */
@@ -156,12 +179,11 @@ async function runDiagnosticInline() {
     document.getElementById('d-cloudCash').textContent = diagFmt(cC);
     document.getElementById('d-cloudVer').textContent = cloudMeta ? 'v' + cV : '—';
 
-    // ✅ FIX: Data loss check — only warn if partial counts clearly show cloud has LESS
-    // Tolerance: allow ±1 difference (race conditions during sync)
-    const stuMatch = isOffline || Math.abs(lS - cS) <= 1;
-    const finMatch = isOffline || Math.abs(lF - cF) <= 1;
-    // ✅ FIX: Data loss — cloud having MORE is fine (new records synced from another device)
-    //         Only flag if cloud has significantly LESS than local
+    // ✅ V2.2 FIX: Match check — cloud CAN have more (other device synced more records)
+    // Only flag mismatch if cloud has LESS than local (potential data loss)
+    const stuMatch = isOffline || cS >= lS || Math.abs(lS - cS) <= 1;
+    const finMatch = isOffline || cF >= lF || Math.abs(lF - cF) <= 1;
+    // ✅ V2.2 FIX: Data loss — only warn if cloud has significantly LESS than local
     const noDataLoss = isOffline || !(cS < lS - 1 || cF < lF - 1);
 
     // Checks
@@ -254,7 +276,7 @@ async function runDiagnosticInline() {
 window.runDiagnosticInline = runDiagnosticInline;
 
 // ════════════════════════════════════════════════════════════════
-// ✅ V2.1 Fixes:
+// ✅ V2.2 Fixes:
 // 1. diagGetCloudCash() — main row থেকে cash/version আলাদাভাবে আনে
 // 2. cS/cF শুধু partial table count থেকে নেয় (deleted=false)
 // 3. Data loss check — cloud > local হলে warning দেয় না
