@@ -322,16 +322,26 @@
     } catch (e) { _log('⚠️', 'saveLocal error', e); return false; }
   }
 
-  // ── MERGE RECORDS ──────────────────────────────────────────────
+  // ── MERGE RECORDS (V39.1: Timestamp-based Conflict Resolution) ──
   function _mergeRecords(localArr, cloudRows, keyFn) {
     const merged = new Map();
+    // Local records যোগ করো
     (localArr || []).forEach(item => { const k = keyFn(item); if (k) merged.set(k, item); });
+    // Cloud records merge করো — timestamp compare করে নতুনটা রাখো
     (cloudRows || []).forEach(row => {
       if (!row.data) return;
       const k = keyFn(row.data);
       if (!k) return;
-      if (row.deleted) merged.delete(k);
-      else merged.set(k, row.data);
+      if (row.deleted) { merged.delete(k); return; }
+      const existing = merged.get(k);
+      if (!existing) { merged.set(k, row.data); return; }
+      // Timestamp-based resolution: নতুন record-ই win করবে
+      const localTime = new Date(existing._updatedAt || existing._createdAt || 0).getTime();
+      const cloudTime = new Date(row.data._updatedAt || row.data._createdAt || 0).getTime();
+      if (cloudTime >= localTime) {
+        merged.set(k, row.data); // Cloud wins (newer)
+      }
+      // else: Local wins (newer) — already in map
     });
     return Array.from(merged.values());
   }
@@ -441,32 +451,10 @@
         return true;
 
       } else {
-        // Legacy mode
-        const { data, error } = await _sb.from(CFG.TABLE).select('*').eq('id', CFG.RECORD).limit(1);
-        if (error) throw error;
-        const rec = data?.[0];
-        if (!rec) { _log('⚠️', 'No cloud data'); return false; }
-        window.globalData = {
-          students: rec.students || [],
-          finance: rec.finance || [],
-          employees: rec.employees || [],
-          cashBalance: rec.cash_balance || 0,
-          bankAccounts: rec.bank_accounts || [],
-          mobileBanking: rec.mobile_banking || [],
-          deletedItems: { students: [], finance: [], employees: [] }, // ✅ V39: always object
-          settings: rec.settings || window.globalData?.settings || {},
-          users: (rec.users && rec.users.length > 0) ? rec.users : (window.globalData?.users || []),
-        };
-        _localVer = rec.version || 0;
-        localStorage.setItem('wings_local_version', _localVer.toString());
-        MaxCount.forceSet(window.globalData.students.length, window.globalData.finance.length);
-        _saveLocal();
-        SyncFreshness.update();
-        NetworkQuality.recordSuccess();
-        _log('✅', `Legacy pull OK v${_localVer}`);
-        window.initialSyncComplete = true;
-        window._wf_pull_complete = true;
-        return true;
+        // V39.1: Legacy BLOB mode সরানো হয়েছে — শুধু partial tables সাপোর্ট
+        _log('❌', 'Partial tables not available! Please ensure wf_students, wf_finance, wf_employees tables exist in Supabase.');
+        _showUserMessage('Sync Error: Partial tables পাওয়া যাচ্ছে না। Supabase Dashboard চেক করুন।', 'error');
+        return false;
       }
     } catch (e) {
       _log('❌', 'Pull failed', e);
@@ -751,18 +739,9 @@
         return true;
 
       } else {
-        // Legacy
-        await _sb.from(CFG.TABLE).upsert({
-          id: CFG.RECORD, version: _localVer, students: gd.students || [],
-          finance: gd.finance || [], employees: gd.employees || [],
-          cash_balance: gd.cashBalance || 0, bank_accounts: gd.bankAccounts || [],
-          mobile_banking: gd.mobileBanking || [], last_updated: new Date().toISOString(),
-          last_device: DEVICE_ID, last_action: reason
-        }, { onConflict: 'id' });
-        NetworkQuality.recordSuccess();
-        SyncFreshness.update();
-        _log('✅', `Legacy push OK v${_localVer}`);
-        return true;
+        // V39.1: Legacy BLOB push সরানো হয়েছে
+        _log('❌', 'Partial tables not available! Push requires wf_students, wf_finance, wf_employees.');
+        return false;
       }
     } catch (e) {
       _log('❌', 'Push failed', e);

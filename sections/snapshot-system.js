@@ -171,89 +171,18 @@ document.addEventListener('DOMContentLoaded', function () {
 
 
 // ================================================================
-// AUTO-HEAL ENGINE
+// AUTO-HEAL ENGINE — REMOVED (V39 Cleanup)
 // ================================================================
-(function () {
-  var _stats = { totalRuns: 0, totalFixes: 0, lastRun: null, lastFix: null };
+// ✅ Duplicate Auto-Heal code সরানো হয়েছে।
+// auto-heal.js ফাইলে 13-module Auto-Heal Engine আছে যা এই basic
+// version-এর চেয়ে অনেক বেশি comprehensive।
+// দুটো একসাথে load হলে window._runHeal, window._healLog overwrite
+// হয়ে যেত এবং auto-heal.js-এর advanced modules কাজ করত না।
+// ================================================================
 
-  function _healLog(msg, type) {
-    var container = document.getElementById('heal-log-container');
-    if (!container) return;
-    var colors = { ok: '#00ff88', warn: '#ffcc00', err: '#ff4466', info: '#00d4ff' };
-    var icon = { ok: '✅', warn: '⚠️', err: '❌', info: 'ℹ️' }[type] || 'ℹ️';
-    var placeholder = container.querySelector('span');
-    if (placeholder) placeholder.remove();
-    var div = document.createElement('div');
-    div.style.cssText = 'color:' + (colors[type] || '#c8d8f0') + ';margin:2px 0;font-size:0.78rem;';
-    div.textContent = '[' + new Date().toLocaleTimeString() + '] ' + icon + ' ' + msg;
-    container.appendChild(div);
-    container.scrollTop = container.scrollHeight;
-  }
-
-  function _updateUI() {
-    var e;
-    e = document.getElementById('heal-stats-total-runs'); if (e) e.textContent = _stats.totalRuns;
-    e = document.getElementById('heal-stats-total-fixes'); if (e) e.textContent = _stats.totalFixes;
-    e = document.getElementById('heal-stats-last-run'); if (e) e.textContent = _stats.lastRun ? new Date(_stats.lastRun).toLocaleTimeString() : '—';
-    e = document.getElementById('heal-stats-last-fix'); if (e) e.textContent = _stats.lastFix ? new Date(_stats.lastFix).toLocaleTimeString() : '—';
-  }
-
-  function _runHeal() {
-    _stats.totalRuns++;
-    _stats.lastRun = Date.now();
-    _updateUI();
-    var fixed = 0;
-    var data;
-    try {
-      var raw = localStorage.getItem('wingsfly_data');
-      data = raw ? JSON.parse(raw) : (window.globalData || null);
-      if (!data) { _healLog('Data পাওয়া যায়নি!', 'err'); return; }
-    } catch (e) { _healLog('Parse error: ' + e.message, 'err'); return; }
-
-    _healLog('Check শুরু হচ্ছে...', 'info');
-    if (!Array.isArray(data.deletedItems)) { data.deletedItems = []; fixed++; _healLog('Recycle Bin array তৈরি হয়েছে', 'warn'); }
-    else { _healLog('Recycle Bin: ' + data.deletedItems.length + ' আইটেম ✓', 'ok'); }
-    if (!Array.isArray(data.activityHistory)) { data.activityHistory = []; fixed++; _healLog('Activity Log array তৈরি হয়েছে', 'warn'); }
-    else { _healLog('Activity Log: ' + data.activityHistory.length + ' এন্ট্রি ✓', 'ok'); }
-    if (!Array.isArray(data.students)) { data.students = []; fixed++; _healLog('Students array fix হয়েছে', 'warn'); }
-    else { _healLog('Students: ' + data.students.length + ' টি ✓', 'ok'); }
-    if (!Array.isArray(data.finance)) { data.finance = []; fixed++; _healLog('Finance array fix হয়েছে', 'warn'); }
-    else { _healLog('Finance: ' + data.finance.length + ' টি ✓', 'ok'); }
-    if (typeof data.cashBalance !== 'number' || isNaN(data.cashBalance)) { data.cashBalance = 0; fixed++; _healLog('Cash Balance fix হয়েছে', 'warn'); }
-    else { _healLog('Cash Balance: ৳' + data.cashBalance + ' ✓', 'ok'); }
-
-    if (fixed > 0) {
-      _stats.totalFixes += fixed;
-      _stats.lastFix = Date.now();
-      window.globalData = data;
-      localStorage.setItem('wingsfly_data', JSON.stringify(data));
-      _healLog(fixed + ' টি সমস্যা fix হয়েছে! ✨', 'warn');
-    } else {
-      _healLog('সব ঠিক আছে 🎉', 'ok');
-    }
-    _updateUI();
-  }
-
-  window.autoHeal = {
-    runNow: function () { _runHeal(); },
-    getStats: function () { return _stats; }
-  };
-
-  document.addEventListener('DOMContentLoaded', function () {
-    setTimeout(function () {
-      _healLog('Auto-Heal Engine চালু (প্রতি 60s)', 'info');
-      setInterval(_runHeal, 60000);
-    }, 2500);
-  });
-
-  // Expose heal functions globally from within IIFE scope
-  window._healLog = _healLog;
-  window._updateUI = _updateUI;
-  window._runHeal = _runHeal;
-})();
 
 // ===================================
-// BALANCE RECONCILIATION FIX
+// BALANCE RECONCILIATION FIX (V39.1: Safety Guards Added)
 // Fixes missing account balance from old installments
 // Runs once on first load after update
 // ===================================
@@ -266,6 +195,29 @@ document.addEventListener('DOMContentLoaded', function () {
 
         const gd = window.globalData;
         if (!gd || !gd.finance) return;
+
+        // ✅ Safety Guard 1: Wait for initial sync to complete
+        if (!window.initialSyncComplete && navigator.onLine) {
+          console.log('[Reconciliation] Skipped — waiting for initial sync');
+          return; // Will retry on next page load
+        }
+
+        // ✅ Safety Guard 2: Minimum entry check
+        const finCount = (gd.finance || []).length;
+        const lastKnownFin = parseInt(localStorage.getItem('wings_last_known_finance')) || 0;
+        if (lastKnownFin > 10 && finCount < lastKnownFin * 0.5) {
+          console.warn('[Reconciliation] SKIPPED — finance data incomplete: local=' + finCount + ' known=' + lastKnownFin);
+          return; // Data might be missing, don't recalculate
+        }
+
+        // ✅ Safety Guard 3: Pre-snapshot before any changes
+        if (typeof takeSnapshot === 'function') {
+          takeSnapshot();
+          console.log('[Reconciliation] Pre-snapshot taken for safety');
+        }
+
+        // Save current balances for deviation check
+        const prevCash = gd.cashBalance || 0;
 
         // Recalculate what balance SHOULD be from all finance entries
         let correctCash = 0;
@@ -295,8 +247,14 @@ document.addEventListener('DOMContentLoaded', function () {
           }
         });
 
+        // ✅ Safety Guard 4: Deviation check — if balance changes > 50%, log warning
+        const newCash = Math.max(0, correctCash);
+        if (prevCash > 0 && Math.abs(newCash - prevCash) > prevCash * 0.5) {
+          console.warn('[Reconciliation] ⚠️ Large deviation detected! prev=' + prevCash + ' new=' + newCash + '. Applying anyway (snapshot taken).');
+        }
+
         // Apply corrected balances
-        gd.cashBalance = Math.max(0, correctCash);
+        gd.cashBalance = newCash;
         (gd.bankAccounts || []).forEach(a => {
           if (bankMap.hasOwnProperty(a.name)) a.balance = Math.max(0, bankMap[a.name]);
         });
