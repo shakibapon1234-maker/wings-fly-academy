@@ -280,11 +280,48 @@ async function handleLegacyLogin(username, password) {
   const hashedSHA256 = await hashPassword(password);
   const hashedPBKDF2 = await hashPasswordPBKDF2(password, username);
 
-  // Find user
-  const validUser = window.globalData.users.find(u =>
+  // Find user locally first
+  let validUser = window.globalData.users.find(u =>
     u.username.toLowerCase() === username.toLowerCase() &&
     (u.password === hashedSHA256 || u.password === hashedPBKDF2 || u.password === password)
   );
+
+  // ☁️ NEW BROWSER FALLBACK: Fetch users from Cloud if not found locally
+  if (!validUser && window.SUPABASE_CONFIG && window.SUPABASE_CONFIG.URL) {
+    try {
+      console.log('☁️ User not found locally. Validating from Cloud...');
+      const btn = document.getElementById('loginBtn');
+      if (btn) btn.innerHTML = '<span class="spinner-border spinner-border-sm me-2"></span>Cloud Syncing...';
+      
+      const cfg = window.SUPABASE_CONFIG;
+      const url = cfg.URL + '/rest/v1/' + (cfg.TABLE || 'academy_data') + '?id=eq.' + (cfg.MAIN_RECORD || 'wingsfly_main') + '&select=data';
+      const res = await fetch(url, { headers: { apikey: cfg.KEY, Authorization: 'Bearer ' + cfg.KEY } });
+      
+      if (res.ok) {
+        const cloudData = await res.json();
+        if (cloudData && cloudData[0] && cloudData[0].data) {
+          const cloudUsers = cloudData[0].data.users;
+          if (cloudUsers && Array.isArray(cloudUsers)) {
+             validUser = cloudUsers.find(u =>
+               u.username.toLowerCase() === username.toLowerCase() &&
+               (u.password === hashedSHA256 || u.password === hashedPBKDF2 || u.password === password)
+             );
+             if (validUser) {
+               console.log('✅ User validated from Cloud!');
+               window.globalData.users = cloudUsers;
+               if (cloudData[0].data.settings) {
+                 window.globalData.settings = cloudData[0].data.settings;
+               }
+               // Force pull real data right after login since local is empty
+               sessionStorage.setItem('wf_force_full_sync', 'true');
+             }
+          }
+        }
+      }
+    } catch (e) {
+      console.warn('⚠️ Cloud fallback failed:', e);
+    }
+  }
 
   if (!validUser) {
     throw new Error('Invalid username or password');
@@ -960,11 +997,11 @@ window.wfShowForgotModal = async function () {
       try {
         var cfg = window.SUPABASE_CONFIG;
         if (cfg && cfg.URL && cfg.KEY) {
-          var cloudUrl = cfg.URL + '/rest/v1/' + cfg.TABLE + '?id=eq.' + cfg.MAIN_RECORD + '&select=settings,users';
+          var cloudUrl = cfg.URL + '/rest/v1/' + cfg.TABLE + '?id=eq.' + cfg.MAIN_RECORD + '&select=data';
           var res = await fetch(cloudUrl, { headers: { 'apikey': cfg.KEY, 'Authorization': 'Bearer ' + cfg.KEY } });
           if (res.ok) {
             var arr = await res.json();
-            var rec = arr && arr[0];
+            var rec = arr && arr[0] && arr[0].data;
             if (rec && rec.settings) {
               window.globalData.settings = rec.settings;
               console.log('✅ Forgot modal: Settings loaded from cloud');
