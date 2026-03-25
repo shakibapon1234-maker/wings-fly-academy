@@ -360,8 +360,12 @@
         const mainRec = mainRes.data?.[0];
         if (mainRec) {
           gd.cashBalance = mainRec.cash_balance ?? gd.cashBalance ?? 0;
-          gd.bankAccounts = mainRec.bank_accounts || gd.bankAccounts || [];
-          gd.mobileBanking = mainRec.mobile_banking || gd.mobileBanking || [];
+          // 2705 V37.1 FIX: Empty array [] is truthy, so || does NOT protect local data
+          // Use local data if cloud has empty array
+          const _cBank = mainRec.bank_accounts;
+          const _cMobile = mainRec.mobile_banking;
+          gd.bankAccounts = (_cBank && _cBank.length > 0) ? _cBank : (gd.bankAccounts && gd.bankAccounts.length > 0 ? gd.bankAccounts : []);
+          gd.mobileBanking = (_cMobile && _cMobile.length > 0) ? _cMobile : (gd.mobileBanking && gd.mobileBanking.length > 0 ? gd.mobileBanking : []);
           if (mainRec.settings) { gd.settings = Object.assign({}, gd.settings || {}, mainRec.settings); _log('✅', 'Settings synced from cloud'); }
           if (mainRec.users && Array.isArray(mainRec.users) && mainRec.users.length > 0) { gd.users = mainRec.users; _log('✅', 'Users synced from cloud'); }
           _localVer = mainRec.version || _localVer;
