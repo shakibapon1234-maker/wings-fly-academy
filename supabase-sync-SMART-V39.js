@@ -414,6 +414,19 @@
           gd.mobileBanking = (_cMobile && _cMobile.length > 0) ? _cMobile : (gd.mobileBanking && gd.mobileBanking.length > 0 ? gd.mobileBanking : []);
           if (mainRec.settings) { gd.settings = Object.assign({}, gd.settings || {}, mainRec.settings); }
           if (mainRec.users && Array.isArray(mainRec.users) && mainRec.users.length > 0) { gd.users = mainRec.users; }
+          // ✅ V39.5: Settings fields sync — Categories, Courses, Roles
+          if (mainRec.income_categories && Array.isArray(mainRec.income_categories) && mainRec.income_categories.length > 0) {
+            gd.incomeCategories = mainRec.income_categories;
+          }
+          if (mainRec.expense_categories && Array.isArray(mainRec.expense_categories) && mainRec.expense_categories.length > 0) {
+            gd.expenseCategories = mainRec.expense_categories;
+          }
+          if (mainRec.course_names && Array.isArray(mainRec.course_names) && mainRec.course_names.length > 0) {
+            gd.courseNames = mainRec.course_names;
+          }
+          if (mainRec.employee_roles && Array.isArray(mainRec.employee_roles) && mainRec.employee_roles.length > 0) {
+            gd.employeeRoles = mainRec.employee_roles;
+          }
           _localVer = mainRec.version || _localVer;
           localStorage.setItem('wings_local_version', _localVer.toString());
         }
@@ -720,7 +733,12 @@
           last_updated: new Date().toISOString(), last_device: DEVICE_ID,
           last_action: reason, cash_balance: gd.cashBalance || 0,
           bank_accounts: gd.bankAccounts || [], mobile_banking: gd.mobileBanking || [],
-          settings: gd.settings || null, users: gd.users || null
+          settings: gd.settings || null, users: gd.users || null,
+          // ✅ V39.5: Settings fields sync
+          income_categories: gd.incomeCategories || [],
+          expense_categories: gd.expenseCategories || [],
+          course_names: gd.courseNames || [],
+          employee_roles: gd.employeeRoles || []
         };
         tasks.push(_sb.from(CFG.TABLE).upsert(mainPayload, { onConflict: 'id' }).then(res => {
           if (res.error?.message?.includes('column')) {
@@ -978,6 +996,12 @@
         last_updated: new Date().toISOString(), last_device: DEVICE_ID,
         last_action: 'page-close', cash_balance: gd.cashBalance || 0,
         bank_accounts: gd.bankAccounts || [], mobile_banking: gd.mobileBanking || [],
+        // ✅ V39.5: Settings fields sync on page close
+        income_categories: gd.incomeCategories || [],
+        expense_categories: gd.expenseCategories || [],
+        course_names: gd.courseNames || [],
+        employee_roles: gd.employeeRoles || [],
+        settings: gd.settings || null,
       };
       const mainUrl = `${CFG.URL}/rest/v1/${CFG.TABLE}?on_conflict=id`;
       const hdrs = { 'Content-Type': 'application/json', 'apikey': CFG.KEY, 'Authorization': `Bearer ${CFG.KEY}`, 'Prefer': 'resolution=merge-duplicates' };
