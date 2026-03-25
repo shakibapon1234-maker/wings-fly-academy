@@ -111,8 +111,8 @@
             var el = document.getElementById(id);
             if (!el || el.tagName !== 'SELECT') return;
             var currentVal = el.value;
-            var firstOptText = '-- বেছে নিন --';
-            if (id === 'visitorCourseSelect') firstOptText = 'Select Interested Course...';
+            var firstOptText = '-- Select Course --';
+            if (id === 'visitorCourseSelect') firstOptText = '-- Select Course --';
             else if (id === 'examSubjectSelect') firstOptText = 'Select Course...';
 
             el.innerHTML = '<option value="">' + firstOptText + '</option>';

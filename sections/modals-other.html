@@ -63,7 +63,7 @@
                 <form id="editTransactionForm" onsubmit="handleEditTransactionSubmit(event)">
                     <input type="hidden" name="transactionId">
                     <div class="row">
-                        <div class="col-4 mb-3">
+                        <div class="col-12 col-sm-6 mb-3">
                             <label class="form-label fw-semibold">Type</label>
                             <select name="type" class="form-select">
                                 <option value="Income">Income (+)</option>
@@ -74,20 +74,22 @@
                                 <option value="Transfer In">Transfer In</option>
                             </select>
                         </div>
-                        <div class="col-4 mb-3">
+                        <div class="col-12 col-sm-6 mb-3">
                             <label class="form-label fw-semibold">Method</label>
                             <select name="method" class="form-select" id="editTransMethodSelect">
                                 <!-- Populated dynamically -->
                             </select>
                         </div>
-                        <div class="col-4 mb-3">
+                    </div>
+                    <div class="row">
+                        <div class="col-12 col-sm-6 mb-3">
                             <label class="form-label fw-semibold">Date</label>
                             <input type="date" name="date" class="form-control" required>
                         </div>
-                    </div>
-                    <div class="mb-3">
-                        <label class="form-label fw-semibold">Amount</label>
-                        <input type="number" name="amount" class="form-control" required>
+                        <div class="col-12 col-sm-6 mb-3">
+                            <label class="form-label fw-semibold">Amount</label>
+                            <input type="number" name="amount" class="form-control" required>
+                        </div>
                     </div>
                     <div class="mb-3">
                         <label class="form-label fw-semibold">Category</label>
