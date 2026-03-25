@@ -262,23 +262,9 @@
 
   // ── V39: ENSURE deletedItems IS ALWAYS OBJECT (never array) ──
   function _ensureDeletedItemsObject(gd) {
-    if (!gd) return;
-    if (Array.isArray(gd.deletedItems)) {
-      _log('🔧', 'V39: deletedItems was array — converting to object');
-      const fixed = { students: [], finance: [], employees: [] };
-      gd.deletedItems.forEach(function(item) {
-        const t = (item.type || '').toLowerCase();
-        if (t === 'student') fixed.students.push(item);
-        else if (t === 'finance') fixed.finance.push(item);
-        else if (t === 'employee') fixed.employees.push(item);
-      });
-      gd.deletedItems = fixed;
-    } else if (!gd.deletedItems || typeof gd.deletedItems !== 'object') {
-      gd.deletedItems = { students: [], finance: [], employees: [] };
+    if (window.WingsUtils && window.WingsUtils.ensureDeletedItemsObject) {
+      window.WingsUtils.ensureDeletedItemsObject(gd);
     }
-    if (!Array.isArray(gd.deletedItems.students)) gd.deletedItems.students = [];
-    if (!Array.isArray(gd.deletedItems.finance)) gd.deletedItems.finance = [];
-    if (!Array.isArray(gd.deletedItems.employees)) gd.deletedItems.employees = [];
   }
 
   // ── INIT ──────────────────────────────────────────────────────
@@ -354,8 +340,17 @@
   async function pullFromCloud(showUI = false, forceFullPull = false) {
     if (_pulling) { _log('⏸️', 'Pull in progress'); return false; }
     if (!_ready || !_sb) return false;
-    if (Egress.hardThrottled()) {
-      _log('🛑', 'Hard egress limit — pull blocked');
+    if (_online) {
+      try {
+        const checkLimit = await _sb.rpc('check_daily_sync_limit');
+        if (checkLimit.data && checkLimit.data.success === false) {
+          _log('🛑', 'Server Egress Limit Crossed — Pull blocked');
+          _showUserMessage('Daily Sync Limit Exceeded (300/day)! Server Blocked.', 'error');
+          return false;
+        }
+      } catch(e) { /* ignore */ }
+    } else if (Egress.hardThrottled()) {
+      _log('🛑', 'Hard egress limit (Offline) — pull blocked');
       _showUserMessage('অনেক বেশি request। Diagnostic থেকে "Egress Reset" করুন।', 'error');
       return false;
     }
@@ -396,7 +391,7 @@
           finance: gd.finance || [],
           employees: gd.employees || []
         };
-        gd.students = _mergeRecords(local.students, stuRes.data, s => s.studentId || s.id || s.name);
+        gd.students = _mergeRecords(local.students, stuRes.data, s => s.studentId || s.id || s.phone || s.name);
         gd.finance = _mergeRecords(local.finance, finRes.data, f => f.id || f.timestamp);
         gd.employees = _mergeRecords(local.employees, empRes.data, e => e.id);
 
@@ -424,7 +419,7 @@
         // Save push snapshots
         try {
           const sSnap = {};
-          gd.students.forEach(s => { const k = s.studentId || s.id || s.name; if(k) sSnap[k] = _hashRecord(s); });
+          gd.students.forEach(s => { const k = s.studentId || s.id || s.phone || s.name; if(k) sSnap[k] = _hashRecord(s); });
           const fSnap = {};
           gd.finance.forEach(f => { const k = f.id || f.timestamp; if(k) fSnap[k] = _hashRecord(f); });
           _saveSnapshot('students', sSnap);
@@ -545,7 +540,7 @@
     if (!gd) return;
     try {
       const sSnap = {};
-      (gd.students || []).forEach(s => { const k = s.studentId || s.id || s.name; if (k) sSnap[k] = _hashRecord(s); });
+      (gd.students || []).forEach(s => { const k = s.studentId || s.id || s.phone || s.name; if (k) sSnap[k] = _hashRecord(s); });
       _saveSnapshot('students', sSnap);
       const fSnap = {};
       (gd.finance || []).forEach(f => { const k = f.id || f.timestamp; if (k) fSnap[k] = _hashRecord(f); });
@@ -560,7 +555,14 @@
     if (_pushing) { _log('⏸️', 'Push in progress'); return false; }
     if (!_ready || !_sb || !window.globalData) return false;
     if (!_online) { _log('📵', 'Offline'); return false; }
-    if (Egress.hardThrottled()) { _log('🛑', 'Hard egress limit — push blocked'); return false; }
+    try {
+      const checkLimit = await _sb.rpc('check_daily_sync_limit');
+      if (checkLimit.data && checkLimit.data.success === false) {
+        _log('🛑', 'Server Egress Limit Crossed — Push blocked');
+        return false;
+      }
+    } catch(e) { /* ignore */ }
+    if (Egress.hardThrottled() && !_online) { _log('🛑', 'Hard egress limit (Offline) — push blocked'); return false; }
 
     _pushing = true;
     _syncBusy = true;
@@ -630,7 +632,7 @@
 
         if (_dirty.has('students') || _dirty.size === 0) {
           const { changed, deleted, snapshot, snapshotWasEmpty: stuSnapEmpty } = _getDelta(
-            'students', gd.students || [], s => s.studentId || s.id || s.name
+            'students', gd.students || [], s => s.studentId || s.id || s.phone || s.name
           );
           stuTotal = (gd.students || []).length;
           stuPushed = changed.length + deleted.length;
@@ -654,7 +656,7 @@
             }
             if (changed.length > 0) {
               const stuRows = changed.map(s => {
-                const sid = s.studentId || s.id || s.name;
+                const sid = s.studentId || s.id || s.phone || s.name;
                 return { id: `${CFG.ACADEMY_ID}_stu_${sid}`, academy_id: CFG.ACADEMY_ID, data: s, deleted: false };
               });
               const res = await _sb.from(CFG.TBL_STUDENTS).upsert(stuRows, { onConflict: 'id' });
@@ -1009,7 +1011,7 @@
       if (_dirty.size > 0 && _partialOK) {
         if (_dirty.has('students') && (gd.students || []).length > 0) {
           const stuRows = (gd.students || []).slice(0, 50).map(s => {
-            const sid = s.studentId || s.id || s.name;
+            const sid = s.studentId || s.id || s.phone || s.name;
             return { id: `${CFG.ACADEMY_ID}_stu_${sid}`, academy_id: CFG.ACADEMY_ID, data: s, deleted: false };
           });
           const stuUrl = `${CFG.URL}/rest/v1/${CFG.TBL_STUDENTS}?on_conflict=id`;
@@ -1218,6 +1220,8 @@
     getStatus: () => ({
       version: _localVer, online: _online, partialOK: _partialOK,
       dirty: [..._dirty], initialSync: window.initialSyncComplete,
+      // Legacy V36 backward-compatibility for diagnostic tools
+      egressToday: Egress.count(), initialSyncComplete: window.initialSyncComplete, partialReady: _partialOK,
       egress: Egress.count(), egressInfo: Egress.getInfo(),
       tabVisible: _tabVisible, isFreshBrowser: _isFreshBrowser,
       pullComplete: !!window._wf_pull_complete,
