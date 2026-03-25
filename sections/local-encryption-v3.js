@@ -31,6 +31,10 @@
   const originalSetItem = Storage.prototype.setItem;
   const originalGetItem = Storage.prototype.getItem;
 
+  // ── CACHE TO PREVENT 2.5s DECELERATION ON REPEATED READS ──
+  let _lastRaw = null;
+  let _lastDecrypted = null;
+
   // ── HOOK GETITEM ──
   Storage.prototype.getItem = function (key) {
     const rawValue = originalGetItem.call(this, key);
@@ -38,6 +42,7 @@
     // Only decrypt our target keys
     if (key === 'wingsfly_data' || key === 'wf_audit_logs') {
       if (typeof rawValue === 'string' && rawValue.startsWith(ENC_PREFIX)) {
+        if (_lastRaw === rawValue) return _lastDecrypted; // CACHE HIT (0ms latency!)
         try {
           // It's encrypted, let's decrypt
           const encryptedText = rawValue.slice(ENC_PREFIX.length);
@@ -47,6 +52,8 @@
           if (!decryptedJSON) {
             throw new Error('Decryption resulted in empty string (wrong key or broken data).');
           }
+          _lastRaw = rawValue;
+          _lastDecrypted = decryptedJSON;
           return decryptedJSON;
         } catch (e) {
           console.error(`[StorageEncryption] Failed to decrypt ${key}:`, e);
@@ -66,7 +73,12 @@
     if ((key === 'wingsfly_data' || key === 'wf_audit_logs') && typeof value === 'string') {
       try {
         const encryptedText = window.CryptoJS.AES.encrypt(value, getEncryptionKey()).toString();
-        originalSetItem.call(this, key, ENC_PREFIX + encryptedText);
+        const fullRaw = ENC_PREFIX + encryptedText;
+        originalSetItem.call(this, key, fullRaw);
+        if (key === 'wingsfly_data') {
+           _lastRaw = fullRaw;
+           _lastDecrypted = value;
+        }
         return; // Success
       } catch (e) {
         console.error(`[StorageEncryption] Failed to encrypt ${key}:`, e);
