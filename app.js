@@ -877,10 +877,12 @@ window.attachMethodBalanceListeners = attachMethodBalanceListeners;
       const inp = dateInputs[i];
       const id = (inp.id || '').toLowerCase();
       const name = (inp.name || '').toLowerCase();
+      const labelValue = (inp.previousElementSibling?.innerText || '').trim().toLowerCase();
       
-      // Check if it's a "To" date field
-      const isToDate = id.endsWith('to') || id.includes('todate') || id.includes('dateto') ||
-                       name.endsWith('to') || name.includes('todate') || name.includes('dateto');
+      // Check if it's a "To" date field (End date, To date, etc.)
+      const isToDate = id.includes('to') || id.includes('end') || 
+                       name.includes('to') || name.includes('end') ||
+                       labelValue === 'to' || labelValue.includes('to date');
       
       if (isToDate && !inp.value) {
         inp.value = today;
