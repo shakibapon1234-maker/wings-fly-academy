@@ -98,7 +98,7 @@ async function hashPasswordPBKDF2(password, username) {
 
   } catch (e) {
     console.error('❌ PBKDF2 hashing failed:', e);
-    return null;
+    return hashPassword(password);
   }
 }
 
@@ -111,9 +111,6 @@ async function hashPasswordPBKDF2_legacy(password, username) {
     const derivedBits = await crypto.subtle.deriveBits({ name: 'PBKDF2', salt: salt, iterations: 10000, hash: 'SHA-256' }, keyMaterial, 256);
     return Array.from(new Uint8Array(derivedBits)).map(b => b.toString(16).padStart(2, '0')).join('');
   } catch (e) {
-    return null;
-  }
-}
     return hashPassword(password);
   }
 }
