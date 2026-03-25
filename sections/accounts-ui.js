@@ -303,10 +303,9 @@ function handleSettingsSubmit(e) {
 
 function resetDemoData() {
   if (confirm('Reset all data to demo state? This cannot be undone.')) {
-    localStorage.removeItem('wingsfly_data');
-    loadFromStorage();
-    loadDashboard();
-    showSuccessToast('Data reset to demo state!');
+    // SECURITY FIX: User explicitly disabled data wiping
+    // localStorage.removeItem('wingsfly_data');
+    alert('Data Reset functionality has been permanently disabled to prevent data loss.');
   }
 }
 
