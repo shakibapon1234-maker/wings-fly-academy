@@ -609,14 +609,14 @@
       healStats.lastFix = new Date().toLocaleTimeString('bn-BD');
       hLog('fix', `Heal cycle #${healStats.totalRuns} সম্পন্ন — ${totalFixed}টি fix ✓`);
       if (typeof window.logActivity === 'function') {
-        window.logActivity('heal', 'FIX', `🔧 Auto-Heal #${healStats.totalRuns}: ${totalFixed}টি fix`, { fixes: totalFixed, run: healStats.totalRuns, modules: moduleResults });
+        // window.logActivity('heal', 'FIX', `🔧 Auto-Heal #${healStats.totalRuns}: ${totalFixed}টি fix`, { fixes: totalFixed, run: healStats.totalRuns, modules: moduleResults });
       }
       if (typeof window.scheduleSyncPush === 'function') window.scheduleSyncPush(`Auto-Heal: ${totalFixed} fixes`);
       else if (typeof window.saveToCloud === 'function') await window.saveToCloud();
     } else {
       hLog('ok', `Heal cycle #${healStats.totalRuns} — কোনো সমস্যা নেই ✓`);
       if (healStats.totalRuns % 10 === 0 && typeof window.logActivity === 'function') {
-        window.logActivity('heal', 'TEST', `✅ Auto-Heal #${healStats.totalRuns}: সব ঠিক আছে`, { run: healStats.totalRuns });
+        // window.logActivity('heal', 'TEST', `✅ Auto-Heal #${healStats.totalRuns}: সব ঠিক আছে`, { run: healStats.totalRuns });
       }
     }
 
