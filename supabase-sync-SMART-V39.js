@@ -1204,6 +1204,8 @@
     getStatus: () => ({
       version: _localVer, online: _online, partialOK: _partialOK,
       dirty: [..._dirty], initialSync: window.initialSyncComplete,
+      // Legacy V36 backward-compatibility for diagnostic tools
+      egressToday: Egress.count(), initialSyncComplete: window.initialSyncComplete, partialReady: _partialOK,
       egress: Egress.count(), egressInfo: Egress.getInfo(),
       tabVisible: _tabVisible, isFreshBrowser: _isFreshBrowser,
       pullComplete: !!window._wf_pull_complete,
