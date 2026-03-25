@@ -82,6 +82,16 @@ function handleImportFile(event) {
         return;
       }
 
+      // ✅ FIX: Reset MaxCount BEFORE cloud sync so safety checks don't block push
+      // Without this, MaxCount sees "students=22 < old_max=17" and blocks the sync
+      const _stuLen = window.globalData.students.length;
+      const _finLen = window.globalData.finance.length;
+      localStorage.setItem('wf_max_students', _stuLen);
+      localStorage.setItem('wf_max_finance', _finLen);
+      localStorage.setItem('wings_last_known_count', _stuLen);
+      localStorage.setItem('wings_last_known_finance', _finLen);
+      console.log('✅ MaxCount reset after import — Students:', _stuLen, 'Finance:', _finLen);
+
       // Force Cloud Sync — mark all fields dirty and push
       let cloudSuccess = false;
       try {
