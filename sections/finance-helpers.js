@@ -177,7 +177,8 @@ function getDataWarnings() {
   const mobileBanking = gd.mobileBanking || [];
 
   const studentNames = students.map(s => (s.name || '').trim().toLowerCase());
-  const validMethods = ['Cash',
+  const validMethods = [
+    'Cash', 'Bkash', 'Bikash', 'Nagad', 'Nogod', 'Bank', 'Dutch Bangla Bank LTD', 'DBBL', 'Rocket', 'Upay', 'Card',
     ...bankAccounts.map(a => a.name),
     ...mobileBanking.map(a => a.name)
   ];
