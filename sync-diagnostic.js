@@ -18,7 +18,7 @@ async function diagCountPartialTable(table) {
                 apikey: CFG.KEY,
                 Authorization: 'Bearer ' + CFG.KEY,
                 Prefer: 'count=exact',
-                Range: '0-0'
+                Range: '0-999999'
             }
         });
         if (!res.ok) return null;
