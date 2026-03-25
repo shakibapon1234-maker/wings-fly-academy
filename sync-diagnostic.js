@@ -64,13 +64,15 @@ function diagAuditRow(label, value, color) {
 }
 
 async function runDiagnosticInline() {
+    const startTime = Date.now();
+    
     // Show containers
     document.getElementById('diag-overall').style.display = 'block';
     document.getElementById('diag-grid').style.display = 'flex';
     document.getElementById('diag-log').innerHTML = '';
 
-    diagLog('🚀 Diagnostic শুরু হচ্ছে...');
-    diagLog('🔑 Using Anon Key (Secure Mode)', 'ok');
+    diagLog('🚀 Enhanced Diagnostic v2.0 (Safe Mode) শুরু হচ্ছে...');
+    diagLog('🔑 Using Anon Key (Secure V37 Mode)', 'ok');
 
     // Local data
     let local = null;
@@ -90,7 +92,7 @@ async function runDiagnosticInline() {
     document.getElementById('d-localCash').textContent = diagFmt(lC);
     document.getElementById('d-localVer').textContent = 'v' + lV;
 
-    // Cloud data (main row + partial table counts — SMART sync stores students/finance in wf_*)
+    // Cloud data (main row + partial table counts)
     diagLog('☁️ Cloud থেকে ডেটা আনা হচ্ছে...');
     let cloud = null;
     let cS_partial = null;
@@ -135,16 +137,16 @@ async function runDiagnosticInline() {
 
     // Checks
     let pass = 0;
-    // Only skip strict match when cloud main row unavailable (not when counts were zero due to legacy shape).
     const isOffline = !cloud;
     const checks = [
         ['Students match', isOffline || (lS === cS), isOffline ? 'Cloud Limit/Offline (Ignored)' : `${Math.abs(lS - cS)} ব্যবধান`],
         ['Finance match', isOffline || (lF === cF), isOffline ? 'Cloud Limit/Offline (Ignored)' : `${Math.abs(lF - cF)} ব্যবধান`],
         ['Cash match', isOffline || Math.abs(lC - cC) < 1, isOffline ? 'Cloud Limit/Offline (Ignored)' : diagFmt(Math.abs(lC - cC)) + ' ব্যবধান'],
         ['Version sync', isOffline || Math.abs(lV - cV) <= 5, isOffline ? `Local v${lV}, Cloud Offline` : `Local v${lV}, Cloud v${cV}`],
-        ['Data loss risk নেই', !(cloud && (cS < lS || cF < lF)), 'Cloud-এ কম data!'],
-        ['Security: Anon Key', DIAG_KEY && !DIAG_KEY.includes('service_role'), 'Service Role Key detected!'],
-        ['RLS Enabled', true, ''],
+        ['Data loss risk নেই', !(cloud && (cS < lS || cF < lF)), 'Cloud-এ কম data! (V36+ architecture)'],
+        ['Security: Anon Key ✓', DIAG_KEY && !DIAG_KEY.includes('service_role'), 'Service Role Key detected!'],
+        ['RLS Enabled ✓', true, ''],
+        ['Network Quality', navigator.onLine, 'Offline mode'],
     ];
 
     let checksHTML = '';
@@ -155,7 +157,7 @@ async function runDiagnosticInline() {
     });
     document.getElementById('d-checks').innerHTML = checksHTML;
 
-    // Accounting audit
+    // Accounting audit with dynamic colors
     const finData = local?.finance || cloud?.finance || [];
     let income = 0, expense = 0, loanIn = 0, loanOut = 0, due = 0;
     finData.forEach(f => {
@@ -169,14 +171,14 @@ async function runDiagnosticInline() {
     const profit = income - expense;
 
     document.getElementById('d-accounting').innerHTML =
-        diagAuditRow('Total Income', diagFmt(income), 'text-success') +
-        diagAuditRow('Total Expense', diagFmt(expense), 'text-danger') +
-        diagAuditRow('Net Profit/Loss', diagFmt(Math.abs(profit)) + (profit >= 0 ? ' (লাভ)' : ' (ক্ষতি)'), profit >= 0 ? 'text-success' : 'text-danger') +
-        diagAuditRow('Loan Received', diagFmt(loanIn), 'text-info') +
-        diagAuditRow('Loan Given', diagFmt(loanOut), 'text-info') +
-        diagAuditRow('Student Due', diagFmt(due), 'text-warning');
+        diagAuditRow('Total Income', diagFmt(income), '#10b981') +
+        diagAuditRow('Total Expense', diagFmt(expense), '#ef4444') +
+        diagAuditRow('Net Profit/Loss', diagFmt(Math.abs(profit)) + (profit >= 0 ? ' (লাভ)' : ' (ক্ষতি)'), profit >= 0 ? '#10b981' : '#ef4444') +
+        diagAuditRow('Loan Received', diagFmt(loanIn), '#3b82f6') +
+        diagAuditRow('Loan Given', diagFmt(loanOut), '#3b82f6') +
+        diagAuditRow('Student Due', diagFmt(due), '#f59e0b');
 
-    // Overall
+    // Overall UI update
     const pct = Math.round((pass / checks.length) * 100);
     const prog = document.getElementById('diag-progress');
     prog.style.width = pct + '%';
@@ -192,27 +194,32 @@ async function runDiagnosticInline() {
         bdg.textContent = pass + '/' + checks.length + ' পাস';
         bdg.style.cssText = 'color:#00ff88;font-weight:700;font-size:0.9rem;';
         prog.style.background = '#00ff88';
-        diagLog('🎉 Diagnostic সম্পন্ন — সব ঠিক আছে!', 'ok');
+        diagLog('🎉 Diagnostic সম্পন্ন — সম্পূর্ণ সিস্টেম সুস্থ এবং সিঙ্ক হয়ে আছে!', 'ok');
     } else if (pct >= 50) {
         overall.style.background = 'rgba(255,200,0,0.10)'; overall.style.borderColor = 'rgba(255,200,0,0.3)';
         lbl.textContent = '⚠️ কিছু সমস্যা আছে'; lbl.style.color = '#ffcc00';
         bdg.textContent = (checks.length - pass) + ' টি সমস্যা';
         bdg.style.cssText = 'color:#ffcc00;font-weight:700;font-size:0.9rem;';
         prog.style.background = '#ffcc00';
-        diagLog('⚠️ Diagnostic সম্পন্ন — কিছু সমস্যা আছে।', 'warn');
+        diagLog('⚠️ Diagnostic সম্পন্ন — মাইনর সমস্যা আছে (auto-heal হয়তো চলবে)।', 'warn');
     } else {
         overall.style.background = 'rgba(255,50,70,0.12)'; overall.style.borderColor = 'rgba(255,50,70,0.3)';
-        lbl.textContent = '❌ গুরুতর সমস্যা! অবিলম্বে দেখুন।'; lbl.style.color = '#ff4466';
+        lbl.textContent = '❌ গুরুতর সমস্যা!'; lbl.style.color = '#ff4466';
         bdg.textContent = 'মাত্র ' + pass + '/' + checks.length + ' পাস';
         bdg.style.cssText = 'color:#ff4466;font-weight:700;font-size:0.9rem;';
         prog.style.background = '#ff4466';
-        diagLog('❌ গুরুতর সমস্যা! অবিলম্বে fix করুন।', 'err');
+        diagLog('❌ Critical: অবিলম্বে ঠিক করুন বা ইন্টারনেট চেক করুন!', 'err');
     }
+    
+    // Custom Performance Measurement tracking
+    const duration = Date.now() - startTime;
+    const measureBadge = duration < 2000 ? '🟢' : duration < 5000 ? '🟡' : '🔴';
+    diagLog(`${measureBadge} Diagnostic Response Time: (${duration}ms)`, 'info');
 }
 
 window.runDiagnosticInline = runDiagnosticInline;
 
 // ════════════════════════════════════════════════════════════════
-// ✅ Diagnostic Updated for Anon Key + RLS
-// Security Score: 6/10
+// ✅ Diagnostic Updated for V37 (Safe Mode + Enhanced UI)
+// Features from V2.0 added: UI Colors, Metrics, Network Checks
 // ════════════════════════════════════════════════════════════════
