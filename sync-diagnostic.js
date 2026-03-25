@@ -1,6 +1,6 @@
 // ════════════════════════════════════════════════════════════════
 // WINGS FLY AVIATION ACADEMY
-// SYNC DIAGNOSTIC — Updated for Anon Key
+// SYNC DIAGNOSTIC — V2.1 Fixed (Partial Table Architecture)
 // ════════════════════════════════════════════════════════════════
 
 const DIAG_URL = window.SUPABASE_CONFIG?.URL + '/rest/v1/' + (window.SUPABASE_CONFIG?.TABLE || 'academy_data') + '?id=eq.' + (window.SUPABASE_CONFIG?.MAIN_RECORD || 'wingsfly_main') + '&select=*';
@@ -28,6 +28,23 @@ async function diagCountPartialTable(table) {
         if (total === undefined || total === '*') return null;
         const n = parseInt(total, 10);
         return Number.isFinite(n) ? n : null;
+    } catch (e) {
+        return null;
+    }
+}
+
+/** Fetch cash_balance from main academy_data row */
+async function diagGetCloudCash() {
+    const CFG = window.SUPABASE_CONFIG;
+    if (!CFG?.URL || !CFG.KEY) return null;
+    try {
+        const url = `${CFG.URL}/rest/v1/${CFG.TABLE || 'academy_data'}?id=eq.${CFG.MAIN_RECORD || 'wingsfly_main'}&select=cash_balance,version`;
+        const res = await fetch(url, {
+            headers: { apikey: CFG.KEY, Authorization: 'Bearer ' + CFG.KEY }
+        });
+        if (!res.ok) return null;
+        const arr = await res.json();
+        return arr[0] || null;
     } catch (e) {
         return null;
     }
@@ -71,7 +88,7 @@ async function runDiagnosticInline() {
     document.getElementById('diag-grid').style.display = 'flex';
     document.getElementById('diag-log').innerHTML = '';
 
-    diagLog('🚀 Enhanced Diagnostic v2.0 (Safe Mode) শুরু হচ্ছে...');
+    diagLog('🚀 Enhanced Diagnostic v2.1 (Partial Table Fix) শুরু হচ্ছে...');
     diagLog('🔑 Using Anon Key (Secure V37 Mode)', 'ok');
 
     // Local data
@@ -92,59 +109,76 @@ async function runDiagnosticInline() {
     document.getElementById('d-localCash').textContent = diagFmt(lC);
     document.getElementById('d-localVer').textContent = 'v' + lV;
 
-    // Cloud data (main row + partial table counts)
+    // Cloud data — partial tables + main row (for cash & version)
     diagLog('☁️ Cloud থেকে ডেটা আনা হচ্ছে...');
-    let cloud = null;
+    let cloudMeta = null;   // cash_balance, version from main row
     let cS_partial = null;
     let cF_partial = null;
+
     try {
         const CFG = window.SUPABASE_CONFIG || {};
-        const hdr = { apikey: DIAG_KEY, Authorization: 'Bearer ' + DIAG_KEY };
         const tblStu = CFG.TBL_STUDENTS || 'wf_students';
         const tblFin = CFG.TBL_FINANCE || 'wf_finance';
-        const [res, stuN, finN] = await Promise.all([
-            fetch(DIAG_URL, { headers: hdr }),
+
+        const [metaRow, stuN, finN] = await Promise.all([
+            diagGetCloudCash(),
             diagCountPartialTable(tblStu),
             diagCountPartialTable(tblFin)
         ]);
+
+        cloudMeta = metaRow;
         cS_partial = stuN;
         cF_partial = finN;
-        if (stuN != null || finN != null) {
-            diagLog('☁️ Partial tables: wf_students≈' + (stuN ?? '—') + ', wf_finance≈' + (finN ?? '—'), 'info');
+
+        diagLog('☁️ Partial tables: wf_students=' + (stuN ?? '—') + ', wf_finance=' + (finN ?? '—'), 'info');
+
+        if (cloudMeta) {
+            diagLog('✅ Cloud meta row পাওয়া গেছে (cash & version)', 'ok');
+        } else {
+            diagLog('⚠️ Cloud meta row নেই — cash/version তুলনা সম্ভব নয়', 'warn');
         }
-        if (!res.ok) {
-            diagLog(`⚠️ HTTP ${res.status} - ${res.statusText}`, 'warn');
-            throw new Error('HTTP ' + res.status);
-        }
-        const arr = await res.json();
-        cloud = arr[0] || null;
-        if (cloud) diagLog('✅ Cloud ডেটা পাওয়া গেছে', 'ok');
-        else diagLog('⚠️ Cloud-এ এখনো কোনো ডেটা নেই', 'warn');
+
     } catch (e) {
         diagLog('❌ Cloud fetch error: ' + e.message, 'err');
         diagLog('💡 Tip: RLS policies সঠিক আছে কিনা check করুন', 'info');
     }
 
-    const cS = (cS_partial != null ? cS_partial : (cloud?.students?.length || 0));
-    const cF = (cF_partial != null ? cF_partial : (cloud?.finance?.length || 0));
-    const cC = cloud?.cash_balance || 0;
-    const cV = cloud?.version || 0;
+    // ✅ FIX: Use partial table counts as the source of truth for S & F
+    const cS = cS_partial ?? 0;
+    const cF = cF_partial ?? 0;
+    const cC = cloudMeta?.cash_balance || 0;
+    const cV = cloudMeta?.version || 0;
 
-    document.getElementById('d-cloudStudents').textContent = cS;
-    document.getElementById('d-cloudFinance').textContent = cF;
+    const isOffline = (cS_partial === null && cF_partial === null && !cloudMeta);
+
+    document.getElementById('d-cloudStudents').textContent = isOffline ? '—' : cS;
+    document.getElementById('d-cloudFinance').textContent = isOffline ? '—' : cF;
     document.getElementById('d-cloudCash').textContent = diagFmt(cC);
-    document.getElementById('d-cloudVer').textContent = 'v' + cV;
+    document.getElementById('d-cloudVer').textContent = cloudMeta ? 'v' + cV : '—';
+
+    // ✅ FIX: Data loss check — only warn if partial counts clearly show cloud has LESS
+    // Tolerance: allow ±1 difference (race conditions during sync)
+    const stuMatch = isOffline || Math.abs(lS - cS) <= 1;
+    const finMatch = isOffline || Math.abs(lF - cF) <= 1;
+    // ✅ FIX: Data loss — cloud having MORE is fine (new records synced from another device)
+    //         Only flag if cloud has significantly LESS than local
+    const noDataLoss = isOffline || !(cS < lS - 1 || cF < lF - 1);
 
     // Checks
     let pass = 0;
-    const isOffline = !cloud;
     const checks = [
-        ['Students match', isOffline || (lS === cS), isOffline ? 'Cloud Limit/Offline (Ignored)' : `${Math.abs(lS - cS)} ব্যবধান`],
-        ['Finance match', isOffline || (lF === cF), isOffline ? 'Cloud Limit/Offline (Ignored)' : `${Math.abs(lF - cF)} ব্যবধান`],
-        ['Cash match', isOffline || Math.abs(lC - cC) < 1, isOffline ? 'Cloud Limit/Offline (Ignored)' : diagFmt(Math.abs(lC - cC)) + ' ব্যবধান'],
-        ['Version sync', isOffline || Math.abs(lV - cV) <= 5, isOffline ? `Local v${lV}, Cloud Offline` : `Local v${lV}, Cloud v${cV}`],
-        ['Data loss risk নেই', !(cloud && (cS < lS || cF < lF)), 'Cloud-এ কম data! (V36+ architecture)'],
-        ['Security: Anon Key ✓', DIAG_KEY && !DIAG_KEY.includes('service_role'), 'Service Role Key detected!'],
+        ['Students match', stuMatch,
+            isOffline ? 'Offline (Ignored)' : `${Math.abs(lS - cS)} ব্যবধান (Local:${lS} Cloud:${cS})`],
+        ['Finance match', finMatch,
+            isOffline ? 'Offline (Ignored)' : `${Math.abs(lF - cF)} ব্যবধান (Local:${lF} Cloud:${cF})`],
+        ['Cash match', isOffline || !cloudMeta || Math.abs(lC - cC) < 1,
+            isOffline ? 'Offline (Ignored)' : diagFmt(Math.abs(lC - cC)) + ' ব্যবধান'],
+        ['Version sync', isOffline || !cloudMeta || Math.abs(lV - cV) <= 5,
+            isOffline ? `Local v${lV}, Cloud Offline` : `Local v${lV}, Cloud v${cV}`],
+        ['Data loss risk নেই', noDataLoss,
+            `Cloud-এ কম data! Local:${lS}S/${lF}F → Cloud:${cS}S/${cF}F`],
+        ['Security: Anon Key ✓', DIAG_KEY && !DIAG_KEY.includes('service_role'),
+            'Service Role Key detected!'],
         ['RLS Enabled ✓', true, ''],
         ['Network Quality', navigator.onLine, 'Offline mode'],
     ];
@@ -158,7 +192,7 @@ async function runDiagnosticInline() {
     document.getElementById('d-checks').innerHTML = checksHTML;
 
     // Accounting audit with dynamic colors
-    const finData = local?.finance || cloud?.finance || [];
+    const finData = local?.finance || [];
     let income = 0, expense = 0, loanIn = 0, loanOut = 0, due = 0;
     finData.forEach(f => {
         const amt = parseFloat(f.amount) || 0;
@@ -167,7 +201,7 @@ async function runDiagnosticInline() {
         else if (['Loan Receiving', 'Loan Received'].includes(f.type)) loanIn += amt;
         else if (['Loan Giving', 'Loan Given'].includes(f.type)) loanOut += amt;
     });
-    (local?.students || cloud?.students || []).forEach(s => { due += parseFloat(s.due) || 0; });
+    (local?.students || []).forEach(s => { due += parseFloat(s.due) || 0; });
     const profit = income - expense;
 
     document.getElementById('d-accounting').innerHTML =
@@ -201,7 +235,7 @@ async function runDiagnosticInline() {
         bdg.textContent = (checks.length - pass) + ' টি সমস্যা';
         bdg.style.cssText = 'color:#ffcc00;font-weight:700;font-size:0.9rem;';
         prog.style.background = '#ffcc00';
-        diagLog('⚠️ Diagnostic সম্পন্ন — মাইনর সমস্যা আছে (auto-heal হয়তো চলবে)।', 'warn');
+        diagLog('⚠️ Diagnostic সম্পন্ন — মাইনর সমস্যা আছে (auto-heal হয়তো চলবে)।', 'warn');
     } else {
         overall.style.background = 'rgba(255,50,70,0.12)'; overall.style.borderColor = 'rgba(255,50,70,0.3)';
         lbl.textContent = '❌ গুরুতর সমস্যা!'; lbl.style.color = '#ff4466';
@@ -211,7 +245,7 @@ async function runDiagnosticInline() {
         diagLog('❌ Critical: অবিলম্বে ঠিক করুন বা ইন্টারনেট চেক করুন!', 'err');
     }
     
-    // Custom Performance Measurement tracking
+    // Performance tracking
     const duration = Date.now() - startTime;
     const measureBadge = duration < 2000 ? '🟢' : duration < 5000 ? '🟡' : '🔴';
     diagLog(`${measureBadge} Diagnostic Response Time: (${duration}ms)`, 'info');
@@ -220,6 +254,9 @@ async function runDiagnosticInline() {
 window.runDiagnosticInline = runDiagnosticInline;
 
 // ════════════════════════════════════════════════════════════════
-// ✅ Diagnostic Updated for V37 (Safe Mode + Enhanced UI)
-// Features from V2.0 added: UI Colors, Metrics, Network Checks
+// ✅ V2.1 Fixes:
+// 1. diagGetCloudCash() — main row থেকে cash/version আলাদাভাবে আনে
+// 2. cS/cF শুধু partial table count থেকে নেয় (deleted=false)
+// 3. Data loss check — cloud > local হলে warning দেয় না
+// 4. Students/Finance match — ±1 tolerance (sync race condition)
 // ════════════════════════════════════════════════════════════════
