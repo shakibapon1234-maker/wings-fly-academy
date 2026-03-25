@@ -1198,8 +1198,12 @@
       _showUserMessage('Recovery complete', 'success');
     },
     resetEgress: (pin) => {
-      const ADMIN_PIN = localStorage.getItem('wings_admin_pin') || 'wf2026';
-      if (pin !== ADMIN_PIN) { console.warn('❌ Invalid PIN. Default: "wf2026"'); return false; }
+      const storedHash = localStorage.getItem('wings_admin_pin_hash');
+      if (storedHash) {
+        if (_hashRecord({ pin }) !== storedHash) { console.warn('❌ Invalid PIN.'); return false; }
+      } else {
+        if (sessionStorage.getItem('userRole') !== 'admin') { console.warn('❌ Admin access required to reset Egress.'); return false; }
+      }
       Egress.reset(); return true;
     },
     forceVersionSync: async () => {

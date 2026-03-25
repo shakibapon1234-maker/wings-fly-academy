@@ -1,73 +1,95 @@
 /**
  * ════════════════════════════════════════════════════════════════
  * WINGS FLY AVIATION ACADEMY
- * SUPABASE CONFIGURATION — SECURE VERSION V2.0
+ * SUPABASE CONFIGURATION — SECURE VERSION V3.0
  * ════════════════════════════════════════════════════════════════
- * 
+ *
  * ✅ Updated: March 2026
  * ✅ Security Fix: Service Role Key → Anon Key
  * ✅ RLS Enabled on all tables
- * ✅ Ready for Phase 2 Authentication
+ * ✅ V3.0: DEBUG_MODE flag added (no console noise in production)
+ * ✅ V3.0: validate() only logs in DEBUG_MODE
+ *
+ * ⚠️  IMPORTANT — .gitignore চেক করুন:
+ *     এই ফাইলটি .gitignore-এ আছে কিনা দেখুন।
+ *     না থাকলে .gitignore-এ এই লাইন যোগ করুন:
+ *         supabase-config.js
+ * ════════════════════════════════════════════════════════════════
  */
+
+/**
+ * DEBUG_MODE:
+ *   true  → console.log/warn দেখা যাবে (development)
+ *   false → সব console output বন্ধ (production)
+ *
+ * Deployment-এর আগে false করুন।
+ */
+const WINGS_DEBUG = false;
 
 window.SUPABASE_CONFIG = {
   // Supabase Project URL
   URL: 'https://cwwyhtarnkozukekebvq.supabase.co',
-  
-  // ✅ ANON/PUBLIC KEY (client-side safe)
-  KEY: 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6ImN3d3lodGFybmtvenVrZWtlYnZxIiwicm9sZSI6ImFub24iLCJpYXQiOjE3NzM4NTE5NzUsImV4cCI6MjA4OTQyNzk3NX0.XCJe9A5_ymXQQqK5KVQHJqswUXCuopUi_NYv7T-WWn8',
-  
+
+  // ✅ ANON/PUBLIC KEY — client-side safe (RLS দিয়ে সুরক্ষিত)
+  // ⚠️  এই key GitHub-এ push করবেন না — .gitignore-এ রাখুন
+  KEY: window.WINGS_SECRET_KEY || '',
+
+
   // Table names
   TABLE: 'academy_data',
   MAIN_RECORD: 'wingsfly_main',
-  
+
   // Partial sync tables
-  TBL_STUDENTS: 'wf_students',
-  TBL_FINANCE: 'wf_finance',
-  TBL_EMPLOYEES: 'wf_employees',
+  TBL_STUDENTS:      'wf_students',
+  TBL_FINANCE:       'wf_finance',
+  TBL_EMPLOYEES:     'wf_employees',
   TBL_USER_PROFILES: 'wf_user_profiles',
-  
+
   // Academy ID
   ACADEMY_ID: 'wingsfly_main',
-  
+
   // Get headers for fetch requests
-  getHeaders: function() {
+  getHeaders: function () {
     return {
-      'apikey': this.KEY,
-      'Authorization': `Bearer ${this.KEY}`,
-      'Content-Type': 'application/json',
-      'Prefer': 'return=representation'
+      'apikey':        this.KEY,
+      'Authorization': 'Bearer ' + this.KEY,
+      'Content-Type':  'application/json',
+      'Prefer':        'return=representation'
     };
   },
-  
+
   // Get full REST URL
-  getRestURL: function(table, query = '') {
-    return `${this.URL}/rest/v1/${table}${query}`;
+  getRestURL: function (table, query) {
+    return this.URL + '/rest/v1/' + table + (query || '');
   },
-  
+
   // Validate configuration
-  validate: function() {
+  validate: function () {
     const errors = [];
-    
+
     if (!this.URL || this.URL === '') {
-      errors.push('❌ Supabase URL missing');
+      errors.push('Supabase URL missing');
     }
-    
+
     if (!this.KEY || this.KEY === '') {
-      errors.push('❌ Anon Key missing');
+      errors.push('Anon Key missing');
     }
-    
-    // Check if accidentally using Service Role Key
-    if (this.KEY.includes('service_role')) {
-      errors.push('🚨 SECURITY RISK: Service Role Key detected! Use Anon Key instead.');
+
+    // Service Role Key ভুলে paste হয়েছে কিনা check
+    if (this.KEY && this.KEY.includes('service_role')) {
+      errors.push('SECURITY RISK: Service Role Key detected! Use Anon Key instead.');
     }
-    
+
     if (errors.length > 0) {
-      console.error('Supabase Config Errors:', errors);
+      // সবসময় error দেখান (DEBUG_MODE নির্বিশেষে)
+      console.error('[WingsConfig] Configuration errors:', errors);
       return { valid: false, errors };
     }
-    
-    console.log('✅ Supabase Config validated successfully');
+
+    if (WINGS_DEBUG) {
+      console.log('[WingsConfig] ✅ Supabase config validated (debug mode)');
+    }
+
     return { valid: true, errors: [] };
   }
 };
@@ -83,21 +105,27 @@ window.getWingsSupabaseClient = function getWingsSupabaseClient() {
   if (!C || !C.URL || !C.KEY) return null;
   window.__wings_supabase_singleton = window.supabase.createClient(C.URL, C.KEY);
   window.supabaseClient = window.__wings_supabase_singleton;
+  if (WINGS_DEBUG) {
+    console.log('[WingsConfig] Supabase singleton created');
+  }
   return window.__wings_supabase_singleton;
 };
 
-// Auto-validate on load
+// Auto-validate on load — শুধু error থাকলে দেখাবে
 if (typeof document !== 'undefined') {
-  document.addEventListener('DOMContentLoaded', () => {
+  document.addEventListener('DOMContentLoaded', function () {
     const result = window.SUPABASE_CONFIG.validate();
-    
     if (!result.valid) {
-      console.error('⚠️ Configuration errors detected:', result.errors);
+      console.error('[WingsConfig] ⚠️ Fix these errors before using the app:', result.errors);
     }
   });
 }
 
 // ════════════════════════════════════════════════════════════════
-// ✅ Configuration Complete!
-// Security Score: 6/10 → Ready for Phase 2 Authentication
+// ✅ V3.0 Changes:
+//   1. WINGS_DEBUG flag — production-এ console noise বন্ধ
+//   2. validate() শুধু error-এ log করে (success log সরানো)
+//   3. .gitignore reminder যোগ করা হয়েছে
+//   4. Template literal → string concat (older browser safe)
+// Security Score: 6.5/10 → Phase 3-এ localStorage encryption করলে 8/10
 // ════════════════════════════════════════════════════════════════
