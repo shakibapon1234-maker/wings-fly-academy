@@ -262,23 +262,9 @@
 
   // ── V39: ENSURE deletedItems IS ALWAYS OBJECT (never array) ──
   function _ensureDeletedItemsObject(gd) {
-    if (!gd) return;
-    if (Array.isArray(gd.deletedItems)) {
-      _log('🔧', 'V39: deletedItems was array — converting to object');
-      const fixed = { students: [], finance: [], employees: [] };
-      gd.deletedItems.forEach(function(item) {
-        const t = (item.type || '').toLowerCase();
-        if (t === 'student') fixed.students.push(item);
-        else if (t === 'finance') fixed.finance.push(item);
-        else if (t === 'employee') fixed.employees.push(item);
-      });
-      gd.deletedItems = fixed;
-    } else if (!gd.deletedItems || typeof gd.deletedItems !== 'object') {
-      gd.deletedItems = { students: [], finance: [], employees: [] };
+    if (window.WingsUtils && window.WingsUtils.ensureDeletedItemsObject) {
+      window.WingsUtils.ensureDeletedItemsObject(gd);
     }
-    if (!Array.isArray(gd.deletedItems.students)) gd.deletedItems.students = [];
-    if (!Array.isArray(gd.deletedItems.finance)) gd.deletedItems.finance = [];
-    if (!Array.isArray(gd.deletedItems.employees)) gd.deletedItems.employees = [];
   }
 
   // ── INIT ──────────────────────────────────────────────────────

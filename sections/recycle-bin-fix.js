@@ -50,24 +50,9 @@
   // ═══════════════════════════════════════════════
   // ── Helper: Ensure deletedItems is proper object (NOT array) ──
   function _ensureDeletedItems(gd) {
-    if (Array.isArray(gd.deletedItems)) {
-      // Convert legacy array → proper object structure
-      var fixed = { students: [], finance: [], employees: [] };
-      (gd.deletedItems || []).forEach(function(item) {
-        var t = (item.type || '').toLowerCase();
-        if (t === 'student' || (item.item && item.item.studentId)) fixed.students.push(item);
-        else if (t === 'finance' || (item.item && item.item.amount !== undefined)) fixed.finance.push(item);
-        else if (t === 'employee') fixed.employees.push(item);
-      });
-      gd.deletedItems = fixed;
-      console.log('[RecycleFix] ✅ Converted deletedItems array → object');
-    } else if (!gd.deletedItems || typeof gd.deletedItems !== 'object') {
-      gd.deletedItems = { students: [], finance: [], employees: [] };
+    if (window.WingsUtils && window.WingsUtils.ensureDeletedItemsObject) {
+      return window.WingsUtils.ensureDeletedItemsObject(gd);
     }
-    // Ensure all keys exist
-    if (!Array.isArray(gd.deletedItems.students)) gd.deletedItems.students = [];
-    if (!Array.isArray(gd.deletedItems.finance)) gd.deletedItems.finance = [];
-    if (!Array.isArray(gd.deletedItems.employees)) gd.deletedItems.employees = [];
     return gd.deletedItems;
   }
 
