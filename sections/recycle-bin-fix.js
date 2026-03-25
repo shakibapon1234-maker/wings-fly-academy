@@ -333,6 +333,19 @@
         }
       }
 
+    } else if (t === 'keeprecord' || t === 'keep_record' || t === 'keep record') {
+      try {
+        var KEEP_KEY = 'wingsfly_keep_records';
+        var existing = JSON.parse(localStorage.getItem(KEEP_KEY) || '[]');
+        if (!existing.find(function(r) { return r.id === item.id; })) {
+          existing.unshift(item);
+          localStorage.setItem(KEEP_KEY, JSON.stringify(existing));
+        }
+        if (typeof window.showSuccessToast === 'function') {
+          window.showSuccessToast('✅ ' + (item.title || 'Note') + ' রিস্টোর করা হয়েছে');
+        }
+      } catch (e) { console.warn('Keep record restore error:', e); }
+
     } else {
       // ───── GENERIC RESTORE ─────────────────
       var targetKey = {
@@ -340,15 +353,14 @@
         'finance': 'finance',
         'employee': 'employees',
         'visitor': 'visitors',
-        'keeprecord': 'keepRecords',
-        'keep_record': 'keepRecords',
-        'keep record': 'keepRecords',
         'notice': 'notices',
         'examregistration': 'examRegistrations',
         'exam': 'examRegistrations',
         'bankaccount': 'bankAccounts',
         'mobileaccount': 'mobileBanking',
-        'breakdown': 'breakdownRecords'
+        'breakdown': 'breakdownRecords',
+        'loan': 'loans',
+        'idcard': 'idCards'
       }[t];
 
       if (targetKey) {
