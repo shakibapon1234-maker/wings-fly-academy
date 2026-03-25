@@ -386,8 +386,30 @@ async function handleLegacyLogin(username, password) {
 
 function showDashboard(username) {
   if (typeof logActivity === 'function') logActivity('login', 'LOGIN', 'User logged in: ' + username);
-  document.getElementById('loginSection').classList.add('d-none');
-  document.getElementById('dashboardSection').classList.remove('d-none');
+
+  const loginSection = document.getElementById('loginSection');
+  const dshSection = document.getElementById('dashboardSection');
+  const loginBtn = document.getElementById('loginBtn');
+
+  // ▶️ PREMIUM LOGIN ANIMATION
+  if (!sessionStorage.getItem('wf_just_logged_in') && loginBtn && !loginBtn.classList.contains('takeoff')) {
+    loginBtn.classList.add('takeoff');
+    
+    // 1.2s delay for the plane to fly away, then fade out the login screen
+    setTimeout(() => {
+      loginSection.classList.add('fly-away-fade');
+      setTimeout(() => {
+        loginSection.classList.add('d-none');
+        loginSection.classList.remove('fly-away-fade');
+        loginBtn.classList.remove('takeoff'); // Reset for next time
+        dshSection.classList.remove('d-none');
+      }, 500); // Wait for fade out
+    }, 1100); // 1.1s for train to fly across
+  } else {
+    // Immediate toggle (like page reload)
+    loginSection.classList.add('d-none');
+    dshSection.classList.remove('d-none');
+  }
 
   // Clean URL
   try {
