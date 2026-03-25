@@ -924,7 +924,7 @@ window.attachMethodBalanceListeners = attachMethodBalanceListeners;
       if (typeof window.loadFromCloud !== 'function')
         window.loadFromCloud = (force) => window.wingsSync.pullNow();
       if (typeof window.manualCloudSync !== 'function')
-        window.manualCloudSync = () => window.wingsSync.fullSync();
+        window.manualCloudSync = () => window.wingsSync.smartSync ? window.wingsSync.smartSync() : window.wingsSync.fullSync();
       console.log('✅ Sync aliases ready (attempt ' + attempt + ')');
     } else if (attempt < 30) {
       // প্রতি 2s পর retry — মোট 60s

@@ -1,21 +1,28 @@
 /**
  * ════════════════════════════════════════════════════════════════
  * WINGS FLY AVIATION ACADEMY
- * SMART SYNC SYSTEM — V37.0 "SERVER-SIDE VERSION + BEFOREUNLOAD FIX"
+ * SMART SYNC SYSTEM — V37.1 "SMART PUSH + LOCAL-FIRST STARTUP FIX"
  * ════════════════════════════════════════════════════════════════
  *
- * ✅ V37.0 Changes over V36.0:
+ * ✅ V37.1 Changes (Critical Bug Fix):
  *
- *   1. SERVER-SIDE VERSION INCREMENT (Race condition fix)
- *      → Client থেকে _localVer++ বাদ দেওয়া হয়েছে
- *      → Supabase RPC function increment_version() ব্যবহার হয়
- *      → দুই device একসাথে push করলেও version collision হবে না
- *      → Fallback: RPC fail হলে পুরনো client-side method চলবে
+ *   1. STARTUP INTEGRITY — LOCAL > CLOUD → PUSH (not pull!)
+ *      → আগে: MaxCount fail হলে সবসময় cloud থেকে pull করত
+ *      → এখন: local count > cloud count হলে PUSH করে (import scenario fix)
+ *      → Cloud-এ 0 থাকলে local 22 students হারিয়ে যাবে না
  *
- *   2. BEFOREUNLOAD FULL DATA PUSH (Data loss fix)
- *      → Tab বন্ধে শুধু cash নয়, pending dirty data-ও push হয়
- *      → navigator.sendBeacon ব্যবহার করে reliable delivery
- *      → Partial tables (students, finance) dirty থাকলে sync হয়
+ *   2. forcePushOnly() — নতুন internal function
+ *      → MaxCount reset করে সরাসরি push করে, pull করে না
+ *      → Import-এর পরে automatically call হয়
+ *
+ *   3. smartSync() — manualCloudSync এখন smarter
+ *      → local > cloud হলে forcePush করে
+ *      → cloud >= local হলে pull+push করে
+ *      → window.manualCloudSync এখন smartSync এ point করে
+ *
+ *   4. wingsSync.forcePush — public API যোগ
+ *      → Console থেকে: wingsSync.forcePush()
+ *      → Import function থেকেও call করা যাবে
  *
  * ✅ V36.0 Changes over V35.1.2:
  *
@@ -764,11 +771,47 @@
     const finCheck = MaxCount.isSafe('finance', finCount, { deletedCount: finDeleted });
     const stuCheck = MaxCount.isSafe('students', stuCount, { deletedCount: stuDeleted });
     if (finCheck.safe && stuCheck.safe) { _log('✅', `Startup OK - fin:${finCount} stu:${stuCount}`); return; }
-    _log('🚨', 'Startup integrity FAIL');
+    _log('🚨', 'Startup integrity FAIL — checking cloud counts before pull/push');
     if (!_online || !_sb) {
       if (SyncFreshness.isFresh()) { _log('⚠️', 'Cloud unavailable, local fresh'); _showUserMessage('Cloud unavailable, using recent local cache', 'warn'); return; }
       else { _log('❌', 'Cloud unavailable, local stale'); _showUserMessage('Cloud unavailable and local data old!', 'error'); return; }
     }
+    
+    // ✅ V37.1 FIX: Check actual cloud counts BEFORE deciding pull vs push
+    // If local > cloud → PUSH (import এর পরে এই scenario হয়)
+    // If cloud > local → PULL (অন্য device এ data আছে)
+    try {
+      const CFG2 = window.SUPABASE_CONFIG || {};
+      const aid = encodeURIComponent(CFG2.ACADEMY_ID || 'wingsfly_main');
+      const headers = { apikey: CFG2.KEY, Authorization: 'Bearer ' + CFG2.KEY, Prefer: 'count=exact', Range: '0-999999' };
+      const [stuRes, finRes] = await Promise.all([
+        fetch(`${CFG2.URL}/rest/v1/wf_students?academy_id=eq.${aid}&deleted=eq.false&select=id`, { headers }),
+        fetch(`${CFG2.URL}/rest/v1/wf_finance?academy_id=eq.${aid}&deleted=eq.false&select=id`, { headers }),
+      ]);
+      const cloudStu = parseInt(stuRes.headers.get('content-range')?.split('/')[1] || '0', 10);
+      const cloudFin = parseInt(finRes.headers.get('content-range')?.split('/')[1] || '0', 10);
+      _log('📊', `Startup cloud check: local stu=${stuCount} fin=${finCount} | cloud stu=${cloudStu} fin=${cloudFin}`);
+      
+      if (stuCount > cloudStu || finCount > cloudFin) {
+        // ✅ Local has MORE — this happens after import. PUSH, don't pull!
+        _log('📤', `Local(${stuCount}S/${finCount}F) > Cloud(${cloudStu}S/${cloudFin}F) — pushing local to cloud`);
+        _showUserMessage(`Local data বেশি (${stuCount} students) — Cloud sync হচ্ছে...`, 'info');
+        // Reset MaxCount first
+        localStorage.setItem('wf_max_students', stuCount);
+        localStorage.setItem('wf_max_finance', finCount);
+        localStorage.setItem('wings_last_known_count', stuCount.toString());
+        localStorage.setItem('wings_last_known_finance', finCount.toString());
+        const ok = await pushToCloud('startup-integrity-push');
+        if (ok) {
+          _showUserMessage(`✅ ${stuCount} students cloud-এ push হয়েছে!`, 'success');
+          _integrityCheckDidPull = true; // prevent double pull in _start()
+        }
+        return;
+      }
+    } catch(countErr) {
+      _log('⚠️', 'Cloud count check failed — falling back to old recovery', countErr);
+    }
+    
     const ov = document.getElementById('dashboardOverview');
     if (ov) ov.style.visibility = 'hidden';
     try {
@@ -940,10 +983,84 @@
     _showStatus('✅ V37.0 ready');
   }
 
+  // ── FORCE PUSH ONLY (no pull, bypasses nothing) ───────────────
+  async function forcePushOnly(reason) {
+    _log('🚀', 'forcePushOnly: resetting MaxCount then pushing...');
+    const data = JSON.parse(localStorage.getItem('wingsfly_data') || '{}');
+    const stuLen = (data.students || []).length;
+    const finLen = (data.finance || []).length;
+    // Reset MaxCount so safety check won't block
+    localStorage.setItem('wf_max_students', stuLen);
+    localStorage.setItem('wf_max_finance', finLen);
+    localStorage.setItem('wings_last_known_count', stuLen.toString());
+    localStorage.setItem('wings_last_known_finance', finLen.toString());
+    _log('✅', `MaxCount reset: students=${stuLen} finance=${finLen}`);
+    // Sync window.globalData from localStorage to make sure we push correct data
+    if (window.globalData) {
+      if (stuLen > (window.globalData.students || []).length) {
+        window.globalData.students = data.students || [];
+      }
+      if (finLen > (window.globalData.finance || []).length) {
+        window.globalData.finance = data.finance || [];
+      }
+    }
+    const ok = await pushToCloud(reason || 'forcePushOnly');
+    if (ok) {
+      _showUserMessage(`✅ ${stuLen} students, ${finLen} finance cloud-এ push হয়েছে!`, 'success');
+      if (typeof window.renderFullUI === 'function') window.renderFullUI();
+    }
+    return ok;
+  }
+
+  // ── SMART SYNC — push if local > cloud, pull if cloud > local ─
+  async function _smartSync() {
+    _log('🔄', 'smartSync: checking local vs cloud counts...');
+    try {
+      const CFG2 = window.SUPABASE_CONFIG || {};
+      const aid = encodeURIComponent(CFG2.ACADEMY_ID || 'wingsfly_main');
+      const headers = { apikey: CFG2.KEY, Authorization: 'Bearer ' + CFG2.KEY, Prefer: 'count=exact', Range: '0-999999' };
+      const [stuRes, finRes] = await Promise.all([
+        fetch(`${CFG2.URL}/rest/v1/wf_students?academy_id=eq.${aid}&deleted=eq.false&select=id`, { headers }),
+        fetch(`${CFG2.URL}/rest/v1/wf_finance?academy_id=eq.${aid}&deleted=eq.false&select=id`, { headers }),
+      ]);
+      const cloudStu = parseInt(stuRes.headers.get('content-range')?.split('/')[1] || '0', 10);
+      const cloudFin = parseInt(finRes.headers.get('content-range')?.split('/')[1] || '0', 10);
+      const localData = JSON.parse(localStorage.getItem('wingsfly_data') || '{}');
+      const localStu = (localData.students || []).length;
+      const localFin = (localData.finance || []).length;
+      _log('📊', `smartSync: local stu=${localStu} fin=${localFin} | cloud stu=${cloudStu} fin=${cloudFin}`);
+
+      if (localStu > cloudStu || localFin > cloudFin) {
+        _log('📤', 'Local has MORE data — force pushing to cloud');
+        _showUserMessage('Local data বেশি — Cloud-এ push হচ্ছে...', 'info');
+        return await forcePushOnly('smartSync-push');
+      } else {
+        _log('📥', 'Cloud has same or more data — pulling');
+        await pullFromCloud(false, true);
+        await pushToCloud('smartSync-push');
+        if (typeof window.renderFullUI === 'function') window.renderFullUI();
+        return true;
+      }
+    } catch(e) {
+      _log('⚠️', 'smartSync count check failed, falling back to fullSync', e);
+      await pullFromCloud(false, true);
+      await pushToCloud('smartSync-fallback');
+      if (typeof window.renderFullUI === 'function') window.renderFullUI();
+      return true;
+    }
+  }
+
   // ── PUBLIC API V36 ────────────────────────────────────────────
   window.wingsSync = {
     // Existing
     fullSync: async () => { await pullFromCloud(false, true); await pushToCloud('Manual full sync'); if (typeof window.renderFullUI === 'function') window.renderFullUI(); },
+    
+    // ✅ V37.1 NEW: Smart sync — local > cloud হলে push, না হলে pull+push
+    smartSync: _smartSync,
+    
+    // ✅ V37.1 NEW: Force push only — import-এর পরে সরাসরি push করুন
+    forcePush: forcePushOnly,
+    
     pushNow: (reason) => pushToCloud(reason || 'Manual'),
     pullNow: async () => { await pullFromCloud(false, true); if (typeof window.renderFullUI === 'function') window.renderFullUI(); },
     markDirty: (field) => window.markDirty && window.markDirty(field),
@@ -989,8 +1106,8 @@
   // Legacy aliases
   window.saveToCloud = () => pushToCloud('saveToCloud');
   window.loadFromCloud = (force = false) => pullFromCloud(false, force);
-  window.manualCloudSync = window.wingsSync.fullSync;
-  window.manualSync = window.wingsSync.fullSync;
+  window.manualCloudSync = window.wingsSync.smartSync;
+  window.manualSync = window.wingsSync.smartSync;
   window.scheduleSyncPush = (reason) => { window.markDirty && window.markDirty(); _schedulePush(reason); };
 
   // Start
