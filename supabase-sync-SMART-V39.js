@@ -382,7 +382,7 @@
           finance: gd.finance || [],
           employees: gd.employees || []
         };
-        gd.students = _mergeRecords(local.students, stuRes.data, s => s.studentId || s.id || s.name);
+        gd.students = _mergeRecords(local.students, stuRes.data, s => s.studentId || s.id || s.phone || s.name);
         gd.finance = _mergeRecords(local.finance, finRes.data, f => f.id || f.timestamp);
         gd.employees = _mergeRecords(local.employees, empRes.data, e => e.id);
 
@@ -410,7 +410,7 @@
         // Save push snapshots
         try {
           const sSnap = {};
-          gd.students.forEach(s => { const k = s.studentId || s.id || s.name; if(k) sSnap[k] = _hashRecord(s); });
+          gd.students.forEach(s => { const k = s.studentId || s.id || s.phone || s.name; if(k) sSnap[k] = _hashRecord(s); });
           const fSnap = {};
           gd.finance.forEach(f => { const k = f.id || f.timestamp; if(k) fSnap[k] = _hashRecord(f); });
           _saveSnapshot('students', sSnap);
@@ -531,7 +531,7 @@
     if (!gd) return;
     try {
       const sSnap = {};
-      (gd.students || []).forEach(s => { const k = s.studentId || s.id || s.name; if (k) sSnap[k] = _hashRecord(s); });
+      (gd.students || []).forEach(s => { const k = s.studentId || s.id || s.phone || s.name; if (k) sSnap[k] = _hashRecord(s); });
       _saveSnapshot('students', sSnap);
       const fSnap = {};
       (gd.finance || []).forEach(f => { const k = f.id || f.timestamp; if (k) fSnap[k] = _hashRecord(f); });
@@ -616,7 +616,7 @@
 
         if (_dirty.has('students') || _dirty.size === 0) {
           const { changed, deleted, snapshot, snapshotWasEmpty: stuSnapEmpty } = _getDelta(
-            'students', gd.students || [], s => s.studentId || s.id || s.name
+            'students', gd.students || [], s => s.studentId || s.id || s.phone || s.name
           );
           stuTotal = (gd.students || []).length;
           stuPushed = changed.length + deleted.length;
@@ -640,7 +640,7 @@
             }
             if (changed.length > 0) {
               const stuRows = changed.map(s => {
-                const sid = s.studentId || s.id || s.name;
+                const sid = s.studentId || s.id || s.phone || s.name;
                 return { id: `${CFG.ACADEMY_ID}_stu_${sid}`, academy_id: CFG.ACADEMY_ID, data: s, deleted: false };
               });
               const res = await _sb.from(CFG.TBL_STUDENTS).upsert(stuRows, { onConflict: 'id' });
@@ -995,7 +995,7 @@
       if (_dirty.size > 0 && _partialOK) {
         if (_dirty.has('students') && (gd.students || []).length > 0) {
           const stuRows = (gd.students || []).slice(0, 50).map(s => {
-            const sid = s.studentId || s.id || s.name;
+            const sid = s.studentId || s.id || s.phone || s.name;
             return { id: `${CFG.ACADEMY_ID}_stu_${sid}`, academy_id: CFG.ACADEMY_ID, data: s, deleted: false };
           });
           const stuUrl = `${CFG.URL}/rest/v1/${CFG.TBL_STUDENTS}?on_conflict=id`;
