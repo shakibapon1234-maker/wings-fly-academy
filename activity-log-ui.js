@@ -232,8 +232,14 @@
                     return 0;
                 });
 
-                // ✅ ENSURE PROPER SORTING: Default to newest first
-                if (actState.sort !== 'time') {
+                // ✅ DEFAULT: Always ensure newest first when sorting by time
+            if (actState.sort === 'time' && actState.dir === 1) {
+                    // If user clicked time header, reverse direction
+                    filtered.sort(function(a, b) { 
+                        return new Date(a.timestamp || 0).getTime() - new Date(b.timestamp || 0).getTime(); 
+                    });
+                } else if (actState.sort !== 'time') {
+                    // Always show newest first by default after other sorts
                     filtered.sort(function(a, b) { 
                         return new Date(b.timestamp || 0).getTime() - new Date(a.timestamp || 0).getTime(); 
                     });

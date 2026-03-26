@@ -70,6 +70,13 @@ function loadActivityHistory() {
   // Filter out system and auto-heal spam from the display
   history = history.filter(h => h.type !== 'heal' && h.type !== 'system' && h.type !== 'autotest');
 
+  // ✅ ENSURE PROPER SORTING: Sort by timestamp, newest first (DESC)
+  history = history.sort((a, b) => {
+    const timeA = new Date(a.timestamp || 0).getTime();
+    const timeB = new Date(b.timestamp || 0).getTime();
+    return timeB - timeA; // Newest first (descending)
+  });
+
   const filterVal = document.getElementById('historyFilter')?.value || 'all';
 
   const filtered = filterVal === 'all' ? history : history.filter(h => h.type === filterVal);

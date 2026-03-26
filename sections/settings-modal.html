@@ -2412,17 +2412,185 @@
 
         window._anaPrint = function() {
             try {
-                var inc = document.getElementById('ana_incomeRows') ? document.getElementById('ana_incomeRows').innerHTML : '';
-                var exp = document.getElementById('ana_expenseRows') ? document.getElementById('ana_expenseRows').innerHTML : '';
+                var gd = window.globalData || {};
+                var mode = window._anaMode || 'all';
+                var allFin = (gd.finance || []).filter(function(f) { return f && !f._deleted && f.id; });
+                
+                var selM = document.getElementById('ana_monthFilter');
+                var monthVal = selM ? selM.value : '';
+                var dFr = document.getElementById('ana_dateFrom');
+                var dTo = document.getElementById('ana_dateTo');
+                var df = dFr ? dFr.value : '';
+                var dt = dTo ? dTo.value : '';
+
+                var filtered = allFin.filter(function(f) {
+                    var d = window._anaNormDate(f.date || f.timestamp);
+                    if (!d) return false;
+                    if (mode === 'month') return !monthVal || d.indexOf(monthVal) === 0;
+                    if (mode === 'range') {
+                        if (df && d < df) return false;
+                        if (dt && d > dt) return false;
+                    }
+                    return true;
+                });
+
+                var incArr = filtered.filter(function(f) {
+                    var t = String(f.type || '').toLowerCase().trim();
+                    var c = String(f.category || '').toLowerCase().trim();
+                    return t === 'income' || t === 'loan received' || c === 'income' || c === 'loan received' ||
+                        t.includes('income') || c.includes('income') || t.includes('fee') || c.includes('fee') ||
+                        t.includes('received') || c.includes('received') || t.includes('installment') || c.includes('installment') ||
+                        t.includes('registration') || c.includes('registration') || t.includes('refund') || c.includes('refund') ||
+                        t.includes('advance') || c.includes('advance');
+                });
+                var expArr = filtered.filter(function(f) {
+                    var t = String(f.type || '').toLowerCase().trim();
+                    var c = String(f.category || '').toLowerCase().trim();
+                    return t === 'expense' || t === 'loan given' || c === 'expense' || c === 'loan given' ||
+                        t.includes('expense') || c.includes('expense') || t.includes('salary') || c.includes('salary') ||
+                        t.includes('rent') || c.includes('rent') || t.includes('utilities') || c.includes('utilities') ||
+                        t.includes('loan given') || c.includes('loan given') || t.includes('payment') || c.includes('payment') ||
+                        t.includes('cost') || c.includes('cost');
+                });
+
+                function groupByCategory(arr) {
+                    var groups = {};
+                    arr.forEach(function(f) {
+                        var cat = f.category || f.type || 'Other';
+                        if (!groups[cat]) groups[cat] = { total: 0, count: 0, items: [] };
+                        groups[cat].items.push(f);
+                        groups[cat].total += window._anaParseAmt(f.amount);
+                        groups[cat].count++;
+                    });
+                    return groups;
+                }
+
+                var totI = incArr.reduce(function(s, f) { return s + window._anaParseAmt(f.amount); }, 0);
+                var totE = expArr.reduce(function(s, f) { return s + window._anaParseAmt(f.amount); }, 0);
+                var netP = totI - totE;
+
+                var incGroups = groupByCategory(incArr);
+                var expGroups = groupByCategory(expArr);
+
+                var c = window._anaParseAmt(gd.cashBalance);
+                var b = (gd.bankAccounts || []).reduce(function(s, a) { return s + window._anaParseAmt(a.balance); }, 0);
+                var m = (gd.mobileBanking || []).reduce(function(s, a) { return s + window._anaParseAmt(a.balance); }, 0);
+                var total = c + b + m;
+
                 var win = window.open('', '_blank');
                 if (!win) { alert('Popup Blocked! Please allow popups to print report.'); return; }
-                win.document.write('<html><head><title>Account Analytics Report</title><style>body{font-family:sans-serif;padding:30px;background:#fff;color:#000;}table{width:100%;border-collapse:collapse;margin:15px 0;}th,td{border:1px solid #ccc;padding:8px;text-align:left;font-size:12px;}h2,h3{color:#333;margin-top:25px;} .sum-box{padding:10px;border:1px solid #eee;margin-bottom:10px;}</style></head><body>');
-                win.document.write('<h1>WINGS FLY AVIATION ACADEMY</h1><h2>Account Analytics Report</h2><p>Generated: '+new Date().toLocaleString()+'</p>');
-                win.document.write('<h3>✅ Income Breakdown</h3><table><thead><tr><th>Category</th><th>Person</th><th>Amount</th><th>Date</th><th>Description</th></tr></thead><tbody>'+inc+'</tbody></table>');
-                win.document.write('<h3>❌ Expense Breakdown</h3><table><thead><tr><th>Category</th><th>Person</th><th>Amount</th><th>Date</th><th>Description</th></tr></thead><tbody>'+exp+'</tbody></table>');
-                win.document.write('<scr'+'ipt>window.onload=function(){ window.print(); window.close(); };<\/script></body></html>');
+
+                var html = '<html><head><title>Account Analytics Report</title><style>' +
+                    'body{font-family:Arial,sans-serif;padding:20px;background:#fff;color:#000;line-height:1.4;}' +
+                    'h1{text-align:center;font-size:24px;margin-bottom:5px;color:#1a1a1a;}' +
+                    'h2{border-bottom:2px solid #0066cc;padding-bottom:8px;font-size:16px;margin-top:20px;color:#0066cc;}' +
+                    'h3{font-size:13px;margin:12px 0 8px;color:#333;background:#f5f5f5;padding:6px 10px;}' +
+                    'table{width:100%;border-collapse:collapse;margin:10px 0;font-size:11px;}' +
+                    'th{background:#0066cc;color:#fff;padding:8px;text-align:left;font-weight:700;border:1px solid #004499;}' +
+                    'td{border:1px solid #ddd;padding:6px 8px;text-align:left;}' +
+                    'tr:nth-child(even){background:#f9f9f9;}' +
+                    'tr:hover{background:#f0f0f0;}' +
+                    '.total-row{background:#e6f0ff;font-weight:700;border-top:2px solid #0066cc;}' +
+                    '.summary-box{border:2px solid #0066cc;padding:12px;margin:10px 0;border-radius:5px;background:#f0f5ff;}' +
+                    '.summary-box .line{display:flex;justify-content:space-between;padding:4px 0;font-size:12px;}' +
+                    '.summary-box .line-total{font-size:13px;font-weight:700;color:#0066cc;border-top:1px solid #0066cc;padding-top:6px;margin-top:6px;}' +
+                    '.amount{text-align:right;font-weight:600;}' +
+                    '.page-break{page-break-after:always;margin-bottom:30px;padding-bottom:20px;border-bottom:3px dashed #999;}' +
+                    'p{margin:5px 0;font-size:11px;color:#666;}' +
+                    '.header-date{text-align:center;color:#666;font-size:11px;margin-bottom:15px;}' +
+                    '</style></head><body>';
+
+                html += '<h1>📊 WINGS FLY AVIATION ACADEMY</h1>';
+                html += '<h2 style="text-align:center;border:none;padding:0;margin:5px 0;">Account Analytics Report</h2>';
+                html += '<p class="header-date">Generated: ' + new Date().toLocaleString() + '</p>';
+
+                html += '<h2>📈 Summary Overview</h2>';
+                html += '<div class="summary-box">';
+                html += '<div class="line"><span>✅ মোট Income:</span><span class="amount">৳' + window._anaParseAmt(totI).toLocaleString('en-IN') + '</span></div>';
+                html += '<div class="line"><span>❌ মোট Expense:</span><span class="amount">৳' + window._anaParseAmt(totE).toLocaleString('en-IN') + '</span></div>';
+                html += '<div class="line-total"><span>Net Profit:</span><span class="amount" style="color:' + (netP >= 0 ? '#00aa00' : '#ff0000') + '">৳' + window._anaParseAmt(netP).toLocaleString('en-IN') + '</span></div>';
+                html += '</div>';
+
+                html += '<h2>💰 Income Breakdown (সব ধরনের আয়)</h2>';
+                html += '<table><thead><tr><th>Category</th><th>Count</th><th style="text-align:right;">Amount</th></tr></thead><tbody>';
+                Object.keys(incGroups).sort().forEach(function(cat, i) {
+                    var g = incGroups[cat];
+                    html += '<tr' + (i % 2 === 0 ? '' : ' style="background:#f9f9f9;"') + '><td>' + cat + '</td><td>' + g.count + '</td><td class="amount">৳' + window._anaParseAmt(g.total).toLocaleString('en-IN') + '</td></tr>';
+                });
+                html += '<tr class="total-row"><td>উপ-মোট Income</td><td>' + incArr.length + '</td><td class="amount">৳' + window._anaParseAmt(totI).toLocaleString('en-IN') + '</td></tr>';
+                html += '</tbody></table>';
+
+                html += '<h2>📝 Income বিস্তারিত</h2>';
+                html += '<table><thead><tr><th>Date</th><th>Category</th><th>Person</th><th>Description</th><th style="text-align:right;">Amount</th></tr></thead><tbody>';
+                var sortedInc = incArr.slice().sort(function(a,b) {
+                    return String(b.date || b.timestamp || '').localeCompare(String(a.date || a.timestamp || ''));
+                });
+                sortedInc.forEach(function(f, i) {
+                    html += '<tr' + (i % 2 === 0 ? '' : ' style="background:#f9f9f9;"') + '>' +
+                        '<td>' + String(f.date || '').slice(0, 10) + '</td>' +
+                        '<td>' + (f.category || f.type || '—') + '</td>' +
+                        '<td>' + (f.person || '—') + '</td>' +
+                        '<td>' + (f.description || '—') + '</td>' +
+                        '<td class="amount">৳' + window._anaParseAmt(f.amount).toLocaleString('en-IN') + '</td></tr>';
+                });
+                html += '</tbody></table>';
+
+                html += '<div class="page-break"></div>';
+
+                html += '<h2>🚨 Expense Breakdown (সব ধরনের খরচ)</h2>';
+                html += '<table><thead><tr><th>Category</th><th>Count</th><th style="text-align:right;">Amount</th></tr></thead><tbody>';
+                Object.keys(expGroups).sort().forEach(function(cat, i) {
+                    var g = expGroups[cat];
+                    html += '<tr' + (i % 2 === 0 ? '' : ' style="background:#f9f9f9;"') + '><td>' + cat + '</td><td>' + g.count + '</td><td class="amount">৳' + window._anaParseAmt(g.total).toLocaleString('en-IN') + '</td></tr>';
+                });
+                html += '<tr class="total-row"><td>উপ-মোট Expense</td><td>' + expArr.length + '</td><td class="amount">৳' + window._anaParseAmt(totE).toLocaleString('en-IN') + '</td></tr>';
+                html += '</tbody></table>';
+
+                html += '<h2>📝 Expense বিস্তারিত</h2>';
+                html += '<table><thead><tr><th>Date</th><th>Category</th><th>Person</th><th>Description</th><th style="text-align:right;">Amount</th></tr></thead><tbody>';
+                var sortedExp = expArr.slice().sort(function(a,b) {
+                    return String(b.date || b.timestamp || '').localeCompare(String(a.date || a.timestamp || ''));
+                });
+                sortedExp.forEach(function(f, i) {
+                    html += '<tr' + (i % 2 === 0 ? '' : ' style="background:#f9f9f9;"') + '>' +
+                        '<td>' + String(f.date || '').slice(0, 10) + '</td>' +
+                        '<td>' + (f.category || f.type || '—') + '</td>' +
+                        '<td>' + (f.person || '—') + '</td>' +
+                        '<td>' + (f.description || '—') + '</td>' +
+                        '<td class="amount">৳' + window._anaParseAmt(f.amount).toLocaleString('en-IN') + '</td></tr>';
+                });
+                html += '</tbody></table>';
+
+                html += '<div class="page-break"></div>';
+
+                html += '<h2>🏦 Account Balances (ব্যাংক, মোবাইল, ক্যাশ)</h2>';
+                html += '<table><thead><tr><th>Account Type</th><th>Account Name</th><th style="text-align:right;">Balance</th></tr></thead><tbody>';
+                html += '<tr><td colspan="2">💵 Cash on Hand</td><td class="amount">৳' + window._anaParseAmt(c).toLocaleString('en-IN') + '</td></tr>';
+                (gd.bankAccounts || []).forEach(function(a, i) {
+                    html += '<tr style="background:' + (i % 2 === 0 ? '#fff' : '#f9f9f9') + ';"><td colspan="2">🏦 ' + a.name + '</td><td class="amount">৳' + window._anaParseAmt(a.balance).toLocaleString('en-IN') + '</td></tr>';
+                });
+                (gd.mobileBanking || []).forEach(function(a, i) {
+                    html += '<tr style="background:' + (i % 2 === 0 ? '#fff' : '#f9f9f9') + ';"><td colspan="2">📱 ' + a.name + '</td><td class="amount">৳' + window._anaParseAmt(a.balance).toLocaleString('en-IN') + '</td></tr>';
+                });
+                html += '<tr class="total-row"><td colspan="2">মোট সব Account Balance</td><td class="amount">৳' + window._anaParseAmt(total).toLocaleString('en-IN') + '</td></tr>';
+                html += '</tbody></table>';
+
+                html += '<h2>📊 চূড়ান্ত আর্থিক বিবরণী (Final Balance Sheet)</h2>';
+                html += '<div class="summary-box">';
+                html += '<div class="line"><span>✅ সর্বমোট Income (সব উৎস থেকে):</span><span class="amount">৳' + window._anaParseAmt(totI).toLocaleString('en-IN') + '</span></div>';
+                html += '<div class="line"><span>❌ সর্বমোট Expense (সব খরচ):</span><span class="amount">৳' + window._anaParseAmt(totE).toLocaleString('en-IN') + '</span></div>';
+                html += '<div class="line"><span>🏦 ব্যাংক/মোবাইল/ক্যাশ Balance:</span><span class="amount">৳' + window._anaParseAmt(total).toLocaleString('en-IN') + '</span></div>';
+                html += '<div class="line-total"><span>Net Operating Profit:</span><span class="amount" style="color:' + (netP >= 0 ? '#00aa00' : '#ff0000') + '">৳' + window._anaParseAmt(netP).toLocaleString('en-IN') + '</span></div>';
+                html += '</div>';
+
+                html += '<p style="margin-top:30px;text-align:center;color:#999;font-size:10px;">Report Generated: ' + new Date().toLocaleString() + ' | For Official Use Only</p>';
+                html += '</body></html>';
+
+                win.document.write(html);
                 win.document.close();
-            } catch(e) { console.error('Print error:', e); alert('Print করতে সমস্যা হয়েছে।'); }
+
+                setTimeout(function() { win.print(); }, 500);
+            } catch(e) { console.error('Print error:', e); alert('Print করতে সমস্যা হয়েছে: ' + e.message); }
         };
 
         // --- Implementation Wrapper ---
