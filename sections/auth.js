@@ -717,6 +717,25 @@ function switchTab(tab, refreshStats = true) {
     const pageTitle = document.querySelector('.page-title');
     if (pageTitle) pageTitle.textContent = 'Salary Management';
     if (typeof initSalaryHub === 'function') initSalaryHub();
+  } else if (tab === 'settings') {
+    const settingsBtn = document.getElementById('tabSettings');
+    if (settingsBtn) {
+      settingsBtn.classList.add('active');
+      settingsBtn.classList.add('av-sidebar-active');
+    }
+    // Settings is a modal — open it via openSettingsModal
+    if (typeof window.openSettingsModal === 'function') {
+      window.openSettingsModal();
+    } else if (typeof window.openSettings === 'function') {
+      window.openSettings();
+    } else {
+      // Fallback: try loading section-loader first
+      setTimeout(function () {
+        if (typeof window.openSettingsModal === 'function') {
+          window.openSettingsModal();
+        }
+      }, 300);
+    }
   }
 
   if (refreshStats) {
