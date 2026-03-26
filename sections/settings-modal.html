@@ -2424,11 +2424,9 @@
             window._anaSetMode('range');
         };
 
-        // Print function moved to separate file (analytics-print.js) to avoid parser bloat and CSP issues
-        // The function is defined in analytics-print.js and loaded via section-loader.js
-        window._anaPrint = function() {
-            alert('Loading print functionality... If this persists, ensure analytics-print.js is loaded.');
-        };
+        // ⚠️ IMPORTANT: _anaPrint function is defined in external file: sections/analytics-print.js
+        // Do NOT add the large print function here - it's loaded separately for performance
+        // If print doesn't work, ensure analytics-print.js is loaded in index.html script tags
 
         // --- Implementation Wrapper ---
         window._showAccountAnalyticsImpl = function () {
