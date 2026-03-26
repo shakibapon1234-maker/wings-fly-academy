@@ -650,7 +650,10 @@ window.switchSettingsTab = switchSettingsTab;
         window.moveToTrash = function (type, item) {
             var gd = window.globalData;
             if (!gd) return;
-            if (!Array.isArray(gd.deletedItems)) gd.deletedItems = [];
+            if (!window.globalData) window.globalData = {};
+            if (!window.globalData.deletedItems || Array.isArray(window.globalData.deletedItems)) {
+              window.globalData.deletedItems = { students: [], finance: [], employees: [] };
+            }
             var entry = {
                 id: 'TRASH_' + Date.now() + '_' + Math.random().toString(36).slice(2, 6),
                 type: type,
@@ -730,11 +733,19 @@ window.switchSettingsTab = switchSettingsTab;
     window.clearRecycleBin = function () {
         if (!confirm('সব Deleted Items চিরতরে মুছে ফেলবেন?')) return;
         if (!window.globalData) window.globalData = {};
-        window.globalData.deletedItems = [];
+        window.globalData.deletedItems = { students: [], finance: [], employees: [] };
+        
         localStorage.setItem('wingsfly_data', JSON.stringify(window.globalData));
-        localStorage.setItem('wingsfly_deleted_backup', '[]');
-        renderRecycleBin();
-        if (typeof window.showSuccessToast === 'function') window.showSuccessToast('Recycle Bin খালি হয়েছে!');
+        localStorage.setItem('wingsfly_deleted_backup', '{}');
+        
+        // renderRecycleBin was moved in V39, calling safely
+        if (typeof window.renderRecycleBin === 'function') {
+            window.renderRecycleBin();
+        }
+        
+        if (typeof window.showSuccessToast === 'function') {
+            window.showSuccessToast('Recycle Bin খালি হয়েছে!');
+        }
     };
 
     // ══════════════════════════════════════════════════════════

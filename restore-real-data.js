@@ -69,7 +69,9 @@
   if (typeof globalData !== 'undefined') globalData = window.globalData;
 
   // Ensure required arrays exist
-  if (!window.globalData.deletedItems) window.globalData.deletedItems = [];
+  if (!window.globalData.deletedItems || Array.isArray(window.globalData.deletedItems)) {
+    window.globalData.deletedItems = { students: [], finance: [], employees: [] };
+  }
   if (!window.globalData.activityHistory) window.globalData.activityHistory = [];
   if (!window.globalData.keepRecords) window.globalData.keepRecords = [];
   if (!window.globalData.loans) window.globalData.loans = [];

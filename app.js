@@ -32,7 +32,7 @@ if (typeof window.globalData === 'undefined') {
     examRegistrations: [],
     visitors: [],
     employeeRoles: [],
-    deletedItems: [],
+    deletedItems: { students: [], finance: [], employees: [] },
     activityHistory: []
   };
 }
@@ -45,7 +45,9 @@ if (typeof globalData === 'undefined') {
 }
 
 // সবসময় নিশ্চিত করো
-if (!window.globalData.deletedItems) window.globalData.deletedItems = [];
+if (!window.globalData.deletedItems || Array.isArray(window.globalData.deletedItems)) {
+  window.globalData.deletedItems = { students: [], finance: [], employees: [] };
+}
 if (!window.globalData.activityHistory) window.globalData.activityHistory = [];
 
 // Global Chart instances to prevent initialization errors
@@ -222,7 +224,9 @@ let courseChartInstance = null;
 async function saveToStorage(skipCloudSync = false) {
   try {
     // Arrays নিশ্চিত করো
-    if (!window.globalData.deletedItems) window.globalData.deletedItems = [];
+    if (!window.globalData.deletedItems || Array.isArray(window.globalData.deletedItems)) {
+      window.globalData.deletedItems = { students: [], finance: [], employees: [] };
+    }
     if (!window.globalData.activityHistory) window.globalData.activityHistory = [];
 
     // ✅ V34.9 FIX: Finance integrity check — কম finance থাকলে save বন্ধ
@@ -288,7 +292,9 @@ function loadFromStorage() {
       if (typeof globalData !== 'undefined') globalData = window.globalData;
 
       if (!window.globalData.employees) window.globalData.employees = [];
-      if (!window.globalData.deletedItems) window.globalData.deletedItems = [];
+      if (!window.globalData.deletedItems || Array.isArray(window.globalData.deletedItems)) {
+        window.globalData.deletedItems = { students: [], finance: [], employees: [] };
+      }
       if (!window.globalData.activityHistory) window.globalData.activityHistory = [];
       ensureStudentIds();
 

@@ -371,11 +371,11 @@
                 injectStyles();
 
                 if (!window.globalData) window.globalData = {};
-                if (!Array.isArray(window.globalData.deletedItems)) {
+                if (!window.globalData.deletedItems || Array.isArray(window.globalData.deletedItems)) {
                     try {
                         var bk = localStorage.getItem('wingsfly_deleted_backup');
-                        window.globalData.deletedItems = bk ? JSON.parse(bk) : [];
-                    } catch (e) { window.globalData.deletedItems = []; }
+                        window.globalData.deletedItems = bk ? JSON.parse(bk) : { students: [], finance: [], employees: [] };
+                    } catch (e) { window.globalData.deletedItems = { students: [], finance: [], employees: [] }; }
                 }
 
                 var deleted = (window.globalData.deletedItems || []).slice();
@@ -496,9 +496,9 @@
             window.clearRecycleBin = function () {
                 if (!confirm('সব Deleted Items চিরতরে মুছে ফেলবেন?')) return;
                 if (!window.globalData) window.globalData = {};
-                window.globalData.deletedItems = [];
+                window.globalData.deletedItems = { students: [], finance: [], employees: [] };
                 localStorage.setItem('wingsfly_data', JSON.stringify(window.globalData));
-                localStorage.setItem('wingsfly_deleted_backup', '[]');
+                localStorage.setItem('wingsfly_deleted_backup', '{}');
                 renderRecycleBin();
                 if (typeof window.showSuccessToast === 'function') window.showSuccessToast('Recycle Bin খালি হয়েছে!');
             };

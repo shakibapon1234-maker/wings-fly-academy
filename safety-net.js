@@ -41,7 +41,9 @@
                             var bk = localStorage.getItem('wingsfly_deleted_backup');
                             if (bk) window.globalData.deletedItems = JSON.parse(bk);
                         } catch (e) { }
-                        if (!window.globalData.deletedItems) window.globalData.deletedItems = [];
+                        if (!window.globalData.deletedItems || Array.isArray(window.globalData.deletedItems)) {
+                          window.globalData.deletedItems = { students: [], finance: [], employees: [] };
+                        }
                         if (typeof window.loadDeletedItems === 'function') window.loadDeletedItems();
                     };
                     console.log('[SafetyNet] renderRecycleBin defined ✓');
