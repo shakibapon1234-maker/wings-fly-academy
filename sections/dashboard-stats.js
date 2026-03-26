@@ -176,12 +176,12 @@ function updateGlobalStats() {
     const dashProfitTrend  = document.getElementById('dashProfitTrend');
     if (runProfit >= 0) {
       dashProfitEl.className = "av-card-value value-purple";
-      if (dashProfitStatus) dashProfitStatus.innerText = "Net Profit";
-      if (dashProfitTrend) { dashProfitTrend.className = 'av-card-trend text-success'; dashProfitTrend.innerHTML = '<i class="bi bi-check-circle"></i> Healthy performance'; }
+      if (dashProfitStatus) { dashProfitStatus.innerHTML = '<strong style="color:#00ff88;">Net Profit</strong>'; }
+      if (dashProfitTrend) { dashProfitTrend.className = 'av-card-trend'; dashProfitTrend.innerHTML = '<strong style="color:#00ff88;">Profit</strong>'; }
     } else {
       dashProfitEl.className = "av-card-value value-red";
-      if (dashProfitStatus) dashProfitStatus.innerText = "Net Loss";
-      if (dashProfitTrend) { dashProfitTrend.className = 'av-card-trend text-danger'; dashProfitTrend.innerHTML = '<i class="bi bi-exclamation-triangle"></i> Operating at a loss'; }
+      if (dashProfitStatus) { dashProfitStatus.innerHTML = '<strong style="color:#ff4d6d;">Net Loss</strong>'; }
+      if (dashProfitTrend) { dashProfitTrend.className = 'av-card-trend'; dashProfitTrend.innerHTML = '<strong style="color:#ff4d6d;">Net Loss</strong>'; }
     }
   }
 
@@ -201,7 +201,13 @@ function updateGlobalStats() {
     dashAllProfitEl.style.color = allProfit >= 0 ? '#00ff88' : '#ff4d6d';
   }
   const dashAllProfitStatus = document.getElementById('dashAllProfitStatus');
-  if (dashAllProfitStatus) dashAllProfitStatus.textContent = allProfit >= 0 ? '✅ Net Profit' : '❌ Net Loss';
+  if (dashAllProfitStatus) {
+    if (allProfit >= 0) {
+      dashAllProfitStatus.innerHTML = '<strong style="color:#00ff88;">Net Profit</strong>';
+    } else {
+      dashAllProfitStatus.innerHTML = '<strong style="color:#ff4d6d;">Net Loss</strong>';
+    }
+  }
 
   // TOP BADGE: Pending Advances
   const pendingAdvEl = document.getElementById('dashPendingAdvances');
