@@ -87,7 +87,7 @@
                                     <span>🏢</span> General Settings
                                 </button>
                                 <button class="nav-link nav-link-config" type="button"
-                                    onclick="switchSettingsTab('tab-config', this); if(typeof window.renderSettingsLists === 'function') window.renderSettingsLists();">
+                                    onclick="switchSettingsTab('tab-config', this); setTimeout(() => { if(typeof window.renderSettingsLists === 'function') window.renderSettingsLists(); }, 100);">
                                     <span>🏷️ </span> Categories & Courses
                                 </button>
                                 <button class="nav-link nav-link-data" type="button"
@@ -119,7 +119,7 @@
                                     <span>📊</span> Batch Profit Report
                                 </button>
                                 <button class="nav-link nav-link-advanced" type="button"
-                                    onclick="switchSettingsTab('tab-advanced', this); if(typeof window.renderSettingsLists === 'function') window.renderSettingsLists(); var _sa=document.querySelector('#settingsModal .flex-grow-1.overflow-auto'); if(_sa) _sa.scrollTop=0;">
+                                    onclick="switchSettingsTab('tab-advanced', this); setTimeout(() => { if(typeof window.renderSettingsLists === 'function') window.renderSettingsLists(); var _sa=document.querySelector('#settingsModal .flex-grow-1.overflow-auto'); if(_sa) _sa.scrollTop=0; }, 100);">
                                     <span>💼</span> Accounts Management
                                 </button>
                             </div>
@@ -861,61 +861,31 @@
                                         window.toggleDiagFullscreen = toggleDiagFullscreen;
                                         function scLockBadge() { const v = parseInt(document.getElementById('settingsAutoLockout')?.value || 0), b = document.getElementById('scLockBadge'); if (!b) return; b.textContent = v === 0 ? '🔓 Disabled' : v < 60 ? '🔒 ' + v + 'min' : '🔒 ' + (v / 60) + 'h auto-lock'; }
                                         function scLoad() {
-                                            const gd = window.globalData; if (!gd) return; const s = gd.settings || {};
-                                            const uEl = document.getElementById('settingsUsername');
-                                            if (uEl) { uEl.value = s.adminUsername || (gd.users && gd.users[0] ? gd.users[0].username : ''); }
-                                            // ✅ Academy Info restore
-                                            const anEl = document.querySelector('#tab-general input[name="academyName"]');
-                                            const mtEl = document.querySelector('#tab-general input[name="monthlyTarget"]');
-                                            if (anEl && s.academyName) anEl.value = s.academyName;
-                                            if (mtEl && s.monthlyTarget) mtEl.value = s.monthlyTarget;
-                                            // ✅ Password fields সবসময় খালি থাকবে (security)
-                                            const pwEl = document.getElementById('settingsPassword');
-                                            const pw2El = document.getElementById('settingsPasswordConfirm');
-                                            if (pwEl) pwEl.value = '';
-                                            if (pw2El) pw2El.value = '';
-                                            const lEl = document.getElementById('settingsAutoLockout');
-                                            if (lEl && s.autoLockoutMinutes !== undefined) lEl.value = s.autoLockoutMinutes;
-                                            const rqEl = document.getElementById('settingsRecoveryQuestion');
-                                            if (rqEl && s.recoveryQuestion) rqEl.value = s.recoveryQuestion;
-                                            // ✅ Recovery Answer: সবসময় খালি ও masked — কখনো pre-filled দেখাবে না
-                                            const raEl = document.getElementById('settingsRecoveryAnswer');
-                                            if (raEl) { raEl.value = ''; raEl.style.webkitTextSecurity = 'disc'; raEl.style.mozTextSecurity = 'disc'; }
-                                            const recEyeBtn = document.getElementById('scRecEyeBtn');
-                                            if (recEyeBtn) recEyeBtn.textContent = '🙈';
-                                            // ✅ Security sections closed by default on each load
-                                            ['scRecBody','scCredBody','scSubBody'].forEach(id => {
-                                                const el = document.getElementById(id);
-                                                if (el) el.classList.remove('op');
-                                            });
-                                            ['scRecArrow','scCredArrow','scSubArrow'].forEach(id => {
-                                                const el = document.getElementById(id);
-                                                if (el) el.classList.remove('op');
-                                            });
-                                            // Open Credentials by default maybe? The user wants "Close/Expand" so they can be closed.
-                                            // Let's keep them closed for a cleaner look as requested.
-                                            scLockBadge();
-                                            renderSubIdList();
-                                            renderNewSubidPermGrid();
-                                            // ✅ Running Batch Dropdown populate
-                                            const rbSel = document.getElementById('runningBatchSelect');
-                                            if (rbSel && window.globalData && window.globalData.students) {
-                                                const batches = [...new Set(window.globalData.students.map(st => st.batch))].filter(b => b).sort((a, b) => Number(a) - Number(b));
-                                                rbSel.innerHTML = '<option value="">-- All Batches --</option>';
-                                                batches.forEach(function(b) {
-                                                    rbSel.innerHTML += '<option value="' + b + '">Batch ' + b + '</option>';
-                                                });
-                                                // Saved value restore করো
-                                                const savedBatch = (window.globalData.settings && window.globalData.settings.runningBatch) || '';
-                                                rbSel.value = savedBatch;
+                                            try {
+                                                console.log('[scLoad] Starting - minimal version');
+                                                const gd = window.globalData; 
+                                                if (!gd) { console.log('[scLoad] No globalData'); return; } 
+                                                const s = gd.settings || {};
+                                                
+                                                // === MINIMAL: Only safe DOM operations ===
+                                                const uEl = document.getElementById('settingsUsername');
+                                                if (uEl) { uEl.value = s.adminUsername || (gd.users && gd.users[0] ? gd.users[0].username : ''); }
+                                                
+                                                const anEl = document.querySelector('#tab-general input[name="academyName"]');
+                                                if (anEl && s.academyName) anEl.value = s.academyName;
+                                                
+                                                const mtEl = document.querySelector('#tab-general input[name="monthlyTarget"]');
+                                                if (mtEl && s.monthlyTarget) mtEl.value = s.monthlyTarget;
+                                                
+                                                const pwEl = document.getElementById('settingsPassword');
+                                                const pw2El = document.getElementById('settingsPasswordConfirm');
+                                                if (pwEl) pwEl.value = '';
+                                                if (pw2El) pw2El.value = '';
+                                                
+                                                console.log('[scLoad] Minimal initialization complete');
+                                            } catch(e) {
+                                                console.error('[scLoad] Error:', e.message);
                                             }
-                                            // ✅ Date Range restore
-                                            const dsEl = document.getElementById('runningBatchDateStart');
-                                            const deEl = document.getElementById('runningBatchDateEnd');
-                                            const savedStart = (window.globalData.settings && window.globalData.settings.runningBatchDateStart) || '';
-                                            const savedEnd   = (window.globalData.settings && window.globalData.settings.runningBatchDateEnd)   || '';
-                                            if (dsEl) dsEl.value = savedStart;
-                                            if (deEl) deEl.value = savedEnd;
                                         }
 
                                         function renderNewSubidPermGrid() {
@@ -1173,13 +1143,29 @@
                                                 setTimeout(function() { t.remove(); }, 3000);
                                             }
                                         };
-                                        (function () {
-                                            const orig = window.switchSettingsTab;
-                                            if (typeof orig === 'function') {
-                                                window.switchSettingsTab = function (id, btn) { orig(id, btn); if (id === 'tab-security') setTimeout(scLoad, 80); };
+                                        
+                                        // ✅ AUTO-INIT: When Settings Modal is fully shown, load form data
+                                        (function() {
+                                            if (typeof window._settingsModalAutoInitDone !== 'undefined') return;
+                                            window._settingsModalAutoInitDone = true;
+                                            
+                                            // Try multiple ways to hook the modal show event
+                                            const settingsModal = document.getElementById('settingsModal');
+                                            if (settingsModal) {
+                                                settingsModal.addEventListener('shown.bs.modal', function() {
+                                                    console.log('[settings-modal] Modal fully shown, calling scLoad');
+                                                    if (typeof window.scLoad === 'function') {
+                                                        setTimeout(function() { window.scLoad(); }, 100);
+                                                    }
+                                                });
                                             }
-                                            document.addEventListener('DOMContentLoaded', function () {
-                                                setTimeout(function () { const t = document.getElementById('tab-security'); if (t && t.style.display !== 'none') scLoad(); }, 700);
+                                            
+                                            // Also on DOMContentLoaded just in case
+                                            document.addEventListener('DOMContentLoaded', function() {
+                                                console.log('[settings-modal] DOMContentLoaded fired');
+                                                if (typeof window.scLoad === 'function') {
+                                                    setTimeout(function() { window.scLoad(); }, 500);
+                                                }
                                             });
                                         })();
                                     </script>

@@ -32,17 +32,23 @@ function render(students) {
     return;
   }
 
-  // Calculate true index for each student (BEFORE reverse)
+  // ✅ SORT BY DATE (enrollDate) — oldest to newest
+  // Calculate true index for each student (BEFORE sorting)
   const displayStudents = students.map((s, displayIndex) => {
     const realIndex = globalData.students.indexOf(s);
     const finalIndex = realIndex >= 0 ? realIndex : globalData.students.findIndex(gs => gs.studentId && gs.studentId === s.studentId);
     // trueIndex is the globalData.students array position
-    // rowIndex will be recalculated after reverse
+    // rowIndex will be recalculated after sorting
     return { ...s, trueIndex: finalIndex, originalIndex: displayIndex };
   });
 
-  // Reverse to show newest first, then add rowIndex
-  displayStudents.reverse();
+  // ✅ Sort by enrollDate (oldest first, then tiebreak by name)
+  displayStudents.sort((a, b) => {
+    const dateA = new Date(a.enrollDate || '2000-01-01').getTime();
+    const dateB = new Date(b.enrollDate || '2000-01-01').getTime();
+    if (dateA !== dateB) return dateA - dateB; // Oldest first
+    return (a.name || '').localeCompare(b.name || ''); // Tiebreak by name
+  });
 
   // Now add correct rowIndex based on actual globalData position
   displayStudents.forEach((s, i) => {
@@ -107,7 +113,7 @@ function render(students) {
 
     const row = `
       <tr>
-        <td class="small text-muted">${s.enrollDate || '-'}</td>
+        <td class="small text-muted">${window.formatDateDDMMYYYY ? window.formatDateDDMMYYYY(s.enrollDate) : s.enrollDate || '-'}</td>
         <td class="small fw-semibold text-secondary">${s.studentId || '-'}</td>
         <td>
           <div class="d-flex align-items-center gap-3">
@@ -206,6 +212,13 @@ function updateTableFooter(students) {
 // RENDER FINANCIAL LEDGER
 // ===================================
 
+/**
+ * ✅ ENHANCED: renderLedger with Date-Serial Sorting & Category Breakdown
+ * + Sorts by date (oldest → newest)
+ * + Shows breakdown by category (Student Income, Registration, Loan, Expense)
+ * + Displays summary totals for each category
+ * + Grand total at bottom
+ */
 function renderLedger(transactions) {
   const tbody = document.getElementById('ledgerTableBody');
   tbody.innerHTML = '';
@@ -215,8 +228,15 @@ function renderLedger(transactions) {
     return;
   }
 
-  // Reverse to show newest first
-  const displayItems = [...transactions].reverse();
+  // ✅ SORT BY DATE (oldest first, then by timestamp)
+  const sortedItems = [...transactions].sort((a, b) => {
+    const dateA = new Date(a.date || '2000-01-01').getTime();
+    const dateB = new Date(b.date || '2000-01-01').getTime();
+    if (dateA !== dateB) return dateA - dateB; // Oldest first
+    const tsA = new Date(a.timestamp || 0).getTime();
+    const tsB = new Date(b.timestamp || 0).getTime();
+    return tsA - tsB; // Tiebreaker: earliest timestamp first
+  });
 
   // ── ledger row builder ────────────────────────────────────
   function _buildLedgerRow(f, idx) {
@@ -224,9 +244,10 @@ function renderLedger(transactions) {
     const amt        = parseFloat(f.amount) || 0;
     const isPositive = (f.type === 'Income' || f.type === 'Loan Received' || f.type === 'Transfer In');
     const amtClass   = isPositive ? 'text-success' : 'text-danger';
+    const displayDate = window.formatDateDDMMYYYY ? window.formatDateDDMMYYYY(f.date) : f.date;
     return `
       <tr>
-        <td>${f.date || 'N/A'}</td>
+        <td>${displayDate || 'N/A'}</td>
         <td><span class="badge ${f.type.includes('Transfer') ? 'bg-warning' : 'bg-light text-dark border'}">${f.type}</span></td>
         <td class="fw-bold">${f.method || 'Cash'}</td>
         <td>${f.category || 'N/A'}</td>
@@ -249,64 +270,97 @@ function renderLedger(transactions) {
     `;
   }
 
-  // ── footer totals (সবসময় full dataset থেকে) ──────────────
-  function _updateLedgerTotals(items) {
-    let total = 0;
+  // ✅ BREAKDOWN BY CATEGORY
+  function _getBreakdownSummary(items) {
+    const breakdown = {
+      studentIncome: { label: '🎓 Student Income (Installment)', items: [], total: 0 },
+      registrationFee: { label: '📝 Registration Fee', items: [], total: 0 },
+      loanReceived: { label: '💳 Loan Received', items: [], total: 0 },
+      loanGiven: { label: '💸 Loan Given', items: [], total: 0 },
+      expense: { label: '💰 Expense', items: [], total: 0 },
+      other: { label: '📋 Other', items: [], total: 0 }
+    };
+
     items.forEach(f => {
       const amt = parseFloat(f.amount) || 0;
-      const isPositive = (f.type === 'Income' || f.type === 'Loan Received' || f.type === 'Transfer In');
-      if (isPositive) total += amt; else total -= amt;
-    });
-    const cls = total >= 0 ? 'text-success' : 'text-danger';
-    ['ledgerSummaryTotal', 'ledgerFooterTotal'].forEach(id => {
-      const el = document.getElementById(id);
-      if (el) {
-        el.innerText = '৳' + formatNumber(total);
-        el.classList.remove('text-success', 'text-danger');
-        el.classList.add(cls);
+      const category = (f.category || '').toLowerCase();
+      const type = (f.type || '').toLowerCase();
+
+      if (category.includes('installment') || (type === 'income' && category.includes('student'))) {
+        breakdown.studentIncome.items.push(f);
+        breakdown.studentIncome.total += amt;
+      } else if (category.includes('registration') || category.includes('admission')) {
+        breakdown.registrationFee.items.push(f);
+        breakdown.registrationFee.total += amt;
+      } else if (type.includes('loan received') || type === 'loan received') {
+        breakdown.loanReceived.items.push(f);
+        breakdown.loanReceived.total += amt;
+      } else if (type.includes('loan given') || type === 'loan given') {
+        breakdown.loanGiven.items.push(f);
+        breakdown.loanGiven.total += amt;
+      } else if (type === 'expense' || category.includes('salary') || category.includes('rent')) {
+        breakdown.expense.items.push(f);
+        breakdown.expense.total += amt;
+      } else {
+        breakdown.other.items.push(f);
+        breakdown.other.total += amt;
       }
     });
+
+    return breakdown;
   }
 
-  // ── PAGINATION ────────────────────────────────────────────
-  if (typeof WFPaginator === 'function') {
-    const existingPg = window._wfPaginators && window._wfPaginators['ledger'];
-    const pageSize   = existingPg ? existingPg.pageSize : 20;
+  // ✅ Build all HTML at once to avoid multiple DOM reflows
+  function _renderBreakdown() {
+    let html = '';
+    const breakdown = _getBreakdownSummary(sortedItems);
+    const cats = [breakdown.studentIncome, breakdown.registrationFee, breakdown.loanReceived, breakdown.loanGiven, breakdown.expense, breakdown.other];
 
-    const pg = new WFPaginator(displayItems, pageSize);
-    if (!window._wfPaginators) window._wfPaginators = {};
-    window._wfPaginators['ledger'] = pg;
-
-    let pgContainer = document.getElementById('ledgerPaginationBar');
-    if (!pgContainer) {
-      pgContainer = document.createElement('div');
-      pgContainer.id = 'ledgerPaginationBar';
-      const tableWrap = tbody.closest('.table-responsive') || tbody.closest('table')?.parentElement || tbody.parentElement;
-      if (tableWrap) tableWrap.insertAdjacentElement('afterend', pgContainer);
-    }
-
-    function _drawLedgerPage(page) {
-      tbody.innerHTML = '';
-      pg.getPage(page).forEach((f, i) => {
-        tbody.innerHTML += _buildLedgerRow(f, i);
-      });
-      renderPaginationBar('ledgerPaginationBar', pg, function (newPage) {
-        _drawLedgerPage(newPage);
-        if (typeof scrollToTableTop === 'function') scrollToTableTop('ledgerTableBody');
-      }, { pageSizes: [10, 20, 50, 100] });
-    }
-
-    _drawLedgerPage(1);
-
-  } else {
-    // fallback — সব একসাথে
-    let rowsHtml = '';
-    displayItems.forEach((f, idx) => { rowsHtml += _buildLedgerRow(f, idx); });
-    tbody.innerHTML = rowsHtml;
+    cats.forEach(cat => {
+      if (cat.items.length === 0) return;
+      html += `<tr style="background-color: rgba(0, 217, 255, 0.08); font-weight: bold;">
+        <td colspan="7" style="padding: 8px 12px;">${cat.label} — <span style="color: #00ff88;">৳${formatNumber(cat.total)}</span> (${cat.items.length})</td></tr>`;
+      cat.items.forEach(f => { html += _buildLedgerRow(f, 0); });
+      html += `<tr style="background-color: rgba(0, 217, 255, 0.04); font-weight: 600;"><td colspan="6" style="text-align: right;">Subtotal:</td><td style="text-align: right; color: #00ff88;">৳${formatNumber(cat.total)}</td></tr>`;
+    });
+    return html;
   }
 
-  // totals সবসময় full data থেকে
-  _updateLedgerTotals(displayItems);
+  // ✅ Compute totals once
+  function _getGrandTotals(items) {
+    let income = 0, expense = 0;
+    items.forEach(f => {
+      const amt = parseFloat(f.amount) || 0;
+      const isIncome = (f.type === 'Income' || f.type === 'Loan Received' || f.type === 'Transfer In');
+      if (isIncome) income += amt; else expense += amt;
+    });
+    return { income, expense, net: income - expense };
+  }
+
+  const totals = _getGrandTotals(sortedItems);
+  const netClass = totals.net >= 0 ? 'text-success' : 'text-danger';
+
+  // ✅ Build complete HTML once, set once
+  let completeHtml = _renderBreakdown();
+  completeHtml += `<tr style="background-color: rgba(181, 55, 242, 0.12); font-weight: bold;">
+    <td colspan="7" style="padding: 12px; display: flex; justify-content: space-between;">
+      <span>📊 GRAND TOTAL</span>
+      <span>Income: <span style="color: #00ff88;">৳${formatNumber(totals.income)}</span> | Expense: <span style="color: #ff4455;">৳${formatNumber(totals.expense)}</span> | Net: <span class="${netClass}">৳${formatNumber(totals.net)}</span></span>
+    </td></tr>`;
+
+  // ✅ Single DOM update
+  tbody.innerHTML = completeHtml;
+
+  // ── Update summary elements ─────────────────────────────
+  const cls = totals.net >= 0 ? 'text-success' : 'text-danger';
+  ['ledgerSummaryTotal', 'ledgerFooterTotal'].forEach(id => {
+    const el = document.getElementById(id);
+    if (el) {
+      el.innerText = '৳' + formatNumber(totals.net);
+      el.classList.remove('text-success', 'text-danger');
+      el.classList.add(cls);
+    }
+  });
 
   // Dynamically update category filter dropdown
   updateCategoryDropdown();

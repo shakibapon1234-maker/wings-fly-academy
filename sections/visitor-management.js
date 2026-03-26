@@ -88,8 +88,15 @@ function renderVisitors() {
   if (start) list = list.filter(v => v.date >= start);
   if (end) list = list.filter(v => v.date <= end);
 
-  // Sort newest first
-  list = list.slice().reverse();
+  // ✅ SORT BY DATE (oldest first, then by addedAt as tiebreaker)
+  list = list.sort((a, b) => {
+    const dateA = new Date(a.date || '2000-01-01').getTime();
+    const dateB = new Date(b.date || '2000-01-01').getTime();
+    if (dateA !== dateB) return dateA - dateB; // Oldest first
+    const tsA = new Date(a.addedAt || 0).getTime();
+    const tsB = new Date(b.addedAt || 0).getTime();
+    return tsA - tsB; // Tiebreak by addedAt
+  });
 
   if (list.length === 0) {
     tbody.innerHTML = `
@@ -113,7 +120,7 @@ function renderVisitors() {
 
     return `
       <tr>
-        <td style="padding:0.75rem 1rem; font-weight:600;">${v.date || '—'}</td>
+        <td style="padding:0.75rem 1rem; font-weight:600;">${window.formatDateDDMMYYYY ? window.formatDateDDMMYYYY(v.date) : v.date || '—'}</td>
         <td style="padding:0.75rem 1rem; font-weight:700;">${v.name}</td>
         <td style="padding:0.75rem 1rem;">
           <a href="tel:${v.phone}" style="color:inherit; text-decoration:none;">

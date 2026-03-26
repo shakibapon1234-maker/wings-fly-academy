@@ -232,6 +232,13 @@
                     return 0;
                 });
 
+                // ✅ ENSURE PROPER SORTING: Default to newest first
+                if (actState.sort !== 'time') {
+                    filtered.sort(function(a, b) { 
+                        return new Date(b.timestamp || 0).getTime() - new Date(a.timestamp || 0).getTime(); 
+                    });
+                }
+
                 // Stats
                 var total = filtered.length;
                 var addCount = filtered.filter(function (h) { return h.action === 'ADD'; }).length;
@@ -379,6 +386,14 @@
                 }
 
                 var deleted = (window.globalData.deletedItems || []).slice();
+                
+                // ✅ SORT BY DATE (newest first, then oldest entries last)
+                deleted.sort(function (a, b) {
+                    const tsA = new Date(a.deletedAt || 0).getTime();
+                    const tsB = new Date(b.deletedAt || 0).getTime();
+                    return tsB - tsA; // Newest deleted first
+                });
+                
                 var fType = (document.getElementById('binFilterType')?.value || 'all');
                 var fSearch = (document.getElementById('binSearchInput')?.value || '').trim().toLowerCase();
 

@@ -42,3 +42,18 @@ window.WingsUtils.ensureDeletedItemsObject = function(gd) {
   
   return gd.deletedItems;
 };
+
+/**
+ * ✅ Format date from YYYY-MM-DD to DD-MM-YYYY
+ * @param {string} dateStr - Date in YYYY-MM-DD format
+ * @returns {string} - Date in DD-MM-YYYY format
+ */
+window.formatDateDDMMYYYY = function(dateStr) {
+  if (!dateStr || typeof dateStr !== 'string' || dateStr.length < 10) return dateStr;
+  const parts = dateStr.split('-');
+  if (parts.length === 3 && parts[0].length === 4) {
+    // YYYY-MM-DD format detected
+    return `${parts[2]}-${parts[1]}-${parts[0]}`;
+  }
+  return dateStr; // Already in correct format or unrecognized format
+};
