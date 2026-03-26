@@ -954,6 +954,9 @@
     var fDateTo = document.getElementById('logDateTo') ? document.getElementById('logDateTo').value : '';
 
     var filtered = history.filter(function (h) {
+      // ✅ V39.5: Hide auto-heal, system, autotest spam from Activity Log
+      var typ = (h.type || '').toLowerCase();
+      if (typ === 'heal' || typ === 'system' || typ === 'autotest') return false;
       if (fAction !== 'all' && h.action !== fAction) return false;
       if (fSearch && !((h.description || '') + (h.action || '') + (h.type || '')).toLowerCase().includes(fSearch)) return false;
       if (fDateFrom && new Date(h.timestamp) < new Date(fDateFrom)) return false;

@@ -2804,6 +2804,15 @@ tfoot th {
     print-color-adjust: exact !important;
   }
 
+  html, body {
+    margin: 0 !important;
+    padding: 0 !important;
+    height: auto !important;
+    min-height: 0 !important;
+    overflow: visible !important;
+    display: block !important;
+  }
+
   /* When printing receipt/ledger */
   body.printing-receipt {
     background: white !important;
@@ -2918,7 +2927,6 @@ tfoot th {
   /* Page settings */
   @page {
     margin: 1cm;
-    size: A4;
   }
 }
 

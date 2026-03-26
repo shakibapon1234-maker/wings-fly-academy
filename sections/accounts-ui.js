@@ -188,10 +188,23 @@ function printAccountDetails() {
     </div>
   `;
 
+  // Inject dynamic print style for A4 (Report)
+  const styleId = 'wf-print-size-override';
+  let styleTag = document.getElementById(styleId);
+  if (!styleTag) {
+    styleTag = document.createElement('style');
+    styleTag.id = styleId;
+    document.head.appendChild(styleTag);
+  }
+  styleTag.textContent = '@media print { @page { size: A4; margin: 1cm; } }';
+
   document.body.classList.add('printing-receipt');
   setTimeout(() => {
     window.print();
-    setTimeout(() => document.body.classList.remove('printing-receipt'), 1000);
+    setTimeout(() => {
+      document.body.classList.remove('printing-receipt');
+      if (styleTag) styleTag.textContent = '';
+    }, 1000);
   }, 800);
 }
 
@@ -397,7 +410,7 @@ function printReceipt(rowIndex, currentPaymentAmount = null) {
     : (student.method || 'Cash');
 
   printArea.innerHTML = `
-    <div class="receipt-layout" style="width: 210mm; height: 148mm; background: white; padding: 10mm 15mm; font-family: 'Inter', system-ui, sans-serif; position: relative; box-sizing: border-box; margin: 0 auto; color: #1e293b; line-height: 1.1; display: flex; flex-direction: column;">
+    <div class="receipt-layout" style="width: 100%; max-width: 190mm; height: 148mm; background: white; padding: 10mm 15mm; font-family: 'Inter', system-ui, sans-serif; position: relative; box-sizing: border-box; margin: 0 auto; margin-top: 0 !important; page-break-before: avoid !important; break-before: avoid !important; color: #1e293b; line-height: 1.1; display: flex; flex-direction: column;">
         <!-- Premium Watermark Layer -->
         ${premiumLogo ? `<img src="${premiumLogo}" style="position: absolute; top: 50%; left: 50%; transform: translate(-50%, -50%) rotate(-30deg); opacity: 0.04; width: 350px; z-index: 0; pointer-events: none;">` : ''}
 
@@ -506,14 +519,32 @@ function printReceipt(rowIndex, currentPaymentAmount = null) {
     </div>
   `;
 
+  // Inject dynamic print style for A5 Landscape (Money Receipt)
+  const styleId = 'wf-print-size-override';
+  let styleTag = document.getElementById(styleId);
+  if (!styleTag) {
+    styleTag = document.createElement('style');
+    styleTag.id = styleId;
+    document.head.appendChild(styleTag);
+  }
+  styleTag.textContent = `
+    @media print {
+      @page { size: A5 landscape; margin: 0; }
+      body { margin: 0 !important; padding: 0 !important; min-height: 0 !important; background: white !important; }
+      body.printing-receipt > *:not(#printArea) { display: none !important; }
+      #printArea { display: block !important; position: absolute !important; top: 0 !important; left: 0 !important; margin: 0 !important; padding: 0 !important; width: 100% !important; }
+    }
+  `;
+
   // Add print-specific class to body before printing
   document.body.classList.add('printing-receipt');
 
   setTimeout(() => {
     window.print();
-    // Remove class after print dialog closes
+    // Remove class and style after print dialog closes
     setTimeout(() => {
       document.body.classList.remove('printing-receipt');
+      if (styleTag) styleTag.textContent = '';
     }, 1000);
   }, 500);
 }
