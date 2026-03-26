@@ -422,7 +422,7 @@ function printReceipt(rowIndex, currentPaymentAmount = null) {
                     <div>
                         <h1 style="margin: 0; color: #1e1b4b; font-size: 24px; font-weight: 800; text-transform: uppercase; line-height: 1;">Wings Fly</h1>
                         <p style="margin: 2px 0 0 0; color: #4338ca; font-size: 11px; font-weight: 700; text-transform: uppercase; letter-spacing: 0.5px;">Aviation & Career Development Academy</p>
-                        <p style="margin: 3px 0 0 0; color: #64748b; font-size: 9px;">Uttara, Dhaka | +880 1757 208244 | info@wingsflybd.com</p>
+                        <p style="margin: 3px 0 0 0; color: #64748b; font-size: 9px;">Bonosree, Dhaka | +880 1757 208244 | wingsfly.bd@gmail.com</p>
                     </div>
                 </div>
                 <div style="text-align: right;">
@@ -466,7 +466,7 @@ function printReceipt(rowIndex, currentPaymentAmount = null) {
                         </tr>
                         ${(installments || []).slice(-2).map((inst, idx) => `
                         <tr style="color: #475569; font-size: 10px;">
-                            <td style="padding: 5px 10px; border: 1px solid #e2e8f0;">â””â”└─ Payment received on ${inst.date} ${inst.isMigrated ? '(Adm. Installment)' : ''}</td>
+                            <td style="padding: 5px 10px; border: 1px solid #e2e8f0;">└─ Payment received on ${inst.date} ${inst.isMigrated ? '(Adm. Installment)' : ''}</td>
                             <td style="padding: 5px 10px; border: 1px solid #e2e8f0; text-align: center;"><span style="background: #f8fafc; padding: 1px 6px; border-radius: 3px; border: 1px solid #e2e8f0; font-size: 10px;">${inst.method || 'Cash'}</span></td>
                             <td style="padding: 5px 10px; border: 1px solid #e2e8f0; text-align: right; color: #15803d; font-weight: 700;">+ ${formatNumber(inst.amount)}</td>
                         </tr>

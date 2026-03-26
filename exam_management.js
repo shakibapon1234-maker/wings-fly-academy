@@ -709,7 +709,7 @@ function printExamReceipt(examId) {
             <div>
               <div style="font-size:20px;font-weight:900;color:#1e1b4b;text-transform:uppercase;letter-spacing:0.5px;line-height:1.1;">Wings Fly</div>
               <div style="font-size:9px;font-weight:700;color:#4338ca;text-transform:uppercase;letter-spacing:0.8px;margin-top:2px;">Aviation & Career Development Academy</div>
-              <div style="font-size:8px;color:#94a3b8;margin-top:2px;">Uttara, Dhaka &nbsp;|&nbsp; +880 1757 208244 &nbsp;|&nbsp; info@wingsflybd.com</div>
+              <div style="font-size:8px;color:#94a3b8;margin-top:2px;">Bonosree, Dhaka &nbsp;|&nbsp; +880 1757 208244 &nbsp;|&nbsp; wingsfly.bd@gmail.com</div>
             </div>
           </div>
           <!-- Right: Receipt Badge + Meta -->
