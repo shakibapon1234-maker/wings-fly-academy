@@ -259,6 +259,10 @@
     // General finance operations
     _hookAfter('deleteTransaction',          1500);
     _hookAfter('handleEditTransactionSubmit',1500);
+    // Salary hub operations
+    _hookAfter('handleSalarySubmit',         1500);
+    _hookAfter('handleSalaryEditSubmit',     1500);
+    _hookAfter('deleteSalaryRecord',         1500);
     // Recycle bin restore
     var origRestore = window.restoreDeletedItem;
     if (typeof origRestore === 'function') {
@@ -268,7 +272,7 @@
         return result;
       };
     }
-    console.log('[FinanceGuard] ✅ Hooks installed on: handleAddInstallment, deleteInstallment, deleteTransaction, handleEditTransactionSubmit, restoreDeletedItem');
+    console.log('[FinanceGuard] ✅ Hooks installed on: handleAddInstallment, deleteInstallment, deleteTransaction, handleEditTransactionSubmit, handleSalarySubmit, handleSalaryEditSubmit, deleteSalaryRecord, restoreDeletedItem');
   }
 
   // ── PUBLIC API ────────────────────────────────────────────

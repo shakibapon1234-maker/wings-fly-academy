@@ -1,685 +1,595 @@
 /**
  * ============================================================
- * WINGS FLY AVIATION ACADEMY
- * SALARY HUB — Advanced Payroll Management (V3.2-Fixed)
+ * WINGS FLY AVIATION ACADEMY — SALARY HUB v4.0
  * ============================================================
- * ✅ Latest payment সবসময় উপরে (date desc sort)
- * ✅ History — একটি payment = একটি row, clean table
- * ✅ Staff dropdown auto-populated from employees  ← BUG FIXED
- * ✅ Due / Advance / Bonus — 3 payment types
- * ✅ Advance → Accounts Management-এ চলে যায়
- * ✅ Resigned employees বাদ
- * ✅ Advance Return — Salary ও Advance দুই জায়গা থেকে adjust
- * ✅ strict mode IIFE removed — section-loader.js compatibility fix
+ * ✅ Card-based layout — প্রতিটি employee একটি card
+ * ✅ Inline payment history — expandable, latest first
+ * ✅ Edit & Delete on every salary record
+ * ✅ Pay (Due / Advance / Bonus) — clean modal
+ * ✅ Finance Guard compatible
+ * ✅ Activity log on all operations
  * ============================================================
  */
 
 (function () {
-    /* NOTE: 'use strict' removed — section-loader.js caller/arguments access conflict */
 
-    // ─────────────────────────────────────────────
-    // INIT
-    // ─────────────────────────────────────────────
-    function initSalaryHub() {
-        console.log('[SalaryHub] 💰 Initializing...');
-        const monthInput = document.getElementById('salaryMonthFilter');
-        if (monthInput && !monthInput.value) {
-            const now = new Date();
-            monthInput.value = `${now.getFullYear()}-${String(now.getMonth() + 1).padStart(2, '0')}`;
-        }
-        loadSalaryHub();
+  // ─────────────────────────────────────────────────────────
+  // INIT
+  // ─────────────────────────────────────────────────────────
+  function initSalaryHub() {
+    const monthInput = document.getElementById('salaryMonthFilter');
+    if (monthInput && !monthInput.value) {
+      const now = new Date();
+      monthInput.value = `${now.getFullYear()}-${String(now.getMonth() + 1).padStart(2, '0')}`;
+    }
+    renderSalaryCards();
+  }
+
+  // ─────────────────────────────────────────────────────────
+  // MAIN RENDER — employee cards
+  // ─────────────────────────────────────────────────────────
+  function renderSalaryCards() {
+    const gd     = window.globalData || {};
+    const month  = document.getElementById('salaryMonthFilter')?.value || '';
+    const search = (document.getElementById('salarySearch')?.value || '').toLowerCase();
+    const wrap   = document.getElementById('salaryCardsWrap');
+    if (!wrap) return;
+
+    const employees = (gd.employees || [])
+      .filter(e => !e.resigned && e.status !== 'Resigned')
+      .filter(e => !search || (e.name || '').toLowerCase().includes(search));
+
+    if (employees.length === 0) {
+      wrap.innerHTML = `<div class="text-center py-5" style="color:#6e8caa;">
+        <div style="font-size:3rem;">👤</div>
+        <p class="mt-2">কোনো Active Staff নেই।</p>
+      </div>`;
+      _updateSummary(0, 0, 0);
+      return;
     }
 
-    // ─────────────────────────────────────────────
-    // MAIN RENDER
-    // ─────────────────────────────────────────────
-    function loadSalaryHub() {
-        const gd       = window.globalData || {};
-        const month    = document.getElementById('salaryMonthFilter')?.value || '';
-        const tbody    = document.getElementById('salaryTableBody');
-        if (!tbody) return;
-        tbody.innerHTML = '';
+    // Finance records for this month
+    const finMonth = (gd.finance || []).filter(f =>
+      !f._deleted &&
+      (f.date || '').startsWith(month) &&
+      (f.type === 'Expense' || f.type === 'Advance' || f.type === 'Advance Return') &&
+      (f.category === 'Salaries' || f.category === 'Advance' || f.category === 'Advance Return' || f.category === 'Bonus')
+    );
 
-        // Active employees only
-        const allActiveEmps = (gd.employees || [])
-            .filter(e => !e.resigned && e.status !== 'Resigned');
+    let totalBudget = 0, totalPaid = 0, totalDue = 0;
+    let html = '';
 
-        // ── Sort: এই মাসের সবচেয়ে সাম্প্রতিক payment উপরে ──
-        // v8 FIX: আগে প্রতিটি sort comparison এ পুরো finance array scan হতো।
-        // এখন একবার scan করে প্রতিটি employee এর latest date cache করা হয়।
-        // ফলে sort এ আর finance loop নেই — অনেক দ্রুত।
+    employees.forEach(emp => {
+      const base   = parseFloat(emp.salary) || 0;
+      const empRec = finMonth.filter(f => f.person === emp.name || f.employeeId === (emp.id || emp.empId));
 
-        // STEP 1: একবার finance scan করে emp → {monthLatest, allLatest} map তৈরি
-        const empLatestCache = {};
-        (gd.finance || []).forEach(function(f) {
-            if (f._deleted) return;
-            const key = f.person || f.employeeId;
-            if (!key) return;
-            if (!empLatestCache[key]) empLatestCache[key] = { month: 0, all: 0 };
-            const t = new Date(f.createdAt || f.date || 0).getTime();
-            // all-time latest
-            if (t > empLatestCache[key].all) empLatestCache[key].all = t;
-            // this-month latest
-            const isThisMonth = (f.description || '').includes(month) || (f.date || '').startsWith(month);
-            if (isThisMonth && t > empLatestCache[key].month) empLatestCache[key].month = t;
-        });
+      const salPaid  = empRec.filter(f => f.type === 'Expense' && f.category === 'Salaries')
+                              .reduce((s, f) => s + (parseFloat(f.amount) || 0), 0);
+      const bonusPaid = empRec.filter(f => (f.description || '').includes('[Bonus]'))
+                              .reduce((s, f) => s + (parseFloat(f.amount) || 0), 0);
+      const advPaid  = empRec.filter(f => f.type === 'Advance')
+                              .reduce((s, f) => s + (parseFloat(f.amount) || 0), 0);
+      const paid     = salPaid;
+      const due      = Math.max(0, base - paid);
 
-        const getLatestDate = (emp, thisMonthOnly) => {
-            const name = emp.name;
-            const id   = emp.id || emp.empId || emp.employeeId;
-            const byName = empLatestCache[name] || { month: 0, all: 0 };
-            const byId   = empLatestCache[id]   || { month: 0, all: 0 };
-            if (thisMonthOnly) return Math.max(byName.month, byId.month);
-            return Math.max(byName.all, byId.all);
+      totalBudget += base;
+      totalPaid   += paid;
+      totalDue    += due;
+
+      // All-time history for this employee (sorted latest first)
+      const allHist = (gd.finance || [])
+        .filter(f => !f._deleted &&
+          (f.person === emp.name || f.employeeId === (emp.id || emp.empId)) &&
+          (f.type === 'Expense' || f.type === 'Advance' || f.type === 'Advance Return') &&
+          (f.category === 'Salaries' || f.category === 'Advance' || f.category === 'Advance Return' || f.category === 'Bonus'))
+        .sort((a, b) => new Date(b.date || 0) - new Date(a.date || 0));
+
+      const statusBadge = due === 0 && paid > 0
+        ? `<span style="background:rgba(0,200,100,0.15);color:#00e676;border:1px solid rgba(0,200,100,0.3);padding:3px 12px;border-radius:20px;font-size:0.75rem;font-weight:700;">✅ Paid</span>`
+        : paid > 0
+          ? `<span style="background:rgba(0,200,255,0.15);color:#00d9ff;border:1px solid rgba(0,200,255,0.3);padding:3px 12px;border-radius:20px;font-size:0.75rem;font-weight:700;">⚡ Partial</span>`
+          : `<span style="background:rgba(255,170,0,0.15);color:#ffaa00;border:1px solid rgba(255,170,0,0.3);padding:3px 12px;border-radius:20px;font-size:0.75rem;font-weight:700;">⏳ Pending</span>`;
+
+      const pct = base > 0 ? Math.min(100, Math.round((paid / base) * 100)) : 0;
+      const progressColor = pct === 100 ? '#00e676' : pct > 0 ? '#00d9ff' : '#333';
+
+      const empKey = (emp.id || emp.name).replace(/\W/g, '_');
+
+      // History rows
+      const histRows = allHist.map(f => {
+        const isAdv    = f.type === 'Advance';
+        const isReturn = f.type === 'Advance Return';
+        const isBonus  = (f.description || '').includes('[Bonus]');
+        const label    = isAdv ? 'Advance' : isReturn ? 'Return' : isBonus ? 'Bonus' : 'Salary';
+        const colors   = {
+          Advance: 'background:rgba(0,150,255,0.15);color:#7ab8ff;border:1px solid rgba(0,150,255,0.35);',
+          Return:  'background:rgba(0,230,118,0.12);color:#69f0ae;border:1px solid rgba(0,230,118,0.3);',
+          Bonus:   'background:rgba(255,200,0,0.15);color:#ffd200;border:1px solid rgba(255,200,0,0.35);',
+          Salary:  'background:rgba(0,200,100,0.12);color:#00e676;border:1px solid rgba(0,200,100,0.3);'
         };
+        const dateStr = f.date
+          ? new Date(f.date + 'T00:00:00').toLocaleDateString('en-GB', {day:'2-digit',month:'short',year:'numeric'})
+          : '—';
 
-        const employees = allActiveEmps.sort((a, b) => {
-            // এই মাসের latest transaction
-            const mA = getLatestDate(a, true);
-            const mB = getLatestDate(b, true);
-            if (mA > 0 || mB > 0) return mB - mA;
-            // এই মাসে কিছু নেই — all-time latest
-            const aA = getLatestDate(a, false);
-            const aB = getLatestDate(b, false);
-            if (aA > 0 || aB > 0) return aB - aA;
-            // কারো কোনো transaction নেই → joining date
-            return new Date(b.joiningDate || 0) - new Date(a.joiningDate || 0);
-        });
+        return `<tr style="border-bottom:1px solid rgba(255,255,255,0.05);">
+          <td style="padding:8px 12px;font-size:0.82rem;color:#94a3c4;white-space:nowrap;">${dateStr}</td>
+          <td style="padding:8px 12px;">
+            <span style="padding:2px 10px;border-radius:12px;font-size:0.72rem;font-weight:700;${colors[label]}">${label}</span>
+          </td>
+          <td style="padding:8px 12px;font-weight:700;color:#e0f0ff;">৳${(parseFloat(f.amount)||0).toLocaleString()}</td>
+          <td style="padding:8px 12px;font-size:0.82rem;color:#94a3c4;">${f.method || '—'}</td>
+          <td style="padding:8px 12px;font-size:0.78rem;color:rgba(255,255,255,0.45);max-width:160px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;"
+              title="${(f.description||'').replace(/"/g,'&quot;')}">${f.description || '—'}</td>
+          <td style="padding:8px 12px;text-align:right;white-space:nowrap;">
+            <button onclick="editSalaryRecord('${f.id}')"
+              style="background:rgba(0,217,255,0.12);color:#00d9ff;border:1px solid rgba(0,217,255,0.3);padding:3px 10px;border-radius:8px;font-size:0.75rem;cursor:pointer;margin-right:4px;">
+              ✏️ Edit
+            </button>
+            <button onclick="deleteSalaryRecord('${f.id}')"
+              style="background:rgba(255,59,92,0.12);color:#ff3b5c;border:1px solid rgba(255,59,92,0.3);padding:3px 10px;border-radius:8px;font-size:0.75rem;cursor:pointer;">
+              🗑️ Del
+            </button>
+          </td>
+        </tr>`;
+      }).join('');
 
+      html += `
+      <div class="salary-card" style="background:rgba(13,27,42,0.8);border:1px solid rgba(0,217,255,0.12);border-radius:16px;padding:20px;margin-bottom:16px;transition:border-color 0.2s;">
 
-        let totalBudget = 0, totalPaid = 0, totalDue = 0;
+        <!-- Card Header -->
+        <div style="display:flex;justify-content:space-between;align-items:flex-start;flex-wrap:wrap;gap:12px;">
+          <div style="display:flex;align-items:center;gap:14px;">
+            <div style="width:46px;height:46px;border-radius:50%;background:linear-gradient(135deg,#1a3a5c,#0d2035);display:flex;align-items:center;justify-content:center;font-size:1.3rem;border:2px solid rgba(0,217,255,0.2);">
+              👤
+            </div>
+            <div>
+              <div style="font-size:1rem;font-weight:700;color:#e0f0ff;">${emp.name}</div>
+              <div style="font-size:0.78rem;color:#6e8caa;">${emp.role || emp.designation || 'Staff'}
+                ${emp.phone ? `<span style="margin-left:8px;color:#4a6080;">📞 ${emp.phone}</span>` : ''}
+              </div>
+            </div>
+          </div>
+          <div style="display:flex;align-items:center;gap:10px;flex-wrap:wrap;">
+            ${statusBadge}
+            <button onclick="openSalaryModal('${emp.id || emp.name}')"
+              style="background:linear-gradient(135deg,#0066cc,#0044aa);color:#fff;border:none;padding:7px 18px;border-radius:10px;font-size:0.85rem;font-weight:600;cursor:pointer;">
+              💰 Pay
+            </button>
+          </div>
+        </div>
 
-        // All finance records for this month
-        const salaryRecords = (gd.finance || []).filter(f =>
-            !f._deleted &&
-            f.type === 'Expense' &&
-            f.category === 'Salaries' &&
-            (f.description || '').includes(month)
-        );
+        <!-- Salary Info Row -->
+        <div style="display:flex;gap:16px;margin-top:16px;flex-wrap:wrap;">
+          <div style="background:rgba(0,217,255,0.06);border:1px solid rgba(0,217,255,0.12);border-radius:10px;padding:10px 16px;text-align:center;min-width:100px;">
+            <div style="font-size:0.68rem;color:#6e8caa;text-transform:uppercase;letter-spacing:0.5px;">Base Salary</div>
+            <div style="font-size:1rem;font-weight:700;color:#e0f0ff;margin-top:2px;">৳${base.toLocaleString()}</div>
+          </div>
+          <div style="background:rgba(0,200,100,0.06);border:1px solid rgba(0,200,100,0.15);border-radius:10px;padding:10px 16px;text-align:center;min-width:100px;">
+            <div style="font-size:0.68rem;color:#6e8caa;text-transform:uppercase;letter-spacing:0.5px;">Paid (${month || 'this month'})</div>
+            <div style="font-size:1rem;font-weight:700;color:#00e676;margin-top:2px;">৳${paid.toLocaleString()}</div>
+          </div>
+          <div style="background:rgba(255,170,0,0.06);border:1px solid rgba(255,170,0,0.15);border-radius:10px;padding:10px 16px;text-align:center;min-width:100px;">
+            <div style="font-size:0.68rem;color:#6e8caa;text-transform:uppercase;letter-spacing:0.5px;">Due</div>
+            <div style="font-size:1rem;font-weight:700;color:${due>0?'#ffaa00':'#00e676'};margin-top:2px;">৳${due.toLocaleString()}</div>
+          </div>
+          ${bonusPaid > 0 ? `<div style="background:rgba(255,200,0,0.06);border:1px solid rgba(255,200,0,0.15);border-radius:10px;padding:10px 16px;text-align:center;min-width:100px;">
+            <div style="font-size:0.68rem;color:#6e8caa;text-transform:uppercase;letter-spacing:0.5px;">Bonus</div>
+            <div style="font-size:1rem;font-weight:700;color:#ffd200;margin-top:2px;">৳${bonusPaid.toLocaleString()}</div>
+          </div>` : ''}
+          ${advPaid > 0 ? `<div style="background:rgba(0,150,255,0.06);border:1px solid rgba(0,150,255,0.15);border-radius:10px;padding:10px 16px;text-align:center;min-width:100px;">
+            <div style="font-size:0.68rem;color:#6e8caa;text-transform:uppercase;letter-spacing:0.5px;">Advance (this month)</div>
+            <div style="font-size:1rem;font-weight:700;color:#7ab8ff;margin-top:2px;">৳${advPaid.toLocaleString()}</div>
+          </div>` : ''}
+        </div>
 
-        const advanceRecords = (gd.finance || []).filter(f =>
-            !f._deleted &&
-            f.type === 'Advance' &&
-            (f.description || '').includes(month)
-        );
+        <!-- Progress Bar -->
+        <div style="margin-top:14px;">
+          <div style="display:flex;justify-content:space-between;margin-bottom:5px;">
+            <span style="font-size:0.72rem;color:#6e8caa;">Payment Progress</span>
+            <span style="font-size:0.72rem;color:${progressColor};font-weight:600;">${pct}%</span>
+          </div>
+          <div style="background:rgba(255,255,255,0.06);border-radius:6px;height:6px;overflow:hidden;">
+            <div style="width:${pct}%;height:100%;background:${progressColor};border-radius:6px;transition:width 0.5s;"></div>
+          </div>
+        </div>
 
-        employees.forEach(emp => {
-            const baseSalary = parseFloat(emp.salary) || 0;
+        <!-- History Toggle -->
+        ${allHist.length > 0 ? `
+        <div style="margin-top:14px;">
+          <button onclick="_toggleSalHist('${empKey}')"
+            style="background:transparent;border:1px solid rgba(0,217,255,0.2);color:#6e8caa;padding:5px 14px;border-radius:8px;font-size:0.78rem;cursor:pointer;width:100%;text-align:left;">
+            📋 Payment History (${allHist.length} records) <span id="arrow_${empKey}" style="float:right;">▼</span>
+          </button>
+          <div id="hist_${empKey}" style="display:none;margin-top:8px;border-radius:10px;overflow:hidden;border:1px solid rgba(0,217,255,0.12);">
+            <div style="overflow-x:auto;">
+              <table style="width:100%;border-collapse:collapse;font-size:0.85rem;">
+                <thead>
+                  <tr style="background:rgba(0,0,0,0.35);">
+                    <th style="padding:8px 12px;color:#4a6080;font-size:0.7rem;text-transform:uppercase;font-weight:600;text-align:left;">Date</th>
+                    <th style="padding:8px 12px;color:#4a6080;font-size:0.7rem;text-transform:uppercase;font-weight:600;text-align:left;">Type</th>
+                    <th style="padding:8px 12px;color:#4a6080;font-size:0.7rem;text-transform:uppercase;font-weight:600;text-align:left;">Amount</th>
+                    <th style="padding:8px 12px;color:#4a6080;font-size:0.7rem;text-transform:uppercase;font-weight:600;text-align:left;">Method</th>
+                    <th style="padding:8px 12px;color:#4a6080;font-size:0.7rem;text-transform:uppercase;font-weight:600;text-align:left;">Note</th>
+                    <th style="padding:8px 12px;text-align:right;"></th>
+                  </tr>
+                </thead>
+                <tbody>${histRows}</tbody>
+              </table>
+            </div>
+          </div>
+        </div>` : `<div style="margin-top:12px;font-size:0.78rem;color:rgba(255,255,255,0.2);text-align:center;border-top:1px solid rgba(255,255,255,0.05);padding-top:10px;">কোনো payment history নেই</div>`}
+      </div>`;
+    });
 
-            const empPayments = salaryRecords.filter(r =>
-                r.person === emp.name || r.employeeId === emp.id
-            );
-            const empAdvances = advanceRecords.filter(r =>
-                r.person === emp.name || r.employeeId === emp.id
-            );
+    wrap.innerHTML = html;
+    _updateSummary(totalBudget, totalPaid, totalDue);
+  }
 
-            const bonusPaid   = _sumByLabel(empPayments, 'Bonus');
-            const salPaid     = empPayments.reduce((s, p) => s + (parseFloat(p.amount) || 0), 0) - bonusPaid;
-            const advancePaid = empAdvances.reduce((s, p) => s + (parseFloat(p.amount) || 0), 0);
-            const paidAmount  = salPaid + bonusPaid;
-            const dueAmount   = Math.max(0, baseSalary - paidAmount);
+  // ─────────────────────────────────────────────────────────
+  // SUMMARY ROW UPDATE
+  // ─────────────────────────────────────────────────────────
+  function _updateSummary(budget, paid, due) {
+    const fmt = n => '৳' + (parseFloat(n)||0).toLocaleString();
+    const _s  = (id, v) => { const el = document.getElementById(id); if (el) el.textContent = v; };
+    _s('salaryTotalBudget', fmt(budget));
+    _s('salaryPaidTotal',   fmt(paid));
+    _s('salaryDueTotal',    fmt(due));
+  }
 
-            totalBudget += baseSalary;
-            totalPaid   += paidAmount;
-            totalDue    += dueAmount;
+  // ─────────────────────────────────────────────────────────
+  // TOGGLE HISTORY
+  // ─────────────────────────────────────────────────────────
+  window._toggleSalHist = function (key) {
+    const el    = document.getElementById('hist_' + key);
+    const arrow = document.getElementById('arrow_' + key);
+    if (!el) return;
+    const open = el.style.display !== 'none';
+    el.style.display = open ? 'none' : '';
+    if (arrow) arrow.textContent = open ? '▼' : '▲';
+  };
 
-            // All transactions sorted: latest first
-            const allTxns = [...empPayments, ...empAdvances]
-                .sort((a, b) => new Date(b.date) - new Date(a.date));
+  // ─────────────────────────────────────────────────────────
+  // OPEN PAY MODAL
+  // ─────────────────────────────────────────────────────────
+  function openSalaryModal(empId) {
+    const modalEl = document.getElementById('salaryModal');
+    if (!modalEl) { alert('Salary Modal not found!'); return; }
 
-            const rowId = `hist_${(emp.id || emp.name).replace(/\W/g, '_')}`;
-            const hasHistory = allTxns.length > 0;
+    const gd  = window.globalData || {};
+    const all = gd.employees || [];
+    const emp = all.find(e =>
+      e.id === empId || e.empId === empId || e.employeeId === empId || e.name === empId
+    );
+    if (!emp) { alert('Employee not found!'); return; }
 
-            // Status badge
-            const statusBadge = dueAmount === 0
-                ? '<span class="badge bg-success rounded-pill px-3">Paid</span>'
-                : paidAmount > 0
-                    ? '<span class="badge bg-info text-dark rounded-pill px-3">Partial</span>'
-                    : '<span class="badge bg-warning text-dark rounded-pill px-3">Pending</span>';
+    _resetSalaryForm();
 
-            // Main employee row
-            const tr = document.createElement('tr');
-            tr.innerHTML = `
-                <td>
-                    <div class="fw-bold">${emp.name}</div>
-                    <div class="small text-muted">${emp.phone || '-'}</div>
-                    ${hasHistory ? `
-                    <a href="#" class="small" style="color:#00d9ff;"
-                        onclick="toggleSalHistory('${rowId}'); return false;">
-                        <i class="bi bi-clock-history me-1"></i>History (${allTxns.length})
-                    </a>` : ''}
-                </td>
-                <td><span class="badge bg-light text-dark border">${emp.role || 'Staff'}</span></td>
-                <td>${statusBadge}</td>
-                <td class="fw-bold">৳${baseSalary.toLocaleString()}</td>
-                <td>${bonusPaid > 0 ? '৳' + bonusPaid.toLocaleString() : '<span class="text-muted">৳0</span>'}</td>
-                <td>${advancePaid > 0 ? '৳' + advancePaid.toLocaleString() : '<span class="text-muted">৳0</span>'}</td>
-                <td class="fw-bold text-success">৳${paidAmount.toLocaleString()}</td>
-                <td class="text-end">
-                    <button class="btn btn-sm btn-primary rounded-pill px-3"
-                        onclick="openSalaryModal('${emp.id}')">
-                        <i class="bi bi-cash-stack me-1"></i>Pay
-                    </button>
-                </td>
-            `;
-            tbody.appendChild(tr);
+    // Set hidden fields
+    document.getElementById('salEmpId').value   = emp.id || emp.empId || emp.name;
+    document.getElementById('salEmpName').value = emp.name;
 
-            // ── History sub-table (hidden, expands inline) ──
-            if (hasHistory) {
-                const histTr = document.createElement('tr');
-                histTr.id = rowId;
-                histTr.style.display = 'none';
+    // Employee display
+    const nameEl = document.getElementById('salModalEmpName');
+    const roleEl = document.getElementById('salModalEmpRole');
+    if (nameEl) nameEl.textContent = emp.name;
+    if (roleEl) roleEl.textContent = emp.role || emp.designation || 'Staff';
 
-                // Build history rows — ONE row per transaction, NO double rows
-                const histRows = allTxns.map(p => {
-                    const isAdv    = p.type === 'Advance';
-                    const isBonus  = (p.description || '').includes('[Bonus]');
-                    const typeLabel = isAdv ? 'Advance' : isBonus ? 'Bonus' : 'Salary';
-                    const typeColor = isAdv
-                        ? 'background:rgba(0,150,255,0.2);color:#7ab8ff;border:1px solid rgba(0,150,255,0.4);'
-                        : isBonus
-                            ? 'background:rgba(255,200,0,0.2);color:#ffd200;border:1px solid rgba(255,200,0,0.4);'
-                            : 'background:rgba(0,200,100,0.2);color:#00e676;border:1px solid rgba(0,200,100,0.4);';
-                    const amtColor = isAdv ? '#7ab8ff' : '#00e676';
-                    const dateStr  = p.date
-                        ? new Date(p.date).toLocaleDateString('en-GB', { day: '2-digit', month: 'short', year: 'numeric' })
-                        : '—';
-                    return `
-                        <tr style="border-bottom:1px solid rgba(255,255,255,0.05);">
-                            <td style="color:#aaa;font-size:0.85rem;white-space:nowrap;">${dateStr}</td>
-                            <td>
-                                <span class="badge rounded-pill px-2 py-1" style="font-size:0.75rem;${typeColor}">
-                                    ${typeLabel}
-                                </span>
-                            </td>
-                            <td style="font-weight:700;color:${amtColor};">৳${parseFloat(p.amount || 0).toLocaleString()}</td>
-                            <td style="color:#aaa;font-size:0.82rem;">${p.method || '—'}</td>
-                            <td style="color:rgba(255,255,255,0.4);font-size:0.78rem;max-width:180px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;"
-                                title="${(p.description || '').replace(/"/g, '')}">${p.description || '—'}</td>
-                        </tr>`;
-                }).join('');
+    // Due calculation
+    const month = document.getElementById('salaryMonthFilter')?.value || '';
+    const paidSoFar = (gd.finance || [])
+      .filter(f => !f._deleted && f.type === 'Expense' && f.category === 'Salaries'
+        && (f.date || '').startsWith(month)
+        && (f.person === emp.name || f.employeeId === (emp.id || emp.empId)))
+      .reduce((s, f) => s + (parseFloat(f.amount) || 0), 0);
+    const base = parseFloat(emp.salary) || 0;
+    const due  = Math.max(0, base - paidSoFar);
 
-                histTr.innerHTML = `
-                    <td colspan="8" style="padding:0;">
-                        <div style="margin:0 8px 8px 8px;border-radius:8px;overflow:hidden;
-                            border:1px solid rgba(0,217,255,0.2);background:rgba(0,30,50,0.6);">
-                            <div style="padding:8px 14px 6px;background:rgba(0,217,255,0.06);
-                                border-bottom:1px solid rgba(0,217,255,0.15);font-size:0.8rem;
-                                color:#00d9ff;font-weight:600;">
-                                📋 Payment History — ${emp.name}
-                            </div>
-                            <div style="overflow-x:auto;">
-                                <table style="width:100%;border-collapse:collapse;font-size:0.85rem;">
-                                    <thead>
-                                        <tr style="background:rgba(0,0,0,0.3);">
-                                            <th style="padding:7px 12px;color:#6e8caa;font-weight:600;font-size:0.78rem;text-transform:uppercase;">Date</th>
-                                            <th style="padding:7px 12px;color:#6e8caa;font-weight:600;font-size:0.78rem;text-transform:uppercase;">Type</th>
-                                            <th style="padding:7px 12px;color:#6e8caa;font-weight:600;font-size:0.78rem;text-transform:uppercase;">Amount</th>
-                                            <th style="padding:7px 12px;color:#6e8caa;font-weight:600;font-size:0.78rem;text-transform:uppercase;">Method</th>
-                                            <th style="padding:7px 12px;color:#6e8caa;font-weight:600;font-size:0.78rem;text-transform:uppercase;">Notes</th>
-                                        </tr>
-                                    </thead>
-                                    <tbody>${histRows}</tbody>
-                                </table>
-                            </div>
-                        </div>
-                    </td>`;
-                tbody.appendChild(histTr);
-            }
-        });
+    const dueEl = document.getElementById('salDueAmountBadge');
+    if (dueEl) dueEl.textContent = `৳${due.toLocaleString()}`;
 
-        // Summary totals
-        _setText('salaryTotalBudget', `৳${totalBudget.toLocaleString()}`);
-        _setText('salaryPaidTotal',   `৳${totalPaid.toLocaleString()}`);
-        _setText('salaryDueTotal',    `৳${totalDue.toLocaleString()}`);
+    // Net advance
+    const advNet = (gd.finance || [])
+      .filter(f => !f._deleted && (f.type === 'Advance' || f.type === 'Advance Return')
+        && (f.person === emp.name || f.employeeId === (emp.id || emp.empId)))
+      .reduce((s, f) => s + (parseFloat(f.amount) || 0) * (f.type === 'Advance' ? 1 : -1), 0);
+    const advEl = document.getElementById('salExistingAdvance');
+    if (advEl) {
+      if (advNet > 0) {
+        advEl.textContent = `⚠️ বিদ্যমান Advance বকেয়া: ৳${advNet.toLocaleString()}`;
+        advEl.classList.remove('d-none');
+      } else {
+        advEl.classList.add('d-none');
+      }
     }
 
-    // ─────────────────────────────────────────────
-    // HELPERS
-    // ─────────────────────────────────────────────
-    function _sumByLabel(payments, label) {
-        return payments
-            .filter(p => (p.description || '').includes(`[${label}]`))
-            .reduce((s, p) => s + (parseFloat(p.amount) || 0), 0);
-    }
+    // Auto-fill amount and description
+    const amtEl  = document.getElementById('salAmount');
+    const descEl = document.getElementById('salDescription');
+    if (amtEl)  amtEl.value  = due > 0 ? due : '';
+    if (descEl) descEl.value = `Salary for ${month}`;
+    document.getElementById('salDate').value = new Date().toISOString().split('T')[0];
 
-    function _setText(id, val) {
-        const el = document.getElementById(id);
-        if (el) el.textContent = val;
-    }
+    // Default type = Due
+    if (typeof window.setSalType === 'function') window.setSalType('Due');
 
-    // Toggle history sub-row
-    window.toggleSalHistory = function (rowId) {
-        const row = document.getElementById(rowId);
-        if (!row) return;
-        row.style.display = row.style.display === 'none' ? '' : 'none';
+    bootstrap.Modal.getOrCreateInstance(modalEl).show();
+  }
+
+  // ─────────────────────────────────────────────────────────
+  // RESET FORM
+  // ─────────────────────────────────────────────────────────
+  function _resetSalaryForm() {
+    const form = document.getElementById('salaryForm');
+    if (form) form.reset();
+
+    const methodSel = document.getElementById('salMethod');
+    if (methodSel) {
+      methodSel.innerHTML = '<option value="Cash">💵 Cash</option>';
+      const gd = window.globalData || {};
+      (gd.bankAccounts || []).forEach(b => {
+        const o = document.createElement('option');
+        o.value = b.name; o.textContent = `🏦 ${b.name}`;
+        methodSel.appendChild(o);
+      });
+      (gd.mobileBanking || []).forEach(m => {
+        const o = document.createElement('option');
+        o.value = m.name; o.textContent = `📱 ${m.name}`;
+        methodSel.appendChild(o);
+      });
+      methodSel.value = 'Cash';
+    }
+  }
+
+  // ─────────────────────────────────────────────────────────
+  // SUBMIT PAY
+  // ─────────────────────────────────────────────────────────
+  async function handleSalarySubmit(e) {
+    if (e) e.preventDefault();
+    const gd     = window.globalData || {};
+    const empId  = document.getElementById('salEmpId').value;
+    const empName= document.getElementById('salEmpName').value;
+    const amount = parseFloat(document.getElementById('salAmount').value) || 0;
+    const type   = document.getElementById('salTypeHidden')?.value || 'Due';
+    const method = document.getElementById('salMethod').value;
+    const date   = document.getElementById('salDate').value || new Date().toISOString().split('T')[0];
+    const month  = document.getElementById('salaryMonthFilter')?.value || '';
+    const desc   = document.getElementById('salDescription').value || `${type} for ${month}`;
+
+    if (!empName || amount <= 0 || !method) { alert('সব required ফিল্ড পূরণ করুন।'); return; }
+    if (!confirm(`${empName} — ${type}: ৳${amount.toLocaleString()} পেমেন্ট করবেন?`)) return;
+
+    if (!gd.finance) gd.finance = [];
+
+    const isAdv   = type === 'Advance';
+    const isBonus = type === 'Bonus';
+    const txn = {
+      id:          'SAL_' + Date.now(),
+      date,
+      type:        isAdv ? 'Advance' : 'Expense',
+      category:    isAdv ? 'Advance' : 'Salaries',
+      method,
+      amount,
+      person:      empName,
+      employeeId:  empId,
+      description: `${desc}${isBonus ? ' [Bonus]' : isAdv ? ' [Advance]' : ' [Salary]'} (${month})`,
+      source:      'salary',
+      createdBy:   window.currentUser || 'Admin',
+      createdAt:   new Date().toISOString()
     };
 
-    // ─────────────────────────────────────────────
-    // OPEN MODAL  ← BUG FIXED HERE
-    // ─────────────────────────────────────────────
-    // ─────────────────────────────────────────────
-    // SCRIPT RE-EXECUTOR
-    // section-loader.js innerHTML দিয়ে inject করলে
-    // <script> block execute হয় না।
-    // এই function inject এর পরে scripts re-run করে।
-    // ─────────────────────────────────────────────
-    function _reExecModalScripts(containerEl) {
-        if (!containerEl) return;
-        const scripts = containerEl.querySelectorAll('script');
-        scripts.forEach(function(oldScript) {
-            const newScript = document.createElement('script');
-            newScript.textContent = oldScript.textContent;
-            oldScript.parentNode.replaceChild(newScript, oldScript);
-        });
+    gd.finance.push(txn);
+
+    if (typeof window.feApplyEntryToAccount === 'function') window.feApplyEntryToAccount(txn, +1);
+    if (typeof window.logActivity === 'function') {
+      window.logActivity('finance', 'ADD',
+        `Salary ${type}: ৳${amount.toLocaleString()} → ${empName} | ${method} | ${date}`);
+    }
+    if (window.markDirty)        window.markDirty('finance');
+    if (window.saveToStorage)    await window.saveToStorage();
+    if (window.scheduleSyncPush) window.scheduleSyncPush('Salary Payment');
+
+    bootstrap.Modal.getInstance(document.getElementById('salaryModal'))?.hide();
+    renderSalaryCards();
+    if (typeof window.updateGlobalStats === 'function') window.updateGlobalStats();
+    if (typeof window.showSuccessToast === 'function') {
+      window.showSuccessToast(`✅ ${empName} — ${type} ৳${amount.toLocaleString()} রেকর্ড হয়েছে!`);
+    }
+  }
+
+  // ─────────────────────────────────────────────────────────
+  // EDIT SALARY RECORD
+  // ─────────────────────────────────────────────────────────
+  window.editSalaryRecord = function (txId) {
+    const gd  = window.globalData || {};
+    const txn = (gd.finance || []).find(f => String(f.id) === String(txId));
+    if (!txn) { alert('Record not found!'); return; }
+
+    const modalEl = document.getElementById('salaryEditModal');
+    if (!modalEl) { alert('Edit modal not found!'); return; }
+
+    document.getElementById('salEditTxId').value       = txn.id;
+    document.getElementById('salEditAmount').value     = txn.amount;
+    document.getElementById('salEditDate').value       = txn.date || '';
+    document.getElementById('salEditDesc').value       = txn.description || '';
+
+    // Method select
+    const methodSel = document.getElementById('salEditMethod');
+    if (methodSel) {
+      methodSel.innerHTML = '<option value="Cash">💵 Cash</option>';
+      (gd.bankAccounts || []).forEach(b => {
+        const o = document.createElement('option');
+        o.value = b.name; o.textContent = `🏦 ${b.name}`; methodSel.appendChild(o);
+      });
+      (gd.mobileBanking || []).forEach(m => {
+        const o = document.createElement('option');
+        o.value = m.name; o.textContent = `📱 ${m.name}`; methodSel.appendChild(o);
+      });
+      methodSel.value = txn.method || 'Cash';
     }
 
-    function openSalaryModal(empId) {
-        const modalEl = document.getElementById('salaryModal');
-
-        // ── Script re-execution fix ──
-        // modal এর parent container এ script re-run করো
-        // যাতে setSalType() define হয় inject এর পরেও
-        if (modalEl && !window._salaryModalScriptsReady) {
-            _reExecModalScripts(modalEl.parentElement || modalEl);
-            window._salaryModalScriptsReady = true;
-        }
-
-        if (!modalEl) {
-            alert('Salary Modal not found!');
-            return;
-        }
-
-        const gd = window.globalData || {};
-
-        // ── FIX: গ্লোবাল ডেটা লোড হয়েছে কিনা চেক করো ──
-        const allEmployees = gd.employees || gd.staff || gd.hrEmployees || [];
-        if (allEmployees.length === 0) {
-            console.warn('[SalaryHub] ⚠️ No employees found in globalData. Keys:', Object.keys(gd));
-        }
-
-        _resetSalaryForm();
-
-        // ── Populate employee dropdown ──
-        const empSelect = document.getElementById('salEmpSelect');
-        if (empSelect) {
-            empSelect.innerHTML = '<option value="">-- Select Staff --</option>';
-
-            const activeEmps = allEmployees
-                .filter(e => !e.resigned && e.status !== 'Resigned')
-                .sort((a, b) => (a.name || '').localeCompare(b.name || ''));
-
-            console.log('[SalaryHub] Populating dropdown with', activeEmps.length, 'employees');
-
-            activeEmps.forEach(e => {
-                const opt = document.createElement('option');
-                opt.value          = e.id || e.empId || e.employeeId || e.name; // ← multiple ID fallbacks
-                opt.textContent    = `${e.name} (${e.role || e.designation || 'Staff'})`;
-                opt.dataset.name   = e.name;
-                opt.dataset.salary = e.salary || e.basicSalary || 0;
-                empSelect.appendChild(opt);
-            });
-
-            // ── FIX: onchange আগে set করো, তারপর value set করো ──
-            empSelect.onchange = _onEmpSelectChange;
-
-            if (empId) {
-                // Try to match by multiple possible ID fields
-                const matchedEmp = activeEmps.find(e =>
-                    e.id === empId || e.empId === empId ||
-                    e.employeeId === empId || e.name === empId
-                );
-                if (matchedEmp) {
-                    const matchVal = matchedEmp.id || matchedEmp.empId || matchedEmp.employeeId || matchedEmp.name;
-                    empSelect.value = matchVal;
-                    // ── FIX: value set করার পরে manually trigger করো ──
-                    _onEmpSelectChange();
-                } else {
-                    console.warn('[SalaryHub] Employee not found for id:', empId);
-                }
-            }
-        }
-
-        // Today's date
-        const dateField = document.getElementById('salDate');
-        if (dateField) dateField.value = new Date().toISOString().split('T')[0];
-
-        // Default type = Due
-        if (typeof window.setSalType === 'function') window.setSalType('Due');
-
-        bootstrap.Modal.getOrCreateInstance(modalEl).show();
+    // Info header
+    const infoEl = document.getElementById('salEditInfo');
+    if (infoEl) {
+      const isAdv   = txn.type === 'Advance';
+      const isBonus = (txn.description || '').includes('[Bonus]');
+      const label   = isAdv ? 'Advance' : isBonus ? 'Bonus' : 'Salary';
+      infoEl.textContent = `${txn.person} — ${label}`;
     }
 
-    // ─────────────────────────────────────────────
-    // EMPLOYEE SELECT CHANGE
-    // ─────────────────────────────────────────────
-    function _onEmpSelectChange() {
-        const empSelect = document.getElementById('salEmpSelect');
-        if (!empSelect) return;
-        const opt = empSelect.options[empSelect.selectedIndex];
-        if (!opt || !opt.value) return;
+    bootstrap.Modal.getOrCreateInstance(modalEl).show();
+  };
 
-        const empId      = opt.value;
-        const empName    = opt.dataset.name || '';
-        const baseSalary = parseFloat(opt.dataset.salary) || 0;
+  // ─────────────────────────────────────────────────────────
+  // SUBMIT EDIT
+  // ─────────────────────────────────────────────────────────
+  window.handleSalaryEditSubmit = async function (e) {
+    if (e) e.preventDefault();
+    const gd     = window.globalData || {};
+    const txId   = document.getElementById('salEditTxId').value;
+    const amount = parseFloat(document.getElementById('salEditAmount').value) || 0;
+    const date   = document.getElementById('salEditDate').value;
+    const method = document.getElementById('salEditMethod').value;
+    const desc   = document.getElementById('salEditDesc').value;
 
-        document.getElementById('salEmpId').value   = empId;
-        document.getElementById('salEmpName').value = empName;
+    const idx = (gd.finance || []).findIndex(f => String(f.id) === String(txId));
+    if (idx === -1) { alert('Record not found!'); return; }
+    if (amount <= 0) { alert('Amount must be greater than 0!'); return; }
 
-        const gd    = window.globalData || {};
-        const month = document.getElementById('salaryMonthFilter')?.value || '';
+    const old = { ...gd.finance[idx] };
 
-        // Calculate due
-        const paid = (gd.finance || [])
-            .filter(f => !f._deleted && f.type === 'Expense' && f.category === 'Salaries'
-                && (f.description || '').includes(month)
-                && (f.person === empName || f.employeeId === empId))
-            .reduce((s, p) => s + (parseFloat(p.amount) || 0), 0);
-        const due = Math.max(0, baseSalary - paid);
-
-        // Update due badge
-        const badge = document.getElementById('salDueAmountBadge');
-        if (badge) badge.textContent = `৳${due.toLocaleString()}`;
-
-        // Check existing advance (all-time net, not just this month)
-        const advTotal = (gd.finance || [])
-            .filter(f => !f._deleted && f.type === 'Advance'
-                && (f.person === empName || f.employeeId === empId))
-            .reduce((s, p) => s + (parseFloat(p.amount) || 0), 0);
-        const advReturned = (gd.finance || [])
-            .filter(f => !f._deleted && f.type === 'Advance Return'
-                && (f.person === empName || f.employeeId === empId))
-            .reduce((s, p) => s + (parseFloat(p.amount) || 0), 0);
-        const netAdv = advTotal - advReturned;
-
-        const advEl = document.getElementById('salExistingAdvance');
-        if (advEl) {
-            if (netAdv > 0) {
-                advEl.textContent = `⚠️ বিদ্যমান Advance বকেয়া: ৳${netAdv.toLocaleString()}`;
-                advEl.classList.remove('d-none');
-            } else {
-                advEl.classList.add('d-none');
-            }
-        }
-
-        // Auto-fill amount based on current type
-        const currentType = document.getElementById('salTypeHidden')?.value || 'Due';
-        const amountEl    = document.getElementById('salAmount');
-        if (amountEl && currentType === 'Due') {
-            amountEl.value = due > 0 ? due : '';
-        }
-
-        // Auto description
-        const desc = document.getElementById('salDescription');
-        if (desc && month) desc.value = `${currentType} for ${month}`;
+    // Reverse old balance, apply new
+    if (typeof window.feApplyEntryToAccount === 'function') {
+      window.feApplyEntryToAccount(old, -1);
+    }
+    gd.finance[idx] = { ...gd.finance[idx], amount, date, method, description: desc };
+    if (typeof window.feApplyEntryToAccount === 'function') {
+      window.feApplyEntryToAccount(gd.finance[idx], +1);
     }
 
-    // ─────────────────────────────────────────────
-    // RESET FORM
-    // ─────────────────────────────────────────────
-    function _resetSalaryForm() {
-        const form = document.getElementById('salaryForm');
-        if (form) form.reset();
-
-        // Payment methods
-        const methodSel = document.getElementById('salMethod');
-        if (methodSel) {
-            methodSel.innerHTML = '<option value="Cash">💵 Cash</option>';
-            const gd = window.globalData || {};
-            (gd.bankAccounts || []).forEach(b => {
-                const o = document.createElement('option');
-                o.value = b.name; o.textContent = `🏦 ${b.name}`;
-                methodSel.appendChild(o);
-            });
-            (gd.mobileBanking || []).forEach(m => {
-                const o = document.createElement('option');
-                o.value = m.name; o.textContent = `📱 ${m.name}`;
-                methodSel.appendChild(o);
-            });
-            methodSel.value = 'Cash';
-        }
-
-        const salEmpId   = document.getElementById('salEmpId');
-        const salEmpName = document.getElementById('salEmpName');
-        if (salEmpId)   salEmpId.value   = '';
-        if (salEmpName) salEmpName.value = '';
+    if (typeof window.logActivity === 'function') {
+      window.logActivity('finance', 'EDIT',
+        `Salary record edited: ${old.person} | ৳${old.amount} → ৳${amount} | ${old.date} → ${date}`);
     }
+    if (window.markDirty)        window.markDirty('finance');
+    if (window.saveToStorage)    await window.saveToStorage();
+    if (window.scheduleSyncPush) window.scheduleSyncPush('Salary Edit');
 
-    // ─────────────────────────────────────────────
-    // SUBMIT
-    // ─────────────────────────────────────────────
-    async function handleSalarySubmit(e) {
-        if (e) e.preventDefault();
+    bootstrap.Modal.getInstance(document.getElementById('salaryEditModal'))?.hide();
+    renderSalaryCards();
+    if (typeof window.updateGlobalStats === 'function') window.updateGlobalStats();
+    if (typeof window.showSuccessToast === 'function') window.showSuccessToast('✅ Record updated!');
+  };
 
-        const gd      = window.globalData || {};
-        const empId   = document.getElementById('salEmpId').value;
-        const empName = document.getElementById('salEmpName').value;
-        const amount  = parseFloat(document.getElementById('salAmount').value) || 0;
-        const type    = document.getElementById('salTypeHidden')?.value || 'Due';
-        const method  = document.getElementById('salMethod').value;
-        const date    = document.getElementById('salDate').value || new Date().toISOString().split('T')[0];
-        const month   = document.getElementById('salaryMonthFilter')?.value || '';
-        const desc    = document.getElementById('salDescription').value || `${type} for ${month}`;
+  // ─────────────────────────────────────────────────────────
+  // DELETE SALARY RECORD
+  // ─────────────────────────────────────────────────────────
+  window.deleteSalaryRecord = function (txId) {
+    const gd  = window.globalData || {};
+    const txn = (gd.finance || []).find(f => String(f.id) === String(txId));
+    if (!txn) { alert('Record not found!'); return; }
 
-        if (!empName || amount <= 0 || !method || !month) {
-            alert('সব required ফিল্ড পূরণ করুন।');
-            return;
-        }
-        if (!confirm(`${empName}-কে ${type} ৳${amount.toLocaleString()} পেমেন্ট করবেন?`)) return;
+    if (!confirm(`Delete করবেন?\n${txn.person} — ৳${txn.amount} (${txn.date})`)) return;
 
-        if (!gd.finance) gd.finance = [];
+    // Recycle bin
+    if (typeof window.moveToTrash === 'function') window.moveToTrash('finance', { ...txn });
 
-        if (type === 'Advance') {
-            // Advance → type:'Advance' — Accounts Management এ sync হবে
-            const newAdv = {
-                id: 'SAL_ADV_' + Date.now(),
-                date,
-                type: 'Advance',
-                category: 'Advance',
-                method,
-                amount,
-                person: empName,
-                employeeId: empId,
-                description: `${desc} [Advance] (${month})`,
-                source: 'salary',          // ← accounts-management filter করতে পারবে
-                createdBy: window.currentUser || 'Admin',
-                createdAt: new Date().toISOString()
-            };
-            gd.finance.push(newAdv);
+    // Reverse balance
+    if (typeof window.feApplyEntryToAccount === 'function') window.feApplyEntryToAccount(txn, -1);
 
-            // ✅ FIX: Update Account Balance
-            if (typeof window.feApplyEntryToAccount === 'function') {
-                window.feApplyEntryToAccount(newAdv, +1);
-            }
-        } else {
-            // Due / Bonus → Expense > Salaries
-            const label = type === 'Bonus' ? 'Bonus' : 'Salary';
-            const newTxn = {
-                id: 'SAL_' + Date.now(),
-                date,
-                type: 'Expense',
-                category: 'Salaries',
-                method,
-                amount,
-                person: empName,
-                employeeId: empId,
-                description: `${desc} [${label}] (${month})`,
-                createdBy: window.currentUser || 'Admin',
-                createdAt: new Date().toISOString()
-            };
-            gd.finance.push(newTxn);
-            
-            // ✅ FIX: Update Account Balance (Missing from diagram sync)
-            if (typeof window.feApplyEntryToAccount === 'function') {
-                window.feApplyEntryToAccount(newTxn, +1);
-            }
-        }
+    // Remove from finance
+    gd.finance = gd.finance.filter(f => String(f.id) !== String(txId));
 
-        if (window.markDirty)        window.markDirty('finance');
-        if (window.saveToStorage)    window.saveToStorage();
-        if (window.scheduleSyncPush) window.scheduleSyncPush('Salary Payment');
-
-        bootstrap.Modal.getInstance(document.getElementById('salaryModal')).hide();
-        loadSalaryHub();
-
-        // ── Advance Management refresh ──
-        if (typeof window.renderAccMgmtList === 'function') {
-            window.renderAccMgmtList('Advance');
-        }
-        // ── Fallback: যদি অন্য function নামে থাকে ──
-        if (typeof window.refreshAdvanceList === 'function') {
-            window.refreshAdvanceList();
-        }
-        if (typeof window.loadAdvanceManagement === 'function') {
-            window.loadAdvanceManagement();
-        }
-
-        if (typeof window.showSuccessToast === 'function') {
-            const msgs = {
-                Advance: `🔵 Advance ৳${amount.toLocaleString()} — Accounts-এ রেকর্ড হয়েছে!`,
-                Bonus:   `🌟 Bonus ৳${amount.toLocaleString()} — রেকর্ড হয়েছে!`,
-                Due:     `✅ ৳${amount.toLocaleString()} — ${empName}-কে পেমেন্ট সম্পন্ন!`,
-            };
-            window.showSuccessToast(msgs[type] || '✅ Payment recorded!');
-        }
+    if (typeof window.logActivity === 'function') {
+      window.logActivity('finance', 'DELETE',
+        `Salary record deleted: ${txn.person} — ৳${txn.amount} (${txn.date})`);
     }
+    if (window.markDirty)        window.markDirty('finance');
+    if (window.saveToStorage)    window.saveToStorage();
+    if (window.scheduleSyncPush) window.scheduleSyncPush('Salary Delete');
 
-    // ─────────────────────────────────────────────
-    // ADVANCE RETURN — দুই জায়গা থেকে call হবে
-    // Salary Tab থেকেও, Accounts থেকেও
-    // ─────────────────────────────────────────────
-    window.recordAdvanceReturn = function(empId, empName, amount, date, method, note) {
-        const gd = window.globalData || {};
-        if (!gd.finance) gd.finance = [];
+    renderSalaryCards();
+    if (typeof window.updateGlobalStats === 'function') window.updateGlobalStats();
+    if (typeof window.showSuccessToast === 'function') window.showSuccessToast('🗑️ Salary record deleted (Recycle Bin এ আছে)');
+  };
 
-        gd.finance.push({
-            id: 'ADV_RET_' + Date.now(),
-            date: date || new Date().toISOString().split('T')[0],
-            type: 'Advance Return',
-            category: 'Advance Return',
-            method: method || 'Cash',
-            amount: parseFloat(amount) || 0,
-            person: empName,
-            employeeId: empId,
-            description: note || `Advance Return — ${empName}`,
-            createdBy: window.currentUser || 'Admin',
-            createdAt: new Date().toISOString()
-        });
+  // ─────────────────────────────────────────────────────────
+  // setSalType — Pay modal type selector
+  // ─────────────────────────────────────────────────────────
+  window.setSalType = function (type) {
+    document.getElementById('salTypeHidden').value = type;
+    ['Due', 'Advance', 'Bonus'].forEach(t => {
+      const btn = document.getElementById('btnType' + t);
+      if (!btn) return;
+      if (t === type) {
+        const colors = { Due: '#00d4aa', Advance: '#3b82f6', Bonus: '#f59e0b' };
+        btn.style.background = `linear-gradient(135deg,${colors[t]},${colors[t]}aa)`;
+        btn.style.color = '#fff';
+        btn.style.boxShadow = `0 3px 12px ${colors[t]}55`;
+        btn.style.border = 'none';
+      } else {
+        btn.style.background = 'rgba(255,255,255,0.05)';
+        btn.style.color = '#6e8caa';
+        btn.style.boxShadow = 'none';
+        btn.style.border = '1px solid rgba(255,255,255,0.08)';
+      }
+    });
 
-        if (window.markDirty)        window.markDirty('finance');
-        if (window.saveToStorage)    window.saveToStorage();
-        if (window.scheduleSyncPush) window.scheduleSyncPush('Advance Return');
+    // Show/hide info panels
+    ['salDuePanel', 'salAdvancePanel', 'salBonusPanel'].forEach(id => {
+      const el = document.getElementById(id);
+      if (el) el.classList.add('d-none');
+    });
+    const map = { Due: 'salDuePanel', Advance: 'salAdvancePanel', Bonus: 'salBonusPanel' };
+    const panel = document.getElementById(map[type]);
+    if (panel) panel.classList.remove('d-none');
 
-        // দুই জায়গাতেই refresh
-        loadSalaryHub();
-        if (typeof window.renderAccMgmtList === 'function')   window.renderAccMgmtList('Advance');
-        if (typeof window.refreshAdvanceList === 'function')   window.refreshAdvanceList();
-        if (typeof window.loadAdvanceManagement === 'function') window.loadAdvanceManagement();
+    // Auto-fill amount
+    const amtEl = document.getElementById('salAmount');
+    if (amtEl && type !== 'Due') amtEl.value = '';
+  };
 
-        if (typeof window.showSuccessToast === 'function') {
-            window.showSuccessToast(`✅ Advance Return ৳${parseFloat(amount).toLocaleString()} — রেকর্ড হয়েছে!`);
-        }
+  // ─────────────────────────────────────────────────────────
+  // ADVANCE RETURN (global — callable from Accounts tab too)
+  // ─────────────────────────────────────────────────────────
+  window.recordAdvanceReturn = async function (empId, empName, amount, date, method, note) {
+    const gd = window.globalData || {};
+    if (!gd.finance) gd.finance = [];
+    const txn = {
+      id:          'ADV_RET_' + Date.now(),
+      date:        date || new Date().toISOString().split('T')[0],
+      type:        'Advance Return',
+      category:    'Advance Return',
+      method:      method || 'Cash',
+      amount:      parseFloat(amount) || 0,
+      person:      empName,
+      employeeId:  empId,
+      description: note || `Advance Return — ${empName}`,
+      createdBy:   window.currentUser || 'Admin',
+      createdAt:   new Date().toISOString()
     };
+    gd.finance.push(txn);
+    if (typeof window.feApplyEntryToAccount === 'function') window.feApplyEntryToAccount(txn, +1);
+    if (typeof window.logActivity === 'function') {
+      window.logActivity('finance', 'ADD', `Advance Return: ৳${amount} — ${empName}`);
+    }
+    if (window.markDirty)        window.markDirty('finance');
+    if (window.saveToStorage)    await window.saveToStorage();
+    if (window.scheduleSyncPush) window.scheduleSyncPush('Advance Return');
+    renderSalaryCards();
+    if (typeof window.updateGlobalStats === 'function') window.updateGlobalStats();
+    if (typeof window.renderAccMgmtList === 'function') window.renderAccMgmtList('Advance');
+    if (typeof window.showSuccessToast === 'function') window.showSuccessToast(`✅ Advance Return ৳${amount} রেকর্ড হয়েছে`);
+  };
 
-    // ─────────────────────────────────────────────
-    // SET PAYMENT TYPE — Due / Advance / Bonus
-    // salary-modal.html এ inline script থাকলেও,
-    // এখানেও define করা হলো যাতে modal load timing
-    // সমস্যায় বাটন কাজ না করলেও fallback থাকে।
-    // ─────────────────────────────────────────────
-    // ─────────────────────────────────────────────
-    // SET PAYMENT TYPE — Due / Advance / Bonus
-    // salary-modal.html থেকে script সরানো হয়েছে।
-    // এখন এখানেই সম্পূর্ণ logic আছে।
-    // window.setSalType হিসেবে global — বাটনের
-    // onclick="setSalType('Advance')" সরাসরি call করবে।
-    // ─────────────────────────────────────────────
-    window.setSalType = function (type) {
-        var hidden = document.getElementById('salTypeHidden');
-        if (hidden) hidden.value = type;
+  // ─────────────────────────────────────────────────────────
+  // EXPOSE GLOBALS
+  // ─────────────────────────────────────────────────────────
+  window.initSalaryHub    = initSalaryHub;
+  window.loadSalaryHub    = renderSalaryCards;   // backward compat
+  window.openSalaryModal  = openSalaryModal;
+  window.handleSalarySubmit = handleSalarySubmit;
+  window.toggleSalHistory = window._toggleSalHist; // backward compat
 
-        // Button visual styles
-        var styles = {
-            Due:     { bg:'linear-gradient(135deg,#00d4aa,#00a88a)', color:'#fff',    shadow:'0 3px 12px rgba(0,212,170,0.4)', border:'none' },
-            Advance: { bg:'linear-gradient(135deg,#0096ff,#0055cc)', color:'#fff',    shadow:'0 3px 12px rgba(0,150,255,0.4)', border:'none' },
-            Bonus:   { bg:'linear-gradient(135deg,#ffd200,#ff9f43)', color:'#1a1000', shadow:'0 3px 12px rgba(255,200,0,0.4)',  border:'none' }
-        };
-        var inactive = { bg:'rgba(255,255,255,0.07)', color:'#a0c4ff', shadow:'none', border:'1px solid rgba(255,255,255,0.12)' };
-
-        ['Due','Advance','Bonus'].forEach(function(t) {
-            var btn = document.getElementById('btnType' + t);
-            if (!btn) return;
-            var s = (t === type) ? styles[t] : inactive;
-            btn.style.background = s.bg;
-            btn.style.color      = s.color;
-            btn.style.boxShadow  = s.shadow;
-            btn.style.border     = s.border;
-        });
-
-        // Show/hide info panels
-        var panels = { Due:'salDuePanel', Advance:'salAdvancePanel', Bonus:'salBonusPanel' };
-        Object.keys(panels).forEach(function(t) {
-            var el = document.getElementById(panels[t]);
-            if (!el) return;
-            if (t === type) el.classList.remove('d-none');
-            else            el.classList.add('d-none');
-        });
-
-        // Confirm button style + label
-        var confirmBtn = document.getElementById('salConfirmBtn');
-        if (confirmBtn) {
-            var btnLabels = { Due:'💾 Pay Due Salary', Advance:'🔵 Save Advance', Bonus:'🌟 Save Bonus' };
-            confirmBtn.textContent = btnLabels[type];
-            if (type === 'Advance') {
-                confirmBtn.className = 'btn fw-bold px-4';
-                confirmBtn.style.cssText = 'background:linear-gradient(135deg,#0096ff,#0055cc);color:#fff;border:none;';
-            } else if (type === 'Bonus') {
-                confirmBtn.className = 'btn fw-bold px-4';
-                confirmBtn.style.cssText = 'background:linear-gradient(135deg,#ffd200,#ff9f43);color:#1a1000;border:none;';
-            } else {
-                confirmBtn.className = 'btn btn-success fw-bold px-4';
-                confirmBtn.style.cssText = '';
-            }
-        }
-
-        // Modal title
-        var titles = { Due:'💰 Pay Due Salary', Advance:'🔵 Record Advance', Bonus:'🌟 Record Bonus' };
-        var titleEl = document.getElementById('salModalTitle');
-        if (titleEl) titleEl.textContent = titles[type];
-
-        // Auto description
-        var monthEl = document.getElementById('salaryMonthFilter');
-        var month = monthEl ? monthEl.value : '';
-        var desc = document.getElementById('salDescription');
-        if (desc && month) desc.value = type + ' for ' + month;
-
-        // Amount auto-fill
-        var amountEl = document.getElementById('salAmount');
-        if (!amountEl) return;
-        if (type === 'Due') {
-            var badge = document.getElementById('salDueAmountBadge');
-            var badgeText = badge ? badge.textContent : '';
-            var dueNum = parseFloat(badgeText.replace(/[^0-9.]/g, '')) || 0;
-            amountEl.value = dueNum > 0 ? dueNum : '';
-            amountEl.placeholder = 'বকেয়া পরিমাণ';
-        } else {
-            amountEl.value = '';
-            amountEl.placeholder = type === 'Advance' ? 'Advance পরিমাণ' : 'Bonus পরিমাণ';
-        }
-    };
-
-    // ─────────────────────────────────────────────
-    // EXPORTS
-    // ─────────────────────────────────────────────
-    window.initSalaryHub      = initSalaryHub;
-    window.loadSalaryHub      = loadSalaryHub;
-    window.openSalaryModal    = openSalaryModal;
-    window._openSalaryModalImpl = function(empId) {
-        // section-loader callback এ এসে modal inject হওয়ার পরে
-        // script re-execution reset করো, তারপর modal খোলো
-        window._salaryModalScriptsReady = false;
-        openSalaryModal(empId);
-    };
-    window.handleSalarySubmit = handleSalarySubmit;
+  console.log('✅ salary-management.js v4.0 loaded');
 
 })();
