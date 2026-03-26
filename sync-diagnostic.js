@@ -216,12 +216,23 @@ async function runDiagnosticInline() {
     // Accounting audit with dynamic colors
     const finData = local?.finance || [];
     let income = 0, expense = 0, loanIn = 0, loanOut = 0, due = 0;
+    
+    // ✅ V2.3 FIX: Use finance-engine rules for correct totals
+    // In sync-diagnostic.js, we check global functions if available, else fallback to common types
+    const isInc = (t) => (typeof feIsStatIncome === 'function') ? feIsStatIncome(t) : ['Income', 'Registration', 'Refund'].includes(t);
+    const isExp = (t) => (typeof feIsStatExpense === 'function') ? feIsStatExpense(t) : ['Expense', 'Salary', 'Rent', 'Utilities'].includes(t);
+    const isLoanIn = (t) => ['Loan Receiving', 'Loan Received', 'Investment'].includes(t);
+    const isLoanOut = (t) => ['Loan Giving', 'Loan Given', 'Investment Return'].includes(t);
+
     finData.forEach(f => {
+        if (f._deleted) return;
         const amt = parseFloat(f.amount) || 0;
-        if (f.type === 'Income') income += amt;
-        else if (f.type === 'Expense') expense += amt;
-        else if (['Loan Receiving', 'Loan Received'].includes(f.type)) loanIn += amt;
-        else if (['Loan Giving', 'Loan Given'].includes(f.type)) loanOut += amt;
+        const type = f.type || '';
+        
+        if (isInc(type)) income += amt;
+        else if (isExp(type)) expense += amt;
+        else if (isLoanIn(type)) loanIn += amt;
+        else if (isLoanOut(type)) loanOut += amt;
     });
     (local?.students || []).forEach(s => { due += parseFloat(s.due) || 0; });
     const profit = income - expense;

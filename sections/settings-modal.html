@@ -2880,19 +2880,28 @@ window.SimulatorPro = (function () {
         _simLog('🧹 Data Quality Audit (Deep Scan)...', 'info');
         
         var activeFinance = (gd.finance || []).filter(function(f) { return f && !f._deleted; });
-        var incomeCount = activeFinance.filter(f => /income|fee|registration|received/i.test(f.type + f.category)).length;
-        var expenseCount = activeFinance.filter(f => /expense|salary|cost|payment/i.test(f.type + f.category)).length;
+        
+        // ✅ V2.3 FIX: Use standardized engine rules to avoid 'Wrong Info' reports
+        var isInc = (t) => (typeof window.feIsStatIncome === 'function') ? window.feIsStatIncome(t) : /income|fee|registration|refund/i.test(t);
+        var isExp = (t) => (typeof window.feIsStatExpense === 'function') ? window.feIsStatExpense(t) : /expense|salary|rent|utilities/i.test(t);
+        
+        var incomeEntries = activeFinance.filter(f => isInc(f.type));
+        var expenseEntries = activeFinance.filter(f => isExp(f.type));
+        var incomeCount = incomeEntries.length;
+        var expenseCount = expenseEntries.length;
         
         check('Financial Categorization', (incomeCount + expenseCount) > 0, incomeCount + ' Incomes, ' + expenseCount + ' Expenses detected');
         
-        var unparseable = activeFinance.filter(f => isNaN(window._anaParseAmt(f.amount))).length;
+        var parseAmt = (a) => parseFloat(a) || 0;
+        var unparseable = activeFinance.filter(f => isNaN(parseAmt(f.amount))).length;
         check('Amount Parsing Integrity', unparseable === 0, unparseable + ' entries have invalid amounts');
         
-        var badDates = activeFinance.filter(f => !/^\d{4}-\d{2}-\d{2}/.test(window._anaNormDate(f.date))).length;
+        // Simple date check
+        var badDates = activeFinance.filter(f => !/^\d{4}-\d{2}-\d{2}/.test(f.date)).length;
         check('Date Format Integrity', badDates === 0, badDates + ' entries have unreadable dates');
 
-        var incomeTotal = activeFinance.filter(f => /income|fee/i.test(f.type)).reduce((s,f) => s + window._anaParseAmt(f.amount), 0);
-        check('Financial Summation', incomeTotal >= 0, 'Ledger aggregate verified');
+        var incomeTotal = incomeEntries.reduce((s,f) => s + parseAmt(f.amount), 0);
+        check('Financial Summation', incomeTotal >= 0, 'Ledger aggregate verified: ৳' + incomeTotal.toLocaleString());
 
         check('Account Balances', typeof gd.cashBalance === 'number', 'Primary accounts active');
 

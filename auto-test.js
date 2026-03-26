@@ -891,8 +891,16 @@
     let calcCash = parseFloat(gd.settings?.startBalances?.Cash) || 0;
     finance.filter(f => f.method === 'Cash' && !f._deleted).forEach(f => {
       const amt = parseFloat(f.amount) || 0;
-      if (['Income', 'Loan Received', 'Loan Receiving', 'Transfer In'].includes(f.type)) calcCash += amt;
-      else if (['Expense', 'Loan Given', 'Loan Giving', 'Transfer Out'].includes(f.type)) calcCash -= amt;
+      const type = f.type || '';
+      
+      // ✅ V9.1 FIX: Use central finance-engine rules to avoid 'Wrong Info' false alarms
+      if (typeof window.feIsAccountIn === 'function' && window.feIsAccountIn(type)) calcCash += amt;
+      else if (typeof window.feIsAccountOut === 'function' && window.feIsAccountOut(type)) calcCash -= amt;
+      else {
+        // Fallback if engine not loaded
+        if (['Income', 'Registration', 'Refund', 'Loan Received', 'Loan Receiving', 'Transfer In', 'Investment'].includes(type)) calcCash += amt;
+        else if (['Expense', 'Salary', 'Rent', 'Utilities', 'Loan Given', 'Loan Giving', 'Transfer Out', 'Investment Return', 'Salary Paid'].includes(type)) calcCash -= amt;
+      }
     });
     const storedCash = parseFloat(gd.cashBalance) || 0;
     const diff = Math.abs(calcCash - storedCash);
