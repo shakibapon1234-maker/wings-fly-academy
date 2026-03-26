@@ -2424,20 +2424,9 @@
             window._anaSetMode('range');
         };
 
-        window._anaPrint = function() {
-            try {
-                var inc = document.getElementById('ana_incomeRows') ? document.getElementById('ana_incomeRows').innerHTML : '';
-                var exp = document.getElementById('ana_expenseRows') ? document.getElementById('ana_expenseRows').innerHTML : '';
-                var win = window.open('', '_blank');
-                if (!win) { alert('Popup Blocked! Please allow popups to print report.'); return; }
-                win.document.write('<html><head><title>Account Analytics Report</title><style>body{font-family:sans-serif;padding:30px;background:#fff;color:#000;}table{width:100%;border-collapse:collapse;margin:15px 0;}th,td{border:1px solid #ccc;padding:8px;text-align:left;font-size:12px;}h2,h3{color:#333;margin-top:25px;} .sum-box{padding:10px;border:1px solid #eee;margin-bottom:10px;}</style></head><body>');
-                win.document.write('<h1>WINGS FLY AVIATION ACADEMY</h1><h2>Account Analytics Report</h2><p>Generated: '+new Date().toLocaleString()+'</p>');
-                win.document.write('<h3>✅ Income Breakdown</h3><table><thead><tr><th>Category</th><th>Person</th><th>Amount</th><th>Date</th><th>Description</th></tr></thead><tbody>'+inc+'</tbody></table>');
-                win.document.write('<h3>❌ Expense Breakdown</h3><table><thead><tr><th>Category</th><th>Person</th><th>Amount</th><th>Date</th><th>Description</th></tr></thead><tbody>'+exp+'</tbody></table>');
-                win.document.write('<scr'+'ipt>window.onload=function(){ window.print(); window.close(); };<\/script></body></html>');
-                win.document.close();
-            } catch(e) { console.error('Print error:', e); alert('Print করতে সমস্যা হয়েছে।'); }
-        };
+        // ⚠️ IMPORTANT: _anaPrint function is defined in external file: sections/analytics-print.js
+        // Do NOT add the large print function here - it's loaded separately for performance
+        // If print doesn't work, ensure analytics-print.js is loaded in index.html script tags
 
         // --- Implementation Wrapper ---
         window._showAccountAnalyticsImpl = function () {
