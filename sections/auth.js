@@ -67,7 +67,7 @@ function initSupabase() {
 // PASSWORD HASHING
 // ════════════════════════════════════════════════════════════════
 
-// PBKDF2 (Secure — Phase 2, OWASP Standard 210,000 iterations)
+// PBKDF2 (Secure — Phase 2, Balanced Performance 100,000 iterations)
 async function hashPasswordPBKDF2(password, username) {
   try {
     const encoder = new TextEncoder();
@@ -85,7 +85,7 @@ async function hashPasswordPBKDF2(password, username) {
       {
         name: 'PBKDF2',
         salt: salt,
-        iterations: 210000,
+        iterations: 100000,
         hash: 'SHA-256'
       },
       keyMaterial,
@@ -395,7 +395,7 @@ function showDashboard(username) {
   if (!sessionStorage.getItem('wf_just_logged_in') && loginBtn && !loginBtn.classList.contains('takeoff')) {
     loginBtn.classList.add('takeoff');
     
-    // 1.2s delay for the plane to fly away, then fade out the login screen
+    // 0.6s delay for the plane to fly away, then fade out the login screen
     setTimeout(() => {
       loginSection.classList.add('fly-away-fade');
       setTimeout(() => {
@@ -403,8 +403,8 @@ function showDashboard(username) {
         loginSection.classList.remove('fly-away-fade');
         loginBtn.classList.remove('takeoff'); // Reset for next time
         dshSection.classList.remove('d-none');
-      }, 500); // Wait for fade out
-    }, 1100); // 1.1s for train to fly across
+      }, 300); // Wait for fade out
+    }, 600); // 0.6s for train to fly across
   } else {
     // Immediate toggle (like page reload)
     loginSection.classList.add('d-none');

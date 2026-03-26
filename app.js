@@ -858,13 +858,48 @@ window.attachMethodBalanceListeners = attachMethodBalanceListeners;
 
 
 // ===================================
-
-// ===================================
 // KEEP RECORD — Personal Notes System
 // ===================================
 
 
 // keep-records — extracted to sections/keep-records.js
+
+// ===================================
+// GLOBAL DATE "TO" AUTO-FILLER
+// ===================================
+(function() {
+  // Automatically fill "To Date" inputs with today's date if they are empty
+  function enforceToDateDefaults() {
+    const today = new Date().toISOString().split('T')[0];
+    const dateInputs = document.querySelectorAll('input[type="date"]');
+    
+    for (let i = 0; i < dateInputs.length; i++) {
+      const inp = dateInputs[i];
+      const id = (inp.id || '').toLowerCase();
+      const name = (inp.name || '').toLowerCase();
+      const labelValue = (inp.previousElementSibling?.innerText || '').trim().toLowerCase();
+      
+      // Check if it's a "To" date field (End date, To date, etc.)
+      const isToDate = id.includes('to') || id.includes('end') || 
+                       name.includes('to') || name.includes('end') ||
+                       labelValue === 'to' || labelValue.includes('to date');
+      
+      if (isToDate && !inp.value) {
+        inp.value = today;
+      }
+    }
+  }
+
+  // Run on load and periodically to catch dynamically loaded modals / fields
+  if (document.readyState === 'loading') {
+    document.addEventListener('DOMContentLoaded', enforceToDateDefaults);
+  } else {
+    enforceToDateDefaults();
+  }
+  
+  // Set an interval to ensure dynamically cleared fields get today's date
+  setInterval(enforceToDateDefaults, 500);
+})();
 
 // ===================================
 (function ensureCriticalExports() {

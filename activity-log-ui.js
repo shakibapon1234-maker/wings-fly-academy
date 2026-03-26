@@ -210,6 +210,9 @@
                 var fDateTo = document.getElementById('logDateTo')?.value || '';
 
                 var filtered = history.filter(function (h) {
+                    // Hide Auto-Heal logs completely
+                    if (h.action === 'HEAL' || (h.type || '').toLowerCase() === 'heal') return false;
+
                     if (fAction !== 'all' && h.action !== fAction) return false;
                     if (fType !== 'all' && h.type !== fType) return false;
                     if (fUser && !(h.user || '').toLowerCase().includes(fUser)) return false;

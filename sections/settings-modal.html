@@ -87,7 +87,7 @@
                                     <span>🏢</span> General Settings
                                 </button>
                                 <button class="nav-link nav-link-config" type="button"
-                                    onclick="switchSettingsTab('tab-config', this)">
+                                    onclick="switchSettingsTab('tab-config', this); if(typeof window.renderSettingsLists === 'function') window.renderSettingsLists();">
                                     <span>🏷️ </span> Categories & Courses
                                 </button>
                                 <button class="nav-link nav-link-data" type="button"

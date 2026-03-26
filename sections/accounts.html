@@ -63,14 +63,13 @@
                                 background: linear-gradient(90deg, #667eea, #c084fc);
                                 -webkit-background-clip: text; -webkit-text-fill-color: transparent;
                                 background-clip: text; font-size: 1rem; letter-spacing: 0.5px;">
-                                <i class="bi bi-search me-2" style="-webkit-text-fill-color: #667eea;"></i>Search All Accounts (💵 Cash + 🏦 Bank + 📱 Mobile
-                                Banking)
+                                <i class="bi bi-search me-2" style="-webkit-text-fill-color: #667eea;"></i>Search All Accounts (💵 Cash + 🏦 Bank + 📱 Mobile Banking)
                             </h5>
                             <div class="row g-3 align-items-end">
                                 <!-- Account Dropdown -->
-                                <div class="col-md-5">
-                                    <label class="text-white small mb-1 opacity-75">Select Account</label>
-                                    <select id="unifiedAccountSelect" class="form-select" style="font-size: 1rem;">
+                                <div class="col-md-4">
+                                    <label class="small mb-1 fw-bold" style="color: #00fff5;">Select Account</label>
+                                    <select id="unifiedAccountSelect" class="form-select bg-dark border-info" style="font-size: 1rem; color: #00fff5;">
                                         <option value="">-- Select an Account --</option>
                                         <!-- All accounts will be populated here (Cash, Bank, Mobile) -->
                                     </select>
@@ -78,30 +77,25 @@
 
                                 <!-- Date From -->
                                 <div class="col-md-3">
-                                    <label class="text-white small mb-1 opacity-75">From Date</label>
-                                    <input type="date" id="unifiedDateFrom" class="form-control">
+                                    <label class="small mb-1 fw-bold" style="color: #00fff5;">From Date</label>
+                                    <input type="date" id="unifiedDateFrom" class="form-control bg-dark border-info" style="color: #00fff5;">
                                 </div>
 
                                 <!-- Date To -->
                                 <div class="col-md-3">
-                                    <label class="text-white small mb-1 opacity-75">To Date</label>
-                                    <input type="date" id="unifiedDateTo" class="form-control">
+                                    <label class="small mb-1 fw-bold" style="color: #00fff5;">To Date</label>
+                                    <input type="date" id="unifiedDateTo" class="form-control bg-dark border-info" style="color: #00fff5;">
                                 </div>
 
-                                <!-- Search Button -->
-                                <div class="col-md-1">
-                                    <button class="btn btn-light w-100 fw-bold" onclick="performUnifiedSearch()"
-                                        title="Search">
+                                <!-- Search & Clear Buttons -->
+                                <div class="col-md-2 d-flex gap-2">
+                                    <button class="btn w-100 fw-bold" style="background: rgba(0, 255, 245, 0.1); color: #00fff5; border: 1px solid #00fff5;" onclick="performUnifiedSearch()" title="Search">
                                         <i class="bi bi-search"></i>
                                     </button>
+                                    <button class="btn w-100 fw-bold" style="background: rgba(255, 77, 77, 0.1); color: #ff4d4d; border: 1px solid #ff4d4d;" onclick="clearUnifiedSearch()" title="Clear">
+                                        <i class="bi bi-x-lg"></i>
+                                    </button>
                                 </div>
-                            </div>
-                            <!-- Clear Search Link -->
-                            <div class="text-end mt-2">
-                                <a href="javascript:void(0)" onclick="clearUnifiedSearch()"
-                                    class="text-white text-decoration-none small opacity-75">
-                                    <i class="bi bi-x-circle me-1"></i>Clear Search
-                                </a>
                             </div>
                         </div>
                     </div>
