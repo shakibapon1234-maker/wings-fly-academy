@@ -294,6 +294,17 @@
             }
           }
           setTimeout(function () { _tryScLoad(0); }, 100);
+
+          // ✅ FIX: Settings বন্ধ হলে Dashboard-এ যাও (একবারই attach করো)
+          var settingsEl = document.getElementById('settingsModal');
+          if (settingsEl && !settingsEl._wfDashboardRedirect) {
+            settingsEl._wfDashboardRedirect = true;
+            settingsEl.addEventListener('hidden.bs.modal', function () {
+              if (typeof window.switchTab === 'function') {
+                window.switchTab('dashboard');
+              }
+            });
+          }
         }
       );
     };
