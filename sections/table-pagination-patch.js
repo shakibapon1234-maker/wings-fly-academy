@@ -121,16 +121,44 @@
     var existingPg = window._wfPaginators[cfg.tbodyId];
     var pageSize = existingPg ? existingPg.pageSize : cfg.pageSize;
 
+    // ✅ FIX #2: Date column detect করে newest-first sort করো
+    // প্রথম row এর cell গুলো দেখে date column খোঁজো
+    var sortedRows = allRows.slice(); // copy
+    try {
+      var firstRow = allRows[0];
+      if (firstRow) {
+        var cells = firstRow.querySelectorAll('td');
+        var dateColIdx = -1;
+        // date-like content খোঁজো (YYYY-MM-DD বা DD Mon YYYY বা timestamp)
+        var datePattern = /\d{4}[-/]\d{2}[-/]\d{2}|\d{2}\s+\w{3}\s+\d{4}|\w{3}\s+\d{1,2},\s+\d{4}/;
+        for (var ci = 0; ci < cells.length; ci++) {
+          var txt = cells[ci].textContent.trim();
+          if (datePattern.test(txt)) { dateColIdx = ci; break; }
+        }
+        if (dateColIdx >= 0) {
+          sortedRows.sort(function(a, b) {
+            var ta = a.querySelectorAll('td')[dateColIdx];
+            var tb = b.querySelectorAll('td')[dateColIdx];
+            var da = ta ? new Date(ta.textContent.trim()) : new Date(0);
+            var db = tb ? new Date(tb.textContent.trim()) : new Date(0);
+            return db - da; // newest first
+          });
+          // tbody তে re-append sorted order এ
+          sortedRows.forEach(function(r) { tbody.appendChild(r); });
+        }
+      }
+    } catch (sortErr) { /* sort fail হলে original order রাখো */ }
+
     // সব rows কে data array হিসেবে নাও (DOM elements)
-    var pg = new window.WFPaginator(allRows, pageSize);
+    var pg = new window.WFPaginator(sortedRows, pageSize);
     window._wfPaginators[cfg.tbodyId] = pg;
 
     // সব rows hide করো
-    allRows.forEach(function (r) { r.style.display = 'none'; });
+    sortedRows.forEach(function (r) { r.style.display = 'none'; });
 
     // current page এর rows দেখাও
     function showPage(page) {
-      allRows.forEach(function (r) { r.style.display = 'none'; });
+      sortedRows.forEach(function (r) { r.style.display = 'none'; });
       pg.getPage(page).forEach(function (r) { r.style.display = ''; });
 
       var bar = ensurePaginationBar(cfg);

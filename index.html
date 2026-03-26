@@ -1859,14 +1859,14 @@ WINGS FLY AVIATION ACADEMY — Management System
 
 
     <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/js/bootstrap.bundle.min.js"></script>
-    <script src="https://cdnjs.cloudflare.com/ajax/libs/html2pdf.js/0.10.1/html2pdf.bundle.min.js"></script>
+    <script defer src="https://cdnjs.cloudflare.com/ajax/libs/html2pdf.js/0.10.1/html2pdf.bundle.min.js"></script>
     <!-- SweetAlert2 for beautiful Modals -->
-    <script src="https://cdn.jsdelivr.net/npm/sweetalert2@11"></script>
+    <script defer src="https://cdn.jsdelivr.net/npm/sweetalert2@11"></script>
     <!-- Chart.js for Analytics -->
-    <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+    <script defer src="https://cdn.jsdelivr.net/npm/chart.js"></script>
 
     <!-- Supabase JS Client for Multi-user Sync -->
-    <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2/dist/umd/supabase.js"></script>
+    <script defer src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2/dist/umd/supabase.js"></script>
     <script>
         if (typeof window.supabase === 'undefined' && typeof supabase !== 'undefined') window.supabase = supabase;
         if (window.supabase && window.supabase.createClient) window.createClient = window.supabase.createClient;
@@ -1897,8 +1897,8 @@ WINGS FLY AVIATION ACADEMY — Management System
     <script src="sections/employee-management.js?v=20260226_1500"></script>
     <script src="sections/visitor-management.js?v=20260226_1500"></script>
     <script src="sections/notice-board.js?v=20260307_1100"></script>
-    <script src="sections/snapshot-system.js?v=20260226_1500"></script>
-    <script src="sections/card-certificate.js?v=20260324_1730"></script>
+    <script defer src="sections/snapshot-system.js?v=20260226_1500"></script>
+    <script defer src="sections/card-certificate.js?v=20260324_1730"></script>
     <script src="sections/salary-management.js?v=20260313_1900"></script>
 
     <!-- Phase 2: Finance Module -->
@@ -1935,14 +1935,14 @@ WINGS FLY AVIATION ACADEMY — Management System
     <script src="sections/id-card.js?v=20260226_1900"></script>
     <script src="sections/notifications.js?v=20260226_1900"></script>
     <!-- Phase 6: Photo Manager, Charts, Data Export -->
-    <script src="sections/photo-manager.js?v=20260226_2000"></script>
-    <script src="sections/charts.js?v=20260304_1204"></script>
-    <script src="sections/data-export.js?v=20260226_2000"></script>
+    <script defer src="sections/photo-manager.js?v=20260226_2000"></script>
+    <script defer src="sections/charts.js?v=20260304_1204"></script>
+    <script defer src="sections/data-export.js?v=20260226_2000"></script>
     <script src="app.js?v=20260319_2100"></script>
 
 
     <!-- Fix Scripts -->
-    <script src="auto-heal.js?v=20260307_1100"></script>
+    <script defer src="auto-heal.js?v=20260307_1100"></script>
     <script src="sections/recycle-bin-fix.js?v=20260319_1800"></script>
     <!-- Phase 3: Data Protection (Validator + Audit Logger + Encryption) -->
     <script src="sections/data-protection.js?v=20260324_0416"></script>
@@ -1955,14 +1955,14 @@ WINGS FLY AVIATION ACADEMY — Management System
     <script src="quick-fix.js?v=20260225_1642"></script>
     <script src="symbol-fix.js?v=20260225_1642"></script>
     <script src="tab-reset-fix.js?v=20260302_0001"></script>
-    <script src="sections/batch-profit-report.js?v=20260307_0240"></script>
+    <script defer src="sections/batch-profit-report.js?v=20260307_0240"></script>
 
     <!-- Auto Test Suite -->
-    <script src="auto-test.js?v=20260324_0905"></script>
-    <script src="tester-pro.js?v=20260307_1230"></script>
+    <script defer src="auto-test.js?v=20260324_0905"></script>
+    <script defer src="tester-pro.js?v=20260307_1230"></script>
 
     <!-- ✅ Deploy Change Tracker — নতুন কোড লেখার পর কোন feature ভেঙেছে ট্র্যাক করে -->
-    <script src="deploy-change-tracker.js?v=20260314_0221"></script>
+    <script defer src="deploy-change-tracker.js?v=20260314_0221"></script>
 
     <!-- Inline init scripts (extracted from index.html) -->
     <script src="sections/inline-scripts.js?v=20260308_1945"></script>
@@ -1970,7 +1970,9 @@ WINGS FLY AVIATION ACADEMY — Management System
     <script src="sections/section-loader.js?v=20260324_0840"></script>
     <!-- noticeBoardModal is inline — section-loader.js handles it directly -->
     <!-- ✅ Auto-pagination patch for Visitor, Employee, Salary, Exam, Loan tables -->
-    <script src="sections/table-pagination-patch.js?v=20260316_1200"></script>
+    <script src="sections/table-pagination-patch.js?v=20260326_0001"></script>
+    <!-- ✅ Garbled text fix + settings scroll to top -->
+    <script defer src="garbled-text-fix.js?v=20260326_0001"></script>
 
     <!-- ✅ STUDENT MODAL HTML — Inline, no fetch needed -->
      <div id="__studentModalsPlaceholder"></div>

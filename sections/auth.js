@@ -570,6 +570,19 @@ function loadDashboard() {
 // ════════════════════════════════════════════════════════════════
 
 function switchTab(tab, refreshStats = true) {
+  // ✅ FIX #1: নতুন ট্যাবে যাওয়ার সময় সবসময় পেজের শুরুতে scroll করো
+  try {
+    const mainContent = document.getElementById('mainContent')
+      || document.querySelector('.main-content')
+      || document.querySelector('.content-area')
+      || document.querySelector('main')
+      || document.body;
+    if (mainContent) {
+      mainContent.scrollTop = 0;
+    }
+    window.scrollTo({ top: 0, behavior: 'instant' });
+  } catch (e) { /* ignore */ }
+
   const dashboardBtn = document.getElementById('tabDashboard');
   const studentBtn = document.getElementById('tabStudents');
   const ledgerBtn = document.getElementById('tabLedger');
