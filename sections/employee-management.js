@@ -148,7 +148,14 @@ function renderEmployeeList() {
       (e.email && e.email.toLowerCase().includes(search));
     const matchRole = !role || e.role === role;
     return matchSearch && matchRole;
-  }).reverse();
+  }).sort(function(a, b) {
+    // ✅ FIX: Date অনুযায়ী sort — latest joining date সবার উপরে
+    var da = String(a.joiningDate || a.lastUpdated || '').slice(0, 10);
+    var db = String(b.joiningDate || b.lastUpdated || '').slice(0, 10);
+    if (db > da) return 1;
+    if (db < da) return -1;
+    return String(b.lastUpdated || '').localeCompare(String(a.lastUpdated || ''));
+  });
 
   if (filtered.length === 0) {
     noDataMsg.classList.remove('d-none');

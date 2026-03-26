@@ -41,8 +41,15 @@ function render(students) {
     return { ...s, trueIndex: finalIndex, originalIndex: displayIndex };
   });
 
-  // Reverse to show newest first, then add rowIndex
-  displayStudents.reverse();
+  // ✅ FIX: Date অনুযায়ী sort করো — latest enrollment সবার উপরে
+  // (simple reverse নয় — enrollment date দিয়ে sort)
+  displayStudents.sort(function(a, b) {
+    var da = String(a.enrollmentDate || a.joiningDate || a.date || '').slice(0, 10);
+    var db = String(b.enrollmentDate || b.joiningDate || b.date || '').slice(0, 10);
+    if (db > da) return 1;
+    if (db < da) return -1;
+    return (b.trueIndex || 0) - (a.trueIndex || 0);
+  });
 
   // Now add correct rowIndex based on actual globalData position
   displayStudents.forEach((s, i) => {
@@ -215,15 +222,29 @@ function renderLedger(transactions) {
     return;
   }
 
-  // Reverse to show newest first
-  const displayItems = [...transactions].reverse();
+  // ✅ FIX: Date অনুযায়ী sort করো — latest date সবার উপরে
+  // (simple reverse নয়, কারণ পুরনো date দিয়ে entry করলে সেটা সঠিক position এ যাবে)
+  const displayItems = [...transactions].sort(function(a, b) {
+    var da = String(a.date || a.createdAt || '').slice(0, 10);
+    var db = String(b.date || b.createdAt || '').slice(0, 10);
+    if (db > da) return 1;
+    if (db < da) return -1;
+    // Same date হলে id (timestamp) দিয়ে sort — নতুনটা আগে
+    return (parseInt(b.id) || 0) - (parseInt(a.id) || 0);
+  });
 
-  // ── ledger row builder ────────────────────────────────────
   function _buildLedgerRow(f, idx) {
     if (!f.id) f.id = 'FIN-' + Date.now() + '-' + idx;
-    const amt        = parseFloat(f.amount) || 0;
-    const isPositive = (f.type === 'Income' || f.type === 'Loan Received' || f.type === 'Transfer In');
-    const amtClass   = isPositive ? 'text-success' : 'text-danger';
+    const amt = parseFloat(f.amount) || 0;
+    // ✅ FIX: Loan / Transfer — শুধু display হবে, income/expense color নয়
+    const STAT_IN  = window.FE_STAT_INCOME  || ['Income', 'Registration', 'Refund'];
+    const STAT_OUT = window.FE_STAT_EXPENSE || ['Expense', 'Salary', 'Rent', 'Utilities'];
+    const isStatIncome  = STAT_IN.includes(f.type);
+    const isStatExpense = STAT_OUT.includes(f.type);
+    const isLoan     = (f.type === 'Loan Given' || f.type === 'Loan Received' || f.type === 'Loan Giving' || f.type === 'Loan Receiving');
+    const isTransfer = (f.type === 'Transfer In' || f.type === 'Transfer Out');
+    // Color: income=green, expense=red, loan/transfer=neutral (info)
+    const amtClass = isStatIncome ? 'text-success' : isStatExpense ? 'text-danger' : 'text-info';
     return `
       <tr>
         <td>${f.date || 'N/A'}</td>
@@ -250,12 +271,17 @@ function renderLedger(transactions) {
   }
 
   // ── footer totals (সবসময় full dataset থেকে) ──────────────
+  // ✅ FIX: Loan এবং Transfer ledger total এ count হবে না
+  // শুধু Income/Expense দিয়ে Net Profit হিসাব হবে
+  const STAT_IN  = window.FE_STAT_INCOME  || ['Income', 'Registration', 'Refund'];
+  const STAT_OUT = window.FE_STAT_EXPENSE || ['Expense', 'Salary', 'Rent', 'Utilities'];
   function _updateLedgerTotals(items) {
     let total = 0;
     items.forEach(f => {
       const amt = parseFloat(f.amount) || 0;
-      const isPositive = (f.type === 'Income' || f.type === 'Loan Received' || f.type === 'Transfer In');
-      if (isPositive) total += amt; else total -= amt;
+      if (STAT_IN.includes(f.type))  total += amt;
+      if (STAT_OUT.includes(f.type)) total -= amt;
+      // Loan Given / Loan Received / Transfer — এগুলো net profit এ count হবে না
     });
     const cls = total >= 0 ? 'text-success' : 'text-danger';
     ['ledgerSummaryTotal', 'ledgerFooterTotal'].forEach(id => {

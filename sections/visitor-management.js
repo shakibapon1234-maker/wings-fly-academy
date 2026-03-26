@@ -88,8 +88,15 @@ function renderVisitors() {
   if (start) list = list.filter(v => v.date >= start);
   if (end) list = list.filter(v => v.date <= end);
 
-  // Sort newest first
-  list = list.slice().reverse();
+  // ✅ FIX: Date অনুযায়ী sort করো — latest visit date সবার উপরে
+  list = list.slice().sort(function(a, b) {
+    var da = String(a.date || '').slice(0, 10);
+    var db = String(b.date || '').slice(0, 10);
+    if (db > da) return 1;
+    if (db < da) return -1;
+    // Same date হলে addedAt দিয়ে sort
+    return String(b.addedAt || '').localeCompare(String(a.addedAt || ''));
+  });
 
   if (list.length === 0) {
     tbody.innerHTML = `
