@@ -88,14 +88,14 @@ function renderVisitors() {
   if (start) list = list.filter(v => v.date >= start);
   if (end) list = list.filter(v => v.date <= end);
 
-  // ✅ SORT BY DATE (oldest first, then by addedAt as tiebreaker)
-  list = list.sort((a, b) => {
-    const dateA = new Date(a.date || '2000-01-01').getTime();
-    const dateB = new Date(b.date || '2000-01-01').getTime();
-    if (dateA !== dateB) return dateA - dateB; // Oldest first
-    const tsA = new Date(a.addedAt || 0).getTime();
-    const tsB = new Date(b.addedAt || 0).getTime();
-    return tsA - tsB; // Tiebreak by addedAt
+  // ✅ FIX: Date অনুযায়ী sort করো — latest visit date সবার উপরে
+  list = list.slice().sort(function(a, b) {
+    var da = String(a.date || '').slice(0, 10);
+    var db = String(b.date || '').slice(0, 10);
+    if (db > da) return 1;
+    if (db < da) return -1;
+    // Same date হলে addedAt দিয়ে sort
+    return String(b.addedAt || '').localeCompare(String(a.addedAt || ''));
   });
 
   if (list.length === 0) {
@@ -120,7 +120,7 @@ function renderVisitors() {
 
     return `
       <tr>
-        <td style="padding:0.75rem 1rem; font-weight:600;">${window.formatDateDDMMYYYY ? window.formatDateDDMMYYYY(v.date) : v.date || '—'}</td>
+        <td style="padding:0.75rem 1rem; font-weight:600;">${v.date || '—'}</td>
         <td style="padding:0.75rem 1rem; font-weight:700;">${v.name}</td>
         <td style="padding:0.75rem 1rem;">
           <a href="tel:${v.phone}" style="color:inherit; text-decoration:none;">

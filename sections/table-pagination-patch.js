@@ -53,6 +53,14 @@
       renderFnName:  'renderLoanTable',
       pageSize:      20,
       scrollTarget:  'loanDetailBody'
+    },
+    // ✅ FIX: Finance (Ledger) tab pagination
+    {
+      tbodyId:       'ledgerTableBody',
+      barId:         'ledgerPaginationBar',
+      renderFnName:  'renderLedger',
+      pageSize:      20,
+      scrollTarget:  'ledgerTableBody'
     }
   ];
 

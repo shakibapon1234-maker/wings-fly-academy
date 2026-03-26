@@ -148,13 +148,13 @@ function renderEmployeeList() {
       (e.email && e.email.toLowerCase().includes(search));
     const matchRole = !role || e.role === role;
     return matchSearch && matchRole;
-  })
-  // ✅ SORT BY JOINING DATE (oldest first, then by name as tiebreaker)
-  .sort((a, b) => {
-    const dateA = new Date(a.joiningDate || '2000-01-01').getTime();
-    const dateB = new Date(b.joiningDate || '2000-01-01').getTime();
-    if (dateA !== dateB) return dateA - dateB; // Oldest first
-    return (a.name || '').localeCompare(b.name || ''); // Tiebreak by name
+  }).sort(function(a, b) {
+    // ✅ FIX: Date অনুযায়ী sort — latest joining date সবার উপরে
+    var da = String(a.joiningDate || a.lastUpdated || '').slice(0, 10);
+    var db = String(b.joiningDate || b.lastUpdated || '').slice(0, 10);
+    if (db > da) return 1;
+    if (db < da) return -1;
+    return String(b.lastUpdated || '').localeCompare(String(a.lastUpdated || ''));
   });
 
   if (filtered.length === 0) {
@@ -196,8 +196,8 @@ function renderEmployeeList() {
             <div class="small text-muted">${e.email || '-'}</div>
         </td>
         <td class="fw-bold text-white">৳${formatNumber(e.salary)}</td>
-        <td class="small text-muted">${window.formatDateDDMMYYYY ? window.formatDateDDMMYYYY(e.joiningDate) : e.joiningDate || '-'}</td>
-        <td class="small ${e.resignDate ? 'text-danger fw-bold' : 'text-muted'}">${window.formatDateDDMMYYYY ? window.formatDateDDMMYYYY(e.resignDate) : e.resignDate || '-'}</td>
+        <td class="small text-muted">${e.joiningDate || '-'}</td>
+        <td class="small ${e.resignDate ? 'text-danger fw-bold' : 'text-muted'}">${e.resignDate || '-'}</td>
         <td>${statusBadge}</td>
         <td class="text-end">
             <div class="d-flex justify-content-end align-items-center">

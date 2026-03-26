@@ -99,89 +99,58 @@
 
   function patchSwitchSettingsTab() {
     if (typeof window.switchSettingsTab !== 'function') return;
-    // ✅ RECURSION GUARD: Only patch once, ever
-    if (window.switchSettingsTab._garbledSettingsTabPatched) return;
+    if (window.switchSettingsTab._scrollPatched) return;
 
     _origSwitchSettingsTab = window.switchSettingsTab;
-    
-    // Create wrapper
-    var wrappedSwitchSettingsTab = function (tabName) {
-      // ✅ SAFETY: Avoid calling ourselves - detect recursive pattern
-      if (wrappedSwitchSettingsTab._isInProgress) {
-        console.warn('[garbled-text-fix] switchSettingsTab call in progress, ignoring recursive call');
-        return;
-      }
-      
-      wrappedSwitchSettingsTab._isInProgress = true;
+    window.switchSettingsTab = function (tabName) {
+      // settings এর sub-tab switch এও scroll to top
       try {
-        // settings এর sub-tab switch এও scroll to top
-        try {
-          var mainContent = document.getElementById('mainContent')
-            || document.querySelector('.main-content')
-            || document.querySelector('.content-area')
-            || document.querySelector('main');
-          if (mainContent) mainContent.scrollTop = 0;
-          window.scrollTo({ top: 0, behavior: 'instant' });
-        } catch (e) { /* ignore */ }
+        var mainContent = document.getElementById('mainContent')
+          || document.querySelector('.main-content')
+          || document.querySelector('.content-area')
+          || document.querySelector('main');
+        if (mainContent) mainContent.scrollTop = 0;
+        window.scrollTo({ top: 0, behavior: 'instant' });
+      } catch (e) { /* ignore */ }
 
-        return _origSwitchSettingsTab.apply(this, arguments);
-      } finally {
-        wrappedSwitchSettingsTab._isInProgress = false;
-      }
+      return _origSwitchSettingsTab.apply(this, arguments);
     };
-    
-    wrappedSwitchSettingsTab._garbledSettingsTabPatched = true;
-    window.switchSettingsTab = wrappedSwitchSettingsTab;
-    console.log('✅ garbled-text-fix: switchSettingsTab patched (scroll to top + recursion guard)');
+    window.switchSettingsTab._scrollPatched = true;
+    console.log('✅ garbled-text-fix: switchSettingsTab patched (scroll to top)');
   }
 
   // switchSettingsTab load হওয়ার পর patch করো
   setTimeout(patchSwitchSettingsTab, 800);
+  setTimeout(patchSwitchSettingsTab, 2000); // retry
 
   // ── 4. Tab switch এ settings section এর garbled text clean ─
   var _origSwitchTab = null;
 
   function patchSwitchTab() {
     if (typeof window.switchTab !== 'function') return;
-    // ✅ RECURSION GUARD: Only patch once, ever
-    if (window.switchTab._garbledSwitchTabPatched) return;
+    if (window.switchTab._garbledPatched) return;
 
-    // Save original (or the already-wrapped original from another wrapper)
     _origSwitchTab = window.switchTab;
-    
-    // Create wrapper
-    var wrappedSwitchTab = function (tabName) {
-      // ✅ SAFETY: Avoid calling ourselves - detect recursive pattern
-      if (wrappedSwitchTab._isInProgress) {
-        console.warn('[garbled-text-fix] switchTab call in progress, ignoring recursive call');
-        return;
-      }
-      
-      wrappedSwitchTab._isInProgress = true;
-      try {
-        var result = _origSwitchTab.apply(this, arguments);
+    window.switchTab = function (tabName) {
+      var result = _origSwitchTab.apply(this, arguments);
 
-        // settings tab এ গেলে 200ms পর garbled check করো
-        if (tabName === 'settings' || tabName === 'accounts') {
-          setTimeout(function () {
-            PROTECTED_IDS.forEach(function (id) {
-              clearGarbledText(document.getElementById(id));
-            });
-          }, 200);
-        }
-
-        return result;
-      } finally {
-        wrappedSwitchTab._isInProgress = false;
+      // settings tab এ গেলে 200ms পর garbled check করো
+      if (tabName === 'settings' || tabName === 'accounts') {
+        setTimeout(function () {
+          PROTECTED_IDS.forEach(function (id) {
+            clearGarbledText(document.getElementById(id));
+          });
+        }, 200);
       }
+
+      return result;
     };
-    
-    wrappedSwitchTab._garbledSwitchTabPatched = true;
-    window.switchTab = wrappedSwitchTab;
-    console.log('✅ garbled-text-fix: switchTab patched (garbled cleanup + recursion guard)');
+    window.switchTab._garbledPatched = true;
+    console.log('✅ garbled-text-fix: switchTab patched (garbled cleanup)');
   }
 
   setTimeout(patchSwitchTab, 1500);
+  setTimeout(patchSwitchTab, 3000); // retry
 
   console.log('✅ garbled-text-fix.js loaded');
 

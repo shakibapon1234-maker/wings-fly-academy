@@ -128,47 +128,57 @@ function populateDropdowns() {
 function renderSettingsLists() {
   const gd = window.globalData || {};
 
-  // ✅ FIX: Run expensive operations with slight delay to prevent UI freeze
-  // Use requestAnimationFrame for non-blocking render
-  requestAnimationFrame(function() {
-    // === ONE-TIME MIGRATION (only if empty) ===
-    let _migrated = false;
+  // === ONE-TIME MIGRATION: If Settings arrays are EMPTY but data exists, auto-populate once ===
+  let _migrated = false;
 
-    if ((!gd.incomeCategories || gd.incomeCategories.length === 0) && gd.finance && gd.finance.length > 0) {
-      const incSet = new Set(), expSet = new Set();
-      gd.finance.forEach(f => {
-        if (!f.category) return;
-        if (f.type === 'Income' || f.type === 'Loan Received') incSet.add(f.category);
-        else expSet.add(f.category);
-      });
-      if (incSet.size > 0) { gd.incomeCategories = [...incSet].sort(); _migrated = true; }
-      if (expSet.size > 0) { gd.expenseCategories = [...expSet].sort(); _migrated = true; }
-    }
+  // 1. Income & Expense Categories from existing Finance records
+  if ((!gd.incomeCategories || gd.incomeCategories.length === 0) && gd.finance && gd.finance.length > 0) {
+    const incSet = new Set(), expSet = new Set();
+    gd.finance.forEach(f => {
+      if (!f.category) return;
+      if (f.type === 'Income' || f.type === 'Loan Received') incSet.add(f.category);
+      else expSet.add(f.category);
+    });
+    if (incSet.size > 0) { gd.incomeCategories = [...incSet].sort(); _migrated = true; }
+    if (expSet.size > 0) { gd.expenseCategories = [...expSet].sort(); _migrated = true; }
+    console.log('[Settings Migration] Populated categories from finance records');
+  }
+  if ((!gd.expenseCategories || gd.expenseCategories.length === 0) && gd.finance && gd.finance.length > 0) {
+    const expSet2 = new Set();
+    gd.finance.forEach(f => { if (f.category && f.type !== 'Income' && f.type !== 'Loan Received') expSet2.add(f.category); });
+    if (expSet2.size > 0) { gd.expenseCategories = [...expSet2].sort(); _migrated = true; }
+  }
 
-    if ((!gd.courseNames || gd.courseNames.length === 0) && gd.students && gd.students.length > 0) {
-      const courseSet = new Set();
-      gd.students.forEach(s => { if (s.course) courseSet.add(s.course); });
-      if (courseSet.size > 0) { gd.courseNames = [...courseSet].sort(); _migrated = true; }
-    }
+  // 2. Courses from existing Student records
+  if ((!gd.courseNames || gd.courseNames.length === 0) && gd.students && gd.students.length > 0) {
+    const courseSet = new Set();
+    gd.students.forEach(s => { if (s.course) courseSet.add(s.course); });
+    if (courseSet.size > 0) { gd.courseNames = [...courseSet].sort(); _migrated = true; }
+    console.log('[Settings Migration] Populated courses from student records');
+  }
 
-    if ((!gd.employeeRoles || gd.employeeRoles.length === 0) && gd.employees && gd.employees.length > 0) {
-      const roleSet = new Set();
-      gd.employees.forEach(e => { if (e.role) roleSet.add(e.role); });
-      if (roleSet.size > 0) { gd.employeeRoles = [...roleSet].sort(); _migrated = true; }
-    }
+  // 3. Employee Roles from existing Employee records
+  if ((!gd.employeeRoles || gd.employeeRoles.length === 0) && gd.employees && gd.employees.length > 0) {
+    const roleSet = new Set();
+    gd.employees.forEach(e => { if (e.role) roleSet.add(e.role); });
+    if (roleSet.size > 0) { gd.employeeRoles = [...roleSet].sort(); _migrated = true; }
+    console.log('[Settings Migration] Populated roles from employee records');
+  }
 
-    if (_migrated) {
-      if (typeof saveToStorage === 'function') saveToStorage();
-      else localStorage.setItem('wingsfly_data', JSON.stringify(gd));
-    }
+  // Save migration result once
+  if (_migrated) {
+    if (typeof saveToStorage === 'function') saveToStorage();
+    else localStorage.setItem('wingsfly_data', JSON.stringify(gd));
+    console.log('[Settings Migration] ✅ One-time migration complete — data saved');
+  }
 
-    // === Render UI ===
-    const incCats = [...new Set(gd.incomeCategories || [])].sort();
-    const expCats = [...new Set(gd.expenseCategories || [])].sort();
-    const courses = [...new Set(gd.courseNames || [])].sort();
-    const roles = [...new Set(gd.employeeRoles || ['Instructor', 'Admin', 'Staff', 'Manager'])].sort();
+  // === Strict Sync: Use ONLY Settings Data (after migration if any) ===
+  const incCats = [...new Set(gd.incomeCategories || [])].sort();
+  const expCats = [...new Set(gd.expenseCategories || [])].sort();
+  const courses = [...new Set(gd.courseNames || [])].sort();
+  const roles = [...new Set(gd.employeeRoles || ['Instructor', 'Admin', 'Staff', 'Manager'])].sort();
 
-    // Income List
+  // Income List
   const incList = document.getElementById('settingsIncomeCatList');
   if (incList) {
     incList.innerHTML = '';
@@ -277,7 +287,6 @@ function renderSettingsLists() {
       runningBatchSelect.value = currentRB;
     }
   }
-  }); // Close requestAnimationFrame callback
 }
 
 // --- Category Management ---

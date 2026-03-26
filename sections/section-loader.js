@@ -173,25 +173,21 @@
   }
 
   function _showModal(modalId) {
-    console.log('[SectionLoader] 🔍 _showModal called with id:', modalId);
     const el = document.getElementById(modalId);
     if (!el) {
-      console.error('[SectionLoader] ❌ Modal element NOT FOUND in DOM:', modalId);
+      console.warn('[SectionLoader] ⚠️ Modal element NOT FOUND in DOM after injection:', modalId);
       return;
     }
-    console.log('[SectionLoader] ✅ Modal element found in DOM');
     try {
       if (typeof bootstrap === 'undefined') {
         console.error('[SectionLoader] ❌ Bootstrap is NOT LOADED!');
+        alert('Fatal Error: Bootstrap is missing!');
         return;
       }
-      console.log('[SectionLoader] ✅ Bootstrap is loaded');
       const modal = bootstrap.Modal.getOrCreateInstance(el);
-      console.log('[SectionLoader] ✅ Bootstrap Modal instance created');
       modal.show();
-      console.log('[SectionLoader] ✅ Bootstrap Modal.show() called successfully');
     } catch (e) {
-      console.error('[SectionLoader] ❌ Error in _showModal:', e.message, e.stack);
+      console.error('[SectionLoader] ❌ Error showing modal:', e);
     }
   }
 
@@ -280,8 +276,35 @@
         'sections/settings-modal.html',
         'settingsModal',
         function () {
-          // ✅ FIX: Just show the modal, let settings-modal.html self-initialize
-          console.log('[openSettingsModal] Modal loaded, scLoad will auto-run via DOMContentLoaded');
+          function _tryScLoad(attempt) {
+            if (typeof window.scLoad === 'function') {
+              window.scLoad();
+              // Re-init tabs
+              if (typeof window.switchSettingsTab === 'function') {
+                const activeBtn = document.querySelector('#settingsModal .nav-link.active') || document.querySelector('#settingsModal .nav-link');
+                if (activeBtn) {
+                  const match = (activeBtn.getAttribute('onclick') || '').match(/'([^']+)'/);
+                  if (match) window.switchSettingsTab(match[1], activeBtn);
+                }
+              }
+            } else if (attempt < 10) {
+              setTimeout(function () { _tryScLoad(attempt + 1); }, 50);
+            } else {
+              console.warn('[SectionLoader] scLoad not found after retries');
+            }
+          }
+          setTimeout(function () { _tryScLoad(0); }, 100);
+
+          // ✅ FIX: Settings বন্ধ হলে Dashboard-এ যাও (একবারই attach করো)
+          var settingsEl = document.getElementById('settingsModal');
+          if (settingsEl && !settingsEl._wfDashboardRedirect) {
+            settingsEl._wfDashboardRedirect = true;
+            settingsEl.addEventListener('hidden.bs.modal', function () {
+              if (typeof window.switchTab === 'function') {
+                window.switchTab('dashboard');
+              }
+            });
+          }
         }
       );
     };

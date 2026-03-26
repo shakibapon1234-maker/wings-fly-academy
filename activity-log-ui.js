@@ -232,19 +232,6 @@
                     return 0;
                 });
 
-                // ✅ DEFAULT: Always ensure newest first when sorting by time
-            if (actState.sort === 'time' && actState.dir === 1) {
-                    // If user clicked time header, reverse direction
-                    filtered.sort(function(a, b) { 
-                        return new Date(a.timestamp || 0).getTime() - new Date(b.timestamp || 0).getTime(); 
-                    });
-                } else if (actState.sort !== 'time') {
-                    // Always show newest first by default after other sorts
-                    filtered.sort(function(a, b) { 
-                        return new Date(b.timestamp || 0).getTime() - new Date(a.timestamp || 0).getTime(); 
-                    });
-                }
-
                 // Stats
                 var total = filtered.length;
                 var addCount = filtered.filter(function (h) { return h.action === 'ADD'; }).length;
@@ -392,14 +379,6 @@
                 }
 
                 var deleted = (window.globalData.deletedItems || []).slice();
-                
-                // ✅ SORT BY DATE (newest first, then oldest entries last)
-                deleted.sort(function (a, b) {
-                    const tsA = new Date(a.deletedAt || 0).getTime();
-                    const tsB = new Date(b.deletedAt || 0).getTime();
-                    return tsB - tsA; // Newest deleted first
-                });
-                
                 var fType = (document.getElementById('binFilterType')?.value || 'all');
                 var fSearch = (document.getElementById('binSearchInput')?.value || '').trim().toLowerCase();
 

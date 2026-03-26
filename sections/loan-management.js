@@ -114,7 +114,14 @@ function openLoanDetail(person) {
   if (tbody) tbody.innerHTML = '';
 
   // ✅ FIX: Exclude deleted transactions
-  let txs = globalData.finance.filter(tx => !tx._deleted && tx.person === person).sort((a, b) => new Date(a.date) - new Date(b.date));
+  // ✅ FIX: Date অনুযায়ী sort — latest date সবার উপরে
+  let txs = globalData.finance.filter(tx => !tx._deleted && tx.person === person).sort((a, b) => {
+    var da = String(a.date || '').slice(0, 10);
+    var db = String(b.date || '').slice(0, 10);
+    if (db > da) return 1;
+    if (db < da) return -1;
+    return (parseInt(b.id) || 0) - (parseInt(a.id) || 0);
+  });
 
   // Date Range Filtering
   const start = document.getElementById('loanDetailStartDate').value;
