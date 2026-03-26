@@ -720,6 +720,17 @@ function deleteTransaction(id) {
   // 3. Finance ledger থেকে সরাও
   globalData.finance = globalData.finance.filter(f => String(f.id) !== sid);
 
+  // ✅ Activity log — delete transaction
+  if (typeof logActivity === 'function') {
+    logActivity('finance', 'DELETE',
+      'Transaction deleted: ' + (txToDelete.category || txToDelete.type || 'Entry') +
+      ' | ৳' + (parseFloat(txToDelete.amount) || 0) +
+      (txToDelete.person ? ' | ' + txToDelete.person : '') +
+      ' | Date: ' + (txToDelete.date || '-'),
+      { id: txToDelete.id, type: txToDelete.type, amount: txToDelete.amount, category: txToDelete.category, date: txToDelete.date, person: txToDelete.person }
+    );
+  }
+
   // 4. Render FIRST so user sees the change immediately
   renderLedger(globalData.finance);
   updateGlobalStats();
@@ -865,6 +876,18 @@ async function handleEditTransactionSubmit(e) {
       description: formData.description,
       person: formData.person || ''
     };
+
+    // ✅ Activity log — edit transaction
+    if (typeof logActivity === 'function') {
+      logActivity('finance', 'EDIT',
+        'Transaction edited: ' + (oldTx.category || oldTx.type || 'Entry') +
+        ' | ৳' + oldTx.amount + ' → ৳' + newAmount +
+        (oldTx.date !== formData.date ? ' | Date: ' + oldTx.date + ' → ' + formData.date : '') +
+        (oldTx.type !== formData.type ? ' | Type: ' + oldTx.type + ' → ' + formData.type : '') +
+        (formData.person ? ' | ' + formData.person : ''),
+        { before: oldTx, after: globalData.finance[index] }
+      );
+    }
 
     await saveToStorage();
 
