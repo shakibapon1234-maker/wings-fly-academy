@@ -173,12 +173,15 @@ function updateGlobalStats() {
   if (dashProfitEl) {
     animateCount(dashProfitEl, Math.abs(runProfit), '৳', false, 1000);
     const dashProfitStatus = document.getElementById('dashProfitStatus');
+    const dashProfitTrend  = document.getElementById('dashProfitTrend');
     if (runProfit >= 0) {
       dashProfitEl.className = "av-card-value value-purple";
       if (dashProfitStatus) dashProfitStatus.innerText = "Net Profit";
+      if (dashProfitTrend) { dashProfitTrend.className = 'av-card-trend text-success'; dashProfitTrend.innerHTML = '<i class="bi bi-check-circle"></i> Healthy performance'; }
     } else {
       dashProfitEl.className = "av-card-value value-red";
       if (dashProfitStatus) dashProfitStatus.innerText = "Net Loss";
+      if (dashProfitTrend) { dashProfitTrend.className = 'av-card-trend text-danger'; dashProfitTrend.innerHTML = '<i class="bi bi-exclamation-triangle"></i> Operating at a loss'; }
     }
   }
 
@@ -193,7 +196,12 @@ function updateGlobalStats() {
   if (dashAllExpenseEl) animateCount(dashAllExpenseEl, allTotalExpense, '৳', false, 1000);
 
   const dashAllProfitEl = document.getElementById('dashAllTotalProfit');
-  if (dashAllProfitEl) animateCount(dashAllProfitEl, allProfit, '৳', false, 1000);
+  if (dashAllProfitEl) {
+    animateCount(dashAllProfitEl, Math.abs(allProfit), '৳', false, 1000);
+    dashAllProfitEl.style.color = allProfit >= 0 ? '#00ff88' : '#ff4d6d';
+  }
+  const dashAllProfitStatus = document.getElementById('dashAllProfitStatus');
+  if (dashAllProfitStatus) dashAllProfitStatus.textContent = allProfit >= 0 ? '✅ Net Profit' : '❌ Net Loss';
 
   // TOP BADGE: Pending Advances
   const pendingAdvEl = document.getElementById('dashPendingAdvances');
