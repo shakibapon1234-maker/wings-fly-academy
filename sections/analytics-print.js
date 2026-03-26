@@ -34,23 +34,16 @@
                 return true;
             });
 
+            // ✅ FIX: Canonical types ব্যবহার করো — Loan ও Transfer income/expense না
+            // finance-engine.js এর FE_STAT_INCOME / FE_STAT_EXPENSE দিয়ে sync থাকে
+            var FE_INCOME  = window.FE_STAT_INCOME  || ['Income', 'Registration', 'Refund'];
+            var FE_EXPENSE = window.FE_STAT_EXPENSE || ['Expense', 'Salary', 'Rent', 'Utilities'];
+
             var incArr = filtered.filter(function(f) {
-                var t = String(f.type || '').toLowerCase().trim();
-                var c = String(f.category || '').toLowerCase().trim();
-                return t === 'income' || t === 'loan received' || c === 'income' || c === 'loan received' ||
-                    t.includes('income') || c.includes('income') || t.includes('fee') || c.includes('fee') ||
-                    t.includes('received') || c.includes('received') || t.includes('installment') || c.includes('installment') ||
-                    t.includes('registration') || c.includes('registration') || t.includes('refund') || c.includes('refund') ||
-                    t.includes('advance') || c.includes('advance');
+                return FE_INCOME.includes(f.type);
             });
             var expArr = filtered.filter(function(f) {
-                var t = String(f.type || '').toLowerCase().trim();
-                var c = String(f.category || '').toLowerCase().trim();
-                return t === 'expense' || t === 'loan given' || c === 'expense' || c === 'loan given' ||
-                    t.includes('expense') || c.includes('expense') || t.includes('salary') || c.includes('salary') ||
-                    t.includes('rent') || c.includes('rent') || t.includes('utilities') || c.includes('utilities') ||
-                    t.includes('loan given') || c.includes('loan given') || t.includes('payment') || c.includes('payment') ||
-                    t.includes('cost') || c.includes('cost');
+                return FE_EXPENSE.includes(f.type);
             });
 
             function groupByCategory(arr) {
