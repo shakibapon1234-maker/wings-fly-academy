@@ -232,8 +232,17 @@
 
   // ── LOGGING ───────────────────────────────────────────────────
   function _log(emoji, msg, data) {
-    console.log(`[V39|${new Date().toLocaleTimeString()}] ${emoji} ${msg}`);
-    if (data) console.log(data);
+    // ✅ FIX: Only log in debug mode — production-এ sensitive info যাবে না
+    if (window.WINGS_DEBUG) {
+      console.log(`[V39|${new Date().toLocaleTimeString()}] ${emoji} ${msg}`);
+      if (data) console.log(data);
+    }
+  }
+
+  // Always-log for errors (even in production)
+  function _logErr(emoji, msg, data) {
+    console.error(`[V39|${new Date().toLocaleTimeString()}] ${emoji} ${msg}`);
+    if (data) console.error(data);
   }
 
   function _getOrCreateDeviceId() {

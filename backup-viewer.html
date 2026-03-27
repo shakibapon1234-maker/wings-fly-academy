@@ -1,0 +1,244 @@
+<!DOCTYPE html>
+<html lang="bn">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>📂 Wings Fly — Backup Viewer</title>
+<style>
+  :root{--bg:#0a0e27;--bg2:#111630;--bg3:#161c3a;--cyan:#00d9ff;--green:#00c853;--red:#f44336;--yellow:#ff9800;--text:#c8d0f0;--dim:#6e8caa;--border:rgba(0,217,255,0.15);}
+  *{box-sizing:border-box;margin:0;padding:0;}
+  body{background:var(--bg);color:var(--text);font-family:'Segoe UI',monospace;font-size:14px;padding:20px;}
+  h1{background:linear-gradient(90deg,var(--cyan),var(--yellow));-webkit-background-clip:text;-webkit-text-fill-color:transparent;font-size:22px;margin-bottom:16px;}
+  .upload-zone{border:2px dashed var(--cyan);border-radius:12px;padding:40px;text-align:center;margin-bottom:20px;cursor:pointer;transition:background 0.3s;}
+  .upload-zone:hover{background:rgba(0,217,255,0.05);}
+  .upload-zone p{color:var(--dim);margin-top:8px;font-size:13px;}
+  .card{background:var(--bg2);border:1px solid var(--border);border-radius:12px;padding:16px;margin-bottom:12px;}
+  .card h3{font-size:15px;color:var(--cyan);margin-bottom:10px;}
+  .grid{display:grid;grid-template-columns:1fr 1fr;gap:12px;}
+  @media(max-width:700px){.grid{grid-template-columns:1fr;}}
+  .row{display:flex;justify-content:space-between;padding:5px 0;border-bottom:1px solid rgba(255,255,255,0.04);}
+  .label{color:var(--dim);font-size:13px;}
+  .val{font-weight:700;}
+  .ok{color:var(--green);}
+  .err{color:var(--red);}
+  table{width:100%;border-collapse:collapse;font-size:12px;margin-top:8px;}
+  th{background:var(--bg3);color:var(--dim);padding:6px 8px;text-align:left;font-size:11px;text-transform:uppercase;border-bottom:1px solid var(--border);}
+  td{padding:5px 8px;border-bottom:1px solid rgba(255,255,255,0.04);}
+  tr:hover td{background:rgba(0,217,255,0.04);}
+  .hidden{display:none;}
+  .tabs{display:flex;gap:4px;margin-bottom:12px;flex-wrap:wrap;}
+  .tab{padding:6px 14px;border-radius:8px;cursor:pointer;background:var(--bg3);color:var(--dim);border:1px solid var(--border);font-size:12px;}
+  .tab.active{background:rgba(0,217,255,0.15);color:var(--cyan);border-color:var(--cyan);}
+  .badge{display:inline-block;padding:2px 8px;border-radius:10px;font-size:11px;font-weight:700;}
+  .b-green{background:rgba(0,200,83,0.15);color:var(--green);}
+  .b-red{background:rgba(244,67,54,0.15);color:var(--red);}
+  .b-yellow{background:rgba(255,152,0,0.15);color:var(--yellow);}
+  #searchInput{background:var(--bg3);border:1px solid var(--border);color:var(--text);border-radius:8px;padding:8px 12px;font-size:13px;width:250px;outline:none;}
+  #searchInput:focus{border-color:var(--cyan);}
+  .btn{background:linear-gradient(135deg,var(--cyan),#0099cc);color:#fff;border:none;padding:8px 16px;border-radius:8px;cursor:pointer;font-size:13px;font-weight:700;margin:2px;}
+</style>
+</head>
+<body>
+
+<h1>📂 Wings Fly — Backup Viewer</h1>
+
+<div class="upload-zone" id="dropZone" onclick="document.getElementById('fileInput').click()">
+  <div style="font-size:40px;">📄</div>
+  <h3>JSON Backup File এখানে Drop করুন</h3>
+  <p>অথবা ক্লিক করে ফাইল সিলেক্ট করুন</p>
+  <input type="file" id="fileInput" accept=".json" style="display:none;" onchange="handleFile(this.files[0])">
+</div>
+
+<div id="content" class="hidden">
+  <div class="grid" id="summary"></div>
+  
+  <div class="tabs" id="dataTabs"></div>
+  
+  <div style="margin-bottom:12px;display:flex;gap:8px;align-items:center;">
+    <input type="text" id="searchInput" placeholder="🔍 Search..." oninput="filterTable()">
+    <span id="rowCount" class="label"></span>
+  </div>
+  
+  <div class="card" id="tableCard">
+    <div id="tableContent"></div>
+  </div>
+</div>
+
+<script>
+var BACKUP_DATA = null;
+var CURRENT_TAB = '';
+
+// Drag & drop
+var dz = document.getElementById('dropZone');
+dz.addEventListener('dragover', function(e){e.preventDefault();dz.style.background='rgba(0,217,255,0.1)';});
+dz.addEventListener('dragleave', function(){dz.style.background='';});
+dz.addEventListener('drop', function(e){e.preventDefault();dz.style.background='';handleFile(e.dataTransfer.files[0]);});
+
+function handleFile(file) {
+  if (!file) return;
+  var reader = new FileReader();
+  reader.onload = function(e) {
+    try {
+      BACKUP_DATA = JSON.parse(e.target.result);
+      document.getElementById('content').classList.remove('hidden');
+      renderSummary();
+      renderTabs();
+      showTab('students');
+    } catch(err) {
+      alert('JSON parse error: ' + err.message);
+    }
+  };
+  reader.readAsText(file);
+}
+
+function fmt(n) { return '৳' + (parseFloat(n)||0).toLocaleString('en-IN'); }
+
+function renderSummary() {
+  var d = BACKUP_DATA;
+  var stu = d.students || [];
+  var fin = (d.finance || []).filter(function(f){return !f._deleted;});
+  var cash = parseFloat(d.cashBalance)||0;
+  var bank = (d.bankAccounts||[]).reduce(function(s,a){return s+(parseFloat(a.balance)||0);},0);
+  var mobile = (d.mobileBanking||[]).reduce(function(s,a){return s+(parseFloat(a.balance)||0);},0);
+
+  var html = 
+    card('📱 Students', stu.length) +
+    card('💰 Finance (active)', fin.length) +
+    card('💵 Cash', fmt(cash)) +
+    card('🏦 Bank Total', fmt(bank)) +
+    card('📱 Mobile Total', fmt(mobile)) +
+    card('📊 Grand Total', fmt(cash+bank+mobile)) +
+    card('🗑️ Deleted Items', ((d.deletedItems||{}).students||[]).length + ((d.deletedItems||{}).finance||[]).length) +
+    card('📅 Version', localStorage.getItem('wings_local_version')||'—');
+  
+  document.getElementById('summary').innerHTML = html;
+}
+
+function card(label, val) {
+  return '<div class="card"><div class="label">'+label+'</div><div class="val" style="font-size:18px;margin-top:4px;">'+val+'</div></div>';
+}
+
+function renderTabs() {
+  var tabs = [];
+  var d = BACKUP_DATA;
+  if (d.students && d.students.length) tabs.push({key:'students',label:'Students',count:d.students.length});
+  if (d.finance && d.finance.length) tabs.push({key:'finance',label:'Finance',count:d.finance.length});
+  if (d.employees && d.employees.length) tabs.push({key:'employees',label:'Employees',count:d.employees.length});
+  if (d.bankAccounts && d.bankAccounts.length) tabs.push({key:'bankAccounts',label:'Bank Accounts',count:d.bankAccounts.length});
+  if (d.mobileBanking && d.mobileBanking.length) tabs.push({key:'mobileBanking',label:'Mobile Banking',count:d.mobileBanking.length});
+  if (d.examRegistrations && d.examRegistrations.length) tabs.push({key:'examRegistrations',label:'Exams',count:d.examRegistrations.length});
+  if (d.deletedItems) tabs.push({key:'deletedItems',label:'Trash',count:((d.deletedItems.students||[]).length+(d.deletedItems.finance||[]).length)});
+  
+  var html = '';
+  tabs.forEach(function(t){
+    html += '<div class="tab" onclick="showTab(\''+t.key+'\')" id="tab_'+t.key+'">'+t.label+' <span class="badge b-yellow">'+t.count+'</span></div>';
+  });
+  document.getElementById('dataTabs').innerHTML = html;
+}
+
+function showTab(key) {
+  CURRENT_TAB = key;
+  document.querySelectorAll('.tab').forEach(function(t){t.classList.remove('active');});
+  var tabEl = document.getElementById('tab_'+key);
+  if(tabEl) tabEl.classList.add('active');
+  document.getElementById('searchInput').value = '';
+  renderTable(key);
+}
+
+function renderTable(key) {
+  var d = BACKUP_DATA;
+  var items = [];
+  
+  if (key === 'students') {
+    items = d.students || [];
+    var html = '<table><tr><th>#</th><th>Name</th><th>Phone</th><th>Batch</th><th>Total</th><th>Paid</th><th>Due</th><th>Date</th></tr>';
+    items.forEach(function(s,i){
+      html += '<tr><td>'+(i+1)+'</td><td>'+(s.name||'—')+'</td><td>'+(s.phone||'—')+'</td><td>'+(s.batch||'—')+'</td>'
+        +'<td>'+fmt(s.totalPayment)+'</td><td class="ok">'+fmt(s.paid)+'</td><td class="'+((parseFloat(s.due)||0)>0?'err':'ok')+'">'+fmt(s.due)+'</td>'
+        +'<td>'+(s.enrollDate||'—')+'</td></tr>';
+    });
+    html += '</table>';
+    document.getElementById('tableContent').innerHTML = html;
+  }
+  else if (key === 'finance') {
+    items = (d.finance || []).filter(function(f){return !f._deleted;});
+    var html = '<table><tr><th>#</th><th>Date</th><th>Type</th><th>Category</th><th>Amount</th><th>Person</th><th>Method</th><th>Description</th></tr>';
+    items.sort(function(a,b){return (b.date||'').localeCompare(a.date||'');});
+    items.forEach(function(f,i){
+      var clr = (f.type==='Income'||f.type==='Registration'||f.type==='Refund')?'ok':(f.type==='Expense'||f.type==='Salary')?'err':'';
+      html += '<tr><td>'+(i+1)+'</td><td>'+(f.date||'—')+'</td><td>'+(f.type||'—')+'</td><td>'+(f.category||'—')+'</td>'
+        +'<td class="'+clr+'">'+fmt(f.amount)+'</td><td>'+(f.person||'—')+'</td><td>'+(f.method||'—')+'</td>'
+        +'<td style="max-width:200px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;" title="'+(f.description||'').replace(/"/g,'')+'">'+(f.description||'—')+'</td></tr>';
+    });
+    html += '</table>';
+    document.getElementById('tableContent').innerHTML = html;
+  }
+  else if (key === 'employees') {
+    items = d.employees || [];
+    var html = '<table><tr><th>#</th><th>Name</th><th>Role</th><th>Salary</th><th>Phone</th><th>Status</th></tr>';
+    items.forEach(function(e,i){
+      html += '<tr><td>'+(i+1)+'</td><td>'+(e.name||'—')+'</td><td>'+(e.role||'—')+'</td><td>'+fmt(e.salary)+'</td><td>'+(e.phone||'—')+'</td><td>'+(e.status||'—')+'</td></tr>';
+    });
+    html += '</table>';
+    document.getElementById('tableContent').innerHTML = html;
+  }
+  else if (key === 'bankAccounts') {
+    items = d.bankAccounts || [];
+    var html = '<table><tr><th>#</th><th>Name</th><th>Bank</th><th>Balance</th></tr>';
+    items.forEach(function(a,i){
+      html += '<tr><td>'+(i+1)+'</td><td>'+(a.name||'—')+'</td><td>'+(a.bankName||'—')+'</td><td class="ok">'+fmt(a.balance)+'</td></tr>';
+    });
+    html += '</table>';
+    document.getElementById('tableContent').innerHTML = html;
+  }
+  else if (key === 'mobileBanking') {
+    items = d.mobileBanking || [];
+    var html = '<table><tr><th>#</th><th>Name</th><th>Balance</th></tr>';
+    items.forEach(function(a,i){
+      html += '<tr><td>'+(i+1)+'</td><td>'+(a.name||'—')+'</td><td class="ok">'+fmt(a.balance)+'</td></tr>';
+    });
+    html += '</table>';
+    document.getElementById('tableContent').innerHTML = html;
+  }
+  else if (key === 'examRegistrations') {
+    items = d.examRegistrations || [];
+    var html = '<table><tr><th>#</th><th>Student</th><th>Subject</th><th>Fee</th><th>Date</th></tr>';
+    items.forEach(function(e,i){
+      html += '<tr><td>'+(i+1)+'</td><td>'+(e.studentName||'—')+'</td><td>'+(e.subjectName||'—')+'</td><td>'+fmt(e.examFee)+'</td><td>'+(e.registrationDate||'—')+'</td></tr>';
+    });
+    html += '</table>';
+    document.getElementById('tableContent').innerHTML = html;
+  }
+  else if (key === 'deletedItems') {
+    var di = d.deletedItems || {};
+    var all = [].concat(
+      (di.students||[]).map(function(x){return Object.assign({cat:'student'},x);}),
+      (di.finance||[]).map(function(x){return Object.assign({cat:'finance'},x);}),
+      (di.employees||[]).map(function(x){return Object.assign({cat:'employee'},x);}),
+      (di.other||[]).map(function(x){return Object.assign({cat:'other'},x);})
+    );
+    var html = '<table><tr><th>#</th><th>Type</th><th>Name</th><th>Deleted At</th></tr>';
+    all.forEach(function(x,i){
+      var name = x.item ? (x.item.name || x.item.person || x.item.title || x.item.description || '—') : '—';
+      html += '<tr><td>'+(i+1)+'</td><td>'+x.cat+'</td><td>'+name+'</td><td>'+(x.deletedAt||'—')+'</td></tr>';
+    });
+    html += '</table>';
+    document.getElementById('tableContent').innerHTML = html;
+  }
+  
+  document.getElementById('rowCount').textContent = items.length + ' rows';
+}
+
+function filterTable() {
+  var q = document.getElementById('searchInput').value.toLowerCase();
+  if (!q) { renderTable(CURRENT_TAB); return; }
+  
+  var rows = document.querySelectorAll('#tableContent tr');
+  rows.forEach(function(r,i){
+    if (i===0) return; // header
+    r.style.display = r.textContent.toLowerCase().includes(q) ? '' : 'none';
+  });
+}
+</script>
+</body>
+</html>

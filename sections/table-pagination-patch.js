@@ -36,7 +36,7 @@
     {
       tbodyId:       'salaryTableBody',
       barId:         'salaryPaginationBar',
-      renderFnName:  'renderSalaryTable',
+      renderFnName:  'loadSalaryHub',   // ✅ FIX: actual function name
       pageSize:      20,
       scrollTarget:  'salaryTableBody'
     },
