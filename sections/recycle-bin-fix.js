@@ -86,7 +86,7 @@
     if (t === 'student') {
       gd.deletedItems.students.unshift(entry);
       if (gd.deletedItems.students.length > 300) gd.deletedItems.students = gd.deletedItems.students.slice(0, 300);
-    } else if (t === 'finance') {
+    } else if (t === 'finance' || t === 'salary_payment') {
       gd.deletedItems.finance.unshift(entry);
       if (gd.deletedItems.finance.length > 300) gd.deletedItems.finance = gd.deletedItems.finance.slice(0, 300);
     } else if (t === 'employee') {
@@ -105,6 +105,11 @@
     } catch (e) { }
 
     _save();
+
+    // ✅ FIX: Cloud sync trigger — আগে শুধু _save() হতো, sync trigger হত না
+    if (typeof window.scheduleSyncPush === 'function') {
+      window.scheduleSyncPush('Move to Trash: ' + type);
+    }
 
     // Log to activity
     var name = item.name || item.studentName || item.title || item.description || item.id || 'Item';
@@ -168,6 +173,7 @@
     var t = (d.type || '').toLowerCase();
     var item = d.item;
     delete item._trash_tmp_id;
+    delete item._trash_moved; // ✅ FIX: clear flag so item can be re-deleted after restore
 
     // ═══════════════════════════════════════════════════
     // SPECIAL CASE: installment restore
@@ -345,7 +351,8 @@
         'mobileaccount': 'mobileBanking',
         'breakdown': 'breakdownRecords',
         'loan': 'loans',
-        'idcard': 'idCards'
+        'idcard': 'idCards',
+        'salary_payment': 'finance'
       }[t];
 
       if (targetKey) {
@@ -456,6 +463,11 @@
       }
     });
     _save();
+
+    // ✅ FIX: Cloud sync trigger
+    if (typeof window.scheduleSyncPush === 'function') {
+      window.scheduleSyncPush('Permanent Delete: ' + name);
+    }
 
     if (d) window.logActivity(d.type, 'DELETE', d.type + ' permanently deleted: ' + name, {});
 

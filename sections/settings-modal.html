@@ -2312,32 +2312,37 @@
                     return true;
                 });
 
-                // ✅ FIX: lowercase match — আপনার data-এ 'Income','Expense','Loan Received','Loan Given'
+                // ✅ FIX: শুধু আসল Income/Expense types গোনা হবে
+                // Loan, Advance, Transfer, Investment — এগুলো account movement, income/expense না
                 var incArr = filtered.filter(function(f) {
                     var t = String(f.type || '').toLowerCase().trim();
                     var c = String(f.category || '').toLowerCase().trim();
-                    return t === 'income' || t === 'loan received'
-                        || c === 'income' || c === 'loan received'
-                        || t.includes('income') || c.includes('income')
-                        || t.includes('fee') || c.includes('fee')
-                        || t.includes('received') || c.includes('received')
-                        || t.includes('installment') || c.includes('installment')
-                        || t.includes('registration') || c.includes('registration')
-                        || t.includes('refund') || c.includes('refund')
-                        || t.includes('advance') || c.includes('advance');
+                    // শুধু এই types গুলোই Income — loan/advance বাদ
+                    return t === 'income'
+                        || t === 'registration'
+                        || t === 'refund'
+                        || c === 'income'
+                        || c === 'registration'
+                        || c === 'refund'
+                        || c.includes('student fee')
+                        || c.includes('student installment')
+                        || (t.includes('income') && !t.includes('advance'))
+                        || t.includes('installment');
                 });
                 var expArr = filtered.filter(function(f) {
                     var t = String(f.type || '').toLowerCase().trim();
                     var c = String(f.category || '').toLowerCase().trim();
-                    return t === 'expense' || t === 'loan given'
-                        || c === 'expense' || c === 'loan given'
-                        || t.includes('expense') || c.includes('expense')
-                        || t.includes('salary') || c.includes('salary')
-                        || t.includes('rent') || c.includes('rent')
-                        || t.includes('utilities') || c.includes('utilities')
-                        || t.includes('loan given') || c.includes('loan given')
-                        || t.includes('payment') || c.includes('payment')
-                        || t.includes('cost') || c.includes('cost');
+                    // শুধু এই types গুলোই Expense — loan/advance বাদ
+                    return t === 'expense'
+                        || t === 'salary'
+                        || t === 'rent'
+                        || t === 'utilities'
+                        || c === 'expense'
+                        || c === 'salaries'
+                        || c === 'salary'
+                        || c === 'rent'
+                        || c === 'utilities'
+                        || t.includes('expense');
                 });
 
                 var totI = incArr.reduce(function(s, f) { return s + window._anaParseAmt(f.amount); }, 0);

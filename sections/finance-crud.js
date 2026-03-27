@@ -718,6 +718,10 @@ function deleteTransaction(id) {
   }
 
   // 3. Finance ledger থেকে সরাও
+  // ✅ FIX: moveToTrash যোগ করা হয়েছে — আগে এটা ছিল না, তাই Recycle Bin এ যেত না
+  if (typeof window.moveToTrash === 'function') {
+    window.moveToTrash('finance', txToDelete);
+  }
   globalData.finance = globalData.finance.filter(f => String(f.id) !== sid);
 
   // ✅ Activity log — delete transaction

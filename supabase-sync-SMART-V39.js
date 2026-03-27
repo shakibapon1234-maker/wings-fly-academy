@@ -1017,17 +1017,29 @@
             const sid = s.studentId || s.id || s.phone || s.name;
             return { id: `${CFG.ACADEMY_ID}_stu_${sid}`, academy_id: CFG.ACADEMY_ID, data: s, deleted: false };
           });
+          // ✅ FIX: Delete markers ও push করো
+          const stuDel = (gd.deletedItems?.students || []).slice(0, 50).map(d => {
+            const rid = d.item?.studentId || d.item?.id || d.item?.phone || d.item?.name;
+            return rid ? { id: `${CFG.ACADEMY_ID}_stu_${rid}`, academy_id: CFG.ACADEMY_ID, data: null, deleted: true } : null;
+          }).filter(x => x);
+          const allStuRows = stuRows.concat(stuDel);
           const stuUrl = `${CFG.URL}/rest/v1/${CFG.TBL_STUDENTS}?on_conflict=id`;
-          try { navigator.sendBeacon(stuUrl, new Blob([JSON.stringify(stuRows)], { type: 'application/json' })); }
-          catch (e) { fetch(stuUrl, { method: 'POST', headers: hdrs, body: JSON.stringify(stuRows), keepalive: true }).catch(() => {}); }
+          try { navigator.sendBeacon(stuUrl, new Blob([JSON.stringify(allStuRows)], { type: 'application/json' })); }
+          catch (e) { fetch(stuUrl, { method: 'POST', headers: hdrs, body: JSON.stringify(allStuRows), keepalive: true }).catch(() => {}); }
         }
         if (_dirty.has('finance') && (gd.finance || []).length > 0) {
           const finRows = (gd.finance || []).slice(0, 50).map(f => ({
             id: `${CFG.ACADEMY_ID}_fin_${f.id}`, academy_id: CFG.ACADEMY_ID, data: f, deleted: false
           }));
+          // ✅ FIX: Delete markers ও push করো
+          const finDel = (gd.deletedItems?.finance || []).slice(0, 50).map(d => {
+            const rid = d.item?.id;
+            return rid ? { id: `${CFG.ACADEMY_ID}_fin_${rid}`, academy_id: CFG.ACADEMY_ID, data: null, deleted: true } : null;
+          }).filter(x => x);
+          const allFinRows = finRows.concat(finDel);
           const finUrl = `${CFG.URL}/rest/v1/${CFG.TBL_FINANCE}?on_conflict=id`;
-          try { navigator.sendBeacon(finUrl, new Blob([JSON.stringify(finRows)], { type: 'application/json' })); }
-          catch (e) { fetch(finUrl, { method: 'POST', headers: hdrs, body: JSON.stringify(finRows), keepalive: true }).catch(() => {}); }
+          try { navigator.sendBeacon(finUrl, new Blob([JSON.stringify(allFinRows)], { type: 'application/json' })); }
+          catch (e) { fetch(finUrl, { method: 'POST', headers: hdrs, body: JSON.stringify(allFinRows), keepalive: true }).catch(() => {}); }
         }
       }
     });
