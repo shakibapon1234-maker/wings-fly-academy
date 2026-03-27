@@ -1118,3 +1118,57 @@ document.addEventListener("DOMContentLoaded", function () { var fm = document.ge
 
 })();
 
+// ═══════════════════════════════════════════════════════════
+// QUICK CHECK — Console এ paste করলে বা quickCheck() কল করলে
+// ═══════════════════════════════════════════════════════════
+window.quickCheck = function () {
+  var gd = window.globalData || {};
+  var issues = [];
+  var ok = [];
+
+  var fns = ['moveToTrash','restoreDeletedItem','logActivity','deleteTransaction','editSalaryPayment','deleteSalaryPayment','feCalcStats','feApplyEntryToAccount','scheduleSyncPush','markDirty','saveToStorage'];
+  fns.forEach(function(fn){
+    if(typeof window[fn]==='function') ok.push('✅ '+fn);
+    else issues.push('❌ '+fn+' MISSING!');
+  });
+
+  if(gd.students && Array.isArray(gd.students)) ok.push('✅ Students: '+gd.students.length);
+  else issues.push('❌ Students data broken');
+
+  if(gd.finance && Array.isArray(gd.finance)) ok.push('✅ Finance: '+gd.finance.length);
+  else issues.push('❌ Finance data broken');
+
+  if(gd.deletedItems && !Array.isArray(gd.deletedItems) && Array.isArray(gd.deletedItems.students)) ok.push('✅ deletedItems structure OK');
+  else issues.push('❌ deletedItems should be {students:[],finance:[],employees:[],other:[]}');
+
+  ok.push('✅ Cash: ৳'+(parseFloat(gd.cashBalance)||0).toLocaleString());
+  (gd.bankAccounts||[]).forEach(function(a){ok.push('✅ Bank '+a.name+': ৳'+(parseFloat(a.balance)||0).toLocaleString());});
+  (gd.mobileBanking||[]).forEach(function(a){ok.push('✅ Mobile '+a.name+': ৳'+(parseFloat(a.balance)||0).toLocaleString());});
+
+  if(document.getElementById('financeGuardDot')) ok.push('✅ Finance Guard dot 🛡️');
+  else issues.push('⚠️ Finance Guard dot not visible');
+
+  if(document.getElementById('syncGuardDot')) ok.push('✅ Sync Guard dot ⚡');
+  else issues.push('⚠️ Sync Guard dot not visible');
+
+  if(window.SUPABASE_CONFIG && window.SUPABASE_CONFIG.KEY) ok.push('✅ Supabase key set');
+  else issues.push('❌ Supabase key missing');
+
+  // Lazy-loaded functions (settings modal খোলার পর available)
+  var lazyFns = ['renderMonitor','renderAdvanceQuick','openAccMgmtAddModal','openSalaryModal','switchSettingsTab'];
+  lazyFns.forEach(function(fn){
+    if(typeof window[fn]==='function') ok.push('✅ '+fn+' (lazy)');
+  });
+
+  console.log('%c═══ QUICK CHECK ═══','color:#00d9ff;font-weight:bold;font-size:16px;');
+  if(issues.length===0){
+    console.log('%c✅ ALL GOOD — '+ok.length+' checks passed','color:#00c853;font-weight:bold;font-size:14px;');
+  } else {
+    console.log('%c🚨 '+issues.length+' ISSUES:','color:#f44336;font-weight:bold;font-size:14px;');
+    issues.forEach(function(i){console.log('%c'+i,'color:#f44336;');});
+    console.log('%c✅ Passed: '+ok.length,'color:#00c853;');
+  }
+  ok.forEach(function(o){console.log(o);});
+  return {ok:ok,issues:issues};
+};
+
