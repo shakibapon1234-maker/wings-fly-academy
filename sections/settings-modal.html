@@ -122,6 +122,10 @@
                                     onclick="switchSettingsTab('tab-advanced', this); if(typeof window.renderSettingsLists === 'function') window.renderSettingsLists(); var _sa=document.querySelector('#settingsModal .flex-grow-1.overflow-auto'); if(_sa) _sa.scrollTop=0;">
                                     <span>💼</span> Accounts Management
                                 </button>
+                                <button class="nav-link nav-link-monitor" type="button"
+                                    onclick="switchSettingsTab('tab-monitor', this); if(typeof window.renderMonitor === 'function') window.renderMonitor();">
+                                    <span>📡</span> Monitor
+                                </button>
                             </div>
                             <div class="mt-auto pt-4 text-center">
                                 <button type="submit" class="btn btn-primary w-100 py-2 shadow-sm">
@@ -2039,6 +2043,55 @@
                                 </div>
                             </div><!-- /tab-advanced -->
 
+                            <!-- Tab 11: Monitor — Account Balance Snapshot -->
+                            <div class="settings-tab-pane" id="tab-monitor" style="display:none; padding:24px;">
+                                <div class="d-flex justify-content-between align-items-center mb-4">
+                                    <h5 class="fw-bold mb-0" style="color:var(--primary);">📡 Monitor — Account Balances</h5>
+                                    <button class="btn btn-sm btn-outline-info" onclick="if(typeof window.renderMonitor==='function') window.renderMonitor();">
+                                        <i class="bi bi-arrow-clockwise"></i> Refresh
+                                    </button>
+                                </div>
+
+                                <p class="text-muted mb-3" style="font-size:0.85rem;">
+                                    লাস্ট ১০টা financial transaction দেখাবে। যেকোনো transaction এ ক্লিক করলে সেই সময়কার <strong>Account Balance Snapshot</strong> দেখাবে — data mismatch ধরার জন্য।
+                                </p>
+
+                                <!-- Last 10 Transactions Table -->
+                                <div class="table-responsive mb-4" style="border-radius:10px; overflow:hidden; border:1px solid rgba(255,255,255,0.08);">
+                                    <table class="table table-dark table-hover mb-0" style="font-size:0.85rem;">
+                                        <thead style="background:rgba(0,217,255,0.08);">
+                                            <tr>
+                                                <th style="padding:10px 14px; color:#6e8caa; font-weight:600; font-size:0.78rem; text-transform:uppercase; border:none;">#</th>
+                                                <th style="padding:10px 14px; color:#6e8caa; font-weight:600; font-size:0.78rem; text-transform:uppercase; border:none;">Date</th>
+                                                <th style="padding:10px 14px; color:#6e8caa; font-weight:600; font-size:0.78rem; text-transform:uppercase; border:none;">Type</th>
+                                                <th style="padding:10px 14px; color:#6e8caa; font-weight:600; font-size:0.78rem; text-transform:uppercase; border:none;">Category</th>
+                                                <th style="padding:10px 14px; color:#6e8caa; font-weight:600; font-size:0.78rem; text-transform:uppercase; border:none;">Person</th>
+                                                <th style="padding:10px 14px; color:#6e8caa; font-weight:600; font-size:0.78rem; text-transform:uppercase; border:none; text-align:right;">Amount</th>
+                                                <th style="padding:10px 14px; color:#6e8caa; font-weight:600; font-size:0.78rem; text-transform:uppercase; border:none;">Method</th>
+                                            </tr>
+                                        </thead>
+                                        <tbody id="monitorTxnBody">
+                                            <tr><td colspan="7" class="text-center text-muted py-5">Loading...</td></tr>
+                                        </tbody>
+                                    </table>
+                                </div>
+
+                                <!-- Balance Snapshot Panel (shown when a transaction is clicked) -->
+                                <div id="monitorSnapshot" style="display:none;">
+                                    <div class="d-flex justify-content-between align-items-center mb-3">
+                                        <h6 class="fw-bold mb-0" style="color:#00d9ff;">
+                                            <i class="bi bi-camera"></i> Balance Snapshot — <span id="monitorSnapshotDate"></span>
+                                        </h6>
+                                        <button class="btn btn-sm btn-outline-secondary" onclick="document.getElementById('monitorSnapshot').style.display='none';">✕ Close</button>
+                                    </div>
+                                    <div id="monitorSnapshotCards" class="row g-3 mb-3">
+                                        <!-- Cards render here -->
+                                    </div>
+                                    <div id="monitorSnapshotGrand" class="text-end fw-bold" style="font-size:1.1rem; color:#ffd700;">
+                                    </div>
+                                </div>
+                            </div><!-- /tab-monitor -->
+
                         </div><!-- /tab-content -->
                     </div><!-- /flex-grow-1 content area -->
                 </div><!-- /d-flex row -->
@@ -2496,6 +2549,214 @@
             } catch(e) { console.error('[Analytics] Boot Error:', e); }
         };
     })();
+</script>
+
+<!-- ============================================================ -->
+<!-- MONITOR — Last 10 Transactions + Balance Snapshot             -->
+<!-- ============================================================ -->
+<script>
+(function() {
+    'use strict';
+
+    // ── RENDER MONITOR ───────────────────────────────────────
+    window.renderMonitor = function() {
+        var gd = window.globalData || {};
+        var finance = (gd.finance || []).filter(function(f) { return !f._deleted; });
+
+        // Sort by date descending, then by id descending
+        finance.sort(function(a, b) {
+            var da = String(a.date || '').slice(0, 10);
+            var db = String(b.date || '').slice(0, 10);
+            if (db !== da) return db.localeCompare(da);
+            return (parseInt(b.id) || 0) - (parseInt(a.id) || 0);
+        });
+
+        // Last 10 transactions
+        var last10 = finance.slice(0, 10);
+        var tbody = document.getElementById('monitorTxnBody');
+        if (!tbody) return;
+
+        if (last10.length === 0) {
+            tbody.innerHTML = '<tr><td colspan="7" class="text-center text-muted py-5">কোনো transaction পাওয়া যায়নি</td></tr>';
+            return;
+        }
+
+        var rows = '';
+        last10.forEach(function(f, i) {
+            var amt = parseFloat(f.amount) || 0;
+            var isIncome = (typeof window.feIsAccountIn === 'function') ? window.feIsAccountIn(f.type) : false;
+            var isExpense = (typeof window.feIsAccountOut === 'function') ? window.feIsAccountOut(f.type) : false;
+            var amtColor = isIncome ? '#00e676' : isExpense ? '#ff5252' : '#aaa';
+            var amtSign = isIncome ? '+' : isExpense ? '-' : '';
+            var dateStr = f.date ? new Date(f.date).toLocaleDateString('en-GB', {day:'2-digit', month:'short', year:'numeric'}) : '—';
+
+            rows += '<tr style="cursor:pointer; border-bottom:1px solid rgba(255,255,255,0.05);" '
+                + 'onclick="window._monitorShowSnapshot(' + i + ')" '
+                + 'id="monitorRow' + i + '">'
+                + '<td style="padding:10px 14px; color:#666; border:none;">' + (i + 1) + '</td>'
+                + '<td style="padding:10px 14px; color:#aaa; white-space:nowrap; border:none;">' + dateStr + '</td>'
+                + '<td style="padding:10px 14px; border:none;">'
+                + '<span style="display:inline-block;padding:2px 8px;border-radius:12px;font-size:0.72rem;font-weight:700;'
+                + (isIncome ? 'background:rgba(0,230,100,0.12);color:#00e676;border:1px solid rgba(0,230,100,0.3);'
+                : isExpense ? 'background:rgba(255,71,87,0.12);color:#ff5252;border:1px solid rgba(255,71,87,0.3);'
+                : 'background:rgba(255,255,255,0.05);color:#aaa;border:1px solid rgba(255,255,255,0.1);')
+                + '">' + (f.type || '—') + '</span>'
+                + '</td>'
+                + '<td style="padding:10px 14px; color:#888; font-size:0.82rem; border:none;">' + (f.category || '—') + '</td>'
+                + '<td style="padding:10px 14px; color:#ccc; border:none;">' + (f.person || '—') + '</td>'
+                + '<td style="padding:10px 14px; text-align:right; font-weight:700; color:' + amtColor + '; white-space:nowrap; border:none;">'
+                + amtSign + '৳' + amt.toLocaleString() + '</td>'
+                + '<td style="padding:10px 14px; color:#888; font-size:0.82rem; border:none;">' + (f.method || '—') + '</td>'
+                + '</tr>';
+        });
+        tbody.innerHTML = rows;
+
+        // Hide snapshot panel
+        var snap = document.getElementById('monitorSnapshot');
+        if (snap) snap.style.display = 'none';
+    };
+
+    // ── SHOW BALANCE SNAPSHOT ────────────────────────────────
+    window._monitorShowSnapshot = function(rowIndex) {
+        var gd = window.globalData || {};
+        var finance = (gd.finance || []).filter(function(f) { return !f._deleted; });
+
+        // Sort same as render
+        finance.sort(function(a, b) {
+            var da = String(a.date || '').slice(0, 10);
+            var db = String(b.date || '').slice(0, 10);
+            if (db !== da) return db.localeCompare(da);
+            return (parseInt(b.id) || 0) - (parseInt(a.id) || 0);
+        });
+
+        var last10 = finance.slice(0, 10);
+        var clickedTxn = last10[rowIndex];
+        if (!clickedTxn) return;
+
+        // Highlight selected row
+        for (var i = 0; i < 10; i++) {
+            var r = document.getElementById('monitorRow' + i);
+            if (r) r.style.background = (i === rowIndex) ? 'rgba(0,217,255,0.1)' : '';
+        }
+
+        // Calculate balances up to and including this transaction
+        // Start from startBalances, then replay all transactions sorted chronologically
+        var startBalances = (gd.settings && gd.settings.startBalances) || {};
+        var cashBal = parseFloat(startBalances['Cash']) || 0;
+
+        // Initialize bank/mobile accounts
+        var bankBals = {};
+        (gd.bankAccounts || []).forEach(function(a) {
+            bankBals[a.name] = parseFloat(startBalances[a.name] ?? startBalances[a.bankName]) || 0;
+        });
+        var mobileBals = {};
+        (gd.mobileBanking || []).forEach(function(a) {
+            mobileBals[a.name] = parseFloat(startBalances[a.name] ?? startBalances[a.bankName]) || 0;
+        });
+
+        // Sort ALL transactions chronologically (oldest first)
+        var allSorted = finance.slice().sort(function(a, b) {
+            var da = String(a.date || '').slice(0, 10);
+            var db = String(b.date || '').slice(0, 10);
+            if (da !== db) return da.localeCompare(db);
+            return (parseInt(a.id) || 0) - (parseInt(b.id) || 0);
+        });
+
+        // Find the index of the clicked transaction in chronological order
+        var clickedId = String(clickedTxn.id);
+        var stopIndex = -1;
+        for (var i = 0; i < allSorted.length; i++) {
+            if (String(allSorted[i].id) === clickedId) {
+                stopIndex = i;
+                break;
+            }
+        }
+
+        if (stopIndex === -1) {
+            // Fallback: use date+amount matching
+            for (var i = 0; i < allSorted.length; i++) {
+                if (allSorted[i].date === clickedTxn.date && allSorted[i].amount === clickedTxn.amount && allSorted[i].type === clickedTxn.type) {
+                    stopIndex = i;
+                    break;
+                }
+            }
+        }
+
+        // Replay transactions up to stopIndex
+        for (var i = 0; i <= stopIndex; i++) {
+            var f = allSorted[i];
+            var amt = parseFloat(f.amount) || 0;
+            var method = f.method || 'Cash';
+            var isIn = (typeof window.feIsAccountIn === 'function') ? window.feIsAccountIn(f.type) : false;
+            var isOut = (typeof window.feIsAccountOut === 'function') ? window.feIsAccountOut(f.type) : false;
+
+            if (!isIn && !isOut) continue;
+
+            var delta = isIn ? amt : -amt;
+
+            if (method === 'Cash') {
+                cashBal += delta;
+            } else if (bankBals.hasOwnProperty(method)) {
+                bankBals[method] += delta;
+            } else if (mobileBals.hasOwnProperty(method)) {
+                mobileBals[method] += delta;
+            }
+        }
+
+        // Render snapshot cards
+        var dateStr = clickedTxn.date ? new Date(clickedTxn.date).toLocaleDateString('en-GB', {day:'2-digit', month:'short', year:'numeric'}) : clickedTxn.date;
+        var snapDate = document.getElementById('monitorSnapshotDate');
+        if (snapDate) snapDate.textContent = dateStr + ' — ' + (clickedTxn.type || '') + ' ৳' + (parseFloat(clickedTxn.amount)||0).toLocaleString();
+
+        var cardsHtml = '';
+
+        // Cash card
+        cardsHtml += '<div class="col-6 col-md-3">'
+            + '<div class="rounded-3 p-3 text-center h-100" style="background:rgba(0,217,255,0.06); border:1px solid rgba(0,217,255,0.2);">'
+            + '<div style="font-size:0.78rem; color:#6e8caa;">💵 Cash</div>'
+            + '<div class="fw-bold mt-1" style="font-size:1.2rem; color:' + (cashBal >= 0 ? '#00d9ff' : '#ff5252') + ';">৳' + cashBal.toLocaleString() + '</div>'
+            + '</div></div>';
+
+        // Bank accounts
+        Object.keys(bankBals).forEach(function(name) {
+            var b = bankBals[name];
+            cardsHtml += '<div class="col-6 col-md-3">'
+                + '<div class="rounded-3 p-3 text-center h-100" style="background:rgba(255,193,7,0.06); border:1px solid rgba(255,193,7,0.2);">'
+                + '<div style="font-size:0.78rem; color:#6e8caa;">🏦 ' + name + '</div>'
+                + '<div class="fw-bold mt-1" style="font-size:1.2rem; color:' + (b >= 0 ? '#ffd700' : '#ff5252') + ';">৳' + b.toLocaleString() + '</div>'
+                + '</div></div>';
+        });
+
+        // Mobile banking
+        Object.keys(mobileBals).forEach(function(name) {
+            var m = mobileBals[name];
+            cardsHtml += '<div class="col-6 col-md-3">'
+                + '<div class="rounded-3 p-3 text-center h-100" style="background:rgba(156,39,176,0.06); border:1px solid rgba(156,39,176,0.2);">'
+                + '<div style="font-size:0.78rem; color:#6e8caa;">📱 ' + name + '</div>'
+                + '<div class="fw-bold mt-1" style="font-size:1.2rem; color:' + (m >= 0 ? '#ce93d8' : '#ff5252') + ';">৳' + m.toLocaleString() + '</div>'
+                + '</div></div>';
+        });
+
+        var snapshotCards = document.getElementById('monitorSnapshotCards');
+        if (snapshotCards) snapshotCards.innerHTML = cardsHtml;
+
+        // Grand total
+        var grandTotal = cashBal;
+        Object.keys(bankBals).forEach(function(k) { grandTotal += bankBals[k]; });
+        Object.keys(mobileBals).forEach(function(k) { grandTotal += mobileBals[k]; });
+        var grandEl = document.getElementById('monitorSnapshotGrand');
+        if (grandEl) grandEl.innerHTML = 'Grand Total: <span style="color:' + (grandTotal >= 0 ? '#00e676' : '#ff5252') + ';">৳' + grandTotal.toLocaleString() + '</span>';
+
+        // Show panel
+        var snap = document.getElementById('monitorSnapshot');
+        if (snap) snap.style.display = 'block';
+
+        // Scroll to snapshot
+        if (snap) snap.scrollIntoView({ behavior: 'smooth', block: 'nearest' });
+    };
+
+    console.log('✅ Monitor tab logic loaded');
+})();
 </script>
 
 <!-- Keep Record - New Note Modal -->
