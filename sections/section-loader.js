@@ -643,7 +643,7 @@
 
   async function _loadStaticSections() {
       const sections = [
-          { pid: '__studentModalsPlaceholder', file: 'sections/student-modals.html' },
+          { pid: '__studentModalsPlaceholder', file: 'sections/modals-student.html' },
           { pid: '__accountsPlaceholder',      file: 'sections/accounts-section.html' },
           { pid: '__certificatesPlaceholder',  file: 'sections/certificates.html' },
           { pid: '__idcardsPlaceholder',       file: 'sections/idcards.html' },

@@ -285,6 +285,72 @@
         });
     }
 
+    // ─────────────────────────────────────────────
+    // RENDER ADVANCE QUICK VIEW
+    // Auto-test requirement: Simple quick view of advance balances
+    // ─────────────────────────────────────────────
+    window.renderAdvanceQuick = function(containerId) {
+        const container = document.getElementById(containerId) || document.createElement('div');
+        const gd = window.globalData || {};
+        
+        if (!gd.employees) { container.innerHTML = '<p>No employees</p>'; return; }
+        
+        // Calculate advances by employee
+        const empAdvances = {};
+        (gd.employees || []).forEach(emp => {
+            if (emp.resigned || emp.status === 'Resigned') return;
+            const empId = emp.id || emp.empId || emp.employeeId;
+            const empName = emp.name;
+            if (!empId && !empName) return;
+            
+            const key = empName || empId;
+            empAdvances[key] = { emp, total: 0, returned: 0 };
+        });
+        
+        // Sum advances and returns
+        (gd.finance || []).forEach(f => {
+            if (f._deleted) return;
+            const empName = f.person;
+            const empId = f.employeeId;
+            if (!empName && !empId) return;
+            
+            const key = empName || empId;
+            if (!empAdvances[key]) {
+                empAdvances[key] = { emp: { name: empName, id: empId }, total: 0, returned: 0 };
+            }
+            
+            const amt = parseFloat(f.amount) || 0;
+            if (f.type === 'Advance') {
+                empAdvances[key].total += amt;
+            } else if (f.type === 'Advance Return') {
+                empAdvances[key].returned += amt;
+            }
+        });
+        
+        // Build HTML
+        let html = '<div style="padding:12px;font-size:0.85rem;">';
+        let hasAdvances = false;
+        
+        Object.keys(empAdvances).forEach(key => {
+            const data = empAdvances[key];
+            const net = data.total - data.returned;
+            if (net > 0) {
+                hasAdvances = true;
+                html += `<div style="padding:6px 0;border-bottom:1px solid #333;">
+                    <strong>${data.emp.name || key}</strong>: 
+                    <span style="color:#00ff00;">৳${net.toLocaleString()}</span>
+                </div>`;
+            }
+        });
+        
+        if (!hasAdvances) {
+            html += '<p style="color:#888;">No active advances</p>';
+        }
+        
+        html += '</div>';
+        container.innerHTML = html;
+    };
+
     function openSalaryModal(empId) {
         var modalEl = document.getElementById('salaryModal');
 

@@ -376,8 +376,6 @@
             });
         });
     }
-        var start = Math.max(1, currentPage - 3);
-        var end = Math.min(totalPages, currentPage + 3);
         if (end - start < 6) { start = Math.max(1, end - 6); end = Math.min(totalPages, start + 6); }
         for (var p = start; p <= end; p++) {
             html += '<button onclick="(' + onPageClick.toString() + ')(' + p + ')" style="' + _pgBtnStyle(p === currentPage) + '">' + p + '</button>';
