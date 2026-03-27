@@ -301,21 +301,19 @@
     dot.title = '⏳ Sync checking...';
     dot.textContent = '⚡';
     dot.style.cssText = [
-      'position:fixed',
-      'top:14px',
-      'right:136px',
-      'width:20px',
-      'height:20px',
+      'width:22px',
+      'height:22px',
       'border-radius:50%',
       'background:rgba(80,80,80,0.9)',
-      'z-index:99999',
       'cursor:pointer',
       'transition:background 0.4s',
-      'font-size:11px',
-      'display:flex',
+      'font-size:12px',
+      'display:inline-flex',
       'align-items:center',
       'justify-content:center',
-      'box-shadow:0 0 6px rgba(0,0,0,0.4)'
+      'box-shadow:0 0 6px rgba(0,0,0,0.4)',
+      'flex-shrink:0',
+      'margin-left:6px'
     ].join(';');
 
     dot.addEventListener('click', function () {
@@ -331,7 +329,22 @@
       }
     });
 
-    document.body.appendChild(dot);
+    // Insert after "Welcome back, Admin!" h4 in the top bar (before finance guard)
+    var welcomeH4 = null;
+    document.querySelectorAll('.top-bar h4, header h4').forEach(function(el) {
+      if (el.textContent.indexOf('Welcome') !== -1) welcomeH4 = el;
+    });
+    if (welcomeH4) {
+      // If finance guard dot already exists, insert before it
+      var financeDot = document.getElementById('financeGuardDot');
+      if (financeDot) {
+        financeDot.insertAdjacentElement('beforebegin', dot);
+      } else {
+        welcomeH4.insertAdjacentElement('afterend', dot);
+      }
+    } else {
+      document.body.appendChild(dot);
+    }
   }
 
   function _updateDot(ok, problemCount) {

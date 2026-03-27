@@ -949,9 +949,21 @@
     const grandTotal = storedCash + bankTotal + mobileTotal;
     pass('Grand Total', `৳${grandTotal.toLocaleString('en-IN')} (Cash:${storedCash} Bank:${bankTotal} Mobile:${mobileTotal})`);
 
-    // Student payment vs finance
+    // Student payment vs finance cross-validation
     const totalPaid = (gd.students || []).reduce((s, st) => s + (parseFloat(st.paid) || 0), 0);
     pass('Total student paid', `৳${totalPaid.toLocaleString('en-IN')}`);
+
+    // Cross-check: student paid total vs finance income total (student-related only)
+    if (typeof window.feCalcStats === 'function') {
+      const studentFinTypes = ['Income', 'Registration', 'Refund'];
+      const studentFinanceTotal = finance
+        .filter(f => !f._deleted && studentFinTypes.includes(f.type))
+        .reduce((s, f) => s + (parseFloat(f.amount) || 0), 0);
+      const crossDiff = Math.abs(totalPaid - studentFinanceTotal);
+      if (crossDiff < 1) pass('Student paid vs Finance cross-check ✓', `Both: ৳${totalPaid.toLocaleString('en-IN')}`);
+      else if (crossDiff < 5000) warn('Student paid vs Finance gap', `Students:৳${Math.round(totalPaid)} Finance:৳${Math.round(studentFinanceTotal)} Diff:৳${Math.round(crossDiff)}`);
+      else fail('Student paid vs Finance MISMATCH!', `Students:৳${Math.round(totalPaid)} Finance:৳${Math.round(studentFinanceTotal)} Diff:৳${Math.round(crossDiff)}`);
+    }
 
     if (typeof window.feCalcStats === 'function') {
       const all = window.feCalcStats(finance);
