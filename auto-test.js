@@ -244,6 +244,8 @@
       'deleteTransaction', 'deleteEmployee', 'deleteAccount',
       'deleteMobileAccount', 'deleteVisitor',
       'moveToTrash', 'restoreDeletedItem', 'logActivity',
+      'editSalaryPayment', 'deleteSalaryPayment',
+      'renderMonitor', 'renderAdvanceQuick',
     ];
     const optional = [
       'renderLedger', 'renderDashboard', 'calcBatchProfit',
@@ -955,6 +957,39 @@
       const all = window.feCalcStats(finance);
       pass(`Finance Stats`, `Income:৳${all.income?.toLocaleString('en-IN')} | Expense:৳${all.expense?.toLocaleString('en-IN')} | Profit:৳${all.profit?.toLocaleString('en-IN')}`);
     }
+
+    // ── Advance/Investment NOT in income/expense ──────────
+    const advEntries = finance.filter(f => !f._deleted &&
+      ['Advance', 'Advance Return', 'Investment', 'Investment Return'].includes(f.type)
+    );
+    if (advEntries.length > 0 && typeof window.feCalcStats === 'function') {
+      const advStats = window.feCalcStats(advEntries);
+      if (advStats.income === 0 && advStats.expense === 0)
+        pass(`Advance/Investment (${advEntries.length}) income/expense-এ নেই ✓`);
+      else fail('Advance/Investment stats-এ যাচ্ছে!', `Income:${advStats.income} Expense:${advStats.expense}`);
+    }
+
+    // ── deletedItems structure check ──────────────────────
+    if (gd.deletedItems) {
+      if (Array.isArray(gd.deletedItems)) {
+        fail('deletedItems is ARRAY — should be {students:[], finance:[], employees:[], other:[]}', 'data loss risk!');
+      } else {
+        const cats = ['students', 'finance', 'employees', 'other'];
+        const badCats = cats.filter(c => !Array.isArray(gd.deletedItems[c]));
+        if (badCats.length === 0) pass('deletedItems structure correct ✓');
+        else fail('deletedItems missing categories: ' + badCats.join(', '));
+      }
+    }
+
+    // ── Guard systems loaded ──────────────────────────────
+    if (typeof window.syncGuard === 'object') pass('Sync Guard loaded ✓');
+    else warn('syncGuard not found', 'sync-guard.js লোড হয়নি');
+
+    if (document.getElementById('syncGuardDot')) pass('Sync Guard dot visible ✓');
+    else warn('Sync Guard dot not visible', 'Page এ নিচে ডানে ⚡ icon দেখা উচিত');
+
+    if (document.getElementById('financeGuardDot')) pass('Finance Guard dot visible ✓');
+    else warn('Finance Guard dot not visible', 'Page এ নিচে ডানে 🛡️ icon দেখা উচিত');
   }
 
   // ═══════════════════════════════════════════════════════════
@@ -1277,5 +1312,67 @@
   // আগে 5s ছিল — V36 sync init হতে বেশি সময় লাগে
   if (document.readyState === 'loading') document.addEventListener('DOMContentLoaded', () => setTimeout(_init, 8000));
   else setTimeout(_init, 8000);
+
+  // ═══════════════════════════════════════════════════════════
+  // QUICK CONSOLE CHECK — paste করলে সাথে সাথে সব দেখাবে
+  // ═══════════════════════════════════════════════════════════
+  window.quickCheck = function () {
+    var gd = window.globalData || {};
+    var issues = [];
+    var ok = [];
+
+    // 1. Core functions
+    var coreFns = ['moveToTrash','restoreDeletedItem','logActivity','deleteTransaction','editSalaryPayment','deleteSalaryPayment','renderMonitor','renderAdvanceQuick','feCalcStats','feApplyEntryToAccount','scheduleSyncPush','markDirty','saveToStorage'];
+    coreFns.forEach(function(fn) {
+      if (typeof window[fn] === 'function') ok.push('✅ ' + fn);
+      else issues.push('❌ ' + fn + ' — MISSING!');
+    });
+
+    // 2. Data
+    if (gd.students && Array.isArray(gd.students)) ok.push('✅ Students: ' + gd.students.length);
+    else issues.push('❌ Students data missing or not array');
+
+    if (gd.finance && Array.isArray(gd.finance)) ok.push('✅ Finance: ' + gd.finance.length);
+    else issues.push('❌ Finance data missing or not array');
+
+    // 3. deletedItems structure
+    if (gd.deletedItems && !Array.isArray(gd.deletedItems) && Array.isArray(gd.deletedItems.students)) ok.push('✅ deletedItems structure correct');
+    else issues.push('❌ deletedItems broken — should be {students:[], finance:[], employees:[], other:[]}');
+
+    // 4. Accounts
+    ok.push('✅ Cash: ৳' + (parseFloat(gd.cashBalance)||0).toLocaleString());
+    (gd.bankAccounts||[]).forEach(function(a) { ok.push('✅ Bank ' + a.name + ': ৳' + (parseFloat(a.balance)||0).toLocaleString()); });
+    (gd.mobileBanking||[]).forEach(function(a) { ok.push('✅ Mobile ' + a.name + ': ৳' + (parseFloat(a.balance)||0).toLocaleString()); });
+
+    // 5. Guards
+    if (document.getElementById('financeGuardDot')) ok.push('✅ Finance Guard dot visible (🛡️ bottom-right)');
+    else issues.push('⚠️ Finance Guard dot not visible');
+
+    if (document.getElementById('syncGuardDot')) ok.push('✅ Sync Guard dot visible (⚡ bottom-right)');
+    else issues.push('⚠️ Sync Guard dot not visible');
+
+    // 6. Supabase
+    if (window.SUPABASE_CONFIG && window.SUPABASE_CONFIG.KEY) ok.push('✅ Supabase key set');
+    else issues.push('❌ Supabase key missing — cloud sync broken');
+
+    // 7. Loan not in stats
+    if (typeof window.feCalcStats === 'function') {
+      var loanTest = window.feCalcStats([{type:'Loan Received',amount:5000},{type:'Loan Given',amount:3000}]);
+      if (loanTest.income === 0 && loanTest.expense === 0) ok.push('✅ Loans excluded from stats');
+      else issues.push('❌ Loans counted as income/expense!');
+    }
+
+    // Print results
+    console.log('%c\n═══ QUICK CHECK RESULTS ═══', 'color:#00d9ff;font-weight:bold;font-size:16px;');
+    if (issues.length === 0) {
+      console.log('%c✅ ALL GOOD — ' + ok.length + ' checks passed', 'color:#00c853;font-weight:bold;font-size:14px;');
+    } else {
+      console.log('%c🚨 ' + issues.length + ' ISSUES FOUND:', 'color:#f44336;font-weight:bold;font-size:14px;');
+      issues.forEach(function(i) { console.log('%c' + i, 'color:#f44336;'); });
+      console.log('%c\n✅ Passed: ' + ok.length, 'color:#00c853;');
+    }
+
+    return { ok: ok, issues: issues };
+  };
 
 })();

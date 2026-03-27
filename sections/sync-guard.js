@@ -268,18 +268,23 @@
     var dot = document.createElement('div');
     dot.id = 'syncGuardDot';
     dot.title = '⏳ Sync checking...';
+    dot.textContent = '⚡';
     dot.style.cssText = [
       'position:fixed',
-      'bottom:16px',
-      'right:36px',
-      'width:12px',
-      'height:12px',
+      'bottom:14px',
+      'right:38px',
+      'width:24px',
+      'height:24px',
       'border-radius:50%',
-      'background:#555',
+      'background:rgba(80,80,80,0.9)',
       'z-index:99999',
       'cursor:pointer',
       'transition:background 0.4s',
-      'box-shadow:0 0 0 2px rgba(0,0,0,0.3)'
+      'font-size:13px',
+      'display:flex',
+      'align-items:center',
+      'justify-content:center',
+      'box-shadow:0 0 8px rgba(0,0,0,0.5)'
     ].join(';');
 
     dot.addEventListener('click', function () {
@@ -400,10 +405,17 @@
     }
   }
 
-  if (document.readyState === 'loading') {
-    document.addEventListener('DOMContentLoaded', function () { setTimeout(_startup, 4000); });
+  // Dot early inject — দেরি না করে সাথে সাথে inject করো
+  if (document.body) {
+    _injectDot();
   } else {
-    setTimeout(_startup, 4000);
+    document.addEventListener('DOMContentLoaded', function () { _injectDot(); });
+  }
+
+  if (document.readyState === 'loading') {
+    document.addEventListener('DOMContentLoaded', function () { setTimeout(_startup, 2000); });
+  } else {
+    setTimeout(_startup, 2000);
   }
 
   console.log('✅ sync-guard.js v1.0 loaded');

@@ -196,18 +196,23 @@
     var dot = document.createElement('div');
     dot.id = 'financeGuardDot';
     dot.title = '⏳ Accounts checking...';
+    dot.textContent = '🛡️';
     dot.style.cssText = [
       'position:fixed',
-      'bottom:16px',
-      'right:16px',
-      'width:12px',
-      'height:12px',
+      'bottom:14px',
+      'right:14px',
+      'width:24px',
+      'height:24px',
       'border-radius:50%',
-      'background:#555',
+      'background:rgba(80,80,80,0.9)',
       'z-index:99999',
       'cursor:pointer',
       'transition:background 0.4s',
-      'box-shadow:0 0 0 2px rgba(0,0,0,0.3)'
+      'font-size:13px',
+      'display:flex',
+      'align-items:center',
+      'justify-content:center',
+      'box-shadow:0 0 8px rgba(0,0,0,0.5)'
     ].join(';');
 
     dot.addEventListener('click', function () {
