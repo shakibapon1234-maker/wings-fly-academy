@@ -320,10 +320,12 @@
     if (!gd.students || !gd.finance) return;
 
     // STEP 1: finance array একবার scan করে person → total map তৈরি করো
+    // শুধু student payment types গোনা হবে — Loan, Advance, Transfer, Investment বাদ
+    const STUDENT_PAYMENT_TYPES = ['Income', 'Registration', 'Refund'];
     const personTotals = {};
     (gd.finance || []).forEach(f => {
       if (f._deleted) return;
-      if (!ACCOUNT_IN_TYPES.includes(f.type)) return;
+      if (!STUDENT_PAYMENT_TYPES.includes(f.type)) return;
 
       const amount = parseFloat(f.amount) || 0;
 

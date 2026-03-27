@@ -98,10 +98,11 @@
     }
 
     // ── CHECK 4: Student paid/due vs finance ledger ────────
-    var FE_IN = window.FE_ACCOUNT_IN || ['Income', 'Transfer In', 'Loan Received', 'Loan Receiving', 'Registration', 'Refund', 'Advance', 'Investment'];
+    // শুধু student-সম্পর্কিত types গোনা হবে — Loan, Advance, Transfer, Investment বাদ
+    var STUDENT_PAYMENT_TYPES = ['Income', 'Registration', 'Refund'];
     var finByPerson = {};
     fin.forEach(function (f) {
-      if (FE_IN.includes(f.type) && f.person) {
+      if (STUDENT_PAYMENT_TYPES.includes(f.type) && f.person) {
         finByPerson[f.person] = (finByPerson[f.person] || 0) + (parseFloat(f.amount) || 0);
       }
     });
@@ -137,6 +138,19 @@
       if (isNaN(stats.income) || isNaN(stats.expense)) {
         issues.push('Income/Expense calculation NaN — finance entries এ ভুল amount থাকতে পারে');
       }
+    }
+
+    // ── CHECK 6: Loan types should NOT appear in income/expense stats ──
+    var loanTypes = ['Loan Given', 'Loan Giving', 'Loan Received', 'Loan Receiving'];
+    var loanInStats = false;
+    fin.forEach(function (f) {
+      if (loanTypes.includes(f.type)) {
+        if (window.feIsStatIncome && window.feIsStatIncome(f.type)) loanInStats = true;
+        if (window.feIsStatExpense && window.feIsStatExpense(f.type)) loanInStats = true;
+      }
+    });
+    if (loanInStats) {
+      issues.push('Loan types ভুলভাবে Income/Expense stats এ count হচ্ছে — finance-engine.js ঠিক করুন');
     }
 
     // ── RESULT ────────────────────────────────────────────
@@ -259,6 +273,13 @@
     // General finance operations
     _hookAfter('deleteTransaction',          1500);
     _hookAfter('handleEditTransactionSubmit',1500);
+    // Loan operations
+    _hookAfter('deleteLoanTransaction',      1500);
+    // Salary operations
+    _hookAfter('handleSalarySubmit',         1500);
+    _hookAfter('deleteSalaryPayment',        1500);
+    // Transfer operations
+    _hookAfter('handleTransferSubmit',       1500);
     // Recycle bin restore
     var origRestore = window.restoreDeletedItem;
     if (typeof origRestore === 'function') {
@@ -268,7 +289,7 @@
         return result;
       };
     }
-    console.log('[FinanceGuard] ✅ Hooks installed on: handleAddInstallment, deleteInstallment, deleteTransaction, handleEditTransactionSubmit, restoreDeletedItem');
+    console.log('[FinanceGuard] ✅ Hooks installed on: handleAddInstallment, deleteInstallment, deleteTransaction, handleEditTransactionSubmit, deleteLoanTransaction, handleSalarySubmit, deleteSalaryPayment, handleTransferSubmit, restoreDeletedItem');
   }
 
   // ── PUBLIC API ────────────────────────────────────────────
