@@ -24,6 +24,29 @@
   if (window._financeGuardLoaded) return;
   window._financeGuardLoaded = true;
 
+  // ── SOUND ALERT — guard RED হলে "tuk tuk" শব্দ ─────────
+  var _lastAlertTime = 0;
+  function _playAlert() {
+    var now = Date.now();
+    if (now - _lastAlertTime < 10000) return; // ১০ সেকেন্ডে একবারই
+    _lastAlertTime = now;
+    try {
+      var ctx = new (window.AudioContext || window.webkitAudioContext)();
+      // "tuk tuk" — দুইটা short beep
+      [0, 200].forEach(function(delay) {
+        var osc = ctx.createOscillator();
+        var gain = ctx.createGain();
+        osc.connect(gain);
+        gain.connect(ctx.destination);
+        osc.type = 'square';
+        osc.frequency.value = 800;
+        gain.gain.value = 0.15;
+        osc.start(ctx.currentTime + delay / 1000);
+        osc.stop(ctx.currentTime + delay / 1000 + 0.08);
+      });
+    } catch(e) { /* audio not supported */ }
+  }
+
   // ── Expected canonical values (finance-engine.js এর সাথে sync) ──
   var EXPECTED_INCOME_TYPES  = ['Income', 'Registration', 'Refund'];
   var EXPECTED_EXPENSE_TYPES = ['Expense', 'Salary', 'Rent', 'Utilities'];
@@ -166,6 +189,11 @@
 
     _updateDot(ok, issues.length + warnings.length);
 
+    // ✅ FIX: Sound alert when guard turns RED (data mismatch)
+    if (!ok && !_silenced) {
+      _playAlert();
+    }
+
     if (!silent) {
       if (ok && warnings.length === 0) {
         console.log('%c✅ [FinanceGuard] সব ঠিক আছে — Accounts integrity OK (' + fin.length + ' entries)', 'color:#00c853;font-weight:bold;');
@@ -199,16 +227,16 @@
     dot.textContent = '🛡️';
     dot.style.cssText = [
       'position:fixed',
-      'bottom:14px',
-      'right:14px',
-      'width:24px',
-      'height:24px',
+      'top:14px',
+      'right:50px',
+      'width:22px',
+      'height:22px',
       'border-radius:50%',
       'background:rgba(80,80,80,0.9)',
       'z-index:99999',
       'cursor:pointer',
       'transition:background 0.4s',
-      'font-size:13px',
+      'font-size:12px',
       'display:flex',
       'align-items:center',
       'justify-content:center',

@@ -106,6 +106,9 @@
     var tbody = document.getElementById(cfg.tbodyId);
     if (!tbody) return;
 
+    // ✅ FIX: observer re-trigger prevent
+    _patching[cfg.tbodyId] = true;
+
     var allRows = Array.from(tbody.querySelectorAll('tr'));
     if (allRows.length === 0) {
       // empty state — bar লুকাও
@@ -187,10 +190,16 @@
 
     ensurePaginationBar(cfg);
     showPage(1);
+
+    // ✅ FIX: patch complete — observer আবার fire করতে পারবে
+    _patching[cfg.tbodyId] = false;
   }
 
   // ── MUTATION OBSERVER: tbody content বদলালে re-patch ───────
   var _observers = {};
+
+  // ── PATCHING FLAG — prevent observer re-trigger ───────────
+  var _patching = {};
 
   function watchTbody(cfg) {
     // পুরনো observer বন্ধ করো
@@ -208,10 +217,12 @@
       var debounceTimer = null;
 
       var observer = new MutationObserver(function () {
+        // ✅ FIX: যদি এই moment এ patchTbody চলছে, observer ignore করো
+        if (_patching[cfg.tbodyId]) return;
         // debounce — render শেষ হওয়ার পরে patch করো
         clearTimeout(debounceTimer);
         debounceTimer = setTimeout(function () {
-          patchTbody(cfg);
+          if (!_patching[cfg.tbodyId]) patchTbody(cfg);
         }, 80);
       });
 
@@ -263,16 +274,20 @@
     });
 
     // switchTab hook — tab switch এ pagination bar re-init
+    // ✅ FIX: শুধুমাত্র page 1 এ থাকলে re-patch করো, user page 2+ এ গেলে reset করো না
     var origSwitchTab = window.switchTab;
     if (typeof origSwitchTab === 'function' && !origSwitchTab._wfPgPatched) {
       window.switchTab = function (tabName) {
         var result = origSwitchTab.apply(this, arguments);
-        // tab switch এর পরে সেই tab এর table patch করো
         setTimeout(function () {
           PATCH_TABLES.forEach(function (cfg) {
             var tbody = document.getElementById(cfg.tbodyId);
             if (tbody && tbody.querySelectorAll('tr').length > 0) {
-              patchTbody(cfg);
+              // শুধু তখনই re-patch করো যখন user page 1 এ আছে
+              var pg = window._wfPaginators && window._wfPaginators[cfg.tbodyId];
+              if (!pg || pg.currentPage <= 1) {
+                patchTbody(cfg);
+              }
             }
           });
         }, 200);
