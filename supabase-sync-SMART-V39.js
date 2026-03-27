@@ -700,6 +700,9 @@
             if (stuDelRows.length > 0) {
               const resDel = await _sb.from(CFG.TBL_STUDENTS).upsert(stuDelRows, { onConflict: 'id' });
               if (resDel && resDel.error) throw resDel.error;
+              // ✅ FIX: Push সফল হলে deletedItems থেকে clear করো — পুনরায় push না হয়
+              gd.deletedItems.students = [];
+              _log('🧹', `Cleared ${stuDelRows.length} student delete markers after push`);
             }
             _saveSnapshot('students', snapshot);
           };
@@ -748,6 +751,9 @@
             if (finDelRows.length > 0) {
               const resDel = await _sb.from(CFG.TBL_FINANCE).upsert(finDelRows, { onConflict: 'id' });
               if (resDel && resDel.error) throw resDel.error;
+              // ✅ FIX: Push সফল হলে deletedItems থেকে clear করো — পুনরায় push না হয়
+              gd.deletedItems.finance = [];
+              _log('🧹', `Cleared ${finDelRows.length} finance delete markers after push`);
             }
             _saveSnapshot('finance', finSnapshot);
           };
@@ -778,6 +784,8 @@
         _dirty.clear();
         NetworkQuality.recordSuccess();
         SyncFreshness.update();
+        // ✅ FIX: Push সফল হলে localStorage এ save করো — cleared deletedItems persist হবে
+        try { _saveLocal(); } catch(e) { _log('⚠️', 'saveLocal after push failed', e); }
         const totalPushed = stuPushed + finPushed;
         if (totalPushed === 0) { _log('✅', `Push OK (${reason}) v${_localVer} — no changes`); }
         else { _log('✅', `Push OK (${reason}) v${_localVer} — ${totalPushed} records`); }
