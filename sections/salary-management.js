@@ -196,6 +196,16 @@
                             <td style="color:#aaa;font-size:0.82rem;">${p.method || '—'}</td>
                             <td style="color:rgba(255,255,255,0.4);font-size:0.78rem;max-width:180px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;"
                                 title="${(p.description || '').replace(/"/g, '')}">${p.description || '—'}</td>
+                            <td style="white-space:nowrap;">
+                                <button class="btn btn-sm btn-outline-warning rounded-pill px-2 py-0" style="font-size:0.72rem;"
+                                    onclick="editSalaryPayment('${p.id}')" title="Edit">
+                                    <i class="bi bi-pencil-square"></i>
+                                </button>
+                                <button class="btn btn-sm btn-outline-danger rounded-pill px-2 py-0 ms-1" style="font-size:0.72rem;"
+                                    onclick="deleteSalaryPayment('${p.id}')" title="Delete">
+                                    <i class="bi bi-trash"></i>
+                                </button>
+                            </td>
                         </tr>`;
                 }).join('');
 
@@ -217,6 +227,7 @@
                                             <th style="padding:7px 12px;color:#6e8caa;font-weight:600;font-size:0.78rem;text-transform:uppercase;">Amount</th>
                                             <th style="padding:7px 12px;color:#6e8caa;font-weight:600;font-size:0.78rem;text-transform:uppercase;">Method</th>
                                             <th style="padding:7px 12px;color:#6e8caa;font-weight:600;font-size:0.78rem;text-transform:uppercase;">Notes</th>
+                                            <th style="padding:7px 12px;color:#6e8caa;font-weight:600;font-size:0.78rem;text-transform:uppercase;">Actions</th>
                                         </tr>
                                     </thead>
                                     <tbody>${histRows}</tbody>
@@ -275,7 +286,10 @@
     }
 
     function openSalaryModal(empId) {
-        const modalEl = document.getElementById('salaryModal');
+        var modalEl = document.getElementById('salaryModal');
+
+        // Clear any edit mode state
+        window._editingSalaryTxnId = null;
 
         // ── Script re-execution fix ──
         // modal এর parent container এ script re-run করো
@@ -443,6 +457,17 @@
         const salEmpName = document.getElementById('salEmpName');
         if (salEmpId)   salEmpId.value   = '';
         if (salEmpName) salEmpName.value = '';
+
+        // Reset modal title and confirm button to create mode
+        var titleEl = document.getElementById('salModalTitle');
+        if (titleEl) titleEl.textContent = '💰 Record Salary Payment';
+        var confirmBtn = document.getElementById('salConfirmBtn');
+        if (confirmBtn) {
+            confirmBtn.textContent = '💾 Confirm Payment';
+            confirmBtn.className = 'btn btn-success fw-bold px-4';
+            confirmBtn.style.cssText = '';
+        }
+        window._editingSalaryTxnId = null;
     }
 
     // ─────────────────────────────────────────────
@@ -465,6 +490,79 @@
             alert('সব required ফিল্ড পূরণ করুন।');
             return;
         }
+
+        // ── EDIT MODE ──
+        var editingId = window._editingSalaryTxnId;
+        if (editingId) {
+            if (!confirm(`${empName}-এর পেমেন্ট আপডেট করবেন? (৳${amount.toLocaleString()} ${type})`)) return;
+
+            var txnIdx = (gd.finance || []).findIndex(function(f) { return String(f.id) === String(editingId); });
+            if (txnIdx === -1) { alert('Transaction not found!'); return; }
+
+            var oldTxn = Object.assign({}, gd.finance[txnIdx]);
+
+            // Reverse old account balance
+            if (typeof window.feApplyEntryToAccount === 'function') {
+                window.feApplyEntryToAccount(oldTxn, -1);
+            }
+
+            // Determine new type fields
+            var isAdvance = type === 'Advance';
+            var label = type === 'Bonus' ? 'Bonus' : 'Salary';
+            var newType = isAdvance ? 'Advance' : 'Expense';
+            var newCategory = isAdvance ? 'Advance' : 'Salaries';
+            var newDesc = desc + (isAdvance ? ' [Advance]' : ' [' + label + ']') + ' (' + month + ')';
+
+            // Update the existing transaction
+            gd.finance[txnIdx] = Object.assign({}, gd.finance[txnIdx], {
+                date: date,
+                type: newType,
+                category: newCategory,
+                method: method,
+                amount: amount,
+                person: empName,
+                employeeId: empId,
+                description: newDesc
+            });
+
+            // Apply new account balance
+            if (typeof window.feApplyEntryToAccount === 'function') {
+                window.feApplyEntryToAccount(gd.finance[txnIdx], +1);
+            }
+
+            // Activity log
+            if (typeof window.logActivity === 'function') {
+                window.logActivity('salary', 'EDIT',
+                    'Salary payment edited: ৳' + (parseFloat(oldTxn.amount) || 0) + ' → ৳' + amount +
+                    ' | ' + empName + ' | ' + (oldTxn.date || '-') + ' → ' + date +
+                    ' | ' + type,
+                    { before: oldTxn, after: gd.finance[txnIdx] }
+                );
+            }
+
+            // Clear edit mode
+            window._editingSalaryTxnId = null;
+
+            if (window.markDirty)        window.markDirty('finance');
+            if (window.saveToStorage)    window.saveToStorage();
+            if (window.scheduleSyncPush) window.scheduleSyncPush('Edit Salary Payment');
+
+            bootstrap.Modal.getInstance(document.getElementById('salaryModal')).hide();
+            loadSalaryHub();
+
+            if (typeof window.showSuccessToast === 'function') {
+                window.showSuccessToast('✅ Payment updated successfully!');
+            }
+
+            // Refresh accounts
+            if (typeof window.renderAccMgmtList === 'function') window.renderAccMgmtList('Advance');
+            if (typeof window.renderAccountList === 'function') window.renderAccountList();
+            if (typeof window.renderCashBalance === 'function') window.renderCashBalance();
+            if (typeof window.updateGrandTotal === 'function') window.updateGrandTotal();
+            return;
+        }
+
+        // ── CREATE MODE ──
         if (!confirm(`${empName}-কে ${type} ৳${amount.toLocaleString()} পেমেন্ট করবেন?`)) return;
 
         if (!gd.finance) gd.finance = [];
@@ -666,6 +764,158 @@
             amountEl.value = '';
             amountEl.placeholder = type === 'Advance' ? 'Advance পরিমাণ' : 'Bonus পরিমাণ';
         }
+    };
+
+    // ─────────────────────────────────────────────
+    // EDIT SALARY PAYMENT
+    // ─────────────────────────────────────────────
+    window.editSalaryPayment = function (txnId) {
+        var gd = window.globalData || {};
+        var txn = (gd.finance || []).find(function(f) { return String(f.id) === String(txnId); });
+        if (!txn) { alert('Payment record not found!'); return; }
+
+        var modalEl = document.getElementById('salaryModal');
+        if (!modalEl) { alert('Salary modal not found!'); return; }
+
+        // Re-execute modal scripts if needed
+        if (!window._salaryModalScriptsReady) {
+            _reExecModalScripts(modalEl.parentElement || modalEl);
+            window._salaryModalScriptsReady = true;
+        }
+
+        _resetSalaryForm();
+
+        var allEmployees = (gd.employees || gd.staff || gd.hrEmployees || []);
+        var empSelect = document.getElementById('salEmpSelect');
+        if (empSelect) {
+            empSelect.innerHTML = '<option value="">-- Select Staff --</option>';
+            allEmployees
+                .filter(function(e) { return !e.resigned && e.status !== 'Resigned'; })
+                .sort(function(a, b) { return (a.name || '').localeCompare(b.name || ''); })
+                .forEach(function(e) {
+                    var opt = document.createElement('option');
+                    opt.value = e.id || e.empId || e.employeeId || e.name;
+                    opt.textContent = (e.name || '') + ' (' + (e.role || e.designation || 'Staff') + ')';
+                    opt.dataset.name = e.name;
+                    opt.dataset.salary = e.salary || e.basicSalary || 0;
+                    empSelect.appendChild(opt);
+                });
+            empSelect.onchange = _onEmpSelectChange;
+
+            // Set employee
+            var matchEmp = allEmployees.find(function(e) {
+                return e.name === txn.person || e.id === txn.employeeId ||
+                       e.empId === txn.employeeId || e.employeeId === txn.employeeId;
+            });
+            if (matchEmp) {
+                empSelect.value = matchEmp.id || matchEmp.empId || matchEmp.employeeId || matchEmp.name;
+            }
+        }
+
+        // Populate payment methods
+        var methodSel = document.getElementById('salMethod');
+        if (methodSel) {
+            methodSel.innerHTML = '<option value="Cash">💵 Cash</option>';
+            (gd.bankAccounts || []).forEach(function(b) {
+                var o = document.createElement('option');
+                o.value = b.name; o.textContent = '🏦 ' + b.name;
+                methodSel.appendChild(o);
+            });
+            (gd.mobileBanking || []).forEach(function(m) {
+                var o = document.createElement('option');
+                o.value = m.name; o.textContent = '📱 ' + m.name;
+                methodSel.appendChild(o);
+            });
+        }
+
+        // Fill form fields
+        document.getElementById('salEmpId').value = txn.employeeId || '';
+        document.getElementById('salEmpName').value = txn.person || '';
+        document.getElementById('salAmount').value = parseFloat(txn.amount) || 0;
+        document.getElementById('salDate').value = txn.date || '';
+        if (methodSel) methodSel.value = txn.method || 'Cash';
+        document.getElementById('salDescription').value = txn.description || '';
+
+        // Detect type from description
+        var desc = txn.description || '';
+        var editType = 'Due';
+        if (desc.includes('[Advance]')) editType = 'Advance';
+        else if (desc.includes('[Bonus]')) editType = 'Bonus';
+        window.setSalType(editType);
+
+        // Store editing ID
+        window._editingSalaryTxnId = String(txnId);
+
+        // Update modal title
+        var titleEl = document.getElementById('salModalTitle');
+        if (titleEl) titleEl.textContent = '✏️ Edit Salary Payment';
+
+        // Update confirm button
+        var confirmBtn = document.getElementById('salConfirmBtn');
+        if (confirmBtn) {
+            confirmBtn.textContent = '✏️ Update Payment';
+            confirmBtn.className = 'btn btn-warning fw-bold px-4';
+            confirmBtn.style.cssText = '';
+        }
+
+        bootstrap.Modal.getOrCreateInstance(modalEl).show();
+    };
+
+    // ─────────────────────────────────────────────
+    // DELETE SALARY PAYMENT
+    // ─────────────────────────────────────────────
+    window.deleteSalaryPayment = function (txnId) {
+        var gd = window.globalData || {};
+        var sid = String(txnId);
+        var txn = (gd.finance || []).find(function(f) { return String(f.id) === sid; });
+        if (!txn) { alert('Payment record not found!'); return; }
+
+        var amt = parseFloat(txn.amount) || 0;
+        var person = txn.person || 'Unknown';
+        if (!confirm(person + '-এর ৳' + amt.toLocaleString() + ' পেমেন্ট ডিলিট করবেন?')) return;
+
+        // Reverse account balance
+        if (typeof window.feApplyEntryToAccount === 'function') {
+            window.feApplyEntryToAccount(txn, -1);
+        }
+
+        // Move to trash
+        if (typeof window.moveToTrash === 'function') {
+            window.moveToTrash('salary_payment', txn);
+        }
+
+        // Activity log
+        if (typeof window.logActivity === 'function') {
+            window.logActivity('salary', 'DELETE',
+                'Salary payment deleted: ৳' + amt + ' — ' + person +
+                ' | ' + (txn.date || '-') + ' | ' + (txn.description || ''),
+                txn
+            );
+        }
+
+        // Remove from finance array
+        gd.finance = gd.finance.filter(function(f) { return String(f.id) !== sid; });
+
+        // Save
+        if (window.markDirty)        window.markDirty('finance');
+        if (window.saveToStorage)    window.saveToStorage();
+        if (window.scheduleSyncPush) window.scheduleSyncPush('Delete Salary Payment');
+
+        // Delete tracking
+        var dc = parseInt(localStorage.getItem('wings_total_deleted') || '0') + 1;
+        localStorage.setItem('wings_total_deleted', dc.toString());
+
+        loadSalaryHub();
+
+        if (typeof window.showSuccessToast === 'function') {
+            window.showSuccessToast('✅ Payment deleted successfully!');
+        }
+
+        // Refresh accounts
+        if (typeof window.renderAccMgmtList === 'function') window.renderAccMgmtList('Advance');
+        if (typeof window.renderAccountList === 'function') window.renderAccountList();
+        if (typeof window.renderCashBalance === 'function') window.renderCashBalance();
+        if (typeof window.updateGrandTotal === 'function') window.updateGrandTotal();
     };
 
     // ─────────────────────────────────────────────
