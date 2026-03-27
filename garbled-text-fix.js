@@ -111,6 +111,10 @@
           || document.querySelector('main');
         if (mainContent) mainContent.scrollTop = 0;
         window.scrollTo({ top: 0, behavior: 'instant' });
+
+        // ✅ FIX: Settings modal content area scroll to top
+        var settingsContent = document.querySelector('#settingsModal .flex-grow-1.overflow-auto');
+        if (settingsContent) settingsContent.scrollTop = 0;
       } catch (e) { /* ignore */ }
 
       return _origSwitchSettingsTab.apply(this, arguments);

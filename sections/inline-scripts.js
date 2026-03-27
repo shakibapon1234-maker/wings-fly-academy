@@ -198,6 +198,10 @@ function switchSettingsTab(tabId, btn) {
     if (tab) tab.style.display = 'block';
     // Activate button
     if (btn) btn.classList.add('active');
+
+    // ✅ FIX: Settings modal content area scroll to top on tab switch
+    var settingsContent = document.querySelector('#settingsModal .flex-grow-1.overflow-auto');
+    if (settingsContent) settingsContent.scrollTop = 0;
 }
 window.switchSettingsTab = switchSettingsTab;
 

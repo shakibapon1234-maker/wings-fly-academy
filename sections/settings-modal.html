@@ -126,6 +126,10 @@
                                     onclick="switchSettingsTab('tab-monitor', this); if(typeof window.renderMonitor === 'function') window.renderMonitor();">
                                     <span>📡</span> Monitor
                                 </button>
+                                <button class="nav-link nav-link-advance-quick" type="button"
+                                    onclick="switchSettingsTab('tab-advance-quick', this); if(typeof window.renderAdvanceQuick === 'function') window.renderAdvanceQuick();">
+                                    <span>💼</span> Advance & Investment
+                                </button>
                             </div>
                             <div class="mt-auto pt-4 text-center">
                                 <button type="submit" class="btn btn-primary w-100 py-2 shadow-sm">
@@ -2052,12 +2056,26 @@
                                     </button>
                                 </div>
 
+                                <!-- Balance Snapshot Panel (TOP — always visible with default state) -->
+                                <div id="monitorSnapshot" style="display:block;">
+                                    <div class="d-flex justify-content-between align-items-center mb-3">
+                                        <h6 class="fw-bold mb-0" style="color:#00d9ff;">
+                                            <i class="bi bi-camera"></i> Balance Snapshot — <span id="monitorSnapshotDate">Current State</span>
+                                        </h6>
+                                    </div>
+                                    <div id="monitorSnapshotCards" class="row g-3 mb-3">
+                                        <!-- Cards render here -->
+                                    </div>
+                                    <div id="monitorSnapshotGrand" class="text-end fw-bold mb-4" style="font-size:1.1rem; color:#ffd700;">
+                                    </div>
+                                </div>
+
                                 <p class="text-muted mb-3" style="font-size:0.85rem;">
-                                    লাস্ট ১০টা financial transaction দেখাবে। যেকোনো transaction এ ক্লিক করলে সেই সময়কার <strong>Account Balance Snapshot</strong> দেখাবে — data mismatch ধরার জন্য।
+                                    লাস্ট ১০টা financial transaction। যেকোনো transaction এ ক্লিক করলে উপরে সেই সময়কার <strong>Account Balance Snapshot</strong> দেখাবে।
                                 </p>
 
-                                <!-- Last 10 Transactions Table -->
-                                <div class="table-responsive mb-4" style="border-radius:10px; overflow:hidden; border:1px solid rgba(255,255,255,0.08);">
+                                <!-- Last 10 Transactions Table (BOTTOM) -->
+                                <div class="table-responsive" style="border-radius:10px; overflow:hidden; border:1px solid rgba(255,255,255,0.08);">
                                     <table class="table table-dark table-hover mb-0" style="font-size:0.85rem;">
                                         <thead style="background:rgba(0,217,255,0.08);">
                                             <tr>
@@ -2075,22 +2093,42 @@
                                         </tbody>
                                     </table>
                                 </div>
+                            </div><!-- /tab-monitor -->
 
-                                <!-- Balance Snapshot Panel (shown when a transaction is clicked) -->
-                                <div id="monitorSnapshot" style="display:none;">
+                            <!-- Tab 12: Advance & Investment -->
+                            <div class="settings-tab-pane" id="tab-advance-quick" style="display:none; padding:24px;">
+                                <div class="d-flex justify-content-between align-items-center mb-4">
+                                    <h5 class="fw-bold mb-0" style="color:var(--primary);">💼 Advance & Investment</h5>
+                                </div>
+
+                                <!-- Advance Section -->
+                                <div class="mb-4">
                                     <div class="d-flex justify-content-between align-items-center mb-3">
-                                        <h6 class="fw-bold mb-0" style="color:#00d9ff;">
-                                            <i class="bi bi-camera"></i> Balance Snapshot — <span id="monitorSnapshotDate"></span>
-                                        </h6>
-                                        <button class="btn btn-sm btn-outline-secondary" onclick="document.getElementById('monitorSnapshot').style.display='none';">✕ Close</button>
+                                        <h6 class="fw-bold mb-0" style="color:#00d4aa;">🟢 Advance Payment</h6>
+                                        <button class="btn btn-sm rounded-pill px-3 fw-bold" onclick="openAccMgmtAddModal('Advance')" style="background:linear-gradient(135deg,#00d4aa,#00a88a);color:#fff;border:none;">
+                                            + Add Advance
+                                        </button>
                                     </div>
-                                    <div id="monitorSnapshotCards" class="row g-3 mb-3">
-                                        <!-- Cards render here -->
-                                    </div>
-                                    <div id="monitorSnapshotGrand" class="text-end fw-bold" style="font-size:1.1rem; color:#ffd700;">
+                                    <div id="advanceQuickList">
+                                        <div class="text-center text-muted py-4">Loading...</div>
                                     </div>
                                 </div>
-                            </div><!-- /tab-monitor -->
+
+                                <hr style="border-color:rgba(255,255,255,0.08);">
+
+                                <!-- Investment Section -->
+                                <div class="mt-4">
+                                    <div class="d-flex justify-content-between align-items-center mb-3">
+                                        <h6 class="fw-bold mb-0" style="color:#ffd200;">🌟 Investment</h6>
+                                        <button class="btn btn-sm rounded-pill px-3 fw-bold" onclick="openAccMgmtAddModal('Investment')" style="background:linear-gradient(135deg,#ffd200,#ff9f43);color:#1a1000;border:none;">
+                                            + Add Investment
+                                        </button>
+                                    </div>
+                                    <div id="investQuickList">
+                                        <div class="text-center text-muted py-4">Loading...</div>
+                                    </div>
+                                </div>
+                            </div><!-- /tab-advance-quick -->
 
                         </div><!-- /tab-content -->
                     </div><!-- /flex-grow-1 content area -->
@@ -2611,10 +2649,57 @@
         });
         tbody.innerHTML = rows;
 
-        // Hide snapshot panel
-        var snap = document.getElementById('monitorSnapshot');
-        if (snap) snap.style.display = 'none';
+        // Show current state snapshot by default
+        _renderCurrentSnapshot();
     };
+
+    // ── RENDER CURRENT STATE SNAPSHOT ─────────────────────────
+    function _renderCurrentSnapshot() {
+        var gd = window.globalData || {};
+        var snapDate = document.getElementById('monitorSnapshotDate');
+        if (snapDate) snapDate.textContent = 'Current State';
+
+        // Use actual current balances (already maintained by finance-engine)
+        var cashBal = parseFloat(gd.cashBalance) || 0;
+        var cardsHtml = '';
+
+        // Cash card
+        cardsHtml += '<div class="col-6 col-md-3">'
+            + '<div class="rounded-3 p-3 text-center h-100" style="background:rgba(0,217,255,0.06); border:1px solid rgba(0,217,255,0.2);">'
+            + '<div style="font-size:0.78rem; color:#6e8caa;">💵 Cash</div>'
+            + '<div class="fw-bold mt-1" style="font-size:1.2rem; color:' + (cashBal >= 0 ? '#00d9ff' : '#ff5252') + ';">৳' + cashBal.toLocaleString() + '</div>'
+            + '</div></div>';
+
+        // Bank accounts
+        (gd.bankAccounts || []).forEach(function(a) {
+            var b = parseFloat(a.balance) || 0;
+            cardsHtml += '<div class="col-6 col-md-3">'
+                + '<div class="rounded-3 p-3 text-center h-100" style="background:rgba(255,193,7,0.06); border:1px solid rgba(255,193,7,0.2);">'
+                + '<div style="font-size:0.78rem; color:#6e8caa;">🏦 ' + a.name + '</div>'
+                + '<div class="fw-bold mt-1" style="font-size:1.2rem; color:' + (b >= 0 ? '#ffd700' : '#ff5252') + ';">৳' + b.toLocaleString() + '</div>'
+                + '</div></div>';
+        });
+
+        // Mobile banking
+        (gd.mobileBanking || []).forEach(function(a) {
+            var m = parseFloat(a.balance) || 0;
+            cardsHtml += '<div class="col-6 col-md-3">'
+                + '<div class="rounded-3 p-3 text-center h-100" style="background:rgba(156,39,176,0.06); border:1px solid rgba(156,39,176,0.2);">'
+                + '<div style="font-size:0.78rem; color:#6e8caa;">📱 ' + a.name + '</div>'
+                + '<div class="fw-bold mt-1" style="font-size:1.2rem; color:' + (m >= 0 ? '#ce93d8' : '#ff5252') + ';">৳' + m.toLocaleString() + '</div>'
+                + '</div></div>';
+        });
+
+        var snapshotCards = document.getElementById('monitorSnapshotCards');
+        if (snapshotCards) snapshotCards.innerHTML = cardsHtml;
+
+        // Grand total
+        var grandTotal = cashBal;
+        (gd.bankAccounts || []).forEach(function(a) { grandTotal += (parseFloat(a.balance) || 0); });
+        (gd.mobileBanking || []).forEach(function(a) { grandTotal += (parseFloat(a.balance) || 0); });
+        var grandEl = document.getElementById('monitorSnapshotGrand');
+        if (grandEl) grandEl.innerHTML = 'Grand Total: <span style="color:' + (grandTotal >= 0 ? '#00e676' : '#ff5252') + ';">৳' + grandTotal.toLocaleString() + '</span>';
+    }
 
     // ── SHOW BALANCE SNAPSHOT ────────────────────────────────
     window._monitorShowSnapshot = function(rowIndex) {
@@ -2756,6 +2841,66 @@
     };
 
     console.log('✅ Monitor tab logic loaded');
+
+    // ══════════════════════════════════════════════════════
+    // ADVANCE & INVESTMENT QUICK TAB
+    // ══════════════════════════════════════════════════════
+    window.renderAdvanceQuick = function() {
+        _renderAdvanceQuickList('Advance', 'advanceQuickList', '#00d4aa');
+        _renderAdvanceQuickList('Investment', 'investQuickList', '#ffd200');
+    };
+
+    function _renderAdvanceQuickList(type, containerId, color) {
+        var gd = window.globalData || {};
+        var container = document.getElementById(containerId);
+        if (!container) return;
+
+        var retType = type === 'Advance' ? 'Advance Return' : 'Investment Return';
+        var records = {};
+        var finance = (gd.finance || []).filter(function(f) { return !f._deleted; });
+
+        finance.forEach(function(f) {
+            if (f.type !== type && f.type !== retType) return;
+            var person = f.person || 'Unknown';
+            if (!records[person]) records[person] = { given: 0, returned: 0, txns: [] };
+
+            if (f.type === type) records[person].given += (parseFloat(f.amount) || 0);
+            else records[person].returned += (parseFloat(f.amount) || 0);
+            records[person].txns.push(f);
+        });
+
+        var people = Object.keys(records).sort();
+        if (people.length === 0) {
+            container.innerHTML = '<div class="text-center text-muted py-3" style="font-size:0.85rem;">কোনো ' + type + ' record নেই</div>';
+            return;
+        }
+
+        var html = '<div class="row g-2">';
+        people.forEach(function(p) {
+            var r = records[p];
+            var net = r.given - r.returned;
+            var statusText = net > 0 ? 'বকেয়া: ৳' + net.toLocaleString() : 'Settled';
+            var statusColor = net > 0 ? color : '#666';
+
+            html += '<div class="col-md-4 col-lg-3">'
+                + '<div class="rounded-3 p-3" style="background:rgba(255,255,255,0.03); border:1px solid rgba(255,255,255,0.08);">'
+                + '<div class="d-flex align-items-center mb-2">'
+                + '<span class="rounded-circle d-inline-flex align-items-center justify-content-center me-2" style="width:36px;height:36px;background:rgba(' + (type==='Advance'?'0,212,170':'255,210,0') + ',0.15);color:' + color + ';font-weight:700;font-size:0.9rem;">' + p.charAt(0).toUpperCase() + '</span>'
+                + '<span class="fw-bold" style="font-size:0.9rem;">' + p + '</span>'
+                + '</div>'
+                + '<div class="d-flex justify-content-between" style="font-size:0.78rem;color:#888;">'
+                + '<span>Given: ৳' + r.given.toLocaleString() + '</span>'
+                + '<span>Return: ৳' + r.returned.toLocaleString() + '</span>'
+                + '</div>'
+                + '<div class="mt-2 fw-bold" style="font-size:0.85rem;color:' + statusColor + ';">' + statusText + '</div>'
+                + (net > 0 ? '<button class="btn btn-sm w-100 mt-2 rounded-pill" onclick="openAccMgmtReturnModal(\'' + type + '\',\'' + p.replace(/'/g, "\\'") + '\')" style="background:rgba(' + (type==='Advance'?'0,212,170':'255,210,0') + ',0.1);color:' + color + ';border:1px solid ' + color + ';font-size:0.75rem;">↩️ Return</button>' : '')
+                + '</div></div>';
+        });
+        html += '</div>';
+        container.innerHTML = html;
+    }
+
+    console.log('✅ Advance Quick tab logic loaded');
 })();
 </script>
 
