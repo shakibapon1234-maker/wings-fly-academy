@@ -565,12 +565,39 @@
     } catch(e) { /* ignore */ }
     if (Egress.hardThrottled() && !_online) { _log('🛑', 'Hard egress limit (Offline) — push blocked'); return false; }
 
+    // ✅ FIX: Data validation before push — corrupt data push হওয়া বন্ধ করো
+    var gd = window.globalData;
+    if (!Array.isArray(gd.students) || !Array.isArray(gd.finance)) {
+      _log('🛑', 'Data validation FAILED — students/finance not arrays, push blocked');
+      return false;
+    }
+    // If we had known data before, local shouldn't be drastically smaller
+    var _knownFin = parseInt(localStorage.getItem('wings_last_known_finance')) || 0;
+    var _knownStu = parseInt(localStorage.getItem('wings_last_known_count')) || 0;
+    if (_knownFin > 20 && gd.finance.length < _knownFin * 0.5) {
+      _log('🛑', 'Data validation WARNING — finance dropped from ' + _knownFin + ' to ' + gd.finance.length + ', push blocked. Use wingsSync.forcePush() to override.');
+      return false;
+    }
+    if (_knownStu > 10 && gd.students.length < _knownStu * 0.5) {
+      _log('🛑', 'Data validation WARNING — students dropped from ' + _knownStu + ' to ' + gd.students.length + ', push blocked. Use wingsSync.forcePush() to override.');
+      return false;
+    }
+
     _pushing = true;
     _syncBusy = true;
     clearTimeout(_debounce);
     _debounce = null;
 
     try {
+      // ✅ FIX: Pre-push backup — push এর আগে data save করো
+      // যদি push fail করে বা corrupt হয়, এই backup থেকে restore করা যাবে
+      try {
+        var _prePushBackup = JSON.stringify(window.globalData);
+        if (_prePushBackup && _prePushBackup.length > 100) {
+          localStorage.setItem('wingsfly_pre_push_backup', _prePushBackup);
+        }
+      } catch(e) { /* quota exceeded — skip silently */ }
+
       Egress.inc();
 
       // ✅ V39: Ensure deletedItems before push

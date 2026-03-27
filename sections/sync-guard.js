@@ -271,7 +271,7 @@
     dot.style.cssText = [
       'position:fixed',
       'bottom:16px',
-      'left:36px',
+      'right:36px',
       'width:12px',
       'height:12px',
       'border-radius:50%',
