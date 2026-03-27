@@ -1904,6 +1904,10 @@ WINGS FLY AVIATION ACADEMY — Management System
     <script src="sections/salary-management.js?v=20260313_1900"></script>
 
     <!-- Phase 2: Finance Module -->
+    <!-- ✅ CRITICAL: finance-engine MUST load FIRST — canonical rules for all stats/balances -->
+    <!-- This defines: feApplyEntryToAccount, feCalcStats, etc. used by all other modules -->
+    <script src="sections/finance-engine.js?v=20260308_0001"></script>
+    
     <script src="sections/ledger-render.js?v=20260307_1130"></script>
     <script src="sections/finance-crud.js?v=20260306_1450"></script>
     <script src="sections/finance-helpers.js?v=20260308_1900"></script>
@@ -1913,19 +1917,17 @@ WINGS FLY AVIATION ACADEMY — Management System
     <script src="sections/table-pagination.js?v=20260315_0100"></script>
     <script src="sections/student-management.js?v=20260307_2135"></script>
     <!-- Phase 4: Dashboard, Accounts, Search, Keep Records -->
-    <!-- ✅ finance-engine MUST load first — canonical rules for all stats/balances -->
-    <script src="sections/finance-engine.js?v=20260308_0001"></script>
     <!-- 📊 Analytics Print Module (External for CSP compatibility) -->
     <script src="sections/analytics-print.js?v=20260325_1000"></script>
     <script src="sections/dashboard-stats.js?v=20260226_1800"></script>
     <script src="sections/accounts-management.js?v=20260315_0030"></script>
     <script src="sections/account-search.js?v=20260226_1800"></script>
-
+    <script src="sections/keep-records.js?v=20260226_1800"></script>
+    
     <!-- Modal Placeholders (Required for Lazy Loading) -->
     <div id="__modalPlaceholderSettings"></div>
     <div id="__modalPlaceholderOther"></div>
 
-    <script src="sections/keep-records.js?v=20260226_1800"></script>
     <!-- Phase 5: Activity Log, Auth, ID Card, Notifications -->
     <script src="sections/activity-log.js?v=20260306_1450"></script>
     

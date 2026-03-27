@@ -428,6 +428,10 @@ async function handleTransferSubmit(e) {
     rowIndex: globalData.finance.length + 1
   };
   globalData.finance.push(transferOut);
+  // ✅ FIX: Apply to account balance using canonical function
+  if (typeof window.feApplyEntryToAccount === 'function') {
+    window.feApplyEntryToAccount(transferOut, +1);
+  }
 
   const transferIn = {
     date: date,
@@ -440,6 +444,10 @@ async function handleTransferSubmit(e) {
     rowIndex: globalData.finance.length + 1
   };
   globalData.finance.push(transferIn);
+  // ✅ FIX: Apply to account balance using canonical function
+  if (typeof window.feApplyEntryToAccount === 'function') {
+    window.feApplyEntryToAccount(transferIn, +1);
+  }
 
   bootstrap.Modal.getInstance(document.getElementById('transferModal')).hide();
   await saveToStorage();
