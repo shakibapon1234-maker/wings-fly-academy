@@ -141,6 +141,10 @@
         if (syncStatus && syncStatus.busy) {
           warnings.push('Sync appears busy/stuck — may need manual reset');
         }
+        // V39: Check egress throttle
+        if (syncStatus && (syncStatus.egressToday ?? syncStatus.egress) >= 500) {
+          issues.push('Egress hard-throttled (' + (syncStatus.egressToday ?? syncStatus.egress) + ' requests) — Cloud sync বন্ধ');
+        }
       } catch (e) { /* ignore */ }
     }
 

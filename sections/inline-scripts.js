@@ -522,7 +522,7 @@ window.switchSettingsTab = switchSettingsTab;
         } else {
             rows = pageItems.map(function (h) {
                 var d = new Date(h.timestamp);
-                var dateStr = d.toLocaleDateString('en-BD', { day: '2-digit', month: 'short', year: 'numeric' });
+                var dateStr = (typeof window.formatPrintDate === 'function') ? window.formatPrintDate(d) : d.toLocaleDateString('en-BD', { day: '2-digit', month: 'short', year: 'numeric' });
                 var timeStr = d.toLocaleTimeString('en-BD', { hour: '2-digit', minute: '2-digit' });
                 var icon = icons[(h.type || '').toLowerCase()] || '📝';
                 var valid = ['ADD', 'EDIT', 'DELETE', 'LOGIN', 'LOGOUT', 'PAYMENT', 'SETTINGS', 'RESTORE'];

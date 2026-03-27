@@ -1314,7 +1314,7 @@ function renderAccMgmtList(type) {
 
     // Latest txn date
     var latestDate = r.txns[0] && r.txns[0].date
-      ? new Date(r.txns[0].date).toLocaleDateString('en-GB',{day:'2-digit',month:'short',year:'numeric'})
+      ? (typeof window.formatPrintDate === 'function' ? window.formatPrintDate(new Date(r.txns[0].date)) : new Date(r.txns[0].date).toLocaleDateString('en-GB',{day:'2-digit',month:'short',year:'numeric'}))
       : '—';
 
     // Build ledger rows HTML
@@ -1322,7 +1322,7 @@ function renderAccMgmtList(type) {
       var isRet    = f.type === returnType;
       var amtColor = isRet ? '#00e676' : '#ff5370';
       var dateStr  = f.date
-        ? new Date(f.date).toLocaleDateString('en-GB',{day:'2-digit',month:'short',year:'numeric'})
+        ? (typeof window.formatPrintDate === 'function' ? window.formatPrintDate(new Date(f.date)) : new Date(f.date).toLocaleDateString('en-GB',{day:'2-digit',month:'short',year:'numeric'}))
         : '—';
       var typePill = isRet
         ? '<span style="background:rgba(0,230,118,0.15);border:1px solid rgba(0,230,118,0.3);color:#00e676;font-size:0.7rem;padding:2px 8px;border-radius:20px;">↩ Return</span>'

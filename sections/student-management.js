@@ -223,10 +223,10 @@ function renderLedger(transactions) {
   }
 
   // ✅ FIX: Date অনুযায়ী sort করো — latest date সবার উপরে
-  // (simple reverse নয়, কারণ পুরনো date দিয়ে entry করলে সেটা সঠিক position এ যাবে)
+  // getSortableDate দিয়ে সব format (DD-MM-YYYY, YYYY-MM-DD) সঠিকভাবে sort হবে
   const displayItems = [...transactions].sort(function(a, b) {
-    var da = String(a.date || a.createdAt || '').slice(0, 10);
-    var db = String(b.date || b.createdAt || '').slice(0, 10);
+    var da = (typeof window.getSortableDate === 'function') ? window.getSortableDate(a.date || a.createdAt || '') : String(a.date || a.createdAt || '').slice(0, 10);
+    var db = (typeof window.getSortableDate === 'function') ? window.getSortableDate(b.date || b.createdAt || '') : String(b.date || b.createdAt || '').slice(0, 10);
     if (db > da) return 1;
     if (db < da) return -1;
     // Same date হলে id (timestamp) দিয়ে sort — নতুনটা আগে
@@ -247,7 +247,7 @@ function renderLedger(transactions) {
     const amtClass = isStatIncome ? 'text-success' : isStatExpense ? 'text-danger' : 'text-info';
     return `
       <tr>
-        <td>${f.date || 'N/A'}</td>
+        <td>${(typeof window.displayDate === 'function' ? window.displayDate(f.date) : (f.date || 'N/A'))}</td>
         <td><span class="badge ${f.type.includes('Transfer') ? 'bg-warning' : 'bg-light text-dark border'}">${f.type}</span></td>
         <td class="fw-bold">${f.method || 'Cash'}</td>
         <td>${f.category || 'N/A'}</td>
@@ -2390,7 +2390,7 @@ function generateStudentId(batchName) {
           <div class="item"><div class="lbl">Course</div><div class="val">${course}</div></div>
           ${label ? `<div class="item"><div class="lbl">Session</div><div class="val">${label}</div></div>` : ''}
           <div class="item"><div class="lbl">Students</div><div class="val">${students.length}</div></div>
-          <div class="item"><div class="lbl">Generated</div><div class="val">${new Date().toLocaleDateString()}</div></div>
+          <div class="item"><div class="lbl">Generated</div><div class="val">${(typeof window.formatDate === 'function' ? window.formatDate(new Date()) : new Date().toLocaleDateString())}</div></div>
         </div>
         <div class="legend">
           <span style="background:#e6f9f0;color:#006d35;">P = Present</span>
@@ -2472,7 +2472,7 @@ function generateStudentId(batchName) {
 <body>
   <div class="print-header">
     <h2>✈ Wings Fly Aviation Academy</h2>
-    <p>${activeTabName} — Printed on ${new Date().toLocaleDateString('en-BD')}</p>
+    <p>${activeTabName} — Printed on ${(typeof window.formatDate === 'function' ? window.formatDate(new Date()) : new Date().toLocaleDateString('en-BD'))}</p>
   </div>
   ${contentHtml}
   <script>window.onload = function(){ window.print(); setTimeout(()=>window.close(), 1000); }<\/script>

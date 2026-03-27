@@ -872,7 +872,7 @@
     } else {
       rows = filtered.map(function (d) {
         var dt = new Date(d.deletedAt);
-        var dateStr = isNaN(dt) ? '—' : dt.toLocaleDateString('en-BD', { day: '2-digit', month: 'short', year: 'numeric' });
+        var dateStr = isNaN(dt) ? '—' : (typeof window.formatPrintDate === 'function' ? window.formatPrintDate(dt) : dt.toLocaleDateString('en-BD', { day: '2-digit', month: 'short', year: 'numeric' }));
         var timeStr = isNaN(dt) ? '' : dt.toLocaleTimeString('en-BD', { hour: '2-digit', minute: '2-digit' });
         var tl = (d.type || '').toLowerCase();
         var icon = icons[tl] || '📄';
@@ -1007,7 +1007,7 @@
     } else {
       rows = filtered.slice(0, 200).map(function (h) {
         var d = new Date(h.timestamp);
-        var dateStr = isNaN(d) ? '—' : d.toLocaleDateString('en-BD', { day: '2-digit', month: 'short', year: 'numeric' });
+        var dateStr = isNaN(d) ? '—' : (typeof window.formatPrintDate === 'function' ? window.formatPrintDate(d) : d.toLocaleDateString('en-BD', { day: '2-digit', month: 'short', year: 'numeric' }));
         var timeStr = isNaN(d) ? '' : d.toLocaleTimeString('en-BD', { hour: '2-digit', minute: '2-digit' });
         var tl = (h.type || '').toLowerCase();
         var icon = typeIcons[tl] || '📝';

@@ -59,7 +59,7 @@ function populateDropdowns() {
     const financeMethodSelect = document.getElementById('financeMethodSelect');
     const pmtNewMethod = document.getElementById('pmtNewMethod');
 
-    const methods = globalData.paymentMethods || ['Cash', 'Bkash', 'Nogod', 'Bank'];
+    const methods = globalData.paymentMethods || ['Cash', 'Bkash', 'Nagad', 'Bank Transfer'];
 
     [studentMethodSelect, financeMethodSelect, pmtNewMethod].forEach(select => {
         if (select) {

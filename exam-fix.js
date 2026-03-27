@@ -70,7 +70,7 @@ function populateExamModal() {
   // ── Payment method select ──
   const methodSel = document.getElementById('examPaymentMethodSelect');
   if (methodSel) {
-    const methods = (window.globalData && window.globalData.paymentMethods) || ['Cash', 'Bkash', 'Nagad', 'Bank'];
+    const methods = (window.globalData && window.globalData.paymentMethods) || ['Cash', 'Bkash', 'Nagad', 'Bank Transfer'];
     const bankAccounts = (window.globalData && window.globalData.bankAccounts) || [];
     const mobileBanking = (window.globalData && window.globalData.mobileBanking) || [];
 
@@ -561,7 +561,7 @@ function printExamResults() {
       ${session?' | Session: <strong>'+session+'</strong>':''}
       ${subject?' | Subject: <strong>'+subject+'</strong>':''}
       ${dateFrom||dateTo?' | Date: <strong>'+(dateFrom||'Start')+' → '+(dateTo||'Today')+'</strong>':''}
-      &nbsp;|&nbsp; Printed: <strong>${new Date().toLocaleDateString()}</strong>
+      &nbsp;|&nbsp; Printed: <strong>${(typeof window.formatDate === 'function' ? window.formatDate(new Date()) : new Date().toLocaleDateString())}</strong>
     </div>
     <table>
       <thead><tr>

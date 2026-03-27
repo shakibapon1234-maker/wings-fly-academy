@@ -571,7 +571,7 @@ function printAllAccountsReport() {
   <style>body{font-family:Arial;padding:20px}h2{border-bottom:2px solid #333;padding-bottom:8px}.cards{display:flex;gap:12px;margin:12px 0;flex-wrap:wrap}.card{border:1px solid #ccc;border-radius:8px;padding:10px 16px;text-align:center}.label{font-size:0.7rem;color:#666;text-transform:uppercase}.val{font-size:1.1rem;font-weight:700}table{width:100%;border-collapse:collapse;margin-top:12px}th,td{border:1px solid #ddd;padding:8px;font-size:0.82rem}th{background:#333;color:#fff}.totals{margin-top:12px;background:#f5f5f5;padding:10px;border-radius:6px}@media print{button{display:none}}</style>
   </head><body>
   <h2>🏛️ All Accounts Report</h2>
-  <div>Date: ${new Date().toLocaleDateString()}${dateFrom || dateTo ? ' | ' + (dateFrom || 'Start') + ' → ' + (dateTo || 'Today') : ''}</div>
+  <div>Date: ${(typeof window.formatDate === 'function' ? window.formatDate(new Date()) : new Date().toLocaleDateString())}${dateFrom || dateTo ? ' | ' + (dateFrom || 'Start') + ' → ' + (dateTo || 'Today') : ''}</div>
   <div class="cards">
     <div class="card"><div class="label">Cash</div><div class="val">৳${fmt(cashBal)}</div></div>
     <div class="card"><div class="label">Bank</div><div class="val">৳${fmt(bankBal)}</div></div>
@@ -627,7 +627,7 @@ function printAccountReport() {
         ${accountType === 'mobile' ? `<strong>Account No:</strong> ${accountData.accountNo}<br>` : ''}
         <strong>Current Balance:</strong> ৳${formatNumber(accountData.balance || 0)}<br>
         ${dateFrom || dateTo ? `<strong>Date Range:</strong> ${dateFrom || 'Beginning'} to ${dateTo || 'Today'}<br>` : ''}
-        <strong>Report Date:</strong> ${new Date().toLocaleDateString()}
+        <strong>Report Date:</strong> ${(typeof window.formatDate === 'function' ? window.formatDate(new Date()) : new Date().toLocaleDateString())}
       </div>
 
       <table>

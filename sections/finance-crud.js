@@ -995,7 +995,7 @@ function printStudentPaymentHistory(rowIndex) {
     rows = '<tr><td colspan="4" style="text-align:center;">No payments recorded yet.</td></tr>';
   }
 
-  const printDate = new Date().toLocaleDateString('en-GB', { day: 'numeric', month: 'short', year: 'numeric' });
+  const printDate = (typeof window.formatPrintDate === 'function') ? window.formatPrintDate(new Date()) : new Date().toLocaleDateString('en-GB', { day: 'numeric', month: 'short', year: 'numeric' });
 
   const printWindow = window.open('', '_blank', 'width=800,height=600');
   printWindow.document.write(`

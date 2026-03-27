@@ -179,5 +179,49 @@
         return window.formatDate(date, 'YYYY-MM-DD');
     };
 
+    // ─────────────────────────────────────────────
+    // DISPLAY ANY DATE INPUT: Handles Date objects,
+    // ISO strings, DD-MM-YYYY, timestamps, etc.
+    // Always returns DD-MM-YYYY for user display
+    // ─────────────────────────────────────────────
+    window.formatDisplayDate = function(input) {
+        if (!input) return '—';
+        
+        // Already a valid DD-MM-YYYY string
+        if (typeof input === 'string' && /^\d{2}-\d{2}-\d{4}$/.test(input)) {
+            return input;
+        }
+        
+        // Try parseDate first (handles DD-MM-YYYY and YYYY-MM-DD)
+        var date = window.parseDate(input);
+        if (date && !isNaN(date.getTime())) {
+            return window.formatDate(date);
+        }
+        
+        // Try as Date object
+        if (input instanceof Date && !isNaN(input.getTime())) {
+            return window.formatDate(input);
+        }
+        
+        // Try native Date parsing (for ISO strings, timestamps)
+        var d = new Date(input);
+        if (!isNaN(d.getTime())) {
+            return window.formatDate(d);
+        }
+        
+        // Fallback: return as-is but truncated
+        return String(input).slice(0, 10);
+    };
+
+    // ─────────────────────────────────────────────
+    // FORMAT DATE FOR PRINT/EXPORT: "15 Mar 2026"
+    // ─────────────────────────────────────────────
+    window.formatPrintDate = function(input) {
+        var date = input instanceof Date ? input : (window.parseDate(input) || new Date(input));
+        if (!date || isNaN(date.getTime())) return '—';
+        var months = ['Jan','Feb','Mar','Apr','May','Jun','Jul','Aug','Sep','Oct','Nov','Dec'];
+        return String(date.getDate()).padStart(2,'0') + ' ' + months[date.getMonth()] + ' ' + date.getFullYear();
+    };
+
     console.log('✅ date-formatter.js loaded — All dates will use DD-MM-YYYY format');
 })();

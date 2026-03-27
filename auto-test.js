@@ -1236,9 +1236,12 @@
         issues.push('⚠️ initialSyncComplete = false — Cloud sync হয়নি');
 
       // Check 7: Egress throttle check
-      const eg = window.wingsSync.getStatus?.();
-      if (eg >= 200) issues.push(`❌ Egress throttled (${eg} req) — Cloud pull বন্ধ`);
-      else if (eg >= 150) issues.push(`⚠️ Egress high: ${eg} requests আজকে`);
+      try {
+        const egressInfo = typeof ws.getEgressInfo === 'function' ? ws.getEgressInfo() : null;
+        const egCount = egressInfo?.count ?? (typeof ws.getStatus === 'function' ? (ws.getStatus().egressToday ?? ws.getStatus().egress ?? 0) : 0);
+        if (egCount >= 200) issues.push(`❌ Egress throttled (${egCount} req) — Cloud pull বন্ধ`);
+        else if (egCount >= 150) issues.push(`⚠️ Egress high: ${egCount} requests আজকে`);
+      } catch(e) { /* silent */ }
 
       // Check 8: Version staleness
       try {

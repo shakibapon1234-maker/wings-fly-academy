@@ -952,7 +952,7 @@
           <div class="item"><div class="lbl">Course</div><div class="val">${course}</div></div>
           ${label ? `<div class="item"><div class="lbl">Session</div><div class="val">${label}</div></div>` : ''}
           <div class="item"><div class="lbl">Students</div><div class="val">${students.length}</div></div>
-          <div class="item"><div class="lbl">Generated</div><div class="val">${new Date().toLocaleDateString()}</div></div>
+          <div class="item"><div class="lbl">Generated</div><div class="val">${(typeof window.formatDate === 'function' ? window.formatDate(new Date()) : new Date().toLocaleDateString())}</div></div>
         </div>
         <div class="legend">
           <span style="background:#e6f9f0;color:#006d35;">P = Present</span>
@@ -1034,7 +1034,7 @@
 <body>
   <div class="print-header">
     <h2>✈ Wings Fly Aviation Academy</h2>
-    <p>${activeTabName} — Printed on ${new Date().toLocaleDateString('en-BD')}</p>
+    <p>${activeTabName} — Printed on ${(typeof window.formatDate === 'function' ? window.formatDate(new Date()) : new Date().toLocaleDateString('en-BD'))}</p>
   </div>
   ${contentHtml}
   <script>window.onload = function(){ window.print(); setTimeout(()=>window.close(), 1000); }<\/script>

@@ -341,7 +341,7 @@ function getPrintHeader(title) {
             </div>
             <div style="text-align: right;">
                 <h1 style="margin: 0; font-size: 20px; color: #111827; font-weight: 800; border-bottom: 2px solid #3b82f6; display: inline-block;">${title}</h1>
-                <p style="margin: 5px 0 0 0; font-size: 10px; color: #94a3b8; font-weight: bold;">DATE: ${new Date().toLocaleDateString('en-GB')}</p>
+                <p style="margin: 5px 0 0 0; font-size: 10px; color: #94a3b8; font-weight: bold;">DATE: ${(typeof window.formatDate === 'function' ? window.formatDate(new Date()) : new Date().toLocaleDateString('en-GB'))}</p>
             </div>
         </div>
     </div>
@@ -427,7 +427,7 @@ function printReceipt(rowIndex, currentPaymentAmount = null) {
                 </div>
                 <div style="text-align: right;">
                     <div style="background: #1e1b4b; color: white; padding: 5px 12px; font-weight: 800; border-radius: 4px; font-size: 14px; margin-bottom: 5px; display: inline-block;">MONEY RECEIPT</div>
-                    <p style="margin: 0; font-size: 11px;"><strong>No:</strong> ${receiptId} | <strong>Date:</strong> ${new Date().toLocaleDateString('en-GB')}</p>
+                    <p style="margin: 0; font-size: 11px;"><strong>No:</strong> ${receiptId} | <strong>Date:</strong> ${(typeof window.formatDate === 'function' ? window.formatDate(new Date()) : new Date().toLocaleDateString('en-GB'))}</p>
                 </div>
             </div>
             

@@ -89,7 +89,7 @@ function populateExamModal() {
     // Payment method <select>
     const methodSel = document.getElementById('examPaymentMethodSelect');
     if (methodSel) {
-        const methods      = (window.globalData && window.globalData.paymentMethods) || ['Cash', 'Bkash', 'Nagad', 'Bank'];
+        const methods      = (window.globalData && window.globalData.paymentMethods) || ['Cash', 'Bkash', 'Nagad', 'Bank Transfer'];
         const bankAccounts = (window.globalData && window.globalData.bankAccounts)   || [];
         const mobile       = (window.globalData && window.globalData.mobileBanking)  || [];
 
@@ -869,7 +869,7 @@ function printExamResults() {
             ${typeof getPrintHeader === 'function' ? getPrintHeader('EXAM RESULTS REPORT') : '<h2 style="border-bottom:2px solid #1a3a5c;padding-bottom:8px;color:#1a3a5c;">EXAM RESULTS REPORT</h2>'}
             <div style="background:#f0f4f8;padding:10px;border-radius:6px;margin:10px 0;font-size:12px;">
                 Total Records: <strong>${list.length}</strong> &nbsp;|&nbsp; Total Fees: <strong>৳${totalFee.toLocaleString()}</strong>
-                &nbsp;|&nbsp; Printed: <strong>${new Date().toLocaleDateString()}</strong>
+                &nbsp;|&nbsp; Printed: <strong>${(typeof window.formatDate === 'function' ? window.formatDate(new Date()) : new Date().toLocaleDateString())}</strong>
             </div>
             <table style="width:100%;border-collapse:collapse;font-size:11px;margin-top:12px;">
                 <thead><tr style="background:#1a3a5c;color:#fff;">

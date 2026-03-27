@@ -182,7 +182,7 @@
                             : 'background:rgba(0,200,100,0.2);color:#00e676;border:1px solid rgba(0,200,100,0.4);';
                     const amtColor = isAdv ? '#7ab8ff' : '#00e676';
                     const dateStr  = p.date
-                        ? new Date(p.date).toLocaleDateString('en-GB', { day: '2-digit', month: 'short', year: 'numeric' })
+                        ? (typeof window.formatPrintDate === 'function' ? window.formatPrintDate(new Date(p.date)) : new Date(p.date).toLocaleDateString('en-GB', { day: '2-digit', month: 'short', year: 'numeric' }))
                         : '—';
                     return `
                         <tr style="border-bottom:1px solid rgba(255,255,255,0.05);">

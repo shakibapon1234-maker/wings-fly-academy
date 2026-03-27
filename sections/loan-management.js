@@ -239,7 +239,7 @@ function printLoanDetail() {
     ths[7].remove();
   }
 
-  const printDate = new Date().toLocaleDateString('en-GB', { day: 'numeric', month: 'short', year: 'numeric' });
+  const printDate = (typeof window.formatPrintDate === 'function') ? window.formatPrintDate(new Date()) : new Date().toLocaleDateString('en-GB', { day: 'numeric', month: 'short', year: 'numeric' });
 
   const printWindow = window.open('', '_blank', 'width=900,height=700');
   printWindow.document.write(`

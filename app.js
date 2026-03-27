@@ -21,7 +21,7 @@ if (typeof window.globalData === 'undefined') {
     settings: {},
     incomeCategories: ['Direct Income', 'Other Income'],
     expenseCategories: ['Rent', 'Salaries', 'Utilities'],
-    paymentMethods: ['Cash', 'Bkash', 'Nagad', 'Bank'],
+    paymentMethods: ['Cash', 'Bkash', 'Nagad', 'Bank Transfer'],
     cashBalance: 0,
     bankAccounts: [],
     mobileBanking: [],
@@ -367,7 +367,7 @@ function loadFromStorage() {
 
     // Payment Method Migration: Ensure defaults exist if missing
     // This fixes the issue where only custom methods (Brac, Islami) were showing
-    const defaultMethods = ['Cash', 'Bkash', 'Nagad', 'Bank'];
+    const defaultMethods = ['Cash', 'Bkash', 'Nagad', 'Bank Transfer'];
     if (!globalData.paymentMethods) {
       globalData.paymentMethods = [...defaultMethods];
       migrationNeeded = true;

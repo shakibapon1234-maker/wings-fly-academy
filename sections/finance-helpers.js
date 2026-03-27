@@ -125,7 +125,7 @@ function openEditStudentModal(index) {
     //  were never added yet we must inject them here)
     const methods = (window.globalData && window.globalData.paymentMethods)
       ? window.globalData.paymentMethods
-      : ['Cash', 'Bkash', 'Nagad', 'Bank'];
+      : ['Cash', 'Bkash', 'Nagad', 'Bank Transfer'];
 
     // Keep existing options but ensure all paymentMethods are present
     methods.forEach(m => {
