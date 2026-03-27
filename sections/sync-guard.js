@@ -299,19 +299,19 @@
     dot.style.cssText = [
       'position:fixed',
       'top:14px',
-      'right:78px',
-      'width:22px',
-      'height:22px',
+      'right:136px',
+      'width:20px',
+      'height:20px',
       'border-radius:50%',
       'background:rgba(80,80,80,0.9)',
       'z-index:99999',
       'cursor:pointer',
       'transition:background 0.4s',
-      'font-size:12px',
+      'font-size:11px',
       'display:flex',
       'align-items:center',
       'justify-content:center',
-      'box-shadow:0 0 8px rgba(0,0,0,0.5)'
+      'box-shadow:0 0 6px rgba(0,0,0,0.4)'
     ].join(';');
 
     dot.addEventListener('click', function () {

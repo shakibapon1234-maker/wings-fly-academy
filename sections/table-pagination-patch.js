@@ -344,13 +344,38 @@
 
     function buildPaginationBar(currentPage, totalPages, onPageClick) {
         if (totalPages <= 1) return '';
-        var html = '<div class="d-flex align-items-center justify-content-between flex-wrap gap-2 mt-2 pt-2" style="border-top:1px solid rgba(255,255,255,0.08);">';
-        html += '<span style="font-size:0.75rem;color:#888;">পেজ ' + currentPage + ' / ' + totalPages + '</span>';
-        html += '<div class="d-flex gap-1 flex-wrap">';
+        var html = '<div style="display:flex;gap:4px;align-items:center;justify-content:flex-end;margin-top:8px;flex-wrap:wrap;">';
+
+        // Page buttons with data-page attribute (event listener attached later)
         if (currentPage > 1) {
-            html += '<button onclick="(' + onPageClick.toString() + ')(1)" style="' + _pgBtnStyle(false) + '">«</button>';
-            html += '<button onclick="(' + onPageClick.toString() + ')(' + (currentPage - 1) + ')" style="' + _pgBtnStyle(false) + '">‹</button>';
+            html += '<button data-pg="1" style="' + _pgBtnStyle(false) + '">&laquo;</button>';
+            html += '<button data-pg="' + (currentPage - 1) + '" style="' + _pgBtnStyle(false) + '">&lsaquo;</button>';
         }
+        var start = Math.max(1, currentPage - 3);
+        var end = Math.min(totalPages, currentPage + 3);
+        if (end - start < 6) { start = Math.max(1, end - 6); end = Math.min(totalPages, start + 6); }
+        for (var p = start; p <= end; p++) {
+            html += '<button data-pg="' + p + '" style="' + _pgBtnStyle(p === currentPage) + '">' + p + '</button>';
+        }
+        if (currentPage < totalPages) {
+            html += '<button data-pg="' + (currentPage + 1) + '" style="' + _pgBtnStyle(false) + '">&rsaquo;</button>';
+            html += '<button data-pg="' + totalPages + '" style="' + _pgBtnStyle(false) + '">&raquo;</button>';
+        }
+        html += '</div>';
+        return html;
+    }
+
+    // ✅ FIX: Attach pagination click handlers via event delegation (not inline onclick)
+    function attachPaginationClicks(barId, onPageClick) {
+        var bar = document.getElementById(barId);
+        if (!bar) return;
+        bar.querySelectorAll('button[data-pg]').forEach(function(btn) {
+            btn.addEventListener('click', function() {
+                var pg = parseInt(this.getAttribute('data-pg'));
+                if (!isNaN(pg)) onPageClick(pg);
+            });
+        });
+    }
         var start = Math.max(1, currentPage - 3);
         var end = Math.min(totalPages, currentPage + 3);
         if (end - start < 6) { start = Math.max(1, end - 6); end = Math.min(totalPages, start + 6); }
@@ -449,6 +474,8 @@
             ? '<div style="font-size:0.73rem;color:#888;text-align:right;margin-top:4px;">দেখাচ্ছে: ' + from + '–' + to + ' (মোট ' + rows.length + ' টি)</div>'
             : '';
         bar.innerHTML = buildPaginationBar(currentPage, totalPages, onPageFn) + countHtml;
+        // ✅ FIX: Attach click handlers after innerHTML is set
+        attachPaginationClicks(barId, onPageFn);
     }
 
     function rebuildWithPagination(incP, expP) {
@@ -504,6 +531,9 @@
 
         } catch(err) { console.error('[AnalyticsPagination] rebuild error:', err); }
     }
+
+    // ✅ FIX: Expose to window so inline onclick handlers can call it
+    window.rebuildWithPagination = rebuildWithPagination;
 
     function waitAndPatch() {
         if (typeof window._anaRefreshTables !== 'function') { setTimeout(waitAndPatch, 200); return; }
