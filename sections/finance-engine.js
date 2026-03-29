@@ -319,36 +319,51 @@
     const gd = window.globalData || {};
     if (!gd.students || !gd.finance) return;
 
-    // STEP 1: finance array একবার scan করে person → total map তৈরি করো
-    // শুধু student payment types গোনা হবে — Loan, Advance, Transfer, Investment বাদ
+    // STEP 1: Finance once-pass to build person totals
     const STUDENT_PAYMENT_TYPES = ['Income', 'Registration', 'Refund'];
     const personTotals = {};
+    const students = gd.students || [];
+
     (gd.finance || []).forEach(f => {
       if (f._deleted) return;
       if (!STUDENT_PAYMENT_TYPES.includes(f.type)) return;
 
       const amount = parseFloat(f.amount) || 0;
+      if (amount <= 0) return;
 
-      // person field দিয়ে group
+      // Case A: person field matches exactly (Case-insensitive)
       if (f.person) {
-        personTotals[f.person] = (personTotals[f.person] || 0) + amount;
+        const match = students.find(s => s && s.name && s.name.toLowerCase() === f.person.toLowerCase());
+        if (match) {
+          personTotals[match.name] = (personTotals[match.name] || 0) + amount;
+          return; // Person field wins
+        }
       }
 
-      // description এ নাম থাকলেও count করো (fallback)
-      // তবে person field আগে থাকলে description এ double-count এড়াতে skip
-      if (!f.person && f.description) {
-        // description থেকে student নাম match করার জন্য
-        // এটা fallback — person field থাকলে এই block চলে না
-        gd.students.forEach(student => {
-          if (student && student.name && f.description.includes(student.name)) {
-            personTotals[student.name] = (personTotals[student.name] || 0) + amount;
+      // Case B: Description fallback (Only if Case A fails)
+      if (f.description) {
+        // Find ALL students whose names appear as whole words in description
+        const matchedNames = [];
+        students.forEach(s => {
+          if (!s || !s.name) return;
+          // Word boundary regex: \bName\b
+          const regex = new RegExp(`\\b${s.name.replace(/[.*+?^${}()|[\]\\]/g, '\\$&')}\\b`, 'i');
+          if (regex.test(f.description)) {
+            matchedNames.push(s.name);
           }
         });
+
+        // ✅ IMPORTANT: ONLY count if EXACTLY one unique student matched
+        // If "Ali and Alice" both in desc, we don't know who paid — don't credit either locally
+        if (matchedNames.length === 1) {
+          const name = matchedNames[0];
+          personTotals[name] = (personTotals[name] || 0) + amount;
+        }
       }
     });
 
-    // STEP 2: প্রতিটি student নিজের total দেখো — আর finance scan নেই
-    gd.students.forEach(student => {
+    // STEP 2: Update student paid/due fields
+    students.forEach(student => {
       if (!student || !student.name) return;
 
       const studentFinanceTotal = personTotals[student.name] || 0;
@@ -361,7 +376,7 @@
       }
     });
 
-    console.log('✅ feSyncStudentPaid: student paid fields synced from finance entries');
+    console.log('✅ feSyncStudentPaid: student paid fields synced (Integrity FIX: regex + single-match)');
   };
 
 
