@@ -312,7 +312,7 @@ function loadFromStorage() {
       // ⚡ FORCE CLEANUP: Clean payment methods immediately
       const bankAccountNames = (window.globalData.bankAccounts || []).map(acc => acc.name);
       const mobileAccountNames = (window.globalData.mobileBanking || []).map(acc => acc.name); // ✅ FIX: was missing
-      const coreMethods = ['Cash', 'Bkash', 'Nagad', 'Bank Transfer'];
+      const coreMethods = ['Cash', 'Bkash', 'Nagad', 'Rocket', 'Bank Transfer'];
       window.globalData.paymentMethods = [...new Set([...coreMethods, ...bankAccountNames, ...mobileAccountNames])];
       console.log('🧹 Force cleaned payment methods:', window.globalData.paymentMethods);
 
@@ -356,6 +356,15 @@ function loadFromStorage() {
 
     // Data Migration for new version (Run always after load)
     let migrationNeeded = false;
+    if (typeof globalData.nextId !== 'number' || !Number.isFinite(globalData.nextId) || globalData.nextId <= 0) {
+      let maxId = 1000;
+      (globalData.finance || []).forEach(f => {
+        const n = Number(f.id);
+        if (Number.isFinite(n) && n > maxId) maxId = n;
+      });
+      globalData.nextId = maxId + 1;
+      migrationNeeded = true;
+    }
     if (!globalData.incomeCategories) {
       globalData.incomeCategories = [...(globalData.categories || ['Tuition Fees', 'Other'])];
       migrationNeeded = true;
@@ -480,7 +489,7 @@ function cleanupPaymentMethods() {
 
   const bankAccountNames = globalData.bankAccounts.map(acc => acc.name);
   const mobileAccountNames = (globalData.mobileBanking || []).map(acc => acc.name); // ✅ FIX: was missing
-  const coreMethods = ['Cash', 'Bkash', 'Nagad', 'Bank Transfer'];
+  const coreMethods = ['Cash', 'Bkash', 'Nagad', 'Rocket', 'Bank Transfer'];
 
   // FORCE CLEAN: Only keep core methods and current bank + mobile account names
   const cleanMethods = [...new Set([...coreMethods, ...bankAccountNames, ...mobileAccountNames])];
@@ -509,7 +518,7 @@ window.resetPaymentMethods = function () {
   console.log('🔄 Manually resetting payment methods...');
   const bankAccountNames = (globalData.bankAccounts || []).map(acc => acc.name);
   const mobileAccountNames = (globalData.mobileBanking || []).map(acc => acc.name); // ✅ FIX: was missing
-  const coreMethods = ['Cash', 'Bkash', 'Nagad', 'Bank Transfer'];
+  const coreMethods = ['Cash', 'Bkash', 'Nagad', 'Rocket', 'Bank Transfer'];
   const oldCount = (globalData.paymentMethods || []).length;
   globalData.paymentMethods = [...new Set([...coreMethods, ...bankAccountNames, ...mobileAccountNames])];
   saveToStorage(true);

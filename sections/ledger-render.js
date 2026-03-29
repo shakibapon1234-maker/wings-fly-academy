@@ -105,7 +105,7 @@ function populateDropdowns() {
     });
 
     // D. Core Methods (Optional, if not already in accounts)
-    ['Bkash', 'Nagad'].forEach(m => {
+    ['Bkash', 'Nagad', 'Rocket'].forEach(m => {
       // Only add if not already present in mobileBanking/bankAccounts
       const exists = Array.from(el.options).some(o => o.value === m);
       if (!exists) {

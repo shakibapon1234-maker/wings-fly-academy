@@ -598,10 +598,12 @@
   window.loadSalaryHub      = renderSalaryCards;
   window.openSalaryModal    = openSalaryModal;
   window.handleSalarySubmit = handleSalarySubmit;
-  window.editSalaryRecord   = editSalaryRecord;
-  window.deleteSalaryRecord = deleteSalaryRecord;
   window.toggleSalHistory   = _toggleSalHist;
 
-  console.log('✅ salary-management.js v4.0 (Resolved) loaded');
+  // Aliases — auto-test, finance-guard, sync-guard expect *Payment names (same impl as *Record)
+  window.editSalaryPayment   = window.editSalaryRecord;
+  window.deleteSalaryPayment = window.deleteSalaryRecord;
+
+  console.log('✅ salary-management.js v4.1 (Salary payment aliases) loaded');
 
 })();
