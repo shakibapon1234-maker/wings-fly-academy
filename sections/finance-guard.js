@@ -331,6 +331,8 @@
     _hookAfter('deleteLoanTransaction',      1500);
     // Salary operations
     _hookAfter('handleSalarySubmit',         1500);
+    _hookAfter('handleSalaryEditSubmit',     1500);
+    _hookAfter('deleteSalaryRecord',         1500);
     _hookAfter('deleteSalaryPayment',        1500);
     // Transfer operations
     _hookAfter('handleTransferSubmit',       1500);
@@ -343,7 +345,7 @@
         return result;
       };
     }
-    console.log('[FinanceGuard] ✅ Hooks installed on: handleAddInstallment, deleteInstallment, deleteTransaction, handleEditTransactionSubmit, deleteLoanTransaction, handleSalarySubmit, deleteSalaryPayment, handleTransferSubmit, restoreDeletedItem');
+    console.log('[FinanceGuard] ✅ Hooks installed on: handleAddInstallment, deleteInstallment, deleteTransaction, handleEditTransactionSubmit, deleteLoanTransaction, handleSalarySubmit, handleSalaryEditSubmit, deleteSalaryRecord, deleteSalaryPayment, handleTransferSubmit, restoreDeletedItem');
   }
 
   // ── PUBLIC API ────────────────────────────────────────────
