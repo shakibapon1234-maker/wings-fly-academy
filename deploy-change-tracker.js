@@ -18,7 +18,7 @@
 (function () {
   'use strict';
 
-  const TRACKER_VERSION = '2.0-MAIN';
+  const TRACKER_VERSION = '2.1-MAIN';
   const STORAGE_KEY     = 'wf_main_deploy_snapshot';
   const HISTORY_KEY     = 'wf_main_deploy_history';
   const MAX_HISTORY     = 15;
@@ -312,7 +312,8 @@
     const removedKeys = [...oldKeys].filter(k => !newKeys.has(k));
 
     removedKeys.forEach(key => {
-      if (key.startsWith('wingsfly') || key.startsWith('wf_')) {
+      // wf_egress_ keys are temporary and cleaned up daily — ignore them
+      if ((key.startsWith('wingsfly') || key.startsWith('wf_')) && !key.startsWith('wf_egress_')) {
         changes.push({
           type: 'storage_lost',
           icon: '🗄️',
