@@ -122,9 +122,8 @@ async function runDiagnosticInline() {
         else { diagLog('⚠️ লোকালে কোনো ডেটা নেই', 'warn'); }
     } catch (e) { diagLog('❌ লোকাল parse error: ' + e.message, 'err'); }
 
-    // ✅ V2.3 FIX: Exclude deleted entries from local count (matches cloud behavior)
-    const lS = local?.students?.filter(s => !s._deleted).length || 0;
-    const lF = local?.finance?.filter(f => !f._deleted).length || 0;
+    const lS = local?.students?.length || 0;
+    const lF = local?.finance?.length || 0;
     const lC = local?.cashBalance || 0;
     const lV = parseInt(localStorage.getItem('wings_local_version')) || 0;
 

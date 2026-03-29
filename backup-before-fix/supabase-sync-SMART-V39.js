@@ -463,13 +463,6 @@
         _rebuildSnapshots();
         SyncFreshness.update();
         NetworkQuality.recordSuccess();
-        
-        // ✅ FIX: Recalculate all balances from actual transactions
-        // Cloud's cash_balance might be stale, so rebuild from source of truth
-        if (typeof window.feRebuildAllBalances === 'function') {
-          window.feRebuildAllBalances();
-        }
-        
         _log('✅', `Pull OK — stu:${gd.students.length} fin:${gd.finance.length} v${_localVer}`);
         if (showUI) _showStatus('✅ Synced');
         window.initialSyncComplete = true;
@@ -1010,12 +1003,6 @@
       }
       await Promise.all(tasks);
       _saveLocal();
-      
-      // ✅ FIX: Recalculate balances after force-load
-      if (typeof window.feRebuildAllBalances === 'function') {
-        window.feRebuildAllBalances();
-      }
-      
       if (typeof window.renderFullUI === 'function') window.renderFullUI();
       _integrityCheckDidPull = true;
       _showUserMessage('Data recovered from cloud', 'success');

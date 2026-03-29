@@ -855,16 +855,6 @@
 
     const gd = window.globalData;
     if (!gd) { skip('Finance tests', 'globalData নেই'); return; }
-    
-    // ✅ FIX: Rebuild balances & sync student paid before testing
-    // This ensures we test FRESH synchronized data, not stale values
-    if (typeof window.feRebuildAllBalances === 'function') {
-      window.feRebuildAllBalances();
-    }
-    if (typeof window.feSyncStudentPaid === 'function') {
-      window.feSyncStudentPaid();
-    }
-    
     const finance = gd.finance || [];
 
     // Finance engine
