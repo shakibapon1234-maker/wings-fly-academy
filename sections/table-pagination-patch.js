@@ -376,17 +376,6 @@
             });
         });
     }
-        if (end - start < 6) { start = Math.max(1, end - 6); end = Math.min(totalPages, start + 6); }
-        for (var p = start; p <= end; p++) {
-            html += '<button onclick="(' + onPageClick.toString() + ')(' + p + ')" style="' + _pgBtnStyle(p === currentPage) + '">' + p + '</button>';
-        }
-        if (currentPage < totalPages) {
-            html += '<button onclick="(' + onPageClick.toString() + ')(' + (currentPage + 1) + ')" style="' + _pgBtnStyle(false) + '">›</button>';
-            html += '<button onclick="(' + onPageClick.toString() + ')(' + totalPages + ')" style="' + _pgBtnStyle(false) + '">»</button>';
-        }
-        html += '</div></div>';
-        return html;
-    }
 
     var _incPage = 1;
     var _expPage = 1;

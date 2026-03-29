@@ -57,8 +57,8 @@ async function runDiagnosticInline() {
         else { diagLog('⚠️ লোকালে কোনো ডেটা নেই', 'warn'); }
     } catch (e) { diagLog('❌ লোকাল parse error: ' + e.message, 'err'); }
 
-    const lS = local?.students?.length || 0;
-    const lF = local?.finance?.length || 0;
+    const lS = local?.students?.filter(function (s) { return !s._deleted; }).length || 0;
+    const lF = local?.finance?.filter(function (f) { return !f._deleted; }).length || 0;
     const lC = local?.cashBalance || 0;
     const lV = parseInt(localStorage.getItem('wings_local_version')) || 0;
 
@@ -104,15 +104,18 @@ async function runDiagnosticInline() {
     document.getElementById('d-cloudCash').textContent = diagFmt(cC);
     document.getElementById('d-cloudVer').textContent = 'v' + cV;
 
-    // Checks
+    // Checks — cloud may have more rows (other device synced first); only warn if cloud is behind local
     let pass = 0;
-    const isOffline = !cloud || (cS === 0 && lS > 0);
+    const isOffline = !cloud || (cS === 0 && lS > 0) || (cF === 0 && lF > 0);
+    const stuMatch = isOffline || cS >= lS || Math.abs(lS - cS) <= 1;
+    const finMatch = isOffline || cF >= lF || Math.abs(lF - cF) <= 1;
+    const noDataLoss = isOffline || !(cS < lS - 1 || cF < lF - 1);
     const checks = [
-        ['Students match', isOffline || (lS === cS), isOffline ? 'Cloud Limit/Offline (Ignored)' : `${Math.abs(lS - cS)} ব্যবধান`],
-        ['Finance match', isOffline || (lF === cF), isOffline ? 'Cloud Limit/Offline (Ignored)' : `${Math.abs(lF - cF)} ব্যবধান`],
+        ['Students match', stuMatch, isOffline ? 'Cloud Limit/Offline (Ignored)' : `${Math.abs(lS - cS)} ব্যবধান (Local:${lS} Cloud:${cS})`],
+        ['Finance match', finMatch, isOffline ? 'Cloud Limit/Offline (Ignored)' : `${Math.abs(lF - cF)} ব্যবধান (Local:${lF} Cloud:${cF})`],
         ['Cash match', isOffline || Math.abs(lC - cC) < 1, isOffline ? 'Cloud Limit/Offline (Ignored)' : diagFmt(Math.abs(lC - cC)) + 'ব্যবধান'],
         ['Version sync', isOffline || Math.abs(lV - cV) <= 5, isOffline ? `Local v${lV}, Cloud Offline` : `Local v${lV}, Cloud v${cV}`],
-        ['Data loss risk নেই', !(cloud && (cS < lS || cF < lF)), 'Cloud-এ কম data!'],
+        ['Data loss risk নেই', noDataLoss, 'Cloud-এ কম data! Local:' + lS + 'S/' + lF + 'F → Cloud:' + cS + 'S/' + cF + 'F'],
         ['Accounting OK', true, ''],
     ];
 
