@@ -49,16 +49,21 @@ async function runDiagnosticInline() {
 
     diagLog('🚀 Diagnostic শুরু হচ্ছে...');
 
-    // Local data
+    // ✅ V2.4 FIX: Prefer window.globalData (live, decrypted) over raw localStorage
     let local = null;
     try {
-        const raw = localStorage.getItem('wingsfly_data');
-        if (raw) { local = JSON.parse(raw); diagLog('✅ লোকাল ডেটা পাওয়া গেছে', 'ok'); }
-        else { diagLog('⚠️ লোকালে কোনো ডেটা নেই', 'warn'); }
+        if (window.globalData && window.globalData.finance) {
+            local = window.globalData;
+            diagLog('✅ লোকাল ডেটা পাওয়া গেছে (live)', 'ok');
+        } else {
+            const raw = localStorage.getItem('wingsfly_data');
+            if (raw) { local = JSON.parse(raw); diagLog('✅ লোকাল ডেটা পাওয়া গেছে (localStorage)', 'ok'); }
+            else { diagLog('⚠️ লোকালে কোনো ডেটা নেই', 'warn'); }
+        }
     } catch (e) { diagLog('❌ লোকাল parse error: ' + e.message, 'err'); }
 
-    const lS = local?.students?.filter(function (s) { return !s._deleted; }).length || 0;
-    const lF = local?.finance?.filter(function (f) { return !f._deleted; }).length || 0;
+    const lS = (local?.students || []).filter(function (s) { return !s._deleted; }).length;
+    const lF = (local?.finance  || []).filter(function (f) { return !f._deleted; }).length;
     const lC = local?.cashBalance || 0;
     const lV = parseInt(localStorage.getItem('wings_local_version')) || 0;
 
@@ -82,18 +87,20 @@ async function runDiagnosticInline() {
            cV = cloud.version || 0;
         } else { diagLog('⚠️ Cloud-এ এখনো কোনো ডেটা নেই', 'warn'); }
         
-        // V37 Partial Table Counts
+        // ✅ V2.4: Partial Table Counts — deleted=eq.false filter MUST be applied
+        // Without this filter, cloud returns 60 (58 active + 2 deleted) instead of 58
         diagLog('☁️ Partial Tables (Students, Finance) চেক করা হচ্ছে...');
         const cfg = window.SUPABASE_CONFIG || {};
-        const urlStr = cfg.URL + '/rest/v1/wf_students?academy_id=eq.' + (cfg.MAIN_RECORD || 'wingsfly_main') + '&select=id';
-        const urlFin = cfg.URL + '/rest/v1/wf_finance?academy_id=eq.' + (cfg.MAIN_RECORD || 'wingsfly_main') + '&select=id';
+        const aid = cfg.ACADEMY_ID || cfg.MAIN_RECORD || 'wingsfly_main';
+        const urlStr = cfg.URL + '/rest/v1/wf_students?academy_id=eq.' + aid + '&deleted=eq.false&select=id&limit=5000';
+        const urlFin = cfg.URL + '/rest/v1/wf_finance?academy_id=eq.'  + aid + '&deleted=eq.false&select=id&limit=5000';
         
         try {
             const sRes = await fetch(urlStr, { headers: { 'apikey': cfg.KEY, 'Authorization': 'Bearer ' + cfg.KEY } });
-            if (sRes.ok) cS = (await sRes.json()).length;
+            if (sRes.ok) { const arr = await sRes.json(); if (Array.isArray(arr)) cS = arr.length; }
             const fRes = await fetch(urlFin, { headers: { 'apikey': cfg.KEY, 'Authorization': 'Bearer ' + cfg.KEY } });
-            if (fRes.ok) cF = (await fRes.json()).length;
-            diagLog('✅ Partial Tables ডেটা পাওয়া গেছে', 'ok');
+            if (fRes.ok) { const arr = await fRes.json(); if (Array.isArray(arr)) cF = arr.length; }
+            diagLog('✅ Partial Tables ডেটা পাওয়া গেছে (active only)', 'ok');
         } catch(pe) {
             diagLog('⚠️ Partial Tables count error: ' + pe.message, 'warn');
         }
@@ -104,11 +111,14 @@ async function runDiagnosticInline() {
     document.getElementById('d-cloudCash').textContent = diagFmt(cC);
     document.getElementById('d-cloudVer').textContent = 'v' + cV;
 
-    // Checks — cloud may have more rows (other device synced first); only warn if cloud is behind local
+    // ✅ V2.4: Match checks — gap tolerance ±3 (cross-device concurrency is OK)
+    // Old logic: cloud>=local always passed, hiding real missing records
     let pass = 0;
     const isOffline = !cloud || (cS === 0 && lS > 0) || (cF === 0 && lF > 0);
-    const stuMatch = isOffline || cS >= lS || Math.abs(lS - cS) <= 1;
-    const finMatch = isOffline || cF >= lF || Math.abs(lF - cF) <= 1;
+    const stuDiff = Math.abs(lS - cS);
+    const finDiff = Math.abs(lF - cF);
+    const stuMatch = isOffline || stuDiff <= 3;
+    const finMatch = isOffline || finDiff <= 3;
     const noDataLoss = isOffline || !(cS < lS - 1 || cF < lF - 1);
     const checks = [
         ['Students match', stuMatch, isOffline ? 'Cloud Limit/Offline (Ignored)' : `${Math.abs(lS - cS)} ব্যবধান (Local:${lS} Cloud:${cS})`],

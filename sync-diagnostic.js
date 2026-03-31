@@ -6,52 +6,25 @@
 const DIAG_URL = window.SUPABASE_CONFIG?.URL + '/rest/v1/' + (window.SUPABASE_CONFIG?.TABLE || 'academy_data') + '?id=eq.' + (window.SUPABASE_CONFIG?.MAIN_RECORD || 'wingsfly_main') + '&select=*';
 const DIAG_KEY = window.SUPABASE_CONFIG?.KEY || '';
 
-/** Row counts from partial sync tables (V36+). Uses two fallback methods for reliability. */
+/** Row counts from partial sync tables (V36+). Counts actual JSON rows for accuracy. */
 async function diagCountPartialTable(table) {
     const CFG = window.SUPABASE_CONFIG;
     if (!CFG?.URL || !CFG.KEY || !table) return null;
     const aid = CFG.ACADEMY_ID || 'wingsfly_main';
 
-    // Method 1: GET with count=exact header (standard Supabase approach)
+    // ✅ V2.4 FIX: Count JSON array directly — content-range can return total rows
+    // (including deleted) even with deleted=eq.false filter, giving wrong counts.
+    // Direct JSON count is always accurate.
     try {
-        const url = `${CFG.URL}/rest/v1/${table}?academy_id=eq.${encodeURIComponent(aid)}&deleted=eq.false&select=id`;
+        const url = `${CFG.URL}/rest/v1/${table}?academy_id=eq.${encodeURIComponent(aid)}&deleted=eq.false&select=id&limit=5000`;
         const res = await fetch(url, {
-            headers: {
-                apikey: CFG.KEY,
-                Authorization: 'Bearer ' + CFG.KEY,
-                Prefer: 'count=exact',
-                'Range-Unit': 'items',
-                Range: '0-9999'
-            }
-        });
-        if (res.ok) {
-            const cr = res.headers.get('content-range');
-            if (cr && cr.includes('/')) {
-                const total = cr.split('/')[1];
-                if (total && total !== '*') {
-                    const n = parseInt(total, 10);
-                    if (Number.isFinite(n)) return n;
-                }
-            }
-            // Fallback: count JSON rows if header missing
-            try {
-                const rows = await res.json();
-                if (Array.isArray(rows)) return rows.length;
-            } catch(je) {}
-        }
-    } catch (e) { /* fall through to method 2 */ }
-
-    // Method 2: No Range header (some Supabase RLS configs block Range)
-    try {
-        const url2 = `${CFG.URL}/rest/v1/${table}?academy_id=eq.${encodeURIComponent(aid)}&deleted=eq.false&select=id&limit=5000`;
-        const res2 = await fetch(url2, {
             headers: { apikey: CFG.KEY, Authorization: 'Bearer ' + CFG.KEY }
         });
-        if (res2.ok) {
-            const rows2 = await res2.json();
-            if (Array.isArray(rows2)) return rows2.length;
+        if (res.ok) {
+            const rows = await res.json();
+            if (Array.isArray(rows)) return rows.length;
         }
-    } catch (e2) { /* ignore */ }
+    } catch (e) { /* ignore */ }
 
     return null;
 }
@@ -114,17 +87,23 @@ async function runDiagnosticInline() {
     diagLog('🚀 Enhanced Diagnostic v2.1 (Partial Table Fix) শুরু হচ্ছে...');
     diagLog('🔑 Using Anon Key (Secure V37 Mode)', 'ok');
 
-    // Local data
+    // ✅ V2.4 FIX: Prefer window.globalData (live, decrypted) over raw localStorage
+    // Raw localStorage may be encrypted or stale — globalData is always the true state
     let local = null;
     try {
-        const raw = localStorage.getItem('wingsfly_data');
-        if (raw) { local = JSON.parse(raw); diagLog('✅ লোকাল ডেটা পাওয়া গেছে', 'ok'); }
-        else { diagLog('⚠️ লোকালে কোনো ডেটা নেই', 'warn'); }
+        if (window.globalData && window.globalData.finance) {
+            local = window.globalData;
+            diagLog('✅ লোকাল ডেটা পাওয়া গেছে (globalData — live)', 'ok');
+        } else {
+            const raw = localStorage.getItem('wingsfly_data');
+            if (raw) { local = JSON.parse(raw); diagLog('✅ লোকাল ডেটা পাওয়া গেছে (localStorage fallback)', 'ok'); }
+            else { diagLog('⚠️ লোকালে কোনো ডেটা নেই', 'warn'); }
+        }
     } catch (e) { diagLog('❌ লোকাল parse error: ' + e.message, 'err'); }
 
-    // ✅ V2.3 FIX: Exclude deleted entries from local count (matches cloud behavior)
-    const lS = local?.students?.filter(s => !s._deleted).length || 0;
-    const lF = local?.finance?.filter(f => !f._deleted).length || 0;
+    // ✅ V2.4: Count only non-deleted entries (matches cloud deleted=eq.false behavior)
+    const lS = (local?.students || []).filter(s => !s._deleted).length;
+    const lF = (local?.finance  || []).filter(f => !f._deleted).length;
     const lC = local?.cashBalance || 0;
     const lV = parseInt(localStorage.getItem('wings_local_version')) || 0;
 
@@ -180,20 +159,28 @@ async function runDiagnosticInline() {
     document.getElementById('d-cloudCash').textContent = diagFmt(cC);
     document.getElementById('d-cloudVer').textContent = cloudMeta ? 'v' + cV : '—';
 
-    // ✅ V2.2 FIX: Match check — cloud CAN have more (other device synced more records)
-    // Only flag mismatch if cloud has LESS than local (potential data loss)
-    const stuMatch = isOffline || cS >= lS || Math.abs(lS - cS) <= 1;
-    const finMatch = isOffline || cF >= lF || Math.abs(lF - cF) <= 1;
-    // ✅ V2.2 FIX: Data loss — only warn if cloud has significantly LESS than local
+    // ✅ V2.3 FIX: Match check
+    // cloud > local means local is MISSING records — flag if gap > 3
+    // cloud < local = data loss risk (flag always)
+    // gap <= 3 = tolerable (cross-device concurrency)
+    const stuDiff = Math.abs(lS - cS);
+    const finDiff = Math.abs(lF - cF);
+    const stuMatch = isOffline || stuDiff <= 3;
+    const finMatch = isOffline || finDiff <= 3;
+    // Data loss — only warn if cloud has significantly LESS than local
     const noDataLoss = isOffline || !(cS < lS - 1 || cF < lF - 1);
 
     // Checks
     let pass = 0;
     const checks = [
         ['Students match', stuMatch,
-            isOffline ? 'Offline (Ignored)' : `${Math.abs(lS - cS)} ব্যবধান (Local:${lS} Cloud:${cS})`],
+            isOffline ? 'Offline (Ignored)'
+            : cS > lS ? `Cloud-এ ${stuDiff} বেশি — "Pull from Cloud" চালান (Local:${lS} Cloud:${cS})`
+            : `Local-এ ${stuDiff} বেশি — Push করুন (Local:${lS} Cloud:${cS})`],
         ['Finance match', finMatch,
-            isOffline ? 'Offline (Ignored)' : `${Math.abs(lF - cF)} ব্যবধান (Local:${lF} Cloud:${cF})`],
+            isOffline ? 'Offline (Ignored)'
+            : cF > lF ? `Cloud-এ ${finDiff} বেশি — "Pull from Cloud" চালান (Local:${lF} Cloud:${cF})`
+            : `Local-এ ${finDiff} বেশি — Push করুন (Local:${lF} Cloud:${cF})`],
         ['Cash match', isOffline || !cloudMeta || Math.abs(lC - cC) < 1,
             isOffline ? 'Offline (Ignored)' : diagFmt(Math.abs(lC - cC)) + ' ব্যবধান'],
         ['Version sync', isOffline || !cloudMeta || Math.abs(lV - cV) <= 5,

@@ -45,6 +45,7 @@
 <div class="toolbar">
   <button class="btn" onclick="runFullCheck()">🔄 Refresh All</button>
   <button class="btn" onclick="runDeepScan()">🔍 Deep Scan (Cloud)</button>
+  <button class="btn" onclick="forcePullMissing()" style="background:linear-gradient(135deg,#00c853,#007a33);">⬇️ Force Pull Missing</button>
   <button class="btn btn-red" onclick="cleanCloud()">🧹 Clean Cloud Deleted</button>
   <span id="lastCheck" class="label" style="margin-left:auto;"></span>
 </div>
@@ -297,6 +298,77 @@ async function cleanCloud() {
     runFullCheck();
   } catch(e) {
     log('Clean error: '+e.message);
+  }
+}
+
+
+// ═══════════════════════════════════════════════════════════
+// FORCE PULL MISSING RECORDS
+// ═══════════════════════════════════════════════════════════
+async function forcePullMissing() {
+  log('⬇️ Force pulling missing finance records from cloud...');
+  var gd = getLocalData();
+  if (!gd) { log('❌ No local data found!'); return; }
+
+  try {
+    // Get all active cloud finance records (with full data)
+    var fRes = await fetch(
+      CFG.URL + '/rest/v1/' + CFG.TBL_FINANCE +
+      '?academy_id=eq.' + CFG.ACADEMY_ID +
+      '&deleted=eq.false&select=id,data',
+      {headers: HDRS}
+    );
+    if (!fRes.ok) { log('❌ Cloud fetch failed: HTTP ' + fRes.status); return; }
+    var fCloud = await fRes.json();
+    log('☁️ Cloud active finance records: ' + fCloud.length);
+
+    // Build set of local IDs
+    if (!gd.finance) gd.finance = [];
+    var localIds = new Set(gd.finance.map(function(f) { return String(f.id); }));
+
+    // Find records that exist in cloud but NOT locally
+    var missing = fCloud.filter(function(r) {
+      return r.data && r.data.id && !localIds.has(String(r.data.id));
+    });
+
+    if (missing.length === 0) {
+      log('✅ কোনো মিসিং রেকর্ড নেই — সব সমান আছে!');
+      alert('✅ কোনো মিসিং রেকর্ড নেই। Local এবং Cloud সমান।');
+      return;
+    }
+
+    log('⚠️ ' + missing.length + 'টি রেকর্ড মিসিং। Import করা হচ্ছে...');
+
+    // পরিষ্কারভাবে দেখাও কোন রেকর্ডগুলো আনা হচ্ছে
+    missing.forEach(function(r) {
+      var d = r.data;
+      log('  ➕ ' + (d.type||'?') + ' | ' + fmt(d.amount) + ' | ' + (d.person||'—') + ' | ' + (d.date||'—'));
+    });
+
+    // Confirm করুন
+    var ok = confirm(
+      missing.length + 'টি মিসিং Finance রেকর্ড পাওয়া গেছে।\n\n' +
+      'এগুলো আপনার Local Data-তে যোগ করবেন?\n' +
+      '(Existing data অপরিবর্তিত থাকবে)'
+    );
+    if (!ok) { log('Cancelled by user.'); return; }
+
+    // Inject missing records into local data
+    missing.forEach(function(r) { gd.finance.push(r.data); });
+
+    // Save back to localStorage
+    try {
+      localStorage.setItem('wingsfly_data', JSON.stringify(gd));
+      log('✅ ' + missing.length + 'টি রেকর্ড সফলভাবে যোগ করা হয়েছে!');
+      log('💡 এখন মূল App-এ Ctrl+Shift+R দিয়ে Reload করুন।');
+      alert('✅ ' + missing.length + 'টি রেকর্ড সফলভাবে যোগ করা হয়েছে!\n\nএখন মূল App-এ ফিরে Ctrl+Shift+R দিয়ে Reload করুন।');
+      runFullCheck();
+    } catch(e) {
+      log('❌ localStorage save failed: ' + e.message);
+    }
+
+  } catch(e) {
+    log('❌ Force pull error: ' + e.message);
   }
 }
 
