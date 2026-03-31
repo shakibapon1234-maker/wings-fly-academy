@@ -1,7 +1,7 @@
 /**
  * ════════════════════════════════════════════════════════════════
  * WINGS FLY AVIATION ACADEMY
- * SMART SYNC SYSTEM — V39.0 "FRESH BROWSER FIX"
+ * SMART SYNC SYSTEM — V39.1 "PATCH + CASH SYNC FIX"
  * ════════════════════════════════════════════════════════════════
  *
  * ✅ V39.0 — 4টি Critical Bug Permanently Fixed:
@@ -26,6 +26,19 @@
  *     → pull সফল হলে MaxCount সাথে সাথে set হবে
  *     → নতুন browser-এ MaxCount কখনো N/A থাকবে না
  *     → push আর blocked হবে না
+ *
+ * ✅ V39.1 — 2টি নতুন Critical Bug Fixed:
+ *
+ *   BUG 5 FIX — _patchSaveToStorage TIMING BUG:
+ *     → app.js এর saveToStorage V39 এর আগে define না হলে
+ *       patch হতো না (silent fail)
+ *     → এখন 500ms interval-এ max 20 বার retry করবে
+ *     → double-patch guard যোগ করা হয়েছে
+ *
+ *   BUG 6 FIX — MONITOR 60s DELAY + CASH BALANCE MISSED:
+ *     → Monitor interval 60s → 15s করা হয়েছে
+ *     → cashBalance change আলাদাভাবে track করে
+ *       সাথে সাথে push trigger করে
  *
  * ════════════════════════════════════════════════════════════════
  */
@@ -837,13 +850,30 @@
 
   function _patchSaveToStorage() {
     const original = window.saveToStorage;
-    if (!original) return;
+    // ✅ V39.1 FIX: app.js এখনো লোড হয়নি — retry করো (max 20 times = 10s)
+    if (!original) {
+      if ((_patchSaveToStorage._retries || 0) < 20) {
+        _patchSaveToStorage._retries = (_patchSaveToStorage._retries || 0) + 1;
+        setTimeout(_patchSaveToStorage, 500);
+        _log('⏳', `saveToStorage not found yet — retry ${_patchSaveToStorage._retries}/20`);
+      } else {
+        _log('⚠️', 'saveToStorage never defined after 10s — patch skipped');
+      }
+      return;
+    }
+    // Double-patch guard
+    if (original._v39Patched) {
+      _log('🔧', 'saveToStorage already patched — skip');
+      return;
+    }
     window.saveToStorage = function (...args) {
       const result = original.apply(this, args);
       if (result !== false) _schedulePush('saveToStorage');
       return result;
     };
-    _log('🔧', 'Patched saveToStorage');
+    window.saveToStorage._v39Patched = true;
+    _patchSaveToStorage._retries = 0;
+    _log('🔧', '✅ Patched saveToStorage successfully');
   }
 
   // ── VERSION CHECK ──────────────────────────────────────────────
@@ -873,19 +903,27 @@
   // ── MONITOR ────────────────────────────────────────────────────
   function _installMonitor() {
     let _lastFin = -1, _lastStu = -1, _lastCash = null;
+    // ✅ V39.1 FIX: 60000 → 15000 — cashBalance দ্রুত detect হবে
     setInterval(() => {
       if (_pushing || _pulling || _syncBusy || Date.now() < _cooldownUntil) return;
       const gd = window.globalData;
       if (!gd) return;
       const fc = (gd.finance || []).length, sc = (gd.students || []).length, cb = gd.cashBalance;
       if (_lastFin === -1) { _lastFin = fc; _lastStu = sc; _lastCash = cb; return; }
-      if (fc !== _lastFin || sc !== _lastStu || cb !== _lastCash) {
+      if (fc !== _lastFin || sc !== _lastStu) {
         _log('📡', `Change: fin ${_lastFin}→${fc} stu ${_lastStu}→${sc}`);
-        _lastFin = fc; _lastStu = sc; _lastCash = cb;
+        _lastFin = fc; _lastStu = sc;
         window.markDirty && window.markDirty();
-        _schedulePush('monitor');
+        _schedulePush('monitor-data');
       }
-    }, 60000);
+      // ✅ V39.1 FIX: cashBalance পরিবর্তনে আলাদাভাবে push trigger করো
+      if (cb !== _lastCash) {
+        _log('💰', `cashBalance change: ${_lastCash} → ${cb} — scheduling push`);
+        _lastCash = cb;
+        window.markDirty && window.markDirty('cashBalance');
+        _schedulePush('monitor-cash');
+      }
+    }, 15000);
   }
 
   // ── V39: STARTUP INTEGRITY CHECK (Fresh Browser Aware) ────────
