@@ -976,9 +976,11 @@ document.addEventListener("DOMContentLoaded", function () { var fm = document.ge
 
   function _buildMethodList() {
     var gd = window.globalData;
-    if (!gd) return ['Cash', 'Bkash', 'Nagad', 'Bank Transfer'];
+    // ✅ FIX: 'Bank Transfer' removed — it's a transaction TYPE, not a payment account
+    // Real accounts come from globalData.bankAccounts & mobileBanking
+    if (!gd) return ['Cash', 'Bkash', 'Nagad'];
 
-    var core = ['Cash', 'Bkash', 'Nagad', 'Bank Transfer'];
+    var core = ['Cash', 'Bkash', 'Nagad'];
     var bankNames = (gd.bankAccounts || []).map(function (a) { return a.name; }).filter(Boolean);
     var mobileNames = (gd.mobileBanking || []).map(function (a) { return a.name; }).filter(Boolean);
 

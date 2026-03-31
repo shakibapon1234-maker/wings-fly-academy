@@ -58,7 +58,7 @@ function handleImportFile(event) {
       importedData.employees = importedData.employees || [];
       importedData.incomeCategories = importedData.incomeCategories || ['Tuition Fees', 'Loan Received', 'Other'];
       importedData.expenseCategories = importedData.expenseCategories || ['Salary', 'Rent', 'Utilities', 'Loan Given', 'Other'];
-      importedData.paymentMethods = importedData.paymentMethods || ['Cash', 'Bkash', 'Nagad', 'Bank Transfer'];
+      importedData.paymentMethods = importedData.paymentMethods || ['Cash', 'Bkash', 'Nagad'];
       importedData.settings = importedData.settings || { academyName: 'Wings Fly Aviation Academy' };
 
       // Update globalData
