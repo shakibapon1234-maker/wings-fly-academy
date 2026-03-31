@@ -7,7 +7,7 @@
  * ✅ Updated: March 2026
  * ✅ Security Fix: Service Role Key → Anon Key
  * ✅ RLS Enabled on all tables
- * ✅ V3.0: DEBUG_MODE flag added (no console noise in production)
+ * ✅ V3.1: Anon Key fallback hardcoded — config-secret.js ছাড়াও কাজ করবে
  * ✅ V3.0: validate() only logs in DEBUG_MODE
  *
  * ⚠️  IMPORTANT — .gitignore চেক করুন:
@@ -32,7 +32,7 @@ window.SUPABASE_CONFIG = {
 
   // ✅ ANON/PUBLIC KEY — client-side safe (RLS দিয়ে সুরক্ষিত)
   // ⚠️  এই key GitHub-এ push করবেন না — .gitignore-এ রাখুন
-  KEY: window.WINGS_SECRET_KEY || '',
+  KEY: window.WINGS_SECRET_KEY || 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6ImN3d3lodGFybmtvenVrZWtlYnZxIiwicm9sZSI6ImFub24iLCJpYXQiOjE3NzM4NTE5NzUsImV4cCI6MjA4OTQyNzk3NX0.XCJe9A5_ymXQQqK5KVQHJqswUXCuopUi_NYv7T-WWn8',
 
 
   // Table names
