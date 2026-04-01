@@ -432,7 +432,7 @@
         }
       }
       if (methodSelect) {
-        var methods = (window.globalData && window.globalData.paymentMethods) || ['Cash', 'Bkash', 'Nagad'];
+        var methods = (window.globalData && window.globalData.paymentMethods) || ['Cash'];
         methods.forEach(function (m) {
           if (![].slice.call(methodSelect.options).some(function (o) { return o.value === m; })) {
             var opt = document.createElement('option');

@@ -307,6 +307,9 @@
         window.handleSalModalEmpChange();
     }
 
+    if (typeof window.attachMethodBalanceListeners === 'function') {
+        window.attachMethodBalanceListeners();
+    }
     bootstrap.Modal.getOrCreateInstance(modalEl).show();
   }
 
@@ -386,16 +389,19 @@
 
     const methodSel = document.getElementById('salMethod');
     if (methodSel) {
-      methodSel.innerHTML = '<option value="Cash">💵 Cash</option>';
+      methodSel.innerHTML = '<option value="">-- Select Method --</option>';
       const gd = window.globalData || {};
-      (gd.bankAccounts || []).forEach(b => {
+      const core = ['Cash'];
+      const bankNames = (gd.bankAccounts || []).map(b => b.name);
+      const mobileNames = (gd.mobileBanking || []).map(m => m.name);
+      const allMethods = [...new Set([...core, ...bankNames, ...mobileNames])];
+      
+      allMethods.forEach(m => {
         const o = document.createElement('option');
-        o.value = b.name; o.textContent = `🏦 ${b.name}`;
-        methodSel.appendChild(o);
-      });
-      (gd.mobileBanking || []).forEach(m => {
-        const o = document.createElement('option');
-        o.value = m.name; o.textContent = `📱 ${m.name}`;
+        o.value = m; 
+        if (m === 'Cash') o.textContent = '💵 Cash';
+        else if (bankNames.includes(m)) o.textContent = `🏦 ${m}`;
+        else o.textContent = `📱 ${m}`;
         methodSel.appendChild(o);
       });
       methodSel.value = 'Cash';
@@ -477,14 +483,19 @@
     // Method select
     const methodSel = document.getElementById('salEditMethod');
     if (methodSel) {
-      methodSel.innerHTML = '<option value="Cash">💵 Cash</option>';
-      (gd.bankAccounts || []).forEach(b => {
+      methodSel.innerHTML = '<option value="">-- Select Method --</option>';
+      const core = ['Cash'];
+      const bankNames = (gd.bankAccounts || []).map(b => b.name);
+      const mobileNames = (gd.mobileBanking || []).map(m => m.name);
+      const allMethods = [...new Set([...core, ...bankNames, ...mobileNames])];
+      
+      allMethods.forEach(m => {
         const o = document.createElement('option');
-        o.value = b.name; o.textContent = `🏦 ${b.name}`; methodSel.appendChild(o);
-      });
-      (gd.mobileBanking || []).forEach(m => {
-        const o = document.createElement('option');
-        o.value = m.name; o.textContent = `📱 ${m.name}`; methodSel.appendChild(o);
+        o.value = m; 
+        if (m === 'Cash') o.textContent = '💵 Cash';
+        else if (bankNames.includes(m)) o.textContent = `🏦 ${m}`;
+        else o.textContent = `📱 ${m}`;
+        methodSel.appendChild(o);
       });
       methodSel.value = txn.method || 'Cash';
     }
@@ -498,6 +509,9 @@
       infoEl.textContent = `${txn.person} — ${label}`;
     }
 
+    if (typeof window.attachMethodBalanceListeners === 'function') {
+      window.attachMethodBalanceListeners();
+    }
     bootstrap.Modal.getOrCreateInstance(modalEl).show();
   };
 

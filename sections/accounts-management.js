@@ -735,7 +735,7 @@ function syncPaymentMethodsWithAccounts() {
   // ✅ FIX: Keep core methods + bank accounts + mobile banking
   // Old code was: globalData.paymentMethods = bankAccounts.map(acc => acc.name)
   // This was DELETING Cash, Nagad, Bkash etc. — critical bug!
-  const coreMethods = ['Cash', 'Bkash', 'Nagad', 'Rocket'];
+  const coreMethods = ['Cash'];
   const bankNames = globalData.bankAccounts.map(acc => acc.name);
   const mobileNames = (globalData.mobileBanking || []).map(acc => acc.name);
   globalData.paymentMethods = [...new Set([...coreMethods, ...bankNames, ...mobileNames])];
@@ -964,9 +964,6 @@ document.addEventListener('DOMContentLoaded', () => {
     studentModal.addEventListener('show.bs.modal', populatePaymentDropdownsNow);
     studentModal.addEventListener('shown.bs.modal', () => {
       attachMethodBalanceListeners();
-      // Remove old badge if modal reopened
-      const old = document.getElementById('studentMethodSelect_balanceBadge');
-      if (old) old.remove();
     });
     console.log('✅ Student modal listener added');
   }
@@ -977,8 +974,6 @@ document.addEventListener('DOMContentLoaded', () => {
     financeModal.addEventListener('show.bs.modal', populatePaymentDropdownsNow);
     financeModal.addEventListener('shown.bs.modal', () => {
       attachMethodBalanceListeners();
-      const old = document.getElementById('financeMethodSelect_balanceBadge');
-      if (old) old.remove();
     });
     console.log('✅ Finance modal listener added');
   }

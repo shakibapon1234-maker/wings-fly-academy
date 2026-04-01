@@ -429,15 +429,14 @@
       } else if (ok && warnings.length > 0) {
         console.group('%c⚠️ [SyncGuard] ' + warnings.length + ' টি সতর্কতা', 'color:#ff9800;font-weight:bold;');
         warnings.forEach(function (w) { console.warn('[SyncGuard]', w); });
-        console.groupEnd();
-        _showToast('warn', '⚠️ Sync Guard: ' + warnings.length + ' টি warning — syncGuard.openPanel() দেখুন');
+        _showToast('warn', '⚠️ Sync Guard: ' + warnings.length + ' টি warning — <span style="text-decoration:underline;cursor:pointer;font-weight:bold;color:#ffeb3b;" onclick="window.syncGuard.openPanel()">এখানে ক্লিক করে দেখুন</span>');
       } else {
         console.group('%c🚨 [SyncGuard] ' + issues.length + ' টি সমস্যা পাওয়া গেছে!', 'color:#f44336;font-weight:bold;');
         issues.forEach(function (msg) { console.error('[SyncGuard]', msg); });
         if (warnings.length > 0) warnings.forEach(function (w) { console.warn('[SyncGuard]', w); });
         console.groupEnd();
         if (!_silenced) {
-          _showToast('error', '🚨 Sync Guard: ' + issues.length + ' টি সমস্যা! syncGuard.openPanel() দেখুন।');
+          _showToast('error', '🚨 Sync Guard: ' + issues.length + ' টি সমস্যা! <span style="text-decoration:underline;cursor:pointer;font-weight:bold;color:#ffeb3b;" onclick="window.syncGuard.openPanel()">এখানে ক্লিক করে দেখুন</span>');
         }
       }
     }

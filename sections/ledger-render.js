@@ -62,7 +62,8 @@ function populateDropdowns() {
     'paymentMethodSelect',
     'addPaymentMethod',
     'studentPayMethod',
-    'payMethod'
+    'payMethod',
+    'unifiedAccountSelect'
   ];
 
   methodSelects.forEach(id => {

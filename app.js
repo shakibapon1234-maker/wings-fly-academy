@@ -312,7 +312,7 @@ function loadFromStorage() {
       // ⚡ FORCE CLEANUP: Clean payment methods immediately
       const bankAccountNames = (window.globalData.bankAccounts || []).map(acc => acc.name);
       const mobileAccountNames = (window.globalData.mobileBanking || []).map(acc => acc.name); // ✅ FIX: was missing
-      const coreMethods = ['Cash', 'Bkash', 'Nagad', 'Rocket', 'Bank Transfer'];
+      const coreMethods = ['Cash'];
       window.globalData.paymentMethods = [...new Set([...coreMethods, ...bankAccountNames, ...mobileAccountNames])];
       console.log('🧹 Force cleaned payment methods:', window.globalData.paymentMethods);
 
@@ -325,7 +325,7 @@ function loadFromStorage() {
         finance: [],
         incomeCategories: ['Tuition Fees', 'Loan Received', 'Other'],
         expenseCategories: ['Salary', 'Rent', 'Utilities', 'Loan Given', 'Other'],
-        paymentMethods: ['Cash', 'Bkash', 'Nagad'],
+        paymentMethods: ['Cash'],
         cashBalance: 0,
         bankAccounts: [
           { sl: 1, name: 'CITY BANK', branch: 'BONOSREE', bankName: 'CITY BANK', accountNo: '1493888742001', balance: 0 },
@@ -376,7 +376,7 @@ function loadFromStorage() {
 
     // Payment Method Migration: Ensure defaults exist if missing
     // This fixes the issue where only custom methods (Brac, Islami) were showing
-    const defaultMethods = ['Cash', 'Bkash', 'Nagad', 'Bank Transfer'];
+    const defaultMethods = ['Cash'];
     if (!globalData.paymentMethods) {
       globalData.paymentMethods = [...defaultMethods];
       migrationNeeded = true;
@@ -489,7 +489,7 @@ function cleanupPaymentMethods() {
 
   const bankAccountNames = globalData.bankAccounts.map(acc => acc.name);
   const mobileAccountNames = (globalData.mobileBanking || []).map(acc => acc.name); // ✅ FIX: was missing
-  const coreMethods = ['Cash', 'Bkash', 'Nagad', 'Rocket', 'Bank Transfer'];
+  const coreMethods = ['Cash'];
 
   // FORCE CLEAN: Only keep core methods and current bank + mobile account names
   const cleanMethods = [...new Set([...coreMethods, ...bankAccountNames, ...mobileAccountNames])];
@@ -518,7 +518,7 @@ window.resetPaymentMethods = function () {
   console.log('🔄 Manually resetting payment methods...');
   const bankAccountNames = (globalData.bankAccounts || []).map(acc => acc.name);
   const mobileAccountNames = (globalData.mobileBanking || []).map(acc => acc.name); // ✅ FIX: was missing
-  const coreMethods = ['Cash', 'Bkash', 'Nagad', 'Rocket', 'Bank Transfer'];
+  const coreMethods = ['Cash'];
   const oldCount = (globalData.paymentMethods || []).length;
   globalData.paymentMethods = [...new Set([...coreMethods, ...bankAccountNames, ...mobileAccountNames])];
   saveToStorage(true);
@@ -855,7 +855,9 @@ function attachMethodBalanceListeners() {
     'editTransMethodSelect',
     'examPaymentMethodSelect',
     'accTransferFrom',
-    'accTransferTo'
+    'accTransferTo',
+    'salMethod',
+    'salEditMethod'
   ];
   targets.forEach(id => {
     const el = document.getElementById(id);
@@ -864,6 +866,8 @@ function attachMethodBalanceListeners() {
       const newEl = el.cloneNode(true);
       el.parentNode.replaceChild(newEl, el);
       newEl.addEventListener('change', () => showMethodBalance(id));
+      // Show immediately if there is a value
+      setTimeout(() => { if (newEl.value) showMethodBalance(id); }, 50);
     }
   });
 }

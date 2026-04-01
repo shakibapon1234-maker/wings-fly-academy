@@ -978,9 +978,9 @@ document.addEventListener("DOMContentLoaded", function () { var fm = document.ge
     var gd = window.globalData;
     // ✅ FIX: 'Bank Transfer' removed — it's a transaction TYPE, not a payment account
     // Real accounts come from globalData.bankAccounts & mobileBanking
-    if (!gd) return ['Cash', 'Bkash', 'Nagad'];
+    if (!gd) return ['Cash'];
 
-    var core = ['Cash', 'Bkash', 'Nagad'];
+    var core = ['Cash'];
     var bankNames = (gd.bankAccounts || []).map(function (a) { return a.name; }).filter(Boolean);
     var mobileNames = (gd.mobileBanking || []).map(function (a) { return a.name; }).filter(Boolean);
 
@@ -1009,73 +1009,7 @@ document.addEventListener("DOMContentLoaded", function () { var fm = document.ge
     if (cur) el.value = cur;
   }
 
-  window.populateDropdowns = function () {
-    var gd = window.globalData;
-    if (!gd) return;
-
-    var methods = _buildMethodList();
-
-    // ── 1. Payment method selects (সব modal-এ) ──────────────
-    // studentMethodSelect   → Add/Edit Student (modals-student.html)
-    // pmtNewMethod          → Add Installment (modals-student.html)
-    // financeMethodSelect   → Add Transaction (finance modal)
-    // editTransMethodSelect → Edit Transaction (modals-other.html)
-    // examPaymentMethodSelect → Exam Registration (modals-other.html)
-    [
-      'studentMethodSelect',
-      'pmtNewMethod',
-      'financeMethodSelect',
-      'editTransMethodSelect',
-      'examPaymentMethodSelect'
-    ].forEach(function (id) {
-      _fillSelect(document.getElementById(id), methods, '-- Select Method --', true);
-    });
-
-    // ── 2. Account transfer selects (bank + mobile accounts only) ──
-    var bankNames = (gd.bankAccounts || []).map(function (a) { return a.name; }).filter(Boolean);
-    var mobileNames = (gd.mobileBanking || []).map(function (a) { return a.name; }).filter(Boolean);
-    var allAccounts = bankNames.concat(mobileNames);
-
-    [
-      'accTransferFrom',
-      'accTransferTo',
-      'unifiedAccountSelect'
-    ].forEach(function (id) {
-      _fillSelect(document.getElementById(id), allAccounts, '-- Select Account --', true);
-    });
-
-    // ── 3. Ledger method filter (All + methods) ──────────────
-    var lmf = document.getElementById('ledgerMethodFilter');
-    if (lmf) {
-      _fillSelect(lmf, methods, 'All Methods', true);
-    }
-
-    // ── 4. Ledger method filter in account details ────────────
-    var dmf = document.getElementById('detCategoryFilter');
-    // এটা category-based, skip
-
-    // ── 5. Add Transaction form এর method select ─────────────
-    // financeForm এর ভেতরে যদি name="method" select থাকে
-    var finForm = document.getElementById('financeForm');
-    if (finForm) {
-      var fmSel = finForm.querySelector('select[name="method"]');
-      if (fmSel && !fmSel.id) {
-        // id নেই — financeMethodSelect এর alternative
-        _fillSelect(fmSel, methods, '-- Select Method --', true);
-      }
-    }
-
-    // ── 6. Edit Transaction form এর method select ─────────────
-    var etForm = document.getElementById('editTransactionForm');
-    if (etForm) {
-      var etSel = etForm.querySelector('select[name="method"]');
-      if (etSel) {
-        _fillSelect(etSel, methods, '-- Select Method --', true);
-      }
-    }
-
-    console.log('[populateDropdowns] ✅ Methods:', methods.length, '| Accounts:', allAccounts.length);
-  };
+  // window.populateDropdowns is now handled by ledger-render.js
 
   // ── Modal open হলে auto-populate ─────────────────────────
   // Bootstrap modal show event এ hook করো
