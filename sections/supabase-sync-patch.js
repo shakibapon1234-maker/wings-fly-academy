@@ -1,22 +1,27 @@
 /**
  * ════════════════════════════════════════════════════════════════
- * WINGS FLY — SUPABASE SYNC PATCH
+ * WINGS FLY — SUPABASE SYNC PATCH (V2 — Universal Guard)
  * File: sections/supabase-sync-patch.js
  *
  * এই ফাইল supabase-sync-SMART-V39.js এর পরে লোড হবে।
- * ৩টি Critical Bug Fix করে:
  *
- * BUG A FIX — DELETE RESURRECTION (পেমেন্ট ফিরে আসা):
- *   → _mergeRecords-এ cloud delete marker-এর key extraction ঠিক করা হয়েছে
- *   → academy_id prefix সঠিকভাবে strip হবে
- *   → pull-এ `id` field include করা হয়েছে
+ * UNIVERSAL RESURRECTION GUARD — সব array cover করে:
+ *   ✅ Finance Tab, Salary Hub, Accounts Tab → finance[]
+ *   ✅ Students Tab → students[]
+ *   ✅ Employee Tab → employees[]
+ *   ✅ Exam Tab → examRegistrations[] (other bucket)
+ *
+ * BUG A FIX — DELETE RESURRECTION:
+ *   → pull-এর পরে Recycle Bin-এ থাকা সব items সরানো হয়
+ *   → finance, students, employees সব array check হয়
+ *   → balance rebuild ও UI refresh automatic
  *
  * BUG B FIX — RESTORE AFTER DELETE:
  *   → Restore-এর পরে cloud-এ delete marker সরানো হবে
- *   → Restored record fresh push হবে (deleted=false)
+ *   → _rebuildSnapshots() আগে চলে তাই delta ঠিক থাকে
  *
- * BUG C FIX — SALARY PAYMENT DELETE MARKER:
- *   → salary_payment type → finance bucket-এ delete marker push হবে
+ * HELPER — wfIsInRecycleBin(type, id):
+ *   → যেকোনো ফাইল থেকে call করে check করা যাবে
  *
  * ════════════════════════════════════════════════════════════════
  */
@@ -24,65 +29,228 @@
 (function () {
   'use strict';
 
-  // Prevent multiple loads
   if (window._wfSyncPatchLoaded) {
     console.log('[SyncPatch] Already loaded, skipping...');
     return;
   }
   window._wfSyncPatchLoaded = true;
 
-  // ── Wait for wingsSync to be ready ──────────────────────────────
+  // ══════════════════════════════════════════════════════════════
+  // CORE HELPER: Recycle Bin ID set builder
+  // ══════════════════════════════════════════════════════════════
+  function _buildBinIdSet(binArr, keyFn) {
+    var set = new Set();
+    (binArr || []).forEach(function(entry) {
+      var src = entry.item || {};
+      var id = keyFn(src);
+      if (id) set.add(String(id));
+    });
+    return set;
+  }
+
+  // ══════════════════════════════════════════════════════════════
+  // UNIVERSAL RESURRECTION GUARD
+  // pull-এর পরে Recycle Bin-এ থাকা সব items live array থেকে সরায়
+  // ══════════════════════════════════════════════════════════════
+  function _removeResurrectedItems() {
+    try {
+      var gd = window.globalData;
+      if (!gd) return;
+      var di = gd.deletedItems;
+      if (!di || Array.isArray(di)) return;
+
+      var totalRemoved = 0;
+      var needBalanceRebuild = false;
+
+      // ── 1. FINANCE (Finance Tab, Salary Hub, Accounts Tab, Dashboard) ──
+      if (Array.isArray(gd.finance) && (di.finance || []).length > 0) {
+        var finIds = _buildBinIdSet(di.finance, function(s) {
+          return s.id || s.timestamp;
+        });
+        if (finIds.size > 0) {
+          var finBefore = gd.finance.length;
+          gd.finance = gd.finance.filter(function(f) {
+            var id = String(f.id || f.timestamp || '');
+            if (finIds.has(id)) {
+              console.warn('[SyncPatch] 🔥 Finance resurrection blocked:', f.type, '৳' + f.amount, f.date, 'id=' + id);
+              return false;
+            }
+            return true;
+          });
+          var finRemoved = finBefore - gd.finance.length;
+          if (finRemoved > 0) {
+            totalRemoved += finRemoved;
+            needBalanceRebuild = true;
+            console.log('[SyncPatch] ✅ Blocked ' + finRemoved + ' resurrected finance item(s)');
+          }
+        }
+      }
+
+      // ── 2. STUDENTS (Students Tab) ──
+      if (Array.isArray(gd.students) && (di.students || []).length > 0) {
+        var stuIds = _buildBinIdSet(di.students, function(s) {
+          return s.studentId || s.id || s.phone || s.name;
+        });
+        if (stuIds.size > 0) {
+          var stuBefore = gd.students.length;
+          gd.students = gd.students.filter(function(s) {
+            var id = String(s.studentId || s.id || s.phone || s.name || '');
+            if (stuIds.has(id)) {
+              console.warn('[SyncPatch] 🔥 Student resurrection blocked:', s.name, 'id=' + id);
+              return false;
+            }
+            return true;
+          });
+          var stuRemoved = stuBefore - gd.students.length;
+          if (stuRemoved > 0) {
+            totalRemoved += stuRemoved;
+            console.log('[SyncPatch] ✅ Blocked ' + stuRemoved + ' resurrected student(s)');
+          }
+        }
+      }
+
+      // ── 3. EMPLOYEES (Employee Tab) ──
+      if (Array.isArray(gd.employees) && (di.employees || []).length > 0) {
+        var empIds = _buildBinIdSet(di.employees, function(s) { return s.id; });
+        if (empIds.size > 0) {
+          var empBefore = gd.employees.length;
+          gd.employees = gd.employees.filter(function(e) {
+            var id = String(e.id || '');
+            if (empIds.has(id)) {
+              console.warn('[SyncPatch] 🔥 Employee resurrection blocked:', e.name, 'id=' + id);
+              return false;
+            }
+            return true;
+          });
+          var empRemoved = empBefore - gd.employees.length;
+          if (empRemoved > 0) {
+            totalRemoved += empRemoved;
+            console.log('[SyncPatch] ✅ Blocked ' + empRemoved + ' resurrected employee(s)');
+          }
+        }
+      }
+
+      // ── 4. EXAM REGISTRATIONS (Exam Tab — other bucket-এ থাকে) ──
+      if (Array.isArray(gd.examRegistrations) && (di.other || []).length > 0) {
+        var examBin = (di.other || []).filter(function(e) {
+          return (e.type || '').toLowerCase().indexOf('exam') !== -1;
+        });
+        if (examBin.length > 0) {
+          var examIds = _buildBinIdSet(examBin, function(s) {
+            return s.regId || s.id || s.registrationId;
+          });
+          if (examIds.size > 0) {
+            var examBefore = gd.examRegistrations.length;
+            gd.examRegistrations = gd.examRegistrations.filter(function(r) {
+              var id = String(r.regId || r.id || r.registrationId || '');
+              if (examIds.has(id)) {
+                console.warn('[SyncPatch] 🔥 Exam registration resurrection blocked: id=' + id);
+                return false;
+              }
+              return true;
+            });
+            var examRemoved = examBefore - gd.examRegistrations.length;
+            if (examRemoved > 0) {
+              totalRemoved += examRemoved;
+              console.log('[SyncPatch] ✅ Blocked ' + examRemoved + ' resurrected exam registration(s)');
+            }
+          }
+        }
+      }
+
+      if (totalRemoved === 0) return;
+
+      // ── Save locally ──
+      try { localStorage.setItem('wingsfly_data', JSON.stringify(gd)); } catch(e) {}
+
+      // ── Balance rebuild (finance পরিবর্তন হলে) ──
+      if (needBalanceRebuild && typeof window.feRebuildAllBalances === 'function') {
+        try { window.feRebuildAllBalances(); } catch(e) {}
+      }
+
+      // ── UI refresh ──
+      setTimeout(function() {
+        if (typeof window.renderLedger === 'function') window.renderLedger(gd.finance);
+        if (typeof window.updateGrandTotal === 'function') window.updateGrandTotal();
+        if (typeof window.render === 'function') window.render(gd.students);
+        if (typeof window.renderStudents === 'function') window.renderStudents();
+        if (typeof window.renderEmployeeList === 'function') window.renderEmployeeList();
+        if (typeof window.updateGlobalStats === 'function') window.updateGlobalStats();
+        if (typeof window.renderSalaryCards === 'function') window.renderSalaryCards();
+        if (typeof window.renderCashBalance === 'function') window.renderCashBalance();
+        if (typeof window.renderAccountList === 'function') window.renderAccountList();
+      }, 150);
+
+      console.log('[SyncPatch] ✅ Universal guard done: ' + totalRemoved + ' resurrection(s) blocked');
+    } catch(e) {
+      console.warn('[SyncPatch] _removeResurrectedItems error:', e);
+    }
+  }
+  window._wfRemoveResurrectedItems = _removeResurrectedItems;
+
+  // ══════════════════════════════════════════════════════════════
+  // PUBLIC HELPER: wfIsInRecycleBin(type, id)
+  // যেকোনো ফাইল থেকে call করা যাবে:
+  //   wfIsInRecycleBin('finance', f.id)
+  //   wfIsInRecycleBin('student', s.studentId)
+  //   wfIsInRecycleBin('employee', e.id)
+  // ══════════════════════════════════════════════════════════════
+  window.wfIsInRecycleBin = function(type, id) {
+    try {
+      var di = window.globalData && window.globalData.deletedItems;
+      if (!di || Array.isArray(di)) return false;
+      var bucket = (type === 'student') ? 'students'
+                 : (type === 'employee') ? 'employees'
+                 : (type === 'finance' || type === 'salary_payment') ? 'finance'
+                 : 'other';
+      var arr = di[bucket] || [];
+      var sid = String(id || '');
+      return arr.some(function(e) {
+        var src = e.item || {};
+        var eid = String(src.id || src.studentId || src.timestamp || src.phone || src.name || '');
+        return eid === sid;
+      });
+    } catch(e) { return false; }
+  };
+
+  // Console থেকে manual trigger: wfFixResurrection()
+  window.wfFixResurrection = function() {
+    _removeResurrectedItems();
+    console.log('[SyncPatch] Manual resurrection fix applied');
+  };
+
+  // ══════════════════════════════════════════════════════════════
+  // PATCH wingsSync.pullFromCloud — pull-এর পরে guard চালাও
+  // ══════════════════════════════════════════════════════════════
   function _waitAndPatch() {
     var tries = 0;
     function attempt() {
       var ws = window.wingsSync;
-      if (!ws || typeof ws._patchApplied !== 'undefined') {
-        // already patched or not yet available
-        if (!ws && tries < 40) {
-          tries++;
-          setTimeout(attempt, 500);
-        }
+      if (!ws) {
+        if (tries < 40) { tries++; setTimeout(attempt, 500); }
         return;
       }
+      if (ws._patchApplied) return;
 
-      // ── PATCH 1: pullFromCloud — finance/students/employees select-এ id যোগ করো ──
-      // এটা _mergeRecords-এ row.id দিয়ে key extraction-এর জন্য দরকার
-      var origPull = ws.pullFromCloud;
-      if (typeof origPull === 'function' && !origPull._wfPatched) {
-        // pullFromCloud-এর ভেতরের fetch call patch করা সম্ভব না সরাসরি,
-        // তাই আমরা _mergeRecords-কে patch করবো
-        console.log('[SyncPatch] pullFromCloud detected — patching _mergeRecords via wingsSync._mergeFix');
-      }
-
-      // ── PATCH 2: wingsSync._patchMerge — delete marker key extraction fix ──
-      // wingsSync._mergeRecords internal function — এটা expose না হলে
-      // আমরা pullFromCloud-এর output (globalData.finance) কে post-process করবো
+      // pullFromCloud patch
       var origPullFn = ws.pullFromCloud;
       if (typeof origPullFn === 'function' && !origPullFn._wfPatched) {
-        ws.pullFromCloud = async function (showUI, forceFullPull) {
+        ws.pullFromCloud = async function(showUI, forceFullPull) {
           var result = await origPullFn.apply(ws, arguments);
-
-          // ✅ Post-pull: delete করা items যদি ফিরে এসে থাকে তাহলে সরাও
           _removeResurrectedItems();
-
           return result;
         };
         ws.pullFromCloud._wfPatched = true;
-        console.log('[SyncPatch] ✅ pullFromCloud patched — resurrection guard active');
+        console.log('[SyncPatch] ✅ pullFromCloud patched — universal resurrection guard active');
       }
 
-      // ── PATCH 3: scheduleSyncPush after restore — cloud delete marker সরাও ──
+      // scheduleSyncPush patch — restore-এর পরে snapshot rebuild
       var origSchedulePush = ws.scheduleSyncPush;
       if (typeof origSchedulePush === 'function' && !origSchedulePush._wfPatched) {
-        ws.scheduleSyncPush = function (reason) {
-          // Restore হলে _rebuildSnapshots আগে করো — snapshot update না হলে
-          // delta calculation-এ restored item "changed" হিসেবে ধরা পড়বে না
+        ws.scheduleSyncPush = function(reason) {
           if (reason && String(reason).toLowerCase().indexOf('restore') !== -1) {
-            if (typeof ws._rebuildSnapshots === 'function') {
-              ws._rebuildSnapshots();
-            } else if (typeof window._rebuildSnapshots === 'function') {
-              window._rebuildSnapshots();
-            }
+            var rebuildFn = ws._rebuildSnapshots || window._rebuildSnapshots;
+            if (typeof rebuildFn === 'function') rebuildFn();
           }
           return origSchedulePush.apply(ws, arguments);
         };
@@ -96,77 +264,19 @@
     attempt();
   }
 
-  // ── _removeResurrectedItems: pull-এর পরে recycle bin-এ থাকা items finance থেকে সরাও ──
-  function _removeResurrectedItems() {
-    try {
-      var gd = window.globalData;
-      if (!gd || !Array.isArray(gd.finance)) return;
-
-      var deletedItems = gd.deletedItems;
-      if (!deletedItems || Array.isArray(deletedItems)) return;
-
-      // Recycle Bin-এ থাকা finance items-এর id set তৈরি করো
-      var deletedFinanceIds = new Set();
-      var finBin = deletedItems.finance || [];
-      finBin.forEach(function (entry) {
-        // entry.item হলো আসল finance record
-        var src = entry.item || {};
-        var id = src.id || src.timestamp;
-        if (id) deletedFinanceIds.add(String(id));
-      });
-
-      if (deletedFinanceIds.size === 0) return;
-
-      var beforeCount = gd.finance.length;
-      gd.finance = gd.finance.filter(function (f) {
-        var id = String(f.id || f.timestamp || '');
-        if (deletedFinanceIds.has(id)) {
-          console.warn('[SyncPatch] 🔥 Resurrection blocked! Removed from finance:', f.type, '৳' + f.amount, f.date, 'id=' + id);
-          return false; // ✅ ফিরে আসা item সরাও
-        }
-        return true;
-      });
-
-      var removed = beforeCount - gd.finance.length;
-      if (removed > 0) {
-        console.log('[SyncPatch] ✅ Blocked ' + removed + ' resurrected finance item(s)');
-        // Local save
-        try { localStorage.setItem('wingsfly_data', JSON.stringify(gd)); } catch (e) {}
-        // Balance rebuild
-        if (typeof window.feRebuildAllBalances === 'function') {
-          try { window.feRebuildAllBalances(); } catch (e) {}
-        }
-        // UI refresh
-        if (typeof window.renderLedger === 'function') {
-          setTimeout(function () { window.renderLedger(gd.finance); }, 100);
-        }
-        if (typeof window.updateGrandTotal === 'function') {
-          setTimeout(window.updateGrandTotal, 150);
-        }
-      }
-    } catch (e) {
-      console.warn('[SyncPatch] _removeResurrectedItems error:', e);
-    }
-  }
-  window._wfRemoveResurrectedItems = _removeResurrectedItems;
-
-  // ── Also expose as a manual trigger ──────────────────────────────
-  // Console থেকে ডাকতে পারবেন: wfFixResurrection()
-  window.wfFixResurrection = function () {
-    _removeResurrectedItems();
-    console.log('[SyncPatch] Manual resurrection fix applied');
-  };
-
-  // ── Init ────────────────────────────────────────────────────────
+  // ── Init ──
   if (document.readyState === 'loading') {
     document.addEventListener('DOMContentLoaded', _waitAndPatch);
   } else {
     _waitAndPatch();
   }
-
-  // 3s পরে আবার try — async script load order handle
   setTimeout(_waitAndPatch, 3000);
 
-  console.log('[SyncPatch] ✅ Loaded — Delete Resurrection Guard active');
+  // Page load-এ একবার চালাও — login-এর পরে data ready হলে
+  document.addEventListener('DOMContentLoaded', function() {
+    setTimeout(_removeResurrectedItems, 5000);
+  });
+
+  console.log('[SyncPatch] ✅ V2 Loaded — Universal Resurrection Guard active (Finance + Students + Employees + Exam)');
 
 })();
