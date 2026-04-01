@@ -37,10 +37,10 @@
   // MAIN RENDER — employee cards
   // ─────────────────────────────────────────────────────────
   function renderSalaryCards() {
-    const gd     = window.globalData || {};
-    const month  = document.getElementById('salaryMonthFilter')?.value || '';
+    const gd = window.globalData || {};
+    const month = document.getElementById('salaryMonthFilter')?.value || '';
     const search = (document.getElementById('salarySearch')?.value || '').toLowerCase();
-    const wrap   = document.getElementById('salaryCardsWrap');
+    const wrap = document.getElementById('salaryCardsWrap');
     if (!wrap) return;
 
     const employees = (gd.employees || [])
@@ -67,21 +67,21 @@
     let html = '';
 
     employees.forEach(emp => {
-      const base   = parseFloat(emp.salary) || 0;
+      const base = parseFloat(emp.salary) || 0;
       const empRec = finMonth.filter(f => f.person === emp.name || f.employeeId === (emp.id || emp.empId));
 
-      const salPaid  = empRec.filter(f => f.type === 'Expense' && f.category === 'Salaries')
-                              .reduce((s, f) => s + (parseFloat(f.amount) || 0), 0);
+      const salPaid = empRec.filter(f => f.type === 'Expense' && f.category === 'Salaries')
+        .reduce((s, f) => s + (parseFloat(f.amount) || 0), 0);
       const bonusPaid = empRec.filter(f => (f.description || '').includes('[Bonus]'))
-                              .reduce((s, f) => s + (parseFloat(f.amount) || 0), 0);
-      const advPaid  = empRec.filter(f => f.type === 'Advance')
-                              .reduce((s, f) => s + (parseFloat(f.amount) || 0), 0);
-      const paid     = salPaid;
-      const due      = Math.max(0, base - paid);
+        .reduce((s, f) => s + (parseFloat(f.amount) || 0), 0);
+      const advPaid = empRec.filter(f => f.type === 'Advance')
+        .reduce((s, f) => s + (parseFloat(f.amount) || 0), 0);
+      const paid = salPaid;
+      const due = Math.max(0, base - paid);
 
       totalBudget += base;
-      totalPaid   += paid;
-      totalDue    += due;
+      totalPaid += paid;
+      totalDue += due;
 
       // Selected month history for this employee (sorted latest first)
       const monthHist = empRec.sort((a, b) => new Date(b.date || 0) - new Date(a.date || 0));
@@ -99,18 +99,18 @@
 
       // History rows for selected month
       const histRows = monthHist.map(f => {
-        const isAdv    = f.type === 'Advance';
+        const isAdv = f.type === 'Advance';
         const isReturn = f.type === 'Advance Return';
-        const isBonus  = (f.description || '').includes('[Bonus]');
-        const label    = isAdv ? 'Advance' : isReturn ? 'Return' : isBonus ? 'Bonus' : 'Salary';
-        const colors   = {
+        const isBonus = (f.description || '').includes('[Bonus]');
+        const label = isAdv ? 'Advance' : isReturn ? 'Return' : isBonus ? 'Bonus' : 'Salary';
+        const colors = {
           Advance: 'background:rgba(0,150,255,0.15);color:#7ab8ff;border:1px solid rgba(0,150,255,0.35);',
-          Return:  'background:rgba(0,230,118,0.12);color:#69f0ae;border:1px solid rgba(0,230,118,0.3);',
-          Bonus:   'background:rgba(255,200,0,0.15);color:#ffd200;border:1px solid rgba(255,200,0,0.35);',
-          Salary:  'background:rgba(0,200,100,0.12);color:#00e676;border:1px solid rgba(0,200,100,0.3);'
+          Return: 'background:rgba(0,230,118,0.12);color:#69f0ae;border:1px solid rgba(0,230,118,0.3);',
+          Bonus: 'background:rgba(255,200,0,0.15);color:#ffd200;border:1px solid rgba(255,200,0,0.35);',
+          Salary: 'background:rgba(0,200,100,0.12);color:#00e676;border:1px solid rgba(0,200,100,0.3);'
         };
         const dateStr = f.date
-          ? new Date(f.date + 'T00:00:00').toLocaleDateString('en-GB', {day:'2-digit',month:'short',year:'numeric'})
+          ? new Date(f.date + 'T00:00:00').toLocaleDateString('en-GB', { day: '2-digit', month: 'short', year: 'numeric' })
           : '—';
 
         return `<tr style="border-bottom:1px solid rgba(255,255,255,0.05);">
@@ -119,10 +119,10 @@
           <td style="padding:8px 12px;">
             <span style="padding:2px 10px;border-radius:12px;font-size:0.72rem;font-weight:700;${colors[label]}">${label}</span>
           </td>
-          <td style="padding:8px 12px;font-weight:700;color:#e0f0ff;">৳${(parseFloat(f.amount)||0).toLocaleString()}</td>
+          <td style="padding:8px 12px;font-weight:700;color:#e0f0ff;">৳${(parseFloat(f.amount) || 0).toLocaleString()}</td>
           <td style="padding:8px 12px;font-size:0.82rem;color:#94a3c4;">${f.method || '—'}</td>
           <td style="padding:8px 12px;font-size:0.78rem;color:rgba(255,255,255,0.45);max-width:140px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;"
-              title="${(f.description||'').replace(/"/g,'&quot;')}">${f.description || '—'}</td>
+              title="${(f.description || '').replace(/"/g, '&quot;')}">${f.description || '—'}</td>
           <td style="padding:8px 12px;text-align:right;white-space:nowrap;">
             <button onclick="editSalaryRecord('${f.id}')"
               style="background:rgba(0,217,255,0.12);color:#00d9ff;border:1px solid rgba(0,217,255,0.3);padding:3px 10px;border-radius:8px;font-size:0.75rem;cursor:pointer;margin-right:4px;">
@@ -176,7 +176,7 @@
           </div>
           <div style="background:rgba(255,170,0,0.06);border:1px solid rgba(255,170,0,0.15);border-radius:10px;padding:10px 16px;text-align:center;min-width:100px;">
             <div style="font-size:0.68rem;color:#6e8caa;text-transform:uppercase;letter-spacing:0.5px;">Due</div>
-            <div style="font-size:1rem;font-weight:700;color:${due>0?'#ffaa00':'#00e676'};margin-top:2px;">৳${due.toLocaleString()}</div>
+            <div style="font-size:1rem;font-weight:700;color:${due > 0 ? '#ffaa00' : '#00e676'};margin-top:2px;">৳${due.toLocaleString()}</div>
           </div>
           ${bonusPaid > 0 ? `<div style="background:rgba(255,200,0,0.06);border:1px solid rgba(255,200,0,0.15);border-radius:10px;padding:10px 16px;text-align:center;min-width:100px;">
             <div style="font-size:0.68rem;color:#6e8caa;text-transform:uppercase;letter-spacing:0.5px;">Bonus</div>
@@ -243,18 +243,18 @@
   // SUMMARY ROW UPDATE
   // ─────────────────────────────────────────────────────────
   function _updateSummary(budget, paid, due) {
-    const fmt = n => '৳' + (parseFloat(n)||0).toLocaleString();
-    const _s  = (id, v) => { const el = document.getElementById(id); if (el) el.textContent = v; };
+    const fmt = n => '৳' + (parseFloat(n) || 0).toLocaleString();
+    const _s = (id, v) => { const el = document.getElementById(id); if (el) el.textContent = v; };
     _s('salaryTotalBudget', fmt(budget));
-    _s('salaryPaidTotal',   fmt(paid));
-    _s('salaryDueTotal',    fmt(due));
+    _s('salaryPaidTotal', fmt(paid));
+    _s('salaryDueTotal', fmt(due));
   }
 
   // ─────────────────────────────────────────────────────────
   // TOGGLE HISTORY
   // ─────────────────────────────────────────────────────────
   window._toggleSalHist = function (key) {
-    const el    = document.getElementById('hist_' + key);
+    const el = document.getElementById('hist_' + key);
     const arrow = document.getElementById('arrow_' + key);
     if (!el) return;
     const open = el.style.display !== 'none';
@@ -269,115 +269,115 @@
     const modalEl = document.getElementById('salaryModal');
     if (!modalEl) { alert('Salary Modal not found!'); return; }
 
-    const gd  = window.globalData || {};
+    const gd = window.globalData || {};
     const all = gd.employees || [];
 
     const selectEl = document.getElementById('salModalEmpSelect');
     if (selectEl) {
-        selectEl.innerHTML = '<option value="">-- Employee Select --</option>';
-        all.forEach(e => {
-            const isResigned = e.resigned || e.status === 'Resigned' || e.resignDate;
-            const opt = document.createElement('option');
-            opt.value = e.id || e.empId || e.name;
-            opt.textContent = e.name + (isResigned ? ' (Resigned)' : '');
-            selectEl.appendChild(opt);
-        });
+      selectEl.innerHTML = '<option value="">-- Employee Select --</option>';
+      all.forEach(e => {
+        const isResigned = e.resigned || e.status === 'Resigned' || e.resignDate;
+        const opt = document.createElement('option');
+        opt.value = e.id || e.empId || e.name;
+        opt.textContent = e.name + (isResigned ? ' (Resigned)' : '');
+        selectEl.appendChild(opt);
+      });
     }
 
     _resetSalaryForm();
     document.getElementById('salDate').value = new Date().toISOString().split('T')[0];
-    
+
     // Reset Due UI
     const dueEl = document.getElementById('salDueAmountBadge');
     if (dueEl) dueEl.textContent = `৳ —`;
-    
+
     const advEl = document.getElementById('salExistingAdvance');
     if (advEl) advEl.classList.add('d-none');
-    
+
     const roleEl = document.getElementById('salModalEmpRole');
     if (roleEl) roleEl.style.display = 'none';
 
     document.getElementById('salEmpId').value = '';
     document.getElementById('salEmpName').value = '';
-    
+
     if (typeof window.setSalType === 'function') window.setSalType('Due');
 
     if (empId && selectEl) {
-        selectEl.value = empId;
-        window.handleSalModalEmpChange();
+      selectEl.value = empId;
+      window.handleSalModalEmpChange();
     }
 
     if (typeof window.attachMethodBalanceListeners === 'function') {
-        window.attachMethodBalanceListeners();
+      window.attachMethodBalanceListeners();
     }
     bootstrap.Modal.getOrCreateInstance(modalEl).show();
   }
 
-  window.handleSalModalEmpChange = function() {
-      const selectEl = document.getElementById('salModalEmpSelect');
-      if (!selectEl) return;
-      const empId = selectEl.value;
+  window.handleSalModalEmpChange = function () {
+    const selectEl = document.getElementById('salModalEmpSelect');
+    if (!selectEl) return;
+    const empId = selectEl.value;
 
-      const gd  = window.globalData || {};
-      const all = gd.employees || [];
-      const emp = all.find(e => e.id === empId || e.empId === empId || e.employeeId === empId || e.name === empId);
+    const gd = window.globalData || {};
+    const all = gd.employees || [];
+    const emp = all.find(e => e.id === empId || e.empId === empId || e.employeeId === empId || e.name === empId);
 
-      const roleEl = document.getElementById('salModalEmpRole');
-      const dueEl = document.getElementById('salDueAmountBadge');
-      const advEl = document.getElementById('salExistingAdvance');
-      const amtEl = document.getElementById('salAmount');
-      const descEl = document.getElementById('salDescription');
+    const roleEl = document.getElementById('salModalEmpRole');
+    const dueEl = document.getElementById('salDueAmountBadge');
+    const advEl = document.getElementById('salExistingAdvance');
+    const amtEl = document.getElementById('salAmount');
+    const descEl = document.getElementById('salDescription');
 
-      if (!emp) {
-          document.getElementById('salEmpId').value = '';
-          document.getElementById('salEmpName').value = '';
-          if (roleEl) roleEl.style.display = 'none';
-          if (dueEl) dueEl.textContent = `৳ —`;
-          if (advEl) advEl.classList.add('d-none');
-          if (amtEl) amtEl.value = '';
-          return;
+    if (!emp) {
+      document.getElementById('salEmpId').value = '';
+      document.getElementById('salEmpName').value = '';
+      if (roleEl) roleEl.style.display = 'none';
+      if (dueEl) dueEl.textContent = `৳ —`;
+      if (advEl) advEl.classList.add('d-none');
+      if (amtEl) amtEl.value = '';
+      return;
+    }
+
+    document.getElementById('salEmpId').value = emp.id || emp.empId || emp.name;
+    document.getElementById('salEmpName').value = emp.name;
+
+    if (roleEl) {
+      roleEl.textContent = emp.role || emp.designation || 'Staff';
+      roleEl.style.display = 'inline-block';
+    }
+
+    const month = document.getElementById('salaryMonthFilter')?.value || '';
+
+    const paidSoFar = (gd.finance || [])
+      .filter(f => !f._deleted && f.type === 'Expense' && f.category === 'Salaries'
+        && _getSalMonth(f) === month
+        && (f.person === emp.name || f.employeeId === (emp.id || emp.empId)))
+      .reduce((s, f) => s + (parseFloat(f.amount) || 0), 0);
+
+    const base = parseFloat(emp.salary) || 0;
+    const due = Math.max(0, base - paidSoFar);
+
+    if (dueEl) dueEl.textContent = `৳${due.toLocaleString()}`;
+
+    const advNet = (gd.finance || [])
+      .filter(f => !f._deleted && (f.type === 'Advance' || f.type === 'Advance Return')
+        && (f.person === emp.name || f.employeeId === (emp.id || emp.empId)))
+      .reduce((s, f) => s + (parseFloat(f.amount) || 0) * (f.type === 'Advance' ? 1 : -1), 0);
+
+    if (advEl) {
+      if (advNet > 0) {
+        advEl.textContent = `⚠️ বিদ্যমান Advance বকেয়া: ৳${advNet.toLocaleString()}`;
+        advEl.classList.remove('d-none');
+      } else {
+        advEl.classList.add('d-none');
       }
+    }
 
-      document.getElementById('salEmpId').value   = emp.id || emp.empId || emp.name;
-      document.getElementById('salEmpName').value = emp.name;
-
-      if (roleEl) {
-          roleEl.textContent = emp.role || emp.designation || 'Staff';
-          roleEl.style.display = 'inline-block';
-      }
-
-      const month = document.getElementById('salaryMonthFilter')?.value || '';
-      
-      const paidSoFar = (gd.finance || [])
-        .filter(f => !f._deleted && f.type === 'Expense' && f.category === 'Salaries'
-          && _getSalMonth(f) === month
-          && (f.person === emp.name || f.employeeId === (emp.id || emp.empId)))
-        .reduce((s, f) => s + (parseFloat(f.amount) || 0), 0);
-      
-      const base = parseFloat(emp.salary) || 0;
-      const due  = Math.max(0, base - paidSoFar);
-
-      if (dueEl) dueEl.textContent = `৳${due.toLocaleString()}`;
-
-      const advNet = (gd.finance || [])
-        .filter(f => !f._deleted && (f.type === 'Advance' || f.type === 'Advance Return')
-          && (f.person === emp.name || f.employeeId === (emp.id || emp.empId)))
-        .reduce((s, f) => s + (parseFloat(f.amount) || 0) * (f.type === 'Advance' ? 1 : -1), 0);
-      
-      if (advEl) {
-        if (advNet > 0) {
-          advEl.textContent = `⚠️ বিদ্যমান Advance বকেয়া: ৳${advNet.toLocaleString()}`;
-          advEl.classList.remove('d-none');
-        } else {
-          advEl.classList.add('d-none');
-        }
-      }
-
-      const type = document.getElementById('salTypeHidden')?.value || 'Due';
-      if (type === 'Due' && amtEl) {
-          amtEl.value = due > 0 ? due : '';
-      }
-      if (descEl) descEl.value = `${type} for ${month}`;
+    const type = document.getElementById('salTypeHidden')?.value || 'Due';
+    if (type === 'Due' && amtEl) {
+      amtEl.value = due > 0 ? due : '';
+    }
+    if (descEl) descEl.value = `${type} for ${month}`;
   };
 
   // ─────────────────────────────────────────────────────────
@@ -395,10 +395,10 @@
       const bankNames = (gd.bankAccounts || []).map(b => b.name);
       const mobileNames = (gd.mobileBanking || []).map(m => m.name);
       const allMethods = [...new Set([...core, ...bankNames, ...mobileNames])];
-      
+
       allMethods.forEach(m => {
         const o = document.createElement('option');
-        o.value = m; 
+        o.value = m;
         if (m === 'Cash') o.textContent = '💵 Cash';
         else if (bankNames.includes(m)) o.textContent = `🏦 ${m}`;
         else o.textContent = `📱 ${m}`;
@@ -413,36 +413,36 @@
   // ─────────────────────────────────────────────────────────
   async function handleSalarySubmit(e) {
     if (e) e.preventDefault();
-    const gd     = window.globalData || {};
-    const empId  = document.getElementById('salEmpId').value;
-    const empName= document.getElementById('salEmpName').value;
+    const gd = window.globalData || {};
+    const empId = document.getElementById('salEmpId').value;
+    const empName = document.getElementById('salEmpName').value;
     const amount = parseFloat(document.getElementById('salAmount').value) || 0;
-    const type   = document.getElementById('salTypeHidden')?.value || 'Due';
+    const type = document.getElementById('salTypeHidden')?.value || 'Due';
     const method = document.getElementById('salMethod').value;
-    const date   = document.getElementById('salDate').value || new Date().toISOString().split('T')[0];
-    const month  = document.getElementById('salaryMonthFilter')?.value || '';
-    const desc   = document.getElementById('salDescription').value || `${type} for ${month}`;
+    const date = document.getElementById('salDate').value || new Date().toISOString().split('T')[0];
+    const month = document.getElementById('salaryMonthFilter')?.value || '';
+    const desc = document.getElementById('salDescription').value || `${type} for ${month}`;
 
     if (!empName || amount <= 0 || !method) { alert('সব required ফিল্ড পূরণ করুন।'); return; }
     if (!confirm(`${empName} — ${type}: ৳${amount.toLocaleString()} পেমেন্ট করবেন?`)) return;
 
     if (!gd.finance) gd.finance = [];
 
-    const isAdv   = type === 'Advance';
+    const isAdv = type === 'Advance';
     const isBonus = type === 'Bonus';
     const txn = {
-      id:          'SAL_' + Date.now(),
+      id: 'SAL_' + Date.now(),
       date,
-      type:        isAdv ? 'Advance' : 'Expense',
-      category:    isAdv ? 'Advance' : 'Salaries',
+      type: isAdv ? 'Advance' : 'Expense',
+      category: isAdv ? 'Advance' : 'Salaries',
       method,
       amount,
-      person:      empName,
-      employeeId:  empId,
+      person: empName,
+      employeeId: empId,
       description: `${desc}${isBonus ? ' [Bonus]' : isAdv ? ' [Advance]' : ' [Salary]'} (${month})`,
-      source:      'salary',
-      createdBy:   window.currentUser || 'Admin',
-      createdAt:   new Date().toISOString()
+      source: 'salary',
+      createdBy: window.currentUser || 'Admin',
+      createdAt: new Date().toISOString()
     };
 
     gd.finance.push(txn);
@@ -452,8 +452,8 @@
       window.logActivity('finance', 'ADD',
         `Salary ${type}: ৳${amount.toLocaleString()} → ${empName} | ${method} | ${date}`);
     }
-    if (window.markDirty)        window.markDirty('finance');
-    if (window.saveToStorage)    await window.saveToStorage();
+    if (window.markDirty) window.markDirty('finance');
+    if (window.saveToStorage) await window.saveToStorage();
     if (window.scheduleSyncPush) window.scheduleSyncPush('Salary Payment');
 
     bootstrap.Modal.getInstance(document.getElementById('salaryModal'))?.hide();
@@ -468,17 +468,17 @@
   // EDIT SALARY RECORD
   // ─────────────────────────────────────────────────────────
   window.editSalaryRecord = function (txId) {
-    const gd  = window.globalData || {};
+    const gd = window.globalData || {};
     const txn = (gd.finance || []).find(f => String(f.id) === String(txId));
     if (!txn) { alert('Record not found!'); return; }
 
     const modalEl = document.getElementById('salaryEditModal');
     if (!modalEl) { alert('Edit modal not found!'); return; }
 
-    document.getElementById('salEditTxId').value       = txn.id;
-    document.getElementById('salEditAmount').value     = txn.amount;
-    document.getElementById('salEditDate').value       = txn.date || '';
-    document.getElementById('salEditDesc').value       = txn.description || '';
+    document.getElementById('salEditTxId').value = txn.id;
+    document.getElementById('salEditAmount').value = txn.amount;
+    document.getElementById('salEditDate').value = txn.date || '';
+    document.getElementById('salEditDesc').value = txn.description || '';
 
     // Method select
     const methodSel = document.getElementById('salEditMethod');
@@ -488,10 +488,10 @@
       const bankNames = (gd.bankAccounts || []).map(b => b.name);
       const mobileNames = (gd.mobileBanking || []).map(m => m.name);
       const allMethods = [...new Set([...core, ...bankNames, ...mobileNames])];
-      
+
       allMethods.forEach(m => {
         const o = document.createElement('option');
-        o.value = m; 
+        o.value = m;
         if (m === 'Cash') o.textContent = '💵 Cash';
         else if (bankNames.includes(m)) o.textContent = `🏦 ${m}`;
         else o.textContent = `📱 ${m}`;
@@ -503,9 +503,9 @@
     // Info header
     const infoEl = document.getElementById('salEditInfo');
     if (infoEl) {
-      const isAdv   = txn.type === 'Advance';
+      const isAdv = txn.type === 'Advance';
       const isBonus = (txn.description || '').includes('[Bonus]');
-      const label   = isAdv ? 'Advance' : isBonus ? 'Bonus' : 'Salary';
+      const label = isAdv ? 'Advance' : isBonus ? 'Bonus' : 'Salary';
       infoEl.textContent = `${txn.person} — ${label}`;
     }
 
@@ -520,12 +520,12 @@
   // ─────────────────────────────────────────────────────────
   window.handleSalaryEditSubmit = async function (e) {
     if (e) e.preventDefault();
-    const gd     = window.globalData || {};
-    const txId   = document.getElementById('salEditTxId').value;
+    const gd = window.globalData || {};
+    const txId = document.getElementById('salEditTxId').value;
     const amount = parseFloat(document.getElementById('salEditAmount').value) || 0;
-    const date   = document.getElementById('salEditDate').value;
+    const date = document.getElementById('salEditDate').value;
     const method = document.getElementById('salEditMethod').value;
-    const desc   = document.getElementById('salEditDesc').value;
+    const desc = document.getElementById('salEditDesc').value;
 
     const idx = (gd.finance || []).findIndex(f => String(f.id) === String(txId));
     if (idx === -1) { alert('Record not found!'); return; }
@@ -546,8 +546,8 @@
       window.logActivity('finance', 'EDIT',
         `Salary record edited: ${old.person} | ৳${old.amount} → ৳${amount} | ${old.date} → ${date}`);
     }
-    if (window.markDirty)        window.markDirty('finance');
-    if (window.saveToStorage)    await window.saveToStorage();
+    if (window.markDirty) window.markDirty('finance');
+    if (window.saveToStorage) await window.saveToStorage();
     if (window.scheduleSyncPush) window.scheduleSyncPush('Salary Edit');
 
     bootstrap.Modal.getInstance(document.getElementById('salaryEditModal'))?.hide();
@@ -560,7 +560,7 @@
   // DELETE SALARY RECORD
   // ─────────────────────────────────────────────────────────
   window.deleteSalaryRecord = function (txId) {
-    const gd  = window.globalData || {};
+    const gd = window.globalData || {};
     const txn = (gd.finance || []).find(f => String(f.id) === String(txId));
     if (!txn) { alert('Record not found!'); return; }
 
@@ -579,8 +579,8 @@
       window.logActivity('finance', 'DELETE',
         `Salary record deleted: ${txn.person} — ৳${txn.amount} (${txn.date})`);
     }
-    if (window.markDirty)        window.markDirty('finance');
-    if (window.saveToStorage)    window.saveToStorage();
+    if (window.markDirty) window.markDirty('finance');
+    if (window.saveToStorage) window.saveToStorage();
     if (window.scheduleSyncPush) window.scheduleSyncPush('Salary Delete');
 
     renderSalaryCards();
@@ -597,35 +597,35 @@
 
     // Button visual styles
     var styles = {
-        Due:     { bg:'linear-gradient(135deg,#00d4aa,#00a88a)', color:'#fff',    shadow:'0 3px 12px rgba(0,212,170,0.4)', border:'none' },
-        Advance: { bg:'linear-gradient(135deg,#0096ff,#0055cc)', color:'#fff',    shadow:'0 3px 12px rgba(0,150,255,0.4)', border:'none' },
-        Bonus:   { bg:'linear-gradient(135deg,#ffd200,#ff9f43)', color:'#1a1000', shadow:'0 3px 12px rgba(255,200,0,0.4)',  border:'none' }
+      Due: { bg: 'linear-gradient(135deg,#00d4aa,#00a88a)', color: '#fff', shadow: '0 3px 12px rgba(0,212,170,0.4)', border: 'none' },
+      Advance: { bg: 'linear-gradient(135deg,#0096ff,#0055cc)', color: '#fff', shadow: '0 3px 12px rgba(0,150,255,0.4)', border: 'none' },
+      Bonus: { bg: 'linear-gradient(135deg,#ffd200,#ff9f43)', color: '#1a1000', shadow: '0 3px 12px rgba(255,200,0,0.4)', border: 'none' }
     };
-    var inactive = { bg:'rgba(255,255,255,0.07)', color:'#a0c4ff', shadow:'none', border:'1px solid rgba(255,255,255,0.12)' };
+    var inactive = { bg: 'rgba(255,255,255,0.07)', color: '#a0c4ff', shadow: 'none', border: '1px solid rgba(255,255,255,0.12)' };
 
-    ['Due','Advance','Bonus'].forEach(function(t) {
-        var btn = document.getElementById('btnType' + t);
-        if (!btn) return;
-        var s = (t === type) ? styles[t] : inactive;
-        btn.style.background = s.bg;
-        btn.style.color      = s.color;
-        btn.style.boxShadow  = s.shadow;
-        btn.style.border     = s.border;
+    ['Due', 'Advance', 'Bonus'].forEach(function (t) {
+      var btn = document.getElementById('btnType' + t);
+      if (!btn) return;
+      var s = (t === type) ? styles[t] : inactive;
+      btn.style.background = s.bg;
+      btn.style.color = s.color;
+      btn.style.boxShadow = s.shadow;
+      btn.style.border = s.border;
     });
 
     // Show/hide info panels
-    var panels = { Due:'salDuePanel', Advance:'salAdvancePanel', Bonus:'salBonusPanel' };
-    Object.keys(panels).forEach(function(t) {
-        var el = document.getElementById(panels[t]);
-        if (!el) return;
-        if (t === type) el.classList.remove('d-none');
-        else            el.classList.add('d-none');
+    var panels = { Due: 'salDuePanel', Advance: 'salAdvancePanel', Bonus: 'salBonusPanel' };
+    Object.keys(panels).forEach(function (t) {
+      var el = document.getElementById(panels[t]);
+      if (!el) return;
+      if (t === type) el.classList.remove('d-none');
+      else el.classList.add('d-none');
     });
 
     // Modal UI auto-fill amount
     const amtEl = document.getElementById('salAmount');
     if (amtEl && type !== 'Due') amtEl.value = '';
-    
+
     // Auto description
     const month = document.getElementById('salaryMonthFilter')?.value || '';
     const desc = document.getElementById('salDescription');
@@ -635,59 +635,59 @@
   // ─────────────────────────────────────────────────────────
   // ADVANCE QUICK VIEW (Helper)
   // ─────────────────────────────────────────────────────────
-  window.renderAdvanceQuick = function(containerId) {
-      const container = document.getElementById(containerId) || document.createElement('div');
-      const gd = window.globalData || {};
-      if (!gd.employees) { container.innerHTML = '<p>No employees</p>'; return; }
-      const empAdvances = {};
-      (gd.employees || []).forEach(emp => {
-          if (emp.resigned || emp.status === 'Resigned') return;
-          const key = emp.name;
-          empAdvances[key] = { emp, total: 0, returned: 0 };
-      });
-      (gd.finance || []).forEach(f => {
-          if (f._deleted) return;
-          const key = f.person;
-          if (!key || !empAdvances[key]) return;
-          const amt = parseFloat(f.amount) || 0;
-          if (f.type === 'Advance') empAdvances[key].total += amt;
-          else if (f.type === 'Advance Return') empAdvances[key].returned += amt;
-      });
-      let html = '<div style="padding:12px;font-size:0.85rem;">';
-      let hasAdvances = false;
-      Object.keys(empAdvances).forEach(key => {
-          const net = empAdvances[key].total - empAdvances[key].returned;
-          if (net > 0) {
-              hasAdvances = true;
-              html += `<div style="padding:6px 0;border-bottom:1px solid rgba(255,255,255,0.05);"><strong>${key}</strong>: <span style="color:#00fff5;">৳${net.toLocaleString()}</span></div>`;
-          }
-      });
-      if (!hasAdvances) html += '<p style="color:#6e8caa;">No active advances</p>';
-      html += '</div>';
-      container.innerHTML = html;
+  window.renderAdvanceQuick = function (containerId) {
+    const container = document.getElementById(containerId) || document.createElement('div');
+    const gd = window.globalData || {};
+    if (!gd.employees) { container.innerHTML = '<p>No employees</p>'; return; }
+    const empAdvances = {};
+    (gd.employees || []).forEach(emp => {
+      if (emp.resigned || emp.status === 'Resigned') return;
+      const key = emp.name;
+      empAdvances[key] = { emp, total: 0, returned: 0 };
+    });
+    (gd.finance || []).forEach(f => {
+      if (f._deleted) return;
+      const key = f.person;
+      if (!key || !empAdvances[key]) return;
+      const amt = parseFloat(f.amount) || 0;
+      if (f.type === 'Advance') empAdvances[key].total += amt;
+      else if (f.type === 'Advance Return') empAdvances[key].returned += amt;
+    });
+    let html = '<div style="padding:12px;font-size:0.85rem;">';
+    let hasAdvances = false;
+    Object.keys(empAdvances).forEach(key => {
+      const net = empAdvances[key].total - empAdvances[key].returned;
+      if (net > 0) {
+        hasAdvances = true;
+        html += `<div style="padding:6px 0;border-bottom:1px solid rgba(255,255,255,0.05);"><strong>${key}</strong>: <span style="color:#00fff5;">৳${net.toLocaleString()}</span></div>`;
+      }
+    });
+    if (!hasAdvances) html += '<p style="color:#6e8caa;">No active advances</p>';
+    html += '</div>';
+    container.innerHTML = html;
   };
 
   // ─────────────────────────────────────────────────────────
   // showAllTimeSalaryHistory — Full Ledger view
   // ─────────────────────────────────────────────────────────
-  window.showAllTimeSalaryHistory = function(empId) {
-      const gd = window.globalData || {};
-      const emp = (gd.employees || []).find(e => String(e.id) === String(empId) || e.name === empId);
-      if (!emp) return;
+  window.showAllTimeSalaryHistory = function (empId) {
+    const gd = window.globalData || {};
+    const emp = (gd.employees || []).find(e => String(e.id) === String(empId) || e.name === empId);
+    if (!emp) return;
 
-      const allHist = (gd.finance || [])
-          .filter(f => !f._deleted &&
-              (f.person === emp.name || f.employeeId === (emp.id || emp.empId)) &&
-              (f.type === 'Expense' || f.type === 'Advance' || f.type === 'Advance Return') &&
-              (f.category === 'Salaries' || f.category === 'Advance' || f.category === 'Advance Return' || f.category === 'Bonus'))
-          .sort((a, b) => new Date(b.date || 0) - new Date(a.date || 0));
+    const allHist = (gd.finance || [])
+      .filter(f => !f._deleted &&
+        (f.person === emp.name || f.employeeId === (emp.id || emp.empId)) &&
+        (f.type === 'Expense' || f.type === 'Advance' || f.type === 'Advance Return') &&
+        (f.category === 'Salaries' || f.category === 'Advance' || f.category === 'Advance Return' || f.category === 'Bonus'))
+      .sort((a, b) => new Date(b.date || 0) - new Date(a.date || 0));
 
-      let modalEl = document.getElementById('allTimeSalaryModal');
-      if (!modalEl) {
-          modalEl = document.createElement('div');
-          modalEl.id = 'allTimeSalaryModal';
-          modalEl.className = 'modal fade';
-          modalEl.innerHTML = `
+    let modalEl = document.getElementById('allTimeSalaryModal');
+    if (!modalEl) {
+      modalEl = document.createElement('div');
+      modalEl.id = 'allTimeSalaryModal';
+      modalEl.className = 'modal fade';
+      modalEl.innerHTML = `
               <div class="modal-dialog modal-lg modal-dialog-centered">
                   <div class="modal-content custom-modal border-0 shadow-lg">
                       <div class="modal-header border-0 pb-0" style="background:linear-gradient(135deg, rgba(0,217,255,0.1), rgba(0,102,255,0.05)); border-radius:12px 12px 0 0;">
@@ -718,6 +718,7 @@
                                           <th style="color:#6e8caa; padding:12px;">Amount</th>
                                           <th style="color:#6e8caa; padding:12px;">Method</th>
                                           <th style="color:#6e8caa; padding:12px;">Note</th>
+                                          <th style="color:#6e8caa; padding:12px; text-align:right;">Action</th>
                                       </tr>
                                   </thead>
                                   <tbody id="atshBody" style="background:rgba(255,255,255,0.02);"></tbody>
@@ -729,56 +730,75 @@
                       </div>
                   </div>
               </div>`;
-          document.body.appendChild(modalEl);
-      }
+      document.body.appendChild(modalEl);
+    }
 
-      document.getElementById('atshIcon').textContent = (emp.name || 'E').charAt(0).toUpperCase();
-      document.getElementById('atshName').textContent = emp.name;
-      document.getElementById('atshCount').textContent = allHist.length + ' records';
+    document.getElementById('atshIcon').textContent = (emp.name || 'E').charAt(0).toUpperCase();
+    document.getElementById('atshName').textContent = emp.name;
+    document.getElementById('atshCount').textContent = allHist.length + ' records';
+    // Store empId for refresh after delete/edit
+    modalEl.dataset.currentEmpId = empId;
 
-      const body = document.getElementById('atshBody');
-      body.innerHTML = allHist.map(f => {
-          const isAdv    = f.type === 'Advance';
-          const isReturn = f.type === 'Advance Return';
-          const isBonus  = (f.description || '').includes('[Bonus]');
-          const label    = isAdv ? 'Advance' : isReturn ? 'Return' : isBonus ? 'Bonus' : 'Salary';
-          const colors   = {
-            Advance: 'background:rgba(0,150,255,0.15);color:#7ab8ff;border:1px solid rgba(0,150,255,0.35);',
-            Return:  'background:rgba(0,230,118,0.12);color:#69f0ae;border:1px solid rgba(0,230,118,0.3);',
-            Bonus:   'background:rgba(255,200,0,0.15);color:#ffd200;border:1px solid rgba(255,200,0,0.35);',
-            Salary:  'background:rgba(0,200,100,0.12);color:#00e676;border:1px solid rgba(0,200,100,0.3);'
-          };
-          const dateStr = f.date ? new Date(f.date + 'T00:00:00').toLocaleDateString('en-GB') : '—';
-          
-          return `<tr style="border-bottom:1px solid rgba(255,255,255,0.05);">
+    const body = document.getElementById('atshBody');
+    body.innerHTML = allHist.map(f => {
+      const isAdv = f.type === 'Advance';
+      const isReturn = f.type === 'Advance Return';
+      const isBonus = (f.description || '').includes('[Bonus]');
+      const label = isAdv ? 'Advance' : isReturn ? 'Return' : isBonus ? 'Bonus' : 'Salary';
+      const colors = {
+        Advance: 'background:rgba(0,150,255,0.15);color:#7ab8ff;border:1px solid rgba(0,150,255,0.35);',
+        Return: 'background:rgba(0,230,118,0.12);color:#69f0ae;border:1px solid rgba(0,230,118,0.3);',
+        Bonus: 'background:rgba(255,200,0,0.15);color:#ffd200;border:1px solid rgba(255,200,0,0.35);',
+        Salary: 'background:rgba(0,200,100,0.12);color:#00e676;border:1px solid rgba(0,200,100,0.3);'
+      };
+      const dateStr = f.date ? new Date(f.date + 'T00:00:00').toLocaleDateString('en-GB') : '—';
+
+      return `<tr style="border-bottom:1px solid rgba(255,255,255,0.05);">
               <td style="padding:10px 12px; color:#cbd5e1;">${dateStr}</td>
               <td style="padding:10px 12px;"><span style="padding:3px 10px; border-radius:12px; font-size:0.7rem; font-weight:700; ${colors[label]}">${label}</span></td>
-              <td style="padding:10px 12px; font-weight:700; color:#e0f0ff;">৳${(parseFloat(f.amount)||0).toLocaleString()}</td>
+              <td style="padding:10px 12px; font-weight:700; color:#e0f0ff;">৳${(parseFloat(f.amount) || 0).toLocaleString()}</td>
               <td style="padding:10px 12px; color:#94a3c4; font-size:0.8rem;">${f.method || '—'}</td>
-              <td style="padding:10px 12px; color:rgba(255,255,255,0.5); font-size:0.8rem;">${f.description || '—'}</td>
+              <td style="padding:10px 12px; color:rgba(255,255,255,0.5); font-size:0.8rem; max-width:140px; overflow:hidden; text-overflow:ellipsis; white-space:nowrap;" title="${(f.description || '').replace(/"/g, '&quot;')}">${f.description || '—'}</td>
+              <td style="padding:10px 12px; text-align:right; white-space:nowrap;">
+                <button onclick="editSalaryRecord('${f.id}')" style="background:rgba(0,217,255,0.12);color:#00d9ff;border:1px solid rgba(0,217,255,0.3);padding:3px 10px;border-radius:8px;font-size:0.72rem;cursor:pointer;margin-right:4px;">✏️ Edit</button>
+                <button onclick="deleteSalaryRecordFromLedger('${f.id}')" style="background:rgba(255,59,92,0.12);color:#ff3b5c;border:1px solid rgba(255,59,92,0.3);padding:3px 10px;border-radius:8px;font-size:0.72rem;cursor:pointer;">🗑️ Del</button>
+              </td>
           </tr>`;
-      }).join('') || '<tr><td colspan="5" style="text-align:center; padding:20px; color:#6e8caa;">No records found.</td></tr>';
+    }).join('') || '<tr><td colspan="6" style="text-align:center; padding:20px; color:#6e8caa;">No records found.</td></tr>';
 
-      try {
-          const modalInstance = bootstrap.Modal.getOrCreateInstance(modalEl);
-          modalInstance.show();
-      } catch(e) { console.error('Bootstrap modal error:', e); }
+    try {
+      const modalInstance = bootstrap.Modal.getOrCreateInstance(modalEl);
+      modalInstance.show();
+    } catch (e) { console.error('Bootstrap modal error:', e); }
   };
 
   // ─────────────────────────────────────────────────────────
   // EXPOSE GLOBALS
   // ─────────────────────────────────────────────────────────
-  window.initSalaryHub      = initSalaryHub;
-  window.loadSalaryHub      = renderSalaryCards;
-  window.openSalaryModal    = openSalaryModal;
+  window.initSalaryHub = initSalaryHub;
+  window.loadSalaryHub = renderSalaryCards;
+  window.openSalaryModal = openSalaryModal;
   window._openSalaryModalImpl = openSalaryModal;
   window.handleSalarySubmit = handleSalarySubmit;
-  window.toggleSalHistory   = _toggleSalHist;
+  window.toggleSalHistory = _toggleSalHist;
 
   // Aliases — auto-test, finance-guard, sync-guard expect *Payment names (same impl as *Record)
-  window.editSalaryPayment   = window.editSalaryRecord;
+  window.editSalaryPayment = window.editSalaryRecord;
   window.deleteSalaryPayment = window.deleteSalaryRecord;
 
-  console.log('✅ salary-management.js v4.1 (Salary payment aliases) loaded');
+  // ─────────────────────────────────────────────────────────
+  // DELETE FROM ALL-TIME LEDGER — deletes + refreshes modal
+  // ─────────────────────────────────────────────────────────
+  window.deleteSalaryRecordFromLedger = function (txId) {
+    // Call the existing delete logic
+    window.deleteSalaryRecord(txId);
+    // Refresh the All-Time Ledger modal if it's open
+    const modalEl = document.getElementById('allTimeSalaryModal');
+    if (modalEl && modalEl.dataset.currentEmpId) {
+      window.showAllTimeSalaryHistory(modalEl.dataset.currentEmpId);
+    }
+  };
+
+  console.log('✅ salary-management.js v4.2 (Full Ledger delete support) loaded');
 
 })();
