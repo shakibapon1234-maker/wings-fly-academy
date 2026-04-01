@@ -63,10 +63,11 @@
       employee_roles: gd.employeeRoles || [],
       deleted_items: gd.deletedItems || [],
       activity_history: (gd.activityHistory || []).slice(0, 100), // last 100 only to reduce size
-      keep_records: gd.keepRecords || [],
+      keep_records: (function () { try { return JSON.parse(localStorage.getItem('wingsfly_keep_records') || '[]'); } catch (e) { return []; } })(),
       loans: gd.loans || [],
       id_cards: gd.idCards || [],
       notices: gd.notices || [],
+      // NOTE: breakdown_records and credentials columns do NOT exist in Supabase table
       version: (parseInt(localStorage.getItem('wings_local_version')) || 0) + 1,
       last_updated: new Date().toISOString(),
       last_device: localStorage.getItem('wings_device_id') || 'RESTORE_SCRIPT',
@@ -81,12 +82,32 @@
 
     if (mainRes.ok) {
       console.log('   ✅ academy_data pushed successfully!');
-      // Update local version
       const newVer = (parseInt(localStorage.getItem('wings_local_version')) || 0) + 1;
       localStorage.setItem('wings_local_version', newVer.toString());
     } else {
       const errText = await mainRes.text();
-      console.error('   ❌ academy_data push failed:', mainRes.status, errText);
+      console.warn('   ⚠️ Full payload failed:', mainRes.status, '— trying minimal...');
+      // Fallback: minimal payload without unknown columns
+      const minPayload = {
+        id: 'wingsfly_main', version: mainPayload.version,
+        last_updated: mainPayload.last_updated, last_device: mainPayload.last_device,
+        last_action: 'force-push-minimal', cash_balance: gd.cashBalance || 0,
+        bank_accounts: gd.bankAccounts || [], mobile_banking: gd.mobileBanking || [],
+        settings: gd.settings || {}, users: gd.users || [],
+        income_categories: gd.incomeCategories || [], expense_categories: gd.expenseCategories || [],
+        course_names: gd.courseNames || [], employee_roles: gd.employeeRoles || [],
+        students: studentsClean, employees: gd.employees || [], finance: gd.finance || [],
+      };
+      const res2 = await fetch(`${URL}/rest/v1/academy_data?on_conflict=id`, {
+        method: 'POST', headers: HEADERS, body: JSON.stringify(minPayload)
+      });
+      if (res2.ok) {
+        console.log('   ✅ Minimal push succeeded!');
+        const newVer = (parseInt(localStorage.getItem('wings_local_version')) || 0) + 1;
+        localStorage.setItem('wings_local_version', newVer.toString());
+      } else {
+        console.error('   ❌ Minimal also failed:', res2.status, await res2.text());
+      }
     }
   } catch (e) {
     console.error('   ❌ academy_data error:', e.message);
@@ -98,7 +119,7 @@
     if (r.rowIndex) return String(r.rowIndex);
     if (r.studentId) return 'sid_' + String(r.studentId);
     const seed = [r.type || 'rec', r.date || '', String(r.amount || '0'),
-      r.person || r.name || '', r.method || '', String(idx ?? 0)].join('|');
+    r.person || r.name || '', r.method || '', String(idx ?? 0)].join('|');
     let h = 0;
     for (let i = 0; i < seed.length; i++) { h = (Math.imul(31, h) + seed.charCodeAt(i)) | 0; }
     return 'auto_' + Math.abs(h).toString(36);

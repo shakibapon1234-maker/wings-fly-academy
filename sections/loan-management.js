@@ -20,7 +20,7 @@ function renderLoanSummary() {
   globalData.finance.forEach(tx => {
     // ✅ FIX: Skip deleted transactions
     if (tx._deleted) return;
-    
+
     let person = tx.person;
     if (!person) return; // Skip if no person assigned
 
@@ -212,9 +212,9 @@ function printLoanDetail() {
   // Extract only the table to avoid printing search inputs, buttons, or pagination
   const tableNode = detailView.querySelector('table');
   if (!tableNode) return;
-  
+
   const cloneTable = tableNode.cloneNode(true);
-  
+
   // Remove the action column (8th column) from all body rows
   cloneTable.querySelectorAll('tbody tr').forEach(tr => {
     if (tr.children.length >= 8) {
@@ -233,7 +233,7 @@ function printLoanDetail() {
     ths[5].style.width = '10%';  // Credit (+)
     ths[6].style.width = '20%';  // Balance
   }
-  
+
   // Also remove the action column header
   if (ths.length >= 8) {
     ths[7].remove();
@@ -454,7 +454,10 @@ async function handleEditTransactionSubmit(e) {
 
   const oldTx = window.globalData.finance[idx];
 
-  if (typeof updateAccountBalance === 'function') {
+  // ✅ FIX: Use canonical feApplyEntryToAccount (finance-engine.js)
+  if (typeof window.feApplyEntryToAccount === 'function') {
+    window.feApplyEntryToAccount(oldTx, -1); // Reverse old balance
+  } else if (typeof updateAccountBalance === 'function') {
     updateAccountBalance(oldTx.method, oldTx.amount, oldTx.type, false);
   }
 
@@ -472,11 +475,16 @@ async function handleEditTransactionSubmit(e) {
 
   window.globalData.finance[idx] = updatedTx;
 
-  if (typeof updateAccountBalance === 'function') {
+  // ✅ FIX: Use canonical feApplyEntryToAccount (finance-engine.js)
+  if (typeof window.feApplyEntryToAccount === 'function') {
+    window.feApplyEntryToAccount(updatedTx, +1); // Apply new balance
+  } else if (typeof updateAccountBalance === 'function') {
     updateAccountBalance(updatedTx.method, updatedTx.amount, updatedTx.type, true);
   }
 
+  if (typeof window.markDirty === 'function') window.markDirty('finance');
   if (typeof saveToStorage === 'function') await saveToStorage();
+  if (typeof window.scheduleSyncPush === 'function') window.scheduleSyncPush('Loan Edit: ' + (updatedTx.person || 'Unknown'));
 
   const modalEl = document.getElementById('editTransactionModal');
   if (modalEl) {

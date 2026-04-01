@@ -48,18 +48,18 @@
 
   // ── CONFIGURATION ────────────────────────────────────────────
   const CFG = {
-    URL:    window.SUPABASE_CONFIG?.URL  || '',
-    KEY:    window.SUPABASE_CONFIG?.KEY  || '',
-    TABLE:  window.SUPABASE_CONFIG?.TABLE || 'academy_data',
+    URL: window.SUPABASE_CONFIG?.URL || '',
+    KEY: window.SUPABASE_CONFIG?.KEY || '',
+    TABLE: window.SUPABASE_CONFIG?.TABLE || 'academy_data',
     RECORD: window.SUPABASE_CONFIG?.MAIN_RECORD || 'wingsfly_main',
-    TBL_STUDENTS:  'wf_students',
-    TBL_FINANCE:   'wf_finance',
+    TBL_STUDENTS: 'wf_students',
+    TBL_FINANCE: 'wf_finance',
     TBL_EMPLOYEES: 'wf_employees',
-    ACADEMY_ID:    'wingsfly_main',
+    ACADEMY_ID: 'wingsfly_main',
     VERSION_CHECK_MS: 30 * 60 * 1000,
-    FULL_PULL_MS:     60 * 60 * 1000,
+    FULL_PULL_MS: 60 * 60 * 1000,
     PUSH_DEBOUNCE_MS: 3000,
-    EGRESS_WARN:  400,
+    EGRESS_WARN: 400,
     EGRESS_LIMIT: 500,
     EGRESS_HARD_LIMIT: 600,
     VERSION_GAP_WARN: 10,
@@ -88,7 +88,7 @@
 
   // ── CONFLICT TRACKER ─────────────────────────────────────────
   const ConflictTracker = {
-    record: function(type, detail, localCount, cloudCount) {
+    record: function (type, detail, localCount, cloudCount) {
       const entry = {
         time: Date.now(), type, detail,
         localCount: localCount || 0, cloudCount: cloudCount || 0,
@@ -98,14 +98,14 @@
       _log('🚨', `Conflict: ${type} — ${detail}`);
       window._wfLastConflict = entry;
     },
-    get: function() {
+    get: function () {
       try { return JSON.parse(localStorage.getItem('wf_last_conflict') || 'null'); } catch { return null; }
     },
-    markSeen: function() {
+    markSeen: function () {
       const c = this.get();
       if (c) { c.seen = true; localStorage.setItem('wf_last_conflict', JSON.stringify(c)); }
     },
-    clear: function() {
+    clear: function () {
       localStorage.removeItem('wf_last_conflict');
       window._wfLastConflict = null;
     },
@@ -140,7 +140,7 @@
         Object.keys(localStorage)
           .filter(k => k.startsWith('wf_egress_') && !k.endsWith(today))
           .forEach(k => localStorage.removeItem(k));
-      } catch (e) {}
+      } catch (e) { }
     },
     getInfo: function () {
       const count = this.count();
@@ -150,8 +150,8 @@
         throttled: this.throttled(), hardThrottled: this.hardThrottled(),
         remaining: Math.max(0, CFG.EGRESS_LIMIT - count),
         status: count <= CFG.EGRESS_WARN ? 'ok'
-              : count <= CFG.EGRESS_LIMIT ? 'warn'
-              : count <= CFG.EGRESS_HARD_LIMIT ? 'soft-throttled'
+          : count <= CFG.EGRESS_LIMIT ? 'warn'
+            : count <= CFG.EGRESS_HARD_LIMIT ? 'soft-throttled'
               : 'hard-throttled',
       };
     },
@@ -205,7 +205,7 @@
       return (data.deletedItems[deletedKey] || []).length;
     },
     // ✅ V39: Force set (pull-এর পরে সাথে সাথে set করার জন্য)
-    forceSet: function(stuCount, finCount) {
+    forceSet: function (stuCount, finCount) {
       localStorage.setItem('wf_max_students', String(stuCount));
       localStorage.setItem('wf_max_finance', String(finCount));
       localStorage.setItem('wings_last_known_count', String(stuCount));
@@ -271,8 +271,8 @@
     const toast = document.createElement('div');
     const colors = {
       error: { bg: 'rgba(239,68,68,0.15)', border: '#ef4444', text: '#fee2e2' },
-      warn:  { bg: 'rgba(245,158,11,0.15)', border: '#f59e0b', text: '#fef3c7' },
-      info:  { bg: 'rgba(59,130,246,0.15)', border: '#3b82f6', text: '#dbeafe' },
+      warn: { bg: 'rgba(245,158,11,0.15)', border: '#f59e0b', text: '#fef3c7' },
+      info: { bg: 'rgba(59,130,246,0.15)', border: '#3b82f6', text: '#dbeafe' },
       success: { bg: 'rgba(16,185,129,0.15)', border: '#10b981', text: '#d1fae5' }
     };
     const c = colors[type] || colors.info;
@@ -457,7 +457,7 @@
           gd.finance = gd.finance.filter(f => {
             // Only dedup non-deleted entries with similar content
             if (f._deleted) return true;
-            const key = `${f.type}|${f.amount}|${f.date}|${(f.person||'').trim().toLowerCase()}|${f.category||''}|${(f.description||'').replace(/\s+/g,'')}`;
+            const key = `${f.type}|${f.amount}|${f.date}|${(f.person || '').trim().toLowerCase()}|${f.category || ''}|${(f.description || '').replace(/\s+/g, '')}`;
             if (_seen.has(key)) {
               _log('🔧', `DEDUP removed: ${f.type} ৳${f.amount} ${f.person} (${f.date}) id=${f.id}`);
               return false; // duplicate — remove
@@ -471,7 +471,7 @@
         }
 
         // ✅ V39.6 DIAGNOSTIC: Log merge results to track balance oscillation
-        _log('🔍', `MERGE RESULT: fin local=${local.finance.length} → merged=${gd.finance.length} | cloud rows=${(finRes.data||[]).length} (deleted=${(finRes.data||[]).filter(r=>r.deleted).length})`);
+        _log('🔍', `MERGE RESULT: fin local=${local.finance.length} → merged=${gd.finance.length} | cloud rows=${(finRes.data || []).length} (deleted=${(finRes.data || []).filter(r => r.deleted).length})`);
 
         const mainRec = mainRes.data?.[0];
         if (mainRec) {
@@ -527,7 +527,7 @@
                 localStorage.setItem('wingsfly_keep_records', JSON.stringify(mainRec.keep_records));
                 _log('📝', 'Keep Records pulled: ' + mainRec.keep_records.length + ' notes');
               }
-            } catch(e) { _log('⚠️', 'Keep Records pull error', e); }
+            } catch (e) { _log('⚠️', 'Keep Records pull error', e); }
           }
           // ✅ SESSION 4 FIX: Breakdown Records pull
           if (mainRec.breakdown_records && Array.isArray(mainRec.breakdown_records) && mainRec.breakdown_records.length > 0) {
@@ -554,14 +554,14 @@
         // Save push snapshots
         try {
           const sSnap = {};
-          gd.students.forEach(s => { const k = s.studentId || s.id || s.phone || s.name; if(k) sSnap[k] = _hashRecord(s); });
+          gd.students.forEach(s => { const k = s.studentId || s.id || s.phone || s.name; if (k) sSnap[k] = _hashRecord(s); });
           const fSnap = {};
-          gd.finance.forEach(f => { const k = f.id || f.timestamp; if(k) fSnap[k] = _hashRecord(f); });
+          gd.finance.forEach(f => { const k = f.id || f.timestamp; if (k) fSnap[k] = _hashRecord(f); });
           // ✅ V39.FIX: Employee snapshot pull-এর পরেই save করো
           // না করলে snapshotWasEmpty=true হয় → cloud count check → cloud>=local → skip push
           // ফলে মাদার PC এর নতুন employee অন্য PC তে কখনো যায় না
           const eSnap = {};
-          gd.employees.forEach(e => { const k = e.id; if(k) eSnap[k] = _hashRecord(e); });
+          gd.employees.forEach(e => { const k = e.id; if (k) eSnap[k] = _hashRecord(e); });
           _saveSnapshot('students', sSnap);
           _saveSnapshot('finance', fSnap);
           _saveSnapshot('employees', eSnap);
@@ -571,14 +571,14 @@
         // Cloud main record cash_balance can be stale. Always rebuild first.
         _rebuildBalancesSafe();
         // ✅ V39.6 DIAGNOSTIC: Log balance after rebuild
-        const _bankT = (gd.bankAccounts||[]).reduce((s,a)=>s+(parseFloat(a.balance)||0),0);
-        const _mobT = (gd.mobileBanking||[]).reduce((s,a)=>s+(parseFloat(a.balance)||0),0);
-        _log('🔍', `AFTER REBUILD: Cash=৳${gd.cashBalance} Bank=৳${_bankT} Mobile=৳${_mobT} TOTAL=৳${(parseFloat(gd.cashBalance)||0)+_bankT+_mobT}`);
+        const _bankT = (gd.bankAccounts || []).reduce((s, a) => s + (parseFloat(a.balance) || 0), 0);
+        const _mobT = (gd.mobileBanking || []).reduce((s, a) => s + (parseFloat(a.balance) || 0), 0);
+        _log('🔍', `AFTER REBUILD: Cash=৳${gd.cashBalance} Bank=৳${_bankT} Mobile=৳${_mobT} TOTAL=৳${(parseFloat(gd.cashBalance) || 0) + _bankT + _mobT}`);
         _saveLocal();
         _rebuildSnapshots();
         SyncFreshness.update();
         NetworkQuality.recordSuccess();
-        
+
         _log('✅', `Pull OK — stu:${gd.students.length} fin:${gd.finance.length} v${_localVer}`);
         if (showUI) _showStatus('✅ Synced');
         window.initialSyncComplete = true;
@@ -727,7 +727,7 @@
     const prevSnapshot = _loadSnapshot(table);
     const newSnapshot = {}, changed = [], currentKeys = new Set();
     const snapshotWasEmpty = Object.keys(prevSnapshot).length === 0;
-    records.forEach(function(record) {
+    records.forEach(function (record) {
       const key = keyFn(record);
       if (!key) return;
       const hash = _hashRecord(record);
@@ -735,7 +735,7 @@
       currentKeys.add(key);
       if (!prevSnapshot[key] || prevSnapshot[key] !== hash) changed.push(record);
     });
-    const deleted = Object.keys(prevSnapshot).filter(function(k) { return !currentKeys.has(k); });
+    const deleted = Object.keys(prevSnapshot).filter(function (k) { return !currentKeys.has(k); });
     return { changed, deleted, snapshot: newSnapshot, snapshotWasEmpty };
   }
 
@@ -753,7 +753,7 @@
       (gd.employees || []).forEach(e => { const k = e.id; if (k) eSnap[k] = _hashRecord(e); });
       _saveSnapshot('employees', eSnap);
       _log('📸', `Snapshots rebuilt: ${Object.keys(sSnap).length}S ${Object.keys(fSnap).length}F ${Object.keys(eSnap).length}E`);
-    } catch(e) { _log('⚠️', 'rebuildSnapshots error', e); }
+    } catch (e) { _log('⚠️', 'rebuildSnapshots error', e); }
   }
   window._rebuildSnapshots = _rebuildSnapshots;
 
@@ -805,7 +805,7 @@
         if (_prePushBackup && _prePushBackup.length > 100) {
           localStorage.setItem('wingsfly_pre_push_backup', _prePushBackup);
         }
-      } catch(e) { /* quota exceeded — skip silently */ }
+      } catch (e) { /* quota exceeded — skip silently */ }
 
       Egress.inc();
 
@@ -891,7 +891,7 @@
                 } else {
                   _log('📤', `Students: cloud ${_cloudCount} < local ${stuTotal} — pushing`);
                 }
-              } catch(_chkErr) { _log('⚠️', 'Students count check failed', _chkErr); }
+              } catch (_chkErr) { _log('⚠️', 'Students count check failed', _chkErr); }
             }
             if (!_skipDataPush && changed.length > 0) {
               const stuRows = changed.map(s => {
@@ -903,7 +903,8 @@
               _log('📤', `Students: ${changed.length}/${stuTotal} pushed`);
             }
             // ✅ V39.2 FIX: Delete markers সবসময় push হবে — skip block-এর বাইরে
-            const stuDelItems = Array.isArray(gd.deletedItems?.students) ? gd.deletedItems.students : [];
+            // ✅ V39.8 FIX: Only push un-synced delete markers, mark as _synced (don't clear — Recycle Bin needs them)
+            const stuDelItems = Array.isArray(gd.deletedItems?.students) ? gd.deletedItems.students.filter(i => !i._synced) : [];
             const stuDelRows = stuDelItems.map(item => {
               const recId = _getDeletedRecordId(item, 'student');
               return recId ? { id: `${CFG.ACADEMY_ID}_stu_${recId}`, academy_id: CFG.ACADEMY_ID, data: null, deleted: true } : null;
@@ -911,8 +912,8 @@
             if (stuDelRows.length > 0) {
               const resDel = await _sb.from(CFG.TBL_STUDENTS).upsert(stuDelRows, { onConflict: 'id' });
               if (resDel && resDel.error) throw resDel.error;
-              gd.deletedItems.students = [];
-              _log('🧹', `Cleared ${stuDelRows.length} student delete markers after push`);
+              stuDelItems.forEach(i => { i._synced = true; });
+              _log('📤', `Pushed ${stuDelRows.length} student delete markers (kept in Recycle Bin)`);
             }
             _saveSnapshot('students', snapshot);
           };
@@ -942,7 +943,7 @@
                 } else {
                   _log('📤', `Finance: cloud ${_cloudCount3} < local ${finTotal} — pushing`);
                 }
-              } catch(_chkErr3) { _log('⚠️', 'Finance count check failed', _chkErr3); }
+              } catch (_chkErr3) { _log('⚠️', 'Finance count check failed', _chkErr3); }
             }
             if (!_skipFinDataPush && changed.length > 0) {
               const finRows = changed.map(f => ({
@@ -954,7 +955,8 @@
               _log('📤', `Finance: ${changed.length}/${finTotal} pushed`);
             }
             // ✅ V39.2 FIX: Delete markers সবসময় push হবে — skip block-এর বাইরে
-            const finDelItems = Array.isArray(gd.deletedItems?.finance) ? gd.deletedItems.finance : [];
+            // ✅ V39.8 FIX: Only push un-synced delete markers, mark as _synced (don't clear — Recycle Bin needs them)
+            const finDelItems = Array.isArray(gd.deletedItems?.finance) ? gd.deletedItems.finance.filter(i => !i._synced) : [];
             const finDelRows = finDelItems.map(item => {
               const recId = _getDeletedRecordId(item, 'finance');
               return recId ? { id: `${CFG.ACADEMY_ID}_fin_${recId}`, academy_id: CFG.ACADEMY_ID, data: null, deleted: true } : null;
@@ -962,8 +964,8 @@
             if (finDelRows.length > 0) {
               const resDel = await _sb.from(CFG.TBL_FINANCE).upsert(finDelRows, { onConflict: 'id' });
               if (resDel && resDel.error) throw resDel.error;
-              gd.deletedItems.finance = [];
-              _log('🧹', `Cleared ${finDelRows.length} finance delete markers after push`);
+              finDelItems.forEach(i => { i._synced = true; });
+              _log('📤', `Pushed ${finDelRows.length} finance delete markers (kept in Recycle Bin)`);
             }
             _saveSnapshot('finance', finSnapshot);
           };
@@ -994,7 +996,7 @@
                 } else {
                   _log('📤', `Employees: cloud ${_cloudCount4} < local ${empTotal} — pushing`);
                 }
-              } catch(_chkErr4) { _log('⚠️', 'Employees count check failed', _chkErr4); }
+              } catch (_chkErr4) { _log('⚠️', 'Employees count check failed', _chkErr4); }
             }
             if (!_skipEmpDataPush && empChanged.length > 0) {
               const empRows = empChanged.map(e => ({
@@ -1004,8 +1006,8 @@
               if (res && res.error) throw res.error;
               _log('📤', `Employees: ${empChanged.length}/${empTotal} pushed`);
             }
-            // ✅ V39.2 FIX: Delete markers সবসময় push হবে — skip block-এর বাইরে
-            const empDelItems = Array.isArray(gd.deletedItems?.employees) ? gd.deletedItems.employees : [];
+            // ✅ V39.8 FIX: Only push un-synced delete markers, mark as _synced (don't clear — Recycle Bin needs them)
+            const empDelItems = Array.isArray(gd.deletedItems?.employees) ? gd.deletedItems.employees.filter(i => !i._synced) : [];
             const empDelRows = empDelItems.map(item => {
               const recId = _getDeletedRecordId(item, 'employee');
               return recId ? { id: `${CFG.ACADEMY_ID}_emp_${recId}`, academy_id: CFG.ACADEMY_ID, data: null, deleted: true } : null;
@@ -1013,8 +1015,8 @@
             if (empDelRows.length > 0) {
               const resDel = await _sb.from(CFG.TBL_EMPLOYEES).upsert(empDelRows, { onConflict: 'id' });
               if (resDel && resDel.error) throw resDel.error;
-              gd.deletedItems.employees = [];
-              _log('🧹', `Cleared ${empDelRows.length} employee delete markers after push`);
+              empDelItems.forEach(i => { i._synced = true; });
+              _log('📤', `Pushed ${empDelRows.length} employee delete markers (kept in Recycle Bin)`);
             }
             _saveSnapshot('employees', empSnapshot);
           };
@@ -1041,7 +1043,7 @@
           activity_history: gd.activityHistory || [],
           deleted_items_other: gd.deletedItems?.other || [], // ✅ BUG E FIX: other category cloud-এ push
           // ✅ SESSION 4 FIX: Keep Records, Breakdown, Notices sync
-          keep_records: (function() { try { return JSON.parse(localStorage.getItem('wingsfly_keep_records') || '[]'); } catch(e) { return []; } })(),
+          keep_records: (function () { try { return JSON.parse(localStorage.getItem('wingsfly_keep_records') || '[]'); } catch (e) { return []; } })(),
           breakdown_records: gd.breakdownRecords || [],
           notices: gd.notices || []
         };
@@ -1057,7 +1059,7 @@
         NetworkQuality.recordSuccess();
         SyncFreshness.update();
         // ✅ FIX: Push সফল হলে localStorage এ save করো — cleared deletedItems persist হবে
-        try { _saveLocal(); } catch(e) { _log('⚠️', 'saveLocal after push failed', e); }
+        try { _saveLocal(); } catch (e) { _log('⚠️', 'saveLocal after push failed', e); }
         const totalPushed = stuPushed + finPushed + empPushed;
         if (totalPushed === 0) { _log('✅', `Push OK (${reason}) v${_localVer} — no changes`); }
         else { _log('✅', `Push OK (${reason}) v${_localVer} — ${totalPushed} records`); }
@@ -1267,7 +1269,7 @@
         }
         return;
       }
-    } catch(countErr) {
+    } catch (countErr) {
       _log('⚠️', 'Cloud count check failed — falling back', countErr);
     }
 
@@ -1295,12 +1297,12 @@
       }
       await Promise.all(tasks);
       _saveLocal();
-      
+
       // ✅ FIX: Recalculate balances after force-load
       if (typeof window.feRebuildAllBalances === 'function') {
         window.feRebuildAllBalances();
       }
-      
+
       if (typeof window.renderFullUI === 'function') window.renderFullUI();
       _integrityCheckDidPull = true;
       _showUserMessage('Data recovered from cloud', 'success');
@@ -1352,7 +1354,7 @@
         activity_history: gd.activityHistory || [],
         deleted_items_other: gd.deletedItems?.other || [], // ✅ BUG E FIX: other category page-close sync
         // ✅ SESSION 4 FIX: Keep Records, Breakdown, Notices sync on page close
-        keep_records: (function() { try { return JSON.parse(localStorage.getItem('wingsfly_keep_records') || '[]'); } catch(e) { return []; } })(),
+        keep_records: (function () { try { return JSON.parse(localStorage.getItem('wingsfly_keep_records') || '[]'); } catch (e) { return []; } })(),
         breakdown_records: gd.breakdownRecords || [],
         notices: gd.notices || [],
       };
@@ -1361,7 +1363,7 @@
       try {
         navigator.sendBeacon(mainUrl, new Blob([JSON.stringify(mainPayload)], { type: 'application/json' }));
       } catch (e) {
-        fetch(mainUrl, { method: 'POST', headers: hdrs, body: JSON.stringify(mainPayload), keepalive: true }).catch(() => {});
+        fetch(mainUrl, { method: 'POST', headers: hdrs, body: JSON.stringify(mainPayload), keepalive: true }).catch(() => { });
       }
 
       if (_dirty.size > 0 && _partialOK) {
@@ -1378,7 +1380,7 @@
           const allStuRows = stuRows.concat(stuDel);
           const stuUrl = `${CFG.URL}/rest/v1/${CFG.TBL_STUDENTS}?on_conflict=id`;
           try { navigator.sendBeacon(stuUrl, new Blob([JSON.stringify(allStuRows)], { type: 'application/json' })); }
-          catch (e) { fetch(stuUrl, { method: 'POST', headers: hdrs, body: JSON.stringify(allStuRows), keepalive: true }).catch(() => {}); }
+          catch (e) { fetch(stuUrl, { method: 'POST', headers: hdrs, body: JSON.stringify(allStuRows), keepalive: true }).catch(() => { }); }
         }
         if (_dirty.has('finance') && (gd.finance || []).length > 0) {
           const finRows = (gd.finance || []).slice(0, 50).map(f => ({
@@ -1392,7 +1394,7 @@
           const allFinRows = finRows.concat(finDel);
           const finUrl = `${CFG.URL}/rest/v1/${CFG.TBL_FINANCE}?on_conflict=id`;
           try { navigator.sendBeacon(finUrl, new Blob([JSON.stringify(allFinRows)], { type: 'application/json' })); }
-          catch (e) { fetch(finUrl, { method: 'POST', headers: hdrs, body: JSON.stringify(allFinRows), keepalive: true }).catch(() => {}); }
+          catch (e) { fetch(finUrl, { method: 'POST', headers: hdrs, body: JSON.stringify(allFinRows), keepalive: true }).catch(() => { }); }
         }
         if (_dirty.has('employees') && (gd.employees || []).length > 0) {
           const empRows = (gd.employees || []).slice(0, 50).map(e => ({
@@ -1405,7 +1407,7 @@
           const allEmpRows = empRows.concat(empDel);
           const empUrl = `${CFG.URL}/rest/v1/${CFG.TBL_EMPLOYEES}?on_conflict=id`;
           try { navigator.sendBeacon(empUrl, new Blob([JSON.stringify(allEmpRows)], { type: 'application/json' })); }
-          catch (e) { fetch(empUrl, { method: 'POST', headers: hdrs, body: JSON.stringify(allEmpRows), keepalive: true }).catch(() => {}); }
+          catch (e) { fetch(empUrl, { method: 'POST', headers: hdrs, body: JSON.stringify(allEmpRows), keepalive: true }).catch(() => { }); }
         }
       }
     });
@@ -1437,7 +1439,7 @@
     if (typeof origTakeSnapshot !== 'function') return;
     if (origTakeSnapshot._v39Guarded) return;
 
-    window.takeSnapshot = function() {
+    window.takeSnapshot = function () {
       // Fresh browser-এ pull complete না হলে snapshot নেওয়া বন্ধ
       if (_isFreshBrowser && !window._wf_pull_complete) {
         _log('⏸️', 'Snapshot BLOCKED — fresh browser pull not complete yet');
@@ -1517,7 +1519,7 @@
         if (typeof window.renderFullUI === 'function') window.renderFullUI();
         return true;
       }
-    } catch(e) {
+    } catch (e) {
       _log('⚠️', 'smartSync failed — fallback', e);
       await pullFromCloud(false, true);
       await pushToCloud('smartSync-fallback');
