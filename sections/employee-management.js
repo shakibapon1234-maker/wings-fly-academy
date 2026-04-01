@@ -101,6 +101,9 @@ async function handleEmployeeSubmit(e) {
     renderEmployeeList();
 
     // Attempt cloud sync in background
+    if (typeof window.markDirty === 'function') {
+      window.markDirty('employees');
+    }
     if (typeof window.scheduleSyncPush === 'function') {
       window.scheduleSyncPush('Employee save');
     } else if (typeof window.saveToCloud === 'function') {
@@ -322,6 +325,9 @@ async function deleteEmployee(id) {
     }
 
     // 4. Force cloud sync
+    if (typeof window.markDirty === 'function') {
+      window.markDirty('employees');
+    }
     if (typeof window.scheduleSyncPush === 'function') {
       window.scheduleSyncPush('Employee delete: ' + (empToDelete.name || 'Unknown'));
     }
