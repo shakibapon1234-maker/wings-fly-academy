@@ -378,7 +378,19 @@
                     } catch (e) { window.globalData.deletedItems = { students: [], finance: [], employees: [] }; }
                 }
 
-                var deleted = (window.globalData.deletedItems || []).slice();
+                // ✅ BUG I FIX: deletedItems object হিসেবে flatten করো
+                var rawDel = window.globalData.deletedItems || {};
+                var deleted;
+                if (Array.isArray(rawDel)) {
+                    deleted = rawDel.slice();
+                } else {
+                    deleted = [].concat(
+                        rawDel.students || [],
+                        rawDel.finance || [],
+                        rawDel.employees || [],
+                        rawDel.other || []
+                    );
+                }
                 var fType = (document.getElementById('binFilterType')?.value || 'all');
                 var fSearch = (document.getElementById('binSearchInput')?.value || '').trim().toLowerCase();
 
@@ -455,13 +467,30 @@
                     setTimeout(renderRecycleBin, 300);
                 } else {
                     if (!confirm('Restore করবেন?')) return;
-                    var d = (window.globalData.deletedItems || []).find(function (x) { return x.id === id; });
+                    // ✅ BUG I FIX: object-based deletedItems থেকে খুঁজো
+                    var rawDel = window.globalData.deletedItems || {};
+                    var allItems;
+                    if (Array.isArray(rawDel)) {
+                        allItems = rawDel;
+                    } else {
+                        allItems = [].concat(rawDel.students||[], rawDel.finance||[], rawDel.employees||[], rawDel.other||[]);
+                    }
+                    var d = allItems.find(function (x) { return x.id === id; });
                     if (!d) { alert('Item পাওয়া যায়নি!'); return; }
                     var t = (d.type || '').toLowerCase();
                     if (t === 'student') { if (!window.globalData.students) window.globalData.students = []; window.globalData.students.push(d.item); }
                     if (t === 'finance') { if (!window.globalData.finance) window.globalData.finance = []; window.globalData.finance.push(d.item); }
                     if (t === 'employee') { if (!window.globalData.employees) window.globalData.employees = []; window.globalData.employees.push(d.item); }
-                    window.globalData.deletedItems = (window.globalData.deletedItems || []).filter(function (x) { return x.id !== id; });
+                    // ✅ BUG I FIX: object-based deletedItems থেকে remove
+                    if (Array.isArray(window.globalData.deletedItems)) {
+                        window.globalData.deletedItems = window.globalData.deletedItems.filter(function (x) { return x.id !== id; });
+                    } else {
+                        ['students','finance','employees','other'].forEach(function(cat) {
+                            if (Array.isArray(window.globalData.deletedItems[cat])) {
+                                window.globalData.deletedItems[cat] = window.globalData.deletedItems[cat].filter(function(x) { return x.id !== id; });
+                            }
+                        });
+                    }
                     localStorage.setItem('wingsfly_data', JSON.stringify(window.globalData));
                     renderRecycleBin();
                     if (typeof window.showSuccessToast === 'function') window.showSuccessToast('✅ Restored!');
@@ -474,7 +503,16 @@
                     setTimeout(renderRecycleBin, 300);
                 } else {
                     if (!confirm('চিরতরে মুছবেন?')) return;
-                    window.globalData.deletedItems = (window.globalData.deletedItems || []).filter(function (x) { return x.id !== id; });
+                    // ✅ BUG I FIX: object-based deletedItems থেকে remove
+                    if (Array.isArray(window.globalData.deletedItems)) {
+                        window.globalData.deletedItems = window.globalData.deletedItems.filter(function (x) { return x.id !== id; });
+                    } else {
+                        ['students','finance','employees','other'].forEach(function(cat) {
+                            if (Array.isArray(window.globalData.deletedItems[cat])) {
+                                window.globalData.deletedItems[cat] = window.globalData.deletedItems[cat].filter(function(x) { return x.id !== id; });
+                            }
+                        });
+                    }
                     localStorage.setItem('wingsfly_data', JSON.stringify(window.globalData));
                     renderRecycleBin();
                 }

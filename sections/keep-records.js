@@ -14,6 +14,9 @@ function getKeepRecords() {
 
 function saveKeepRecords(records) {
   localStorage.setItem(KEEP_RECORD_KEY, JSON.stringify(records));
+  // ✅ SESSION 4 FIX: Sync push trigger যোগ করো
+  if (typeof window.markDirty === 'function') window.markDirty('keep_records');
+  if (typeof window.scheduleSyncPush === 'function') window.scheduleSyncPush('Keep Records updated');
 }
 
 function openNewNoteModal(editId = null) {

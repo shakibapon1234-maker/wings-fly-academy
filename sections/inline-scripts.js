@@ -667,20 +667,40 @@ window.switchSettingsTab = switchSettingsTab;
         window.moveToTrash = function (type, item) {
             var gd = window.globalData;
             if (!gd) return;
-            if (!window.globalData) window.globalData = {};
-            if (!window.globalData.deletedItems || Array.isArray(window.globalData.deletedItems)) {
-              window.globalData.deletedItems = { students: [], finance: [], employees: [] };
+            // ✅ BUG I FIX: object-based deletedItems
+            if (!gd.deletedItems || Array.isArray(gd.deletedItems)) {
+              gd.deletedItems = { students: [], finance: [], employees: [], other: [] };
             }
+            if (!Array.isArray(gd.deletedItems.students)) gd.deletedItems.students = [];
+            if (!Array.isArray(gd.deletedItems.finance)) gd.deletedItems.finance = [];
+            if (!Array.isArray(gd.deletedItems.employees)) gd.deletedItems.employees = [];
+            if (!Array.isArray(gd.deletedItems.other)) gd.deletedItems.other = [];
             var entry = {
                 id: 'TRASH_' + Date.now() + '_' + Math.random().toString(36).slice(2, 6),
                 type: type,
-                item: JSON.parse(JSON.stringify(item)), // deep copy
+                item: JSON.parse(JSON.stringify(item)),
                 deletedAt: new Date().toISOString(),
                 deletedBy: sessionStorage.getItem('username') || 'Admin'
             };
-            gd.deletedItems.unshift(entry);
-            if (gd.deletedItems.length > 200) gd.deletedItems = gd.deletedItems.slice(0, 200);
-            localStorage.setItem('wingsfly_data', JSON.stringify(gd));
+            var t = (type || '').toLowerCase();
+            if (t === 'student') {
+              gd.deletedItems.students.unshift(entry);
+              if (gd.deletedItems.students.length > 200) gd.deletedItems.students = gd.deletedItems.students.slice(0, 200);
+            } else if (t === 'finance' || t === 'salary_payment') {
+              gd.deletedItems.finance.unshift(entry);
+              if (gd.deletedItems.finance.length > 200) gd.deletedItems.finance = gd.deletedItems.finance.slice(0, 200);
+            } else if (t === 'employee') {
+              gd.deletedItems.employees.unshift(entry);
+              if (gd.deletedItems.employees.length > 200) gd.deletedItems.employees = gd.deletedItems.employees.slice(0, 200);
+            } else {
+              gd.deletedItems.other.unshift(entry);
+              if (gd.deletedItems.other.length > 200) gd.deletedItems.other = gd.deletedItems.other.slice(0, 200);
+            }
+            if (typeof window.saveToStorage === 'function') {
+              window.saveToStorage();
+            } else {
+              localStorage.setItem('wingsfly_data', JSON.stringify(gd));
+            }
             localStorage.setItem('wingsfly_deleted_backup', JSON.stringify(gd.deletedItems));
             if (typeof window.logActivity === 'function') {
                 window.logActivity('delete', type, (item.name || item.studentName || item.title || item.id || 'Item') + ' deleted', item);
@@ -695,7 +715,15 @@ window.switchSettingsTab = switchSettingsTab;
         window.restoreDeletedItem = function (id) {
             var gd = window.globalData;
             if (!gd) return;
-            var d = (gd.deletedItems || []).find(function (x) { return x.id === id; });
+            // ✅ BUG I FIX: object-based deletedItems flatten
+            var rawDel = gd.deletedItems || {};
+            var allItems;
+            if (Array.isArray(rawDel)) {
+                allItems = rawDel;
+            } else {
+                allItems = [].concat(rawDel.students||[], rawDel.finance||[], rawDel.employees||[], rawDel.other||[]);
+            }
+            var d = allItems.find(function (x) { return x.id === id; });
             if (!d) { console.warn('restoreDeletedItem: id not found', id); return; }
             var t = (d.type || '').toLowerCase();
             var typeMap = {
@@ -710,7 +738,16 @@ window.switchSettingsTab = switchSettingsTab;
                 if (!Array.isArray(gd[arrKey])) gd[arrKey] = [];
                 gd[arrKey].push(d.item);
             }
-            gd.deletedItems = (gd.deletedItems || []).filter(function (x) { return x.id !== id; });
+            // ✅ BUG I FIX: Remove from object-based deletedItems
+            if (Array.isArray(gd.deletedItems)) {
+                gd.deletedItems = gd.deletedItems.filter(function (x) { return x.id !== id; });
+            } else {
+                ['students','finance','employees','other'].forEach(function(cat) {
+                    if (Array.isArray(gd.deletedItems[cat])) {
+                        gd.deletedItems[cat] = gd.deletedItems[cat].filter(function(x) { return x.id !== id; });
+                    }
+                });
+            }
             localStorage.setItem('wingsfly_data', JSON.stringify(gd));
             localStorage.setItem('wingsfly_deleted_backup', JSON.stringify(gd.deletedItems));
             if (typeof window.renderFullUI === 'function') setTimeout(window.renderFullUI, 100);
@@ -730,7 +767,16 @@ window.switchSettingsTab = switchSettingsTab;
         window.permanentDelete = function (id) {
             var gd = window.globalData;
             if (!gd) return;
-            gd.deletedItems = (gd.deletedItems || []).filter(function (x) { return x.id !== id; });
+            // ✅ BUG I FIX: object-based deletedItems
+            if (Array.isArray(gd.deletedItems)) {
+                gd.deletedItems = gd.deletedItems.filter(function (x) { return x.id !== id; });
+            } else {
+                ['students','finance','employees','other'].forEach(function(cat) {
+                    if (Array.isArray(gd.deletedItems[cat])) {
+                        gd.deletedItems[cat] = gd.deletedItems[cat].filter(function(x) { return x.id !== id; });
+                    }
+                });
+            }
             localStorage.setItem('wingsfly_data', JSON.stringify(gd));
             localStorage.setItem('wingsfly_deleted_backup', JSON.stringify(gd.deletedItems));
             if (typeof window.showSuccessToast === 'function') window.showSuccessToast('🗑️ চিরতরে মুছে ফেলা হয়েছে!');

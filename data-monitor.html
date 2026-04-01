@@ -102,8 +102,11 @@ const CFG = {
   URL: 'https://cwwyhtarnkozukekebvq.supabase.co',
   KEY: 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6ImN3d3lodGFybmtvenVrZWtlYnZxIiwicm9sZSI6ImFub24iLCJpYXQiOjE3NzM4NTE5NzUsImV4cCI6MjA4OTQyNzk3NX0.XCJe9A5_ymXQQqK5KVQHJqswUXCuopUi_NYv7T-WWn8',
   ACADEMY_ID: 'wingsfly_main',
+  TABLE: 'academy_data',
+  RECORD: 'wingsfly_main',
   TBL_STUDENTS: 'wf_students',
-  TBL_FINANCE: 'wf_finance'
+  TBL_FINANCE: 'wf_finance',
+  TBL_EMPLOYEES: 'wf_employees'
 };
 const HDRS = {apikey:CFG.KEY, Authorization:'Bearer '+CFG.KEY};
 
@@ -154,43 +157,72 @@ async function runFullCheck() {
 
   // ── Cloud Stats ──
   try {
-    var [sRes, fRes] = await Promise.all([
+    var [sRes, fRes, eRes] = await Promise.all([
       fetch(CFG.URL+'/rest/v1/'+CFG.TBL_STUDENTS+'?academy_id=eq.'+CFG.ACADEMY_ID+'&select=id,deleted', {headers:HDRS}),
-      fetch(CFG.URL+'/rest/v1/'+CFG.TBL_FINANCE+'?academy_id=eq.'+CFG.ACADEMY_ID+'&select=id,deleted', {headers:HDRS})
+      fetch(CFG.URL+'/rest/v1/'+CFG.TBL_FINANCE+'?academy_id=eq.'+CFG.ACADEMY_ID+'&select=id,deleted', {headers:HDRS}),
+      fetch(CFG.URL+'/rest/v1/'+CFG.TBL_EMPLOYEES+'?academy_id=eq.'+CFG.ACADEMY_ID+'&select=id,deleted', {headers:HDRS})
     ]);
     var sCloud = await sRes.json();
     var fCloud = await fRes.json();
+    var eCloud = await eRes.json();
 
     var cStuActive = sCloud.filter(r=>!r.deleted).length;
     var cStuDeleted = sCloud.filter(r=>r.deleted).length;
     var cFinActive = fCloud.filter(r=>!r.deleted).length;
     var cFinDeleted = fCloud.filter(r=>r.deleted).length;
+    var cEmpActive = eCloud.filter(r=>!r.deleted).length;
+    var cEmpDeleted = eCloud.filter(r=>r.deleted).length;
+
+    // ✅ BUG F FIX: Main record থেকে visitors, activity_history, keep_records fetch
+    var mainRes = await fetch(CFG.URL+'/rest/v1/'+CFG.TABLE+'?id=eq.'+CFG.RECORD+'&select=visitors,activity_history,keep_records', {headers:HDRS});
+    var mainData = await mainRes.json();
+    var cVisitors = (mainData[0]?.visitors || []).length;
+    var cActivity = (mainData[0]?.activity_history || []).length;
+    var cKeepRec = (mainData[0]?.keep_records || []).length;
 
     document.getElementById('cloudStats').innerHTML =
       row('Students (active)', cStuActive) +
       row('Students (deleted)', cStuDeleted, cStuDeleted>0?'warn':'ok') +
       row('Finance (active)', cFinActive) +
       row('Finance (deleted)', cFinDeleted, cFinDeleted>0?'warn':'ok') +
-      row('Total Cloud Rows', sCloud.length+fCloud.length);
-    log('Cloud: '+cStuActive+'+'+cStuDeleted+' students, '+cFinActive+'+'+cFinDeleted+' finance');
+      row('Employees (active)', cEmpActive) +
+      row('Employees (deleted)', cEmpDeleted, cEmpDeleted>0?'warn':'ok') +
+      row('Visitors (cloud)', cVisitors) +
+      row('Activity History (cloud)', cActivity) +
+      row('Keep Records (cloud)', cKeepRec) +
+      row('Total Cloud Rows', sCloud.length+fCloud.length+eCloud.length);
+    log('Cloud: '+cStuActive+'+'+cStuDeleted+' students, '+cFinActive+'+'+cFinDeleted+' finance, '+cEmpActive+'+'+cEmpDeleted+' employees, '+cKeepRec+' notes');
 
     // ── Match ──
     var lStu = gd ? (gd.students||[]).length : 0;
     var lFin = gd ? (gd.finance||[]).filter(f=>!f._deleted).length : 0;
+    var lEmp = gd ? (gd.employees||[]).length : 0;
+    var lVisitors = gd ? (gd.visitors||[]).length : 0;
+    var lActivity = gd ? (gd.activityHistory||[]).length : 0;
+    var lKeepRec = 0; try { lKeepRec = JSON.parse(localStorage.getItem('wingsfly_keep_records')||'[]').length; } catch(e){}
     var stuMatch = lStu === cStuActive;
     var finMatch = lFin === cFinActive;
+    var empMatch = lEmp === cEmpActive;
+    var visMatch = lVisitors === cVisitors;
+    var actMatch = lActivity === cActivity;
+    var keepMatch = lKeepRec === cKeepRec;
+    var allMatch = stuMatch && finMatch && empMatch;
 
-    document.getElementById('matchCard').className = 'card full ' + (stuMatch&&finMatch?'match':'mismatch');
+    document.getElementById('matchCard').className = 'card full ' + (allMatch?'match':'mismatch');
     document.getElementById('matchStats').innerHTML =
       row('Students', lStu + ' local / ' + cStuActive + ' cloud', stuMatch?'ok':'err') +
       row('Finance', lFin + ' local / ' + cFinActive + ' cloud', finMatch?'ok':'err') +
-      row('Status', stuMatch&&finMatch?'✅ PERFECT MATCH':'❌ MISMATCH', stuMatch&&finMatch?'ok':'err');
+      row('Employees', lEmp + ' local / ' + cEmpActive + ' cloud', empMatch?'ok':'err') +
+      row('Visitors', lVisitors + ' local / ' + cVisitors + ' cloud', visMatch?'ok':'warn') +
+      row('Activity History', lActivity + ' local / ' + cActivity + ' cloud', actMatch?'ok':'warn') +
+      row('📝 Keep Records', lKeepRec + ' local / ' + cKeepRec + ' cloud', keepMatch?'ok':'warn') +
+      row('Status', allMatch?'✅ PERFECT MATCH':'❌ MISMATCH', allMatch?'ok':'err');
 
     // ── Deleted markers ──
-    if (cStuDeleted>0 || cFinDeleted>0) {
-      log('⚠️ Cloud has '+cStuDeleted+' student + '+cFinDeleted+' finance deleted markers');
+    if (cStuDeleted>0 || cFinDeleted>0 || cEmpDeleted>0) {
+      log('⚠️ Cloud has '+cStuDeleted+' student + '+cFinDeleted+' finance + '+cEmpDeleted+' employee deleted markers');
     }
-    log(stuMatch&&finMatch?'✅ Data matches!':'❌ Data mismatch!');
+    log(allMatch?'✅ Data matches!':'❌ Data mismatch!');
 
   } catch(e) {
     document.getElementById('cloudStats').innerHTML = '<div class="err">Cloud error: '+e.message+'</div>';

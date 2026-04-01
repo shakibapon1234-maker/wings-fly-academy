@@ -485,6 +485,30 @@
           if (mainRec.activity_history && Array.isArray(mainRec.activity_history) && mainRec.activity_history.length > 0) {
             gd.activityHistory = mainRec.activity_history;
           }
+          // ✅ BUG E FIX: deleted_items_other pull — cloud থেকে other category restore
+          if (mainRec.deleted_items_other && Array.isArray(mainRec.deleted_items_other)) {
+            if (!gd.deletedItems) gd.deletedItems = {};
+            gd.deletedItems.other = mainRec.deleted_items_other;
+          }
+          // ✅ SESSION 4 FIX: Keep Records pull — cloud থেকে নোটস restore
+          if (mainRec.keep_records && Array.isArray(mainRec.keep_records) && mainRec.keep_records.length > 0) {
+            try {
+              var localKeep = JSON.parse(localStorage.getItem('wingsfly_keep_records') || '[]');
+              // Cloud-এ বেশি থাকলে cloud-এরটা নাও
+              if (mainRec.keep_records.length >= localKeep.length) {
+                localStorage.setItem('wingsfly_keep_records', JSON.stringify(mainRec.keep_records));
+                _log('📝', 'Keep Records pulled: ' + mainRec.keep_records.length + ' notes');
+              }
+            } catch(e) { _log('⚠️', 'Keep Records pull error', e); }
+          }
+          // ✅ SESSION 4 FIX: Breakdown Records pull
+          if (mainRec.breakdown_records && Array.isArray(mainRec.breakdown_records) && mainRec.breakdown_records.length > 0) {
+            gd.breakdownRecords = mainRec.breakdown_records;
+          }
+          // ✅ SESSION 4 FIX: Notices pull
+          if (mainRec.notices && Array.isArray(mainRec.notices) && mainRec.notices.length > 0) {
+            gd.notices = mainRec.notices;
+          }
           _localVer = mainRec.version || _localVer;
           localStorage.setItem('wings_local_version', _localVer.toString());
         }
@@ -982,7 +1006,12 @@
           exam_registrations: gd.examRegistrations || [],
           visitors: gd.visitors || [],
           next_id: gd.nextId || 1001,
-          activity_history: gd.activityHistory || []
+          activity_history: gd.activityHistory || [],
+          deleted_items_other: gd.deletedItems?.other || [], // ✅ BUG E FIX: other category cloud-এ push
+          // ✅ SESSION 4 FIX: Keep Records, Breakdown, Notices sync
+          keep_records: (function() { try { return JSON.parse(localStorage.getItem('wingsfly_keep_records') || '[]'); } catch(e) { return []; } })(),
+          breakdown_records: gd.breakdownRecords || [],
+          notices: gd.notices || []
         };
         tasks.push(_sb.from(CFG.TABLE).upsert(mainPayload, { onConflict: 'id' }).then(res => {
           if (res.error?.message?.includes('column')) {
@@ -1289,6 +1318,11 @@
         visitors: gd.visitors || [],
         next_id: gd.nextId || 1001,
         activity_history: gd.activityHistory || [],
+        deleted_items_other: gd.deletedItems?.other || [], // ✅ BUG E FIX: other category page-close sync
+        // ✅ SESSION 4 FIX: Keep Records, Breakdown, Notices sync on page close
+        keep_records: (function() { try { return JSON.parse(localStorage.getItem('wingsfly_keep_records') || '[]'); } catch(e) { return []; } })(),
+        breakdown_records: gd.breakdownRecords || [],
+        notices: gd.notices || [],
       };
       const mainUrl = `${CFG.URL}/rest/v1/${CFG.TABLE}?on_conflict=id`;
       const hdrs = { 'Content-Type': 'application/json', 'apikey': CFG.KEY, 'Authorization': `Bearer ${CFG.KEY}`, 'Prefer': 'resolution=merge-duplicates' };
@@ -1396,18 +1430,23 @@
     const data = JSON.parse(localStorage.getItem('wingsfly_data') || '{}');
     const stuLen = (data.students || []).length;
     const finLen = (data.finance || []).length;
+    const empLen = (data.employees || []).length;
     MaxCount.forceSet(stuLen, finLen);
+    // ✅ BUG G FIX: Employee MaxCount ও set করো
+    localStorage.setItem('wf_max_employees', String(empLen));
     if (window.globalData) {
       if (stuLen > (window.globalData.students || []).length) window.globalData.students = data.students || [];
       if (finLen > (window.globalData.finance || []).length) window.globalData.finance = data.finance || [];
+      if (empLen > (window.globalData.employees || []).length) window.globalData.employees = data.employees || [];
     }
     localStorage.removeItem('wf_push_snapshot_students');
     localStorage.removeItem('wf_push_snapshot_finance');
-    _log('🗑️', 'Snapshots cleared before force push');
+    localStorage.removeItem('wf_push_snapshot_employees'); // ✅ BUG G FIX: Employee snapshot clear
+    _log('🗑️', 'Snapshots cleared before force push (students + finance + employees)');
     const ok = await pushToCloud(reason || 'forcePushOnly');
     if (ok) {
       _rebuildSnapshots();
-      _showUserMessage(`✅ ${stuLen} students, ${finLen} finance cloud-এ push হয়েছে!`, 'success');
+      _showUserMessage(`✅ ${stuLen} students, ${finLen} finance, ${empLen} employees cloud-এ push হয়েছে!`, 'success');
       if (typeof window.renderFullUI === 'function') window.renderFullUI();
     }
     return ok;
@@ -1419,18 +1458,23 @@
     try {
       const aid = encodeURIComponent(CFG.ACADEMY_ID);
       const hdrs = { apikey: CFG.KEY, Authorization: 'Bearer ' + CFG.KEY, Prefer: 'count=exact', Range: '0-999999' };
-      const [stuRes, finRes] = await Promise.all([
+      // ✅ BUG H FIX: Employee count ও check করো
+      const [stuRes, finRes, empRes] = await Promise.all([
         fetch(`${CFG.URL}/rest/v1/wf_students?academy_id=eq.${aid}&deleted=eq.false&select=id`, { headers: hdrs }),
         fetch(`${CFG.URL}/rest/v1/wf_finance?academy_id=eq.${aid}&deleted=eq.false&select=id`, { headers: hdrs }),
+        fetch(`${CFG.URL}/rest/v1/wf_employees?academy_id=eq.${aid}&deleted=eq.false&select=id`, { headers: hdrs }),
       ]);
       const cloudStu = parseInt(stuRes.headers.get('content-range')?.split('/')[1] || '0', 10);
       const cloudFin = parseInt(finRes.headers.get('content-range')?.split('/')[1] || '0', 10);
+      const cloudEmp = parseInt(empRes.headers.get('content-range')?.split('/')[1] || '0', 10);
       const localData = JSON.parse(localStorage.getItem('wingsfly_data') || '{}');
       const localStu = (localData.students || []).length;
       const localFin = (localData.finance || []).length;
-      _log('📊', `smartSync: local stu=${localStu} fin=${localFin} | cloud stu=${cloudStu} fin=${cloudFin}`);
+      const localEmp = (localData.employees || []).length;
+      _log('📊', `smartSync: local stu=${localStu} fin=${localFin} emp=${localEmp} | cloud stu=${cloudStu} fin=${cloudFin} emp=${cloudEmp}`);
 
-      if (localStu > cloudStu || localFin > cloudFin) {
+      // ✅ BUG H FIX: Employee count compare যোগ করা হয়েছে
+      if (localStu > cloudStu || localFin > cloudFin || localEmp > cloudEmp) {
         _log('📤', 'Local > Cloud — force pushing');
         _showUserMessage('Local data বেশি — Cloud-এ push হচ্ছে...', 'info');
         return await forcePushOnly('smartSync-push');

@@ -25,7 +25,16 @@ function logActivity(type, action, description, data = null) {
       window.globalData.activityHistory = window.globalData.activityHistory.slice(0, 500);
     }
 
-    localStorage.setItem('wingsfly_data', JSON.stringify(window.globalData));
+    // ✅ BUG D FIX: V39 patch bypass — saveToStorage ব্যবহার করো localStorage.setItem-এর বদলে
+    if (typeof window.saveToStorage === 'function') {
+      window.saveToStorage();
+    } else {
+      localStorage.setItem('wingsfly_data', JSON.stringify(window.globalData));
+    }
+    // ✅ BUG D FIX: markDirty কল করো — activity sync faster হবে
+    if (typeof window.markDirty === 'function') {
+      window.markDirty('activity');
+    }
   } catch (e) {
     console.warn('History log error:', e);
   }
@@ -35,7 +44,15 @@ window.logActivity = logActivity;
 // Move item to trash (soft delete)
 function moveToTrash(type, item) {
   try {
-    if (!window.globalData.deletedItems) window.globalData.deletedItems = [];
+    // ✅ BUG I FIX: Array-এর বদলে object ব্যবহার করো — V39 sync compatible
+    if (!window.globalData.deletedItems || Array.isArray(window.globalData.deletedItems)) {
+      window.globalData.deletedItems = { students: [], finance: [], employees: [], other: [] };
+    }
+    // Ensure all categories exist
+    if (!Array.isArray(window.globalData.deletedItems.students)) window.globalData.deletedItems.students = [];
+    if (!Array.isArray(window.globalData.deletedItems.finance)) window.globalData.deletedItems.finance = [];
+    if (!Array.isArray(window.globalData.deletedItems.employees)) window.globalData.deletedItems.employees = [];
+    if (!Array.isArray(window.globalData.deletedItems.other)) window.globalData.deletedItems.other = [];
 
     const trashEntry = {
       id: Date.now() + Math.random().toString(36).substr(2, 5),
@@ -45,15 +62,28 @@ function moveToTrash(type, item) {
       deletedBy: sessionStorage.getItem('username') || 'Admin'
     };
 
-    window.globalData.deletedItems.unshift(trashEntry);
-
-    // Keep max 200 deleted items
-    if (window.globalData.deletedItems.length > 200) {
-      window.globalData.deletedItems = window.globalData.deletedItems.slice(0, 200);
+    // ✅ BUG I FIX: Push to correct category bucket (sync system needs object)
+    var t = (type || '').toLowerCase();
+    if (t === 'student') {
+      window.globalData.deletedItems.students.unshift(trashEntry);
+      if (window.globalData.deletedItems.students.length > 200) window.globalData.deletedItems.students = window.globalData.deletedItems.students.slice(0, 200);
+    } else if (t === 'finance' || t === 'salary_payment') {
+      window.globalData.deletedItems.finance.unshift(trashEntry);
+      if (window.globalData.deletedItems.finance.length > 200) window.globalData.deletedItems.finance = window.globalData.deletedItems.finance.slice(0, 200);
+    } else if (t === 'employee') {
+      window.globalData.deletedItems.employees.unshift(trashEntry);
+      if (window.globalData.deletedItems.employees.length > 200) window.globalData.deletedItems.employees = window.globalData.deletedItems.employees.slice(0, 200);
+    } else {
+      window.globalData.deletedItems.other.unshift(trashEntry);
+      if (window.globalData.deletedItems.other.length > 200) window.globalData.deletedItems.other = window.globalData.deletedItems.other.slice(0, 200);
     }
 
-    localStorage.setItem('wingsfly_data', JSON.stringify(window.globalData));
-    // FIX: cloud pull এ deletedItems হারিয়ে না যায় তাই backup রাখো
+    // ✅ BUG D FIX: saveToStorage ব্যবহার করো — V39 patch bypass বন্ধ
+    if (typeof window.saveToStorage === 'function') {
+      window.saveToStorage();
+    } else {
+      localStorage.setItem('wingsfly_data', JSON.stringify(window.globalData));
+    }
     localStorage.setItem('wingsfly_deleted_backup', JSON.stringify(window.globalData.deletedItems));
   } catch (e) {
     console.warn('Trash error:', e);
@@ -128,10 +158,22 @@ function loadDeletedItems() {
   const container = document.getElementById('deletedItemsList');
   if (!container) return;
 
-  const deleted = window.globalData.deletedItems || [];
+  // ✅ BUG I FIX: deletedItems object হিসেবে handle — সব category flatten করো
+  var rawDeleted = window.globalData.deletedItems || {};
+  var deleted;
+  if (Array.isArray(rawDeleted)) {
+    deleted = rawDeleted;
+  } else {
+    deleted = [].concat(
+      rawDeleted.students || [],
+      rawDeleted.finance || [],
+      rawDeleted.employees || [],
+      rawDeleted.other || []
+    );
+  }
   const filterVal = document.getElementById('trashFilter')?.value || 'all';
 
-  const filtered = filterVal === 'all' ? deleted : deleted.filter(d => d.type === filterVal);
+  const filtered = filterVal === 'all' ? deleted : deleted.filter(d => (d.type || '').toLowerCase() === filterVal.toLowerCase());
 
   if (filtered.length === 0) {
     container.innerHTML = '<div class="text-center text-muted py-5"><div style="font-size:3rem">🗑️</div><p>Trash খালি। কোনো deleted item নেই।</p></div>';
@@ -187,11 +229,22 @@ window.loadDeletedItems = loadDeletedItems;
 function restoreDeletedItem(trashId) {
   if (!confirm('এই item টি restore করবেন?')) return;
 
-  const deleted = window.globalData.deletedItems || [];
-  const idx = deleted.findIndex(d => d.id === trashId);
-  if (idx === -1) { alert('Item পাওয়া যায়নি!'); return; }
+  // ✅ BUG I FIX: object-based deletedItems — সব category থেকে খুঁজো
+  var rawDeleted = window.globalData.deletedItems || {};
+  var allItems;
+  if (Array.isArray(rawDeleted)) {
+    allItems = rawDeleted;
+  } else {
+    allItems = [].concat(
+      rawDeleted.students || [],
+      rawDeleted.finance || [],
+      rawDeleted.employees || [],
+      rawDeleted.other || []
+    );
+  }
+  const trashEntry = allItems.find(d => d.id === trashId);
+  if (!trashEntry) { alert('Item পাওয়া যায়নি!'); return; }
 
-  const trashEntry = deleted[idx];
   const item = trashEntry.item;
   const type = (trashEntry.type || '').toLowerCase();
   const itemName = item.name || item.studentName || item.title || item.content || 'Item';
@@ -314,8 +367,16 @@ function restoreDeletedItem(trashId) {
     }
   }
 
-  // ✅ Remove from trash + sync backup
-  window.globalData.deletedItems.splice(idx, 1);
+  // ✅ BUG I FIX: Remove from trash — object-based deletedItems handle
+  if (Array.isArray(window.globalData.deletedItems)) {
+    window.globalData.deletedItems = window.globalData.deletedItems.filter(d => d.id !== trashId);
+  } else {
+    ['students','finance','employees','other'].forEach(function(cat) {
+      if (Array.isArray(window.globalData.deletedItems[cat])) {
+        window.globalData.deletedItems[cat] = window.globalData.deletedItems[cat].filter(function(x) { return x.id !== trashId; });
+      }
+    });
+  }
   localStorage.setItem('wingsfly_deleted_backup', JSON.stringify(window.globalData.deletedItems));
 
   // ✅ Save Locally immediately
@@ -341,11 +402,16 @@ window.restoreDeletedItem = restoreDeletedItem;
 function permanentDelete(trashId) {
   if (!confirm('এই item টি চিরতরে মুছে ফেলবেন? এটি আর ফিরিয়ে আনা যাবে না।')) return;
 
-  const deleted = window.globalData.deletedItems || [];
-  const idx = deleted.findIndex(d => d.id === trashId);
-  if (idx === -1) return;
-
-  window.globalData.deletedItems.splice(idx, 1);
+  // ✅ BUG I FIX: object-based deletedItems handle
+  if (Array.isArray(window.globalData.deletedItems)) {
+    window.globalData.deletedItems = window.globalData.deletedItems.filter(d => d.id !== trashId);
+  } else {
+    ['students','finance','employees','other'].forEach(function(cat) {
+      if (Array.isArray(window.globalData.deletedItems[cat])) {
+        window.globalData.deletedItems[cat] = window.globalData.deletedItems[cat].filter(function(x) { return x.id !== trashId; });
+      }
+    });
+  }
   saveToStorage(true);
   loadDeletedItems();
   showSuccessToast('Item permanently deleted.');
@@ -355,7 +421,8 @@ window.permanentDelete = permanentDelete;
 // Empty entire trash
 function emptyTrash() {
   if (!confirm('সব Deleted Items চিরতরে মুছে ফেলবেন?')) return;
-  window.globalData.deletedItems = [];
+  // ✅ BUG I FIX: object ব্যবহার করো, array নয়
+  window.globalData.deletedItems = { students: [], finance: [], employees: [], other: [] };
   saveToStorage(true);
   loadDeletedItems();
   showSuccessToast('Trash emptied!');
