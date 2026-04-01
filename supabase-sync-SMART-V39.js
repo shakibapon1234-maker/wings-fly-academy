@@ -469,6 +469,22 @@
           if (mainRec.employee_roles && Array.isArray(mainRec.employee_roles) && mainRec.employee_roles.length > 0) {
             gd.employeeRoles = mainRec.employee_roles;
           }
+          // ✅ V40 FIX: Sync remaining globalData properties
+          if (mainRec.attendance && typeof mainRec.attendance === 'object' && Object.keys(mainRec.attendance).length > 0) {
+            gd.attendance = mainRec.attendance;
+          }
+          if (mainRec.exam_registrations && Array.isArray(mainRec.exam_registrations) && mainRec.exam_registrations.length > 0) {
+            gd.examRegistrations = mainRec.exam_registrations;
+          }
+          if (mainRec.visitors && Array.isArray(mainRec.visitors) && mainRec.visitors.length > 0) {
+            gd.visitors = mainRec.visitors;
+          }
+          if (typeof mainRec.next_id === 'number' && mainRec.next_id > (gd.nextId || 0)) {
+            gd.nextId = mainRec.next_id;
+          }
+          if (mainRec.activity_history && Array.isArray(mainRec.activity_history) && mainRec.activity_history.length > 0) {
+            gd.activityHistory = mainRec.activity_history;
+          }
           _localVer = mainRec.version || _localVer;
           localStorage.setItem('wings_local_version', _localVer.toString());
         }
@@ -952,7 +968,13 @@
           income_categories: gd.incomeCategories || [],
           expense_categories: gd.expenseCategories || [],
           course_names: gd.courseNames || [],
-          employee_roles: gd.employeeRoles || []
+          employee_roles: gd.employeeRoles || [],
+          // ✅ V40 FIX: Sync remaining globalData properties
+          attendance: gd.attendance || {},
+          exam_registrations: gd.examRegistrations || [],
+          visitors: gd.visitors || [],
+          next_id: gd.nextId || 1001,
+          activity_history: gd.activityHistory || []
         };
         tasks.push(_sb.from(CFG.TABLE).upsert(mainPayload, { onConflict: 'id' }).then(res => {
           if (res.error?.message?.includes('column')) {
@@ -1253,6 +1275,12 @@
         course_names: gd.courseNames || [],
         employee_roles: gd.employeeRoles || [],
         settings: gd.settings || null,
+        // ✅ V40 FIX: Sync remaining globalData properties on page close
+        attendance: gd.attendance || {},
+        exam_registrations: gd.examRegistrations || [],
+        visitors: gd.visitors || [],
+        next_id: gd.nextId || 1001,
+        activity_history: gd.activityHistory || [],
       };
       const mainUrl = `${CFG.URL}/rest/v1/${CFG.TABLE}?on_conflict=id`;
       const hdrs = { 'Content-Type': 'application/json', 'apikey': CFG.KEY, 'Authorization': `Bearer ${CFG.KEY}`, 'Prefer': 'resolution=merge-duplicates' };
