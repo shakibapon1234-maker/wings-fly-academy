@@ -173,12 +173,14 @@ async function runFullCheck() {
     var cEmpActive = eCloud.filter(r=>!r.deleted).length;
     var cEmpDeleted = eCloud.filter(r=>r.deleted).length;
 
-    // ✅ BUG F FIX: Main record থেকে visitors, activity_history, keep_records fetch
-    var mainRes = await fetch(CFG.URL+'/rest/v1/'+CFG.TABLE+'?id=eq.'+CFG.RECORD+'&select=visitors,activity_history,keep_records', {headers:HDRS});
+    // ✅ BUG F FIX & SESSION 4 FIX: Main record থেকে visitors, activity_history, keep_records, breakdown_records, notices fetch
+    var mainRes = await fetch(CFG.URL+'/rest/v1/'+CFG.TABLE+'?id=eq.'+CFG.RECORD+'&select=visitors,activity_history,keep_records,breakdown_records,notices', {headers:HDRS});
     var mainData = await mainRes.json();
     var cVisitors = (mainData[0]?.visitors || []).length;
     var cActivity = (mainData[0]?.activity_history || []).length;
     var cKeepRec = (mainData[0]?.keep_records || []).length;
+    var cBreakdown = (mainData[0]?.breakdown_records || []).length;
+    var cNotices = (mainData[0]?.notices || []).length;
 
     document.getElementById('cloudStats').innerHTML =
       row('Students (active)', cStuActive) +
@@ -190,8 +192,10 @@ async function runFullCheck() {
       row('Visitors (cloud)', cVisitors) +
       row('Activity History (cloud)', cActivity) +
       row('Keep Records (cloud)', cKeepRec) +
-      row('Total Cloud Rows', sCloud.length+fCloud.length+eCloud.length);
-    log('Cloud: '+cStuActive+'+'+cStuDeleted+' students, '+cFinActive+'+'+cFinDeleted+' finance, '+cEmpActive+'+'+cEmpDeleted+' employees, '+cKeepRec+' notes');
+      row('Breakdown Records (cloud)', cBreakdown) +
+      row('Notices (cloud)', cNotices) +
+      row('Total Cloud Rows (Core)', sCloud.length+fCloud.length+eCloud.length);
+    log('Cloud: '+cStuActive+'+'+cStuDeleted+' stu, '+cFinActive+'+'+cFinDeleted+' fin, '+cEmpActive+'+'+cEmpDeleted+' emp, '+cKeepRec+' notes, '+cBreakdown+' brk, '+cNotices+' notc');
 
     // ── Match ──
     var lStu = gd ? (gd.students||[]).length : 0;
@@ -200,12 +204,17 @@ async function runFullCheck() {
     var lVisitors = gd ? (gd.visitors||[]).length : 0;
     var lActivity = gd ? (gd.activityHistory||[]).length : 0;
     var lKeepRec = 0; try { lKeepRec = JSON.parse(localStorage.getItem('wingsfly_keep_records')||'[]').length; } catch(e){}
+    var lBreakdown = gd ? (gd.breakdownRecords||[]).length : 0;
+    var lNotices = gd ? (gd.notices||[]).length : 0;
+    
     var stuMatch = lStu === cStuActive;
     var finMatch = lFin === cFinActive;
     var empMatch = lEmp === cEmpActive;
     var visMatch = lVisitors === cVisitors;
     var actMatch = lActivity === cActivity;
     var keepMatch = lKeepRec === cKeepRec;
+    var brkMatch = lBreakdown === cBreakdown;
+    var notcMatch = lNotices === cNotices;
     var allMatch = stuMatch && finMatch && empMatch;
 
     document.getElementById('matchCard').className = 'card full ' + (allMatch?'match':'mismatch');
@@ -216,6 +225,8 @@ async function runFullCheck() {
       row('Visitors', lVisitors + ' local / ' + cVisitors + ' cloud', visMatch?'ok':'warn') +
       row('Activity History', lActivity + ' local / ' + cActivity + ' cloud', actMatch?'ok':'warn') +
       row('📝 Keep Records', lKeepRec + ' local / ' + cKeepRec + ' cloud', keepMatch?'ok':'warn') +
+      row('📊 Breakdown Records', lBreakdown + ' local / ' + cBreakdown + ' cloud', brkMatch?'ok':'warn') +
+      row('📌 Notices', lNotices + ' local / ' + cNotices + ' cloud', notcMatch?'ok':'warn') +
       row('Status', allMatch?'✅ PERFECT MATCH':'❌ MISMATCH', allMatch?'ok':'err');
 
     // ── Deleted markers ──
