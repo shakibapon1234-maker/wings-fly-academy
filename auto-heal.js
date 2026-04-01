@@ -157,10 +157,26 @@
   // MODULE 3: Duplicate Finance Entry Removal
   // ============================================
   function healDuplicateFinance() {
-    // ✅ V4.2: DISABLED — key-তে description নেই, তাই একই person+amount+date-এর
-    // দুটি ভিন্ন entry (যেমন Due ও Bonus) ভুল করে "duplicate" হিসেবে মুছে দিচ্ছিল।
-    // এটি Employee হারানো এবং balance oscillation-এর বড় কারণ।
-    return 0;
+    const data = window.globalData;
+    if (!data?.finance) return 0;
+    const seen = new Set(), cleaned = [];
+    let removed = 0;
+    data.finance.forEach(f => {
+      // ✅ V4.2 FIX: description যোগ করা হয়েছে key-তে
+      // আগে description ছিল না, তাই Due ও Bonus আলাদা entry ভুলে duplicate ধরতো
+      const rt = f.timestamp ? Math.floor(new Date(f.timestamp).getTime() / 300000) : f.date;
+      const desc = (f.description || '').replace(/\s+/g, '').toLowerCase();
+      const key = `${f.type}|${f.amount}|${f.date}|${(f.person||'').trim().toLowerCase()}|${f.category||''}|${desc}|${rt}`;
+      if (seen.has(key)) { hLog('fix', `Dupe finance removed: ${f.type} ৳${f.amount} (${f.date}) ${f.person}`, 'DUPE'); removed++; }
+      else { seen.add(key); cleaned.push(f); }
+    });
+    if (removed > 0) {
+      data.finance = cleaned;
+      if (typeof window.saveToStorage === 'function') window.saveToStorage();
+      else localStorage.setItem('wingsfly_data', JSON.stringify(data));
+      healToast(`${removed} dupe txns removed`, 'fix');
+    }
+    return removed;
   }
 
   // ============================================
@@ -246,9 +262,19 @@
   // MODULE 8: Finance Total Recalculation
   // ============================================
   function healFinanceRecalculation() {
-    // ✅ V4.2: DISABLED — auto-heal-এর ACCOUNT_IN/OUT list finance-engine-এর সাথে
-    // ভিন্ন হতে পারে, ফলে ভুল gap detect করে balance ওভাররাইট করে।
-    // feRebuildAllBalances() ইতিমধ্যে sync pull-এর পর চলে — ডাবল rebuild অপ্রয়োজনীয়।
+    // ✅ V4.2 FIX: শুধু feRebuildAllBalances() delegate করো — নিজে calculate করো না
+    if (typeof window.feRebuildAllBalances !== 'function') return 0;
+    const data = window.globalData;
+    if (!data?.finance) return 0;
+    const prevCash = parseFloat(data.cashBalance) || 0;
+    window.feRebuildAllBalances();
+    const newCash = parseFloat(data.cashBalance) || 0;
+    const gap = Math.abs(newCash - prevCash);
+    if (gap > 1) {
+      hLog('fix', `Cash recalc: ৳${prevCash.toFixed(0)} → ৳${newCash.toFixed(0)} (gap ৳${gap.toFixed(0)})`, 'FIN-RECALC');
+      if (typeof window.saveToStorage === 'function') window.saveToStorage();
+      return 1;
+    }
     return 0;
   }
 
@@ -358,15 +384,7 @@
   window.updatePaidFinanceStatusBadge = _updatePaidFinanceStatusBadge;
 
   // ============================================
-  // MODULE 12: Finance-engine balance rebuild (periodic)
-  // প্রতি ৫ cycle-এ একবার
-  // ============================================
-  function healPeriodicBalanceRebuild() {
-    // ✅ V4.2: DISABLED — feRebuildAllBalances() already runs after every pull.
-    // Running it again from auto-heal causes balance oscillation (৳2000 up/down)
-    // when cloud has stale cash_balance that temporarily overwrites local.
-    return 0;
-  }
+  function healPeriodicBalanceRebuild() { return 0; } // V4.2: Handled by sync pull
 
   // ============================================
   // MODULE 13: Cloud vs Local Sync Mismatch (DISABLED)
@@ -497,15 +515,7 @@
   }
 
   // ============================================
-  // MODULE 15: Retroactive Student Fee Backfill
-  // ============================================
-  function healStudentFeeBackfill() {
-    // ✅ V4.2: DISABLED — This module was creating/modifying ~20 finance entries
-    // every heal cycle (converting categories, adding new entries with Date.now() IDs).
-    // This caused massive balance oscillation and sync conflicts across devices.
-    // Student fee backfill should be a ONE-TIME manual operation, not auto-heal.
-    return 0;
-  }
+  function healStudentFeeBackfill() { return 0; } // V4.2: One-time manual only
 
   // ============================================
   // Network reconnect handler
