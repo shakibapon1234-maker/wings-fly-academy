@@ -34,7 +34,7 @@
 (function () {
   'use strict';
 
-  const HEAL_INTERVAL = 1200 * 1000;  // প্রতি ২০ মিনিটে (1200 সেকেন্ড) — egress কমাতে
+  const HEAL_INTERVAL = 3600 * 1000;  // ✅ V4.2: প্রতি ৬০ মিনিটে — performance ভালো রাখতে
 
   // ✅ FIX: সবসময় window.SUPABASE_CONFIG থেকে নাও — hardcoded পুরানো URL বাদ
   // পুরানো account: gtoldrltxjrwshubplfp ← এটা আর ব্যবহার হবে না
@@ -157,18 +157,10 @@
   // MODULE 3: Duplicate Finance Entry Removal
   // ============================================
   function healDuplicateFinance() {
-    const data = window.globalData;
-    if (!data?.finance) return 0;
-    const seen = new Set(), cleaned = [];
-    let removed = 0;
-    data.finance.forEach(f => {
-      const rt = f.timestamp ? Math.floor(new Date(f.timestamp).getTime() / 300000) : f.date;
-      const key = `${f.type}|${f.amount}|${f.date}|${f.person||''}|${rt}`;
-      if (seen.has(key)) { hLog('fix', `Dupe finance removed: ${f.type} ৳${f.amount} (${f.date})`, 'DUPE'); removed++; }
-      else { seen.add(key); cleaned.push(f); }
-    });
-    if (removed > 0) { data.finance = cleaned; localStorage.setItem('wingsfly_data', JSON.stringify(data)); healToast(`${removed} dupe txns removed`, 'fix'); }
-    return removed;
+    // ✅ V4.2: DISABLED — key-তে description নেই, তাই একই person+amount+date-এর
+    // দুটি ভিন্ন entry (যেমন Due ও Bonus) ভুল করে "duplicate" হিসেবে মুছে দিচ্ছিল।
+    // এটি Employee হারানো এবং balance oscillation-এর বড় কারণ।
+    return 0;
   }
 
   // ============================================
@@ -254,32 +246,9 @@
   // MODULE 8: Finance Total Recalculation
   // ============================================
   function healFinanceRecalculation() {
-    const data = window.globalData;
-    if (!data?.finance) return 0;
-
-    let calcCash = parseFloat(data.settings?.startBalances?.Cash) || 0;
-    const ain = ACCOUNT_IN(), aout = ACCOUNT_OUT();
-
-    data.finance.forEach(f => {
-      if (f._deleted || f.method !== 'Cash') return;
-      const amt = parseFloat(f.amount) || 0;
-      if (ain.includes(f.type)) calcCash += amt;
-      else if (aout.includes(f.type)) calcCash -= amt;
-    });
-
-    const stored = parseFloat(data.cashBalance) || 0;
-    const gap = Math.abs(calcCash - stored);
-
-    if (gap > 5000) {
-      hLog('fix', `Cash mismatch: Calc ৳${calcCash.toFixed(0)} vs Stored ৳${stored.toFixed(0)} (gap ৳${gap.toFixed(0)})`, 'FIN-RECALC');
-      if (typeof window.feRebuildAllBalances === 'function') { window.feRebuildAllBalances(); hLog('fix', 'finance-engine balance rebuild সম্পন্ন', 'FIN-RECALC'); }
-      else if (typeof window.recalculateCashBalanceFromTransactions === 'function') { window.recalculateCashBalanceFromTransactions(); hLog('fix', 'Cash balance recalculated', 'FIN-RECALC'); }
-      else { data.cashBalance = calcCash; localStorage.setItem('wingsfly_data', JSON.stringify(data)); }
-      healToast(`Cash re-synced: ৳${calcCash.toFixed(0)}`, 'fix');
-      return 1;
-    } else if (gap > 1) {
-      hLog('info', `Cash minor gap: ৳${gap.toFixed(0)} — monitoring`, 'FIN-RECALC');
-    }
+    // ✅ V4.2: DISABLED — auto-heal-এর ACCOUNT_IN/OUT list finance-engine-এর সাথে
+    // ভিন্ন হতে পারে, ফলে ভুল gap detect করে balance ওভাররাইট করে।
+    // feRebuildAllBalances() ইতিমধ্যে sync pull-এর পর চলে — ডাবল rebuild অপ্রয়োজনীয়।
     return 0;
   }
 
