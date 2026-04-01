@@ -55,9 +55,21 @@
       return;
     }
 
+    // ✅ FIX: Recycle Bin-এ থাকা finance ID গুলো বের করো
+    var _rbFinIds = new Set();
+    try {
+      var _rbFin = (gd.deletedItems && !Array.isArray(gd.deletedItems) && gd.deletedItems.finance) || [];
+      _rbFin.forEach(function(e) {
+        var src = e.item || {};
+        var id = src.id || src.timestamp;
+        if (id) _rbFinIds.add(String(id));
+      });
+    } catch(_e) {}
+
     // Finance records for this month
     const finMonth = (gd.finance || []).filter(f =>
       !f._deleted &&
+      !_rbFinIds.has(String(f.id || f.timestamp || '')) &&
       _getSalMonth(f) === month &&
       (f.type === 'Expense' || f.type === 'Advance' || f.type === 'Advance Return') &&
       (f.category === 'Salaries' || f.category === 'Advance' || f.category === 'Advance Return' || f.category === 'Bonus')
@@ -348,8 +360,15 @@
 
     const month = document.getElementById('salaryMonthFilter')?.value || '';
 
+    // ✅ FIX: Recycle Bin-এ থাকা finance ID বাদ দাও
+    var _modalRbIds = new Set();
+    try {
+      var _modalRbFin = (gd.deletedItems && !Array.isArray(gd.deletedItems) && gd.deletedItems.finance) || [];
+      _modalRbFin.forEach(function(e) { var id = (e.item||{}).id||(e.item||{}).timestamp; if(id) _modalRbIds.add(String(id)); });
+    } catch(_e) {}
+
     const paidSoFar = (gd.finance || [])
-      .filter(f => !f._deleted && f.type === 'Expense' && f.category === 'Salaries'
+      .filter(f => !f._deleted && !_modalRbIds.has(String(f.id||f.timestamp||'')) && f.type === 'Expense' && f.category === 'Salaries'
         && _getSalMonth(f) === month
         && (f.person === emp.name || f.employeeId === (emp.id || emp.empId)))
       .reduce((s, f) => s + (parseFloat(f.amount) || 0), 0);
@@ -360,7 +379,7 @@
     if (dueEl) dueEl.textContent = `৳${due.toLocaleString()}`;
 
     const advNet = (gd.finance || [])
-      .filter(f => !f._deleted && (f.type === 'Advance' || f.type === 'Advance Return')
+      .filter(f => !f._deleted && !_modalRbIds.has(String(f.id||f.timestamp||'')) && (f.type === 'Advance' || f.type === 'Advance Return')
         && (f.person === emp.name || f.employeeId === (emp.id || emp.empId)))
       .reduce((s, f) => s + (parseFloat(f.amount) || 0) * (f.type === 'Advance' ? 1 : -1), 0);
 
@@ -651,6 +670,10 @@
     });
     (gd.finance || []).forEach(f => {
       if (f._deleted) return;
+      // ✅ FIX: Recycle Bin-এ থাকা items বাদ দাও
+      var _advPanRbFin = (gd.deletedItems && !Array.isArray(gd.deletedItems) && gd.deletedItems.finance) || [];
+      var _advPanRbId = String(f.id || f.timestamp || '');
+      if (_advPanRbFin.some(function(e){ return String((e.item||{}).id||(e.item||{}).timestamp||'') === _advPanRbId; })) return;
       const key = f.person;
       if (!key || !empAdvances[key]) return;
       const amt = parseFloat(f.amount) || 0;
@@ -679,8 +702,21 @@
     const emp = (gd.employees || []).find(e => String(e.id) === String(empId) || e.name === empId);
     if (!emp) return;
 
+    // ✅ FIX: Recycle Bin-এ থাকা finance ID গুলো বের করো
+    // cloud pull-এর পরে _deleted flag হারিয়ে যায়, তাই শুধু flag যথেষ্ট না
+    var _binFinIds = new Set();
+    try {
+      var _binFin = (gd.deletedItems && !Array.isArray(gd.deletedItems) && gd.deletedItems.finance) || [];
+      _binFin.forEach(function(e) {
+        var src = e.item || {};
+        var id = src.id || src.timestamp;
+        if (id) _binFinIds.add(String(id));
+      });
+    } catch(_e) {}
+
     const allHist = (gd.finance || [])
       .filter(f => !f._deleted &&
+        !_binFinIds.has(String(f.id || f.timestamp || '')) &&
         (f.person === emp.name || f.employeeId === (emp.id || emp.empId)) &&
         (f.type === 'Expense' || f.type === 'Advance' || f.type === 'Advance Return') &&
         (f.category === 'Salaries' || f.category === 'Advance' || f.category === 'Advance Return' || f.category === 'Bonus'))
