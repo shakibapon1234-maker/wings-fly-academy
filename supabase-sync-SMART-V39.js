@@ -447,6 +447,32 @@
         gd.finance = _mergeRecords(local.finance, finRes.data, f => f.id || f.timestamp);
         gd.employees = _mergeRecords(local.employees, empRes.data, e => e.id);
 
+        // ✅ V39.7 FIX: Content-based deduplication for finance entries
+        // Two entries can have different IDs (SAL_xxx) but be the same transaction
+        // (e.g., same salary paid from two devices or re-created by auto-heal).
+        // Dedup by: type + amount + date + person + category
+        {
+          const _seen = new Set();
+          const _before = gd.finance.length;
+          gd.finance = gd.finance.filter(f => {
+            // Only dedup non-deleted entries with similar content
+            if (f._deleted) return true;
+            const key = `${f.type}|${f.amount}|${f.date}|${(f.person||'').trim().toLowerCase()}|${f.category||''}|${(f.description||'').replace(/\s+/g,'')}`;
+            if (_seen.has(key)) {
+              _log('🔧', `DEDUP removed: ${f.type} ৳${f.amount} ${f.person} (${f.date}) id=${f.id}`);
+              return false; // duplicate — remove
+            }
+            _seen.add(key);
+            return true;
+          });
+          if (gd.finance.length < _before) {
+            _log('🔧', `DEDUP: Removed ${_before - gd.finance.length} duplicate finance entries`);
+          }
+        }
+
+        // ✅ V39.6 DIAGNOSTIC: Log merge results to track balance oscillation
+        _log('🔍', `MERGE RESULT: fin local=${local.finance.length} → merged=${gd.finance.length} | cloud rows=${(finRes.data||[]).length} (deleted=${(finRes.data||[]).filter(r=>r.deleted).length})`);
+
         const mainRec = mainRes.data?.[0];
         if (mainRec) {
           // ✅ V39.6 FIX: Do NOT use cloud's stale cash_balance — _rebuildBalancesSafe() computes the correct value.
@@ -544,6 +570,10 @@
 
         // Cloud main record cash_balance can be stale. Always rebuild first.
         _rebuildBalancesSafe();
+        // ✅ V39.6 DIAGNOSTIC: Log balance after rebuild
+        const _bankT = (gd.bankAccounts||[]).reduce((s,a)=>s+(parseFloat(a.balance)||0),0);
+        const _mobT = (gd.mobileBanking||[]).reduce((s,a)=>s+(parseFloat(a.balance)||0),0);
+        _log('🔍', `AFTER REBUILD: Cash=৳${gd.cashBalance} Bank=৳${_bankT} Mobile=৳${_mobT} TOTAL=৳${(parseFloat(gd.cashBalance)||0)+_bankT+_mobT}`);
         _saveLocal();
         _rebuildSnapshots();
         SyncFreshness.update();

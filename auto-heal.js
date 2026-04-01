@@ -531,72 +531,11 @@
   // MODULE 15: Retroactive Student Fee Backfill
   // ============================================
   function healStudentFeeBackfill() {
-    const data = window.globalData;
-    if (!data?.students || !data?.finance) return 0;
-    
-    let fixed = 0;
-    const STUDENT_CATS = ['Student Fee', 'Student Installment', 'Admission Fee', 'ভর্তি ফি', 'টিউশন ফি'];
-
-    data.students.forEach(student => {
-      const studentName = (student.name || '').trim();
-      if (!studentName || (parseFloat(student.paid) || 0) <= 0) return; // Ignore unpaid students
-
-      // Find ALL finance entries for this student
-      const studentPayments = data.finance.filter(f => 
-        !f._deleted && 
-        f.type === 'Income' && 
-        ((f.person || '').trim().toLowerCase() === studentName.toLowerCase() || 
-         (f.description && f.description.toLowerCase().includes(studentName.toLowerCase()))) &&
-        STUDENT_CATS.includes(f.category)
-      );
-
-      if (studentPayments.length > 0) {
-        // Has payments. Check if ANY of them are already 'Student Fee'.
-        const hasStudentFee = studentPayments.some(f => f.category === 'Student Fee');
-        
-        if (!hasStudentFee) {
-          // No 'Student Fee' exists! We need to convert the earliest payment.
-          studentPayments.sort((a, b) => new Date(a.date || a.timestamp || 0) - new Date(b.date || b.timestamp || 0));
-          const firstPayment = studentPayments[0];
-          
-          firstPayment.category = 'Student Fee';
-          if (!firstPayment.description.includes('Enrollment') && !firstPayment.description.includes('Admission')) {
-            firstPayment.description = `Enrollment fee (Auto-healed) for student: ${studentName} | Batch: ${student.batch || 'Unknown'}`;
-          }
-          hLog('fix', `Converted first payment to 'Student Fee' for "${studentName}"`, 'FEE-BACKFILL');
-          fixed++;
-        }
-      } else {
-        // ⚠️ NO finance entries found, but `paid > 0`! (Legacy gap)
-        const installmentsSum = (student.installments || []).reduce((sum, inst) => sum + (parseFloat(inst.amount) || 0), 0);
-        const missingAmount = (parseFloat(student.paid) || 0) - installmentsSum;
-        
-        // Create the missing Initial Payment as 'Student Fee'
-        if (missingAmount > 0) {
-          const financeEntry = {
-            id: Date.now() + Math.floor(Math.random() * 1000),
-            type: 'Income',
-            method: student.method || 'Cash',
-            date: student.enrollDate || new Date().toISOString().split('T')[0],
-            category: 'Student Fee',
-            person: studentName,
-            studentId: student.studentId,
-            amount: missingAmount,
-            description: `Migrated Enrollment fee for student: ${studentName} | Batch: ${student.batch || '-'}`,
-            timestamp: new Date().toISOString()
-          };
-          data.finance.push(financeEntry);
-          hLog('fix', `Created missing 'Student Fee' (৳${missingAmount}) for "${studentName}"`, 'FEE-BACKFILL');
-          fixed++;
-        }
-      }
-    });
-
-    if (fixed > 0) {
-      localStorage.setItem('wingsfly_data', JSON.stringify(data));
-      healToast(`${fixed} initial payments normalized`, 'fix');
-    }
-    return fixed;
+    // ✅ V4.2: DISABLED — This module was creating/modifying ~20 finance entries
+    // every heal cycle (converting categories, adding new entries with Date.now() IDs).
+    // This caused massive balance oscillation and sync conflicts across devices.
+    // Student fee backfill should be a ONE-TIME manual operation, not auto-heal.
+    return 0;
   }
 
   // ============================================
