@@ -899,6 +899,7 @@
           empPushed = empChanged.length + empDeleted.length;
 
           const doEmpPush = async () => {
+            let _skipEmpDataPush = false;
             if (empSnapEmpty && empChanged.length > 0) {
               try {
                 const _aid4 = encodeURIComponent(CFG.ACADEMY_ID);
@@ -908,14 +909,14 @@
                 );
                 const _cloudCount4 = parseInt(_chkRes4.headers.get('content-range')?.split('/')[1] || '0', 10);
                 if (_cloudCount4 >= empTotal) {
-                  _log('⏭️', `Employees SKIPPED — cloud has ${_cloudCount4} >= local ${empTotal}`);
-                  _saveSnapshot('employees', empSnapshot);
-                  return;
+                  _log('⏭️', `Employees data SKIPPED — cloud has ${_cloudCount4} >= local ${empTotal}`);
+                  _skipEmpDataPush = true; // ✅ V39.2 FIX: data skip কিন্তু delete markers skip করো না!
+                } else {
+                  _log('📤', `Employees: cloud ${_cloudCount4} < local ${empTotal} — pushing`);
                 }
-                _log('📤', `Employees: cloud ${_cloudCount4} < local ${empTotal} — pushing`);
               } catch(_chkErr4) { _log('⚠️', 'Employees count check failed', _chkErr4); }
             }
-            if (empChanged.length > 0) {
+            if (!_skipEmpDataPush && empChanged.length > 0) {
               const empRows = empChanged.map(e => ({
                 id: `${CFG.ACADEMY_ID}_emp_${e.id}`, academy_id: CFG.ACADEMY_ID, data: e, deleted: false
               }));
@@ -923,7 +924,7 @@
               if (res && res.error) throw res.error;
               _log('📤', `Employees: ${empChanged.length}/${empTotal} pushed`);
             }
-            // Handle deleted employees
+            // ✅ V39.2 FIX: Delete markers সবসময় push হবে — skip block-এর বাইরে
             const empDelItems = Array.isArray(gd.deletedItems?.employees) ? gd.deletedItems.employees : [];
             const empDelRows = empDelItems.map(item => {
               const recId = _getDeletedRecordId(item, 'employee');
@@ -1027,12 +1028,15 @@
     _log('🔧', '✅ Patched saveToStorage successfully');
   }
 
-  // ── VERSION CHECK ──────────────────────────────────────────────
+  // ── VERSION CHECK (V39.2: Egress-friendly) ────────────────────
   async function _versionCheck() {
     if (!_ready || !_sb || !_tabVisible) return;
-    if (Egress.throttled()) { _log('🔶', 'Soft egress — version check skipped'); return; }
+    // ✅ V39.2 FIX: Version check lightweight — শুধু hardThrottle-এ block করো
+    // softThrottle-এ block করলে 30s interval কাজ করবে না
+    if (Egress.hardThrottled()) { _log('🛑', 'Hard egress — version check skipped'); return; }
     try {
-      Egress.inc();
+      // ✅ V39.2 FIX: Version check-এ Egress.inc() সরানো হয়েছে
+      // এটি lightweight (শুধু version number fetch) — egress budget খরচ করার দরকার নেই
       const { data } = await _sb.from(CFG.TABLE).select('version').eq('id', CFG.RECORD).limit(1);
       const cloudVer = data?.[0]?.version || 0;
       const gap = cloudVer - _localVer;
@@ -1040,13 +1044,14 @@
       _log('🔔', `Version gap: cloud=${cloudVer} local=${_localVer} gap=${gap}`);
       if (gap >= CFG.VERSION_GAP_WARN) {
         ConflictTracker.record('version_gap', `Gap: ${gap}`, _localVer, cloudVer);
-        const pulled = await pullFromCloud(false, true);
-        if (pulled && gap >= CFG.VERSION_GAP_FULL) {
-          if (!_suppressRender && typeof window.renderFullUI === 'function') window.renderFullUI();
+      }
+      const pulled = await pullFromCloud(false, true);
+      // ✅ V39.2 FIX: যেকোনো version gap-এ renderFullUI call করো — আগে শুধু gap >= 20 তে হতো
+      if (pulled && !_suppressRender && typeof window.renderFullUI === 'function') {
+        window.renderFullUI();
+        if (gap >= CFG.VERSION_GAP_FULL) {
           _showUserMessage(`Version sync হয়েছে (gap: ${gap})।`, 'success');
         }
-      } else {
-        await pullFromCloud(false, true);
       }
     } catch (e) { _log('⚠️', 'Version check failed', e); }
   }
