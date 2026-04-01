@@ -1,0 +1,399 @@
+<!DOCTYPE html>
+<html lang="bn">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>🔍 Wings Fly — Data Monitor</title>
+<style>
+  :root{--bg:#0a0e27;--bg2:#111630;--bg3:#161c3a;--cyan:#00d9ff;--green:#00c853;--red:#f44336;--yellow:#ff9800;--purple:#b537f2;--text:#c8d0f0;--dim:#6e8caa;--border:rgba(0,217,255,0.15);}
+  *{box-sizing:border-box;margin:0;padding:0;}
+  body{background:var(--bg);color:var(--text);font-family:'Segoe UI',monospace;font-size:14px;padding:20px;}
+  h1{background:linear-gradient(90deg,var(--cyan),var(--purple));-webkit-background-clip:text;-webkit-text-fill-color:transparent;font-size:22px;margin-bottom:20px;}
+  .grid{display:grid;grid-template-columns:1fr 1fr;gap:16px;margin-bottom:20px;}
+  @media(max-width:800px){.grid{grid-template-columns:1fr;}}
+  .card{background:var(--bg2);border:1px solid var(--border);border-radius:12px;padding:16px;}
+  .card h3{font-size:15px;margin-bottom:12px;color:var(--cyan);}
+  .row{display:flex;justify-content:space-between;padding:6px 0;border-bottom:1px solid rgba(255,255,255,0.04);}
+  .label{color:var(--dim);font-size:13px;}
+  .val{font-weight:700;font-size:14px;}
+  .ok{color:var(--green);}
+  .warn{color:var(--yellow);}
+  .err{color:var(--red);}
+  .match{background:rgba(0,200,83,0.08);border:1px solid rgba(0,200,83,0.2);}
+  .mismatch{background:rgba(244,67,54,0.08);border:1px solid rgba(244,67,54,0.3);}
+  .full{grid-column:1/-1;}
+  table{width:100%;border-collapse:collapse;font-size:13px;margin-top:8px;}
+  th{background:var(--bg3);color:var(--dim);padding:8px;text-align:left;font-size:11px;text-transform:uppercase;letter-spacing:0.5px;border-bottom:1px solid var(--border);}
+  td{padding:6px 8px;border-bottom:1px solid rgba(255,255,255,0.04);}
+  tr:hover td{background:rgba(0,217,255,0.04);}
+  .btn{background:linear-gradient(135deg,var(--cyan),#0099cc);color:#fff;border:none;padding:10px 20px;border-radius:8px;cursor:pointer;font-size:14px;font-weight:700;margin:4px;}
+  .btn:hover{opacity:0.9;}
+  .btn-red{background:linear-gradient(135deg,var(--red),#cc0000);}
+  .status{padding:4px 10px;border-radius:12px;font-size:11px;font-weight:700;}
+  .s-ok{background:rgba(0,200,83,0.15);color:var(--green);border:1px solid rgba(0,200,83,0.3);}
+  .s-warn{background:rgba(255,152,0,0.15);color:var(--yellow);border:1px solid rgba(255,152,0,0.3);}
+  .s-err{background:rgba(244,67,54,0.15);color:var(--red);border:1px solid rgba(244,67,54,0.3);}
+  #log{background:#000;color:#0f0;font-family:monospace;font-size:12px;padding:12px;border-radius:8px;max-height:200px;overflow-y:auto;white-space:pre-wrap;margin-top:12px;}
+  .toolbar{margin-bottom:16px;display:flex;flex-wrap:wrap;gap:8px;align-items:center;}
+  .hidden{display:none;}
+</style>
+</head>
+<body>
+
+<h1>🔍 Wings Fly — Data Monitor</h1>
+
+<div class="toolbar">
+  <button class="btn" onclick="runFullCheck()">🔄 Refresh All</button>
+  <button class="btn" onclick="runDeepScan()">🔍 Deep Scan (Cloud)</button>
+  <button class="btn" onclick="forcePullMissing()" style="background:linear-gradient(135deg,#00c853,#007a33);">⬇️ Force Pull Missing</button>
+  <button class="btn btn-red" onclick="cleanCloud()">🧹 Clean Cloud Deleted</button>
+  <span id="lastCheck" class="label" style="margin-left:auto;"></span>
+</div>
+
+<div class="grid">
+  <!-- Local Data -->
+  <div class="card" id="localCard">
+    <h3>📱 Local Data</h3>
+    <div id="localStats">Loading...</div>
+  </div>
+
+  <!-- Cloud Data -->
+  <div class="card" id="cloudCard">
+    <h3>☁️ Cloud Data</h3>
+    <div id="cloudStats">Loading...</div>
+  </div>
+
+  <!-- Match Status -->
+  <div class="card full" id="matchCard">
+    <h3>⚖️ Comparison</h3>
+    <div id="matchStats">Loading...</div>
+  </div>
+
+  <!-- Account Balances -->
+  <div class="card full" id="accountsCard">
+    <h3>💰 Account Balances</h3>
+    <div id="accountStats">Loading...</div>
+  </div>
+
+  <!-- Cloud Duplicates -->
+  <div class="card full hidden" id="dupCard">
+    <h3>🚨 Cloud Duplicates</h3>
+    <div id="dupStats"></div>
+  </div>
+
+  <!-- Stale Cloud Rows -->
+  <div class="card full hidden" id="staleCard">
+    <h3>⚠️ Stale Cloud Rows (in cloud but not local)</h3>
+    <div id="staleStats"></div>
+  </div>
+
+  <!-- Log -->
+  <div class="card full">
+    <h3>📋 Log</h3>
+    <div id="log"></div>
+  </div>
+</div>
+
+<script>
+// ═══════════════════════════════════════════════════════════
+// CONFIG — Same as your app
+// ═══════════════════════════════════════════════════════════
+const CFG = {
+  URL: 'https://cwwyhtarnkozukekebvq.supabase.co',
+  KEY: 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6ImN3d3lodGFybmtvenVrZWtlYnZxIiwicm9sZSI6ImFub24iLCJpYXQiOjE3NzM4NTE5NzUsImV4cCI6MjA4OTQyNzk3NX0.XCJe9A5_ymXQQqK5KVQHJqswUXCuopUi_NYv7T-WWn8',
+  ACADEMY_ID: 'wingsfly_main',
+  TBL_STUDENTS: 'wf_students',
+  TBL_FINANCE: 'wf_finance',
+  TBL_EMPLOYEES: 'wf_employees'
+};
+const HDRS = {apikey:CFG.KEY, Authorization:'Bearer '+CFG.KEY};
+
+function log(msg) {
+  var el = document.getElementById('log');
+  el.textContent += '[' + new Date().toLocaleTimeString() + '] ' + msg + '\n';
+  el.scrollTop = el.scrollHeight;
+}
+
+function fmt(n) { return '৳' + (parseFloat(n)||0).toLocaleString('en-IN'); }
+
+function getLocalData() {
+  try {
+    var raw = localStorage.getItem('wingsfly_data');
+    return raw ? JSON.parse(raw) : null;
+  } catch(e) { return null; }
+}
+
+// ═══════════════════════════════════════════════════════════
+// MAIN CHECK
+// ═══════════════════════════════════════════════════════════
+async function runFullCheck() {
+  log('Starting full check...');
+  var gd = getLocalData();
+
+  // ── Local Stats ──
+  if (gd) {
+    var lStu = (gd.students||[]).length;
+    var lFin = (gd.finance||[]).filter(f=>!f._deleted).length;
+    var lEmp = (gd.employees||[]).length;
+    var lCash = parseFloat(gd.cashBalance)||0;
+    var lBank = (gd.bankAccounts||[]).reduce((s,a)=>s+(parseFloat(a.balance)||0),0);
+    var lMobile = (gd.mobileBanking||[]).reduce((s,a)=>s+(parseFloat(a.balance)||0),0);
+    var lGrand = lCash + lBank + lMobile;
+
+    document.getElementById('localStats').innerHTML =
+      row('Students', lStu) +
+      row('Finance (active)', lFin) +
+      row('Employees', lEmp, 'ok') +
+      row('Cash', fmt(lCash)) +
+      row('Bank Total', fmt(lBank)) +
+      row('Mobile Total', fmt(lMobile)) +
+      row('Grand Total', fmt(lGrand), lGrand>=0?'ok':'err') +
+      row('Last Known Finance', localStorage.getItem('wings_last_known_finance')||'—') +
+      row('Last Known Students', localStorage.getItem('wings_last_known_count')||'—') +
+      row('Emp Snapshot Keys', (function(){ try{ var s=localStorage.getItem('wf_push_snapshot_employees'); return s?Object.keys(JSON.parse(s)).length+'':'0'; }catch(e){return '0';} })(), 'ok');
+    log('Local: '+lStu+' students, '+lFin+' finance, '+lEmp+' employees');
+  } else {
+    document.getElementById('localStats').innerHTML = '<div class="err">No local data found!</div>';
+  }
+
+  // ── Cloud Stats ──
+  try {
+    var [sRes, fRes, eRes] = await Promise.all([
+      fetch(CFG.URL+'/rest/v1/'+CFG.TBL_STUDENTS+'?academy_id=eq.'+CFG.ACADEMY_ID+'&select=id,deleted', {headers:HDRS}),
+      fetch(CFG.URL+'/rest/v1/'+CFG.TBL_FINANCE+'?academy_id=eq.'+CFG.ACADEMY_ID+'&select=id,deleted', {headers:HDRS}),
+      fetch(CFG.URL+'/rest/v1/'+CFG.TBL_EMPLOYEES+'?academy_id=eq.'+CFG.ACADEMY_ID+'&select=id,deleted', {headers:HDRS})
+    ]);
+    var sCloud = await sRes.json();
+    var fCloud = await fRes.json();
+    var eCloud = await eRes.json();
+
+    var cStuActive = sCloud.filter(r=>!r.deleted).length;
+    var cStuDeleted = sCloud.filter(r=>r.deleted).length;
+    var cFinActive = fCloud.filter(r=>!r.deleted).length;
+    var cFinDeleted = fCloud.filter(r=>r.deleted).length;
+    var cEmpActive = eCloud.filter(r=>!r.deleted).length;
+    var cEmpDeleted = eCloud.filter(r=>r.deleted).length;
+
+    document.getElementById('cloudStats').innerHTML =
+      row('Students (active)', cStuActive) +
+      row('Students (deleted)', cStuDeleted, cStuDeleted>0?'warn':'ok') +
+      row('Finance (active)', cFinActive) +
+      row('Finance (deleted)', cFinDeleted, cFinDeleted>0?'warn':'ok') +
+      row('Employees (active)', cEmpActive, 'ok') +
+      row('Employees (deleted)', cEmpDeleted, cEmpDeleted>0?'warn':'ok') +
+      row('Total Cloud Rows', sCloud.length+fCloud.length+eCloud.length);
+    log('Cloud: '+cStuActive+' students, '+cFinActive+' finance, '+cEmpActive+' employees');
+
+    // ── Match ──
+    var lStu = gd ? (gd.students||[]).length : 0;
+    var lFin = gd ? (gd.finance||[]).filter(f=>!f._deleted).length : 0;
+    var lEmp = gd ? (gd.employees||[]).length : 0;
+    var stuMatch = lStu === cStuActive;
+    var finMatch = lFin === cFinActive;
+    var empMatch = lEmp === cEmpActive;
+    var allMatch = stuMatch && finMatch && empMatch;
+
+    document.getElementById('matchCard').className = 'card full ' + (allMatch?'match':'mismatch');
+    document.getElementById('matchStats').innerHTML =
+      row('Students', lStu + ' local / ' + cStuActive + ' cloud', stuMatch?'ok':'err') +
+      row('Finance', lFin + ' local / ' + cFinActive + ' cloud', finMatch?'ok':'err') +
+      row('Employees', lEmp + ' local / ' + cEmpActive + ' cloud', empMatch?'ok':'err') +
+      row('Status', allMatch?'✅ PERFECT MATCH':'❌ MISMATCH — নিচের ব্যাখ্যা দেখুন', allMatch?'ok':'err') +
+      (!empMatch ? row('Employee Fix', 'মাদার PC তে: wingsSync.pushNow("emp-fix") চালান', 'warn') : '');
+
+    // ── Deleted markers ──
+    if (cStuDeleted>0 || cFinDeleted>0 || cEmpDeleted>0) {
+      log('⚠️ Cloud has '+cStuDeleted+' student + '+cFinDeleted+' finance + '+cEmpDeleted+' employee deleted markers');
+    }
+    log(allMatch?'✅ Data matches!':'❌ Data mismatch! Employees: local='+lEmp+' cloud='+cEmpActive);
+
+  } catch(e) {
+    document.getElementById('cloudStats').innerHTML = '<div class="err">Cloud error: '+e.message+'</div>';
+    log('Cloud error: '+e.message);
+  }
+
+  } catch(e) {
+    document.getElementById('cloudStats').innerHTML = '<div class="err">Cloud error: '+e.message+'</div>';
+    log('Cloud error: '+e.message);
+  }
+
+  // ── Accounts ──
+  if (gd) {
+    var html = '';
+    html += row('💵 Cash', fmt(gd.cashBalance));
+    (gd.bankAccounts||[]).forEach(a => { html += row('🏦 '+a.name, fmt(a.balance)); });
+    (gd.mobileBanking||[]).forEach(a => { html += row('📱 '+a.name, fmt(a.balance)); });
+    var grand = (parseFloat(gd.cashBalance)||0) + (gd.bankAccounts||[]).reduce((s,a)=>s+(parseFloat(a.balance)||0),0) + (gd.mobileBanking||[]).reduce((s,a)=>s+(parseFloat(a.balance)||0),0);
+    html += row('📊 Grand Total', fmt(grand), grand>=0?'ok':'err');
+    document.getElementById('accountStats').innerHTML = html;
+  }
+
+  document.getElementById('lastCheck').textContent = 'Last: ' + new Date().toLocaleTimeString();
+  log('Check complete.');
+}
+
+function row(label, val, status) {
+  var cls = status==='ok'?'ok':status==='warn'?'warn':status==='err'?'err':'';
+  var badge = status ? '<span class="status s-'+status+'">'+status.toUpperCase()+'</span>' : '';
+  return '<div class="row"><span class="label">'+label+'</span><span class="val '+cls+'">'+val+' '+badge+'</span></div>';
+}
+
+// ═══════════════════════════════════════════════════════════
+// DEEP SCAN — Check for duplicates & stale rows
+// ═══════════════════════════════════════════════════════════
+async function runDeepScan() {
+  log('Running deep scan...');
+  var gd = getLocalData();
+
+  try {
+    var fRes = await fetch(CFG.URL+'/rest/v1/'+CFG.TBL_FINANCE+'?academy_id=eq.'+CFG.ACADEMY_ID+'&select=id,data,deleted', {headers:HDRS});
+    var fCloud = await fRes.json();
+
+    // Find duplicates
+    var idMap = {};
+    fCloud.forEach(r => {
+      if (r.data && r.data.id) {
+        var key = String(r.data.id);
+        if (!idMap[key]) idMap[key] = [];
+        idMap[key].push(r);
+      }
+    });
+    var dups = Object.keys(idMap).filter(k => idMap[k].length > 1);
+
+    if (dups.length > 0) {
+      document.getElementById('dupCard').className = 'card full mismatch';
+      var html = '<table><tr><th>ID</th><th>Cloud Rows</th><th>Action</th></tr>';
+      dups.forEach(id => {
+        html += '<tr><td>'+id+'</td><td class="err">'+idMap[id].length+'</td><td>Delete extra rows</td></tr>';
+      });
+      html += '</table>';
+      document.getElementById('dupStats').innerHTML = html;
+      log('🚨 '+dups.length+' duplicate IDs found!');
+    } else {
+      document.getElementById('dupCard').className = 'card full match';
+      document.getElementById('dupStats').innerHTML = '<div class="ok">✅ No duplicates found</div>';
+      log('✅ No duplicates');
+    }
+
+    // Find stale (cloud but not local)
+    if (gd && gd.finance) {
+      var localIds = new Set(gd.finance.map(f => String(f.id)));
+      var stale = fCloud.filter(r => r.data && !localIds.has(String(r.data.id)) && !r.deleted);
+
+      if (stale.length > 0) {
+        document.getElementById('staleCard').className = 'card full mismatch';
+        var html = '<table><tr><th>Cloud ID</th><th>Type</th><th>Amount</th><th>Person</th><th>Date</th></tr>';
+        stale.forEach(r => {
+          var d = r.data;
+          html += '<tr><td>'+d.id+'</td><td>'+d.type+'</td><td>'+fmt(d.amount)+'</td><td>'+(d.person||'—')+'</td><td>'+(d.date||'—')+'</td></tr>';
+        });
+        html += '</table>';
+        document.getElementById('staleStats').innerHTML = html;
+        log('⚠️ '+stale.length+' stale cloud rows found');
+      } else {
+        document.getElementById('staleCard').className = 'card full match';
+        document.getElementById('staleStats').innerHTML = '<div class="ok">✅ No stale rows</div>';
+        log('✅ No stale rows');
+      }
+    }
+
+  } catch(e) {
+    log('Deep scan error: '+e.message);
+  }
+}
+
+// ═══════════════════════════════════════════════════════════
+// CLEAN CLOUD DELETED
+// ═══════════════════════════════════════════════════════════
+async function cleanCloud() {
+  if (!confirm('Cloud থেকে সব deleted=true rows ডিলিট করবেন?')) return;
+  log('Cleaning cloud deleted markers...');
+
+  try {
+    var r1 = await fetch(CFG.URL+'/rest/v1/'+CFG.TBL_FINANCE+'?academy_id=eq.'+CFG.ACADEMY_ID+'&deleted=eq.true', {method:'DELETE', headers:HDRS});
+    log('Finance deleted rows: HTTP '+r1.status);
+    var r2 = await fetch(CFG.URL+'/rest/v1/'+CFG.TBL_STUDENTS+'?academy_id=eq.'+CFG.ACADEMY_ID+'&deleted=eq.true', {method:'DELETE', headers:HDRS});
+    log('Student deleted rows: HTTP '+r2.status);
+    log('✅ Cloud cleaned!');
+    runFullCheck();
+  } catch(e) {
+    log('Clean error: '+e.message);
+  }
+}
+
+
+// ═══════════════════════════════════════════════════════════
+// FORCE PULL MISSING RECORDS
+// ═══════════════════════════════════════════════════════════
+async function forcePullMissing() {
+  log('⬇️ Force pulling missing finance records from cloud...');
+  var gd = getLocalData();
+  if (!gd) { log('❌ No local data found!'); return; }
+
+  try {
+    // Get all active cloud finance records (with full data)
+    var fRes = await fetch(
+      CFG.URL + '/rest/v1/' + CFG.TBL_FINANCE +
+      '?academy_id=eq.' + CFG.ACADEMY_ID +
+      '&deleted=eq.false&select=id,data',
+      {headers: HDRS}
+    );
+    if (!fRes.ok) { log('❌ Cloud fetch failed: HTTP ' + fRes.status); return; }
+    var fCloud = await fRes.json();
+    log('☁️ Cloud active finance records: ' + fCloud.length);
+
+    // Build set of local IDs
+    if (!gd.finance) gd.finance = [];
+    var localIds = new Set(gd.finance.map(function(f) { return String(f.id); }));
+
+    // Find records that exist in cloud but NOT locally
+    var missing = fCloud.filter(function(r) {
+      return r.data && r.data.id && !localIds.has(String(r.data.id));
+    });
+
+    if (missing.length === 0) {
+      log('✅ কোনো মিসিং রেকর্ড নেই — সব সমান আছে!');
+      alert('✅ কোনো মিসিং রেকর্ড নেই। Local এবং Cloud সমান।');
+      return;
+    }
+
+    log('⚠️ ' + missing.length + 'টি রেকর্ড মিসিং। Import করা হচ্ছে...');
+
+    // পরিষ্কারভাবে দেখাও কোন রেকর্ডগুলো আনা হচ্ছে
+    missing.forEach(function(r) {
+      var d = r.data;
+      log('  ➕ ' + (d.type||'?') + ' | ' + fmt(d.amount) + ' | ' + (d.person||'—') + ' | ' + (d.date||'—'));
+    });
+
+    // Confirm করুন
+    var ok = confirm(
+      missing.length + 'টি মিসিং Finance রেকর্ড পাওয়া গেছে।\n\n' +
+      'এগুলো আপনার Local Data-তে যোগ করবেন?\n' +
+      '(Existing data অপরিবর্তিত থাকবে)'
+    );
+    if (!ok) { log('Cancelled by user.'); return; }
+
+    // Inject missing records into local data
+    missing.forEach(function(r) { gd.finance.push(r.data); });
+
+    // Save back to localStorage
+    try {
+      localStorage.setItem('wingsfly_data', JSON.stringify(gd));
+      log('✅ ' + missing.length + 'টি রেকর্ড সফলভাবে যোগ করা হয়েছে!');
+      log('💡 এখন মূল App-এ Ctrl+Shift+R দিয়ে Reload করুন।');
+      alert('✅ ' + missing.length + 'টি রেকর্ড সফলভাবে যোগ করা হয়েছে!\n\nএখন মূল App-এ ফিরে Ctrl+Shift+R দিয়ে Reload করুন।');
+      runFullCheck();
+    } catch(e) {
+      log('❌ localStorage save failed: ' + e.message);
+    }
+
+  } catch(e) {
+    log('❌ Force pull error: ' + e.message);
+  }
+}
+
+// Auto-run on load
+runFullCheck();
+</script>
+</body>
+</html>

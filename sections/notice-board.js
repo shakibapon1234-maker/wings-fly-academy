@@ -378,6 +378,35 @@ function refreshNoticeBoardOnLogin() {
   initNoticeBoard();
 }
 
+// ✅ FIX: renderFullUI-এর পরে Notice Board re-init হবে
+// Pull থেকে নতুন notice আসলে সাথে সাথে দেখাবে
+(function _hookRenderFullUI() {
+  var _origRenderFullUI = window.renderFullUI;
+  if (typeof _origRenderFullUI === 'function' && !_origRenderFullUI._noticeBoardHooked) {
+    window.renderFullUI = function() {
+      var result = _origRenderFullUI.apply(this, arguments);
+      try { initNoticeBoard(); } catch(e) {}
+      return result;
+    };
+    window.renderFullUI._noticeBoardHooked = true;
+  } else {
+    // renderFullUI পরে লোড হলেও catch করো
+    var _hookInterval = setInterval(function() {
+      if (typeof window.renderFullUI === 'function' && !window.renderFullUI._noticeBoardHooked) {
+        var _orig2 = window.renderFullUI;
+        window.renderFullUI = function() {
+          var result = _orig2.apply(this, arguments);
+          try { initNoticeBoard(); } catch(e) {}
+          return result;
+        };
+        window.renderFullUI._noticeBoardHooked = true;
+        clearInterval(_hookInterval);
+      }
+    }, 500);
+    setTimeout(function() { clearInterval(_hookInterval); }, 15000);
+  }
+})();
+
 // Also expose globally
 window.initNoticeBoard = initNoticeBoard;
 window.openNoticeModal = openNoticeModal;

@@ -496,6 +496,8 @@
 
         // ✅ V39 FIX: MaxCount force-set করো pull-এর পরেই
         MaxCount.forceSet(gd.students.length, gd.finance.length);
+        // ✅ V39.FIX: Employee MaxCount ও set করো
+        localStorage.setItem('wf_max_employees', String(gd.employees.length));
 
         // Save push snapshots
         try {
@@ -503,9 +505,15 @@
           gd.students.forEach(s => { const k = s.studentId || s.id || s.phone || s.name; if(k) sSnap[k] = _hashRecord(s); });
           const fSnap = {};
           gd.finance.forEach(f => { const k = f.id || f.timestamp; if(k) fSnap[k] = _hashRecord(f); });
+          // ✅ V39.FIX: Employee snapshot pull-এর পরেই save করো
+          // না করলে snapshotWasEmpty=true হয় → cloud count check → cloud>=local → skip push
+          // ফলে মাদার PC এর নতুন employee অন্য PC তে কখনো যায় না
+          const eSnap = {};
+          gd.employees.forEach(e => { const k = e.id; if(k) eSnap[k] = _hashRecord(e); });
           _saveSnapshot('students', sSnap);
           _saveSnapshot('finance', fSnap);
-          _log('📸', 'Snapshots saved after pull');
+          _saveSnapshot('employees', eSnap);
+          _log('📸', `Snapshots saved after pull — stu:${Object.keys(sSnap).length} fin:${Object.keys(fSnap).length} emp:${Object.keys(eSnap).length}`);
         } catch (err) { _log('⚠️', 'Snapshot save error', err); }
 
         // Cloud main record cash_balance can be stale. Always rebuild first.
