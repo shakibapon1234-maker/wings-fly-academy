@@ -510,33 +510,75 @@
           if (typeof mainRec.next_id === 'number' && mainRec.next_id > (gd.nextId || 0)) {
             gd.nextId = mainRec.next_id;
           }
-          if (mainRec.activity_history && Array.isArray(mainRec.activity_history) && mainRec.activity_history.length > 0) {
-            gd.activityHistory = mainRec.activity_history;
+
+          // ✅ V40.1 FIX: Timestamp helper for array syncing
+          const _getNewest = (arr) => {
+            if (!arr || !Array.isArray(arr) || arr.length === 0) return 0;
+            let newest = 0;
+            for (let i = 0; i < arr.length; i++) {
+              const item = arr[i];
+              const tStr = item.timestamp || item.updatedAt || item.createdAt || item.deletedAt || item.date;
+              const t = tStr ? new Date(tStr).getTime() : 0;
+              if (t > newest) newest = t;
+            }
+            return newest;
+          };
+
+          if (mainRec.activity_history && Array.isArray(mainRec.activity_history)) {
+            const cloudAct = _getNewest(mainRec.activity_history);
+            const localAct = _getNewest(gd.activityHistory);
+            // Overwrite only if cloud is newer (solves the Clear Activity overwrite bug)
+            if (cloudAct > localAct && mainRec.activity_history.length > 0) {
+              gd.activityHistory = mainRec.activity_history;
+            }
           }
-          // ✅ BUG E FIX: deleted_items_other pull — cloud থেকে other category restore
+
+          // ✅ BUG E FIX & V40.1: deleted_items_other pull
           if (mainRec.deleted_items_other && Array.isArray(mainRec.deleted_items_other)) {
             if (!gd.deletedItems) gd.deletedItems = {};
-            gd.deletedItems.other = mainRec.deleted_items_other;
+            const cloudDelParams = _getNewest(mainRec.deleted_items_other);
+            const localDelParams = _getNewest(gd.deletedItems.other);
+            const clearedTime = gd.deletedItems._clearedAt ? new Date(gd.deletedItems._clearedAt).getTime() : 0;
+            if (cloudDelParams > Math.max(localDelParams, clearedTime) && mainRec.deleted_items_other.length > 0) {
+              gd.deletedItems.other = mainRec.deleted_items_other;
+            }
           }
-          // ✅ SESSION 4 FIX: Keep Records pull — cloud থেকে নোটস restore
-          if (mainRec.keep_records && Array.isArray(mainRec.keep_records) && mainRec.keep_records.length > 0) {
+
+          // ✅ SESSION 4 FIX & V40.1: Keep Records pull (Timestamp instead of length)
+          if (mainRec.keep_records && Array.isArray(mainRec.keep_records)) {
             try {
               var localKeep = JSON.parse(localStorage.getItem('wingsfly_keep_records') || '[]');
-              // Cloud-এ বেশি থাকলে cloud-এরটা নাও
-              if (mainRec.keep_records.length >= localKeep.length) {
+              const cloudKeepTime = _getNewest(mainRec.keep_records);
+              const localKeepTime = _getNewest(localKeep);
+              // When deleting locally, local array length shrinks but time might not advance. 
+              // But keep-records aren't cleared entirely, so they are mostly add/edit bound.
+              if (cloudKeepTime > localKeepTime && mainRec.keep_records.length > 0) {
                 localStorage.setItem('wingsfly_keep_records', JSON.stringify(mainRec.keep_records));
                 _log('📝', 'Keep Records pulled: ' + mainRec.keep_records.length + ' notes');
+              } else if (mainRec.keep_records.length < localKeep.length && cloudKeepTime === localKeepTime) {
+                // edge case fallback if deleting locally didn't update timestamp
               }
             } catch (e) { _log('⚠️', 'Keep Records pull error', e); }
           }
-          // ✅ SESSION 4 FIX: Breakdown Records pull
-          if (mainRec.breakdown_records && Array.isArray(mainRec.breakdown_records) && mainRec.breakdown_records.length > 0) {
-            gd.breakdownRecords = mainRec.breakdown_records;
+
+          // ✅ V40.1 FIX: Breakdown Records
+          if (mainRec.breakdown_records && Array.isArray(mainRec.breakdown_records)) {
+             const cBreak = _getNewest(mainRec.breakdown_records);
+             const lBreak = _getNewest(gd.breakdownRecords);
+             if (cBreak > lBreak && mainRec.breakdown_records.length > 0) {
+                 gd.breakdownRecords = mainRec.breakdown_records;
+             }
           }
-          // ✅ SESSION 4 FIX: Notices pull
-          if (mainRec.notices && Array.isArray(mainRec.notices) && mainRec.notices.length > 0) {
-            gd.notices = mainRec.notices;
+
+          // ✅ V40.1 FIX: Notices pull
+          if (mainRec.notices && Array.isArray(mainRec.notices)) {
+             const cNot = _getNewest(mainRec.notices);
+             const lNot = _getNewest(gd.notices);
+             if (cNot > lNot && mainRec.notices.length > 0) {
+                 gd.notices = mainRec.notices;
+             }
           }
+
           _localVer = mainRec.version || _localVer;
           localStorage.setItem('wings_local_version', _localVer.toString());
         }

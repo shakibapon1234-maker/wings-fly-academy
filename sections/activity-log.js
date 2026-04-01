@@ -195,10 +195,26 @@ window.loadActivityHistory = loadActivityHistory;
 // Clear activity history
 function clearActivityHistory() {
   if (!confirm('সব Activity History মুছে ফেলবেন?')) return;
-  window.globalData.activityHistory = [];
-  saveToStorage(true);
+  // ✅ FIX: Instead of empty array, insert a CLEAR marker. 
+  // This ensures local has a newer timestamp than cloud's old data, preventing overwrite during sync pull.
+  window.globalData.activityHistory = [{
+    id: 'CLEARED_' + Date.now(),
+    type: 'system',
+    action: 'CLEAR',
+    description: 'Activity History cleared by user',
+    timestamp: new Date().toISOString(),
+    user: sessionStorage.getItem('username') || localStorage.getItem('wf_user') || 'Admin'
+  }];
+  try {
+    localStorage.setItem('wingsfly_data', JSON.stringify(window.globalData));
+  } catch(e) {}
   loadActivityHistory();
   showSuccessToast('Activity History cleared!');
+
+  // Trigger sync push explicitly
+  if (typeof window.scheduleSyncPush === 'function') {
+    window.scheduleSyncPush('Clear Activity History');
+  }
 }
 window.clearActivityHistory = clearActivityHistory;
 
@@ -493,10 +509,22 @@ window.permanentDelete = permanentDelete;
 function emptyTrash() {
   if (!confirm('সব Deleted Items চিরতরে মুছে ফেলবেন?')) return;
   // ✅ BUG I FIX: object ব্যবহার করো, array নয়
-  window.globalData.deletedItems = { students: [], finance: [], employees: [], other: [] };
-  saveToStorage(true);
+  // ✅ V40.1 FIX: Store a timestamp to prevent sync engine from pulling old data back
+  window.globalData.deletedItems = {
+      _clearedAt: new Date().toISOString(),
+      students: [], finance: [], employees: [], other: []
+  };
+  try {
+    localStorage.setItem('wingsfly_data', JSON.stringify(window.globalData));
+    localStorage.setItem('wingsfly_deleted_backup', JSON.stringify(window.globalData.deletedItems));
+  } catch(e) {}
   loadDeletedItems();
   showSuccessToast('Trash emptied!');
+
+  // Trigger sync push explicitly
+  if (typeof window.scheduleSyncPush === 'function') {
+    window.scheduleSyncPush('Empty Trash');
+  }
 }
 window.emptyTrash = emptyTrash;
 
