@@ -97,8 +97,8 @@ function updateAccountBalance(method, amount, type, isAddition = true) {
 
   // ── Fallback (finance-engine.js not yet loaded) ──
   // Canonical lists — must match finance-engine.js
-  const moneyInTypes = ['Income', 'Transfer In', 'Loan Receiving', 'Loan Received', 'Registration', 'Refund'];
-  const moneyOutTypes = ['Expense', 'Transfer Out', 'Loan Giving', 'Loan Given', 'Salary', 'Rent', 'Utilities'];
+  const moneyInTypes = ['Income', 'Transfer In', 'Loan Receiving', 'Loan Received', 'Registration', 'Refund', 'Advance', 'Investment'];
+  const moneyOutTypes = ['Expense', 'Transfer Out', 'Loan Giving', 'Loan Given', 'Salary', 'Rent', 'Utilities', 'Advance Return', 'Investment Return'];
 
   const amt = parseFloat(amount) || 0;
   const multiplier = isAddition ? 1 : -1;
@@ -723,8 +723,8 @@ function recalculateCashBalanceFromTransactions() {
   }
 
   // Canonical lists — must match finance-engine.js
-  const ACCOUNT_IN = ['Income', 'Loan Received', 'Loan Receiving', 'Transfer In', 'Registration', 'Refund'];
-  const ACCOUNT_OUT = ['Expense', 'Loan Given', 'Loan Giving', 'Transfer Out', 'Salary', 'Rent', 'Utilities'];
+  const ACCOUNT_IN = ['Income', 'Loan Received', 'Loan Receiving', 'Transfer In', 'Registration', 'Refund', 'Advance', 'Investment'];
+  const ACCOUNT_OUT = ['Expense', 'Loan Given', 'Loan Giving', 'Transfer Out', 'Salary', 'Rent', 'Utilities', 'Advance Return', 'Investment Return'];
 
   const cashTransactions = (globalData.finance || []).filter(f => f.method === 'Cash' && !f._deleted);
 
