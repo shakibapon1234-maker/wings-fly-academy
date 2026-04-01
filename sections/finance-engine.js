@@ -150,7 +150,6 @@
     gd.cashBalance = parseFloat(startBalances['Cash']) || 0;
 
     // Bank / Mobile reset → startBalance
-    // ✅ FIX: name কে আগে চেক করো — startBalances এ name দিয়ে save হয়
     (gd.bankAccounts || []).forEach(acc => {
       acc.balance = parseFloat(startBalances[acc.name] ?? startBalances[acc.bankName]) || 0;
     });
@@ -158,9 +157,22 @@
       acc.balance = parseFloat(startBalances[acc.name] ?? startBalances[acc.bankName]) || 0;
     });
 
-    // Replay all non-deleted entries
+    // ✅ FIX: Recycle Bin-এ থাকা finance items-এর ID set তৈরি করো
+    // cloud pull-এর পরে _deleted flag থাকে না — তাই শুধু flag চেক যথেষ্ট না
+    const _rbFinIds = new Set();
+    try {
+      const _rbFin = (gd.deletedItems && !Array.isArray(gd.deletedItems) && gd.deletedItems.finance) || [];
+      _rbFin.forEach(function(e) {
+        const src = e.item || {};
+        const id = src.id || src.timestamp;
+        if (id) _rbFinIds.add(String(id));
+      });
+    } catch(_e) {}
+
+    // Replay all non-deleted entries — Recycle Bin items বাদ দাও
     (gd.finance || []).forEach(entry => {
-      if (entry._deleted) return; // soft-deleted entries skip
+      if (entry._deleted) return;
+      if (_rbFinIds.has(String(entry.id || entry.timestamp || ''))) return; // ✅ Recycle Bin skip
       window.feApplyEntryToAccount(entry, +1);
     });
 
@@ -192,8 +204,20 @@
     let income = 0;
     let expense = 0;
 
+    // ✅ FIX: Recycle Bin-এ থাকা items বাদ দাও
+    const _gd = window.globalData || {};
+    const _rbIds = new Set();
+    try {
+      const _rb = (_gd.deletedItems && !Array.isArray(_gd.deletedItems) && _gd.deletedItems.finance) || [];
+      _rb.forEach(function(e) {
+        const id = (e.item || {}).id || (e.item || {}).timestamp;
+        if (id) _rbIds.add(String(id));
+      });
+    } catch(_e) {}
+
     (financeArr || []).forEach(entry => {
       if (entry._deleted) return;
+      if (_rbIds.has(String(entry.id || entry.timestamp || ''))) return; // ✅ Recycle Bin skip
       if (month && !(entry.date || '').startsWith(month)) return;
 
       const amount = parseFloat(entry.amount) || 0;
