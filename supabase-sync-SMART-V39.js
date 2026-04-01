@@ -472,16 +472,12 @@
           _log('📸', 'Snapshots saved after pull');
         } catch (err) { _log('⚠️', 'Snapshot save error', err); }
 
+        // Cloud main record cash_balance can be stale. Always rebuild first.
+        _rebuildBalancesSafe();
         _saveLocal();
         _rebuildSnapshots();
         SyncFreshness.update();
         NetworkQuality.recordSuccess();
-        
-        // ✅ FIX: Recalculate all balances from actual transactions
-        // Cloud's cash_balance might be stale, so rebuild from source of truth
-        if (typeof window.feRebuildAllBalances === 'function') {
-          window.feRebuildAllBalances();
-        }
         
         _log('✅', `Pull OK — stu:${gd.students.length} fin:${gd.finance.length} v${_localVer}`);
         if (showUI) _showStatus('✅ Synced');
@@ -546,6 +542,58 @@
     } catch (e) {
       _log('⚠️', 'Snapshot save error', e);
       if (e.name === 'QuotaExceededError') localStorage.removeItem('wf_push_snapshot_' + table);
+    }
+  }
+
+  // Rebuild balances from ledger immediately; if finance-engine is not ready yet,
+  // use internal fallback so stale cloud cash_balance never overrides real value.
+  function _rebuildBalancesSafe() {
+    const gd = window.globalData;
+    if (!gd) return;
+
+    if (typeof window.feRebuildAllBalances === 'function') {
+      try { window.feRebuildAllBalances(); return; } catch (e) { _log('⚠️', 'feRebuildAllBalances failed', e); }
+    }
+
+    try {
+      const start = (gd.settings && gd.settings.startBalances) || {};
+      gd.cashBalance = parseFloat(start.Cash) || 0;
+
+      (gd.bankAccounts || []).forEach(a => {
+        a.balance = parseFloat(start[a.name] ?? start[a.bankName]) || 0;
+      });
+      (gd.mobileBanking || []).forEach(a => {
+        a.balance = parseFloat(start[a.name] ?? start[a.bankName]) || 0;
+      });
+
+      const inTypes = ['Income', 'Transfer In', 'Loan Received', 'Loan Receiving', 'Registration', 'Refund', 'Advance', 'Investment'];
+      const outTypes = ['Expense', 'Transfer Out', 'Loan Given', 'Loan Giving', 'Salary', 'Rent', 'Utilities', 'Advance Return', 'Investment Return'];
+
+      (gd.finance || []).forEach(function (f) {
+        if (!f || f._deleted) return;
+        const method = f.method;
+        const amount = parseFloat(f.amount) || 0;
+        if (!method || !amount) return;
+        const isIn = inTypes.includes(f.type);
+        const isOut = outTypes.includes(f.type);
+        if (!isIn && !isOut) return;
+        const delta = isIn ? amount : -amount;
+        if (method === 'Cash') {
+          gd.cashBalance = (parseFloat(gd.cashBalance) || 0) + delta;
+          return;
+        }
+        let acc = (gd.bankAccounts || []).find(a => a.name === method || a.bankName === method);
+        if (!acc) acc = (gd.mobileBanking || []).find(a => a.name === method || a.bankName === method);
+        if (acc) acc.balance = (parseFloat(acc.balance) || 0) + delta;
+      });
+
+      if (typeof window.renderCashBalance === 'function') window.renderCashBalance();
+      if (typeof window.renderAccountList === 'function') window.renderAccountList();
+      if (typeof window.renderMobileBankingList === 'function') window.renderMobileBankingList();
+      if (typeof window.updateGrandTotal === 'function') window.updateGrandTotal();
+      _log('✅', 'Balance rebuilt via fallback engine');
+    } catch (e) {
+      _log('⚠️', 'Fallback balance rebuild failed', e);
     }
   }
 
@@ -653,6 +701,7 @@
       _ensureDeletedItemsObject(window.globalData);
 
       const gd = window.globalData;
+      _rebuildBalancesSafe();
       const finCount = (gd.finance || []).length, stuCount = (gd.students || []).length;
       const finDeleted = MaxCount.getDeletedCount('finance');
       const stuDeleted = MaxCount.getDeletedCount('students');

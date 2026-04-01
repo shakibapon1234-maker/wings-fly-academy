@@ -586,6 +586,12 @@
     unmute: function () { _silenced = false; console.log('[SyncGuard] Alerts active'); },
     fix: function () { _autoFix(); runGuard(false); }
   };
+  window.openSyncGuardPanel = function () {
+    if (window.syncGuard && typeof window.syncGuard.openPanel === 'function') {
+      return window.syncGuard.openPanel();
+    }
+    return null;
+  };
 
   // ── STARTUP ───────────────────────────────────────────────
 
