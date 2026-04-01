@@ -569,11 +569,15 @@
     // Recycle bin
     if (typeof window.moveToTrash === 'function') window.moveToTrash('finance', { ...txn });
 
-    // Reverse balance
-    if (typeof window.feApplyEntryToAccount === 'function') window.feApplyEntryToAccount(txn, -1);
-
-    // Remove from finance
-    gd.finance = gd.finance.filter(f => String(f.id) !== String(txId));
+    // V39 Sync Pattern: Soft delete only!
+    if (typeof window.feSoftDeleteEntry === 'function') {
+      window.feSoftDeleteEntry(txn.id);
+    } else {
+      // Reverse balance
+      if (typeof window.feApplyEntryToAccount === 'function') window.feApplyEntryToAccount(txn, -1);
+      txn._deleted = true;
+      txn._deletedAt = new Date().toISOString();
+    }
 
     if (typeof window.logActivity === 'function') {
       window.logActivity('finance', 'DELETE',

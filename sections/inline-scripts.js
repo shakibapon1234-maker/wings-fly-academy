@@ -824,12 +824,8 @@ window.switchSettingsTab = switchSettingsTab;
             if (typeof origSwitch === 'function') origSwitch(tabId, btn);
             if (tabId === 'tab-activitylog') {
                 injectActivityToolbar();
-                // ✅ V39.8 FIX: Auto-set End Date to today so latest entries are always visible
                 setTimeout(function () {
-                    var dtTo = document.getElementById('logDateTo');
-                    if (dtTo && !dtTo.value) {
-                        dtTo.value = new Date().toISOString().split('T')[0];
-                    }
+                    // Fix: Removed UTC stringification bug which truncated logs created locally after midnight.
                     renderActivityLog();
                 }, 60);
             }
