@@ -257,63 +257,112 @@
 
     const gd  = window.globalData || {};
     const all = gd.employees || [];
-    const emp = all.find(e =>
-      e.id === empId || e.empId === empId || e.employeeId === empId || e.name === empId
-    );
-    if (!emp) { alert('Employee not found!'); return; }
 
-    _resetSalaryForm();
-
-    // Set hidden fields
-    document.getElementById('salEmpId').value   = emp.id || emp.empId || emp.name;
-    document.getElementById('salEmpName').value = emp.name;
-
-    // Employee display
-    const nameEl = document.getElementById('salModalEmpName');
-    const roleEl = document.getElementById('salModalEmpRole');
-    if (nameEl) nameEl.textContent = emp.name;
-    if (roleEl) roleEl.textContent = emp.role || emp.designation || 'Staff';
-
-    // Due calculation
-    const month = document.getElementById('salaryMonthFilter')?.value || '';
-    const paidSoFar = (gd.finance || [])
-      .filter(f => !f._deleted && f.type === 'Expense' && f.category === 'Salaries'
-        && (f.date || '').startsWith(month)
-        && (f.person === emp.name || f.employeeId === (emp.id || emp.empId)))
-      .reduce((s, f) => s + (parseFloat(f.amount) || 0), 0);
-    const base = parseFloat(emp.salary) || 0;
-    const due  = Math.max(0, base - paidSoFar);
-
-    const dueEl = document.getElementById('salDueAmountBadge');
-    if (dueEl) dueEl.textContent = `৳${due.toLocaleString()}`;
-
-    // Net advance
-    const advNet = (gd.finance || [])
-      .filter(f => !f._deleted && (f.type === 'Advance' || f.type === 'Advance Return')
-        && (f.person === emp.name || f.employeeId === (emp.id || emp.empId)))
-      .reduce((s, f) => s + (parseFloat(f.amount) || 0) * (f.type === 'Advance' ? 1 : -1), 0);
-    const advEl = document.getElementById('salExistingAdvance');
-    if (advEl) {
-      if (advNet > 0) {
-        advEl.textContent = `⚠️ বিদ্যমান Advance বকেয়া: ৳${advNet.toLocaleString()}`;
-        advEl.classList.remove('d-none');
-      } else {
-        advEl.classList.add('d-none');
-      }
+    const selectEl = document.getElementById('salModalEmpSelect');
+    if (selectEl) {
+        selectEl.innerHTML = '<option value="">-- Employee Select --</option>';
+        all.forEach(e => {
+            if (!e.resigned && e.status !== 'Resigned') {
+                const opt = document.createElement('option');
+                opt.value = e.id || e.empId || e.name;
+                opt.textContent = e.name;
+                selectEl.appendChild(opt);
+            }
+        });
     }
 
-    // Auto-fill amount and description
-    const amtEl  = document.getElementById('salAmount');
-    const descEl = document.getElementById('salDescription');
-    if (amtEl)  amtEl.value  = due > 0 ? due : '';
-    if (descEl) descEl.value = `Salary for ${month}`;
+    _resetSalaryForm();
     document.getElementById('salDate').value = new Date().toISOString().split('T')[0];
+    
+    // Reset Due UI
+    const dueEl = document.getElementById('salDueAmountBadge');
+    if (dueEl) dueEl.textContent = `৳ —`;
+    
+    const advEl = document.getElementById('salExistingAdvance');
+    if (advEl) advEl.classList.add('d-none');
+    
+    const roleEl = document.getElementById('salModalEmpRole');
+    if (roleEl) roleEl.style.display = 'none';
 
-    // Default type = Due
+    document.getElementById('salEmpId').value = '';
+    document.getElementById('salEmpName').value = '';
+    
     if (typeof window.setSalType === 'function') window.setSalType('Due');
+
+    if (empId && selectEl) {
+        selectEl.value = empId;
+        window.handleSalModalEmpChange();
+    }
 
     bootstrap.Modal.getOrCreateInstance(modalEl).show();
   }
+
+  window.handleSalModalEmpChange = function() {
+      const selectEl = document.getElementById('salModalEmpSelect');
+      if (!selectEl) return;
+      const empId = selectEl.value;
+
+      const gd  = window.globalData || {};
+      const all = gd.employees || [];
+      const emp = all.find(e => e.id === empId || e.empId === empId || e.employeeId === empId || e.name === empId);
+
+      const roleEl = document.getElementById('salModalEmpRole');
+      const dueEl = document.getElementById('salDueAmountBadge');
+      const advEl = document.getElementById('salExistingAdvance');
+      const amtEl = document.getElementById('salAmount');
+      const descEl = document.getElementById('salDescription');
+
+      if (!emp) {
+          document.getElementById('salEmpId').value = '';
+          document.getElementById('salEmpName').value = '';
+          if (roleEl) roleEl.style.display = 'none';
+          if (dueEl) dueEl.textContent = `৳ —`;
+          if (advEl) advEl.classList.add('d-none');
+          if (amtEl) amtEl.value = '';
+          return;
+      }
+
+      document.getElementById('salEmpId').value   = emp.id || emp.empId || emp.name;
+      document.getElementById('salEmpName').value = emp.name;
+
+      if (roleEl) {
+          roleEl.textContent = emp.role || emp.designation || 'Staff';
+          roleEl.style.display = 'inline-block';
+      }
+
+      const month = document.getElementById('salaryMonthFilter')?.value || '';
+      
+      const paidSoFar = (gd.finance || [])
+        .filter(f => !f._deleted && f.type === 'Expense' && f.category === 'Salaries'
+          && (f.date || '').startsWith(month)
+          && (f.person === emp.name || f.employeeId === (emp.id || emp.empId)))
+        .reduce((s, f) => s + (parseFloat(f.amount) || 0), 0);
+      
+      const base = parseFloat(emp.salary) || 0;
+      const due  = Math.max(0, base - paidSoFar);
+
+      if (dueEl) dueEl.textContent = `৳${due.toLocaleString()}`;
+
+      const advNet = (gd.finance || [])
+        .filter(f => !f._deleted && (f.type === 'Advance' || f.type === 'Advance Return')
+          && (f.person === emp.name || f.employeeId === (emp.id || emp.empId)))
+        .reduce((s, f) => s + (parseFloat(f.amount) || 0) * (f.type === 'Advance' ? 1 : -1), 0);
+      
+      if (advEl) {
+        if (advNet > 0) {
+          advEl.textContent = `⚠️ বিদ্যমান Advance বকেয়া: ৳${advNet.toLocaleString()}`;
+          advEl.classList.remove('d-none');
+        } else {
+          advEl.classList.add('d-none');
+        }
+      }
+
+      const type = document.getElementById('salTypeHidden')?.value || 'Due';
+      if (type === 'Due' && amtEl) {
+          amtEl.value = due > 0 ? due : '';
+      }
+      if (descEl) descEl.value = `${type} for ${month}`;
+  };
 
   // ─────────────────────────────────────────────────────────
   // RESET FORM
@@ -597,6 +646,7 @@
   window.initSalaryHub      = initSalaryHub;
   window.loadSalaryHub      = renderSalaryCards;
   window.openSalaryModal    = openSalaryModal;
+  window._openSalaryModalImpl = openSalaryModal;
   window.handleSalarySubmit = handleSalarySubmit;
   window.toggleSalHistory   = _toggleSalHist;
 
