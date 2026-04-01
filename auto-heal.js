@@ -5,7 +5,7 @@
  * Background-এ চলে, সমস্যা detect করে নিজে fix করে।
  * কোনো command ছাড়াই কাজ করে।
  *
- * HEAL MODULES (14টি):
+ * HEAL MODULES (11টি active, 3টি removed):
  *  1.  Student due recalculation
  *  2.  Cash balance integrity
  *  3.  Duplicate finance entry removal
@@ -22,13 +22,11 @@
  *  14. Sync Conflict Watchdog (নতুন) — user কে alert করে
  *  15. Retroactive Student Fee Backfill (সকল স্টুডেন্টের প্রথম পেমেন্ট 'Student Fee' তে রূপান্তর)
  *
- * ✅ v4.0 পরিবর্তন:
- *   - Unified UI: stats + log একই panel
- *   - Module status দেখায় (প্রতিটি heal কতটা fix করল)
- *   - Real-time log (auto-scroll)
- *   - "Manual Heal Now" — একটাই বাটন
- *   - Delete cooldown: delete-এর পর 3min sync pull skip
- *   - Finance-engine constants sync করা হয়েছে
+ * ✅ v4.3 পরিবর্তন:
+ *   - Dead code cleanup: Module 12, 13, 15 সরানো হয়েছে
+ *   - Module 12 (Periodic Rebuild): Module 8 via feRebuildAllBalances() handles
+ *   - Module 13 (Sync Mismatch): V39 Sync system handles
+ *   - Module 15 (Fee Backfill): One-time migration, no longer needed
  */
 
 (function () {
@@ -383,17 +381,10 @@
   }
   window.updatePaidFinanceStatusBadge = _updatePaidFinanceStatusBadge;
 
-  // ============================================
-  function healPeriodicBalanceRebuild() { return 0; } // V4.2: Handled by sync pull
+  // Module 12, 13 — REMOVED (V4.3 Cleanup)
+  // Module 12 (Periodic Balance Rebuild): Module 8 via feRebuildAllBalances() handles this
+  // Module 13 (Cloud Sync Mismatch): V39 Sync system handles this
 
-  // ============================================
-  // MODULE 13: Cloud vs Local Sync Mismatch (DISABLED)
-  // ✅ V35.1.2: Completely disabled as per user request to save egress. 
-  // Sync is now perfectly handled by V35.1 module.
-  // ============================================
-  async function healSyncMismatch() {
-    return 0;
-  }
 
   // ============================================
   // MODULE 14: Sync Conflict Watchdog (নতুন)
@@ -514,8 +505,8 @@
     hLog('warn', '🚨 Conflict warning modal দেখানো হয়েছে', 'CONFLICT');
   }
 
-  // ============================================
-  function healStudentFeeBackfill() { return 0; } // V4.2: One-time manual only
+  // Module 15 (Fee Backfill) — REMOVED (V4.3 Cleanup)
+  // Was a one-time migration tool, no longer needed
 
   // ============================================
   // Network reconnect handler
@@ -588,9 +579,7 @@
     await run('INIT',       () => healMissingArrayFields());
     await run('OVERPAY',    () => healOverpaymentCheck());
     await run('PAID-FIN',   () => healPaidFinanceMismatch());
-    await run('FEE-BACKFILL', () => healStudentFeeBackfill()); // ✅ Module 15
-    await run('REBUILD',    () => healPeriodicBalanceRebuild());
-    await run('SYNC',       () => healSyncMismatch());
+    // Module 15, 12, 13 — REMOVED in V4.3 cleanup
     await run('CONFLICT',   () => healSyncConflictWatchdog());  // ✅ Module 14
 
     if (totalFixed > 0) {
@@ -636,7 +625,7 @@
   // START
   // ============================================
   function start() {
-    hLog('info', `🛡️ Auto-Heal Engine v4.1 চালু — 14 modules active (প্রতি 60s)`);
+    hLog('info', `🛡️ Auto-Heal Engine v4.3 চালু — 11 modules active (প্রতি 60min)`);
     setTimeout(runHealCycle, 10 * 1000);
     setInterval(runHealCycle, HEAL_INTERVAL);
   }
@@ -644,6 +633,6 @@
   if (document.readyState === 'loading') document.addEventListener('DOMContentLoaded', start);
   else start();
 
-  console.log(`%c🛡️ Wings Fly Auto-Heal Engine v4.1 loaded`, 'color:#00ff88;font-weight:bold');
+  console.log(`%c🛡️ Wings Fly Auto-Heal Engine v4.3 loaded`, 'color:#00ff88;font-weight:bold');
 
 })();

@@ -356,26 +356,10 @@ document.addEventListener('DOMContentLoaded', function () {
 // হয়ে যেত এবং auto-heal.js-এর advanced modules কাজ করত না।
 // ================================================================
 
-
-// ===================================
-// BALANCE RECONCILIATION FIX — DISABLED (V4.2)
-// ===================================
-// ✅ V4.2: COMPLETELY DISABLED — This was the ROOT CAUSE of ৳2000 balance oscillation.
-// PROBLEMS:
-// 1. moneyIn/moneyOut lists MISSING: 'Salary', 'Rent', 'Utilities', 'Registration',
-//    'Refund', 'Advance', 'Investment', 'Advance Return', 'Investment Return'
-//    → Salary expenses not counted → Cash balance = ৳32,110 instead of ৳30,110
-// 2. Math.max(0, correctCash) zeroed out legitimate negative balances
-// 3. Runs again after every backup import (RECONCILE_KEY gets cleared)
-// 4. feRebuildAllBalances() already does this correctly with complete type lists
-// 
-// If balance reconciliation is needed, use feRebuildAllBalances() from console:
-//   feRebuildAllBalances(); saveToStorage();
-(function reconcileBalanceOnce() {
-  // DISABLED — see above
-})();
-
-// Balance integrity monitor removed
-window.checkBalanceIntegrity = function () { };
-
+// ================================================================
+// BALANCE RECONCILIATION — REMOVED (V4.3 Cleanup)
+// ================================================================
+// feRebuildAllBalances() (finance-engine.js) handles this with
+// canonical ACCOUNT_IN/OUT_TYPES. No separate reconciliation needed.
+// ================================================================
 
