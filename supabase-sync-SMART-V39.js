@@ -634,6 +634,12 @@
         || delEntry.financeId
         || null;
     }
+    if (kind === 'employee') {
+      return (src && (src.id))
+        || delEntry.sourceId
+        || delEntry.employeeId
+        || null;
+    }
     return null;
   }
 
@@ -663,7 +669,10 @@
       const fSnap = {};
       (gd.finance || []).forEach(f => { const k = f.id || f.timestamp; if (k) fSnap[k] = _hashRecord(f); });
       _saveSnapshot('finance', fSnap);
-      _log('📸', `Snapshots rebuilt: ${Object.keys(sSnap).length}S ${Object.keys(fSnap).length}F`);
+      const eSnap = {};
+      (gd.employees || []).forEach(e => { const k = e.id; if (k) eSnap[k] = _hashRecord(e); });
+      _saveSnapshot('employees', eSnap);
+      _log('📸', `Snapshots rebuilt: ${Object.keys(sSnap).length}S ${Object.keys(fSnap).length}F ${Object.keys(eSnap).length}E`);
     } catch(e) { _log('⚠️', 'rebuildSnapshots error', e); }
   }
   window._rebuildSnapshots = _rebuildSnapshots;
@@ -777,7 +786,7 @@
 
       if (_partialOK) {
         const tasks = [];
-        let stuPushed = 0, finPushed = 0, stuTotal = 0, finTotal = 0;
+        let stuPushed = 0, finPushed = 0, empPushed = 0, stuTotal = 0, finTotal = 0, empTotal = 0;
 
         if (_dirty.has('students') || _dirty.size === 0) {
           const { changed, deleted, snapshot, snapshotWasEmpty: stuSnapEmpty } = _getDelta(
@@ -881,6 +890,56 @@
           tasks.push(doFinPush());
         }
 
+        // ── Employee push (was missing — employees never synced to cloud) ──
+        if (_dirty.has('employees') || _dirty.size === 0) {
+          const { changed: empChanged, deleted: empDeleted, snapshot: empSnapshot, snapshotWasEmpty: empSnapEmpty } = _getDelta(
+            'employees', gd.employees || [], e => e.id
+          );
+          empTotal = (gd.employees || []).length;
+          empPushed = empChanged.length + empDeleted.length;
+
+          const doEmpPush = async () => {
+            if (empSnapEmpty && empChanged.length > 0) {
+              try {
+                const _aid4 = encodeURIComponent(CFG.ACADEMY_ID);
+                const _chkRes4 = await fetch(
+                  `${CFG.URL}/rest/v1/${CFG.TBL_EMPLOYEES}?academy_id=eq.${_aid4}&deleted=eq.false&select=id`,
+                  { headers: { apikey: CFG.KEY, Authorization: 'Bearer ' + CFG.KEY, Prefer: 'count=exact', Range: '0-99999' } }
+                );
+                const _cloudCount4 = parseInt(_chkRes4.headers.get('content-range')?.split('/')[1] || '0', 10);
+                if (_cloudCount4 >= empTotal) {
+                  _log('⏭️', `Employees SKIPPED — cloud has ${_cloudCount4} >= local ${empTotal}`);
+                  _saveSnapshot('employees', empSnapshot);
+                  return;
+                }
+                _log('📤', `Employees: cloud ${_cloudCount4} < local ${empTotal} — pushing`);
+              } catch(_chkErr4) { _log('⚠️', 'Employees count check failed', _chkErr4); }
+            }
+            if (empChanged.length > 0) {
+              const empRows = empChanged.map(e => ({
+                id: `${CFG.ACADEMY_ID}_emp_${e.id}`, academy_id: CFG.ACADEMY_ID, data: e, deleted: false
+              }));
+              const res = await _sb.from(CFG.TBL_EMPLOYEES).upsert(empRows, { onConflict: 'id' });
+              if (res && res.error) throw res.error;
+              _log('📤', `Employees: ${empChanged.length}/${empTotal} pushed`);
+            }
+            // Handle deleted employees
+            const empDelItems = Array.isArray(gd.deletedItems?.employees) ? gd.deletedItems.employees : [];
+            const empDelRows = empDelItems.map(item => {
+              const recId = _getDeletedRecordId(item, 'employee');
+              return recId ? { id: `${CFG.ACADEMY_ID}_emp_${recId}`, academy_id: CFG.ACADEMY_ID, data: null, deleted: true } : null;
+            }).filter(x => x);
+            if (empDelRows.length > 0) {
+              const resDel = await _sb.from(CFG.TBL_EMPLOYEES).upsert(empDelRows, { onConflict: 'id' });
+              if (resDel && resDel.error) throw resDel.error;
+              gd.deletedItems.employees = [];
+              _log('🧹', `Cleared ${empDelRows.length} employee delete markers after push`);
+            }
+            _saveSnapshot('employees', empSnapshot);
+          };
+          tasks.push(doEmpPush());
+        }
+
         // Main record push
         const mainPayload = {
           id: CFG.RECORD, version: _localVer,
@@ -907,7 +966,7 @@
         SyncFreshness.update();
         // ✅ FIX: Push সফল হলে localStorage এ save করো — cleared deletedItems persist হবে
         try { _saveLocal(); } catch(e) { _log('⚠️', 'saveLocal after push failed', e); }
-        const totalPushed = stuPushed + finPushed;
+        const totalPushed = stuPushed + finPushed + empPushed;
         if (totalPushed === 0) { _log('✅', `Push OK (${reason}) v${_localVer} — no changes`); }
         else { _log('✅', `Push OK (${reason}) v${_localVer} — ${totalPushed} records`); }
         return true;
@@ -994,17 +1053,17 @@
 
   // ── MONITOR ────────────────────────────────────────────────────
   function _installMonitor() {
-    let _lastFin = -1, _lastStu = -1, _lastCash = null;
+    let _lastFin = -1, _lastStu = -1, _lastEmp = -1, _lastCash = null;
     // ✅ V39.1 FIX: 60000 → 15000 — cashBalance দ্রুত detect হবে
     setInterval(() => {
       if (_pushing || _pulling || _syncBusy || Date.now() < _cooldownUntil) return;
       const gd = window.globalData;
       if (!gd) return;
-      const fc = (gd.finance || []).length, sc = (gd.students || []).length, cb = gd.cashBalance;
-      if (_lastFin === -1) { _lastFin = fc; _lastStu = sc; _lastCash = cb; return; }
-      if (fc !== _lastFin || sc !== _lastStu) {
-        _log('📡', `Change: fin ${_lastFin}→${fc} stu ${_lastStu}→${sc}`);
-        _lastFin = fc; _lastStu = sc;
+      const fc = (gd.finance || []).length, sc = (gd.students || []).length, ec = (gd.employees || []).length, cb = gd.cashBalance;
+      if (_lastFin === -1) { _lastFin = fc; _lastStu = sc; _lastEmp = ec; _lastCash = cb; return; }
+      if (fc !== _lastFin || sc !== _lastStu || ec !== _lastEmp) {
+        _log('📡', `Change: fin ${_lastFin}→${fc} stu ${_lastStu}→${sc} emp ${_lastEmp}→${ec}`);
+        _lastFin = fc; _lastStu = sc; _lastEmp = ec;
         window.markDirty && window.markDirty();
         _schedulePush('monitor-data');
       }
@@ -1227,6 +1286,19 @@
           const finUrl = `${CFG.URL}/rest/v1/${CFG.TBL_FINANCE}?on_conflict=id`;
           try { navigator.sendBeacon(finUrl, new Blob([JSON.stringify(allFinRows)], { type: 'application/json' })); }
           catch (e) { fetch(finUrl, { method: 'POST', headers: hdrs, body: JSON.stringify(allFinRows), keepalive: true }).catch(() => {}); }
+        }
+        if (_dirty.has('employees') && (gd.employees || []).length > 0) {
+          const empRows = (gd.employees || []).slice(0, 50).map(e => ({
+            id: `${CFG.ACADEMY_ID}_emp_${e.id}`, academy_id: CFG.ACADEMY_ID, data: e, deleted: false
+          }));
+          const empDel = (gd.deletedItems?.employees || []).slice(0, 50).map(d => {
+            const rid = _getDeletedRecordId(d, 'employee');
+            return rid ? { id: `${CFG.ACADEMY_ID}_emp_${rid}`, academy_id: CFG.ACADEMY_ID, data: null, deleted: true } : null;
+          }).filter(x => x);
+          const allEmpRows = empRows.concat(empDel);
+          const empUrl = `${CFG.URL}/rest/v1/${CFG.TBL_EMPLOYEES}?on_conflict=id`;
+          try { navigator.sendBeacon(empUrl, new Blob([JSON.stringify(allEmpRows)], { type: 'application/json' })); }
+          catch (e) { fetch(empUrl, { method: 'POST', headers: hdrs, body: JSON.stringify(allEmpRows), keepalive: true }).catch(() => {}); }
         }
       }
     });
