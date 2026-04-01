@@ -4,39 +4,55 @@
 // Extracted from app.js (Phase 5)
 // ====================================
 
-function logActivity(type, action, description, data = null) {
+function logActivity(type, action, description, data) {
+  data = data || null;
   try {
-    if (!window.globalData.activityHistory) window.globalData.activityHistory = [];
+    if (!window.globalData || !window.globalData.activityHistory) {
+      if (window.globalData) window.globalData.activityHistory = [];
+      else return;
+    }
+
+    // ✅ FIX: salary_payment type → finance হিসেবে normalize করো
+    // যাতে Activity Log-এ সবসময় দেখায়
+    var normalizedType = (type || 'general').toLowerCase();
+    if (normalizedType === 'salary_payment') normalizedType = 'finance';
+
+    // ✅ FIX: action normalize — DELETE সবসময় uppercase হবে
+    var normalizedAction = (action || 'OTHER').toUpperCase();
+
+    // system/autotest/heal spam বাদ দাও — কিন্তু finance DELETE বাদ দেবে না
+    if (normalizedType === 'heal' || normalizedType === 'system' || normalizedType === 'autotest') return;
 
     const entry = {
-      id: Date.now() + Math.random().toString(36).substr(2, 5),
-      type: type,       // 'student', 'finance', 'employee', 'settings', 'login'
-      action: action,   // 'ADD', 'EDIT', 'DELETE', 'LOGIN', 'LOGOUT', 'SETTING_CHANGE'
-      description: description,
+      id: Date.now() + '_' + Math.random().toString(36).substr(2, 5),
+      type: normalizedType,
+      action: normalizedAction,
+      description: description || '',
       timestamp: new Date().toISOString(),
-      user: sessionStorage.getItem('username') || 'Admin',
-      data: data        // snapshot of the item (for restore)
+      user: sessionStorage.getItem('username') || localStorage.getItem('wf_user') || 'Admin',
+      data: data ? (function() { try { return JSON.parse(JSON.stringify(data)); } catch(e) { return {}; } })() : {}
     };
 
-    window.globalData.activityHistory.unshift(entry); // newest first
+    window.globalData.activityHistory.unshift(entry);
 
-    // Keep max 500 entries
-    if (window.globalData.activityHistory.length > 500) {
-      window.globalData.activityHistory = window.globalData.activityHistory.slice(0, 500);
+    // Max 1000 entries রাখো
+    if (window.globalData.activityHistory.length > 1000) {
+      window.globalData.activityHistory = window.globalData.activityHistory.slice(0, 1000);
     }
 
-    // ✅ BUG D FIX: V39 patch bypass — saveToStorage ব্যবহার করো localStorage.setItem-এর বদলে
-    if (typeof window.saveToStorage === 'function') {
-      window.saveToStorage();
-    } else {
+    // ✅ Save — saveToStorage loop এড়াতে direct localStorage ব্যবহার করো
+    try {
       localStorage.setItem('wingsfly_data', JSON.stringify(window.globalData));
-    }
-    // ✅ BUG D FIX: markDirty কল করো — activity sync faster হবে
+    } catch(e) { console.warn('[logActivity] save error:', e); }
+
+    // ✅ markDirty কল করো — sync faster হবে
     if (typeof window.markDirty === 'function') {
       window.markDirty('activity');
     }
+
+    console.log('[Activity Log]', normalizedAction, normalizedType, description);
   } catch (e) {
-    console.warn('History log error:', e);
+    console.warn('[logActivity] error:', e);
   }
 }
 window.logActivity = logActivity;
@@ -44,49 +60,77 @@ window.logActivity = logActivity;
 // Move item to trash (soft delete)
 function moveToTrash(type, item) {
   try {
-    // ✅ BUG I FIX: Array-এর বদলে object ব্যবহার করো — V39 sync compatible
+    // ✅ FIX: deletedItems সবসময় object হবে, array নয়
     if (!window.globalData.deletedItems || Array.isArray(window.globalData.deletedItems)) {
       window.globalData.deletedItems = { students: [], finance: [], employees: [], other: [] };
     }
-    // Ensure all categories exist
     if (!Array.isArray(window.globalData.deletedItems.students)) window.globalData.deletedItems.students = [];
     if (!Array.isArray(window.globalData.deletedItems.finance)) window.globalData.deletedItems.finance = [];
     if (!Array.isArray(window.globalData.deletedItems.employees)) window.globalData.deletedItems.employees = [];
     if (!Array.isArray(window.globalData.deletedItems.other)) window.globalData.deletedItems.other = [];
 
+    // ✅ FIX: Duplicate trash prevention
+    if (item._trash_moved) {
+      console.log('[moveToTrash] Skip — already in trash:', item.id || item.studentId);
+      return;
+    }
+    item._trash_moved = true;
+
     const trashEntry = {
-      id: Date.now() + Math.random().toString(36).substr(2, 5),
+      id: 'TRASH_' + Date.now() + '_' + Math.random().toString(36).substr(2, 5),
       type: type,
       item: JSON.parse(JSON.stringify(item)), // deep copy
       deletedAt: new Date().toISOString(),
-      deletedBy: sessionStorage.getItem('username') || 'Admin'
+      deletedBy: sessionStorage.getItem('username') || localStorage.getItem('wf_user') || 'Admin',
+      _synced: false  // ✅ cloud sync marker
     };
 
-    // ✅ BUG I FIX: Push to correct category bucket (sync system needs object)
+    // ✅ FIX: salary_payment → finance bucket-এ যাবে
     var t = (type || '').toLowerCase();
     if (t === 'student') {
       window.globalData.deletedItems.students.unshift(trashEntry);
-      if (window.globalData.deletedItems.students.length > 200) window.globalData.deletedItems.students = window.globalData.deletedItems.students.slice(0, 200);
+      if (window.globalData.deletedItems.students.length > 300) window.globalData.deletedItems.students = window.globalData.deletedItems.students.slice(0, 300);
     } else if (t === 'finance' || t === 'salary_payment') {
       window.globalData.deletedItems.finance.unshift(trashEntry);
-      if (window.globalData.deletedItems.finance.length > 200) window.globalData.deletedItems.finance = window.globalData.deletedItems.finance.slice(0, 200);
+      if (window.globalData.deletedItems.finance.length > 300) window.globalData.deletedItems.finance = window.globalData.deletedItems.finance.slice(0, 300);
     } else if (t === 'employee') {
       window.globalData.deletedItems.employees.unshift(trashEntry);
-      if (window.globalData.deletedItems.employees.length > 200) window.globalData.deletedItems.employees = window.globalData.deletedItems.employees.slice(0, 200);
+      if (window.globalData.deletedItems.employees.length > 300) window.globalData.deletedItems.employees = window.globalData.deletedItems.employees.slice(0, 300);
     } else {
       window.globalData.deletedItems.other.unshift(trashEntry);
-      if (window.globalData.deletedItems.other.length > 200) window.globalData.deletedItems.other = window.globalData.deletedItems.other.slice(0, 200);
+      if (window.globalData.deletedItems.other.length > 300) window.globalData.deletedItems.other = window.globalData.deletedItems.other.slice(0, 300);
     }
 
-    // ✅ BUG D FIX: saveToStorage ব্যবহার করো — V39 patch bypass বন্ধ
-    if (typeof window.saveToStorage === 'function') {
-      window.saveToStorage();
+    // ✅ FIX: Activity Log-এ DELETE action লিখো — salary_payment → finance normalize
+    var logType = (t === 'salary_payment') ? 'finance' : t;
+    var itemName = item.name || item.studentName || item.title || item.description || item.category || item.id || 'Item';
+    var logDesc = '';
+    if (logType === 'finance') {
+      logDesc = '🗑️ Deleted: ' + (item.type || '') + ' — ' + (item.description || item.category || '') + ' | ৳' + (item.amount || 0) + ' | ' + (item.method || '') + ' | ' + (item.date || '');
+    } else if (logType === 'student') {
+      logDesc = '🗑️ Deleted Student: ' + itemName;
+    } else if (logType === 'employee') {
+      logDesc = '🗑️ Deleted Employee: ' + itemName;
     } else {
-      localStorage.setItem('wingsfly_data', JSON.stringify(window.globalData));
+      logDesc = '🗑️ Deleted ' + type + ': ' + itemName;
     }
-    localStorage.setItem('wingsfly_deleted_backup', JSON.stringify(window.globalData.deletedItems));
+    logActivity(logType, 'DELETE', logDesc, item);
+
+    // ✅ Save locally
+    try {
+      localStorage.setItem('wingsfly_data', JSON.stringify(window.globalData));
+      localStorage.setItem('wingsfly_deleted_backup', JSON.stringify(window.globalData.deletedItems));
+    } catch(e) { console.warn('[moveToTrash] save error:', e); }
+
+    // ✅ Cloud sync trigger
+    if (typeof window.scheduleSyncPush === 'function') {
+      window.scheduleSyncPush('moveToTrash: ' + type);
+    }
+
+    console.log('[moveToTrash] ✓', type, itemName, '→ Recycle Bin');
+    return trashEntry.id;
   } catch (e) {
-    console.warn('Trash error:', e);
+    console.warn('[moveToTrash] error:', e);
   }
 }
 window.moveToTrash = moveToTrash;
@@ -97,48 +141,53 @@ function loadActivityHistory() {
   if (!container) return;
 
   let history = window.globalData.activityHistory || [];
-  // Filter out system and auto-heal spam from the display
-  history = history.filter(h => h.type !== 'heal' && h.type !== 'system' && h.type !== 'autotest');
-
-  // ✅ ENSURE PROPER SORTING: Sort by timestamp, newest first (DESC)
-  history = history.sort((a, b) => {
-    const timeA = new Date(a.timestamp || 0).getTime();
-    const timeB = new Date(b.timestamp || 0).getTime();
-    return timeB - timeA; // Newest first (descending)
+  // Filter out system and auto-heal spam
+  history = history.filter(function(h) {
+    return h.type !== 'heal' && h.type !== 'system' && h.type !== 'autotest';
   });
 
-  const filterVal = document.getElementById('historyFilter')?.value || 'all';
+  // ✅ FIX: salary_payment → finance normalize করো display-এর আগে
+  history = history.map(function(h) {
+    if ((h.type || '') === 'salary_payment') {
+      return Object.assign({}, h, { type: 'finance' });
+    }
+    return h;
+  });
 
-  const filtered = filterVal === 'all' ? history : history.filter(h => h.type === filterVal);
+  // Newest first
+  history = history.sort(function(a, b) {
+    return new Date(b.timestamp || 0).getTime() - new Date(a.timestamp || 0).getTime();
+  });
+
+  const filterVal = document.getElementById('historyFilter') ? document.getElementById('historyFilter').value : 'all';
+  const filtered = filterVal === 'all' ? history : history.filter(function(h) { return h.type === filterVal; });
 
   if (filtered.length === 0) {
     container.innerHTML = '<div class="text-center text-muted py-5"><div style="font-size:3rem">📋</div><p>কোনো Activity নেই।</p></div>';
     return;
   }
 
-  const icons = { student: '🎓', finance: '💰', employee: '👤', settings: '⚙️', login: '🔐', system: '🔍', autotest: '🧬', heal: '🔧', default: '📝' };
-  const colors = { ADD: '#00ff88', EDIT: '#00d9ff', DELETE: '#ff4444', LOGIN: '#b537f2', LOGOUT: '#ffaa00', WARN: '#ffcc00', TEST: '#00d4ff', FIX: '#00ff88', default: '#ffffff' };
-  const actionBadge = { ADD: 'success', EDIT: 'info', DELETE: 'danger', LOGIN: 'primary', LOGOUT: 'warning', SETTING_CHANGE: 'secondary', WARN: 'warning', TEST: 'info', FIX: 'success' };
+  const icons = { student: '🎓', finance: '💰', employee: '👤', settings: '⚙️', login: '🔐', system: '🔍', autotest: '🧬', heal: '🔧', keeprecord: '📝', visitor: '🧑', notice: '📢', default: '📝' };
+  const colors = { ADD: '#00ff88', EDIT: '#00d9ff', DELETE: '#ff4444', RESTORE: '#00ffc8', LOGIN: '#b537f2', LOGOUT: '#ffaa00', WARN: '#ffcc00', TEST: '#00d4ff', FIX: '#00ff88', default: '#ffffff' };
+  const actionBadge = { ADD: 'success', EDIT: 'info', DELETE: 'danger', RESTORE: 'success', LOGIN: 'primary', LOGOUT: 'warning', SETTING_CHANGE: 'secondary', WARN: 'warning', TEST: 'info', FIX: 'success' };
 
-  container.innerHTML = filtered.map(h => {
+  container.innerHTML = filtered.map(function(h) {
     const d = new Date(h.timestamp);
     const timeStr = d.toLocaleString('en-BD', { day: '2-digit', month: 'short', year: 'numeric', hour: '2-digit', minute: '2-digit' });
     const icon = icons[h.type] || icons.default;
     const badge = actionBadge[h.action] || 'secondary';
 
-    return `
-    <div class="d-flex align-items-start gap-3 p-3 mb-2 rounded-3" style="background: rgba(0,217,255,0.05); border: 1px solid rgba(0,217,255,0.15);">
-      <div style="font-size:1.5rem; min-width:36px; text-align:center;">${icon}</div>
-      <div class="flex-grow-1">
-        <div class="d-flex align-items-center gap-2 mb-1">
-          <span class="badge bg-${badge} text-uppercase" style="font-size:0.65rem;">${h.action}</span>
-          <span class="text-muted small">${h.type}</span>
-          <span class="ms-auto text-muted" style="font-size:0.75rem;">⏱ ${timeStr}</span>
-        </div>
-        <div style="color:#ffffff; font-size:0.9rem;">${h.description}</div>
-        <div class="text-muted" style="font-size:0.75rem;">👤 ${h.user || 'Admin'}</div>
-      </div>
-    </div>`;
+    return '<div class="d-flex align-items-start gap-3 p-3 mb-2 rounded-3" style="background: rgba(0,217,255,0.05); border: 1px solid rgba(0,217,255,0.15);">'
+      + '<div style="font-size:1.5rem; min-width:36px; text-align:center;">' + icon + '</div>'
+      + '<div class="flex-grow-1">'
+      + '<div class="d-flex align-items-center gap-2 mb-1">'
+      + '<span class="badge bg-' + badge + ' text-uppercase" style="font-size:0.65rem;">' + (h.action || 'OTHER') + '</span>'
+      + '<span class="text-muted small">' + (h.type || '') + '</span>'
+      + '<span class="ms-auto text-muted" style="font-size:0.75rem;">⏱ ' + timeStr + '</span>'
+      + '</div>'
+      + '<div style="color:#ffffff; font-size:0.9rem;">' + (h.description || '') + '</div>'
+      + '<div class="text-muted" style="font-size:0.75rem;">👤 ' + (h.user || 'Admin') + '</div>'
+      + '</div></div>';
   }).join('');
 }
 window.loadActivityHistory = loadActivityHistory;
@@ -229,7 +278,7 @@ window.loadDeletedItems = loadDeletedItems;
 function restoreDeletedItem(trashId) {
   if (!confirm('এই item টি restore করবেন?')) return;
 
-  // ✅ BUG I FIX: object-based deletedItems — সব category থেকে খুঁজো
+  // ✅ FIX: object-based deletedItems — সব category থেকে খুঁজো
   var rawDeleted = window.globalData.deletedItems || {};
   var allItems;
   if (Array.isArray(rawDeleted)) {
@@ -242,12 +291,20 @@ function restoreDeletedItem(trashId) {
       rawDeleted.other || []
     );
   }
-  const trashEntry = allItems.find(d => d.id === trashId);
+  const trashEntry = allItems.find(function(d) { return d.id === trashId; });
   if (!trashEntry) { alert('Item পাওয়া যায়নি!'); return; }
 
   const item = trashEntry.item;
-  const type = (trashEntry.type || '').toLowerCase();
-  const itemName = item.name || item.studentName || item.title || item.content || 'Item';
+  // ✅ FIX: _trash_moved ও _synced flag clear করো — re-delete & re-sync এর জন্য
+  delete item._trash_moved;
+  delete item._synced;
+  delete item._deleted;
+  delete item._deletedAt;
+
+  // ✅ FIX: salary_payment → finance হিসেবে restore করো
+  const rawType = (trashEntry.type || '').toLowerCase();
+  const type = (rawType === 'salary_payment') ? 'finance' : rawType;
+  const itemName = item.name || item.studentName || item.title || item.content || item.description || item.category || 'Item';
 
   if (type === 'student') {
     if (!window.globalData.students) window.globalData.students = [];
@@ -301,20 +358,36 @@ function restoreDeletedItem(trashId) {
 
   } else if (type === 'finance') {
     if (!window.globalData.finance) window.globalData.finance = [];
-    // _deleted flag সরাও (soft-delete ছিল কিনা)
-    const restoredItem = { ...item, _deleted: false };
-    delete restoredItem._deletedAt;
-    window.globalData.finance.push(restoredItem);
 
-    // ✅ Account balance re-apply (canonical finance-engine rules)
-    if (typeof window.feApplyEntryToAccount === 'function') {
+    // ✅ FIX: clean flags, duplicate check by id
+    var restoredItem = Object.assign({}, item);
+    restoredItem._deleted = false;
+    delete restoredItem._deletedAt;
+    delete restoredItem._trash_moved;
+    delete restoredItem._synced;
+
+    // ✅ FIX: duplicate check — একই id ইতোমধ্যে থাকলে push করো না
+    var alreadyExists = window.globalData.finance.some(function(f) {
+      return f.id && f.id === restoredItem.id;
+    });
+    if (!alreadyExists) {
+      window.globalData.finance.push(restoredItem);
+    }
+
+    // ✅ Balance rebuild — feRebuildAllBalances সবচেয়ে নির্ভরযোগ্য
+    if (typeof window.feRebuildAllBalances === 'function') {
+      try { window.feRebuildAllBalances(); } catch(e) {}
+    } else if (typeof window.feApplyEntryToAccount === 'function') {
       window.feApplyEntryToAccount(restoredItem, +1);
     } else if (typeof updateAccountBalance === 'function') {
       updateAccountBalance(restoredItem.method, restoredItem.amount, restoredItem.type, true);
     }
 
-    logActivity('finance', 'ADD', `✅ Restored transaction: ${item.description || item.category || itemName}`, item);
-    if (typeof renderLedger === 'function') setTimeout(() => renderLedger(window.globalData.finance), 100);
+    // ✅ FIX: Salary Payment restore-এ meaningful description দাও
+    var restoreDesc = '♻️ Restored: ' + (item.type || 'Finance') + ' — ' + (item.description || item.category || '') + ' | ৳' + (item.amount || 0) + ' | ' + (item.method || '') + ' | ' + (item.date || '');
+    logActivity('finance', 'RESTORE', restoreDesc, item);
+
+    if (typeof renderLedger === 'function') setTimeout(function() { renderLedger(window.globalData.finance); }, 100);
     if (typeof updateGrandTotal === 'function') setTimeout(updateGrandTotal, 150);
 
   } else if (type === 'employee') {
@@ -367,9 +440,9 @@ function restoreDeletedItem(trashId) {
     }
   }
 
-  // ✅ BUG I FIX: Remove from trash — object-based deletedItems handle
+  // ✅ FIX: Recycle Bin থেকে সরাও — object-based deletedItems
   if (Array.isArray(window.globalData.deletedItems)) {
-    window.globalData.deletedItems = window.globalData.deletedItems.filter(d => d.id !== trashId);
+    window.globalData.deletedItems = window.globalData.deletedItems.filter(function(d) { return d.id !== trashId; });
   } else {
     ['students','finance','employees','other'].forEach(function(cat) {
       if (Array.isArray(window.globalData.deletedItems[cat])) {
@@ -379,19 +452,17 @@ function restoreDeletedItem(trashId) {
   }
   localStorage.setItem('wingsfly_deleted_backup', JSON.stringify(window.globalData.deletedItems));
 
-  // ✅ Save Locally immediately
-  if (typeof saveToStorage === 'function') {
-    saveToStorage(true);
-  } else {
+  // ✅ FIX: Save locally — saveToStorage loop এড়াতে direct write, তারপর forced push
+  try {
     localStorage.setItem('wingsfly_data', JSON.stringify(window.globalData));
-  }
+  } catch(e) {}
 
   setTimeout(loadDeletedItems, 150);
-
-  showSuccessToast(`✅ ${itemName} সফলভাবে restore হয়েছে!`);
+  showSuccessToast('✅ ' + itemName + ' সফলভাবে restore হয়েছে!');
   if (typeof updateGlobalStats === 'function') setTimeout(updateGlobalStats, 200);
 
-  // ✅ Schedule Cloud Push
+  // ✅ FIX: Cloud-এ restore push করো — এটা না হলে পরের pull-এ deleted marker দেখে আবার মুছে দেয়
+  // Restore মানে cloud-এ delete marker সরিয়ে fresh record push করতে হবে
   if (typeof window.scheduleSyncPush === 'function') {
     window.scheduleSyncPush('Restore: ' + type);
   }
