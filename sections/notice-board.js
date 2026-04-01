@@ -330,6 +330,11 @@ function publishNotice() {
       : `${durationMinutes} মিনিট`;
 
   noticeToast(`✅ নোটিস প্রকাশিত! মেয়াদ: ${dLabel}`, 'success');
+
+  // ✅ V39.8: Activity Log entry
+  if (typeof window.logActivity === 'function') {
+    window.logActivity('settings', 'ADD', 'নোটিস প্রকাশিত: ' + text.substring(0, 60) + (text.length > 60 ? '...' : ''));
+  }
 }
 function deleteNotice() {
   // Notice board এর activeNotice delete (settings এ stored)
@@ -352,6 +357,11 @@ function deleteNotice() {
   } catch (e) { }
 
   noticeToast('🗑️ নোটিস মুছে ফেলা হয়েছে', 'success');
+
+  // ✅ V39.8: Activity Log entry
+  if (typeof window.logActivity === 'function') {
+    window.logActivity('settings', 'DELETE', 'নোটিস মুছে ফেলা হয়েছে');
+  }
 }
 // deleteActiveNotice = banner notice clear করার alias
 window.deleteActiveNotice = function () {
@@ -383,27 +393,27 @@ function refreshNoticeBoardOnLogin() {
 (function _hookRenderFullUI() {
   var _origRenderFullUI = window.renderFullUI;
   if (typeof _origRenderFullUI === 'function' && !_origRenderFullUI._noticeBoardHooked) {
-    window.renderFullUI = function() {
+    window.renderFullUI = function () {
       var result = _origRenderFullUI.apply(this, arguments);
-      try { initNoticeBoard(); } catch(e) {}
+      try { initNoticeBoard(); } catch (e) { }
       return result;
     };
     window.renderFullUI._noticeBoardHooked = true;
   } else {
     // renderFullUI পরে লোড হলেও catch করো
-    var _hookInterval = setInterval(function() {
+    var _hookInterval = setInterval(function () {
       if (typeof window.renderFullUI === 'function' && !window.renderFullUI._noticeBoardHooked) {
         var _orig2 = window.renderFullUI;
-        window.renderFullUI = function() {
+        window.renderFullUI = function () {
           var result = _orig2.apply(this, arguments);
-          try { initNoticeBoard(); } catch(e) {}
+          try { initNoticeBoard(); } catch (e) { }
           return result;
         };
         window.renderFullUI._noticeBoardHooked = true;
         clearInterval(_hookInterval);
       }
     }, 500);
-    setTimeout(function() { clearInterval(_hookInterval); }, 15000);
+    setTimeout(function () { clearInterval(_hookInterval); }, 15000);
   }
 })();
 

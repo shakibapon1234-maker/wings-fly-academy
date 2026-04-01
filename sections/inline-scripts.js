@@ -63,7 +63,7 @@ async function runDiagnosticInline() {
     } catch (e) { diagLog('❌ লোকাল parse error: ' + e.message, 'err'); }
 
     const lS = (local?.students || []).filter(function (s) { return !s._deleted; }).length;
-    const lF = (local?.finance  || []).filter(function (f) { return !f._deleted; }).length;
+    const lF = (local?.finance || []).filter(function (f) { return !f._deleted; }).length;
     const lC = local?.cashBalance || 0;
     const lV = parseInt(localStorage.getItem('wings_local_version')) || 0;
 
@@ -82,26 +82,26 @@ async function runDiagnosticInline() {
         const arr = await res.json();
         cloud = arr[0] || null;
         if (cloud) {
-           diagLog('✅ Main Cloud ডেটা পাওয়া গেছে', 'ok');
-           cC = cloud.cash_balance || 0;
-           cV = cloud.version || 0;
+            diagLog('✅ Main Cloud ডেটা পাওয়া গেছে', 'ok');
+            cC = cloud.cash_balance || 0;
+            cV = cloud.version || 0;
         } else { diagLog('⚠️ Cloud-এ এখনো কোনো ডেটা নেই', 'warn'); }
-        
+
         // ✅ V2.4: Partial Table Counts — deleted=eq.false filter MUST be applied
         // Without this filter, cloud returns 60 (58 active + 2 deleted) instead of 58
         diagLog('☁️ Partial Tables (Students, Finance) চেক করা হচ্ছে...');
         const cfg = window.SUPABASE_CONFIG || {};
         const aid = cfg.ACADEMY_ID || cfg.MAIN_RECORD || 'wingsfly_main';
         const urlStr = cfg.URL + '/rest/v1/wf_students?academy_id=eq.' + aid + '&deleted=eq.false&select=id&limit=5000';
-        const urlFin = cfg.URL + '/rest/v1/wf_finance?academy_id=eq.'  + aid + '&deleted=eq.false&select=id&limit=5000';
-        
+        const urlFin = cfg.URL + '/rest/v1/wf_finance?academy_id=eq.' + aid + '&deleted=eq.false&select=id&limit=5000';
+
         try {
             const sRes = await fetch(urlStr, { headers: { 'apikey': cfg.KEY, 'Authorization': 'Bearer ' + cfg.KEY } });
             if (sRes.ok) { const arr = await sRes.json(); if (Array.isArray(arr)) cS = arr.length; }
             const fRes = await fetch(urlFin, { headers: { 'apikey': cfg.KEY, 'Authorization': 'Bearer ' + cfg.KEY } });
             if (fRes.ok) { const arr = await fRes.json(); if (Array.isArray(arr)) cF = arr.length; }
             diagLog('✅ Partial Tables ডেটা পাওয়া গেছে (active only)', 'ok');
-        } catch(pe) {
+        } catch (pe) {
             diagLog('⚠️ Partial Tables count error: ' + pe.message, 'warn');
         }
     } catch (e) { diagLog('❌ Cloud fetch error: ' + e.message, 'err'); }
@@ -669,7 +669,7 @@ window.switchSettingsTab = switchSettingsTab;
             if (!gd) return;
             // ✅ BUG I FIX: object-based deletedItems
             if (!gd.deletedItems || Array.isArray(gd.deletedItems)) {
-              gd.deletedItems = { students: [], finance: [], employees: [], other: [] };
+                gd.deletedItems = { students: [], finance: [], employees: [], other: [] };
             }
             if (!Array.isArray(gd.deletedItems.students)) gd.deletedItems.students = [];
             if (!Array.isArray(gd.deletedItems.finance)) gd.deletedItems.finance = [];
@@ -684,22 +684,22 @@ window.switchSettingsTab = switchSettingsTab;
             };
             var t = (type || '').toLowerCase();
             if (t === 'student') {
-              gd.deletedItems.students.unshift(entry);
-              if (gd.deletedItems.students.length > 200) gd.deletedItems.students = gd.deletedItems.students.slice(0, 200);
+                gd.deletedItems.students.unshift(entry);
+                if (gd.deletedItems.students.length > 200) gd.deletedItems.students = gd.deletedItems.students.slice(0, 200);
             } else if (t === 'finance' || t === 'salary_payment') {
-              gd.deletedItems.finance.unshift(entry);
-              if (gd.deletedItems.finance.length > 200) gd.deletedItems.finance = gd.deletedItems.finance.slice(0, 200);
+                gd.deletedItems.finance.unshift(entry);
+                if (gd.deletedItems.finance.length > 200) gd.deletedItems.finance = gd.deletedItems.finance.slice(0, 200);
             } else if (t === 'employee') {
-              gd.deletedItems.employees.unshift(entry);
-              if (gd.deletedItems.employees.length > 200) gd.deletedItems.employees = gd.deletedItems.employees.slice(0, 200);
+                gd.deletedItems.employees.unshift(entry);
+                if (gd.deletedItems.employees.length > 200) gd.deletedItems.employees = gd.deletedItems.employees.slice(0, 200);
             } else {
-              gd.deletedItems.other.unshift(entry);
-              if (gd.deletedItems.other.length > 200) gd.deletedItems.other = gd.deletedItems.other.slice(0, 200);
+                gd.deletedItems.other.unshift(entry);
+                if (gd.deletedItems.other.length > 200) gd.deletedItems.other = gd.deletedItems.other.slice(0, 200);
             }
             if (typeof window.saveToStorage === 'function') {
-              window.saveToStorage();
+                window.saveToStorage();
             } else {
-              localStorage.setItem('wingsfly_data', JSON.stringify(gd));
+                localStorage.setItem('wingsfly_data', JSON.stringify(gd));
             }
             localStorage.setItem('wingsfly_deleted_backup', JSON.stringify(gd.deletedItems));
             if (typeof window.logActivity === 'function') {
@@ -721,7 +721,7 @@ window.switchSettingsTab = switchSettingsTab;
             if (Array.isArray(rawDel)) {
                 allItems = rawDel;
             } else {
-                allItems = [].concat(rawDel.students||[], rawDel.finance||[], rawDel.employees||[], rawDel.other||[]);
+                allItems = [].concat(rawDel.students || [], rawDel.finance || [], rawDel.employees || [], rawDel.other || []);
             }
             var d = allItems.find(function (x) { return x.id === id; });
             if (!d) { console.warn('restoreDeletedItem: id not found', id); return; }
@@ -742,9 +742,9 @@ window.switchSettingsTab = switchSettingsTab;
             if (Array.isArray(gd.deletedItems)) {
                 gd.deletedItems = gd.deletedItems.filter(function (x) { return x.id !== id; });
             } else {
-                ['students','finance','employees','other'].forEach(function(cat) {
+                ['students', 'finance', 'employees', 'other'].forEach(function (cat) {
                     if (Array.isArray(gd.deletedItems[cat])) {
-                        gd.deletedItems[cat] = gd.deletedItems[cat].filter(function(x) { return x.id !== id; });
+                        gd.deletedItems[cat] = gd.deletedItems[cat].filter(function (x) { return x.id !== id; });
                     }
                 });
             }
@@ -771,9 +771,9 @@ window.switchSettingsTab = switchSettingsTab;
             if (Array.isArray(gd.deletedItems)) {
                 gd.deletedItems = gd.deletedItems.filter(function (x) { return x.id !== id; });
             } else {
-                ['students','finance','employees','other'].forEach(function(cat) {
+                ['students', 'finance', 'employees', 'other'].forEach(function (cat) {
                     if (Array.isArray(gd.deletedItems[cat])) {
-                        gd.deletedItems[cat] = gd.deletedItems[cat].filter(function(x) { return x.id !== id; });
+                        gd.deletedItems[cat] = gd.deletedItems[cat].filter(function (x) { return x.id !== id; });
                     }
                 });
             }
@@ -797,15 +797,15 @@ window.switchSettingsTab = switchSettingsTab;
         if (!confirm('সব Deleted Items চিরতরে মুছে ফেলবেন?')) return;
         if (!window.globalData) window.globalData = {};
         window.globalData.deletedItems = { students: [], finance: [], employees: [] };
-        
+
         localStorage.setItem('wingsfly_data', JSON.stringify(window.globalData));
         localStorage.setItem('wingsfly_deleted_backup', '{}');
-        
+
         // renderRecycleBin was moved in V39, calling safely
         if (typeof window.renderRecycleBin === 'function') {
             window.renderRecycleBin();
         }
-        
+
         if (typeof window.showSuccessToast === 'function') {
             window.showSuccessToast('Recycle Bin খালি হয়েছে!');
         }
@@ -824,7 +824,14 @@ window.switchSettingsTab = switchSettingsTab;
             if (typeof origSwitch === 'function') origSwitch(tabId, btn);
             if (tabId === 'tab-activitylog') {
                 injectActivityToolbar();
-                setTimeout(renderActivityLog, 60);
+                // ✅ V39.8 FIX: Auto-set End Date to today so latest entries are always visible
+                setTimeout(function () {
+                    var dtTo = document.getElementById('logDateTo');
+                    if (dtTo && !dtTo.value) {
+                        dtTo.value = new Date().toISOString().split('T')[0];
+                    }
+                    renderActivityLog();
+                }, 60);
             }
             if (tabId === 'tab-recyclebin') {
                 setTimeout(renderRecycleBin, 60);
@@ -1020,96 +1027,96 @@ document.addEventListener("DOMContentLoaded", function () { var fm = document.ge
 // ============================================================
 (function () {
 
-  function _buildMethodList() {
-    var gd = window.globalData;
-    // ✅ FIX: 'Bank Transfer' removed — it's a transaction TYPE, not a payment account
-    // Real accounts come from globalData.bankAccounts & mobileBanking
-    if (!gd) return ['Cash'];
+    function _buildMethodList() {
+        var gd = window.globalData;
+        // ✅ FIX: 'Bank Transfer' removed — it's a transaction TYPE, not a payment account
+        // Real accounts come from globalData.bankAccounts & mobileBanking
+        if (!gd) return ['Cash'];
 
-    var core = ['Cash'];
-    var bankNames = (gd.bankAccounts || []).map(function (a) { return a.name; }).filter(Boolean);
-    var mobileNames = (gd.mobileBanking || []).map(function (a) { return a.name; }).filter(Boolean);
+        var core = ['Cash'];
+        var bankNames = (gd.bankAccounts || []).map(function (a) { return a.name; }).filter(Boolean);
+        var mobileNames = (gd.mobileBanking || []).map(function (a) { return a.name; }).filter(Boolean);
 
-    // core methods সবার আগে, তারপর bank, তারপর mobile
-    var all = core.concat(bankNames).concat(mobileNames);
+        // core methods সবার আগে, তারপর bank, তারপর mobile
+        var all = core.concat(bankNames).concat(mobileNames);
 
-    // duplicate সরাও, case-sensitive unique
-    var seen = {};
-    return all.filter(function (m) {
-      if (seen[m]) return false;
-      seen[m] = true;
-      return true;
-    });
-  }
-
-  function _fillSelect(el, options, placeholder, keepValue) {
-    if (!el) return;
-    var cur = keepValue ? el.value : '';
-    el.innerHTML = '<option value="">' + placeholder + '</option>';
-    options.forEach(function (m) {
-      var opt = document.createElement('option');
-      opt.value = m;
-      opt.textContent = m;
-      el.appendChild(opt);
-    });
-    if (cur) el.value = cur;
-  }
-
-  // window.populateDropdowns is now handled by ledger-render.js
-
-  // ── Modal open হলে auto-populate ─────────────────────────
-  // Bootstrap modal show event এ hook করো
-  document.addEventListener('show.bs.modal', function (e) {
-    var modalId = e.target && e.target.id;
-    var paymentModals = [
-      'studentModal',
-      'studentPaymentModal',
-      'financeModal',
-      'editTransactionModal',
-      'examRegistrationModal',
-      'accountModal'
-    ];
-    if (paymentModals.indexOf(modalId) !== -1) {
-      setTimeout(function () {
-        window.populateDropdowns();
-      }, 30);
+        // duplicate সরাও, case-sensitive unique
+        var seen = {};
+        return all.filter(function (m) {
+            if (seen[m]) return false;
+            seen[m] = true;
+            return true;
+        });
     }
-  });
 
-  // ── Page load এ একবার চালাও ──────────────────────────────
-  function _runOnReady() {
-    if (window.globalData) {
-      window.populateDropdowns();
-    } else {
-      // globalData load না হলে retry করো
-      var attempts = 0;
-      var retry = setInterval(function () {
-        attempts++;
-        if (window.globalData) {
-          clearInterval(retry);
-          window.populateDropdowns();
-        } else if (attempts > 20) {
-          clearInterval(retry);
+    function _fillSelect(el, options, placeholder, keepValue) {
+        if (!el) return;
+        var cur = keepValue ? el.value : '';
+        el.innerHTML = '<option value="">' + placeholder + '</option>';
+        options.forEach(function (m) {
+            var opt = document.createElement('option');
+            opt.value = m;
+            opt.textContent = m;
+            el.appendChild(opt);
+        });
+        if (cur) el.value = cur;
+    }
+
+    // window.populateDropdowns is now handled by ledger-render.js
+
+    // ── Modal open হলে auto-populate ─────────────────────────
+    // Bootstrap modal show event এ hook করো
+    document.addEventListener('show.bs.modal', function (e) {
+        var modalId = e.target && e.target.id;
+        var paymentModals = [
+            'studentModal',
+            'studentPaymentModal',
+            'financeModal',
+            'editTransactionModal',
+            'examRegistrationModal',
+            'accountModal'
+        ];
+        if (paymentModals.indexOf(modalId) !== -1) {
+            setTimeout(function () {
+                window.populateDropdowns();
+            }, 30);
         }
-      }, 500);
-    }
-  }
-
-  if (document.readyState === 'loading') {
-    document.addEventListener('DOMContentLoaded', function () {
-      setTimeout(_runOnReady, 800);
     });
-  } else {
-    setTimeout(_runOnReady, 800);
-  }
 
-  // ── syncPaymentMethodsWithAccounts এ hook করো ─────────────
-  // accounts-management.js থেকে account add/edit হলে auto-refresh
-  var _origSync = window.syncPaymentMethodsWithAccounts;
-  window.syncPaymentMethodsWithAccounts = function () {
-    if (typeof _origSync === 'function') _origSync();
-    setTimeout(window.populateDropdowns, 100);
-  };
+    // ── Page load এ একবার চালাও ──────────────────────────────
+    function _runOnReady() {
+        if (window.globalData) {
+            window.populateDropdowns();
+        } else {
+            // globalData load না হলে retry করো
+            var attempts = 0;
+            var retry = setInterval(function () {
+                attempts++;
+                if (window.globalData) {
+                    clearInterval(retry);
+                    window.populateDropdowns();
+                } else if (attempts > 20) {
+                    clearInterval(retry);
+                }
+            }, 500);
+        }
+    }
+
+    if (document.readyState === 'loading') {
+        document.addEventListener('DOMContentLoaded', function () {
+            setTimeout(_runOnReady, 800);
+        });
+    } else {
+        setTimeout(_runOnReady, 800);
+    }
+
+    // ── syncPaymentMethodsWithAccounts এ hook করো ─────────────
+    // accounts-management.js থেকে account add/edit হলে auto-refresh
+    var _origSync = window.syncPaymentMethodsWithAccounts;
+    window.syncPaymentMethodsWithAccounts = function () {
+        if (typeof _origSync === 'function') _origSync();
+        setTimeout(window.populateDropdowns, 100);
+    };
 
 })();
 
@@ -1117,53 +1124,53 @@ document.addEventListener("DOMContentLoaded", function () { var fm = document.ge
 // QUICK CHECK — Console এ paste করলে বা quickCheck() কল করলে
 // ═══════════════════════════════════════════════════════════
 window.quickCheck = function () {
-  var gd = window.globalData || {};
-  var issues = [];
-  var ok = [];
+    var gd = window.globalData || {};
+    var issues = [];
+    var ok = [];
 
-  var fns = ['moveToTrash','restoreDeletedItem','logActivity','deleteTransaction','editSalaryPayment','deleteSalaryPayment','feCalcStats','feApplyEntryToAccount','scheduleSyncPush','markDirty','saveToStorage'];
-  fns.forEach(function(fn){
-    if(typeof window[fn]==='function') ok.push('✅ '+fn);
-    else issues.push('❌ '+fn+' MISSING!');
-  });
+    var fns = ['moveToTrash', 'restoreDeletedItem', 'logActivity', 'deleteTransaction', 'editSalaryPayment', 'deleteSalaryPayment', 'feCalcStats', 'feApplyEntryToAccount', 'scheduleSyncPush', 'markDirty', 'saveToStorage'];
+    fns.forEach(function (fn) {
+        if (typeof window[fn] === 'function') ok.push('✅ ' + fn);
+        else issues.push('❌ ' + fn + ' MISSING!');
+    });
 
-  if(gd.students && Array.isArray(gd.students)) ok.push('✅ Students: '+gd.students.length);
-  else issues.push('❌ Students data broken');
+    if (gd.students && Array.isArray(gd.students)) ok.push('✅ Students: ' + gd.students.length);
+    else issues.push('❌ Students data broken');
 
-  if(gd.finance && Array.isArray(gd.finance)) ok.push('✅ Finance: '+gd.finance.length);
-  else issues.push('❌ Finance data broken');
+    if (gd.finance && Array.isArray(gd.finance)) ok.push('✅ Finance: ' + gd.finance.length);
+    else issues.push('❌ Finance data broken');
 
-  if(gd.deletedItems && !Array.isArray(gd.deletedItems) && Array.isArray(gd.deletedItems.students)) ok.push('✅ deletedItems structure OK');
-  else issues.push('❌ deletedItems should be {students:[],finance:[],employees:[],other:[]}');
+    if (gd.deletedItems && !Array.isArray(gd.deletedItems) && Array.isArray(gd.deletedItems.students)) ok.push('✅ deletedItems structure OK');
+    else issues.push('❌ deletedItems should be {students:[],finance:[],employees:[],other:[]}');
 
-  ok.push('✅ Cash: ৳'+(parseFloat(gd.cashBalance)||0).toLocaleString());
-  (gd.bankAccounts||[]).forEach(function(a){ok.push('✅ Bank '+a.name+': ৳'+(parseFloat(a.balance)||0).toLocaleString());});
-  (gd.mobileBanking||[]).forEach(function(a){ok.push('✅ Mobile '+a.name+': ৳'+(parseFloat(a.balance)||0).toLocaleString());});
+    ok.push('✅ Cash: ৳' + (parseFloat(gd.cashBalance) || 0).toLocaleString());
+    (gd.bankAccounts || []).forEach(function (a) { ok.push('✅ Bank ' + a.name + ': ৳' + (parseFloat(a.balance) || 0).toLocaleString()); });
+    (gd.mobileBanking || []).forEach(function (a) { ok.push('✅ Mobile ' + a.name + ': ৳' + (parseFloat(a.balance) || 0).toLocaleString()); });
 
-  if(document.getElementById('financeGuardDot')) ok.push('✅ Finance Guard dot 🛡️');
-  else issues.push('⚠️ Finance Guard dot not visible');
+    if (document.getElementById('financeGuardDot')) ok.push('✅ Finance Guard dot 🛡️');
+    else issues.push('⚠️ Finance Guard dot not visible');
 
-  if(document.getElementById('syncGuardDot')) ok.push('✅ Sync Guard dot ⚡');
-  else issues.push('⚠️ Sync Guard dot not visible');
+    if (document.getElementById('syncGuardDot')) ok.push('✅ Sync Guard dot ⚡');
+    else issues.push('⚠️ Sync Guard dot not visible');
 
-  if(window.SUPABASE_CONFIG && window.SUPABASE_CONFIG.KEY) ok.push('✅ Supabase key set');
-  else issues.push('❌ Supabase key missing');
+    if (window.SUPABASE_CONFIG && window.SUPABASE_CONFIG.KEY) ok.push('✅ Supabase key set');
+    else issues.push('❌ Supabase key missing');
 
-  // Lazy-loaded functions (settings modal খোলার পর available)
-  var lazyFns = ['renderMonitor','renderAdvanceQuick','openAccMgmtAddModal','openSalaryModal','switchSettingsTab'];
-  lazyFns.forEach(function(fn){
-    if(typeof window[fn]==='function') ok.push('✅ '+fn+' (lazy)');
-  });
+    // Lazy-loaded functions (settings modal খোলার পর available)
+    var lazyFns = ['renderMonitor', 'renderAdvanceQuick', 'openAccMgmtAddModal', 'openSalaryModal', 'switchSettingsTab'];
+    lazyFns.forEach(function (fn) {
+        if (typeof window[fn] === 'function') ok.push('✅ ' + fn + ' (lazy)');
+    });
 
-  console.log('%c═══ QUICK CHECK ═══','color:#00d9ff;font-weight:bold;font-size:16px;');
-  if(issues.length===0){
-    console.log('%c✅ ALL GOOD — '+ok.length+' checks passed','color:#00c853;font-weight:bold;font-size:14px;');
-  } else {
-    console.log('%c🚨 '+issues.length+' ISSUES:','color:#f44336;font-weight:bold;font-size:14px;');
-    issues.forEach(function(i){console.log('%c'+i,'color:#f44336;');});
-    console.log('%c✅ Passed: '+ok.length,'color:#00c853;');
-  }
-  ok.forEach(function(o){console.log(o);});
-  return {ok:ok,issues:issues};
+    console.log('%c═══ QUICK CHECK ═══', 'color:#00d9ff;font-weight:bold;font-size:16px;');
+    if (issues.length === 0) {
+        console.log('%c✅ ALL GOOD — ' + ok.length + ' checks passed', 'color:#00c853;font-weight:bold;font-size:14px;');
+    } else {
+        console.log('%c🚨 ' + issues.length + ' ISSUES:', 'color:#f44336;font-weight:bold;font-size:14px;');
+        issues.forEach(function (i) { console.log('%c' + i, 'color:#f44336;'); });
+        console.log('%c✅ Passed: ' + ok.length, 'color:#00c853;');
+    }
+    ok.forEach(function (o) { console.log(o); });
+    return { ok: ok, issues: issues };
 };
 
