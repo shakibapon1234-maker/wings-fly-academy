@@ -145,16 +145,14 @@
     run();
   }
 
-  // Hook switchTab
+  // Hook switchTab — ✅ FIX: Hook-based instead of monkey-patching
   setTimeout(() => {
-    if (typeof window.switchTab === 'function' && !window._wfAccStyleHooked) {
-      window._wfAccStyleHooked = true;
-      const orig = window.switchTab;
-      window.switchTab = function (tab, ...args) {
-        const r = orig.call(this, tab, ...args);
+    if (!window._wfSwitchTabHooks) window._wfSwitchTabHooks = [];
+    if (!window._wfSwitchTabHooks._accStyleRegistered) {
+      window._wfSwitchTabHooks.push(function (tab) {
         if (tab === 'accounts') setTimeout(applyStyle, 200);
-        return r;
-      };
+      });
+      window._wfSwitchTabHooks._accStyleRegistered = true;
     }
     if (typeof window.renderFullUI === 'function' && !window._wfAccRenderHooked) {
       window._wfAccRenderHooked = true;

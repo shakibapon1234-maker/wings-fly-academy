@@ -274,16 +274,14 @@
     });
 
     // switchTab hook — tab switch এ pagination bar re-init
-    // ✅ FIX: শুধুমাত্র page 1 এ থাকলে re-patch করো, user page 2+ এ গেলে reset করো না
-    var origSwitchTab = window.switchTab;
-    if (typeof origSwitchTab === 'function' && !origSwitchTab._wfPgPatched) {
-      window.switchTab = function (tabName) {
-        var result = origSwitchTab.apply(this, arguments);
+    // ✅ FIX: Hook-based instead of monkey-patching to avoid circular recursion
+    if (!window._wfSwitchTabHooks) window._wfSwitchTabHooks = [];
+    if (!window._wfSwitchTabHooks._paginationRegistered) {
+      window._wfSwitchTabHooks.push(function (tabName) {
         setTimeout(function () {
           PATCH_TABLES.forEach(function (cfg) {
             var tbody = document.getElementById(cfg.tbodyId);
             if (tbody && tbody.querySelectorAll('tr').length > 0) {
-              // শুধু তখনই re-patch করো যখন user page 1 এ আছে
               var pg = window._wfPaginators && window._wfPaginators[cfg.tbodyId];
               if (!pg || pg.currentPage <= 1) {
                 patchTbody(cfg);
@@ -291,9 +289,8 @@
             }
           });
         }, 200);
-        return result;
-      };
-      window.switchTab._wfPgPatched = true;
+      });
+      window._wfSwitchTabHooks._paginationRegistered = true;
     }
 
     console.log('✅ table-pagination-patch.js — watching', PATCH_TABLES.length, 'tables');

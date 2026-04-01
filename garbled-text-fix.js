@@ -128,33 +128,30 @@
   setTimeout(patchSwitchSettingsTab, 2000); // retry
 
   // ── 4. Tab switch এ settings section এর garbled text clean ─
-  var _origSwitchTab = null;
-
-  function patchSwitchTab() {
-    if (typeof window.switchTab !== 'function') return;
-    if (window.switchTab._garbledPatched) return;
-
-    _origSwitchTab = window.switchTab;
-    window.switchTab = function (tabName) {
-      var result = _origSwitchTab.apply(this, arguments);
-
-      // settings tab এ গেলে 200ms পর garbled check করো
-      if (tabName === 'settings' || tabName === 'accounts') {
-        setTimeout(function () {
-          PROTECTED_IDS.forEach(function (id) {
-            clearGarbledText(document.getElementById(id));
-          });
-        }, 200);
-      }
-
-      return result;
-    };
-    window.switchTab._garbledPatched = true;
-    console.log('✅ garbled-text-fix: switchTab patched (garbled cleanup)');
+  // ✅ FIX: monkey-patch বাদ — এখন event-based hook ব্যবহার করো
+  // switchTab কে আর wrap না করে, tab switch event listen করো
+  function onTabSwitch(tabName) {
+    if (tabName === 'settings' || tabName === 'accounts') {
+      setTimeout(function () {
+        PROTECTED_IDS.forEach(function (id) {
+          clearGarbledText(document.getElementById(id));
+        });
+      }, 200);
+    }
   }
 
-  setTimeout(patchSwitchTab, 1500);
-  setTimeout(patchSwitchTab, 3000); // retry
+  // ✅ Register as a hook instead of monkey-patching
+  function registerGarbledHook() {
+    if (!window._wfSwitchTabHooks) window._wfSwitchTabHooks = [];
+    // Don't register twice
+    if (window._wfSwitchTabHooks._garbledRegistered) return;
+    window._wfSwitchTabHooks.push(onTabSwitch);
+    window._wfSwitchTabHooks._garbledRegistered = true;
+    console.log('✅ garbled-text-fix: switchTab hook registered (garbled cleanup)');
+  }
+
+  setTimeout(registerGarbledHook, 1500);
+  setTimeout(registerGarbledHook, 3000); // retry
 
   console.log('✅ garbled-text-fix.js loaded');
 

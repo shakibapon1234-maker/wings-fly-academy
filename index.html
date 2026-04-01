@@ -1924,7 +1924,7 @@ WINGS FLY AVIATION ACADEMY — Management System
     <!-- IMPORTANT: Replace sections/auth.js with auth-v2-COMPLETE.js     -->
     <!-- New features: Supabase Auth + PBKDF2 + Session Management        -->
     <!-- ════════════════════════════════════════════════════════════════ -->
-    <script src="sections/auth.js?v=20260323_PHASE2"></script>
+    <script src="sections/auth.js?v=20260402_PHASE2"></script>
     
     <script src="sections/id-card.js?v=20260226_1900"></script>
     <script src="sections/notifications.js?v=20260226_1900"></script>
@@ -1948,7 +1948,7 @@ WINGS FLY AVIATION ACADEMY — Management System
     <script src="print-fix.js?v=20260225_1642"></script>
     <script src="quick-fix.js?v=20260225_1642"></script>
     <script src="symbol-fix.js?v=20260225_1642"></script>
-    <script src="tab-reset-fix.js?v=20260302_0001"></script>
+    <script src="tab-reset-fix.js?v=20260402_0001"></script>
     <script defer src="sections/batch-profit-report.js?v=20260307_0240"></script>
 
     <!-- Auto Test Suite -->
@@ -1970,9 +1970,9 @@ WINGS FLY AVIATION ACADEMY — Management System
     <script src="sections/section-loader.js?v=20260324_0840"></script>
     <!-- noticeBoardModal is inline — section-loader.js handles it directly -->
     <!-- ✅ Auto-pagination patch for Visitor, Employee, Salary, Exam, Loan tables -->
-    <script src="sections/table-pagination-patch.js?v=20260329_1200"></script>
+    <script src="sections/table-pagination-patch.js?v=20260402_0001"></script>
     <!-- ✅ Garbled text fix + settings scroll to top -->
-    <script defer src="garbled-text-fix.js?v=20260326_0001"></script>
+    <script defer src="garbled-text-fix.js?v=20260402_0001"></script>
 
     <!-- ✅ STUDENT MODAL HTML — Inline, no fetch needed -->
      <div id="__studentModalsPlaceholder"></div>
@@ -2234,11 +2234,11 @@ WINGS FLY AVIATION ACADEMY — Management System
                     instance = setupStickyScrollbar();
                     if (instance) { instance.syncWidth(); instance.positionGhost(); }
 
-                    // switchTab patch
-                    var orig = window.switchTab;
-                    if (typeof orig === 'function') {
-                        window.switchTab = function (tabName) {
-                            orig.call(this, tabName);
+                    // switchTab hook — sticky scrollbar visibility
+                    // ✅ FIX: Hook-based instead of monkey-patching to avoid circular recursion
+                    if (!window._wfSwitchTabHooks) window._wfSwitchTabHooks = [];
+                    if (!window._wfSwitchTabHooks._scrollbarRegistered) {
+                        window._wfSwitchTabHooks.push(function (tabName) {
                             currentTab = tabName;
                             var ghost = document.getElementById(GHOST_ID);
                             if (!ghost) return;
@@ -2250,7 +2250,8 @@ WINGS FLY AVIATION ACADEMY — Management System
                             } else {
                                 ghost.style.display = 'none';
                             }
-                        };
+                        });
+                        window._wfSwitchTabHooks._scrollbarRegistered = true;
                     }
 
                     // MutationObserver: table data পরিবর্তন হলে re-sync

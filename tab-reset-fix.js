@@ -113,22 +113,18 @@
     }
 
     // ── Fix 2: Accounts Tab Reset ─────────────────────────────
-    // Patch switchTab to reset accounts UI when leaving and re-entering
-    function patchSwitchTab() {
-        var original = window.switchTab;
-        if (typeof original !== 'function') return false; // not loaded yet
-
-        window.switchTab = function (tab) {
-            // Reset accounts if switching AWAY from accounts or TO accounts
+    // ✅ FIX: Hook-based instead of monkey-patching to avoid circular recursion
+    function registerAccountsHook() {
+        if (!window._wfSwitchTabHooks) window._wfSwitchTabHooks = [];
+        if (window._wfSwitchTabHooks._accountsRegistered) return true;
+        window._wfSwitchTabHooks.push(function (tab) {
             resetAccountsUI();
-            original.call(this, tab);
-
-            // Also reset after switching to accounts (in case original sets things up)
             if (tab === 'accounts') {
                 setTimeout(resetAccountsUI, 50);
             }
-        };
-        console.log('[TabResetFix] switchTab patched ✓');
+        });
+        window._wfSwitchTabHooks._accountsRegistered = true;
+        console.log('[TabResetFix] switchTab hook registered ✓');
         return true;
     }
 
@@ -165,12 +161,12 @@
     function init() {
         updateDashboardDate();
 
-        // Try patching switchTab — retry if not yet loaded
-        if (!patchSwitchTab()) {
+        // Try registering hook — retry if hook system not yet ready
+        if (!registerAccountsHook()) {
             var attempts = 0;
             var retry = setInterval(function () {
                 attempts++;
-                if (patchSwitchTab() || attempts > 20) {
+                if (registerAccountsHook() || attempts > 20) {
                     clearInterval(retry);
                 }
             }, 300);

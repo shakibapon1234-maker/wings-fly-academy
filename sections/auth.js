@@ -725,6 +725,18 @@ function switchTab(tab, refreshStats = true) {
 
   // Prevent unauthorized tab switch
   if (typeof applyRoleSecurity === 'function') applyRoleSecurity();
+
+  // ✅ FIX: Dispatch tab switch hooks (replaces all monkey-patches)
+  // garbled-text-fix, tab-reset-fix, table-pagination-patch, sticky-scrollbar
+  // সবাই এখানে hook হিসেবে register করে — circular recursion সম্ভব না
+  if (window._wfSwitchTabHooks && window._wfSwitchTabHooks.length > 0) {
+    var _hookTab = tab;
+    window._wfSwitchTabHooks.forEach(function (hookFn) {
+      try { hookFn(_hookTab); } catch (hookErr) {
+        console.warn('[switchTab] hook error:', hookErr);
+      }
+    });
+  }
 }
 
 // ════════════════════════════════════════════════════════════════
@@ -1162,6 +1174,7 @@ window.logout = logout;
 window.showDashboard = showDashboard;
 window.loadDashboard = loadDashboard;
 window.switchTab = switchTab;
+window._wfCoreSwitchTab = switchTab; // ✅ FIX: Root reference for all monkey-patchers — prevents circular recursion
 window.applyRoleSecurity = applyRoleSecurity;
 window.hashPassword = hashPassword;
 window.hashPasswordPBKDF2 = hashPasswordPBKDF2;
