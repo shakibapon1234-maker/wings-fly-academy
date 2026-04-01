@@ -449,7 +449,9 @@
 
         const mainRec = mainRes.data?.[0];
         if (mainRec) {
-          gd.cashBalance = mainRec.cash_balance ?? gd.cashBalance ?? 0;
+          // ✅ V39.6 FIX: Do NOT use cloud's stale cash_balance — _rebuildBalancesSafe() computes the correct value.
+          // Cloud cash_balance can be stale (e.g. before a delete was pushed) and causes ৳2000 oscillation.
+          // gd.cashBalance = mainRec.cash_balance ?? gd.cashBalance ?? 0;
           const _cBank = mainRec.bank_accounts;
           const _cMobile = mainRec.mobile_banking;
           gd.bankAccounts = (_cBank && _cBank.length > 0) ? _cBank : (gd.bankAccounts && gd.bankAccounts.length > 0 ? gd.bankAccounts : []);

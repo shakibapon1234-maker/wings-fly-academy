@@ -393,12 +393,9 @@
   // প্রতি ৫ cycle-এ একবার
   // ============================================
   function healPeriodicBalanceRebuild() {
-    if (healStats.totalRuns % 5 !== 0) return 0;
-    if (typeof window.feRebuildAllBalances === 'function') {
-      window.feRebuildAllBalances();
-      if (typeof window.updateGrandTotal === 'function') window.updateGrandTotal();
-      hLog('info', `Periodic balance rebuild (cycle #${healStats.totalRuns}) সম্পন্ন`, 'REBUILD');
-    }
+    // ✅ V4.2: DISABLED — feRebuildAllBalances() already runs after every pull.
+    // Running it again from auto-heal causes balance oscillation (৳2000 up/down)
+    // when cloud has stale cash_balance that temporarily overwrites local.
     return 0;
   }
 
