@@ -120,6 +120,18 @@ function _monitorGetLatestChange(gd) {
   };
 }
 
+function _monitorChangeKey(latest) {
+  latest = latest || {};
+  return [
+    String(latest.type || ''),
+    String(latest.category || ''),
+    String(latest.person || ''),
+    String(latest.method || ''),
+    String(_monitorSafeNum(latest.amount)),
+    String(latest.date || '')
+  ].join('|');
+}
+
 function _monitorFingerprint(gd, latest) {
   gd = gd || {};
   latest = latest || {};
@@ -147,8 +159,34 @@ function recordMonitorChange(reason) {
 
     var latest = _monitorGetLatestChange(gd);
     var fp = _monitorFingerprint(gd, latest);
+    var cKey = _monitorChangeKey(latest);
     var rows = getMonitorHistory();
     if (rows[0] && rows[0].fingerprint === fp) return;
+
+    // Deduplicate repeated same logical change within a short window.
+    // Some flows call saveToStorage multiple times for one action.
+    if (rows[0]) {
+      var topTs = new Date(rows[0].timestamp || 0).getTime() || 0;
+      var nowTs = Date.now();
+      var withinWindow = (nowTs - topTs) <= (15 * 60 * 1000);
+      if (withinWindow && rows[0].changeKey === cKey) {
+        rows[0].timestamp = new Date().toISOString();
+        rows[0].label = new Date().toLocaleString('en-BD', {
+          day: '2-digit', month: 'short', year: 'numeric',
+          hour: '2-digit', minute: '2-digit', hour12: true
+        });
+        rows[0].reason = reason || rows[0].reason || 'saveToStorage';
+        rows[0].snapshot = _monitorBuildBalanceSnapshot(gd);
+        rows[0].counts = {
+          students: (gd.students || []).length,
+          finance: (gd.finance || []).filter(function (f) { return f && !f._deleted; }).length,
+          employees: (gd.employees || []).length
+        };
+        rows[0].fingerprint = fp;
+        localStorage.setItem(MONITOR_KEY, JSON.stringify(rows.slice(0, MONITOR_MAX)));
+        return;
+      }
+    }
 
     var row = {
       id: Date.now() + '_' + Math.random().toString(36).slice(2, 7),
@@ -166,6 +204,7 @@ function recordMonitorChange(reason) {
         employees: (gd.employees || []).length
       },
       snapshot: _monitorBuildBalanceSnapshot(gd),
+      changeKey: cKey,
       fingerprint: fp
     };
 
@@ -304,9 +343,6 @@ document.addEventListener('DOMContentLoaded', function () {
   });
 
   _installMonitorSaveHook();
-  setTimeout(function () {
-    recordMonitorChange('startup');
-  }, 1200);
 });
 
 
