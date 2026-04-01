@@ -20,6 +20,7 @@
  *  12. Finance-engine balance rebuild (periodic)
  *  13. Cloud vs Local sync mismatch (version-based)
  *  14. Sync Conflict Watchdog (নতুন) — user কে alert করে
+ *  15. Retroactive Student Fee Backfill (সকল স্টুডেন্টের প্রথম পেমেন্ট 'Student Fee' তে রূপান্তর)
  *
  * ✅ v4.0 পরিবর্তন:
  *   - Unified UI: stats + log একই panel
@@ -530,6 +531,78 @@
   }
 
   // ============================================
+  // MODULE 15: Retroactive Student Fee Backfill
+  // ============================================
+  function healStudentFeeBackfill() {
+    const data = window.globalData;
+    if (!data?.students || !data?.finance) return 0;
+    
+    let fixed = 0;
+    const STUDENT_CATS = ['Student Fee', 'Student Installment', 'Admission Fee', 'ভর্তি ফি', 'টিউশন ফি'];
+
+    data.students.forEach(student => {
+      const studentName = (student.name || '').trim();
+      if (!studentName || (parseFloat(student.paid) || 0) <= 0) return; // Ignore unpaid students
+
+      // Find ALL finance entries for this student
+      const studentPayments = data.finance.filter(f => 
+        !f._deleted && 
+        f.type === 'Income' && 
+        ((f.person || '').trim().toLowerCase() === studentName.toLowerCase() || 
+         (f.description && f.description.toLowerCase().includes(studentName.toLowerCase()))) &&
+        STUDENT_CATS.includes(f.category)
+      );
+
+      if (studentPayments.length > 0) {
+        // Has payments. Check if ANY of them are already 'Student Fee'.
+        const hasStudentFee = studentPayments.some(f => f.category === 'Student Fee');
+        
+        if (!hasStudentFee) {
+          // No 'Student Fee' exists! We need to convert the earliest payment.
+          studentPayments.sort((a, b) => new Date(a.date || a.timestamp || 0) - new Date(b.date || b.timestamp || 0));
+          const firstPayment = studentPayments[0];
+          
+          firstPayment.category = 'Student Fee';
+          if (!firstPayment.description.includes('Enrollment') && !firstPayment.description.includes('Admission')) {
+            firstPayment.description = `Enrollment fee (Auto-healed) for student: ${studentName} | Batch: ${student.batch || 'Unknown'}`;
+          }
+          hLog('fix', `Converted first payment to 'Student Fee' for "${studentName}"`, 'FEE-BACKFILL');
+          fixed++;
+        }
+      } else {
+        // ⚠️ NO finance entries found, but `paid > 0`! (Legacy gap)
+        const installmentsSum = (student.installments || []).reduce((sum, inst) => sum + (parseFloat(inst.amount) || 0), 0);
+        const missingAmount = (parseFloat(student.paid) || 0) - installmentsSum;
+        
+        // Create the missing Initial Payment as 'Student Fee'
+        if (missingAmount > 0) {
+          const financeEntry = {
+            id: Date.now() + Math.floor(Math.random() * 1000),
+            type: 'Income',
+            method: student.method || 'Cash',
+            date: student.enrollDate || new Date().toISOString().split('T')[0],
+            category: 'Student Fee',
+            person: studentName,
+            studentId: student.studentId,
+            amount: missingAmount,
+            description: `Migrated Enrollment fee for student: ${studentName} | Batch: ${student.batch || '-'}`,
+            timestamp: new Date().toISOString()
+          };
+          data.finance.push(financeEntry);
+          hLog('fix', `Created missing 'Student Fee' (৳${missingAmount}) for "${studentName}"`, 'FEE-BACKFILL');
+          fixed++;
+        }
+      }
+    });
+
+    if (fixed > 0) {
+      localStorage.setItem('wingsfly_data', JSON.stringify(data));
+      healToast(`${fixed} initial payments normalized`, 'fix');
+    }
+    return fixed;
+  }
+
+  // ============================================
   // Network reconnect handler
   // ============================================
   let _pendingReconnectSync = false;
@@ -600,6 +673,7 @@
     await run('INIT',       () => healMissingArrayFields());
     await run('OVERPAY',    () => healOverpaymentCheck());
     await run('PAID-FIN',   () => healPaidFinanceMismatch());
+    await run('FEE-BACKFILL', () => healStudentFeeBackfill()); // ✅ Module 15
     await run('REBUILD',    () => healPeriodicBalanceRebuild());
     await run('SYNC',       () => healSyncMismatch());
     await run('CONFLICT',   () => healSyncConflictWatchdog());  // ✅ Module 14
@@ -647,7 +721,7 @@
   // START
   // ============================================
   function start() {
-    hLog('info', `🛡️ Auto-Heal Engine v4.0 চালু — 13 modules active (প্রতি 60s)`);
+    hLog('info', `🛡️ Auto-Heal Engine v4.1 চালু — 14 modules active (প্রতি 60s)`);
     setTimeout(runHealCycle, 10 * 1000);
     setInterval(runHealCycle, HEAL_INTERVAL);
   }
@@ -655,6 +729,6 @@
   if (document.readyState === 'loading') document.addEventListener('DOMContentLoaded', start);
   else start();
 
-  console.log(`%c🛡️ Wings Fly Auto-Heal Engine v4.0 loaded`, 'color:#00ff88;font-weight:bold');
+  console.log(`%c🛡️ Wings Fly Auto-Heal Engine v4.1 loaded`, 'color:#00ff88;font-weight:bold');
 
 })();
