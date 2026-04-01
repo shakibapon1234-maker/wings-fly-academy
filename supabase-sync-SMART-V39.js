@@ -344,17 +344,34 @@
     } catch (e) { _log('⚠️', 'saveLocal error', e); return false; }
   }
 
-  // ── MERGE RECORDS (V39.1: Timestamp-based Conflict Resolution) ──
+  // ── MERGE RECORDS (V39.2: Delete-aware + Timestamp Conflict Resolution) ──
   function _mergeRecords(localArr, cloudRows, keyFn) {
     const merged = new Map();
     // Local records যোগ করো
     (localArr || []).forEach(item => { const k = keyFn(item); if (k) merged.set(k, item); });
     // Cloud records merge করো — timestamp compare করে নতুনটা রাখো
     (cloudRows || []).forEach(row => {
+      // ✅ V39.2 CRITICAL FIX: deleted চেক আগে! data=null হলেও delete process হবে
+      if (row.deleted) {
+        // data থাকলে key বের করো, না থাকলে row.id থেকে extract করো
+        let k = null;
+        if (row.data) {
+          k = keyFn(row.data);
+        } else if (row.id) {
+          // Cloud row id format: wingsfly_main_fin_SAL_123 or wingsfly_main_stu_XXX
+          // Extract the record key after the prefix
+          const parts = String(row.id).split('_');
+          // Skip academy_id prefix + type prefix (e.g., 'wingsfly_main_fin_' or 'wingsfly_main_stu_')
+          if (parts.length >= 4) {
+            k = parts.slice(3).join('_'); // e.g., 'SAL_1234567890'
+          }
+        }
+        if (k) merged.delete(k);
+        return;
+      }
       if (!row.data) return;
       const k = keyFn(row.data);
       if (!k) return;
-      if (row.deleted) { merged.delete(k); return; }
       const existing = merged.get(k);
       if (!existing) { merged.set(k, row.data); return; }
       // Timestamp-based resolution: নতুন record-ই win করবে
@@ -795,6 +812,7 @@
           stuPushed = changed.length + deleted.length;
 
           const doStuPush = async () => {
+            let _skipDataPush = false;
             if (stuSnapEmpty && changed.length > 0) {
               try {
                 const _aid2 = encodeURIComponent(CFG.ACADEMY_ID);
@@ -804,14 +822,14 @@
                 );
                 const _cloudCount = parseInt(_chkRes.headers.get('content-range')?.split('/')[1] || '0', 10);
                 if (_cloudCount >= stuTotal) {
-                  _log('⏭️', `Students SKIPPED — cloud has ${_cloudCount} >= local ${stuTotal}`);
-                  _saveSnapshot('students', snapshot);
-                  return;
+                  _log('⏭️', `Students data SKIPPED — cloud has ${_cloudCount} >= local ${stuTotal}`);
+                  _skipDataPush = true; // ✅ V39.2 FIX: data skip করো কিন্তু delete markers skip করো না!
+                } else {
+                  _log('📤', `Students: cloud ${_cloudCount} < local ${stuTotal} — pushing`);
                 }
-                _log('📤', `Students: cloud ${_cloudCount} < local ${stuTotal} — pushing`);
               } catch(_chkErr) { _log('⚠️', 'Students count check failed', _chkErr); }
             }
-            if (changed.length > 0) {
+            if (!_skipDataPush && changed.length > 0) {
               const stuRows = changed.map(s => {
                 const sid = s.studentId || s.id || s.phone || s.name;
                 return { id: `${CFG.ACADEMY_ID}_stu_${sid}`, academy_id: CFG.ACADEMY_ID, data: s, deleted: false };
@@ -820,7 +838,7 @@
               if (res && res.error) throw res.error;
               _log('📤', `Students: ${changed.length}/${stuTotal} pushed`);
             }
-            // ✅ V39: deletedItems.students (object, not array)
+            // ✅ V39.2 FIX: Delete markers সবসময় push হবে — skip block-এর বাইরে
             const stuDelItems = Array.isArray(gd.deletedItems?.students) ? gd.deletedItems.students : [];
             const stuDelRows = stuDelItems.map(item => {
               const recId = _getDeletedRecordId(item, 'student');
@@ -829,7 +847,6 @@
             if (stuDelRows.length > 0) {
               const resDel = await _sb.from(CFG.TBL_STUDENTS).upsert(stuDelRows, { onConflict: 'id' });
               if (resDel && resDel.error) throw resDel.error;
-              // ✅ FIX: Push সফল হলে deletedItems থেকে clear করো — পুনরায় push না হয়
               gd.deletedItems.students = [];
               _log('🧹', `Cleared ${stuDelRows.length} student delete markers after push`);
             }
@@ -846,6 +863,7 @@
           finPushed = changed.length + deleted.length;
 
           const doFinPush = async () => {
+            let _skipFinDataPush = false;
             if (finSnapEmpty && changed.length > 0) {
               try {
                 const _aid3 = encodeURIComponent(CFG.ACADEMY_ID);
@@ -855,14 +873,14 @@
                 );
                 const _cloudCount3 = parseInt(_chkRes3.headers.get('content-range')?.split('/')[1] || '0', 10);
                 if (_cloudCount3 >= finTotal) {
-                  _log('⏭️', `Finance SKIPPED — cloud has ${_cloudCount3} >= local ${finTotal}`);
-                  _saveSnapshot('finance', finSnapshot);
-                  return;
+                  _log('⏭️', `Finance data SKIPPED — cloud has ${_cloudCount3} >= local ${finTotal}`);
+                  _skipFinDataPush = true; // ✅ V39.2 FIX: data skip করো কিন্তু delete markers skip করো না!
+                } else {
+                  _log('📤', `Finance: cloud ${_cloudCount3} < local ${finTotal} — pushing`);
                 }
-                _log('📤', `Finance: cloud ${_cloudCount3} < local ${finTotal} — pushing`);
               } catch(_chkErr3) { _log('⚠️', 'Finance count check failed', _chkErr3); }
             }
-            if (changed.length > 0) {
+            if (!_skipFinDataPush && changed.length > 0) {
               const finRows = changed.map(f => ({
                 id: `${CFG.ACADEMY_ID}_fin_${f.id || f.timestamp}`,
                 academy_id: CFG.ACADEMY_ID, data: f, deleted: false
@@ -871,7 +889,7 @@
               if (res && res.error) throw res.error;
               _log('📤', `Finance: ${changed.length}/${finTotal} pushed`);
             }
-            // ✅ V39: deletedItems.finance (object, not array)
+            // ✅ V39.2 FIX: Delete markers সবসময় push হবে — skip block-এর বাইরে
             const finDelItems = Array.isArray(gd.deletedItems?.finance) ? gd.deletedItems.finance : [];
             const finDelRows = finDelItems.map(item => {
               const recId = _getDeletedRecordId(item, 'finance');
@@ -880,7 +898,6 @@
             if (finDelRows.length > 0) {
               const resDel = await _sb.from(CFG.TBL_FINANCE).upsert(finDelRows, { onConflict: 'id' });
               if (resDel && resDel.error) throw resDel.error;
-              // ✅ FIX: Push সফল হলে deletedItems থেকে clear করো — পুনরায় push না হয়
               gd.deletedItems.finance = [];
               _log('🧹', `Cleared ${finDelRows.length} finance delete markers after push`);
             }
@@ -1464,10 +1481,16 @@
     }
 
     _setupRealtime();
+    // ✅ V39.2 FIX: 30s periodic version check — Realtime না কাজ করলেও sync হবে
+    setInterval(() => {
+      if (_tabVisible && !Egress.throttled() && !_syncBusy && Date.now() > _cooldownUntil) {
+        _versionCheck();
+      }
+    }, 30000);
     setInterval(() => { if (_tabVisible && !Egress.hardThrottled()) pullFromCloud(true); }, CFG.FULL_PULL_MS);
     setTimeout(_installMonitor, 3000);
-    _log('🎉', 'V39.0 ready!');
-    _showStatus('✅ V39.0 ready');
+    _log('🎉', 'V39.2 ready — with periodic version check!');
+    _showStatus('✅ V39.2 ready');
   }
 
   // ── PUBLIC API ─────────────────────────────────────────────────
