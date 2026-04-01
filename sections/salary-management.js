@@ -13,6 +13,14 @@
 
 (function () {
 
+  // Helper function to extract Salary Billing Month from description
+  // e.g. "Due for 2026-03 [Salary] (2026-03)" -> returns "2026-03"
+  function _getSalMonth(f) {
+    const m = (f.description || '').match(/\((\d{4}-\d{2})\)\s*$/);
+    if (m) return m[1];
+    return (f.date || '').substring(0, 7);
+  }
+
   // ─────────────────────────────────────────────────────────
   // INIT
   // ─────────────────────────────────────────────────────────
@@ -36,7 +44,6 @@
     if (!wrap) return;
 
     const employees = (gd.employees || [])
-      .filter(e => !e.resigned && e.status !== 'Resigned')
       .filter(e => !search || (e.name || '').toLowerCase().includes(search));
 
     if (employees.length === 0) {
@@ -51,7 +58,7 @@
     // Finance records for this month
     const finMonth = (gd.finance || []).filter(f =>
       !f._deleted &&
-      (f.date || '').startsWith(month) &&
+      _getSalMonth(f) === month &&
       (f.type === 'Expense' || f.type === 'Advance' || f.type === 'Advance Return') &&
       (f.category === 'Salaries' || f.category === 'Advance' || f.category === 'Advance Return' || f.category === 'Bonus')
     );
@@ -133,6 +140,9 @@
         </tr>`;
       }).join('');
 
+      const isResigned = emp.resigned || emp.status === 'Resigned' || emp.resignDate;
+      const resignedBadge = isResigned ? `<span class="badge bg-danger ms-2" style="font-size:0.7rem;">Resigned</span>` : '';
+
       html += `
       <div class="salary-card" style="background:rgba(13,27,42,0.8);border:1px solid rgba(0,217,255,0.12);border-radius:16px;padding:20px;margin-bottom:16px;transition:border-color 0.2s;">
 
@@ -143,7 +153,7 @@
               👤
             </div>
             <div>
-              <div style="font-size:1rem;font-weight:700;color:#e0f0ff;">${emp.name}</div>
+              <div style="font-size:1rem;font-weight:700;color:#e0f0ff;">${emp.name} ${resignedBadge}</div>
               <div style="font-size:0.78rem;color:#6e8caa;">${emp.role || emp.designation || 'Staff'}
                 ${emp.phone ? `<span style="margin-left:8px;color:#4a6080;">📞 ${emp.phone}</span>` : ''}
               </div>
@@ -262,12 +272,11 @@
     if (selectEl) {
         selectEl.innerHTML = '<option value="">-- Employee Select --</option>';
         all.forEach(e => {
-            if (!e.resigned && e.status !== 'Resigned') {
-                const opt = document.createElement('option');
-                opt.value = e.id || e.empId || e.name;
-                opt.textContent = e.name;
-                selectEl.appendChild(opt);
-            }
+            const isResigned = e.resigned || e.status === 'Resigned' || e.resignDate;
+            const opt = document.createElement('option');
+            opt.value = e.id || e.empId || e.name;
+            opt.textContent = e.name + (isResigned ? ' (Resigned)' : '');
+            selectEl.appendChild(opt);
         });
     }
 
@@ -334,7 +343,7 @@
       
       const paidSoFar = (gd.finance || [])
         .filter(f => !f._deleted && f.type === 'Expense' && f.category === 'Salaries'
-          && (f.date || '').startsWith(month)
+          && _getSalMonth(f) === month
           && (f.person === emp.name || f.employeeId === (emp.id || emp.empId)))
         .reduce((s, f) => s + (parseFloat(f.amount) || 0), 0);
       
