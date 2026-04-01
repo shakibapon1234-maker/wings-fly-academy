@@ -13,6 +13,14 @@
 
 (function () {
 
+  // Helper function to extract Salary Billing Month from description
+  // e.g. "Due for 2026-03 [Salary] (2026-03)" -> returns "2026-03"
+  function _getSalMonth(f) {
+    const m = (f.description || '').match(/\((\d{4}-\d{2})\)\s*$/);
+    if (m) return m[1];
+    return (f.date || '').substring(0, 7);
+  }
+
   // ─────────────────────────────────────────────────────────
   // INIT
   // ─────────────────────────────────────────────────────────
@@ -36,7 +44,6 @@
     if (!wrap) return;
 
     const employees = (gd.employees || [])
-      .filter(e => !e.resigned && e.status !== 'Resigned')
       .filter(e => !search || (e.name || '').toLowerCase().includes(search));
 
     if (employees.length === 0) {
@@ -51,7 +58,7 @@
     // Finance records for this month
     const finMonth = (gd.finance || []).filter(f =>
       !f._deleted &&
-      (f.date || '').startsWith(month) &&
+      _getSalMonth(f) === month &&
       (f.type === 'Expense' || f.type === 'Advance' || f.type === 'Advance Return') &&
       (f.category === 'Salaries' || f.category === 'Advance' || f.category === 'Advance Return' || f.category === 'Bonus')
     );
@@ -76,13 +83,8 @@
       totalPaid   += paid;
       totalDue    += due;
 
-      // All-time history for this employee (sorted latest first)
-      const allHist = (gd.finance || [])
-        .filter(f => !f._deleted &&
-          (f.person === emp.name || f.employeeId === (emp.id || emp.empId)) &&
-          (f.type === 'Expense' || f.type === 'Advance' || f.type === 'Advance Return') &&
-          (f.category === 'Salaries' || f.category === 'Advance' || f.category === 'Advance Return' || f.category === 'Bonus'))
-        .sort((a, b) => new Date(b.date || 0) - new Date(a.date || 0));
+      // Selected month history for this employee (sorted latest first)
+      const monthHist = empRec.sort((a, b) => new Date(b.date || 0) - new Date(a.date || 0));
 
       const statusBadge = due === 0 && paid > 0
         ? `<span style="background:rgba(0,200,100,0.15);color:#00e676;border:1px solid rgba(0,200,100,0.3);padding:3px 12px;border-radius:20px;font-size:0.75rem;font-weight:700;">✅ Paid</span>`
@@ -95,8 +97,8 @@
 
       const empKey = (emp.id || emp.name).replace(/\W/g, '_');
 
-      // History rows
-      const histRows = allHist.map(f => {
+      // History rows for selected month
+      const histRows = monthHist.map(f => {
         const isAdv    = f.type === 'Advance';
         const isReturn = f.type === 'Advance Return';
         const isBonus  = (f.description || '').includes('[Bonus]');
@@ -113,12 +115,13 @@
 
         return `<tr style="border-bottom:1px solid rgba(255,255,255,0.05);">
           <td style="padding:8px 12px;font-size:0.82rem;color:#94a3c4;white-space:nowrap;">${dateStr}</td>
+          <td style="padding:8px 12px;font-size:0.82rem;font-weight:600;color:#e0f0ff;">${f.person || emp.name}</td>
           <td style="padding:8px 12px;">
             <span style="padding:2px 10px;border-radius:12px;font-size:0.72rem;font-weight:700;${colors[label]}">${label}</span>
           </td>
           <td style="padding:8px 12px;font-weight:700;color:#e0f0ff;">৳${(parseFloat(f.amount)||0).toLocaleString()}</td>
           <td style="padding:8px 12px;font-size:0.82rem;color:#94a3c4;">${f.method || '—'}</td>
-          <td style="padding:8px 12px;font-size:0.78rem;color:rgba(255,255,255,0.45);max-width:160px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;"
+          <td style="padding:8px 12px;font-size:0.78rem;color:rgba(255,255,255,0.45);max-width:140px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;"
               title="${(f.description||'').replace(/"/g,'&quot;')}">${f.description || '—'}</td>
           <td style="padding:8px 12px;text-align:right;white-space:nowrap;">
             <button onclick="editSalaryRecord('${f.id}')"
@@ -133,6 +136,9 @@
         </tr>`;
       }).join('');
 
+      const isResigned = emp.resigned || emp.status === 'Resigned' || emp.resignDate;
+      const resignedBadge = isResigned ? `<span class="badge bg-danger ms-2" style="font-size:0.7rem;">Resigned</span>` : '';
+
       html += `
       <div class="salary-card" style="background:rgba(13,27,42,0.8);border:1px solid rgba(0,217,255,0.12);border-radius:16px;padding:20px;margin-bottom:16px;transition:border-color 0.2s;">
 
@@ -143,7 +149,7 @@
               👤
             </div>
             <div>
-              <div style="font-size:1rem;font-weight:700;color:#e0f0ff;">${emp.name}</div>
+              <div style="font-size:1rem;font-weight:700;color:#e0f0ff;">${emp.name} ${resignedBadge}</div>
               <div style="font-size:0.78rem;color:#6e8caa;">${emp.role || emp.designation || 'Staff'}
                 ${emp.phone ? `<span style="margin-left:8px;color:#4a6080;">📞 ${emp.phone}</span>` : ''}
               </div>
@@ -194,11 +200,11 @@
         </div>
 
         <!-- History Toggle -->
-        ${allHist.length > 0 ? `
+        ${monthHist.length > 0 ? `
         <div style="margin-top:14px;">
           <button onclick="_toggleSalHist('${empKey}')"
             style="background:transparent;border:1px solid rgba(0,217,255,0.2);color:#6e8caa;padding:5px 14px;border-radius:8px;font-size:0.78rem;cursor:pointer;width:100%;text-align:left;">
-            📋 Payment History (${allHist.length} records) <span id="arrow_${empKey}" style="float:right;">▼</span>
+            📋 Month's Payment History (${monthHist.length} records) <span id="arrow_${empKey}" style="float:right;">▼</span>
           </button>
           <div id="hist_${empKey}" style="display:none;margin-top:8px;border-radius:10px;overflow:hidden;border:1px solid rgba(0,217,255,0.12);">
             <div style="overflow-x:auto;">
@@ -206,6 +212,7 @@
                 <thead>
                   <tr style="background:rgba(0,0,0,0.35);">
                     <th style="padding:8px 12px;color:#4a6080;font-size:0.7rem;text-transform:uppercase;font-weight:600;text-align:left;">Date</th>
+                    <th style="padding:8px 12px;color:#4a6080;font-size:0.7rem;text-transform:uppercase;font-weight:600;text-align:left;">Name</th>
                     <th style="padding:8px 12px;color:#4a6080;font-size:0.7rem;text-transform:uppercase;font-weight:600;text-align:left;">Type</th>
                     <th style="padding:8px 12px;color:#4a6080;font-size:0.7rem;text-transform:uppercase;font-weight:600;text-align:left;">Amount</th>
                     <th style="padding:8px 12px;color:#4a6080;font-size:0.7rem;text-transform:uppercase;font-weight:600;text-align:left;">Method</th>
@@ -216,8 +223,15 @@
                 <tbody>${histRows}</tbody>
               </table>
             </div>
+            
           </div>
-        </div>` : `<div style="margin-top:12px;font-size:0.78rem;color:rgba(255,255,255,0.2);text-align:center;border-top:1px solid rgba(255,255,255,0.05);padding-top:10px;">কোনো payment history নেই</div>`}
+        </div>` : `<div style="margin-top:12px;font-size:0.78rem;color:rgba(255,255,255,0.2);text-align:center;border-top:1px solid rgba(255,255,255,0.05);padding-top:10px;">কোনো payment history নেই (For this month)</div>`}
+      
+        <!-- Action: All-Time History Button -->
+        <div style="margin-top:10px; text-align:center;">
+             <button class="btn btn-sm text-info" style="font-size:0.75rem;text-decoration:underline;" onclick="showAllTimeSalaryHistory('${emp.id || emp.name}')">📜 View All Previous Months History (Full Ledger)</button>
+        </div>
+
       </div>`;
     });
 
@@ -257,63 +271,111 @@
 
     const gd  = window.globalData || {};
     const all = gd.employees || [];
-    const emp = all.find(e =>
-      e.id === empId || e.empId === empId || e.employeeId === empId || e.name === empId
-    );
-    if (!emp) { alert('Employee not found!'); return; }
 
-    _resetSalaryForm();
-
-    // Set hidden fields
-    document.getElementById('salEmpId').value   = emp.id || emp.empId || emp.name;
-    document.getElementById('salEmpName').value = emp.name;
-
-    // Employee display
-    const nameEl = document.getElementById('salModalEmpName');
-    const roleEl = document.getElementById('salModalEmpRole');
-    if (nameEl) nameEl.textContent = emp.name;
-    if (roleEl) roleEl.textContent = emp.role || emp.designation || 'Staff';
-
-    // Due calculation
-    const month = document.getElementById('salaryMonthFilter')?.value || '';
-    const paidSoFar = (gd.finance || [])
-      .filter(f => !f._deleted && f.type === 'Expense' && f.category === 'Salaries'
-        && (f.date || '').startsWith(month)
-        && (f.person === emp.name || f.employeeId === (emp.id || emp.empId)))
-      .reduce((s, f) => s + (parseFloat(f.amount) || 0), 0);
-    const base = parseFloat(emp.salary) || 0;
-    const due  = Math.max(0, base - paidSoFar);
-
-    const dueEl = document.getElementById('salDueAmountBadge');
-    if (dueEl) dueEl.textContent = `৳${due.toLocaleString()}`;
-
-    // Net advance
-    const advNet = (gd.finance || [])
-      .filter(f => !f._deleted && (f.type === 'Advance' || f.type === 'Advance Return')
-        && (f.person === emp.name || f.employeeId === (emp.id || emp.empId)))
-      .reduce((s, f) => s + (parseFloat(f.amount) || 0) * (f.type === 'Advance' ? 1 : -1), 0);
-    const advEl = document.getElementById('salExistingAdvance');
-    if (advEl) {
-      if (advNet > 0) {
-        advEl.textContent = `⚠️ বিদ্যমান Advance বকেয়া: ৳${advNet.toLocaleString()}`;
-        advEl.classList.remove('d-none');
-      } else {
-        advEl.classList.add('d-none');
-      }
+    const selectEl = document.getElementById('salModalEmpSelect');
+    if (selectEl) {
+        selectEl.innerHTML = '<option value="">-- Employee Select --</option>';
+        all.forEach(e => {
+            const isResigned = e.resigned || e.status === 'Resigned' || e.resignDate;
+            const opt = document.createElement('option');
+            opt.value = e.id || e.empId || e.name;
+            opt.textContent = e.name + (isResigned ? ' (Resigned)' : '');
+            selectEl.appendChild(opt);
+        });
     }
 
-    // Auto-fill amount and description
-    const amtEl  = document.getElementById('salAmount');
-    const descEl = document.getElementById('salDescription');
-    if (amtEl)  amtEl.value  = due > 0 ? due : '';
-    if (descEl) descEl.value = `Salary for ${month}`;
+    _resetSalaryForm();
     document.getElementById('salDate').value = new Date().toISOString().split('T')[0];
+    
+    // Reset Due UI
+    const dueEl = document.getElementById('salDueAmountBadge');
+    if (dueEl) dueEl.textContent = `৳ —`;
+    
+    const advEl = document.getElementById('salExistingAdvance');
+    if (advEl) advEl.classList.add('d-none');
+    
+    const roleEl = document.getElementById('salModalEmpRole');
+    if (roleEl) roleEl.style.display = 'none';
 
-    // Default type = Due
+    document.getElementById('salEmpId').value = '';
+    document.getElementById('salEmpName').value = '';
+    
     if (typeof window.setSalType === 'function') window.setSalType('Due');
+
+    if (empId && selectEl) {
+        selectEl.value = empId;
+        window.handleSalModalEmpChange();
+    }
 
     bootstrap.Modal.getOrCreateInstance(modalEl).show();
   }
+
+  window.handleSalModalEmpChange = function() {
+      const selectEl = document.getElementById('salModalEmpSelect');
+      if (!selectEl) return;
+      const empId = selectEl.value;
+
+      const gd  = window.globalData || {};
+      const all = gd.employees || [];
+      const emp = all.find(e => e.id === empId || e.empId === empId || e.employeeId === empId || e.name === empId);
+
+      const roleEl = document.getElementById('salModalEmpRole');
+      const dueEl = document.getElementById('salDueAmountBadge');
+      const advEl = document.getElementById('salExistingAdvance');
+      const amtEl = document.getElementById('salAmount');
+      const descEl = document.getElementById('salDescription');
+
+      if (!emp) {
+          document.getElementById('salEmpId').value = '';
+          document.getElementById('salEmpName').value = '';
+          if (roleEl) roleEl.style.display = 'none';
+          if (dueEl) dueEl.textContent = `৳ —`;
+          if (advEl) advEl.classList.add('d-none');
+          if (amtEl) amtEl.value = '';
+          return;
+      }
+
+      document.getElementById('salEmpId').value   = emp.id || emp.empId || emp.name;
+      document.getElementById('salEmpName').value = emp.name;
+
+      if (roleEl) {
+          roleEl.textContent = emp.role || emp.designation || 'Staff';
+          roleEl.style.display = 'inline-block';
+      }
+
+      const month = document.getElementById('salaryMonthFilter')?.value || '';
+      
+      const paidSoFar = (gd.finance || [])
+        .filter(f => !f._deleted && f.type === 'Expense' && f.category === 'Salaries'
+          && _getSalMonth(f) === month
+          && (f.person === emp.name || f.employeeId === (emp.id || emp.empId)))
+        .reduce((s, f) => s + (parseFloat(f.amount) || 0), 0);
+      
+      const base = parseFloat(emp.salary) || 0;
+      const due  = Math.max(0, base - paidSoFar);
+
+      if (dueEl) dueEl.textContent = `৳${due.toLocaleString()}`;
+
+      const advNet = (gd.finance || [])
+        .filter(f => !f._deleted && (f.type === 'Advance' || f.type === 'Advance Return')
+          && (f.person === emp.name || f.employeeId === (emp.id || emp.empId)))
+        .reduce((s, f) => s + (parseFloat(f.amount) || 0) * (f.type === 'Advance' ? 1 : -1), 0);
+      
+      if (advEl) {
+        if (advNet > 0) {
+          advEl.textContent = `⚠️ বিদ্যমান Advance বকেয়া: ৳${advNet.toLocaleString()}`;
+          advEl.classList.remove('d-none');
+        } else {
+          advEl.classList.add('d-none');
+        }
+      }
+
+      const type = document.getElementById('salTypeHidden')?.value || 'Due';
+      if (type === 'Due' && amtEl) {
+          amtEl.value = due > 0 ? due : '';
+      }
+      if (descEl) descEl.value = `${type} for ${month}`;
+  };
 
   // ─────────────────────────────────────────────────────────
   // RESET FORM
@@ -592,11 +654,110 @@
   };
 
   // ─────────────────────────────────────────────────────────
+  // showAllTimeSalaryHistory — Full Ledger view
+  // ─────────────────────────────────────────────────────────
+  window.showAllTimeSalaryHistory = function(empId) {
+      const gd = window.globalData || {};
+      const emp = (gd.employees || []).find(e => String(e.id) === String(empId) || e.name === empId);
+      if (!emp) return;
+
+      const allHist = (gd.finance || [])
+          .filter(f => !f._deleted &&
+              (f.person === emp.name || f.employeeId === (emp.id || emp.empId)) &&
+              (f.type === 'Expense' || f.type === 'Advance' || f.type === 'Advance Return') &&
+              (f.category === 'Salaries' || f.category === 'Advance' || f.category === 'Advance Return' || f.category === 'Bonus'))
+          .sort((a, b) => new Date(b.date || 0) - new Date(a.date || 0));
+
+      let modalEl = document.getElementById('allTimeSalaryModal');
+      if (!modalEl) {
+          modalEl = document.createElement('div');
+          modalEl.id = 'allTimeSalaryModal';
+          modalEl.className = 'modal fade';
+          modalEl.innerHTML = `
+              <div class="modal-dialog modal-lg modal-dialog-centered">
+                  <div class="modal-content custom-modal border-0 shadow-lg">
+                      <div class="modal-header border-0 pb-0" style="background:linear-gradient(135deg, rgba(0,217,255,0.1), rgba(0,102,255,0.05)); border-radius:12px 12px 0 0;">
+                          <h5 class="modal-title fw-bold text-white d-flex align-items-center mb-2">
+                              <span class="me-2" style="font-size:1.5rem;">📜</span> All-Time Payment Ledger
+                          </h5>
+                          <button type="button" class="btn-close btn-close-white" data-bs-dismiss="modal"></button>
+                      </div>
+                      <div class="modal-body p-4">
+                          <div class="d-flex align-items-center gap-3 mb-4 p-3 rounded-4" style="background:rgba(255,255,255,0.03); border:1px solid rgba(255,255,255,0.08);">
+                              <div class="rounded-circle d-flex flex-shrink-0 align-items-center justify-content-center text-white" style="width:40px;height:40px;background:linear-gradient(135deg,#7b2ff7,#00d9ff);">
+                                  <span id="atshIcon">E</span>
+                              </div>
+                              <div>
+                                  <h5 class="fw-bold mb-0 text-white" id="atshName"></h5>
+                                  <div class="small text-muted" id="atshSubtitle">All transactions chronologically</div>
+                              </div>
+                              <div class="ms-auto">
+                                  <span class="badge" style="background:rgba(0,217,255,0.15); color:#00d9ff; border:1px solid rgba(0,217,255,0.3); font-size:0.8rem; padding:6px 12px;" id="atshCount">0 records</span>
+                              </div>
+                          </div>
+                          <div class="table-responsive rounded-3" style="max-height:450px; overflow-y:auto; border:1px solid rgba(255,255,255,0.1);">
+                              <table class="table table-dark table-hover mb-0" style="font-size:0.85rem; --bs-table-bg:transparent;">
+                                  <thead style="position:sticky; top:0; background:rgba(10,20,35,0.95); z-index:1; border-bottom:2px solid rgba(0,217,255,0.2);">
+                                      <tr>
+                                          <th style="color:#6e8caa; padding:12px;">Date</th>
+                                          <th style="color:#6e8caa; padding:12px;">Type</th>
+                                          <th style="color:#6e8caa; padding:12px;">Amount</th>
+                                          <th style="color:#6e8caa; padding:12px;">Method</th>
+                                          <th style="color:#6e8caa; padding:12px;">Note</th>
+                                      </tr>
+                                  </thead>
+                                  <tbody id="atshBody" style="background:rgba(255,255,255,0.02);"></tbody>
+                              </table>
+                          </div>
+                      </div>
+                      <div class="modal-footer border-0 pt-0">
+                          <button type="button" class="btn btn-secondary rounded-pill px-4 fw-bold" data-bs-dismiss="modal">Close Ledger</button>
+                      </div>
+                  </div>
+              </div>`;
+          document.body.appendChild(modalEl);
+      }
+
+      document.getElementById('atshIcon').textContent = (emp.name || 'E').charAt(0).toUpperCase();
+      document.getElementById('atshName').textContent = emp.name;
+      document.getElementById('atshCount').textContent = allHist.length + ' records';
+
+      const body = document.getElementById('atshBody');
+      body.innerHTML = allHist.map(f => {
+          const isAdv    = f.type === 'Advance';
+          const isReturn = f.type === 'Advance Return';
+          const isBonus  = (f.description || '').includes('[Bonus]');
+          const label    = isAdv ? 'Advance' : isReturn ? 'Return' : isBonus ? 'Bonus' : 'Salary';
+          const colors   = {
+            Advance: 'background:rgba(0,150,255,0.15);color:#7ab8ff;border:1px solid rgba(0,150,255,0.35);',
+            Return:  'background:rgba(0,230,118,0.12);color:#69f0ae;border:1px solid rgba(0,230,118,0.3);',
+            Bonus:   'background:rgba(255,200,0,0.15);color:#ffd200;border:1px solid rgba(255,200,0,0.35);',
+            Salary:  'background:rgba(0,200,100,0.12);color:#00e676;border:1px solid rgba(0,200,100,0.3);'
+          };
+          const dateStr = f.date ? new Date(f.date + 'T00:00:00').toLocaleDateString('en-GB') : '—';
+          
+          return `<tr style="border-bottom:1px solid rgba(255,255,255,0.05);">
+              <td style="padding:10px 12px; color:#cbd5e1;">${dateStr}</td>
+              <td style="padding:10px 12px;"><span style="padding:3px 10px; border-radius:12px; font-size:0.7rem; font-weight:700; ${colors[label]}">${label}</span></td>
+              <td style="padding:10px 12px; font-weight:700; color:#e0f0ff;">৳${(parseFloat(f.amount)||0).toLocaleString()}</td>
+              <td style="padding:10px 12px; color:#94a3c4; font-size:0.8rem;">${f.method || '—'}</td>
+              <td style="padding:10px 12px; color:rgba(255,255,255,0.5); font-size:0.8rem;">${f.description || '—'}</td>
+          </tr>`;
+      }).join('') || '<tr><td colspan="5" style="text-align:center; padding:20px; color:#6e8caa;">No records found.</td></tr>';
+
+      try {
+          const modalInstance = bootstrap.Modal.getOrCreateInstance(modalEl);
+          modalInstance.show();
+      } catch(e) { console.error('Bootstrap modal error:', e); }
+  };
+
+  // ─────────────────────────────────────────────────────────
   // EXPOSE GLOBALS
   // ─────────────────────────────────────────────────────────
   window.initSalaryHub      = initSalaryHub;
   window.loadSalaryHub      = renderSalaryCards;
   window.openSalaryModal    = openSalaryModal;
+  window._openSalaryModalImpl = openSalaryModal;
   window.handleSalarySubmit = handleSalarySubmit;
   window.toggleSalHistory   = _toggleSalHist;
 
