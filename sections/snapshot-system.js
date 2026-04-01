@@ -358,101 +358,21 @@ document.addEventListener('DOMContentLoaded', function () {
 
 
 // ===================================
-// BALANCE RECONCILIATION FIX (V39.1: Safety Guards Added)
-// Fixes missing account balance from old installments
-// Runs once on first load after update
+// BALANCE RECONCILIATION FIX — DISABLED (V4.2)
 // ===================================
+// ✅ V4.2: COMPLETELY DISABLED — This was the ROOT CAUSE of ৳2000 balance oscillation.
+// PROBLEMS:
+// 1. moneyIn/moneyOut lists MISSING: 'Salary', 'Rent', 'Utilities', 'Registration',
+//    'Refund', 'Advance', 'Investment', 'Advance Return', 'Investment Return'
+//    → Salary expenses not counted → Cash balance = ৳32,110 instead of ৳30,110
+// 2. Math.max(0, correctCash) zeroed out legitimate negative balances
+// 3. Runs again after every backup import (RECONCILE_KEY gets cleared)
+// 4. feRebuildAllBalances() already does this correctly with complete type lists
+// 
+// If balance reconciliation is needed, use feRebuildAllBalances() from console:
+//   feRebuildAllBalances(); saveToStorage();
 (function reconcileBalanceOnce() {
-  document.addEventListener('DOMContentLoaded', function () {
-    setTimeout(function () {
-      try {
-        const RECONCILE_KEY = 'wingsfly_balance_reconciled_v1';
-        if (localStorage.getItem(RECONCILE_KEY)) return; // Already done
-
-        const gd = window.globalData;
-        if (!gd || !gd.finance) return;
-
-        // ✅ Safety Guard 1: Wait for initial sync to complete
-        if (!window.initialSyncComplete && navigator.onLine) {
-          console.log('[Reconciliation] Skipped — waiting for initial sync');
-          return; // Will retry on next page load
-        }
-
-        // ✅ Safety Guard 2: Minimum entry check
-        const finCount = (gd.finance || []).length;
-        const lastKnownFin = parseInt(localStorage.getItem('wings_last_known_finance')) || 0;
-        if (lastKnownFin > 10 && finCount < lastKnownFin * 0.5) {
-          console.warn('[Reconciliation] SKIPPED — finance data incomplete: local=' + finCount + ' known=' + lastKnownFin);
-          return; // Data might be missing, don't recalculate
-        }
-
-        // ✅ Safety Guard 3: Pre-snapshot before any changes
-        if (typeof takeSnapshot === 'function') {
-          takeSnapshot();
-          console.log('[Reconciliation] Pre-snapshot taken for safety');
-        }
-
-        // Save current balances for deviation check
-        const prevCash = gd.cashBalance || 0;
-
-        // Recalculate what balance SHOULD be from all finance entries
-        let correctCash = 0;
-        const bankMap = {};
-        const mobileMap = {};
-
-        (gd.bankAccounts || []).forEach(a => bankMap[a.name] = 0);
-        (gd.mobileBanking || []).forEach(a => mobileMap[a.name] = 0);
-
-        const moneyIn = ['Income', 'Transfer In', 'Loan Receiving', 'Loan Received'];
-        const moneyOut = ['Expense', 'Transfer Out', 'Loan Giving', 'Loan Given'];
-
-        gd.finance.forEach(f => {
-          const amt = parseFloat(f.amount) || 0;
-          const isIn = moneyIn.includes(f.type);
-          const isOut = moneyOut.includes(f.type);
-          if (!isIn && !isOut) return;
-
-          const delta = isIn ? amt : -amt;
-
-          if (f.method === 'Cash') {
-            correctCash += delta;
-          } else if (bankMap.hasOwnProperty(f.method)) {
-            bankMap[f.method] += delta;
-          } else if (mobileMap.hasOwnProperty(f.method)) {
-            mobileMap[f.method] += delta;
-          }
-        });
-
-        // ✅ Safety Guard 4: Deviation check — if balance changes > 50%, log warning
-        const newCash = Math.max(0, correctCash);
-        if (prevCash > 0 && Math.abs(newCash - prevCash) > prevCash * 0.5) {
-          console.warn('[Reconciliation] ⚠️ Large deviation detected! prev=' + prevCash + ' new=' + newCash + '. Applying anyway (snapshot taken).');
-        }
-
-        // Apply corrected balances
-        gd.cashBalance = newCash;
-        (gd.bankAccounts || []).forEach(a => {
-          if (bankMap.hasOwnProperty(a.name)) a.balance = Math.max(0, bankMap[a.name]);
-        });
-        (gd.mobileBanking || []).forEach(a => {
-          if (mobileMap.hasOwnProperty(a.name)) a.balance = Math.max(0, mobileMap[a.name]);
-        });
-
-        localStorage.setItem('wingsfly_data', JSON.stringify(gd));
-        localStorage.setItem(RECONCILE_KEY, '1');
-
-        // Refresh UI
-        if (typeof renderCashBalance === 'function') renderCashBalance();
-        if (typeof renderAccountList === 'function') renderAccountList();
-        if (typeof renderMobileBankingList === 'function') renderMobileBankingList();
-        if (typeof updateGrandTotal === 'function') updateGrandTotal();
-
-        console.log('✅ Balance Reconciliation Done. Cash:', gd.cashBalance);
-      } catch (e) {
-        console.warn('Reconciliation error:', e);
-      }
-    }, 3000);
-  });
+  // DISABLED — see above
 })();
 
 // Balance integrity monitor removed
