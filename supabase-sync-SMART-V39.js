@@ -549,6 +549,26 @@
     }
   }
 
+  // Resolve original record id from recycle-bin entry.
+  // deletedItems entries have their own TRASH id, so we must prefer item.item.* ids.
+  function _getDeletedRecordId(delEntry, kind) {
+    if (!delEntry || typeof delEntry !== 'object') return null;
+    const src = delEntry.item && typeof delEntry.item === 'object' ? delEntry.item : null;
+    if (kind === 'student') {
+      return (src && (src.studentId || src.id || src.phone || src.name))
+        || delEntry.studentId
+        || delEntry.sourceId
+        || null;
+    }
+    if (kind === 'finance') {
+      return (src && (src.id || src.timestamp))
+        || delEntry.sourceId
+        || delEntry.financeId
+        || null;
+    }
+    return null;
+  }
+
   function _getDelta(table, records, keyFn) {
     const prevSnapshot = _loadSnapshot(table);
     const newSnapshot = {}, changed = [], currentKeys = new Set();
@@ -723,7 +743,7 @@
             // ✅ V39: deletedItems.students (object, not array)
             const stuDelItems = Array.isArray(gd.deletedItems?.students) ? gd.deletedItems.students : [];
             const stuDelRows = stuDelItems.map(item => {
-              const recId = item.studentId || item.id || item.item?.studentId || item.item?.id;
+              const recId = _getDeletedRecordId(item, 'student');
               return recId ? { id: `${CFG.ACADEMY_ID}_stu_${recId}`, academy_id: CFG.ACADEMY_ID, data: null, deleted: true } : null;
             }).filter(x => x);
             if (stuDelRows.length > 0) {
@@ -774,7 +794,7 @@
             // ✅ V39: deletedItems.finance (object, not array)
             const finDelItems = Array.isArray(gd.deletedItems?.finance) ? gd.deletedItems.finance : [];
             const finDelRows = finDelItems.map(item => {
-              const recId = item.id || item.item?.id;
+              const recId = _getDeletedRecordId(item, 'finance');
               return recId ? { id: `${CFG.ACADEMY_ID}_fin_${recId}`, academy_id: CFG.ACADEMY_ID, data: null, deleted: true } : null;
             }).filter(x => x);
             if (finDelRows.length > 0) {
@@ -1114,7 +1134,7 @@
           });
           // ✅ FIX: Delete markers ও push করো
           const stuDel = (gd.deletedItems?.students || []).slice(0, 50).map(d => {
-            const rid = d.item?.studentId || d.item?.id || d.item?.phone || d.item?.name;
+            const rid = _getDeletedRecordId(d, 'student');
             return rid ? { id: `${CFG.ACADEMY_ID}_stu_${rid}`, academy_id: CFG.ACADEMY_ID, data: null, deleted: true } : null;
           }).filter(x => x);
           const allStuRows = stuRows.concat(stuDel);
@@ -1128,7 +1148,7 @@
           }));
           // ✅ FIX: Delete markers ও push করো
           const finDel = (gd.deletedItems?.finance || []).slice(0, 50).map(d => {
-            const rid = d.item?.id;
+            const rid = _getDeletedRecordId(d, 'finance');
             return rid ? { id: `${CFG.ACADEMY_ID}_fin_${rid}`, academy_id: CFG.ACADEMY_ID, data: null, deleted: true } : null;
           }).filter(x => x);
           const allFinRows = finRows.concat(finDel);

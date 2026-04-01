@@ -402,19 +402,8 @@ async function handleTransferSubmit(e) {
     return;
   }
 
-  // Update source balance (deduct)
-  if (sourceResult.type === 'cash') {
-    globalData.cashBalance = (parseFloat(globalData.cashBalance) || 0) - amount;
-  } else {
-    sourceResult.account.balance = (parseFloat(sourceResult.account.balance) || 0) - amount;
-  }
-
-  // Update destination balance (add)
-  if (destResult.type === 'cash') {
-    globalData.cashBalance = (parseFloat(globalData.cashBalance) || 0) + amount;
-  } else {
-    destResult.account.balance = (parseFloat(destResult.account.balance) || 0) + amount;
-  }
+  // Do not mutate balances here.
+  // Canonical balance changes are applied once via finance-engine (feApplyEntryToAccount).
 
   // Record in Ledger (Two entries for clarity)
   const transferOut = {

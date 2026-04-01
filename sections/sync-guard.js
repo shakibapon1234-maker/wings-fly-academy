@@ -57,6 +57,8 @@
 
   var _silenced = false;
   var _lastStatus = null;
+  var _lastDetails = [];
+  var _panelEl = null;
 
   // ── EXPECTED VALUES ───────────────────────────────────────
 
@@ -76,6 +78,144 @@
 
   // moveToTrash এবং restoreDeletedItem কোন file থেকে আসা উচিত
   var TRASH_SOURCE_FILE = 'recycle-bin-fix.js';
+
+  function _classifyMessage(msg, severity) {
+    var m = String(msg || '');
+    var out = {
+      severity: severity || 'warn',
+      code: 'SG_UNKNOWN',
+      message: m,
+      source: 'unknown',
+      fix: 'Run syncGuard.run() and check console.'
+    };
+
+    if (m.indexOf('Sync function missing:') === 0) {
+      out.code = 'SG_MISSING_FUNCTION';
+      out.source = 'index.html script load order / sections/*.js';
+      out.fix = 'Ensure all required scripts load and function names are unchanged.';
+    } else if (m.indexOf('gd.deletedItems is an ARRAY') !== -1 || m.indexOf('gd.deletedItems') !== -1) {
+      out.code = 'SG_DELETED_ITEMS_SHAPE';
+      out.source = TRASH_SOURCE_FILE + ' / supabase-sync-SMART-V39.js';
+      out.fix = 'Keep deletedItems as object: {students,finance,employees,other}.';
+    } else if (m.indexOf('Supabase client is null') !== -1 || m.indexOf('getWingsSupabaseClient') !== -1) {
+      out.code = 'SG_SUPABASE_CLIENT';
+      out.source = 'supabase-config.js / supabase-sync-SMART-V39.js';
+      out.fix = 'Check SUPABASE_CONFIG URL/KEY and client init.';
+    } else if (m.indexOf('Egress hard-throttled') !== -1) {
+      out.code = 'SG_EGRESS_LIMIT';
+      out.source = 'supabase-sync-SMART-V39.js';
+      out.fix = 'Run wingsSync.resetEgress(pin) or wait for daily reset.';
+    } else if (m.indexOf('finance entries missing type or amount') !== -1) {
+      out.code = 'SG_BAD_FINANCE_ENTRY';
+      out.source = 'finance-crud.js / migration data';
+      out.fix = 'Fix or remove invalid finance rows without type/amount.';
+    } else if (m.indexOf('non-existent accounts') !== -1) {
+      out.code = 'SG_ORPHAN_METHOD';
+      out.source = 'accounts-management.js / finance records';
+      out.fix = 'Create missing account/method or update finance.method values.';
+    } else if (m.indexOf('negative balance') !== -1) {
+      out.code = 'SG_NEGATIVE_BALANCE';
+      out.source = 'finance-engine.js / account operations';
+      out.fix = 'Review recent delete/restore/transfer entries and rebuild balances.';
+    } else if (m.indexOf('Loan entries are being counted') !== -1) {
+      out.code = 'SG_LOAN_IN_STATS';
+      out.source = 'finance-engine.js';
+      out.fix = 'Verify feIsStatIncome/feIsStatExpense type lists.';
+    } else if (m.indexOf('Advance/Investment entries are being counted') !== -1) {
+      out.code = 'SG_ADV_IN_STATS';
+      out.source = 'finance-engine.js';
+      out.fix = 'Keep Advance/Investment outside income/expense stat lists.';
+    } else if (m.indexOf('Grand total balance is NaN') !== -1) {
+      out.code = 'SG_BALANCE_NAN';
+      out.source = 'accounts-management.js / finance-engine.js';
+      out.fix = 'Find account with invalid numeric balance.';
+    } else if (m.indexOf('Sync appears busy/stuck') !== -1) {
+      out.code = 'SG_SYNC_BUSY';
+      out.source = 'supabase-sync-SMART-V39.js';
+      out.fix = 'Try wingsSync.pullNow() and re-check status.';
+    } else if (m.indexOf('Service role key detected') !== -1 || m.indexOf('API key is EMPTY') !== -1) {
+      out.code = 'SG_KEY_CONFIG';
+      out.source = 'supabase-config.js';
+      out.fix = 'Use anon key in client. Never use service_role in browser.';
+    }
+    return out;
+  }
+
+  function _buildDetails(issues, warnings) {
+    _lastDetails = [];
+    (issues || []).forEach(function (i) { _lastDetails.push(_classifyMessage(i, 'issue')); });
+    (warnings || []).forEach(function (w) { _lastDetails.push(_classifyMessage(w, 'warning')); });
+  }
+
+  function _checkSyncApi(issues, warnings) {
+    if (!window.wingsSync || typeof window.wingsSync !== 'object') {
+      issues.push('wingsSync API missing — cloud sync controller not loaded');
+      return;
+    }
+    ['pushNow', 'pullNow', 'smartSync', 'getStatus'].forEach(function (fn) {
+      if (typeof window.wingsSync[fn] !== 'function') {
+        issues.push('wingsSync function missing: ' + fn);
+      }
+    });
+    try {
+      var st = typeof window.wingsSync.getStatus === 'function' ? window.wingsSync.getStatus() : null;
+      if (st && typeof st.version === 'undefined') warnings.push('wingsSync.getStatus().version missing');
+      if (st && typeof st.egress === 'undefined' && typeof st.egressToday === 'undefined') warnings.push('wingsSync.getStatus().egress missing');
+    } catch (e) {
+      warnings.push('wingsSync.getStatus() threw an error');
+    }
+  }
+
+  function _countInvalidDeleteMarkers(gd, bucket) {
+    if (!gd || !gd.deletedItems || !Array.isArray(gd.deletedItems[bucket])) return 0;
+    var invalid = 0;
+    gd.deletedItems[bucket].forEach(function (d) {
+      var source = d && d.item ? d.item : null;
+      if (bucket === 'students') {
+        var sid = (source && (source.studentId || source.id || source.phone || source.name)) || d.sourceId || d.studentId;
+        if (!sid) invalid++;
+      } else if (bucket === 'finance') {
+        var fid = (source && (source.id || source.timestamp)) || d.sourceId || d.financeId;
+        if (!fid) invalid++;
+      }
+    });
+    return invalid;
+  }
+
+  function _ensurePanel() {
+    if (_panelEl) return _panelEl;
+    var el = document.createElement('div');
+    el.id = 'syncGuardPanel';
+    el.style.cssText = 'position:fixed;right:14px;bottom:14px;z-index:99999;width:420px;max-width:calc(100vw - 28px);max-height:55vh;overflow:auto;background:rgba(6,10,24,0.97);border:1px solid rgba(0,217,255,0.35);border-radius:12px;box-shadow:0 10px 30px rgba(0,0,0,0.45);padding:10px;display:none;color:#d7ebff;font-size:12px;';
+    document.body.appendChild(el);
+    _panelEl = el;
+    return el;
+  }
+
+  function _renderPanel() {
+    var el = _ensurePanel();
+    var s = _lastStatus;
+    if (!s) {
+      el.innerHTML = '<div style="color:#9cb3c9;">No Sync Guard report yet.</div>';
+      return;
+    }
+    var rows = _lastDetails.map(function (d, i) {
+      var c = d.severity === 'issue' ? '#ff5d6c' : '#ffb74d';
+      return '<div style="margin:0 0 8px 0;padding:8px;border:1px solid rgba(255,255,255,0.12);border-radius:8px;background:rgba(255,255,255,0.03);">'
+        + '<div style="color:' + c + ';font-weight:700;">' + (i + 1) + '. [' + d.code + '] ' + d.severity.toUpperCase() + '</div>'
+        + '<div style="margin-top:4px;color:#e2f1ff;">' + d.message + '</div>'
+        + '<div style="margin-top:4px;color:#8fb4d8;">Source: ' + d.source + '</div>'
+        + '<div style="margin-top:2px;color:#a6cbbf;">Fix: ' + d.fix + '</div>'
+        + '</div>';
+    }).join('');
+    el.innerHTML =
+      '<div style="display:flex;justify-content:space-between;gap:8px;align-items:center;margin-bottom:8px;">'
+      + '<div style="font-weight:700;color:#00d9ff;">Sync Guard Diagnostics</div>'
+      + '<button type="button" onclick="window.syncGuard.hidePanel()" style="border:1px solid rgba(255,255,255,0.35);background:transparent;color:#fff;border-radius:6px;padding:2px 8px;cursor:pointer;">Close</button>'
+      + '</div>'
+      + '<div style="margin-bottom:8px;color:#9fc4e6;">Last check: ' + s.checkedAt + ' | issues=' + s.issues.length + ' warnings=' + s.warnings.length + '</div>'
+      + (rows || '<div style="color:#87d39a;font-weight:600;">No issues/warnings.</div>');
+  }
 
   // ── MAIN CHECK ────────────────────────────────────────────
 
@@ -133,7 +273,9 @@
       }
     }
 
-    // ── CHECK 4: Push/Pull lock status ─────────────────────
+    // ── CHECK 4: Push/Pull lock status + wingsSync API ─────
+    _checkSyncApi(issues, warnings);
+
     if (typeof window.wingsSync === 'function' || (window.wingsSync && typeof window.wingsSync === 'object')) {
       // Check if sync status shows stuck
       try {
@@ -249,6 +391,15 @@
           issues.push('Advance/Investment entries are being counted as Income/Expense — should be account movements only');
         }
       }
+
+      var badStuDel = _countInvalidDeleteMarkers(gd, 'students');
+      if (badStuDel > 0) {
+        warnings.push('deletedItems.students has ' + badStuDel + ' invalid delete marker(s) without source id');
+      }
+      var badFinDel = _countInvalidDeleteMarkers(gd, 'finance');
+      if (badFinDel > 0) {
+        warnings.push('deletedItems.finance has ' + badFinDel + ' invalid delete marker(s) without source id');
+      }
     }
 
     // ══════════════════════════════════════════════════════
@@ -259,8 +410,11 @@
       ok: ok,
       issues: issues,
       warnings: warnings,
-      checkedAt: new Date().toISOString()
+      checkedAt: new Date().toISOString(),
+      details: []
     };
+    _buildDetails(issues, warnings);
+    _lastStatus.details = _lastDetails.slice();
 
     _updateDot(ok, issues.length + warnings.length);
 
@@ -276,14 +430,14 @@
         console.group('%c⚠️ [SyncGuard] ' + warnings.length + ' টি সতর্কতা', 'color:#ff9800;font-weight:bold;');
         warnings.forEach(function (w) { console.warn('[SyncGuard]', w); });
         console.groupEnd();
-        _showToast('warn', '⚠️ Sync Guard: ' + warnings.length + ' টি warning — console দেখুন');
+        _showToast('warn', '⚠️ Sync Guard: ' + warnings.length + ' টি warning — syncGuard.openPanel() দেখুন');
       } else {
         console.group('%c🚨 [SyncGuard] ' + issues.length + ' টি সমস্যা পাওয়া গেছে!', 'color:#f44336;font-weight:bold;');
         issues.forEach(function (msg) { console.error('[SyncGuard]', msg); });
         if (warnings.length > 0) warnings.forEach(function (w) { console.warn('[SyncGuard]', w); });
         console.groupEnd();
         if (!_silenced) {
-          _showToast('error', '🚨 Sync Guard: ' + issues.length + ' টি সমস্যা! Console দেখুন।');
+          _showToast('error', '🚨 Sync Guard: ' + issues.length + ' টি সমস্যা! syncGuard.openPanel() দেখুন।');
         }
       }
     }
@@ -319,14 +473,8 @@
     dot.addEventListener('click', function () {
       var s = _lastStatus;
       if (!s) { runGuard(); return; }
-      if (s.ok && s.warnings.length === 0) {
-        alert('✅ Sync & Payment Healthy\nLast: ' + s.checkedAt);
-      } else {
-        var msg = '';
-        if (s.issues.length) msg += '🚨 Issues:\n' + s.issues.join('\n');
-        if (s.warnings.length) msg += (msg ? '\n\n' : '') + '⚠️ Warnings:\n' + s.warnings.join('\n');
-        alert(msg);
-      }
+      _renderPanel();
+      _panelEl.style.display = 'block';
     });
 
     // Insert after "Welcome back, Admin!" h4 in the top bar (before finance guard)
@@ -419,6 +567,21 @@
     run: function () { return runGuard(false); },
     check: function () { return runGuard(true); },
     status: function () { return _lastStatus; },
+    details: function () { return _lastDetails.slice(); },
+    explain: function () {
+      return (_lastDetails || []).map(function (d, i) {
+        return (i + 1) + '. [' + d.code + '] ' + d.message + ' | Source: ' + d.source + ' | Fix: ' + d.fix;
+      }).join('\n');
+    },
+    openPanel: function () {
+      if (!_lastStatus) runGuard(true);
+      _renderPanel();
+      _panelEl.style.display = 'block';
+      return _lastDetails.slice();
+    },
+    hidePanel: function () {
+      if (_panelEl) _panelEl.style.display = 'none';
+    },
     silence: function () { _silenced = true; console.log('[SyncGuard] Alerts silenced'); },
     unmute: function () { _silenced = false; console.log('[SyncGuard] Alerts active'); },
     fix: function () { _autoFix(); runGuard(false); }
@@ -462,6 +625,6 @@
     setTimeout(_startup, 2000);
   }
 
-  console.log('✅ sync-guard.js v1.0 loaded');
+  console.log('✅ sync-guard.js v1.1 loaded (with diagnostics panel)');
 
 })();

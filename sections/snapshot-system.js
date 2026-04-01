@@ -9,6 +9,8 @@
 var SNAPSHOT_KEY = 'wingsfly_snapshots';
 var MAX_SNAPSHOTS = 7;
 var SNAPSHOT_INTERVAL_MS = 60 * 60 * 1000;
+var MONITOR_KEY = 'wingsfly_monitor_history';
+var MONITOR_MAX = 10;
 
 function takeSnapshot() {
   try {
@@ -67,6 +69,137 @@ function getSnapshots() {
   try {
     return JSON.parse(localStorage.getItem('wingsfly_snapshots')) || [];
   } catch (e) { return []; }
+}
+
+function getMonitorHistory() {
+  try {
+    var rows = JSON.parse(localStorage.getItem(MONITOR_KEY)) || [];
+    return Array.isArray(rows) ? rows : [];
+  } catch (e) { return []; }
+}
+
+function _monitorSafeNum(v) {
+  var n = parseFloat(v);
+  return isNaN(n) ? 0 : n;
+}
+
+function _monitorBuildBalanceSnapshot(gd) {
+  gd = gd || {};
+  var cash = _monitorSafeNum(gd.cashBalance);
+  var banks = (gd.bankAccounts || []).map(function (a) {
+    return { name: a && a.name ? String(a.name) : 'Bank', balance: _monitorSafeNum(a && a.balance) };
+  });
+  var mobiles = (gd.mobileBanking || []).map(function (a) {
+    return { name: a && a.name ? String(a.name) : 'Mobile', balance: _monitorSafeNum(a && a.balance) };
+  });
+  var grand = cash;
+  banks.forEach(function (b) { grand += b.balance; });
+  mobiles.forEach(function (m) { grand += m.balance; });
+  return { cash: cash, banks: banks, mobiles: mobiles, grand: grand };
+}
+
+function _monitorGetLatestChange(gd) {
+  var finance = (gd && gd.finance || []).filter(function (f) { return f && !f._deleted; });
+  if (!finance.length) {
+    return { type: 'System', category: 'Snapshot', person: '-', method: '-', amount: 0, date: '' };
+  }
+  var sorted = finance.slice().sort(function (a, b) {
+    var ta = new Date(a._updatedAt || a.updatedAt || a.timestamp || a.createdAt || a.date || 0).getTime();
+    var tb = new Date(b._updatedAt || b.updatedAt || b.timestamp || b.createdAt || b.date || 0).getTime();
+    if (tb !== ta) return tb - ta;
+    return String(b.id || '').localeCompare(String(a.id || ''));
+  });
+  var f = sorted[0];
+  return {
+    type: f.type || '-',
+    category: f.category || '-',
+    person: f.person || '-',
+    method: f.method || '-',
+    amount: _monitorSafeNum(f.amount),
+    date: f.date || ''
+  };
+}
+
+function _monitorFingerprint(gd, latest) {
+  gd = gd || {};
+  latest = latest || {};
+  return JSON.stringify({
+    c: _monitorSafeNum(gd.cashBalance),
+    b: (gd.bankAccounts || []).map(function (a) { return [a.name || '', _monitorSafeNum(a.balance)]; }),
+    m: (gd.mobileBanking || []).map(function (a) { return [a.name || '', _monitorSafeNum(a.balance)]; }),
+    sc: (gd.students || []).length,
+    fc: (gd.finance || []).filter(function (x) { return x && !x._deleted; }).length,
+    ec: (gd.employees || []).length,
+    l: [latest.type || '', latest.category || '', latest.person || '', latest.method || '', _monitorSafeNum(latest.amount), latest.date || '']
+  });
+}
+
+function recordMonitorChange(reason) {
+  try {
+    var raw = localStorage.getItem('wingsfly_data');
+    var gd = null;
+    if (raw) {
+      try { gd = JSON.parse(raw); } catch (e) { gd = window.globalData || {}; }
+    } else {
+      gd = window.globalData || {};
+    }
+    if (!gd || typeof gd !== 'object') return;
+
+    var latest = _monitorGetLatestChange(gd);
+    var fp = _monitorFingerprint(gd, latest);
+    var rows = getMonitorHistory();
+    if (rows[0] && rows[0].fingerprint === fp) return;
+
+    var row = {
+      id: Date.now() + '_' + Math.random().toString(36).slice(2, 7),
+      timestamp: new Date().toISOString(),
+      label: new Date().toLocaleString('en-BD', {
+        day: '2-digit', month: 'short', year: 'numeric',
+        hour: '2-digit', minute: '2-digit', hour12: true
+      }),
+      reason: reason || 'saveToStorage',
+      user: sessionStorage.getItem('username') || localStorage.getItem('wf_user') || 'Admin',
+      change: latest,
+      counts: {
+        students: (gd.students || []).length,
+        finance: (gd.finance || []).filter(function (f) { return f && !f._deleted; }).length,
+        employees: (gd.employees || []).length
+      },
+      snapshot: _monitorBuildBalanceSnapshot(gd),
+      fingerprint: fp
+    };
+
+    rows.unshift(row);
+    if (rows.length > MONITOR_MAX) rows = rows.slice(0, MONITOR_MAX);
+    localStorage.setItem(MONITOR_KEY, JSON.stringify(rows));
+  } catch (e) {
+    console.warn('[Monitor] record error:', e);
+  }
+}
+
+function _installMonitorSaveHook() {
+  var tries = 0;
+  function attempt() {
+    var orig = window.saveToStorage;
+    if (typeof orig !== 'function') {
+      tries++;
+      if (tries < 30) setTimeout(attempt, 500);
+      return;
+    }
+    if (orig._wfMonitorPatched) return;
+    window.saveToStorage = function () {
+      var result = orig.apply(this, arguments);
+      if (result !== false) {
+        setTimeout(function () {
+          recordMonitorChange('saveToStorage');
+          if (typeof window.renderMonitor === 'function') window.renderMonitor();
+        }, 60);
+      }
+      return result;
+    };
+    window.saveToStorage._wfMonitorPatched = true;
+  }
+  attempt();
 }
 
 function restoreSnapshot(id) {
@@ -134,6 +267,8 @@ window.restoreSnapshot = restoreSnapshot;
 window.downloadSnapshot = downloadSnapshot;
 window.deleteSnapshot = deleteSnapshot;
 window.renderSnapshotList = renderSnapshotList;
+window.getMonitorHistory = getMonitorHistory;
+window.recordMonitorChange = recordMonitorChange;
 
 // Page load হলে hourly snapshot interval শুরু করো
 // ⚠️ DOMContentLoaded-এ snapshot নেওয়া হয় না — cloud sync হওয়ার আগে খালি data যাবে
@@ -167,6 +302,11 @@ document.addEventListener('DOMContentLoaded', function () {
     if (typeof renderActivityLog === 'function') renderActivityLog();
     if (typeof renderRecycleBin === 'function') renderRecycleBin();
   });
+
+  _installMonitorSaveHook();
+  setTimeout(function () {
+    recordMonitorChange('startup');
+  }, 1200);
 });
 
 
