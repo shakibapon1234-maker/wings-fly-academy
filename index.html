@@ -1975,8 +1975,48 @@ WINGS FLY AVIATION ACADEMY — Management System
     <!-- ✅ Garbled text fix + settings scroll to top -->
     <script defer src="garbled-text-fix.js?v=20260402_0001"></script>
 
-    <!-- ✅ STUDENT MODAL HTML — Inline, no fetch needed -->
+    <!-- ✅ STUDENT MODAL HTML — Injected at page load -->
      <div id="__studentModalsPlaceholder"></div>
+    <script>
+      (function injectStudentModals() {
+        // Try paths in order — root first (confirmed location), then sections/ fallbacks
+        var paths = ['student-modals.html', 'sections/modals-student.html', 'sections/student-modals.html'];
+        function tryNext(i) {
+          if (i >= paths.length) {
+            console.error('❌ Could not find student-modals.html in any path');
+            return;
+          }
+          fetch(paths[i])
+            .then(function(r) {
+              if (!r.ok) throw new Error('not found');
+              return r.text();
+            })
+            .then(function(html) {
+              var ph = document.getElementById('__studentModalsPlaceholder');
+              if (ph) ph.innerHTML = html;
+              console.log('✅ Student modals injected from: ' + paths[i]);
+              // Populate Course + Method dropdowns now that elements are in DOM
+              setTimeout(function() {
+                if (typeof window._populateStudentDropdowns === 'function') {
+                  window._populateStudentDropdowns();
+                } else if (typeof window.populateDropdowns === 'function') {
+                  window.populateDropdowns();
+                }
+                // Re-attach balance listeners for the newly injected select
+                if (typeof window.attachMethodBalanceListeners === 'function') {
+                  window.attachMethodBalanceListeners();
+                }
+              }, 150);
+            })
+            .catch(function() { tryNext(i + 1); });
+        }
+        if (document.readyState === 'loading') {
+          document.addEventListener('DOMContentLoaded', function() { tryNext(0); });
+        } else {
+          tryNext(0);
+        }
+      })();
+    </script>
 
 
     <!-- ✅ STUDENT MODAL FIX SCRIPT — runs after Bootstrap & all JS loaded -->
