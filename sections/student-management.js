@@ -954,6 +954,21 @@ async function handleStudentSubmit(e) {
     methodSel.value = 'Cash';
   }
 
+  // ✅ FIX: courseSel empty থাকলে populateStudentDropdowns আবার call করো তারপর value set করো
+  if (courseSel && !courseSel.value) {
+    if (typeof window.populateStudentDropdowns === 'function') window.populateStudentDropdowns();
+    else if (typeof window.populateDropdowns === 'function') window.populateDropdowns();
+    // populate এর পরেও যদি options থাকে কিন্তু value না থাকে — প্রথম real option select করো
+    if (!courseSel.value && courseSel.options.length > 1) {
+      courseSel.value = courseSel.options[1].value;
+    }
+  }
+
+  // ✅ FIX: methodSel populate পরেও empty থাকলে প্রথম real option select করো
+  if (methodSel && !methodSel.value && methodSel.options.length > 1) {
+    methodSel.value = methodSel.options[1].value;
+  }
+
   if (!nameInp?.value.trim() || !courseSel?.value || !phoneInp?.value.trim() || !methodSel?.value) {
     showErrorToast('⚠️ Please fill required fields: Name, Phone, Course, and Payment Method');
     // Highlight empty fields
