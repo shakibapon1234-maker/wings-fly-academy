@@ -229,13 +229,21 @@ async function saveToStorage(skipCloudSync = false) {
     }
     if (!window.globalData.activityHistory) window.globalData.activityHistory = [];
 
-    // ✅ V34.9 FIX: Finance integrity check — কম finance থাকলে save বন্ধ
+    // ✅ V34.9 FIX (PATCHED v2): Finance integrity check
+    // Student delete করলে finance কমা স্বাভাবিক — সেটা block করা উচিত নয়।
+    // শুধু unexpected/sudden drop block করো।
     const _saveFinCount = (window.globalData.finance || []).length;
     const _saveKnownFin = parseInt(localStorage.getItem('wings_last_known_finance')) || 0;
-    if (_saveKnownFin > 10 && _saveFinCount < _saveKnownFin - 2) {
+    // ✅ FIX: _intentionalDelete flag থাকলে block skip করো
+    // ✅ FIX: threshold ২ → ১০ বাড়ানো (student delete এ ৫-১০ টা finance entry কমতে পারে)
+    const _isIntentionalDelete = window._intentionalFinanceDelete === true;
+    if (!_isIntentionalDelete && _saveKnownFin > 10 && _saveFinCount < _saveKnownFin - 10) {
       console.warn('🚫 saveToStorage BLOCKED — finance=' + _saveFinCount + ' < known=' + _saveKnownFin + ' (data loss prevention)');
       return false;
     }
+    // ✅ FIX: সফল save এর আগে counter আপডেট করো — পরের save এ block হবে না
+    localStorage.setItem('wings_last_known_finance', String(_saveFinCount));
+    window._intentionalFinanceDelete = false; // flag reset
 
     // Backup রাখো যাতে cloud pull এ হারিয়ে না যায়
     localStorage.setItem('wingsfly_deleted_backup', JSON.stringify(window.globalData.deletedItems));
@@ -954,11 +962,13 @@ window.attachMethodBalanceListeners = attachMethodBalanceListeners;
   if (typeof renderKeepRecordNotes === 'function') window.renderKeepRecordNotes = renderKeepRecordNotes;
 
   window.renderFullUI = function () {
-    // ✅ V34.9 FIX: finance incomplete থাকলে UI refresh skip করো
+    // ✅ V34.9 FIX (PATCHED v2): finance incomplete থাকলে UI refresh skip
+    // _intentionalDelete flag থাকলে skip করবে না (student delete এর পর UI refresh দরকার)
     const _rfFinCount = (window.globalData?.finance || []).length;
     const _rfKnownFin = parseInt(localStorage.getItem('wings_last_known_finance')) || 0;
-    if (_rfKnownFin > 10 && _rfFinCount < _rfKnownFin - 2) {
-      console.warn('⏸️ renderFullUI SKIPPED — finance=' + _rfFinCount + ' < known=' + _rfKnownFin + ' (waiting for V34.9 reload)');
+    const _rfIntentional = window._intentionalFinanceDelete === true;
+    if (!_rfIntentional && _rfKnownFin > 10 && _rfFinCount < _rfKnownFin - 10) {
+      console.warn('⏸️ renderFullUI SKIPPED — finance=' + _rfFinCount + ' < known=' + _rfKnownFin + ' (waiting for reload)');
       return;
     }
     console.log('🔄 Global UI Refresh');

@@ -275,26 +275,48 @@ function deleteInstallment(rowIndex, instIndex) {
       `Installment moved to trash: ৳${amount} for ${student.name}`, inst);
   }
   // 1. Student installments array থেকে সরাও
-  const displayList = getStudentInstallments(student);
-  const migratedCount = displayList.filter(i => i.isMigrated).length;
-  const realIndex = instIndex - migratedCount;
-  if (realIndex >= 0 && student.installments && realIndex < student.installments.length) {
-    student.installments.splice(realIndex, 1);
+  // ✅ FIX: date + amount দিয়ে match করো — index calculation এ ভুল হতে পারে
+  // কারণ: migrated entry display list এ আছে কিন্তু student.installments এ নেই
+  const realInstList = student.installments || [];
+  let spliced = false;
+  for (let i = 0; i < realInstList.length; i++) {
+    if (
+      parseFloat(realInstList[i].amount) === amount &&
+      (!inst.date || realInstList[i].date === inst.date) &&
+      (!inst.method || realInstList[i].method === inst.method || !inst.method)
+    ) {
+      realInstList.splice(i, 1);
+      spliced = true;
+      break;
+    }
+  }
+  if (!spliced) {
+    // fallback: পুরনো index-based method
+    const displayList2 = getStudentInstallments(student);
+    const migratedCount2 = displayList2.filter(i => i.isMigrated).length;
+    const realIndex2 = instIndex - migratedCount2;
+    if (realIndex2 >= 0 && student.installments && realIndex2 < student.installments.length) {
+      student.installments.splice(realIndex2, 1);
+    }
   }
 
   // 2. Student paid/due update করো (শুধু এই installment এর amount কমাও)
   student.paid = Math.max(0, (parseFloat(student.paid) || 0) - amount);
   student.due = Math.max(0, (parseFloat(student.totalPayment) || 0) - student.paid);
 
-  // 3. Finance ledger থেকেও সরাও (শুধু FIRST matching entry)
+  // 3. Finance ledger থেকেও সরাও (FIRST matching entry — amount + date + method)
+  // ✅ FIX: method ও check করো যাতে same amount/date এর ভিন্ন method ভুলে না মুছে
   let deletedFinanceEntry = null;
   let deletedOne = false;
   globalData.finance = (globalData.finance || []).filter(f => {
     if (deletedOne) return true;
     const sameAmount = parseFloat(f.amount) === amount;
-    const samePerson = f.person === student.name || (f.description && f.description.includes(student.name));
-    const sameDate = !inst.date || f.date === inst.date;
-    if (sameAmount && samePerson && sameDate) {
+    const samePerson = (f.person || '').trim().toLowerCase() === (student.name || '').trim().toLowerCase()
+      || (f.description && f.description.toLowerCase().includes((student.name || '').toLowerCase()));
+    const sameDate = inst.date ? f.date === inst.date : true;
+    // ✅ method match যোগ করা হয়েছে (optional — না থাকলে skip)
+    const sameMethod = !inst.method || !f.method || f.method === method;
+    if (sameAmount && samePerson && sameDate && sameMethod) {
       deletedOne = true;
       deletedFinanceEntry = f;
       return false;
@@ -315,6 +337,10 @@ function deleteInstallment(rowIndex, instIndex) {
   localStorage.setItem('wings_total_deleted', _delCount.toString());
 
   // 6. Save immediately to localStorage + cloud (IMMEDIATE push)
+  // ✅ FIX: intentional flag set করো যাতে saveToStorage block না হয়
+  window._intentionalFinanceDelete = true;
+  // ✅ FIX: counter আপডেট করো — না হলে পরের save block হবে
+  localStorage.setItem('wings_last_known_finance', String((window.globalData.finance || []).length));
   localStorage.setItem('wingsfly_data', JSON.stringify(window.globalData));
   if (typeof window.pushToCloud === 'function') {
     window.pushToCloud('Delete Installment: ' + student.name + ' ৳' + amount);
@@ -323,6 +349,7 @@ function deleteInstallment(rowIndex, instIndex) {
   } else {
     saveToStorage();
   }
+  window._intentionalFinanceDelete = false;
 
   showSuccessToast('Payment deleted successfully! (Recycle Bin এ আছে)');
 
@@ -428,6 +455,9 @@ function deleteStudent(rowIndex) {
   }
 
   // ✅ Save locally first
+  // FIX: intentional flag + counter update — না হলে saveToStorage BLOCK হবে
+  window._intentionalFinanceDelete = true;
+  localStorage.setItem('wings_last_known_finance', String((window.globalData.finance || []).length));
   saveToStorage(true);
 
   // ✅ Schedule cloud sync
@@ -761,7 +791,11 @@ function deleteTransaction(id) {
   // 5. Delete tracking (sync এর জন্য)
   const _dc = parseInt(localStorage.getItem('wings_total_deleted') || '0') + 1;
   localStorage.setItem('wings_total_deleted', _dc.toString());
+  // ✅ FIX: intentional flag + counter update
+  window._intentionalFinanceDelete = true;
+  localStorage.setItem('wings_last_known_finance', String((window.globalData.finance || []).length));
   localStorage.setItem('wingsfly_data', JSON.stringify(window.globalData));
+  window._intentionalFinanceDelete = false;
   if (typeof window.pushToCloud === 'function') {
     window.pushToCloud('Delete Transaction: ' + (txToDelete.description || txToDelete.category || String(id)));
   } else if (typeof window.scheduleSyncPush === 'function') {
@@ -1105,3 +1139,140 @@ function printStudentPaymentHistory(rowIndex) {
   printWindow.document.close();
 }
 window.printStudentPaymentHistory = printStudentPaymentHistory;
+
+// ===================================
+// RECYCLE BIN RESTORE — INSTALLMENT
+// ===================================
+// recycle-bin-fix.js এর restoreDeletedItem কে patch করো
+// যাতে 'installment' type restore করলে student এ ফিরে যায়
+
+(function _installInstallmentRestoreHook() {
+  function _doHook() {
+    const origRestore = window.restoreDeletedItem;
+    if (typeof origRestore !== 'function') return false;
+    if (origRestore._installmentHooked) return true;
+
+    window.restoreDeletedItem = function(trashIndex) {
+      // trash item দেখো
+      const trashList = (window.globalData && window.globalData.deletedItems) || {};
+      // deletedItems structure: {students:[], finance:[], employees:[], other:[]}
+      // installment গুলো 'other' বা 'finance' বা আলাদা array তে থাকতে পারে
+      // recycle-bin-fix.js যেভাবে store করে সেটা বের করো
+      const allItems = [
+        ...((trashList.students || []).map(x => ({ ...x, _bucket: 'students' }))),
+        ...((trashList.finance || []).map(x => ({ ...x, _bucket: 'finance' }))),
+        ...((trashList.employees || []).map(x => ({ ...x, _bucket: 'employees' }))),
+        ...((trashList.other || []).map(x => ({ ...x, _bucket: 'other' })))
+      ];
+
+      const sorted = [...allItems].sort((a, b) => {
+        const ta = a.deletedAt || a.timestamp || '';
+        const tb = b.deletedAt || b.timestamp || '';
+        return tb.localeCompare(ta);
+      });
+
+      const entry = sorted[trashIndex];
+
+      // installment type হলে আলাদাভাবে handle করো
+      if (entry && entry.type === 'installment') {
+        const item = entry.item || entry;
+        const studentName = item.studentName || item.name || '';
+        const amount = parseFloat(item.amount) || 0;
+        const date = item.date || '';
+        const method = item.method || 'Cash';
+
+        const student = (window.globalData.students || []).find(s =>
+          (s.name || '').trim().toLowerCase() === studentName.trim().toLowerCase()
+        );
+
+        if (student) {
+          // student.installments এ ফিরিয়ে দাও
+          if (!student.installments) student.installments = [];
+          student.installments.push({ amount, date, method });
+          // sort by date
+          student.installments.sort((a, b) => (a.date || '').localeCompare(b.date || ''));
+          // paid/due recalculate
+          student.paid = (parseFloat(student.paid) || 0) + amount;
+          student.due = Math.max(0, (parseFloat(student.totalPayment) || 0) - student.paid);
+
+          // finance ledger এও ফিরিয়ে দাও
+          const financeEntry = {
+            id: Date.now(),
+            type: 'Income',
+            method: method,
+            date: date,
+            category: 'Student Installment',
+            person: student.name,
+            amount: amount,
+            description: `Installment payment for student: ${student.name} | Batch: ${student.batch || ''}`,
+            timestamp: new Date().toISOString(),
+            _createdAt: new Date().toISOString(),
+            _updatedAt: new Date().toISOString(),
+            _restoredFromTrash: true
+          };
+          window.globalData.finance.push(financeEntry);
+
+          // account balance update
+          if (typeof window.feApplyEntryToAccount === 'function') {
+            window.feApplyEntryToAccount(financeEntry, +1);
+          } else if (typeof updateAccountBalance === 'function') {
+            updateAccountBalance(method, amount, 'Income', true);
+          }
+
+          // trash থেকে সরাও (original restore কে call করো)
+          const result = origRestore.call(this, trashIndex);
+
+          // counter + save
+          window._intentionalFinanceDelete = false;
+          localStorage.setItem('wings_last_known_finance', String((window.globalData.finance || []).length));
+          if (typeof saveToStorage === 'function') saveToStorage();
+          if (typeof render === 'function') render(window.globalData.students);
+          if (typeof renderLedger === 'function') renderLedger(window.globalData.finance);
+          if (typeof updateGlobalStats === 'function') updateGlobalStats();
+
+          if (typeof window.showSuccessToast === 'function') {
+            window.showSuccessToast(`✅ Installment ৳${amount} (${studentName}) restore হয়েছে!`);
+          }
+          return result;
+        } else {
+          // student খুঁজে পাওয়া যায়নি
+          if (typeof window.showErrorToast === 'function') {
+            window.showErrorToast(`⚠️ Student "${studentName}" পাওয়া যায়নি — installment restore করা যায়নি।`);
+          }
+          return origRestore.call(this, trashIndex);
+        }
+      }
+
+      // অন্য সব type — original restore
+      return origRestore.call(this, trashIndex);
+    };
+
+    window.restoreDeletedItem._installmentHooked = true;
+    console.log('✅ [FinanceCRUD] installment restore hook installed');
+    return true;
+  }
+
+  // DOM ready এর পরে hook install করো
+  if (document.readyState === 'loading') {
+    document.addEventListener('DOMContentLoaded', function() {
+      setTimeout(function() {
+        if (!_doHook()) {
+          // recycle-bin-fix.js দেরিতে লোড হলে retry
+          let tries = 0;
+          const iv = setInterval(function() {
+            if (_doHook() || ++tries > 20) clearInterval(iv);
+          }, 500);
+        }
+      }, 2000);
+    });
+  } else {
+    setTimeout(function() {
+      if (!_doHook()) {
+        let tries = 0;
+        const iv = setInterval(function() {
+          if (_doHook() || ++tries > 20) clearInterval(iv);
+        }, 500);
+      }
+    }, 2000);
+  }
+})();

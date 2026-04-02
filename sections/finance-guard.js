@@ -177,6 +177,36 @@
       }
     }
 
+    // ── CHECK 5b: Orphaned Payments ────────────────────────
+    // Finance এ এমন Student Fee entry আছে যার student আর নেই
+    // ✅ CORRECT LOGIC: deleted student এর finance যদি saveToStorage এ
+    // সঠিকভাবে মোছা হয় তাহলে এটা আর দেখাবে না।
+    // শুধু সত্যিকারের orphan দেখাও — _deleted flag নেই এমন entries
+    var studentNameSet = new Set();
+    (gd.students || []).forEach(function(s) {
+      if (s && s.name) studentNameSet.add(s.name.trim().toLowerCase());
+    });
+
+    var orphanedPayments = [];
+    fin.forEach(function(f) {
+      if (f._deleted) return;
+      if (f.category !== 'Student Fee' && f.type !== 'Income') return;
+      // person field থেকে student name নাও
+      var pName = (f.person || f.studentName || '').trim();
+      if (!pName) return; // name নেই — orphan check skip
+      // student list এ আছে কিনা
+      if (!studentNameSet.has(pName.toLowerCase())) {
+        orphanedPayments.push({ id: f.id, name: pName, date: f.date, amount: f.amount });
+      }
+    });
+
+    if (orphanedPayments.length > 0) {
+      warnings.push('Orphaned Payments (' + orphanedPayments.length + 'টি): finance এ student নেই এমন ' + orphanedPayments.length + ' টি payment আছে');
+      // details store করো যাতে Warning modal এ action button কাজ করে
+      _lastStatus = _lastStatus || {};
+      _lastStatus._orphanedPayments = orphanedPayments;
+    }
+
     // ── CHECK 6: Loan types should NOT appear in income/expense stats ──
     var loanTypes = ['Loan Given', 'Loan Giving', 'Loan Received', 'Loan Receiving'];
     var loanInStats = false;

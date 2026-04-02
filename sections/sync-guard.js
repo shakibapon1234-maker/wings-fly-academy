@@ -71,9 +71,9 @@
     'scheduleSyncPush',
     'markDirty',
     'feApplyEntryToAccount',
-    'feCalcStats',
-    'feSoftDeleteEntry',
-    'feRestoreEntry'
+    'feCalcStats'
+    // ✅ FIX: feSoftDeleteEntry / feRestoreEntry সবসময় লোড নাও হতে পারে
+    // এগুলো optional — issue না দিয়ে warning দেওয়া হবে নিচে
   ];
 
   // moveToTrash এবং restoreDeletedItem কোন file থেকে আসা উচিত
@@ -236,6 +236,24 @@
         issues.push('Sync function missing: ' + fn);
       }
     });
+
+    // ✅ Optional functions — warning only (not issue)
+    ['feSoftDeleteEntry', 'feRestoreEntry'].forEach(function(fn) {
+      if (typeof window[fn] !== 'function') {
+        warnings.push('Optional function not loaded: ' + fn + ' (soft-delete feature unavailable)');
+      }
+    });
+
+    // ── CHECK 1b: wings_last_known_finance drift ───────────
+    // Student delete করার পর এই counter stale হলে saveToStorage block হয়
+    if (gd && Array.isArray(gd.finance)) {
+      var actualFinCount = gd.finance.length;
+      var knownFinCount = parseInt(localStorage.getItem('wings_last_known_finance')) || 0;
+      // counter এর চেয়ে actual ১০+ কম হলে drift warning
+      if (knownFinCount > 10 && actualFinCount < knownFinCount - 10) {
+        warnings.push('wings_last_known_finance counter stale: known=' + knownFinCount + ' actual=' + actualFinCount + ' — student delete এর পর saveToStorage block হতে পারে। Console এ চালান: localStorage.setItem("wings_last_known_finance", String(globalData.finance.length))');
+      }
+    }
 
     // ── CHECK 2: deletedItems structure ────────────────────
     if (gd) {
