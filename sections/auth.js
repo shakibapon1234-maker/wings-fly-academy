@@ -368,6 +368,16 @@ async function handleLegacyLogin(username, password) {
   sessionStorage.setItem('userFullName', validUser.name || username);
   sessionStorage.setItem('authMode', 'legacy');
 
+  // PERFORMANCE FIX: localStorage-এ session token save করো।
+  // Reload/Hard Refresh করলে sessionStorage clear হয় কিন্তু localStorage থাকে।
+  // এতে reload-এ login page আর দেখাবে না — সরাসরি dashboard আসবে।
+  const _sessionToken = Date.now().toString(36) + '_' + Math.random().toString(36).substr(2, 8);
+  localStorage.setItem('wf_session_token', _sessionToken);
+  localStorage.setItem('wf_session_user', validUser.name || username);
+  localStorage.setItem('wf_session_role', validUser.role || 'admin');
+  localStorage.setItem('wf_session_username', validUser.username);
+  localStorage.setItem('lastLocalUpdate', Date.now().toString());
+
   // Update sidebar avatar
   const avatarEl = document.getElementById('sidebarAvatar');
   if (avatarEl) avatarEl.innerText = (validUser.name || username).charAt(0).toUpperCase();
@@ -424,6 +434,11 @@ function showDashboard(username) {
   localStorage.setItem('wingsfly_active_tab', 'dashboard');
   sessionStorage.setItem('wf_just_logged_in', 'true');
 
+  // ✈️ AVIATION LOADER: dashboard load হওয়ার সময় loading screen দেখাও
+  if (typeof WingsLoader !== 'undefined') {
+    WingsLoader.show(3000);
+  }
+
   // V34.8 -> V35.1: Instant Dashboard load, Background Sync
   loadDashboard();
   
@@ -448,6 +463,8 @@ function showDashboard(username) {
             if (typeof takeSnapshot === 'function') takeSnapshot();
             console.log('📸 Login background snapshot taken');
           }
+          // ✈️ AVIATION LOADER: sync শেষ — loader hide করো
+          if (typeof WingsLoader !== 'undefined') WingsLoader.hide();
         }, 2000);
       } catch (e) {
         console.warn('⚠️ Login background pull failed:', e);
@@ -497,6 +514,13 @@ function logout() {
   sessionStorage.removeItem('authMode');
   sessionStorage.removeItem('wf_just_logged_in');
   localStorage.setItem('wingsfly_active_tab', 'dashboard');
+
+  // PERFORMANCE FIX: localStorage session token clear করো logout-এ
+  // না করলে logout-এর পরেও reload করলে dashboard দেখাবে (security issue)
+  localStorage.removeItem('wf_session_token');
+  localStorage.removeItem('wf_session_user');
+  localStorage.removeItem('wf_session_role');
+  localStorage.removeItem('wf_session_username');
 
   // Clear session check interval
   if (sessionCheckInterval) {
@@ -890,7 +914,27 @@ function checkSession() {
 // PAGE REFRESH → Same Tab Restore (Flash-Free)
 // ════════════════════════════════════════════════════════════════
 (function () {
-  if (sessionStorage.getItem('isLoggedIn') !== 'true') return;
+  // PERFORMANCE FIX: sessionStorage (reload) এবং localStorage (hard refresh) দুটো চেক করো
+  var _isSession = sessionStorage.getItem('isLoggedIn') === 'true';
+  var _isLocalToken = !!localStorage.getItem('wf_session_token');
+
+  if (!_isSession && _isLocalToken) {
+    // Hard Refresh হয়েছে — localStorage থেকে session restore করো
+    var _u = localStorage.getItem('wf_session_user') || 'Admin';
+    var _r = localStorage.getItem('wf_session_role') || 'admin';
+    var _cu = localStorage.getItem('wf_session_username') || 'admin';
+    sessionStorage.setItem('isLoggedIn', 'true');
+    sessionStorage.setItem('username', _u);
+    sessionStorage.setItem('userFullName', _u);
+    sessionStorage.setItem('currentUser', _cu);
+    sessionStorage.setItem('role', _r);
+    sessionStorage.setItem('userRole', _r);
+    sessionStorage.setItem('authMode', 'legacy');
+    _isSession = true;
+    console.log('[Auth] Hard Refresh — session restored from localStorage token');
+  }
+
+  if (!_isSession) return;
 
   var lastTab = localStorage.getItem('wingsfly_active_tab') || 'dashboard';
   var style = document.createElement('style');
@@ -910,6 +954,9 @@ function checkSession() {
     if (loader) loader.style.display = 'block';
     if (contentEl) contentEl.style.display = 'none';
 
+    // ✈️ AVIATION LOADER: reload/refresh এ loading screen দেখাও
+    if (typeof WingsLoader !== 'undefined') WingsLoader.show(2000);
+
     console.log('[Auth] Refresh restore → tab:', lastTab);
 
     try {
@@ -922,6 +969,11 @@ function checkSession() {
 
     if (loader) loader.style.display = 'none';
     if (contentEl) contentEl.style.display = 'block';
+
+    // ✈️ AVIATION LOADER: restore শেষ — hide
+    setTimeout(function () {
+      if (typeof WingsLoader !== 'undefined') WingsLoader.hide();
+    }, 1200);
     var s = document.getElementById('wf-flash-prevent');
     if (s) s.remove();
   });

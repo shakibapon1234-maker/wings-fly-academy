@@ -1637,8 +1637,22 @@
     window.__v39_sync_active = true;
     await _startupIntegrityCheck();
 
+    // ✅ PERFORMANCE FIX: যদি local data তাজা থাকে (5 মিনিটের কম পুরনো) এবং
+    // user logged-in থাকে (wf_session_token আছে) তাহলে full pull skip করো।
+    // Reload/সাধারণ refresh-এ এতে 2-4s সময় বাঁচবে।
+    const _sessionToken = localStorage.getItem('wf_session_token');
+    const _lastLocal = parseInt(localStorage.getItem('lastLocalUpdate') || '0');
+    const _sessionAge = Date.now() - _lastLocal;
+    const _SESSION_FRESH_MS = 5 * 60 * 1000; // 5 মিনিট
+
     if (!_integrityCheckDidPull) {
-      await pullFromCloud(false);
+      if (_sessionToken && _lastLocal > 0 && _sessionAge < _SESSION_FRESH_MS && !_isFreshBrowser) {
+        _log('⚡', `FAST STARTUP: session fresh (${Math.round(_sessionAge/1000)}s ago) — skipping full pull`);
+        // Background-এ version check করো — full pull না করেই
+        setTimeout(() => { if (!Egress.throttled()) _versionCheck(); }, 2000);
+      } else {
+        await pullFromCloud(false);
+      }
     } else {
       _log('✅', 'Pull skipped — integrity check already fetched');
     }

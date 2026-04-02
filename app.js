@@ -777,12 +777,12 @@ window.checkDailyBackup = checkDailyBackup;
 // Auto-populate dropdown when data loads
 if (document.readyState === 'loading') {
   document.addEventListener('DOMContentLoaded', () => {
-    setTimeout(populateDropdowns, 1000);           // ✅ FIX: was populateAccountDropdown (doesn't exist)
-    setTimeout(attachMethodBalanceListeners, 1200);
+    setTimeout(populateDropdowns, 300);           // PERFORMANCE FIX: 1000ms → 300ms
+    setTimeout(attachMethodBalanceListeners, 400); // PERFORMANCE FIX: 1200ms → 400ms
   });
 } else {
-  setTimeout(populateDropdowns, 1000);             // ✅ FIX: was populateAccountDropdown
-  setTimeout(attachMethodBalanceListeners, 1200);
+  setTimeout(populateDropdowns, 300);             // PERFORMANCE FIX: 1000ms → 300ms
+  setTimeout(attachMethodBalanceListeners, 400);  // PERFORMANCE FIX: 1200ms → 400ms
 }
 
 // ===================================
@@ -909,15 +909,29 @@ window.attachMethodBalanceListeners = attachMethodBalanceListeners;
     }
   }
 
-  // Run on load and periodically to catch dynamically loaded modals / fields
+  // Run on load
   if (document.readyState === 'loading') {
     document.addEventListener('DOMContentLoaded', enforceToDateDefaults);
   } else {
     enforceToDateDefaults();
   }
-  
-  // Set an interval to ensure dynamically cleared fields get today's date
-  setInterval(enforceToDateDefaults, 500);
+
+  // PERFORMANCE FIX: setInterval(500) removed — was scanning DOM every 0.5s wasting CPU.
+  // MutationObserver replaces it — only fires when new elements are actually added.
+  if (typeof MutationObserver !== 'undefined') {
+    const _dateObserver = new MutationObserver(function(mutations) {
+      let hasNewInput = false;
+      for (let i = 0; i < mutations.length; i++) {
+        const added = mutations[i].addedNodes;
+        for (let j = 0; j < added.length; j++) {
+          if (added[j].nodeType === 1) { hasNewInput = true; break; }
+        }
+        if (hasNewInput) break;
+      }
+      if (hasNewInput) enforceToDateDefaults();
+    });
+    _dateObserver.observe(document.body, { childList: true, subtree: true });
+  }
 })();
 
 // ===================================
