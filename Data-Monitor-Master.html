@@ -36,6 +36,12 @@
   #log{background:#000;color:#0f0;font-family:monospace;font-size:12px;padding:12px;border-radius:8px;max-height:200px;overflow-y:auto;white-space:pre-wrap;margin-top:12px;}
   .toolbar{margin-bottom:16px;display:flex;flex-wrap:wrap;gap:8px;align-items:center;}
   .hidden{display:none;}
+  .dim{color:var(--dim);font-size:13px;}
+  code{background:#000;color:#0f0;padding:2px 6px;border-radius:4px;font-size:11px;}
+  #pasteSection{background:var(--bg3);border:1px dashed rgba(0,217,255,0.3);border-radius:10px;padding:14px;margin-top:10px;}
+  #pasteSection textarea{width:100%;height:80px;background:#000;color:#0f0;border:1px solid rgba(0,217,255,0.2);border-radius:6px;font-family:monospace;font-size:11px;padding:8px;resize:vertical;}
+  #pasteSection label{color:var(--cyan);font-size:12px;font-weight:700;display:block;margin-bottom:6px;}
+  .btn-sm{padding:6px 12px;font-size:12px;}
 </style>
 </head>
 <body>
@@ -47,7 +53,15 @@
   <button class="btn" onclick="runDeepScan()">🔍 Deep Scan (Cloud)</button>
   <button class="btn" onclick="forcePullMissing()" style="background:linear-gradient(135deg,#00c853,#007a33);">⬇️ Force Pull Missing</button>
   <button class="btn btn-red" onclick="cleanCloud()">🧹 Clean Cloud Deleted</button>
-  <span id="lastCheck" class="label" style="margin-left:auto;"></span>
+  <button class="btn btn-sm" onclick="runFullCheck()" style="background:linear-gradient(135deg,#b537f2,#7a20b0);margin-left:auto;">📋 Re-scan Local</button>
+  <span id="lastCheck" class="label" style="margin-left:8px;"></span>
+</div>
+
+<!-- File:// protocol-এ paste area -->
+<div id="pasteSection" style="display:none;margin-bottom:16px;">
+  <label>📋 Local Data Paste Area (file:// protocol-এ ব্যবহার করুন)</label>
+  <textarea id="pasteData" placeholder='App এর Console থেকে copy(localStorage.getItem("wingsfly_data")) run করে এখানে paste করুন, তারপর Refresh All চাপুন'></textarea>
+  <button class="btn btn-sm" onclick="runFullCheck()" style="margin-top:8px;">✅ Load Pasted Data</button>
 </div>
 
 <div class="grid">
@@ -96,7 +110,7 @@
 
 <script>
 // ═══════════════════════════════════════════════════════════
-// CONFIG — Same as your app
+// CONFIG
 // ═══════════════════════════════════════════════════════════
 const CFG = {
   URL: 'https://cwwyhtarnkozukekebvq.supabase.co',
@@ -115,14 +129,58 @@ function log(msg) {
   el.textContent += '[' + new Date().toLocaleTimeString() + '] ' + msg + '\n';
   el.scrollTop = el.scrollHeight;
 }
-
 function fmt(n) { return '৳' + (parseFloat(n)||0).toLocaleString('en-IN'); }
 
+// ═══════════════════════════════════════════════════════════
+// LOCAL DATA — file:// protocol fix
+// ═══════════════════════════════════════════════════════════
+// সমস্যা: এই HTML file:// দিয়ে খোলা হয়, কিন্তু app চলে
+// https://wings-fly-aviation-academy.web.app এ।
+// দুটোর localStorage আলাদা — তাই সরাসরি read হয় না।
+//
+// সমাধান:
+//   1) যদি এই monitor app-এর সাথে একই origin-এ খোলা হয় → সরাসরি পড়ো
+//   2) যদি file:// হয় → user-কে data paste করতে বলো
+//   3) অথবা user নিজে data import করুক (Export থেকে)
+
 function getLocalData() {
+  // চেষ্টা ১: সরাসরি localStorage (একই origin হলে কাজ করবে)
   try {
     var raw = localStorage.getItem('wingsfly_data');
-    return raw ? JSON.parse(raw) : null;
-  } catch(e) { return null; }
+    if (raw) {
+      var parsed = JSON.parse(raw);
+      if (parsed && (parsed.students || parsed.finance)) {
+        log('✅ Local data found via localStorage (' + (parsed.students||[]).length + ' students)');
+        return { source: 'localStorage', data: parsed };
+      }
+    }
+  } catch(e) { log('localStorage read error: '+e.message); }
+
+  // চেষ্টা ২: sessionStorage
+  try {
+    var raw2 = sessionStorage.getItem('wingsfly_data');
+    if (raw2) {
+      var p2 = JSON.parse(raw2);
+      if (p2 && (p2.students || p2.finance)) {
+        log('✅ Local data found via sessionStorage');
+        return { source: 'sessionStorage', data: p2 };
+      }
+    }
+  } catch(e) {}
+
+  // চেষ্টা ৩: Paste area থেকে (file:// case)
+  var pasteRaw = document.getElementById('pasteData')?.value?.trim();
+  if (pasteRaw) {
+    try {
+      var p3 = JSON.parse(pasteRaw);
+      if (p3 && (p3.students || p3.finance)) {
+        log('✅ Local data loaded from paste area');
+        return { source: 'paste', data: p3 };
+      }
+    } catch(e) { log('❌ Paste data JSON parse error: '+e.message); }
+  }
+
+  return null;
 }
 
 // ═══════════════════════════════════════════════════════════
@@ -130,29 +188,72 @@ function getLocalData() {
 // ═══════════════════════════════════════════════════════════
 async function runFullCheck() {
   log('Starting full check...');
-  var gd = getLocalData();
+  document.getElementById('localStats').innerHTML = '<div class="dim">Loading...</div>';
+  document.getElementById('cloudStats').innerHTML = '<div class="dim">Loading...</div>';
+  document.getElementById('matchStats').innerHTML = '<div class="dim">Loading...</div>';
+
+  var localResult = getLocalData();
+  var gd = localResult ? localResult.data : null;
 
   // ── Local Stats ──
   if (gd) {
-    var lStu = (gd.students||[]).length;
-    var lFin = (gd.finance||[]).filter(f=>!f._deleted).length;
-    var lCash = parseFloat(gd.cashBalance)||0;
-    var lBank = (gd.bankAccounts||[]).reduce((s,a)=>s+(parseFloat(a.balance)||0),0);
+    document.getElementById('pasteSection').style.display = 'none';
+    var lStu  = (gd.students||[]).length;
+    var lFin  = (gd.finance||[]).filter(f=>!f._deleted).length;
+    var lEmp  = (gd.employees||[]).length;
+    var lVis  = (gd.visitors||[]).length;
+    var lAct  = (gd.activityHistory||[]).length;
+    var lBrk  = (gd.breakdownRecords||[]).length;
+    var lNotc = (gd.notices||[]).length;
+    var lKeep = 0;
+    try { lKeep = JSON.parse(localStorage.getItem('wingsfly_keep_records')||'[]').length; } catch(e){}
+    var lCash   = parseFloat(gd.cashBalance)||0;
+    var lBank   = (gd.bankAccounts||[]).reduce((s,a)=>s+(parseFloat(a.balance)||0),0);
     var lMobile = (gd.mobileBanking||[]).reduce((s,a)=>s+(parseFloat(a.balance)||0),0);
-    var lGrand = lCash + lBank + lMobile;
+    var lGrand  = lCash + lBank + lMobile;
+    var lDelStu  = ((gd.deletedItems||{}).students||[]).length;
+    var lDelFin  = ((gd.deletedItems||{}).finance||[]).length;
+    var lDelEmp  = ((gd.deletedItems||{}).employees||[]).length;
 
     document.getElementById('localStats').innerHTML =
+      srcBadge(localResult.source) +
       row('Students', lStu) +
       row('Finance (active)', lFin) +
-      row('Cash', fmt(lCash)) +
+      row('Employees', lEmp) +
+      row('Visitors', lVis) +
+      row('Activity History', lAct) +
+      row('Keep Records', lKeep) +
+      row('Breakdown Records', lBrk) +
+      row('Notices', lNotc) +
+      '<div style="margin:8px 0 4px;border-top:1px solid rgba(255,255,255,0.06);padding-top:8px;"></div>' +
+      row('Recycle Bin — Students', lDelStu, lDelStu>0?'warn':'ok') +
+      row('Recycle Bin — Finance', lDelFin,  lDelFin>0?'warn':'ok') +
+      row('Recycle Bin — Employees', lDelEmp, lDelEmp>0?'warn':'ok') +
+      '<div style="margin:8px 0 4px;border-top:1px solid rgba(255,255,255,0.06);padding-top:8px;"></div>' +
+      row('Cash Balance', fmt(lCash)) +
       row('Bank Total', fmt(lBank)) +
       row('Mobile Total', fmt(lMobile)) +
       row('Grand Total', fmt(lGrand), lGrand>=0?'ok':'err') +
       row('Last Known Finance', localStorage.getItem('wings_last_known_finance')||'—') +
       row('Last Known Students', localStorage.getItem('wings_last_known_count')||'—');
-    log('Local: '+lStu+' students, '+lFin+' finance');
+
+    log('Local: '+lStu+' students, '+lFin+' finance, '+lEmp+' employees');
   } else {
-    document.getElementById('localStats').innerHTML = '<div class="err">No local data found!</div>';
+    // file:// এ local data নেই — paste section দেখাও
+    document.getElementById('pasteSection').style.display = 'block';
+    document.getElementById('localStats').innerHTML =
+      '<div class="err" style="margin-bottom:10px;">⚠️ Local data পাওয়া যাচ্ছে না</div>' +
+      '<div class="dim" style="font-size:12px;line-height:1.6;">' +
+      'এই monitor file:// protocol-এ খোলা। App-এর localStorage সরাসরি access করা যাচ্ছে না।<br><br>' +
+      '<b style="color:var(--cyan)">সমাধান:</b><br>' +
+      '① App খুলুন (wings-fly-aviation-academy.web.app)<br>' +
+      '② Browser Console (F12) খুলুন<br>' +
+      '③ এই command run করুন:<br>' +
+      '<code style="background:#000;padding:4px 8px;border-radius:4px;display:block;margin:6px 0;color:#0f0;font-size:11px;">copy(localStorage.getItem('wingsfly_data'))</code>' +
+      '④ নিচের box-এ Ctrl+V দিয়ে paste করুন<br>' +
+      '⑤ Refresh All চাপুন' +
+      '</div>';
+    log('⚠️ No local data — file:// protocol limitation. Use paste area below.');
   }
 
   // ── Cloud Stats ──
@@ -166,21 +267,22 @@ async function runFullCheck() {
     var fCloud = await fRes.json();
     var eCloud = await eRes.json();
 
-    var cStuActive = sCloud.filter(r=>!r.deleted).length;
+    var cStuActive  = sCloud.filter(r=>!r.deleted).length;
     var cStuDeleted = sCloud.filter(r=>r.deleted).length;
-    var cFinActive = fCloud.filter(r=>!r.deleted).length;
+    var cFinActive  = fCloud.filter(r=>!r.deleted).length;
     var cFinDeleted = fCloud.filter(r=>r.deleted).length;
-    var cEmpActive = eCloud.filter(r=>!r.deleted).length;
+    var cEmpActive  = eCloud.filter(r=>!r.deleted).length;
     var cEmpDeleted = eCloud.filter(r=>r.deleted).length;
 
-    // ✅ BUG F FIX & SESSION 4 FIX: Main record থেকে visitors, activity_history, keep_records, breakdown_records, notices fetch
-    var mainRes = await fetch(CFG.URL+'/rest/v1/'+CFG.TABLE+'?id=eq.'+CFG.RECORD+'&select=visitors,activity_history,keep_records,breakdown_records,notices', {headers:HDRS});
+    var mainRes = await fetch(CFG.URL+'/rest/v1/'+CFG.TABLE+'?id=eq.'+CFG.RECORD+
+      '&select=visitors,activity_history,keep_records,breakdown_records,notices,activity_cleared_at', {headers:HDRS});
     var mainData = await mainRes.json();
-    var cVisitors = (mainData[0]?.visitors || []).length;
-    var cActivity = (mainData[0]?.activity_history || []).length;
-    var cKeepRec = (mainData[0]?.keep_records || []).length;
-    var cBreakdown = (mainData[0]?.breakdown_records || []).length;
-    var cNotices = (mainData[0]?.notices || []).length;
+    var cVisitors  = (mainData[0]?.visitors||[]).length;
+    var cActivity  = (mainData[0]?.activity_history||[]).length;
+    var cKeepRec   = (mainData[0]?.keep_records||[]).length;
+    var cBreakdown = (mainData[0]?.breakdown_records||[]).length;
+    var cNotices   = (mainData[0]?.notices||[]).length;
+    var cCleared   = mainData[0]?.activity_cleared_at || null;
 
     document.getElementById('cloudStats').innerHTML =
       row('Students (active)', cStuActive) +
@@ -194,46 +296,44 @@ async function runFullCheck() {
       row('Keep Records (cloud)', cKeepRec) +
       row('Breakdown Records (cloud)', cBreakdown) +
       row('Notices (cloud)', cNotices) +
+      (cCleared ? row('Activity Cleared At', new Date(cCleared).toLocaleString(), 'warn') : '') +
       row('Total Cloud Rows (Core)', sCloud.length+fCloud.length+eCloud.length);
-    log('Cloud: '+cStuActive+'+'+cStuDeleted+' stu, '+cFinActive+'+'+cFinDeleted+' fin, '+cEmpActive+'+'+cEmpDeleted+' emp, '+cKeepRec+' notes, '+cBreakdown+' brk, '+cNotices+' notc');
+
+    log('Cloud: '+cStuActive+'/'+cStuDeleted+' stu, '+cFinActive+'/'+cFinDeleted+' fin, '+cEmpActive+'/'+cEmpDeleted+' emp');
 
     // ── Match ──
-    var lStu = gd ? (gd.students||[]).length : 0;
-    var lFin = gd ? (gd.finance||[]).filter(f=>!f._deleted).length : 0;
-    var lEmp = gd ? (gd.employees||[]).length : 0;
-    var lVisitors = gd ? (gd.visitors||[]).length : 0;
-    var lActivity = gd ? (gd.activityHistory||[]).length : 0;
-    var lKeepRec = 0; try { lKeepRec = JSON.parse(localStorage.getItem('wingsfly_keep_records')||'[]').length; } catch(e){}
-    var lBreakdown = gd ? (gd.breakdownRecords||[]).length : 0;
-    var lNotices = gd ? (gd.notices||[]).length : 0;
-    
-    var stuMatch = lStu === cStuActive;
-    var finMatch = lFin === cFinActive;
-    var empMatch = lEmp === cEmpActive;
-    var visMatch = lVisitors === cVisitors;
-    var actMatch = lActivity === cActivity;
-    var keepMatch = lKeepRec === cKeepRec;
-    var brkMatch = lBreakdown === cBreakdown;
-    var notcMatch = lNotices === cNotices;
-    var allMatch = stuMatch && finMatch && empMatch;
+    var lStu  = gd ? (gd.students||[]).length : 0;
+    var lFin  = gd ? (gd.finance||[]).filter(f=>!f._deleted).length : 0;
+    var lEmp  = gd ? (gd.employees||[]).length : 0;
+    var lVis  = gd ? (gd.visitors||[]).length : 0;
+    var lAct  = gd ? (gd.activityHistory||[]).length : 0;
+    var lKeep2 = 0; try { lKeep2 = JSON.parse(localStorage.getItem('wingsfly_keep_records')||'[]').length; } catch(e){}
+    var lBrk  = gd ? (gd.breakdownRecords||[]).length : 0;
+    var lNotc = gd ? (gd.notices||[]).length : 0;
 
-    document.getElementById('matchCard').className = 'card full ' + (allMatch?'match':'mismatch');
+    var stuMatch  = lStu  === cStuActive;
+    var finMatch  = lFin  === cFinActive;
+    var empMatch  = lEmp  === cEmpActive;
+    var visMatch  = lVis  === cVisitors;
+    var keepMatch = lKeep2 === cKeepRec;
+    var brkMatch  = lBrk  === cBreakdown;
+    var notcMatch = lNotc === cNotices;
+    var allMatch  = stuMatch && finMatch && empMatch;
+
+    document.getElementById('matchCard').className = 'card full '+(allMatch?'match':'mismatch');
     document.getElementById('matchStats').innerHTML =
-      row('Students', lStu + ' local / ' + cStuActive + ' cloud', stuMatch?'ok':'err') +
-      row('Finance', lFin + ' local / ' + cFinActive + ' cloud', finMatch?'ok':'err') +
-      row('Employees', lEmp + ' local / ' + cEmpActive + ' cloud', empMatch?'ok':'err') +
-      row('Visitors', lVisitors + ' local / ' + cVisitors + ' cloud', visMatch?'ok':'warn') +
-      row('Activity History', lActivity + ' local / ' + cActivity + ' cloud', actMatch?'ok':'warn') +
-      row('📝 Keep Records', lKeepRec + ' local / ' + cKeepRec + ' cloud', keepMatch?'ok':'warn') +
-      row('📊 Breakdown Records', lBreakdown + ' local / ' + cBreakdown + ' cloud', brkMatch?'ok':'warn') +
-      row('📌 Notices', lNotices + ' local / ' + cNotices + ' cloud', notcMatch?'ok':'warn') +
+      row('Students',         lStu  +' local / '+cStuActive +' cloud', stuMatch ?'ok':'err') +
+      row('Finance',          lFin  +' local / '+cFinActive +' cloud', finMatch ?'ok':'err') +
+      row('Employees',        lEmp  +' local / '+cEmpActive +' cloud', empMatch ?'ok':'err') +
+      row('Visitors',         lVis  +' local / '+cVisitors  +' cloud', visMatch ?'ok':'warn') +
+      row('Keep Records',     lKeep2+' local / '+cKeepRec   +' cloud', keepMatch?'ok':'warn') +
+      row('Breakdown Records',lBrk  +' local / '+cBreakdown +' cloud', brkMatch ?'ok':'warn') +
+      row('Notices',          lNotc +' local / '+cNotices   +' cloud', notcMatch?'ok':'warn') +
       row('Status', allMatch?'✅ PERFECT MATCH':'❌ MISMATCH', allMatch?'ok':'err');
 
-    // ── Deleted markers ──
-    if (cStuDeleted>0 || cFinDeleted>0 || cEmpDeleted>0) {
-      log('⚠️ Cloud has '+cStuDeleted+' student + '+cFinDeleted+' finance + '+cEmpDeleted+' employee deleted markers');
-    }
-    log(allMatch?'✅ Data matches!':'❌ Data mismatch!');
+    if (cStuDeleted>0||cFinDeleted>0||cEmpDeleted>0)
+      log('⚠️ Cloud deleted markers: stu='+cStuDeleted+' fin='+cFinDeleted+' emp='+cEmpDeleted);
+    log(allMatch?'✅ All match!':'❌ Mismatch detected!');
 
   } catch(e) {
     document.getElementById('cloudStats').innerHTML = '<div class="err">Cloud error: '+e.message+'</div>';
@@ -242,17 +342,26 @@ async function runFullCheck() {
 
   // ── Accounts ──
   if (gd) {
-    var html = '';
-    html += row('💵 Cash', fmt(gd.cashBalance));
-    (gd.bankAccounts||[]).forEach(a => { html += row('🏦 '+a.name, fmt(a.balance)); });
-    (gd.mobileBanking||[]).forEach(a => { html += row('📱 '+a.name, fmt(a.balance)); });
-    var grand = (parseFloat(gd.cashBalance)||0) + (gd.bankAccounts||[]).reduce((s,a)=>s+(parseFloat(a.balance)||0),0) + (gd.mobileBanking||[]).reduce((s,a)=>s+(parseFloat(a.balance)||0),0);
-    html += row('📊 Grand Total', fmt(grand), grand>=0?'ok':'err');
-    document.getElementById('accountStats').innerHTML = html;
+    var html2 = '';
+    html2 += row('💵 Cash', fmt(gd.cashBalance));
+    (gd.bankAccounts||[]).forEach(a => { html2 += row('🏦 '+a.name, fmt(a.balance)); });
+    (gd.mobileBanking||[]).forEach(a => { html2 += row('📱 '+a.name, fmt(a.balance)); });
+    var grand2 = (parseFloat(gd.cashBalance)||0)
+      + (gd.bankAccounts||[]).reduce((s,a)=>s+(parseFloat(a.balance)||0),0)
+      + (gd.mobileBanking||[]).reduce((s,a)=>s+(parseFloat(a.balance)||0),0);
+    html2 += row('📊 Grand Total', fmt(grand2), grand2>=0?'ok':'err');
+    document.getElementById('accountStats').innerHTML = html2;
+  } else {
+    document.getElementById('accountStats').innerHTML = '<div class="dim">Local data নেই — Accounts দেখানো যাচ্ছে না</div>';
   }
 
   document.getElementById('lastCheck').textContent = 'Last: ' + new Date().toLocaleTimeString();
   log('Check complete.');
+}
+
+function srcBadge(src) {
+  var color = src==='paste'?'#ff9800':src==='sessionStorage'?'#b537f2':'#00c853';
+  return '<div style="font-size:11px;color:'+color+';margin-bottom:10px;font-weight:700;">📍 Source: '+src+'</div>';
 }
 
 function row(label, val, status) {
@@ -262,17 +371,17 @@ function row(label, val, status) {
 }
 
 // ═══════════════════════════════════════════════════════════
-// DEEP SCAN — Check for duplicates & stale rows
+// DEEP SCAN
 // ═══════════════════════════════════════════════════════════
 async function runDeepScan() {
   log('Running deep scan...');
-  var gd = getLocalData();
+  var localResult = getLocalData();
+  var gd = localResult ? localResult.data : null;
 
   try {
     var fRes = await fetch(CFG.URL+'/rest/v1/'+CFG.TBL_FINANCE+'?academy_id=eq.'+CFG.ACADEMY_ID+'&select=id,data,deleted', {headers:HDRS});
     var fCloud = await fRes.json();
 
-    // Find duplicates
     var idMap = {};
     fCloud.forEach(r => {
       if (r.data && r.data.id) {
@@ -283,46 +392,38 @@ async function runDeepScan() {
     });
     var dups = Object.keys(idMap).filter(k => idMap[k].length > 1);
 
+    document.getElementById('dupCard').className = 'card full '+(dups.length>0?'mismatch':'match');
+    document.getElementById('dupCard').classList.remove('hidden');
     if (dups.length > 0) {
-      document.getElementById('dupCard').className = 'card full mismatch';
-      var html = '<table><tr><th>ID</th><th>Cloud Rows</th><th>Action</th></tr>';
-      dups.forEach(id => {
-        html += '<tr><td>'+id+'</td><td class="err">'+idMap[id].length+'</td><td>Delete extra rows</td></tr>';
-      });
-      html += '</table>';
-      document.getElementById('dupStats').innerHTML = html;
+      var h = '<table><tr><th>ID</th><th>Cloud Rows</th><th>Action</th></tr>';
+      dups.forEach(id => { h += '<tr><td>'+id+'</td><td class="err">'+idMap[id].length+'</td><td>Delete extra rows</td></tr>'; });
+      h += '</table>';
+      document.getElementById('dupStats').innerHTML = h;
       log('🚨 '+dups.length+' duplicate IDs found!');
     } else {
-      document.getElementById('dupCard').className = 'card full match';
       document.getElementById('dupStats').innerHTML = '<div class="ok">✅ No duplicates found</div>';
       log('✅ No duplicates');
     }
 
-    // Find stale (cloud but not local)
     if (gd && gd.finance) {
       var localIds = new Set(gd.finance.map(f => String(f.id)));
       var stale = fCloud.filter(r => r.data && !localIds.has(String(r.data.id)) && !r.deleted);
-
+      document.getElementById('staleCard').className = 'card full '+(stale.length>0?'mismatch':'match');
+      document.getElementById('staleCard').classList.remove('hidden');
       if (stale.length > 0) {
-        document.getElementById('staleCard').className = 'card full mismatch';
-        var html = '<table><tr><th>Cloud ID</th><th>Type</th><th>Amount</th><th>Person</th><th>Date</th></tr>';
-        stale.forEach(r => {
-          var d = r.data;
-          html += '<tr><td>'+d.id+'</td><td>'+d.type+'</td><td>'+fmt(d.amount)+'</td><td>'+(d.person||'—')+'</td><td>'+(d.date||'—')+'</td></tr>';
-        });
-        html += '</table>';
-        document.getElementById('staleStats').innerHTML = html;
-        log('⚠️ '+stale.length+' stale cloud rows found');
+        var h2 = '<table><tr><th>Cloud ID</th><th>Type</th><th>Amount</th><th>Person</th><th>Date</th></tr>';
+        stale.forEach(r => { var d=r.data; h2 += '<tr><td>'+d.id+'</td><td>'+d.type+'</td><td>'+fmt(d.amount)+'</td><td>'+(d.person||'—')+'</td><td>'+(d.date||'—')+'</td></tr>'; });
+        h2 += '</table>';
+        document.getElementById('staleStats').innerHTML = h2;
+        log('⚠️ '+stale.length+' stale cloud rows');
       } else {
-        document.getElementById('staleCard').className = 'card full match';
         document.getElementById('staleStats').innerHTML = '<div class="ok">✅ No stale rows</div>';
         log('✅ No stale rows');
       }
+    } else {
+      document.getElementById('staleStats').innerHTML = '<div class="dim">Local data নেই — stale check সম্ভব নয়</div>';
     }
-
-  } catch(e) {
-    log('Deep scan error: '+e.message);
-  }
+  } catch(e) { log('Deep scan error: '+e.message); }
 }
 
 // ═══════════════════════════════════════════════════════════
@@ -331,91 +432,55 @@ async function runDeepScan() {
 async function cleanCloud() {
   if (!confirm('Cloud থেকে সব deleted=true rows ডিলিট করবেন?')) return;
   log('Cleaning cloud deleted markers...');
-
   try {
-    var r1 = await fetch(CFG.URL+'/rest/v1/'+CFG.TBL_FINANCE+'?academy_id=eq.'+CFG.ACADEMY_ID+'&deleted=eq.true', {method:'DELETE', headers:HDRS});
-    log('Finance deleted rows: HTTP '+r1.status);
-    var r2 = await fetch(CFG.URL+'/rest/v1/'+CFG.TBL_STUDENTS+'?academy_id=eq.'+CFG.ACADEMY_ID+'&deleted=eq.true', {method:'DELETE', headers:HDRS});
-    log('Student deleted rows: HTTP '+r2.status);
+    var r1 = await fetch(CFG.URL+'/rest/v1/'+CFG.TBL_FINANCE+'?academy_id=eq.'+CFG.ACADEMY_ID+'&deleted=eq.true', {method:'DELETE',headers:HDRS});
+    log('Finance deleted: HTTP '+r1.status);
+    var r2 = await fetch(CFG.URL+'/rest/v1/'+CFG.TBL_STUDENTS+'?academy_id=eq.'+CFG.ACADEMY_ID+'&deleted=eq.true', {method:'DELETE',headers:HDRS});
+    log('Students deleted: HTTP '+r2.status);
+    var r3 = await fetch(CFG.URL+'/rest/v1/'+CFG.TBL_EMPLOYEES+'?academy_id=eq.'+CFG.ACADEMY_ID+'&deleted=eq.true', {method:'DELETE',headers:HDRS});
+    log('Employees deleted: HTTP '+r3.status);
     log('✅ Cloud cleaned!');
     runFullCheck();
-  } catch(e) {
-    log('Clean error: '+e.message);
-  }
+  } catch(e) { log('Clean error: '+e.message); }
 }
 
-
 // ═══════════════════════════════════════════════════════════
-// FORCE PULL MISSING RECORDS
+// FORCE PULL MISSING
 // ═══════════════════════════════════════════════════════════
 async function forcePullMissing() {
-  log('⬇️ Force pulling missing finance records from cloud...');
-  var gd = getLocalData();
-  if (!gd) { log('❌ No local data found!'); return; }
+  log('⬇️ Force pulling missing records...');
+  var localResult = getLocalData();
+  var gd = localResult ? localResult.data : null;
+  if (!gd) { log('❌ No local data!'); return; }
 
   try {
-    // Get all active cloud finance records (with full data)
-    var fRes = await fetch(
-      CFG.URL + '/rest/v1/' + CFG.TBL_FINANCE +
-      '?academy_id=eq.' + CFG.ACADEMY_ID +
-      '&deleted=eq.false&select=id,data',
-      {headers: HDRS}
-    );
-    if (!fRes.ok) { log('❌ Cloud fetch failed: HTTP ' + fRes.status); return; }
+    var fRes = await fetch(CFG.URL+'/rest/v1/'+CFG.TBL_FINANCE+'?academy_id=eq.'+CFG.ACADEMY_ID+'&deleted=eq.false&select=id,data', {headers:HDRS});
+    if (!fRes.ok) { log('❌ Cloud fetch failed: HTTP '+fRes.status); return; }
     var fCloud = await fRes.json();
-    log('☁️ Cloud active finance records: ' + fCloud.length);
+    log('☁️ Cloud active finance: '+fCloud.length);
 
-    // Build set of local IDs
     if (!gd.finance) gd.finance = [];
-    var localIds = new Set(gd.finance.map(function(f) { return String(f.id); }));
+    var localIds = new Set(gd.finance.map(f => String(f.id)));
+    var missing = fCloud.filter(r => r.data && r.data.id && !localIds.has(String(r.data.id)));
 
-    // Find records that exist in cloud but NOT locally
-    var missing = fCloud.filter(function(r) {
-      return r.data && r.data.id && !localIds.has(String(r.data.id));
-    });
+    if (missing.length === 0) { log('✅ কোনো মিসিং রেকর্ড নেই!'); alert('✅ Local এবং Cloud সমান।'); return; }
 
-    if (missing.length === 0) {
-      log('✅ কোনো মিসিং রেকর্ড নেই — সব সমান আছে!');
-      alert('✅ কোনো মিসিং রেকর্ড নেই। Local এবং Cloud সমান।');
-      return;
-    }
+    log('⚠️ '+missing.length+'টি মিসিং');
+    missing.forEach(r => { var d=r.data; log('  ➕ '+(d.type||'?')+' | '+fmt(d.amount)+' | '+(d.person||'—')+' | '+(d.date||'—')); });
 
-    log('⚠️ ' + missing.length + 'টি রেকর্ড মিসিং। Import করা হচ্ছে...');
+    if (!confirm(missing.length+'টি মিসিং Finance রেকর্ড পাওয়া গেছে।\nLocal Data-তে যোগ করবেন?')) { log('Cancelled.'); return; }
 
-    // পরিষ্কারভাবে দেখাও কোন রেকর্ডগুলো আনা হচ্ছে
-    missing.forEach(function(r) {
-      var d = r.data;
-      log('  ➕ ' + (d.type||'?') + ' | ' + fmt(d.amount) + ' | ' + (d.person||'—') + ' | ' + (d.date||'—'));
-    });
-
-    // Confirm করুন
-    var ok = confirm(
-      missing.length + 'টি মিসিং Finance রেকর্ড পাওয়া গেছে।\n\n' +
-      'এগুলো আপনার Local Data-তে যোগ করবেন?\n' +
-      '(Existing data অপরিবর্তিত থাকবে)'
-    );
-    if (!ok) { log('Cancelled by user.'); return; }
-
-    // Inject missing records into local data
-    missing.forEach(function(r) { gd.finance.push(r.data); });
-
-    // Save back to localStorage
+    missing.forEach(r => { gd.finance.push(r.data); });
     try {
       localStorage.setItem('wingsfly_data', JSON.stringify(gd));
-      log('✅ ' + missing.length + 'টি রেকর্ড সফলভাবে যোগ করা হয়েছে!');
-      log('💡 এখন মূল App-এ Ctrl+Shift+R দিয়ে Reload করুন।');
-      alert('✅ ' + missing.length + 'টি রেকর্ড সফলভাবে যোগ করা হয়েছে!\n\nএখন মূল App-এ ফিরে Ctrl+Shift+R দিয়ে Reload করুন।');
+      log('✅ '+missing.length+'টি রেকর্ড যোগ হয়েছে! App-এ Ctrl+Shift+R দিন।');
+      alert('✅ '+missing.length+'টি রেকর্ড যোগ হয়েছে!\n\nApp-এ ফিরে Ctrl+Shift+R করুন।');
       runFullCheck();
-    } catch(e) {
-      log('❌ localStorage save failed: ' + e.message);
-    }
-
-  } catch(e) {
-    log('❌ Force pull error: ' + e.message);
-  }
+    } catch(e) { log('❌ Save failed: '+e.message); }
+  } catch(e) { log('❌ Error: '+e.message); }
 }
 
-// Auto-run on load
+// Auto-run
 runFullCheck();
 </script>
 </body>
