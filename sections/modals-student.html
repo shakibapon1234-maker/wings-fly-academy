@@ -17,13 +17,13 @@
                         <div class="col-md-6 mb-2">
                             <label class="form-label fw-bold small text-uppercase text-muted">Student
                                 Name</label>
-                            <input type="text" name="name" class="form-control premium-input-modern"
+                            <input type="text" name="name" id="studentName" class="form-control premium-input-modern"
                                 placeholder="Enter full name" required>
                         </div>
                         <div class="col-md-6 mb-2">
                             <label class="form-label fw-bold small text-uppercase text-muted">Phone
                                 Number</label>
-                            <input type="tel" name="phone" class="form-control premium-input-modern"
+                            <input type="tel" name="phone" id="studentPhone" class="form-control premium-input-modern"
                                 placeholder="e.g., +8801234567890" required inputmode="numeric" pattern="[0-9+\-\s]+"
                                 oninput="(function(el){var b=el.value;el.value=el.value.replace(/[^0-9+\-\s]/g,'');if(b!==el.value&&window.showPhoneOnlyToast)window.showPhoneOnlyToast();})(this)">
                         </div>
@@ -93,12 +93,12 @@
                     <div class="row g-3 mb-3">
                         <div class="col-md-6">
                             <label class="form-label fw-bold small text-uppercase text-muted">Father's Name</label>
-                            <input type="text" name="fatherName" class="form-control premium-input-modern"
+                            <input type="text" name="fatherName" id="studentFatherName" class="form-control premium-input-modern"
                                 placeholder="Father's Name">
                         </div>
                         <div class="col-md-6">
                             <label class="form-label fw-bold small text-uppercase text-muted">Mother's Name</label>
-                            <input type="text" name="motherName" class="form-control premium-input-modern"
+                            <input type="text" name="motherName" id="studentMotherName" class="form-control premium-input-modern"
                                 placeholder="Mother's Name">
                         </div>
                     </div>
@@ -115,7 +115,7 @@
                         <div class="col-md-4 mb-3">
                             <label class="form-label fw-bold small text-uppercase text-muted">Batch
                                 Number</label>
-                            <input type="text" name="batch" class="form-control premium-input-modern"
+                            <input type="text" name="batch" id="studentBatchInput" class="form-control premium-input-modern"
                                 placeholder="e.g., Batch 101">
                         </div>
                         <div class="col-md-4 mb-3">
@@ -134,7 +134,7 @@
                         <div class="col-md-4 mb-3">
                             <label class="form-label fw-bold small text-uppercase text-muted">🔔 Payment
                                 Reminder</label>
-                            <input type="date" name="reminderDate" class="form-control premium-input-modern"
+                            <input type="date" name="reminderDate" id="studentReminderDate" class="form-control premium-input-modern"
                                 placeholder="Optional reminder date">
                             <small class="text-muted">We'll notify you on this date</small>
                         </div>
@@ -184,7 +184,7 @@
                     <div class="mb-3 mt-3">
                         <label class="form-label fw-bold small text-uppercase text-muted">Teacher's Remarks /
                             Student Notes</label>
-                        <textarea name="remarks" class="form-control premium-input-modern"
+                        <textarea name="remarks" id="studentRemarks" class="form-control premium-input-modern"
                             placeholder="e.g., Good student, Topper, Quick learner, Needs more practice..."
                             rows="2"></textarea>
                     </div>
