@@ -630,26 +630,26 @@ async function runFullCheck() {
   // ── 2. CLOUD ──
   try {
     log('Fetching from Supabase...');
-    var results = await Promise.all([
-      fetch(CFG.URL+'/rest/v1/'+CFG.TBL_STUDENTS+'?academy_id=eq.'+CFG.ACADEMY_ID+'&select=id,deleted&limit=5000', {headers:HDRS}),
-      fetch(CFG.URL+'/rest/v1/'+CFG.TBL_FINANCE +'?academy_id=eq.'+CFG.ACADEMY_ID+'&select=id,deleted&limit=5000', {headers:HDRS}),
-      fetch(CFG.URL+'/rest/v1/'+CFG.TBL_EMPLOYEES+'?academy_id=eq.'+CFG.ACADEMY_ID+'&select=id,deleted&limit=5000', {headers:HDRS}),
-      fetch(CFG.URL+'/rest/v1/'+CFG.TABLE+'?id=eq.'+CFG.RECORD+
-        '&select=cash_balance,version,visitors,activity_history,keep_records,breakdown_records,notices,activity_cleared_at',
-        {headers:HDRS})
-    ]);
 
-    // Check for HTTP errors
-    for (var i = 0; i < results.length; i++) {
-      if (!results[i].ok) {
-        throw new Error('HTTP ' + results[i].status + ' from Supabase (request ' + (i+1) + ')');
-      }
+    // ✅ FIX: প্রতিটা fetch আলাদাভাবে করো — একটা fail করলে বাকিগুলো আসবে
+    async function safeFetch(url, label) {
+      try {
+        var r = await fetch(url, {headers:HDRS});
+        if (!r.ok) { log(label + ': HTTP ' + r.status + ' — skipped', 'warn'); return null; }
+        return await r.json();
+      } catch(e) { log(label + ': ' + e.message + ' — skipped', 'warn'); return null; }
     }
 
-    var sCloud = await results[0].json();
-    var fCloud = await results[1].json();
-    var eCloud = await results[2].json();
-    var mainArr= await results[3].json();
+    var sCloud = await safeFetch(CFG.URL+'/rest/v1/'+CFG.TBL_STUDENTS+'?academy_id=eq.'+CFG.ACADEMY_ID+'&select=id,deleted&limit=5000', 'Students');
+    var fCloud = await safeFetch(CFG.URL+'/rest/v1/'+CFG.TBL_FINANCE+'?academy_id=eq.'+CFG.ACADEMY_ID+'&select=id,deleted&limit=5000', 'Finance');
+    var eCloud = await safeFetch(CFG.URL+'/rest/v1/'+CFG.TBL_EMPLOYEES+'?academy_id=eq.'+CFG.ACADEMY_ID+'&select=id,deleted&limit=5000', 'Employees');
+    var mainRaw= await safeFetch(CFG.URL+'/rest/v1/'+CFG.TABLE+'?id=eq.'+CFG.RECORD+'&select=*&limit=1', 'Main Record');
+
+    // null হলে empty array দাও
+    sCloud = sCloud || [];
+    fCloud = fCloud || [];
+    eCloud = eCloud || [];
+    var mainArr = Array.isArray(mainRaw) ? mainRaw : [mainRaw || {}];
     var mainRow = mainArr[0] || {};
 
     var cStuActive  = sCloud.filter(function(r){ return !r.deleted; }).length;
