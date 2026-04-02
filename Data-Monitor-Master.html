@@ -5,482 +5,966 @@
 <meta name="viewport" content="width=device-width, initial-scale=1">
 <title>🔍 Wings Fly — Data Monitor</title>
 <style>
-  :root{--bg:#0a0e27;--bg2:#111630;--bg3:#161c3a;--cyan:#00d9ff;--green:#00c853;--red:#f44336;--yellow:#ff9800;--purple:#b537f2;--text:#c8d0f0;--dim:#6e8caa;--border:rgba(0,217,255,0.15);}
-  *{box-sizing:border-box;margin:0;padding:0;}
-  body{background:var(--bg);color:var(--text);font-family:'Segoe UI',monospace;font-size:14px;padding:20px;}
-  h1{background:linear-gradient(90deg,var(--cyan),var(--purple));-webkit-background-clip:text;-webkit-text-fill-color:transparent;font-size:22px;margin-bottom:20px;}
-  .grid{display:grid;grid-template-columns:1fr 1fr;gap:16px;margin-bottom:20px;}
-  @media(max-width:800px){.grid{grid-template-columns:1fr;}}
-  .card{background:var(--bg2);border:1px solid var(--border);border-radius:12px;padding:16px;}
-  .card h3{font-size:15px;margin-bottom:12px;color:var(--cyan);}
-  .row{display:flex;justify-content:space-between;padding:6px 0;border-bottom:1px solid rgba(255,255,255,0.04);}
-  .label{color:var(--dim);font-size:13px;}
-  .val{font-weight:700;font-size:14px;}
-  .ok{color:var(--green);}
-  .warn{color:var(--yellow);}
-  .err{color:var(--red);}
-  .match{background:rgba(0,200,83,0.08);border:1px solid rgba(0,200,83,0.2);}
-  .mismatch{background:rgba(244,67,54,0.08);border:1px solid rgba(244,67,54,0.3);}
-  .full{grid-column:1/-1;}
-  table{width:100%;border-collapse:collapse;font-size:13px;margin-top:8px;}
-  th{background:var(--bg3);color:var(--dim);padding:8px;text-align:left;font-size:11px;text-transform:uppercase;letter-spacing:0.5px;border-bottom:1px solid var(--border);}
-  td{padding:6px 8px;border-bottom:1px solid rgba(255,255,255,0.04);}
-  tr:hover td{background:rgba(0,217,255,0.04);}
-  .btn{background:linear-gradient(135deg,var(--cyan),#0099cc);color:#fff;border:none;padding:10px 20px;border-radius:8px;cursor:pointer;font-size:14px;font-weight:700;margin:4px;}
-  .btn:hover{opacity:0.9;}
-  .btn-red{background:linear-gradient(135deg,var(--red),#cc0000);}
-  .status{padding:4px 10px;border-radius:12px;font-size:11px;font-weight:700;}
-  .s-ok{background:rgba(0,200,83,0.15);color:var(--green);border:1px solid rgba(0,200,83,0.3);}
-  .s-warn{background:rgba(255,152,0,0.15);color:var(--yellow);border:1px solid rgba(255,152,0,0.3);}
-  .s-err{background:rgba(244,67,54,0.15);color:var(--red);border:1px solid rgba(244,67,54,0.3);}
-  #log{background:#000;color:#0f0;font-family:monospace;font-size:12px;padding:12px;border-radius:8px;max-height:200px;overflow-y:auto;white-space:pre-wrap;margin-top:12px;}
-  .toolbar{margin-bottom:16px;display:flex;flex-wrap:wrap;gap:8px;align-items:center;}
-  .hidden{display:none;}
-  .dim{color:var(--dim);font-size:13px;}
-  code{background:#000;color:#0f0;padding:2px 6px;border-radius:4px;font-size:11px;}
-  #pasteSection{background:var(--bg3);border:1px dashed rgba(0,217,255,0.3);border-radius:10px;padding:14px;margin-top:10px;}
-  #pasteSection textarea{width:100%;height:80px;background:#000;color:#0f0;border:1px solid rgba(0,217,255,0.2);border-radius:6px;font-family:monospace;font-size:11px;padding:8px;resize:vertical;}
-  #pasteSection label{color:var(--cyan);font-size:12px;font-weight:700;display:block;margin-bottom:6px;}
-  .btn-sm{padding:6px 12px;font-size:12px;}
+  @import url('https://fonts.googleapis.com/css2?family=JetBrains+Mono:wght@400;600;700&family=Sora:wght@400;600;700;800&display=swap');
+
+  :root {
+    --bg:    #070b1a;
+    --bg2:   #0d1228;
+    --bg3:   #131830;
+    --bg4:   #1a2040;
+    --cyan:  #00d9ff;
+    --cyan2: #00a8cc;
+    --green: #00e676;
+    --red:   #ff3d5a;
+    --yellow:#ffb300;
+    --purple:#c158f5;
+    --text:  #ccd6f0;
+    --dim:   #5a7090;
+    --border:rgba(0,217,255,0.12);
+    --glow:  rgba(0,217,255,0.08);
+  }
+
+  * { box-sizing: border-box; margin: 0; padding: 0; }
+
+  body {
+    background: var(--bg);
+    color: var(--text);
+    font-family: 'Sora', sans-serif;
+    font-size: 13px;
+    min-height: 100vh;
+    overflow-x: hidden;
+  }
+
+  /* ── Background grid ── */
+  body::before {
+    content: '';
+    position: fixed; inset: 0;
+    background-image:
+      linear-gradient(rgba(0,217,255,0.03) 1px, transparent 1px),
+      linear-gradient(90deg, rgba(0,217,255,0.03) 1px, transparent 1px);
+    background-size: 40px 40px;
+    pointer-events: none;
+    z-index: 0;
+  }
+
+  .wrap { position: relative; z-index: 1; max-width: 1400px; margin: 0 auto; padding: 20px 24px 40px; }
+
+  /* ── Header ── */
+  .hdr {
+    display: flex; align-items: center; justify-content: space-between;
+    padding: 16px 24px;
+    background: rgba(13,18,40,0.95);
+    border-bottom: 1px solid var(--border);
+    position: sticky; top: 0; z-index: 100;
+    backdrop-filter: blur(12px);
+  }
+  .hdr-left { display: flex; align-items: center; gap: 14px; }
+  .hdr-logo {
+    font-family: 'JetBrains Mono', monospace;
+    font-size: 18px; font-weight: 700;
+    background: linear-gradient(90deg, var(--cyan), var(--purple));
+    -webkit-background-clip: text; -webkit-text-fill-color: transparent;
+  }
+  .hdr-sub { font-size: 11px; color: var(--dim); letter-spacing: 1px; text-transform: uppercase; }
+
+  .hdr-status {
+    display: flex; align-items: center; gap: 8px;
+    font-family: 'JetBrains Mono', monospace; font-size: 11px;
+  }
+  .pulse {
+    width: 8px; height: 8px; border-radius: 50%;
+    background: var(--green);
+    box-shadow: 0 0 0 0 rgba(0,230,118,0.4);
+    animation: pulse 2s infinite;
+  }
+  .pulse.red { background: var(--red); box-shadow: 0 0 0 0 rgba(255,61,90,0.4); }
+  .pulse.yellow { background: var(--yellow); box-shadow: 0 0 0 0 rgba(255,179,0,0.4); }
+  @keyframes pulse {
+    0%   { box-shadow: 0 0 0 0 rgba(0,230,118,0.6); }
+    70%  { box-shadow: 0 0 0 8px rgba(0,230,118,0); }
+    100% { box-shadow: 0 0 0 0 rgba(0,230,118,0); }
+  }
+
+  /* ── Toolbar ── */
+  .toolbar {
+    display: flex; flex-wrap: wrap; gap: 8px;
+    padding: 16px 0 20px;
+    align-items: center;
+  }
+  .btn {
+    display: inline-flex; align-items: center; gap: 6px;
+    padding: 9px 18px; border-radius: 8px; border: none;
+    font-family: 'Sora', sans-serif; font-size: 12px; font-weight: 700;
+    cursor: pointer; transition: all 0.2s;
+    white-space: nowrap;
+  }
+  .btn:hover { transform: translateY(-1px); filter: brightness(1.15); }
+  .btn:active { transform: translateY(0); }
+  .btn-cyan  { background: linear-gradient(135deg,#00d9ff,#0088aa); color: #050a1e; }
+  .btn-blue  { background: linear-gradient(135deg,#2979ff,#1565c0); color: #fff; }
+  .btn-green { background: linear-gradient(135deg,#00e676,#00b248); color: #050a1e; }
+  .btn-red   { background: linear-gradient(135deg,#ff3d5a,#cc0022); color: #fff; }
+  .btn-purple{ background: linear-gradient(135deg,#c158f5,#7b1fa2); color: #fff; }
+  .btn-ghost {
+    background: transparent; color: var(--dim);
+    border: 1px solid rgba(255,255,255,0.1);
+  }
+  .btn-ghost:hover { border-color: var(--cyan); color: var(--cyan); }
+
+  .btn-sm { padding: 6px 12px; font-size: 11px; }
+  .ml-auto { margin-left: auto; }
+
+  #lastCheck { font-family: 'JetBrains Mono', monospace; font-size: 11px; color: var(--dim); }
+
+  /* ── Grid ── */
+  .grid { display: grid; grid-template-columns: 1fr 1fr; gap: 16px; margin-bottom: 16px; }
+  .full { grid-column: 1 / -1; }
+  @media (max-width: 900px) { .grid { grid-template-columns: 1fr; } }
+
+  /* ── Cards ── */
+  .card {
+    background: var(--bg2);
+    border: 1px solid var(--border);
+    border-radius: 14px; padding: 18px;
+    transition: border-color 0.3s;
+  }
+  .card.match  { border-color: rgba(0,230,118,0.3); background: rgba(0,230,118,0.03); }
+  .card.miss   { border-color: rgba(255,61,90,0.3);  background: rgba(255,61,90,0.03); }
+  .card.warn-c { border-color: rgba(255,179,0,0.3);  background: rgba(255,179,0,0.03); }
+
+  .card-hdr {
+    display: flex; align-items: center; justify-content: space-between;
+    margin-bottom: 14px;
+  }
+  .card-title {
+    font-size: 13px; font-weight: 700; letter-spacing: 0.3px;
+    display: flex; align-items: center; gap: 8px;
+  }
+  .card-badge {
+    font-size: 10px; font-weight: 700; padding: 3px 8px;
+    border-radius: 20px; letter-spacing: 0.5px; text-transform: uppercase;
+  }
+  .badge-ok     { background: rgba(0,230,118,0.15); color: var(--green); border: 1px solid rgba(0,230,118,0.3); }
+  .badge-err    { background: rgba(255,61,90,0.15);  color: var(--red);   border: 1px solid rgba(255,61,90,0.3); }
+  .badge-warn   { background: rgba(255,179,0,0.15);  color: var(--yellow); border: 1px solid rgba(255,179,0,0.3); }
+  .badge-loading{ background: rgba(0,217,255,0.1);  color: var(--cyan);  border: 1px solid rgba(0,217,255,0.2); }
+
+  /* ── Rows ── */
+  .row {
+    display: flex; justify-content: space-between; align-items: center;
+    padding: 7px 0; border-bottom: 1px solid rgba(255,255,255,0.04);
+  }
+  .row:last-child { border-bottom: none; }
+  .lbl { color: var(--dim); font-size: 12px; }
+  .val { font-family: 'JetBrains Mono', monospace; font-weight: 600; font-size: 13px; }
+  .val.ok  { color: var(--green); }
+  .val.err { color: var(--red); }
+  .val.warn{ color: var(--yellow); }
+  .val.cyan{ color: var(--cyan); }
+
+  /* ── Status chip ── */
+  .chip {
+    font-size: 10px; font-weight: 700; padding: 2px 7px;
+    border-radius: 12px; text-transform: uppercase; margin-left: 6px;
+  }
+  .chip-ok   { background: rgba(0,230,118,0.15); color: var(--green); }
+  .chip-err  { background: rgba(255,61,90,0.15);  color: var(--red); }
+  .chip-warn { background: rgba(255,179,0,0.15);  color: var(--yellow); }
+
+  /* ── Divider ── */
+  .divider { border-top: 1px solid rgba(255,255,255,0.06); margin: 10px 0 8px; }
+
+  /* ── Source badge ── */
+  .src-badge {
+    font-size: 10px; font-weight: 700; letter-spacing: 0.8px; text-transform: uppercase;
+    padding: 4px 10px; border-radius: 20px; display: inline-block; margin-bottom: 12px;
+  }
+  .src-ls { background: rgba(0,230,118,0.12); color: var(--green); border: 1px solid rgba(0,230,118,0.25); }
+  .src-paste { background: rgba(255,179,0,0.12); color: var(--yellow); border: 1px solid rgba(255,179,0,0.25); }
+
+  /* ── Table ── */
+  table { width: 100%; border-collapse: collapse; font-size: 12px; margin-top: 10px; }
+  th {
+    background: var(--bg3); color: var(--dim);
+    padding: 8px 10px; text-align: left;
+    font-size: 10px; text-transform: uppercase; letter-spacing: 0.5px;
+    border-bottom: 1px solid var(--border);
+    font-family: 'JetBrains Mono', monospace;
+  }
+  td { padding: 7px 10px; border-bottom: 1px solid rgba(255,255,255,0.04); }
+  tr:hover td { background: rgba(0,217,255,0.03); }
+
+  /* ── Log ── */
+  #log {
+    background: #000; color: #33ff88;
+    font-family: 'JetBrains Mono', monospace;
+    font-size: 11px; line-height: 1.7;
+    padding: 12px; border-radius: 8px;
+    max-height: 240px; overflow-y: auto;
+    white-space: pre-wrap;
+    border: 1px solid rgba(0,255,100,0.1);
+  }
+  #log::-webkit-scrollbar { width: 4px; }
+  #log::-webkit-scrollbar-track { background: #000; }
+  #log::-webkit-scrollbar-thumb { background: #003300; border-radius: 2px; }
+
+  /* ── Paste area ── */
+  #pasteSection {
+    background: var(--bg3); border: 1px dashed rgba(255,179,0,0.35);
+    border-radius: 12px; padding: 16px; margin-bottom: 16px;
+  }
+  #pasteSection label { color: var(--yellow); font-size: 12px; font-weight: 700; display: block; margin-bottom: 8px; }
+  #pasteSection textarea {
+    width: 100%; height: 90px; background: #000; color: #0f0;
+    border: 1px solid rgba(0,217,255,0.2); border-radius: 6px;
+    font-family: 'JetBrains Mono', monospace; font-size: 11px;
+    padding: 8px; resize: vertical;
+  }
+  #pasteSection .hint {
+    font-size: 11px; color: var(--dim); line-height: 1.7; margin-bottom: 10px;
+  }
+  code {
+    background: #000; color: #0f0;
+    padding: 2px 6px; border-radius: 4px;
+    font-family: 'JetBrains Mono', monospace; font-size: 11px;
+  }
+
+  /* ── Spinner ── */
+  .spin {
+    display: inline-block; width: 14px; height: 14px;
+    border: 2px solid rgba(0,217,255,0.2);
+    border-top-color: var(--cyan);
+    border-radius: 50%;
+    animation: spin 0.7s linear infinite;
+    vertical-align: middle;
+  }
+  @keyframes spin { to { transform: rotate(360deg); } }
+
+  .loading-row {
+    display: flex; align-items: center; gap: 8px;
+    color: var(--dim); font-size: 12px; padding: 12px 0;
+  }
+
+  /* ── Big Stat ── */
+  .big-stat { text-align: center; padding: 10px 0; }
+  .big-stat .num {
+    font-family: 'JetBrains Mono', monospace;
+    font-size: 36px; font-weight: 700;
+  }
+  .big-stat .lbl2 { font-size: 11px; color: var(--dim); margin-top: 2px; }
+
+  /* ── Match overview bars ── */
+  .match-bar {
+    display: flex; align-items: center; gap: 10px;
+    padding: 8px 0; border-bottom: 1px solid rgba(255,255,255,0.04);
+  }
+  .match-bar:last-child { border-bottom: none; }
+  .mb-label { width: 140px; color: var(--dim); font-size: 12px; flex-shrink: 0; }
+  .mb-vals { display: flex; gap: 6px; align-items: center; flex: 1; }
+  .mb-local, .mb-cloud {
+    font-family: 'JetBrains Mono', monospace; font-weight: 600; font-size: 12px;
+    padding: 3px 10px; border-radius: 6px;
+  }
+  .mb-local { background: rgba(0,217,255,0.1); color: var(--cyan); }
+  .mb-cloud { background: rgba(181,55,242,0.1); color: var(--purple); }
+  .mb-sep { color: var(--dim); font-size: 11px; }
+  .mb-status { margin-left: auto; }
+
+  /* ── Summary big cards ── */
+  .sum-grid { display: grid; grid-template-columns: repeat(3, 1fr); gap: 12px; margin-bottom: 16px; }
+  @media (max-width: 700px) { .sum-grid { grid-template-columns: 1fr; } }
+  .sum-card {
+    background: var(--bg3); border-radius: 12px; padding: 16px;
+    border: 1px solid var(--border);
+    display: flex; flex-direction: column; align-items: center; gap: 6px;
+  }
+  .sum-card .icon { font-size: 24px; }
+  .sum-card .num { font-family: 'JetBrains Mono', monospace; font-size: 28px; font-weight: 700; }
+  .sum-card .label3 { font-size: 11px; color: var(--dim); text-align: center; }
+
+  .hidden { display: none !important; }
 </style>
 </head>
 <body>
 
-<h1>🔍 Wings Fly — Data Monitor</h1>
+<!-- ── HEADER ── -->
+<div class="hdr">
+  <div class="hdr-left">
+    <div>
+      <div class="hdr-logo">🔍 Wings Fly — Data Monitor</div>
+      <div class="hdr-sub">Supabase Sync Dashboard</div>
+    </div>
+  </div>
+  <div class="hdr-status">
+    <div class="pulse" id="statusDot"></div>
+    <span id="statusText" style="color:var(--dim)">Initializing...</span>
+    <span id="lastCheck"></span>
+  </div>
+</div>
 
+<div class="wrap">
+
+<!-- ── TOOLBAR ── -->
 <div class="toolbar">
-  <button class="btn" onclick="runFullCheck()">🔄 Refresh All</button>
-  <button class="btn" onclick="runDeepScan()">🔍 Deep Scan (Cloud)</button>
-  <button class="btn" onclick="forcePullMissing()" style="background:linear-gradient(135deg,#00c853,#007a33);">⬇️ Force Pull Missing</button>
+  <button class="btn btn-cyan" onclick="runFullCheck()">🔄 Refresh All</button>
+  <button class="btn btn-blue" onclick="runDeepScan()">🔍 Deep Scan (Cloud)</button>
+  <button class="btn btn-green" onclick="forcePullMissing()">⬇️ Force Pull Missing</button>
   <button class="btn btn-red" onclick="cleanCloud()">🧹 Clean Cloud Deleted</button>
-  <button class="btn btn-sm" onclick="runFullCheck()" style="background:linear-gradient(135deg,#b537f2,#7a20b0);margin-left:auto;">📋 Re-scan Local</button>
-  <span id="lastCheck" class="label" style="margin-left:8px;"></span>
+  <button class="btn btn-purple btn-sm ml-auto" onclick="clearLog()">🗑️ Clear Log</button>
 </div>
 
-<!-- File:// protocol-এ paste area -->
-<div id="pasteSection" style="display:none;margin-bottom:16px;">
-  <label>📋 Local Data Paste Area (file:// protocol-এ ব্যবহার করুন)</label>
-  <textarea id="pasteData" placeholder='App এর Console থেকে copy(localStorage.getItem("wingsfly_data")) run করে এখানে paste করুন, তারপর Refresh All চাপুন'></textarea>
-  <button class="btn btn-sm" onclick="runFullCheck()" style="margin-top:8px;">✅ Load Pasted Data</button>
+<!-- ── PASTE AREA (file:// fallback) ── -->
+<div id="pasteSection" class="hidden">
+  <label>📋 Local Data — Paste যোগ করুন (file:// protocol-এ ব্যবহার করুন)</label>
+  <div class="hint">
+    App খুলুন → Browser Console (F12) → এই command চালান:<br>
+    <code>copy(localStorage.getItem('wingsfly_data'))</code><br>
+    তারপর নিচে Ctrl+V দিয়ে paste করুন এবং <strong>Refresh All</strong> চাপুন।
+  </div>
+  <textarea id="pasteData" placeholder='এখানে paste করুন...'></textarea>
+  <button class="btn btn-cyan btn-sm" onclick="runFullCheck()" style="margin-top:8px;">✅ Load Pasted Data</button>
 </div>
 
+<!-- ── SUMMARY STRIP ── -->
+<div class="sum-grid" id="sumGrid">
+  <div class="sum-card">
+    <div class="icon">📱</div>
+    <div class="num cyan" id="sumLocal">—</div>
+    <div class="label3">Local Records<br><span style="font-size:10px;color:#4a6a8a;">Students + Finance + Employees</span></div>
+  </div>
+  <div class="sum-card">
+    <div class="icon">☁️</div>
+    <div class="num" id="sumCloud" style="color:var(--purple)">—</div>
+    <div class="label3">Cloud Records<br><span style="font-size:10px;color:#4a6a8a;">Active rows only</span></div>
+  </div>
+  <div class="sum-card">
+    <div class="icon" id="sumIcon">⏳</div>
+    <div class="num" id="sumStatus" style="color:var(--dim)">—</div>
+    <div class="label3" id="sumLabel">Overall Status</div>
+  </div>
+</div>
+
+<!-- ── MAIN GRID ── -->
 <div class="grid">
-  <!-- Local Data -->
+
+  <!-- Local -->
   <div class="card" id="localCard">
-    <h3>📱 Local Data</h3>
-    <div id="localStats">Loading...</div>
+    <div class="card-hdr">
+      <div class="card-title">📱 Local Data <span class="badge-loading card-badge" id="localBadge">LOADING</span></div>
+    </div>
+    <div id="localStats">
+      <div class="loading-row"><div class="spin"></div> Reading localStorage...</div>
+    </div>
   </div>
 
-  <!-- Cloud Data -->
+  <!-- Cloud -->
   <div class="card" id="cloudCard">
-    <h3>☁️ Cloud Data</h3>
-    <div id="cloudStats">Loading...</div>
+    <div class="card-hdr">
+      <div class="card-title">☁️ Cloud Data <span class="badge-loading card-badge" id="cloudBadge">LOADING</span></div>
+    </div>
+    <div id="cloudStats">
+      <div class="loading-row"><div class="spin"></div> Fetching from Supabase...</div>
+    </div>
   </div>
 
-  <!-- Match Status -->
+  <!-- Match Comparison -->
   <div class="card full" id="matchCard">
-    <h3>⚖️ Comparison</h3>
-    <div id="matchStats">Loading...</div>
+    <div class="card-hdr">
+      <div class="card-title">⚖️ Comparison <span class="badge-loading card-badge" id="matchBadge">LOADING</span></div>
+    </div>
+    <div id="matchStats">
+      <div class="loading-row"><div class="spin"></div> Comparing local vs cloud...</div>
+    </div>
   </div>
 
   <!-- Account Balances -->
   <div class="card full" id="accountsCard">
-    <h3>💰 Account Balances</h3>
-    <div id="accountStats">Loading...</div>
+    <div class="card-hdr">
+      <div class="card-title">💰 Account Balances</div>
+    </div>
+    <div id="accountStats">
+      <div class="loading-row"><div class="spin"></div> Loading balances...</div>
+    </div>
   </div>
 
-  <!-- Cloud Duplicates -->
+  <!-- Cloud Duplicates (hidden until deep scan) -->
   <div class="card full hidden" id="dupCard">
-    <h3>🚨 Cloud Duplicates</h3>
+    <div class="card-hdr">
+      <div class="card-title">🚨 Cloud Duplicates <span class="badge-err card-badge" id="dupBadge"></span></div>
+    </div>
     <div id="dupStats"></div>
   </div>
 
   <!-- Stale Cloud Rows -->
   <div class="card full hidden" id="staleCard">
-    <h3>⚠️ Stale Cloud Rows (in cloud but not local)</h3>
+    <div class="card-hdr">
+      <div class="card-title">⚠️ Stale Cloud Rows <span class="badge-warn card-badge" id="staleBadge"></span></div>
+    </div>
     <div id="staleStats"></div>
   </div>
 
   <!-- Log -->
   <div class="card full">
-    <h3>📋 Log</h3>
+    <div class="card-hdr">
+      <div class="card-title">📋 System Log</div>
+      <button class="btn btn-ghost btn-sm" onclick="clearLog()">Clear</button>
+    </div>
     <div id="log"></div>
   </div>
+
 </div>
+</div><!-- /wrap -->
 
 <script>
-// ═══════════════════════════════════════════════════════════
+// ═══════════════════════════════════════════════════════════════════
 // CONFIG
-// ═══════════════════════════════════════════════════════════
+// ═══════════════════════════════════════════════════════════════════
 const CFG = {
-  URL: 'https://cwwyhtarnkozukekebvq.supabase.co',
-  KEY: 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6ImN3d3lodGFybmtvenVrZWtlYnZxIiwicm9sZSI6ImFub24iLCJpYXQiOjE3NzM4NTE5NzUsImV4cCI6MjA4OTQyNzk3NX0.XCJe9A5_ymXQQqK5KVQHJqswUXCuopUi_NYv7T-WWn8',
-  ACADEMY_ID: 'wingsfly_main',
-  TABLE: 'academy_data',
-  RECORD: 'wingsfly_main',
-  TBL_STUDENTS: 'wf_students',
+  URL:         'https://cwwyhtarnkozukekebvq.supabase.co',
+  KEY:         'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6ImN3d3lodGFybmtvenVrZWtlYnZxIiwicm9sZSI6ImFub24iLCJpYXQiOjE3NzM4NTE5NzUsImV4cCI6MjA4OTQyNzk3NX0.XCJe9A5_ymXQQqK5KVQHJqswUXCuopUi_NYv7T-WWn8',
+  ACADEMY_ID:  'wingsfly_main',
+  TABLE:       'academy_data',
+  RECORD:      'wingsfly_main',
+  TBL_STUDENTS:'wf_students',
   TBL_FINANCE: 'wf_finance',
-  TBL_EMPLOYEES: 'wf_employees'
+  TBL_EMPLOYEES:'wf_employees'
 };
-const HDRS = {apikey:CFG.KEY, Authorization:'Bearer '+CFG.KEY};
+const HDRS = { apikey: CFG.KEY, Authorization: 'Bearer ' + CFG.KEY };
 
-function log(msg) {
+// ═══════════════════════════════════════════════════════════════════
+// LOG
+// ═══════════════════════════════════════════════════════════════════
+function log(msg, type) {
   var el = document.getElementById('log');
-  el.textContent += '[' + new Date().toLocaleTimeString() + '] ' + msg + '\n';
+  var prefix = type === 'ok' ? '✅' : type === 'err' ? '❌' : type === 'warn' ? '⚠️' : '·';
+  el.textContent += '[' + new Date().toLocaleTimeString() + '] ' + prefix + ' ' + msg + '\n';
   el.scrollTop = el.scrollHeight;
 }
+function clearLog() { document.getElementById('log').textContent = ''; }
 function fmt(n) { return '৳' + (parseFloat(n)||0).toLocaleString('en-IN'); }
 
-// ═══════════════════════════════════════════════════════════
-// LOCAL DATA — file:// protocol fix
-// ═══════════════════════════════════════════════════════════
-// সমস্যা: এই HTML file:// দিয়ে খোলা হয়, কিন্তু app চলে
-// https://wings-fly-aviation-academy.web.app এ।
-// দুটোর localStorage আলাদা — তাই সরাসরি read হয় না।
-//
-// সমাধান:
-//   1) যদি এই monitor app-এর সাথে একই origin-এ খোলা হয় → সরাসরি পড়ো
-//   2) যদি file:// হয় → user-কে data paste করতে বলো
-//   3) অথবা user নিজে data import করুক (Export থেকে)
+// ═══════════════════════════════════════════════════════════════════
+// STATUS
+// ═══════════════════════════════════════════════════════════════════
+function setStatus(state, text) {
+  var dot = document.getElementById('statusDot');
+  var txt = document.getElementById('statusText');
+  dot.className = 'pulse' + (state === 'ok' ? '' : state === 'err' ? ' red' : ' yellow');
+  txt.textContent = text;
+  txt.style.color = state === 'ok' ? 'var(--green)' : state === 'err' ? 'var(--red)' : state === 'warn' ? 'var(--yellow)' : 'var(--dim)';
+}
 
+// ═══════════════════════════════════════════════════════════════════
+// GET LOCAL DATA — localStorage + paste fallback
+// ═══════════════════════════════════════════════════════════════════
 function getLocalData() {
-  // চেষ্টা ১: সরাসরি localStorage (একই origin হলে কাজ করবে)
+  // Try 1: direct localStorage
   try {
     var raw = localStorage.getItem('wingsfly_data');
     if (raw) {
-      var parsed = JSON.parse(raw);
-      if (parsed && (parsed.students || parsed.finance)) {
-        log('✅ Local data found via localStorage (' + (parsed.students||[]).length + ' students)');
-        return { source: 'localStorage', data: parsed };
+      var p = JSON.parse(raw);
+      if (p && (p.students || p.finance)) {
+        log('Local data found via localStorage (' + (p.students||[]).length + ' students)', 'ok');
+        return { source: 'localStorage', data: p };
       }
     }
-  } catch(e) { log('localStorage read error: '+e.message); }
+  } catch(e) { log('localStorage error: ' + e.message, 'warn'); }
 
-  // চেষ্টা ২: sessionStorage
+  // Try 2: sessionStorage
   try {
     var raw2 = sessionStorage.getItem('wingsfly_data');
     if (raw2) {
       var p2 = JSON.parse(raw2);
       if (p2 && (p2.students || p2.finance)) {
-        log('✅ Local data found via sessionStorage');
+        log('Local data found via sessionStorage', 'ok');
         return { source: 'sessionStorage', data: p2 };
       }
     }
   } catch(e) {}
 
-  // চেষ্টা ৩: Paste area থেকে (file:// case)
-  var pasteRaw = document.getElementById('pasteData')?.value?.trim();
+  // Try 3: paste area
+  var pasteRaw = (document.getElementById('pasteData') || {}).value || '';
+  pasteRaw = pasteRaw.trim();
   if (pasteRaw) {
     try {
       var p3 = JSON.parse(pasteRaw);
       if (p3 && (p3.students || p3.finance)) {
-        log('✅ Local data loaded from paste area');
+        log('Local data loaded from paste area', 'ok');
         return { source: 'paste', data: p3 };
       }
-    } catch(e) { log('❌ Paste data JSON parse error: '+e.message); }
+    } catch(e) { log('Paste JSON error: ' + e.message, 'err'); }
   }
 
   return null;
 }
 
-// ═══════════════════════════════════════════════════════════
-// MAIN CHECK
-// ═══════════════════════════════════════════════════════════
-async function runFullCheck() {
-  log('Starting full check...');
-  document.getElementById('localStats').innerHTML = '<div class="dim">Loading...</div>';
-  document.getElementById('cloudStats').innerHTML = '<div class="dim">Loading...</div>';
-  document.getElementById('matchStats').innerHTML = '<div class="dim">Loading...</div>';
+// ═══════════════════════════════════════════════════════════════════
+// ROW HELPERS
+// ═══════════════════════════════════════════════════════════════════
+function row(label, val, status) {
+  var cls   = status === 'ok' ? 'ok' : status === 'err' ? 'err' : status === 'warn' ? 'warn' : 'cyan';
+  var chip  = status ? '<span class="chip chip-'+ (status||'') +'">'+ (status||'').toUpperCase() +'</span>' : '';
+  return '<div class="row"><span class="lbl">'+ label +'</span><span class="val '+ cls +'">'+ val + chip +'</span></div>';
+}
 
+function matchBar(label, lv, cv, ok, warn) {
+  var chipCls = ok ? 'chip-ok' : warn ? 'chip-warn' : 'chip-err';
+  var chipTxt = ok ? 'MATCH' : warn ? 'DIFF' : 'MISMATCH';
+  return '<div class="match-bar">'
+    + '<div class="mb-label">'+ label +'</div>'
+    + '<div class="mb-vals">'
+    + '<span class="mb-local">'+ lv +'</span>'
+    + '<span class="mb-sep">↔</span>'
+    + '<span class="mb-cloud">'+ cv +'</span>'
+    + '</div>'
+    + '<div class="mb-status"><span class="chip '+ chipCls +'">'+ chipTxt +'</span></div>'
+    + '</div>';
+}
+
+function divider() {
+  return '<div class="divider"></div>';
+}
+
+// ═══════════════════════════════════════════════════════════════════
+// MAIN CHECK
+// ═══════════════════════════════════════════════════════════════════
+async function runFullCheck() {
+  setStatus('loading', 'Scanning...');
+  log('──── Full check started ────');
+
+  // Reset UI
+  ['localStats','cloudStats','matchStats','accountStats'].forEach(function(id) {
+    document.getElementById(id).innerHTML =
+      '<div class="loading-row"><div class="spin"></div> Loading...</div>';
+  });
+  ['localBadge','cloudBadge','matchBadge'].forEach(function(id) {
+    var el = document.getElementById(id);
+    el.className = 'badge-loading card-badge';
+    el.textContent = 'LOADING';
+  });
+  document.getElementById('sumLocal').textContent = '—';
+  document.getElementById('sumCloud').textContent = '—';
+  document.getElementById('sumStatus').textContent = '—';
+  document.getElementById('sumIcon').textContent = '⏳';
+
+  // ── 1. LOCAL ──
   var localResult = getLocalData();
   var gd = localResult ? localResult.data : null;
 
-  // ── Local Stats ──
   if (gd) {
-    document.getElementById('pasteSection').style.display = 'none';
+    document.getElementById('pasteSection').classList.add('hidden');
+
     var lStu  = (gd.students||[]).length;
-    var lFin  = (gd.finance||[]).filter(f=>!f._deleted).length;
+    var lFin  = (gd.finance||[]).filter(function(f){ return !f._deleted; }).length;
     var lEmp  = (gd.employees||[]).length;
     var lVis  = (gd.visitors||[]).length;
     var lAct  = (gd.activityHistory||[]).length;
     var lBrk  = (gd.breakdownRecords||[]).length;
     var lNotc = (gd.notices||[]).length;
     var lKeep = 0;
-    try { lKeep = JSON.parse(localStorage.getItem('wingsfly_keep_records')||'[]').length; } catch(e){}
+    try { lKeep = JSON.parse(localStorage.getItem('wingsfly_keep_records')||'[]').length; } catch(e) {}
     var lCash   = parseFloat(gd.cashBalance)||0;
-    var lBank   = (gd.bankAccounts||[]).reduce((s,a)=>s+(parseFloat(a.balance)||0),0);
-    var lMobile = (gd.mobileBanking||[]).reduce((s,a)=>s+(parseFloat(a.balance)||0),0);
+    var lBank   = (gd.bankAccounts||[]).reduce(function(s,a){ return s+(parseFloat(a.balance)||0); }, 0);
+    var lMobile = (gd.mobileBanking||[]).reduce(function(s,a){ return s+(parseFloat(a.balance)||0); }, 0);
     var lGrand  = lCash + lBank + lMobile;
-    var lDelStu  = ((gd.deletedItems||{}).students||[]).length;
-    var lDelFin  = ((gd.deletedItems||{}).finance||[]).length;
-    var lDelEmp  = ((gd.deletedItems||{}).employees||[]).length;
+    var lDelStu = ((gd.deletedItems||{}).students||[]).length;
+    var lDelFin = ((gd.deletedItems||{}).finance||[]).length;
+    var lDelEmp = ((gd.deletedItems||{}).employees||[]).length;
+    var lVer    = localStorage.getItem('wings_local_version') || '—';
+    var lKnownF = localStorage.getItem('wings_last_known_finance') || '—';
+    var lKnownS = localStorage.getItem('wings_last_known_count') || '—';
+    var lSyncAge = (function(){
+      var ts = parseInt(localStorage.getItem('wings_last_sync_time')||'0');
+      if (!ts) return '—';
+      var mins = Math.round((Date.now()-ts)/60000);
+      return mins < 1 ? 'just now' : mins + ' min ago';
+    })();
+
+    var srcCls = localResult.source === 'paste' ? 'src-paste' : 'src-ls';
+    var srcTxt = localResult.source === 'paste' ? '📋 PASTE' : '💾 ' + localResult.source.toUpperCase();
 
     document.getElementById('localStats').innerHTML =
-      srcBadge(localResult.source) +
-      row('Students', lStu) +
-      row('Finance (active)', lFin) +
-      row('Employees', lEmp) +
-      row('Visitors', lVis) +
-      row('Activity History', lAct) +
-      row('Keep Records', lKeep) +
-      row('Breakdown Records', lBrk) +
-      row('Notices', lNotc) +
-      '<div style="margin:8px 0 4px;border-top:1px solid rgba(255,255,255,0.06);padding-top:8px;"></div>' +
-      row('Recycle Bin — Students', lDelStu, lDelStu>0?'warn':'ok') +
-      row('Recycle Bin — Finance', lDelFin,  lDelFin>0?'warn':'ok') +
-      row('Recycle Bin — Employees', lDelEmp, lDelEmp>0?'warn':'ok') +
-      '<div style="margin:8px 0 4px;border-top:1px solid rgba(255,255,255,0.06);padding-top:8px;"></div>' +
-      row('Cash Balance', fmt(lCash)) +
-      row('Bank Total', fmt(lBank)) +
-      row('Mobile Total', fmt(lMobile)) +
-      row('Grand Total', fmt(lGrand), lGrand>=0?'ok':'err') +
-      row('Last Known Finance', localStorage.getItem('wings_last_known_finance')||'—') +
-      row('Last Known Students', localStorage.getItem('wings_last_known_count')||'—');
+      '<span class="src-badge '+ srcCls +'">'+ srcTxt +'</span>' +
+      row('Students', lStu, null) +
+      row('Finance (active)', lFin, null) +
+      row('Employees', lEmp, null) +
+      row('Visitors', lVis, null) +
+      row('Keep Records', lKeep, null) +
+      row('Activity History', lAct, null) +
+      divider() +
+      row('🗑️ Recycle — Students', lDelStu, lDelStu>0?'warn':'ok') +
+      row('🗑️ Recycle — Finance',  lDelFin,  lDelFin>0?'warn':'ok') +
+      row('🗑️ Recycle — Employees',lDelEmp,  lDelEmp>0?'warn':'ok') +
+      divider() +
+      row('💵 Cash', fmt(lCash), null) +
+      row('🏦 Bank Total', fmt(lBank), null) +
+      row('📱 Mobile Total', fmt(lMobile), null) +
+      row('📊 Grand Total', fmt(lGrand), lGrand>=0?'ok':'err') +
+      divider() +
+      row('Local Version', lVer, null) +
+      row('Last Sync', lSyncAge, null) +
+      row('Known Finance', lKnownF, null) +
+      row('Known Students', lKnownS, null);
 
-    log('Local: '+lStu+' students, '+lFin+' finance, '+lEmp+' employees');
+    var localBadge = document.getElementById('localBadge');
+    localBadge.className = 'badge-ok card-badge'; localBadge.textContent = 'LOADED';
+    document.getElementById('sumLocal').textContent = (lStu+lFin+lEmp).toLocaleString();
+    log('Local: stu='+ lStu +' fin='+ lFin +' emp='+ lEmp, 'ok');
   } else {
-    // file:// এ local data নেই — paste section দেখাও
-    document.getElementById('pasteSection').style.display = 'block';
+    document.getElementById('pasteSection').classList.remove('hidden');
     document.getElementById('localStats').innerHTML =
-      '<div class="err" style="margin-bottom:10px;">⚠️ Local data পাওয়া যাচ্ছে না</div>' +
-      '<div class="dim" style="font-size:12px;line-height:1.6;">' +
-      'এই monitor file:// protocol-এ খোলা। App-এর localStorage সরাসরি access করা যাচ্ছে না।<br><br>' +
-      '<b style="color:var(--cyan)">সমাধান:</b><br>' +
-      '① App খুলুন (wings-fly-aviation-academy.web.app)<br>' +
-      '② Browser Console (F12) খুলুন<br>' +
-      '③ এই command run করুন:<br>' +
-      '<code style="background:#000;padding:4px 8px;border-radius:4px;display:block;margin:6px 0;color:#0f0;font-size:11px;">copy(localStorage.getItem('wingsfly_data'))</code>' +
-      '④ নিচের box-এ Ctrl+V দিয়ে paste করুন<br>' +
-      '⑤ Refresh All চাপুন' +
+      '<div style="color:var(--red);font-weight:700;margin-bottom:10px;">⚠️ Local data পাওয়া যাচ্ছে না</div>' +
+      '<div style="color:var(--dim);font-size:12px;line-height:1.8;">'+
+      'এই monitor file:// protocol-এ চলছে।<br>'+
+      'App-এর localStorage directly access সম্ভব নয়।<br><br>'+
+      '<b style="color:var(--cyan)">সমাধান:</b><br>'+
+      '① App খুলুন → Console (F12)<br>'+
+      '② Run: <code>copy(localStorage.getItem(\'wingsfly_data\'))</code><br>'+
+      '③ উপরের paste area-তে Ctrl+V → Refresh All'+
       '</div>';
-    log('⚠️ No local data — file:// protocol limitation. Use paste area below.');
+    var lb = document.getElementById('localBadge');
+    lb.className = 'badge-err card-badge'; lb.textContent = 'NO DATA';
+    log('No local data — paste area shown', 'warn');
   }
 
-  // ── Cloud Stats ──
+  // ── 2. CLOUD ──
   try {
-    var [sRes, fRes, eRes] = await Promise.all([
-      fetch(CFG.URL+'/rest/v1/'+CFG.TBL_STUDENTS+'?academy_id=eq.'+CFG.ACADEMY_ID+'&select=id,deleted', {headers:HDRS}),
-      fetch(CFG.URL+'/rest/v1/'+CFG.TBL_FINANCE+'?academy_id=eq.'+CFG.ACADEMY_ID+'&select=id,deleted', {headers:HDRS}),
-      fetch(CFG.URL+'/rest/v1/'+CFG.TBL_EMPLOYEES+'?academy_id=eq.'+CFG.ACADEMY_ID+'&select=id,deleted', {headers:HDRS})
+    log('Fetching from Supabase...');
+    var results = await Promise.all([
+      fetch(CFG.URL+'/rest/v1/'+CFG.TBL_STUDENTS+'?academy_id=eq.'+CFG.ACADEMY_ID+'&select=id,deleted&limit=5000', {headers:HDRS}),
+      fetch(CFG.URL+'/rest/v1/'+CFG.TBL_FINANCE +'?academy_id=eq.'+CFG.ACADEMY_ID+'&select=id,deleted&limit=5000', {headers:HDRS}),
+      fetch(CFG.URL+'/rest/v1/'+CFG.TBL_EMPLOYEES+'?academy_id=eq.'+CFG.ACADEMY_ID+'&select=id,deleted&limit=5000', {headers:HDRS}),
+      fetch(CFG.URL+'/rest/v1/'+CFG.TABLE+'?id=eq.'+CFG.RECORD+
+        '&select=cash_balance,version,visitors,activity_history,keep_records,breakdown_records,notices,activity_cleared_at',
+        {headers:HDRS})
     ]);
-    var sCloud = await sRes.json();
-    var fCloud = await fRes.json();
-    var eCloud = await eRes.json();
 
-    var cStuActive  = sCloud.filter(r=>!r.deleted).length;
-    var cStuDeleted = sCloud.filter(r=>r.deleted).length;
-    var cFinActive  = fCloud.filter(r=>!r.deleted).length;
-    var cFinDeleted = fCloud.filter(r=>r.deleted).length;
-    var cEmpActive  = eCloud.filter(r=>!r.deleted).length;
-    var cEmpDeleted = eCloud.filter(r=>r.deleted).length;
+    // Check for HTTP errors
+    for (var i = 0; i < results.length; i++) {
+      if (!results[i].ok) {
+        throw new Error('HTTP ' + results[i].status + ' from Supabase (request ' + (i+1) + ')');
+      }
+    }
 
-    var mainRes = await fetch(CFG.URL+'/rest/v1/'+CFG.TABLE+'?id=eq.'+CFG.RECORD+
-      '&select=visitors,activity_history,keep_records,breakdown_records,notices,activity_cleared_at', {headers:HDRS});
-    var mainData = await mainRes.json();
-    var cVisitors  = (mainData[0]?.visitors||[]).length;
-    var cActivity  = (mainData[0]?.activity_history||[]).length;
-    var cKeepRec   = (mainData[0]?.keep_records||[]).length;
-    var cBreakdown = (mainData[0]?.breakdown_records||[]).length;
-    var cNotices   = (mainData[0]?.notices||[]).length;
-    var cCleared   = mainData[0]?.activity_cleared_at || null;
+    var sCloud = await results[0].json();
+    var fCloud = await results[1].json();
+    var eCloud = await results[2].json();
+    var mainArr= await results[3].json();
+    var mainRow = mainArr[0] || {};
+
+    var cStuActive  = sCloud.filter(function(r){ return !r.deleted; }).length;
+    var cStuDeleted = sCloud.filter(function(r){ return  r.deleted; }).length;
+    var cFinActive  = fCloud.filter(function(r){ return !r.deleted; }).length;
+    var cFinDeleted = fCloud.filter(function(r){ return  r.deleted; }).length;
+    var cEmpActive  = eCloud.filter(function(r){ return !r.deleted; }).length;
+    var cEmpDeleted = eCloud.filter(function(r){ return  r.deleted; }).length;
+
+    var cVisitors  = (mainRow.visitors||[]).length;
+    var cActivity  = (mainRow.activity_history||[]).length;
+    var cKeepRec   = (mainRow.keep_records||[]).length;
+    var cBreakdown = (mainRow.breakdown_records||[]).length;
+    var cNotices   = (mainRow.notices||[]).length;
+    var cCleared   = mainRow.activity_cleared_at || null;
+    var cVersion   = mainRow.version || '—';
+    var cCash      = mainRow.cash_balance || 0;
+    var cTotal     = sCloud.length + fCloud.length + eCloud.length;
 
     document.getElementById('cloudStats').innerHTML =
-      row('Students (active)', cStuActive) +
+      row('Students (active)',  cStuActive,  null) +
       row('Students (deleted)', cStuDeleted, cStuDeleted>0?'warn':'ok') +
-      row('Finance (active)', cFinActive) +
-      row('Finance (deleted)', cFinDeleted, cFinDeleted>0?'warn':'ok') +
-      row('Employees (active)', cEmpActive) +
-      row('Employees (deleted)', cEmpDeleted, cEmpDeleted>0?'warn':'ok') +
-      row('Visitors (cloud)', cVisitors) +
-      row('Activity History (cloud)', cActivity) +
-      row('Keep Records (cloud)', cKeepRec) +
-      row('Breakdown Records (cloud)', cBreakdown) +
-      row('Notices (cloud)', cNotices) +
-      (cCleared ? row('Activity Cleared At', new Date(cCleared).toLocaleString(), 'warn') : '') +
-      row('Total Cloud Rows (Core)', sCloud.length+fCloud.length+eCloud.length);
+      row('Finance (active)',   cFinActive,  null) +
+      row('Finance (deleted)',  cFinDeleted, cFinDeleted>0?'warn':'ok') +
+      row('Employees (active)', cEmpActive,  null) +
+      row('Employees (deleted)',cEmpDeleted, cEmpDeleted>0?'warn':'ok') +
+      row('Visitors',           cVisitors,   null) +
+      row('Keep Records',       cKeepRec,    null) +
+      row('Activity History',   cActivity,   null) +
+      divider() +
+      row('Cloud Version', cVersion, null) +
+      row('Cash Balance', fmt(cCash), null) +
+      row('Total Rows (all)', cTotal, null) +
+      (cCleared ? row('Activity Cleared At', new Date(cCleared).toLocaleString('en-BD'), 'warn') : '') +
+      (cStuDeleted>0||cFinDeleted>0||cEmpDeleted>0
+        ? divider() + row('⚠️ Cloud Deleted Markers', cStuDeleted+'+'+cFinDeleted+'+'+cEmpDeleted, 'warn')
+        : '');
 
-    log('Cloud: '+cStuActive+'/'+cStuDeleted+' stu, '+cFinActive+'/'+cFinDeleted+' fin, '+cEmpActive+'/'+cEmpDeleted+' emp');
+    var cb = document.getElementById('cloudBadge');
+    cb.className = 'badge-ok card-badge'; cb.textContent = 'LIVE';
+    document.getElementById('sumCloud').textContent = (cStuActive+cFinActive+cEmpActive).toLocaleString();
+    log('Cloud: stu='+cStuActive+' fin='+cFinActive+' emp='+cEmpActive, 'ok');
 
-    // ── Match ──
-    var lStu  = gd ? (gd.students||[]).length : 0;
-    var lFin  = gd ? (gd.finance||[]).filter(f=>!f._deleted).length : 0;
-    var lEmp  = gd ? (gd.employees||[]).length : 0;
-    var lVis  = gd ? (gd.visitors||[]).length : 0;
-    var lAct  = gd ? (gd.activityHistory||[]).length : 0;
+    // ── 3. COMPARISON ──
+    var lStu2  = gd ? (gd.students||[]).length : 0;
+    var lFin2  = gd ? (gd.finance||[]).filter(function(f){ return !f._deleted; }).length : 0;
+    var lEmp2  = gd ? (gd.employees||[]).length : 0;
+    var lVis2  = gd ? (gd.visitors||[]).length : 0;
     var lKeep2 = 0; try { lKeep2 = JSON.parse(localStorage.getItem('wingsfly_keep_records')||'[]').length; } catch(e){}
-    var lBrk  = gd ? (gd.breakdownRecords||[]).length : 0;
-    var lNotc = gd ? (gd.notices||[]).length : 0;
+    var lBrk2  = gd ? (gd.breakdownRecords||[]).length : 0;
+    var lNotc2 = gd ? (gd.notices||[]).length : 0;
 
-    var stuMatch  = lStu  === cStuActive;
-    var finMatch  = lFin  === cFinActive;
-    var empMatch  = lEmp  === cEmpActive;
-    var visMatch  = lVis  === cVisitors;
+    var stuMatch  = lStu2  === cStuActive;
+    var finMatch  = lFin2  === cFinActive;
+    var empMatch  = lEmp2  === cEmpActive;
+    var visMatch  = lVis2  === cVisitors;
     var keepMatch = lKeep2 === cKeepRec;
-    var brkMatch  = lBrk  === cBreakdown;
-    var notcMatch = lNotc === cNotices;
-    var allMatch  = stuMatch && finMatch && empMatch;
+    var brkMatch  = lBrk2  === cBreakdown;
+    var notcMatch = lNotc2 === cNotices;
+    var coreMatch = stuMatch && finMatch && empMatch;
+    var allMatch  = coreMatch && visMatch && keepMatch;
 
-    document.getElementById('matchCard').className = 'card full '+(allMatch?'match':'mismatch');
+    var matchHTML =
+      matchBar('Students',        lStu2,  cStuActive,  stuMatch,  false) +
+      matchBar('Finance',         lFin2,  cFinActive,  finMatch,  false) +
+      matchBar('Employees',       lEmp2,  cEmpActive,  empMatch,  false) +
+      matchBar('Visitors',        lVis2,  cVisitors,   visMatch,  !visMatch) +
+      matchBar('Keep Records',    lKeep2, cKeepRec,    keepMatch, !keepMatch) +
+      matchBar('Breakdown Rec.',  lBrk2,  cBreakdown,  brkMatch,  !brkMatch) +
+      matchBar('Notices',         lNotc2, cNotices,    notcMatch, !notcMatch) +
+      divider();
+
+    if (coreMatch) {
+      matchHTML += '<div style="text-align:center;padding:12px 0;font-size:15px;font-weight:700;color:var(--green);">'
+        + '✅ Core Data Match — Students, Finance & Employees synced perfectly'
+        + '</div>';
+    } else {
+      var diffs = [];
+      if (!stuMatch) diffs.push('Students: local='+lStu2+' cloud='+cStuActive+' (diff='+(lStu2-cStuActive)+')');
+      if (!finMatch) diffs.push('Finance: local='+lFin2+' cloud='+cFinActive+' (diff='+(lFin2-cFinActive)+')');
+      if (!empMatch) diffs.push('Employees: local='+lEmp2+' cloud='+cEmpActive+' (diff='+(lEmp2-cEmpActive)+')');
+      matchHTML += '<div style="padding:10px;background:rgba(255,61,90,0.08);border-radius:8px;border:1px solid rgba(255,61,90,0.2);margin-top:6px;">'
+        + '<div style="color:var(--red);font-weight:700;margin-bottom:6px;">❌ MISMATCH DETECTED</div>'
+        + '<div style="color:var(--dim);font-size:12px;line-height:1.8;">'+ diffs.join('<br>') +'</div>'
+        + '<div style="color:var(--dim);font-size:11px;margin-top:8px;">💡 Cloud-এ বেশি থাকলে "Force Pull Missing" চাপুন। Local-এ বেশি থাকলে App-এ Manual Push করুন।</div>'
+        + '</div>';
+    }
+
+    document.getElementById('matchStats').innerHTML = matchHTML;
+    document.getElementById('matchCard').className = 'card full ' + (coreMatch ? 'match' : 'miss');
+    var mb = document.getElementById('matchBadge');
+    mb.className = (coreMatch ? 'badge-ok' : 'badge-err') + ' card-badge';
+    mb.textContent = coreMatch ? 'MATCH' : 'MISMATCH';
+
+    // ── Summary strip ──
+    document.getElementById('sumIcon').textContent  = coreMatch ? '✅' : '❌';
+    document.getElementById('sumStatus').textContent = coreMatch ? 'SYNCED' : 'MISMATCH';
+    document.getElementById('sumStatus').style.color = coreMatch ? 'var(--green)' : 'var(--red)';
+    document.getElementById('sumLabel').textContent  = coreMatch ? 'All core data synced' : 'Data mismatch!';
+
+    setStatus(coreMatch ? 'ok' : 'err', coreMatch ? 'All synced' : 'Mismatch detected');
+    log(coreMatch ? 'All core data match!' : 'MISMATCH — check comparison panel', coreMatch?'ok':'err');
+
+    if (cStuDeleted>0||cFinDeleted>0||cEmpDeleted>0) {
+      log('Cloud deleted markers: stu='+cStuDeleted+' fin='+cFinDeleted+' emp='+cEmpDeleted, 'warn');
+    }
+
+    // ── Accounts ──
+    if (gd) {
+      var accHTML = '';
+      accHTML += row('💵 Cash', fmt(gd.cashBalance||0), null);
+      (gd.bankAccounts||[]).forEach(function(a){ accHTML += row('🏦 '+a.name, fmt(a.balance), null); });
+      (gd.mobileBanking||[]).forEach(function(a){ accHTML += row('📱 '+a.name, fmt(a.balance), null); });
+      var grand = (parseFloat(gd.cashBalance)||0)
+        + (gd.bankAccounts||[]).reduce(function(s,a){ return s+(parseFloat(a.balance)||0); }, 0)
+        + (gd.mobileBanking||[]).reduce(function(s,a){ return s+(parseFloat(a.balance)||0); }, 0);
+      accHTML += divider() + row('📊 Grand Total', fmt(grand), grand>=0?'ok':'err');
+      if (cCash) accHTML += row('☁️ Cloud Cash', fmt(cCash), Math.abs(grand-cCash)<1?'ok':'warn');
+      document.getElementById('accountStats').innerHTML = accHTML;
+    } else {
+      document.getElementById('accountStats').innerHTML =
+        '<div style="color:var(--dim);font-size:12px;">Local data নেই — balance দেখানো যাচ্ছে না</div>';
+    }
+
+  } catch(err) {
+    var cloudBadge = document.getElementById('cloudBadge');
+    cloudBadge.className = 'badge-err card-badge';
+    cloudBadge.textContent = 'ERROR';
+
+    var isNetworkErr = err.message.includes('Failed to fetch') || err.message.includes('NetworkError') || err.message.includes('CORS');
+    var errMsg = isNetworkErr
+      ? '🌐 Network error — Internet সংযোগ চেক করুন বা CORS policy দেখুন।'
+      : err.message;
+
+    document.getElementById('cloudStats').innerHTML =
+      '<div style="color:var(--red);font-weight:700;margin-bottom:8px;">❌ Cloud Fetch Error</div>'+
+      '<div style="color:var(--dim);font-size:12px;line-height:1.8;">'+ errMsg +'</div>'+
+      (isNetworkErr ? '<div style="color:var(--yellow);font-size:11px;margin-top:8px;">💡 Supabase RLS দিয়ে anon key access block হয়ে থাকতে পারে।</div>' : '');
     document.getElementById('matchStats').innerHTML =
-      row('Students',         lStu  +' local / '+cStuActive +' cloud', stuMatch ?'ok':'err') +
-      row('Finance',          lFin  +' local / '+cFinActive +' cloud', finMatch ?'ok':'err') +
-      row('Employees',        lEmp  +' local / '+cEmpActive +' cloud', empMatch ?'ok':'err') +
-      row('Visitors',         lVis  +' local / '+cVisitors  +' cloud', visMatch ?'ok':'warn') +
-      row('Keep Records',     lKeep2+' local / '+cKeepRec   +' cloud', keepMatch?'ok':'warn') +
-      row('Breakdown Records',lBrk  +' local / '+cBreakdown +' cloud', brkMatch ?'ok':'warn') +
-      row('Notices',          lNotc +' local / '+cNotices   +' cloud', notcMatch?'ok':'warn') +
-      row('Status', allMatch?'✅ PERFECT MATCH':'❌ MISMATCH', allMatch?'ok':'err');
+      '<div style="color:var(--dim);font-size:12px;">Cloud error — comparison সম্ভব নয়</div>';
+    document.getElementById('accountStats').innerHTML =
+      '<div style="color:var(--dim);font-size:12px;">Cloud error — data incomplete</div>';
 
-    if (cStuDeleted>0||cFinDeleted>0||cEmpDeleted>0)
-      log('⚠️ Cloud deleted markers: stu='+cStuDeleted+' fin='+cFinDeleted+' emp='+cEmpDeleted);
-    log(allMatch?'✅ All match!':'❌ Mismatch detected!');
-
-  } catch(e) {
-    document.getElementById('cloudStats').innerHTML = '<div class="err">Cloud error: '+e.message+'</div>';
-    log('Cloud error: '+e.message);
+    setStatus('err', 'Cloud error');
+    log('Cloud error: ' + err.message, 'err');
   }
 
-  // ── Accounts ──
-  if (gd) {
-    var html2 = '';
-    html2 += row('💵 Cash', fmt(gd.cashBalance));
-    (gd.bankAccounts||[]).forEach(a => { html2 += row('🏦 '+a.name, fmt(a.balance)); });
-    (gd.mobileBanking||[]).forEach(a => { html2 += row('📱 '+a.name, fmt(a.balance)); });
-    var grand2 = (parseFloat(gd.cashBalance)||0)
-      + (gd.bankAccounts||[]).reduce((s,a)=>s+(parseFloat(a.balance)||0),0)
-      + (gd.mobileBanking||[]).reduce((s,a)=>s+(parseFloat(a.balance)||0),0);
-    html2 += row('📊 Grand Total', fmt(grand2), grand2>=0?'ok':'err');
-    document.getElementById('accountStats').innerHTML = html2;
-  } else {
-    document.getElementById('accountStats').innerHTML = '<div class="dim">Local data নেই — Accounts দেখানো যাচ্ছে না</div>';
-  }
-
-  document.getElementById('lastCheck').textContent = 'Last: ' + new Date().toLocaleTimeString();
-  log('Check complete.');
+  document.getElementById('lastCheck').textContent = ' · ' + new Date().toLocaleTimeString();
+  log('──── Check complete ────');
 }
 
-function srcBadge(src) {
-  var color = src==='paste'?'#ff9800':src==='sessionStorage'?'#b537f2':'#00c853';
-  return '<div style="font-size:11px;color:'+color+';margin-bottom:10px;font-weight:700;">📍 Source: '+src+'</div>';
-}
-
-function row(label, val, status) {
-  var cls = status==='ok'?'ok':status==='warn'?'warn':status==='err'?'err':'';
-  var badge = status ? '<span class="status s-'+status+'">'+status.toUpperCase()+'</span>' : '';
-  return '<div class="row"><span class="label">'+label+'</span><span class="val '+cls+'">'+val+' '+badge+'</span></div>';
-}
-
-// ═══════════════════════════════════════════════════════════
+// ═══════════════════════════════════════════════════════════════════
 // DEEP SCAN
-// ═══════════════════════════════════════════════════════════
+// ═══════════════════════════════════════════════════════════════════
 async function runDeepScan() {
-  log('Running deep scan...');
+  log('──── Deep Scan started ────');
+  setStatus('loading', 'Deep scanning...');
+
   var localResult = getLocalData();
   var gd = localResult ? localResult.data : null;
 
   try {
-    var fRes = await fetch(CFG.URL+'/rest/v1/'+CFG.TBL_FINANCE+'?academy_id=eq.'+CFG.ACADEMY_ID+'&select=id,data,deleted', {headers:HDRS});
+    var fRes = await fetch(CFG.URL+'/rest/v1/'+CFG.TBL_FINANCE+'?academy_id=eq.'+CFG.ACADEMY_ID+
+      '&select=id,data,deleted&limit=5000', {headers:HDRS});
+    if (!fRes.ok) throw new Error('HTTP ' + fRes.status);
     var fCloud = await fRes.json();
 
+    // Duplicate check
     var idMap = {};
-    fCloud.forEach(r => {
+    fCloud.forEach(function(r){
       if (r.data && r.data.id) {
-        var key = String(r.data.id);
-        if (!idMap[key]) idMap[key] = [];
-        idMap[key].push(r);
+        var k = String(r.data.id);
+        if (!idMap[k]) idMap[k] = [];
+        idMap[k].push(r);
       }
     });
-    var dups = Object.keys(idMap).filter(k => idMap[k].length > 1);
+    var dups = Object.keys(idMap).filter(function(k){ return idMap[k].length > 1; });
 
-    document.getElementById('dupCard').className = 'card full '+(dups.length>0?'mismatch':'match');
-    document.getElementById('dupCard').classList.remove('hidden');
+    var dupCard = document.getElementById('dupCard');
+    dupCard.classList.remove('hidden');
+    dupCard.className = 'card full ' + (dups.length > 0 ? 'miss' : 'match');
+    var db = document.getElementById('dupBadge');
+    db.textContent = dups.length > 0 ? dups.length + ' FOUND' : 'NONE';
+
     if (dups.length > 0) {
-      var h = '<table><tr><th>ID</th><th>Cloud Rows</th><th>Action</th></tr>';
-      dups.forEach(id => { h += '<tr><td>'+id+'</td><td class="err">'+idMap[id].length+'</td><td>Delete extra rows</td></tr>'; });
+      var h = '<table><tr><th>Finance ID</th><th>Cloud Rows</th><th>Note</th></tr>';
+      dups.forEach(function(id){
+        h += '<tr><td><code>'+ id +'</code></td><td class="val err">'+ idMap[id].length +'</td><td style="color:var(--dim)">Extra rows cleanup করুন</td></tr>';
+      });
       h += '</table>';
       document.getElementById('dupStats').innerHTML = h;
-      log('🚨 '+dups.length+' duplicate IDs found!');
+      log(dups.length + ' duplicate IDs found!', 'err');
     } else {
-      document.getElementById('dupStats').innerHTML = '<div class="ok">✅ No duplicates found</div>';
-      log('✅ No duplicates');
+      document.getElementById('dupStats').innerHTML = '<div style="color:var(--green);font-weight:700;padding:8px 0;">✅ কোনো duplicate নেই</div>';
+      log('No duplicates found', 'ok');
     }
 
+    // Stale check
     if (gd && gd.finance) {
-      var localIds = new Set(gd.finance.map(f => String(f.id)));
-      var stale = fCloud.filter(r => r.data && !localIds.has(String(r.data.id)) && !r.deleted);
-      document.getElementById('staleCard').className = 'card full '+(stale.length>0?'mismatch':'match');
-      document.getElementById('staleCard').classList.remove('hidden');
+      var localIds = new Set(gd.finance.map(function(f){ return String(f.id); }));
+      var stale = fCloud.filter(function(r){ return r.data && !localIds.has(String(r.data.id)) && !r.deleted; });
+
+      var sc = document.getElementById('staleCard');
+      sc.classList.remove('hidden');
+      sc.className = 'card full ' + (stale.length > 0 ? 'warn-c' : 'match');
+      var sb = document.getElementById('staleBadge');
+      sb.textContent = stale.length > 0 ? stale.length + ' STALE' : 'CLEAN';
+
       if (stale.length > 0) {
-        var h2 = '<table><tr><th>Cloud ID</th><th>Type</th><th>Amount</th><th>Person</th><th>Date</th></tr>';
-        stale.forEach(r => { var d=r.data; h2 += '<tr><td>'+d.id+'</td><td>'+d.type+'</td><td>'+fmt(d.amount)+'</td><td>'+(d.person||'—')+'</td><td>'+(d.date||'—')+'</td></tr>'; });
+        var h2 = '<table><tr><th>ID</th><th>Type</th><th>Amount</th><th>Person</th><th>Date</th></tr>';
+        stale.forEach(function(r){
+          var d = r.data;
+          h2 += '<tr><td><code>'+(d.id||'—')+'</code></td><td>'+(d.type||'—')+'</td><td style="color:var(--yellow)">'+ fmt(d.amount)+'</td><td>'+(d.person||'—')+'</td><td>'+(d.date||'—')+'</td></tr>';
+        });
         h2 += '</table>';
         document.getElementById('staleStats').innerHTML = h2;
-        log('⚠️ '+stale.length+' stale cloud rows');
+        log(stale.length + ' stale cloud rows found', 'warn');
       } else {
-        document.getElementById('staleStats').innerHTML = '<div class="ok">✅ No stale rows</div>';
-        log('✅ No stale rows');
+        document.getElementById('staleStats').innerHTML = '<div style="color:var(--green);font-weight:700;padding:8px 0;">✅ কোনো stale row নেই</div>';
+        log('No stale rows', 'ok');
       }
     } else {
-      document.getElementById('staleStats').innerHTML = '<div class="dim">Local data নেই — stale check সম্ভব নয়</div>';
+      document.getElementById('staleStats').innerHTML = '<div style="color:var(--dim);font-size:12px;">Local data নেই — stale check সম্ভব নয়</div>';
     }
-  } catch(e) { log('Deep scan error: '+e.message); }
+
+    setStatus('ok', 'Deep scan complete');
+    log('──── Deep Scan complete ────', 'ok');
+  } catch(e) {
+    setStatus('err', 'Deep scan failed');
+    log('Deep scan error: ' + e.message, 'err');
+  }
 }
 
-// ═══════════════════════════════════════════════════════════
+// ═══════════════════════════════════════════════════════════════════
 // CLEAN CLOUD DELETED
-// ═══════════════════════════════════════════════════════════
+// ═══════════════════════════════════════════════════════════════════
 async function cleanCloud() {
-  if (!confirm('Cloud থেকে সব deleted=true rows ডিলিট করবেন?')) return;
-  log('Cleaning cloud deleted markers...');
+  if (!confirm('Cloud থেকে সব deleted=true rows মুছবেন?\n\nএটা undo করা যাবে না।')) return;
+  setStatus('loading', 'Cleaning cloud...');
+  log('──── Clean Cloud Deleted ────');
   try {
-    var r1 = await fetch(CFG.URL+'/rest/v1/'+CFG.TBL_FINANCE+'?academy_id=eq.'+CFG.ACADEMY_ID+'&deleted=eq.true', {method:'DELETE',headers:HDRS});
-    log('Finance deleted: HTTP '+r1.status);
-    var r2 = await fetch(CFG.URL+'/rest/v1/'+CFG.TBL_STUDENTS+'?academy_id=eq.'+CFG.ACADEMY_ID+'&deleted=eq.true', {method:'DELETE',headers:HDRS});
-    log('Students deleted: HTTP '+r2.status);
-    var r3 = await fetch(CFG.URL+'/rest/v1/'+CFG.TBL_EMPLOYEES+'?academy_id=eq.'+CFG.ACADEMY_ID+'&deleted=eq.true', {method:'DELETE',headers:HDRS});
-    log('Employees deleted: HTTP '+r3.status);
-    log('✅ Cloud cleaned!');
-    runFullCheck();
-  } catch(e) { log('Clean error: '+e.message); }
+    var tables = [
+      { tbl: CFG.TBL_FINANCE,   name: 'Finance' },
+      { tbl: CFG.TBL_STUDENTS,  name: 'Students' },
+      { tbl: CFG.TBL_EMPLOYEES, name: 'Employees' }
+    ];
+    for (var i = 0; i < tables.length; i++) {
+      var t = tables[i];
+      var r = await fetch(CFG.URL+'/rest/v1/'+t.tbl+'?academy_id=eq.'+CFG.ACADEMY_ID+'&deleted=eq.true',
+        { method: 'DELETE', headers: Object.assign({}, HDRS, { Prefer: 'return=minimal' }) });
+      log(t.name + ' deleted markers removed: HTTP ' + r.status, r.ok ? 'ok' : 'err');
+    }
+    log('Cloud cleaned!', 'ok');
+    setStatus('ok', 'Cloud cleaned');
+    await runFullCheck();
+  } catch(e) {
+    setStatus('err', 'Clean failed');
+    log('Clean error: ' + e.message, 'err');
+  }
 }
 
-// ═══════════════════════════════════════════════════════════
+// ═══════════════════════════════════════════════════════════════════
 // FORCE PULL MISSING
-// ═══════════════════════════════════════════════════════════
+// ═══════════════════════════════════════════════════════════════════
 async function forcePullMissing() {
-  log('⬇️ Force pulling missing records...');
+  log('──── Force Pull Missing ────');
+  setStatus('loading', 'Pulling missing...');
+
   var localResult = getLocalData();
   var gd = localResult ? localResult.data : null;
-  if (!gd) { log('❌ No local data!'); return; }
+  if (!gd) { log('No local data!', 'err'); setStatus('err', 'No local data'); return; }
 
   try {
-    var fRes = await fetch(CFG.URL+'/rest/v1/'+CFG.TBL_FINANCE+'?academy_id=eq.'+CFG.ACADEMY_ID+'&deleted=eq.false&select=id,data', {headers:HDRS});
-    if (!fRes.ok) { log('❌ Cloud fetch failed: HTTP '+fRes.status); return; }
+    var fRes = await fetch(CFG.URL+'/rest/v1/'+CFG.TBL_FINANCE+
+      '?academy_id=eq.'+CFG.ACADEMY_ID+'&deleted=eq.false&select=id,data&limit=5000', {headers:HDRS});
+    if (!fRes.ok) throw new Error('HTTP ' + fRes.status);
     var fCloud = await fRes.json();
-    log('☁️ Cloud active finance: '+fCloud.length);
+    log('Cloud active finance: ' + fCloud.length);
 
     if (!gd.finance) gd.finance = [];
-    var localIds = new Set(gd.finance.map(f => String(f.id)));
-    var missing = fCloud.filter(r => r.data && r.data.id && !localIds.has(String(r.data.id)));
+    var localIds = new Set(gd.finance.map(function(f){ return String(f.id); }));
+    var missing = fCloud.filter(function(r){ return r.data && r.data.id && !localIds.has(String(r.data.id)); });
 
-    if (missing.length === 0) { log('✅ কোনো মিসিং রেকর্ড নেই!'); alert('✅ Local এবং Cloud সমান।'); return; }
+    if (missing.length === 0) {
+      log('কোনো missing record নেই!', 'ok');
+      setStatus('ok', 'No missing records');
+      alert('✅ Local এবং Cloud সমান। কোনো missing record নেই।');
+      return;
+    }
 
-    log('⚠️ '+missing.length+'টি মিসিং');
-    missing.forEach(r => { var d=r.data; log('  ➕ '+(d.type||'?')+' | '+fmt(d.amount)+' | '+(d.person||'—')+' | '+(d.date||'—')); });
+    log(missing.length + 'টি missing finance record পাওয়া গেছে', 'warn');
+    missing.forEach(function(r){
+      var d = r.data;
+      log('  + ' + (d.type||'?') + ' | ' + fmt(d.amount) + ' | ' + (d.date||'—'));
+    });
 
-    if (!confirm(missing.length+'টি মিসিং Finance রেকর্ড পাওয়া গেছে।\nLocal Data-তে যোগ করবেন?')) { log('Cancelled.'); return; }
+    if (!confirm(missing.length + 'টি missing Finance record পাওয়া গেছে।\nLocal Data-তে যোগ করবেন?')) {
+      log('Cancelled.'); setStatus('ok', 'Cancelled'); return;
+    }
 
-    missing.forEach(r => { gd.finance.push(r.data); });
+    missing.forEach(function(r){ gd.finance.push(r.data); });
     try {
       localStorage.setItem('wingsfly_data', JSON.stringify(gd));
-      log('✅ '+missing.length+'টি রেকর্ড যোগ হয়েছে! App-এ Ctrl+Shift+R দিন।');
-      alert('✅ '+missing.length+'টি রেকর্ড যোগ হয়েছে!\n\nApp-এ ফিরে Ctrl+Shift+R করুন।');
-      runFullCheck();
-    } catch(e) { log('❌ Save failed: '+e.message); }
-  } catch(e) { log('❌ Error: '+e.message); }
+      log(missing.length + 'টি record যোগ হয়েছে! App-এ Ctrl+Shift+R দিন।', 'ok');
+      setStatus('ok', missing.length + ' records pulled');
+      alert('✅ ' + missing.length + 'টি record যোগ হয়েছে!\n\nApp-এ ফিরে Ctrl+Shift+R করুন।');
+      await runFullCheck();
+    } catch(e) { log('Save failed: ' + e.message, 'err'); setStatus('err', 'Save failed'); }
+  } catch(e) {
+    setStatus('err', 'Pull failed');
+    log('Error: ' + e.message, 'err');
+  }
 }
 
-// Auto-run
+// ─── Auto-run on load ───
 runFullCheck();
 </script>
 </body>
