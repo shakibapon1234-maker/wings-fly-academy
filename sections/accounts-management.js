@@ -254,20 +254,80 @@ function openAccountModal(index = -1) {
   modal.show();
 }
 
+// ============================================================
+// syncAllPaymentDropdowns — MASTER SYNC FUNCTION
+// Accounts Tab থেকে কোনো account add/edit/delete হলে
+// সিস্টেমের সমস্ত payment method dropdown একসাথে sync হবে।
+// ============================================================
+function syncAllPaymentDropdowns() {
+  // 1. globalData.paymentMethods rebuild করো (Cash + Bank + Mobile)
+  const bankNames   = (globalData.bankAccounts  || []).map(a => a.name).filter(Boolean);
+  const mobileNames = (globalData.mobileBanking || []).map(a => a.name).filter(Boolean);
+  globalData.paymentMethods = ['Cash', ...bankNames, ...mobileNames]
+    .filter((v, i, arr) => arr.indexOf(v) === i); // unique
+
+  // 2. Master populateDropdowns (ledger-render.js এ defined)
+  if (typeof window.populateDropdowns === 'function') {
+    window.populateDropdowns();
+  }
+
+  // 3. Salary modal dropdowns
+  ['salMethod', 'salEditMethod'].forEach(function(id) {
+    var sel = document.getElementById(id);
+    if (!sel) return;
+    var cur = sel.value;
+    sel.innerHTML = '';
+    globalData.paymentMethods.forEach(function(m) {
+      var opt = document.createElement('option');
+      opt.value = m;
+      opt.textContent = m;
+      sel.appendChild(opt);
+    });
+    if (cur && globalData.paymentMethods.includes(cur)) sel.value = cur;
+    else if (globalData.paymentMethods.length > 0) sel.value = globalData.paymentMethods[0];
+  });
+
+  // 4. Transfer dropdowns
+  if (typeof window.populateTransferDropdownsNow === 'function') {
+    window.populateTransferDropdownsNow();
+  }
+
+  // 5. Ledger method filter
+  if (typeof window.populateLedgerFilter === 'function') {
+    window.populateLedgerFilter();
+  }
+
+  // 6. Student modal method select — index.html এ defined _populateStudentDropdowns
+  if (typeof window._populateStudentDropdowns === 'function') {
+    window._populateStudentDropdowns();
+  } else {
+    // Fallback: directly populate studentMethodSelect
+    var sSel = document.getElementById('studentMethodSelect');
+    if (sSel) {
+      var cur2 = sSel.value;
+      sSel.innerHTML = '<option value="">-- Select Method --</option>';
+      globalData.paymentMethods.forEach(function(m) {
+        var opt = document.createElement('option');
+        opt.value = m; opt.textContent = m;
+        sSel.appendChild(opt);
+      });
+      if (cur2 && globalData.paymentMethods.includes(cur2)) sSel.value = cur2;
+    }
+  }
+
+  // 7. Balance badges refresh
+  if (typeof window.attachMethodBalanceListeners === 'function') {
+    window.attachMethodBalanceListeners();
+  }
+
+  console.log('✅ syncAllPaymentDropdowns: সব dropdown sync হয়েছে।', globalData.paymentMethods);
+}
+window.syncAllPaymentDropdowns = syncAllPaymentDropdowns;
+
 async function handleAccountSubmit(e) {
-  console.log('handleAccountSubmit called'); // DEBUG
   e.preventDefault();
   const form = e.target;
   const index = parseInt(form.accountIndex.value);
-
-  console.log('Form data:', { // DEBUG
-    name: form.name.value,
-    branch: form.branch.value,
-    bankName: form.bankName.value,
-    accountNo: form.accountNo.value,
-    balance: form.balance.value,
-    index: index
-  });
 
   // CRITICAL: Ensure bankAccounts array exists
   if (!globalData.bankAccounts) {
@@ -285,28 +345,20 @@ async function handleAccountSubmit(e) {
 
   try {
     if (index >= 0) {
-      const oldName = globalData.bankAccounts[index].name;
       globalData.bankAccounts[index] = accountData;
-      // No need to update paymentMethods - handled dynamically in populateDropdowns
       showSuccessToast('✅ Bank account updated successfully!');
     } else {
-      console.log('Adding new account...'); // DEBUG
       globalData.bankAccounts.push(accountData);
-      // No need to add to paymentMethods - handled dynamically in populateDropdowns
-      console.log('Account added, showing toast...'); // DEBUG
       showSuccessToast('✅ New bank account added successfully!');
     }
 
-    console.log('Closing modal...'); // DEBUG
     const modalInstance = bootstrap.Modal.getInstance(document.getElementById('accountModal'));
     if (modalInstance) modalInstance.hide();
 
-    console.log('Saving to storage...'); // DEBUG
     await saveToStorage();
-    console.log('Rendering account list...'); // DEBUG
     renderAccountList();
-    if (typeof populateDropdowns === 'function') populateDropdowns();
-    console.log('Done!'); // DEBUG
+    // ✅ SYNC: সব জায়গার payment method dropdown একসাথে update
+    syncAllPaymentDropdowns();
   } catch (error) {
     console.error('Error in handleAccountSubmit:', error);
     showErrorToast('Failed to save account: ' + error.message);
@@ -316,17 +368,15 @@ async function handleAccountSubmit(e) {
 async function deleteAccount(index) {
   if (!confirm('Are you sure you want to delete this bank account?')) return;
 
-  const accName = globalData.bankAccounts[index].name;
   globalData.bankAccounts.splice(index, 1);
-
-  // No need to remove from paymentMethods - handled dynamically in populateDropdowns
 
   // Re-index SL
   globalData.bankAccounts.forEach((acc, i) => acc.sl = i + 1);
 
   await saveToStorage();
   renderAccountList();
-  if (typeof populateDropdowns === 'function') populateDropdowns();
+  // ✅ SYNC: সব জায়গার payment method dropdown একসাথে update
+  syncAllPaymentDropdowns();
   showSuccessToast('🗑️ Account deleted successfully');
 }
 
@@ -593,7 +643,8 @@ async function handleMobileSubmit(e) {
     await saveToStorage();
     renderMobileBankingList();
     if (typeof renderAccountList === 'function') renderAccountList();
-    if (typeof populateDropdowns === 'function') populateDropdowns();
+    // ✅ SYNC: সব জায়গার payment method dropdown একসাথে update
+    syncAllPaymentDropdowns();
   } catch (error) {
     console.error('Error in handleMobileSubmit:', error);
     showErrorToast('Failed to save mobile account: ' + error.message);
@@ -603,13 +654,13 @@ async function handleMobileSubmit(e) {
 async function deleteMobileAccount(index) {
   if (!confirm('Are you sure you want to delete this mobile banking account?')) return;
 
-  const accName = globalData.mobileBanking[index].name;
   globalData.mobileBanking.splice(index, 1);
 
   await saveToStorage();
   renderMobileBankingList();
   if (typeof renderAccountList === 'function') renderAccountList();
-  if (typeof populateDropdowns === 'function') populateDropdowns();
+  // ✅ SYNC: সব জায়গার payment method dropdown একসাথে update
+  syncAllPaymentDropdowns();
   updateGlobalStats();
   showSuccessToast('🗑️ Mobile account deleted successfully!');
 }
@@ -673,7 +724,8 @@ async function handleCashSubmit(e) {
 
     await saveToStorage();
     renderCashBalance();
-    if (typeof populateDropdowns === 'function') populateDropdowns();
+    // ✅ SYNC: সব জায়গার payment method dropdown একসাথে update
+    syncAllPaymentDropdowns();
 
     showSuccessToast('✅ Cash balance updated successfully!');
   } catch (error) {

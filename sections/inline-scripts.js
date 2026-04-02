@@ -1070,11 +1070,27 @@ document.addEventListener("DOMContentLoaded", function () { var fm = document.ge
             'financeModal',
             'editTransactionModal',
             'examRegistrationModal',
-            'accountModal'
+            'accountModal',
+            // ✅ Salary modals — Accounts tab sync এর জন্য যোগ করা হয়েছে
+            'salaryModal',
+            'salaryEditModal'
         ];
         if (paymentModals.indexOf(modalId) !== -1) {
             setTimeout(function () {
-                window.populateDropdowns();
+                if (typeof window.populateDropdowns === 'function') window.populateDropdowns();
+                // ✅ Balance badge দেখাও salary modal এর জন্য
+                if (modalId === 'salaryModal' || modalId === 'salaryEditModal') {
+                    setTimeout(function() {
+                        if (typeof window.showMethodBalance === 'function') {
+                            if (document.getElementById('salMethod') && document.getElementById('salMethod').value) {
+                                window.showMethodBalance('salMethod');
+                            }
+                            if (document.getElementById('salEditMethod') && document.getElementById('salEditMethod').value) {
+                                window.showMethodBalance('salEditMethod');
+                            }
+                        }
+                    }, 80);
+                }
             }, 30);
         }
     });

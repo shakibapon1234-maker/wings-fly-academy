@@ -943,10 +943,21 @@ async function handleStudentSubmit(e) {
   const phoneInp = document.getElementById('studentPhone');
   const methodSel = document.getElementById('studentMethodSelect');
 
+  // ✅ FIX: methodSel empty থাকলে Cash inject করো (Accounts sync delay এর কারণে হতে পারে)
+  if (methodSel && !methodSel.value) {
+    const cashExists = Array.from(methodSel.options).some(o => o.value === 'Cash');
+    if (!cashExists) {
+      const opt = document.createElement('option');
+      opt.value = 'Cash'; opt.textContent = '💵 Cash';
+      methodSel.appendChild(opt);
+    }
+    methodSel.value = 'Cash';
+  }
+
   if (!nameInp?.value.trim() || !courseSel?.value || !phoneInp?.value.trim() || !methodSel?.value) {
     showErrorToast('⚠️ Please fill required fields: Name, Phone, Course, and Payment Method');
     // Highlight empty fields
-    [nameInp, batchInp, courseSel, phoneInp, methodSel].forEach(el => {
+    [nameInp, courseSel, phoneInp, methodSel].forEach(el => {
       if (el && (!el.value || !el.value.trim())) {
         el.style.borderColor = '#ff4455';
         setTimeout(() => el.style.borderColor = '', 3000);

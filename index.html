@@ -2121,23 +2121,46 @@ WINGS FLY AVIATION ACADEMY — Management System
     <script>
         (function () {
             function _populateStudentDropdowns() {
-                var gd = window.globalData;
-                if (!gd) return;
-                var cs = document.getElementById('studentCourseSelect');
-                if (cs) {
-                    var cv = cs.value;
-                    cs.innerHTML = '<option value="">-- Select Course --</option>';
-                    (gd.courseNames || []).forEach(function (c) { cs.innerHTML += '<option value="' + c + '">' + c + '</option>'; });
-                    if (cv) cs.value = cv;
+                // ✅ FIX: Master populateDropdowns ব্যবহার করো — সব account sync থাকবে
+                if (typeof window.populateDropdowns === 'function') {
+                    window.populateDropdowns();
+                } else {
+                    // Fallback: populateDropdowns load না হলে নিজেই করো
+                    var gd = window.globalData;
+                    if (!gd) return;
+                    var cs = document.getElementById('studentCourseSelect');
+                    if (cs) {
+                        var cv = cs.value;
+                        cs.innerHTML = '<option value="">-- Select Course --</option>';
+                        (gd.courseNames || []).forEach(function (c) { cs.innerHTML += '<option value="' + c + '">' + c + '</option>'; });
+                        if (cv) cs.value = cv;
+                    }
+                    var ms = document.getElementById('studentMethodSelect');
+                    if (ms) {
+                        var mv = ms.value;
+                        ms.innerHTML = '<option value="">-- Select Method --</option>';
+                        var methods = [];
+                        methods.push('Cash');
+                        (gd.bankAccounts || []).forEach(function(a) { if (a.name) methods.push(a.name); });
+                        (gd.mobileBanking || []).forEach(function(a) { if (a.name) methods.push(a.name); });
+                        methods.forEach(function(m) { ms.innerHTML += '<option value="' + m + '">' + m + '</option>'; });
+                        if (mv && methods.indexOf(mv) !== -1) { ms.value = mv; }
+                        // ✅ FIX: কোনো value না থাকলে Cash default করো
+                        if (!ms.value) ms.value = 'Cash';
+                    }
                 }
-                var ms = document.getElementById('studentMethodSelect');
-                if (ms) {
-                    var mv = ms.value;
-                    ms.innerHTML = '<option value="">-- Select Method --</option>';
-                    (gd.paymentMethods || ['Cash', 'Bkash', 'Nagad', 'Bank']).forEach(function (m) { ms.innerHTML += '<option value="' + m + '">' + m + '</option>'; });
-                    if (mv) ms.value = mv;
-                }
+                // ✅ FIX: studentMethodSelect এ Cash default — populateDropdowns এর পরেও
+                setTimeout(function() {
+                    var ms2 = document.getElementById('studentMethodSelect');
+                    if (ms2 && !ms2.value) ms2.value = 'Cash';
+                    // Balance badge দেখাও
+                    if (ms2 && ms2.value && typeof window.showMethodBalance === 'function') {
+                        window.showMethodBalance('studentMethodSelect');
+                    }
+                }, 50);
             }
+            // ✅ Global expose করো — syncAllPaymentDropdowns থেকে call করার জন্য
+            window._populateStudentDropdowns = _populateStudentDropdowns;
 
             window.calcDue = function () {
                 var t = parseFloat(document.getElementById('inpTotal') && document.getElementById('inpTotal').value) || 0;

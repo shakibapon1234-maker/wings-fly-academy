@@ -63,7 +63,10 @@ function populateDropdowns() {
     'addPaymentMethod',
     'studentPayMethod',
     'payMethod',
-    'unifiedAccountSelect'
+    'unifiedAccountSelect',
+    // ✅ Salary Modal dropdowns — Accounts tab sync এর জন্য
+    'salMethod',
+    'salEditMethod'
   ];
 
   methodSelects.forEach(id => {
@@ -124,6 +127,49 @@ function populateDropdowns() {
   });
 
   if (typeof renderSettingsLists === 'function') renderSettingsLists();
+
+  // ✅ Salary Modal dropdowns — balance badge সহ আলাদাভাবে populate করো
+  // salMethod ও salEditMethod এর option text clean (balance ছাড়া) রাখা হয়
+  // কারণ salary-management.js showMethodBalance() দিয়ে badge আলাদা দেখায়
+  ['salMethod', 'salEditMethod'].forEach(function(id) {
+    const sel = document.getElementById(id);
+    if (!sel) return;
+    const cur = sel.value;
+    sel.innerHTML = '';
+
+    // Cash
+    const cashOpt = document.createElement('option');
+    cashOpt.value = 'Cash';
+    cashOpt.textContent = '💵 Cash';
+    sel.appendChild(cashOpt);
+
+    // Bank accounts
+    (gd.bankAccounts || []).forEach(function(acc) {
+      const opt = document.createElement('option');
+      opt.value = acc.name;
+      opt.textContent = '🏦 ' + acc.name;
+      sel.appendChild(opt);
+    });
+
+    // Mobile banking
+    (gd.mobileBanking || []).forEach(function(m) {
+      const opt = document.createElement('option');
+      opt.value = m.name;
+      opt.textContent = '📱 ' + m.name;
+      sel.appendChild(opt);
+    });
+
+    // পুরোনো selected value restore করো
+    if (cur) {
+      const exists = Array.from(sel.options).some(o => o.value === cur);
+      if (exists) sel.value = cur;
+    }
+
+    // ✅ Balance badge দেখাও — method select এর পর badge auto-show
+    if (sel.value && typeof window.showMethodBalance === 'function') {
+      window.showMethodBalance(id);
+    }
+  });
 }
 
 function renderSettingsLists() {
