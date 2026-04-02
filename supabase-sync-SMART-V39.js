@@ -889,6 +889,33 @@
       const finCount = (gd.finance || []).length, stuCount = (gd.students || []).length;
       const finDeleted = MaxCount.getDeletedCount('finance');
       const stuDeleted = MaxCount.getDeletedCount('students');
+
+      // ✅ V39.3 FIX: Delete-after-push MaxCount update
+      // যদি deletedItems-এ নতুন un-synced delete থাকে, তাহলে MaxCount
+      // সেই delete count বিবেচনা করে আপডেট করো — push block হবে না।
+      // কারণ: delete হলে finance array ছোট হয় কিন্তু MaxCount এখনো
+      // আগের বড় count ধরে রাখে → isSafe() false → push blocked ✗
+      const finUnsynced = Array.isArray(gd.deletedItems?.finance)
+        ? gd.deletedItems.finance.filter(i => !i._synced).length : 0;
+      const stuUnsynced = Array.isArray(gd.deletedItems?.students)
+        ? gd.deletedItems.students.filter(i => !i._synced).length : 0;
+      if (finUnsynced > 0 || stuUnsynced > 0) {
+        // Delete আছে — MaxCount কে current actual count এ নামিয়ে আনো
+        // এটা safe কারণ delete markers আলাদাভাবে push হবে
+        const newFinMax = finCount + finDeleted;
+        const newStuMax = stuCount + stuDeleted;
+        const curFinMax = MaxCount.get('finance');
+        const curStuMax = MaxCount.get('students');
+        if (newFinMax < curFinMax) {
+          localStorage.setItem('wf_max_finance', String(newFinMax));
+          _log('🗑️', `MaxCount finance adjusted for delete: ${curFinMax}→${newFinMax}`);
+        }
+        if (newStuMax < curStuMax) {
+          localStorage.setItem('wf_max_students', String(newStuMax));
+          _log('🗑️', `MaxCount students adjusted for delete: ${curStuMax}→${newStuMax}`);
+        }
+      }
+
       const finCheck = MaxCount.isSafe('finance', finCount, { deletedCount: finDeleted });
       const stuCheck = MaxCount.isSafe('students', stuCount, { deletedCount: stuDeleted });
 
