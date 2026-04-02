@@ -366,15 +366,19 @@
       if (rowIdx) rowIdx.value = '';
       var title = document.getElementById('studentModalLabel');
       if (title) title.textContent = '👨‍🎓 Add New Student';
-      if (typeof window.populateDropdowns === 'function') setTimeout(window.populateDropdowns, 50);
+
+      // ✅ FIX: populateDropdowns synchronously আগে call করো — তারপর value set করো
+      if (typeof window.populateDropdowns === 'function') window.populateDropdowns();
+
       if (typeof window.removeStudentPhoto === 'function') window.removeStudentPhoto();
-      
-      // ✅ FIX: Reset Payment Method selection & remove old balance badge
+
+      // ✅ FIX: populate এর পরে balance badge remove করো, value reset করো না
       var methodSel = document.getElementById('studentMethodSelect');
       if (methodSel) {
-          methodSel.value = "";
           var oldBadge = document.getElementById('studentMethodSelect_balanceBadge');
           if (oldBadge) oldBadge.remove();
+          // Cash default করো যদি কোনো value না থাকে
+          if (!methodSel.value) methodSel.value = 'Cash';
           if (typeof window.showMethodBalance === 'function') window.showMethodBalance('studentMethodSelect');
       }
 
