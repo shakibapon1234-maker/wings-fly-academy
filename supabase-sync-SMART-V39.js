@@ -1232,7 +1232,8 @@
 
         // Main record push
         const mainPayload = {
-          id: CFG.RECORD, version: _localVer,
+          // ✅ id সরানো — PATCH body-তে PK দিলে 400 error
+          version: _localVer,
           last_updated: new Date().toISOString(), last_device: DEVICE_ID,
           last_action: reason, cash_balance: gd.cashBalance || 0,
           bank_accounts: gd.bankAccounts || [], mobile_banking: gd.mobileBanking || [],
@@ -1582,7 +1583,8 @@
       if (!window.globalData) return;
       const gd = window.globalData;
       const mainPayload = {
-        id: CFG.RECORD, version: _localVer + 1,
+        // ✅ id সরানো — PATCH body-তে PK দিলে 400 error
+        version: _localVer + 1,
         last_updated: new Date().toISOString(), last_device: DEVICE_ID,
         last_action: 'page-close', cash_balance: gd.cashBalance || 0,
         bank_accounts: gd.bankAccounts || [], mobile_banking: gd.mobileBanking || [],
