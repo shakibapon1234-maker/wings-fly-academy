@@ -451,9 +451,16 @@
 
     const isAdv = type === 'Advance';
     const isBonus = type === 'Bonus';
+    // ✅ FIX: timestamp ও _createdAt সবসময় selected date অনুযায়ী হবে।
+    // Finance Ledger date অনুযায়ী sort করে — real time (createdAt) নয়।
+    // _entryAddedAt = real time (কখন input দেওয়া হয়েছে — audit এর জন্য)
+    const _dateTs = new Date(date + 'T12:00:00').toISOString();
     const txn = {
       id: 'SAL_' + Date.now(),
       date,
+      timestamp: _dateTs,        // ✅ Finance Ledger date-sort এর জন্য
+      _createdAt: _dateTs,       // ✅ Sync conflict resolution এর জন্য
+      _updatedAt: _dateTs,       // ✅ Sync এর জন্য
       type: isAdv ? 'Advance' : 'Expense',
       category: isAdv ? 'Advance' : 'Salaries',
       method,
@@ -463,7 +470,7 @@
       description: `${desc}${isBonus ? ' [Bonus]' : isAdv ? ' [Advance]' : ' [Salary]'} (${month})`,
       source: 'salary',
       createdBy: window.currentUser || 'Admin',
-      createdAt: new Date().toISOString()
+      _entryAddedAt: new Date().toISOString() // ✅ Real time — audit only
     };
 
     gd.finance.push(txn);
@@ -559,7 +566,14 @@
     if (typeof window.feApplyEntryToAccount === 'function') {
       window.feApplyEntryToAccount(old, -1);
     }
-    gd.finance[idx] = { ...gd.finance[idx], amount, date, method, description: desc };
+    // ✅ FIX: edit করলে timestamp ও _updatedAt নতুন date অনুযায়ী আপডেট হবে
+    const _editDateTs = new Date(date + 'T12:00:00').toISOString();
+    gd.finance[idx] = {
+      ...gd.finance[idx],
+      amount, date, method, description: desc,
+      timestamp: _editDateTs,   // ✅ date পরিবর্তন → sort position পরিবর্তন
+      _updatedAt: _editDateTs,  // ✅ Sync conflict resolution
+    };
     if (typeof window.feApplyEntryToAccount === 'function') {
       window.feApplyEntryToAccount(gd.finance[idx], +1);
     }
