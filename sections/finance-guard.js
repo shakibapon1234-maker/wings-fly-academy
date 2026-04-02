@@ -74,26 +74,26 @@
     var issues = [];
     var warnings = [];
 
-    // ── CHECK 1: Canonical type lists ──────────────────────
+    // ── CHECK 1: finance-engine লোড হয়েছে কিনা ─────────────
+    // ✅ FIX: hardcoded type list এর সাথে compare করা বাদ দেওয়া হয়েছে।
+    // কারণ: finance-engine এ নতুন type যোগ হলে এটা সবসময় false alarm দিত।
+    // এখন শুধু engine লোড হয়েছে কিনা check করা হয়।
     var actualIncome  = window.FE_STAT_INCOME;
     var actualExpense = window.FE_STAT_EXPENSE;
 
-    if (!actualIncome) {
-      issues.push('finance-engine.js লোড হয়নি — FE_STAT_INCOME নেই');
-    } else {
-      var incomeMismatch = actualIncome.slice().sort().join() !== EXPECTED_INCOME_TYPES.slice().sort().join();
-      if (incomeMismatch) {
-        issues.push('FE_STAT_INCOME পরিবর্তিত হয়েছে! Expected: [' + EXPECTED_INCOME_TYPES.join(', ') + '] | Got: [' + actualIncome.join(', ') + ']');
-      }
+    if (!actualIncome || !Array.isArray(actualIncome)) {
+      issues.push('finance-engine.js লোড হয়নি — FE_STAT_INCOME পাওয়া যায়নি');
     }
-
-    if (!actualExpense) {
-      issues.push('finance-engine.js লোড হয়নি — FE_STAT_EXPENSE নেই');
-    } else {
-      var expenseMismatch = actualExpense.slice().sort().join() !== EXPECTED_EXPENSE_TYPES.slice().sort().join();
-      if (expenseMismatch) {
-        issues.push('FE_STAT_EXPENSE পরিবর্তিত হয়েছে! Expected: [' + EXPECTED_EXPENSE_TYPES.join(', ') + '] | Got: [' + actualExpense.join(', ') + ']');
-      }
+    if (!actualExpense || !Array.isArray(actualExpense)) {
+      issues.push('finance-engine.js লোড হয়নি — FE_STAT_EXPENSE পাওয়া যায়নি');
+    }
+    // FE_STAT_INCOME এ অন্তত Income থাকা উচিত
+    if (actualIncome && !actualIncome.includes('Income')) {
+      issues.push('FE_STAT_INCOME এ "Income" নেই — finance-engine এ মূল type missing');
+    }
+    // FE_STAT_EXPENSE এ অন্তত Expense থাকা উচিত  
+    if (actualExpense && !actualExpense.includes('Expense')) {
+      issues.push('FE_STAT_EXPENSE এ "Expense" নেই — finance-engine এ মূল type missing');
     }
 
     // ── CHECK 2: Finance engine functions ──────────────────
@@ -312,12 +312,16 @@
     delay = delay || 1500;
     var orig = window[fnName];
     if (typeof orig !== 'function') return;
-    window[fnName] = function () {
+    // ✅ FIX: double-wrap protection — sync-guard ও একই function hook করে
+    // যদি আগে থেকে finance-guard wrap করা থাকে, আর করবো না
+    if (orig._fgHooked) return;
+    var wrapped = function () {
       var result = orig.apply(this, arguments);
-      // Async operations এর জন্য delay দিয়ে re-check
       setTimeout(function () { runGuard(true); }, delay);
       return result;
     };
+    wrapped._fgHooked = true;
+    window[fnName] = wrapped;
   }
 
   function _installHooks() {

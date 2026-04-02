@@ -149,12 +149,14 @@
 
   function _checkSyncApi(issues, warnings) {
     if (!window.wingsSync || typeof window.wingsSync !== 'object') {
-      issues.push('wingsSync API missing — cloud sync controller not loaded');
+      // ✅ FIX: issue → warning, কারণ wingsSync late-load হয়
+      warnings.push('wingsSync API এখনো লোড হয়নি — cloud sync চেক করতে পারছি না');
       return;
     }
     ['pushNow', 'pullNow', 'smartSync', 'getStatus'].forEach(function (fn) {
       if (typeof window.wingsSync[fn] !== 'function') {
-        issues.push('wingsSync function missing: ' + fn);
+        // ✅ FIX: missing wingsSync function → warning (not issue)
+        warnings.push('wingsSync.' + fn + '() পাওয়া যায়নি');
       }
     });
     try {
@@ -320,10 +322,20 @@
 
     if (gd) {
       // ── CHECK 6: Finance entries reference valid accounts ──
+      // ✅ FIX: paymentMethods array থেকেও valid names নাও
+      // কারণ: পুরনো entries তে 'Bkash', 'Nagad' ইত্যাদি থাকতে পারে
+      // যেগুলো mobileBanking array তে নেই কিন্তু paymentMethods এ আছে।
+      // এগুলো orphan নয় — legacy valid methods।
       var accountNames = new Set();
       accountNames.add('Cash');
-      (gd.bankAccounts || []).forEach(function (a) { accountNames.add(a.name); });
-      (gd.mobileBanking || []).forEach(function (a) { accountNames.add(a.name); });
+      (gd.bankAccounts || []).forEach(function (a) { if (a.name) accountNames.add(a.name); });
+      (gd.mobileBanking || []).forEach(function (a) { if (a.name) accountNames.add(a.name); });
+      // paymentMethods array (legacy support)
+      (gd.paymentMethods || []).forEach(function (m) { if (m) accountNames.add(m); });
+      // Common known methods যেগুলো সবসময় valid
+      ['Bkash', 'Nagad', 'Bank Transfer', 'bKash', 'Rocket', 'Cash'].forEach(function(m) {
+        accountNames.add(m);
+      });
 
       var orphanMethods = {};
       (gd.finance || []).forEach(function (f) {
@@ -541,11 +553,18 @@
     delay = delay || 2000;
     var orig = window[fnName];
     if (typeof orig !== 'function') return;
-    window[fnName] = function () {
+    // ✅ FIX: double-wrap protection — finance-guard ও একই function hook করে।
+    // _sgHooked flag দিয়ে check করো — আগে থেকে sync-guard wrap করা থাকলে আর করবো না।
+    if (orig._sgHooked) return;
+    var wrapped = function () {
       var result = orig.apply(this, arguments);
       setTimeout(function () { runGuard(true); }, delay);
       return result;
     };
+    wrapped._sgHooked = true;
+    // finance-guard এর _fgHooked preserve করো
+    if (orig._fgHooked) wrapped._fgHooked = true;
+    window[fnName] = wrapped;
   }
 
   function _installHooks() {
