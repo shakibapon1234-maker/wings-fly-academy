@@ -77,7 +77,13 @@ function updateGlobalStats() {
 
   allTotalIncome = allStudentIncome; // Student Collection focus
   const allOverallIncome = allStudentIncome + allTotalExamIncome + allNonStudentIncome;
-  const allProfit = allOverallIncome - allTotalExpense;
+
+  // ✅ BUG FIX: allProfit এবং runProfit দুটোই একই formula দিয়ে হিসাব হওয়া উচিত।
+  // আগে allProfit = allOverallIncome - allTotalExpense (Exam + Non-student income ও যোগ হত)
+  // কিন্তু runProfit = runStudentIncome - runTotalExpense (শুধু student income)
+  // এই দুটো formula আলাদা হওয়ায় দুই row তে ভিন্ন Net Loss দেখাচ্ছিল।
+  // FIX: দুটোই শুধু allStudentIncome ব্যবহার করবে — consistent থাকবে।
+  const allProfit = allStudentIncome - allTotalExpense;
 
   // 2. Calculate RUNNING BATCH Stats
   let runTotalStudents = 0;
