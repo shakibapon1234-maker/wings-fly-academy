@@ -105,11 +105,11 @@ function populateDropdowns() {
       el.appendChild(opt);
     });
 
-    // D. Core Methods (Optional, if not already in accounts)
-    ['Bkash', 'Nagad', 'Rocket'].forEach(m => {
-      // Only add if not already present in mobileBanking/bankAccounts
-      const exists = Array.from(el.options).some(o => o.value === m);
-      if (!exists) {
+    // D. Extra methods from globalData.paymentMethods (user-defined, not in bank/mobile)
+    (gd.paymentMethods || []).forEach(m => {
+      if (m === 'Cash') return; // already added above
+      const alreadyAdded = Array.from(el.options).some(o => o.value === m);
+      if (!alreadyAdded) {
         const opt = document.createElement('option');
         opt.value = m;
         opt.textContent = m;
@@ -391,7 +391,7 @@ function addPaymentMethod() {
   if (!val) return;
 
   if (!window.globalData.paymentMethods) {
-    window.globalData.paymentMethods = ['Cash', 'Bkash', 'Nagad'];
+    window.globalData.paymentMethods = ['Cash'];
   }
 
   if (window.globalData.paymentMethods.includes(val)) { alert('Exists!'); return; }

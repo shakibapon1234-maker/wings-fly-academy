@@ -21,7 +21,7 @@ if (typeof window.globalData === 'undefined') {
     settings: {},
     incomeCategories: ['Direct Income', 'Other Income'],
     expenseCategories: ['Rent', 'Salaries', 'Utilities'],
-    paymentMethods: ['Cash', 'Bkash', 'Nagad', 'Bank Transfer'],
+    paymentMethods: ['Cash'],
     cashBalance: 0,
     bankAccounts: [],
     mobileBanking: [],
