@@ -599,6 +599,8 @@
     if (window.markDirty) window.markDirty('finance');
     if (window.saveToStorage) await window.saveToStorage();
     if (window.scheduleSyncPush) window.scheduleSyncPush('Salary Edit');
+    // ✅ V39.10: Immediate push — debounce delay-এ pull এসে overwrite করতো
+    if (typeof window.pushToCloud === 'function') window.pushToCloud('Salary Edit IMMEDIATE');
 
     bootstrap.Modal.getInstance(document.getElementById('salaryEditModal'))?.hide();
     renderSalaryCards();
