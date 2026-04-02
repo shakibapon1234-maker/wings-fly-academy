@@ -348,7 +348,13 @@ document.addEventListener('DOMContentLoaded', function () {
     try {
       var raw = localStorage.getItem('wingsfly_data');
       if (raw) window.globalData = JSON.parse(raw);
-      if (!window.globalData.deletedItems) window.globalData.deletedItems = [];
+      // ✅ FIX: deletedItems MUST be object {students,finance,employees} — never array!
+      if (!window.globalData.deletedItems || Array.isArray(window.globalData.deletedItems)) {
+        window.globalData.deletedItems = { students: [], finance: [], employees: [], other: [] };
+      }
+      ['students','finance','employees','other'].forEach(function(k) {
+        if (!Array.isArray(window.globalData.deletedItems[k])) window.globalData.deletedItems[k] = [];
+      });
       if (!window.globalData.activityHistory) window.globalData.activityHistory = [];
     } catch (e) { }
     if (typeof renderSnapshotList === 'function') renderSnapshotList();

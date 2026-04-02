@@ -451,6 +451,12 @@
         const _getDelKeys = (delArr, kind) => {
           const keys = new Set();
           (delArr || []).forEach(item => {
+            // ✅ FIX: plain string/number ID হলেও block করো
+            // (আমাদের deletedItems.finance তে ['FIN-123'] এভাবে আছে)
+            if (typeof item === 'string' || typeof item === 'number') {
+              keys.add(String(item));
+              return;
+            }
             const recId = _getDeletedRecordId(item, kind);
             if (recId) keys.add(String(recId));
             // Also add the source item's key
@@ -850,6 +856,8 @@
   // Resolve original record id from recycle-bin entry.
   // deletedItems entries have their own TRASH id, so we must prefer item.item.* ids.
   function _getDeletedRecordId(delEntry, kind) {
+    // ✅ FIX: plain string/number ID হলে সরাসরি return করো
+    if (typeof delEntry === 'string' || typeof delEntry === 'number') return String(delEntry);
     if (!delEntry || typeof delEntry !== 'object') return null;
     const src = delEntry.item && typeof delEntry.item === 'object' ? delEntry.item : null;
     if (kind === 'student') {
@@ -862,6 +870,7 @@
       return (src && (src.id || src.timestamp))
         || delEntry.sourceId
         || delEntry.financeId
+        || delEntry.id  // ✅ FIX: direct id field
         || null;
     }
     if (kind === 'employee') {
