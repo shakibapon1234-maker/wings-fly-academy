@@ -423,9 +423,9 @@
 
       if (_partialOK) {
         const [stuRes, finRes, empRes, mainRes] = await Promise.all([
-          _sb.from(CFG.TBL_STUDENTS).select('data,deleted').eq('academy_id', CFG.ACADEMY_ID),
-          _sb.from(CFG.TBL_FINANCE).select('data,deleted').eq('academy_id', CFG.ACADEMY_ID),
-          _sb.from(CFG.TBL_EMPLOYEES).select('data,deleted').eq('academy_id', CFG.ACADEMY_ID),
+          _sb.from(CFG.TBL_STUDENTS).select('id,data,deleted').eq('academy_id', CFG.ACADEMY_ID),
+          _sb.from(CFG.TBL_FINANCE).select('id,data,deleted').eq('academy_id', CFG.ACADEMY_ID),
+          _sb.from(CFG.TBL_EMPLOYEES).select('id,data,deleted').eq('academy_id', CFG.ACADEMY_ID),
           _sb.from(CFG.TABLE).select('*').eq('id', CFG.RECORD).limit(1),
         ]);
 
