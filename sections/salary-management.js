@@ -298,7 +298,17 @@
     }
 
     _resetSalaryForm();
-    document.getElementById('salDate').value = new Date().toISOString().split('T')[0];
+    // ✅ FIX: Date ডিফল্ট হিসেবে আজকের না, বরং সিলেক্টেড মাসের শেষ দিন সেট হবে।
+    // যেমন: মাস ফিল্টার "2026-03" হলে → ডেট "2026-03-31" হবে।
+    // ইউজার পরে চাইলে ম্যানুয়ালি বদলাতে পারবে।
+    var _salMonth = document.getElementById('salaryMonthFilter')?.value || '';
+    if (_salMonth && /^\d{4}-\d{2}$/.test(_salMonth)) {
+      var _parts = _salMonth.split('-');
+      var _lastDay = new Date(parseInt(_parts[0]), parseInt(_parts[1]), 0).getDate();
+      document.getElementById('salDate').value = _salMonth + '-' + String(_lastDay).padStart(2, '0');
+    } else {
+      document.getElementById('salDate').value = new Date().toISOString().split('T')[0];
+    }
 
     // Reset Due UI
     const dueEl = document.getElementById('salDueAmountBadge');
