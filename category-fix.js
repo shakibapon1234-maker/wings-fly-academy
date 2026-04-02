@@ -102,8 +102,7 @@
             if (!el || el.tagName !== 'SELECT') return;
             var currentVal = el.value;
             var firstOptText = '-- Select Course --';
-            if (id === 'visitorCourseSelect') firstOptText = '-- Select Course --';
-            else if (id === 'examSubjectSelect') firstOptText = 'Select Course...';
+            if (id === 'examSubjectSelect') firstOptText = 'Select Course...';
 
             el.innerHTML = '<option value="">' + firstOptText + '</option>';
             courses.forEach(function (c) {
@@ -112,7 +111,17 @@
                 opt.textContent = c;
                 el.appendChild(opt);
             });
-            if (currentVal) el.value = currentVal;
+            // ✅ FIX: currentVal যদি list-এ না থাকলেও option add করে select করো
+            if (currentVal && currentVal !== '') {
+                var exists = courses.indexOf(currentVal) >= 0;
+                if (!exists) {
+                    var extraOpt = document.createElement('option');
+                    extraOpt.value = currentVal;
+                    extraOpt.textContent = currentVal;
+                    el.appendChild(extraOpt);
+                }
+                el.value = currentVal;
+            }
         });
 
         // 2. Payment method dropdowns — সব জায়গায়

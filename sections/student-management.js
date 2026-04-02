@@ -943,7 +943,12 @@ async function handleStudentSubmit(e) {
   const phoneInp = document.getElementById('studentPhone');
   const methodSel = document.getElementById('studentMethodSelect');
 
-  if (!nameInp?.value.trim() || !courseSel?.value || !phoneInp?.value.trim() || !methodSel?.value) {
+  // ✅ FIX: FormData থেকেও value নাও — DOM element miss হলেও কাজ করবে
+  const _fd = new FormData(form);
+  const courseValue = courseSel?.value?.trim() || _fd.get('course')?.toString().trim() || '';
+  const methodValue = methodSel?.value?.trim() || _fd.get('method')?.toString().trim() || '';
+
+  if (!nameInp?.value.trim() || !courseValue || !phoneInp?.value.trim() || !methodValue) {
     showErrorToast('⚠️ Please fill required fields: Name, Phone, Course, and Payment Method');
     // Highlight empty fields
     [nameInp, batchInp, courseSel, phoneInp, methodSel].forEach(el => {
@@ -959,15 +964,9 @@ async function handleStudentSubmit(e) {
   const data = {};
   formData.forEach((value, key) => data[key] = value);
 
-  // ✅ CRITICAL VALIDATION: Payment Method — default to Cash if empty
+  // ✅ CRITICAL VALIDATION: Payment Method — courseValue/methodValue already captured above
   if (!data.method || data.method.trim() === '') {
-    // Try to get value directly from DOM (FormData sometimes misses selects)
-    const methodEl = document.getElementById('studentMethodSelect');
-    if (methodEl && methodEl.value) {
-      data.method = methodEl.value;
-    } else {
-      data.method = 'Cash'; // Safe default
-    }
+    data.method = methodValue || 'Cash';
   }
 
   // Also fix other fields that FormData might miss
@@ -976,8 +975,7 @@ async function handleStudentSubmit(e) {
     if (nameEl) data.name = nameEl.value;
   }
   if (!data.course) {
-    const courseEl = document.getElementById('studentCourseSelect');
-    if (courseEl) data.course = courseEl.value;
+    data.course = courseValue || (document.getElementById('studentCourseSelect')?.value) || '';
   }
   if (!data.batch) {
     const batchEl = document.getElementById('studentBatchInput');
