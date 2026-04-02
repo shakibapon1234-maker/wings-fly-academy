@@ -943,12 +943,7 @@ async function handleStudentSubmit(e) {
   const phoneInp = document.getElementById('studentPhone');
   const methodSel = document.getElementById('studentMethodSelect');
 
-  // ✅ FIX: FormData থেকেও value নাও — DOM element miss হলেও কাজ করবে
-  const _fd = new FormData(form);
-  const courseValue = courseSel?.value?.trim() || _fd.get('course')?.toString().trim() || '';
-  const methodValue = methodSel?.value?.trim() || _fd.get('method')?.toString().trim() || '';
-
-  if (!nameInp?.value.trim() || !courseValue || !phoneInp?.value.trim() || !methodValue) {
+  if (!nameInp?.value.trim() || !courseSel?.value || !phoneInp?.value.trim() || !methodSel?.value) {
     showErrorToast('⚠️ Please fill required fields: Name, Phone, Course, and Payment Method');
     // Highlight empty fields
     [nameInp, batchInp, courseSel, phoneInp, methodSel].forEach(el => {
@@ -964,9 +959,15 @@ async function handleStudentSubmit(e) {
   const data = {};
   formData.forEach((value, key) => data[key] = value);
 
-  // ✅ CRITICAL VALIDATION: Payment Method — courseValue/methodValue already captured above
+  // ✅ CRITICAL VALIDATION: Payment Method — default to Cash if empty
   if (!data.method || data.method.trim() === '') {
-    data.method = methodValue || 'Cash';
+    // Try to get value directly from DOM (FormData sometimes misses selects)
+    const methodEl = document.getElementById('studentMethodSelect');
+    if (methodEl && methodEl.value) {
+      data.method = methodEl.value;
+    } else {
+      data.method = 'Cash'; // Safe default
+    }
   }
 
   // Also fix other fields that FormData might miss
@@ -975,7 +976,8 @@ async function handleStudentSubmit(e) {
     if (nameEl) data.name = nameEl.value;
   }
   if (!data.course) {
-    data.course = courseValue || (document.getElementById('studentCourseSelect')?.value) || '';
+    const courseEl = document.getElementById('studentCourseSelect');
+    if (courseEl) data.course = courseEl.value;
   }
   if (!data.batch) {
     const batchEl = document.getElementById('studentBatchInput');
@@ -1397,11 +1399,17 @@ function ensureStudentIds() {
 function generateStudentId(batchName) {
   const batchNum = batchName ? batchName.toString().replace(/[^0-9]/g, '') : '00';
 
-  if (!globalData.deletedItems) globalData.deletedItems = [];
+  // ✅ FIX: deletedItems is an object {students:[], finance:[], employees:[]} — not an array
+  if (!globalData.deletedItems || Array.isArray(globalData.deletedItems)) {
+    globalData.deletedItems = { students: [], finance: [], employees: [] };
+  }
+  if (!Array.isArray(globalData.deletedItems.students)) globalData.deletedItems.students = [];
+
+  const deletedStudents = globalData.deletedItems.students;
 
   // Calculate total historical students for this batch to find a safe starting point
   const activeCount = globalData.students.filter(s => s.batch && s.batch.toString().replace(/[^0-9]/g, '') === batchNum).length;
-  const deletedCount = globalData.deletedItems.filter(d => d.item && d.item.batch && d.item.batch.toString().replace(/[^0-9]/g, '') === batchNum).length;
+  const deletedCount = deletedStudents.filter(d => d.item && d.item.batch && d.item.batch.toString().replace(/[^0-9]/g, '') === batchNum).length;
 
   let serial = activeCount + deletedCount + 1;
   let newId = `WF-${batchNum}${serial.toString().padStart(3, '0')}`;
@@ -1409,7 +1417,7 @@ function generateStudentId(batchName) {
   // ✅ FIX: Verify it absolutely does not collide with active or deleted students
   const isIdExists = (id) => {
     const inActive = globalData.students.some(s => s.studentId === id);
-    const inDeleted = globalData.deletedItems.some(d => d.item && d.item.studentId === id);
+    const inDeleted = deletedStudents.some(d => d.item && d.item.studentId === id);
     return inActive || inDeleted;
   };
 
