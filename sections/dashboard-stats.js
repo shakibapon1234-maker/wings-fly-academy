@@ -78,11 +78,9 @@ function updateGlobalStats() {
   allTotalIncome = allStudentIncome; // Student Collection focus
   const allOverallIncome = allStudentIncome + allTotalExamIncome + allNonStudentIncome;
 
-  // ✅ BUG FIX: allProfit এবং runProfit দুটোই একই formula দিয়ে হিসাব হওয়া উচিত।
-  // আগে allProfit = allOverallIncome - allTotalExpense (Exam + Non-student income ও যোগ হত)
-  // কিন্তু runProfit = runStudentIncome - runTotalExpense (শুধু student income)
-  // এই দুটো formula আলাদা হওয়ায় দুই row তে ভিন্ন Net Loss দেখাচ্ছিল।
-  // FIX: দুটোই শুধু allStudentIncome ব্যবহার করবে — consistent থাকবে।
+  // ✅ BUG FIX: allProfit এবং runProfit একই formula — শুধু Student Collection ব্যবহার করো।
+  // আগে allProfit = allOverallIncome (Exam + Other income যোগ হত) → বেশি Net Loss দেখাত।
+  // এখন দুটো row-এই: profit = studentIncome − totalExpense → সংখ্যা সমান থাকবে।
   const allProfit = allStudentIncome - allTotalExpense;
 
   // 2. Calculate RUNNING BATCH Stats
@@ -91,20 +89,11 @@ function updateGlobalStats() {
   let runExamIncome = 0;
   let runNonStudentIncome = 0;
 
-  // Expense: date range দিলে filter করো, না দিলে all-time
-  let runTotalExpense = 0;
-  if (expenseDateStart || expenseDateEnd) {
-    (globalData.finance || []).forEach(f => {
-      if (f._deleted) return;
-      if (!STAT_EXPENSE_TYPES.includes(f.type)) return;
-      const fDate = f.date || f.createdAt || '';
-      const afterStart = !expenseDateStart || fDate >= expenseDateStart;
-      const beforeEnd  = !expenseDateEnd   || fDate <= expenseDateEnd;
-      if (afterStart && beforeEnd) runTotalExpense += parseFloat(f.amount) || 0;
-    });
-  } else {
-    runTotalExpense = allTotalExpense; // Date range না দিলে all-time expense
-  }
+  // ✅ BUG FIX: runTotalExpense সবসময় allTotalExpense এর সমান হবে।
+  // আগে date range দিলে expense filter হত → Running Batch এ কম expense দেখাত
+  // কিন্তু All-Time এ full expense দেখাত → Net Loss দুই row তে আলাদা হত।
+  // Expense batch-specific না — এটা academy-wide খরচ, তাই সবসময় all-time নেওয়া উচিত।
+  const runTotalExpense = allTotalExpense;
 
   // Filter students by batch
   if (selectedBatch) {
