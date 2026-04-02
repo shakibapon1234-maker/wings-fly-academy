@@ -474,6 +474,7 @@
         `Salary ${type}: ৳${amount.toLocaleString()} → ${empName} | ${method} | ${date}`);
     }
     if (window.markDirty) window.markDirty('finance');
+    if (window.markDirty) window.markDirty('activity');
     if (window.saveToStorage) await window.saveToStorage();
     if (window.scheduleSyncPush) window.scheduleSyncPush('Salary Payment');
 

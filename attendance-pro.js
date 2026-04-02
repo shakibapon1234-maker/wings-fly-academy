@@ -355,6 +355,9 @@
         });
         gd.attendance[key] = result;
         if(typeof window.saveToStorage==='function') window.saveToStorage();
+        if(window.markDirty) window.markDirty('attendance');
+        if(typeof window.logActivity==='function') window.logActivity('attendance','ADD','Attendance saved: '+batch+' on '+date);
+        if(typeof window.scheduleSyncPush==='function') window.scheduleSyncPush('Attendance saved');
         if(typeof window.showSuccessToast==='function') window.showSuccessToast('✅ Attendance saved — '+batch+' on '+date);
         closeAttHub();
       })()">
@@ -504,6 +507,9 @@
 
     gd().attendance[attKey] = result;
     window.saveToStorage?.();
+    if(window.markDirty) window.markDirty('attendance');
+    if(typeof window.logActivity==='function') window.logActivity('attendance','ADD','Attendance saved: '+batch+' on '+date);
+    if(typeof window.scheduleSyncPush==='function') window.scheduleSyncPush('Attendance saved');
     window.showSuccessToast?.(`✅ Attendance saved — ${batch} on ${date}`);
     closeAttHub();
   }
@@ -532,6 +538,9 @@
     });
     gd().attendance[attKey] = result;
     window.saveToStorage?.();
+    if(window.markDirty) window.markDirty('attendance');
+    if(typeof window.logActivity==='function') window.logActivity('attendance','ADD','Attendance saved: '+batch+' on '+date);
+    if(typeof window.scheduleSyncPush==='function') window.scheduleSyncPush('Attendance saved');
     window.showSuccessToast?.(`✅ Attendance saved — ${batch} on ${date}`);
     // Modal বন্ধ
     closeAttHub();
