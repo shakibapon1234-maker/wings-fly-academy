@@ -1260,12 +1260,31 @@
           credentials: gd.credentials || null,
           payment_methods: gd.paymentMethods || []
         };
-        tasks.push(_sb.from(CFG.TABLE).upsert(mainPayload, { onConflict: 'id' }).then(res => {
-          if (res.error?.message?.includes('column')) {
-            const fallback = { id: CFG.RECORD, version: _localVer, last_updated: mainPayload.last_updated, last_device: DEVICE_ID, last_action: reason, cash_balance: gd.cashBalance || 0, bank_accounts: gd.bankAccounts || [], mobile_banking: gd.mobileBanking || [] };
-            return _sb.from(CFG.TABLE).upsert(fallback, { onConflict: 'id' });
-          }
-        }));
+        // ✅ V39-PATCH FIX: upsert → update (PATCH) করা হয়েছে।
+        // কারণ: upsert এ ?on_conflict=id দিলে Supabase 400 Bad Request দেয়।
+        // academy_data table এ record সবসময় exist করে, তাই .update() safe।
+        tasks.push(
+          _sb.from(CFG.TABLE).update(mainPayload).eq('id', CFG.RECORD)
+            .then(res => {
+              if (res && res.error) {
+                // Fallback: শুধু essential fields দিয়ে retry
+                _log('⚠️', 'Main update failed, trying fallback PATCH', res.error?.message);
+                const fallback = {
+                  version: _localVer,
+                  last_updated: mainPayload.last_updated,
+                  last_device: DEVICE_ID,
+                  last_action: reason,
+                  cash_balance: gd.cashBalance || 0,
+                  bank_accounts: gd.bankAccounts || [],
+                  mobile_banking: gd.mobileBanking || [],
+                  students: gd.students || [],
+                  finance: gd.finance || [],
+                  employees: gd.employees || []
+                };
+                return _sb.from(CFG.TABLE).update(fallback).eq('id', CFG.RECORD);
+              }
+            })
+        );
 
         await Promise.all(tasks);
         _dirty.clear();
