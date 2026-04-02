@@ -608,6 +608,30 @@
              }
           }
 
+          // ✅ V39.9 FIX: Missing fields pull — loans, idCards, credentials, paymentMethods
+          if (mainRec.loans && Array.isArray(mainRec.loans) && mainRec.loans.length > 0) {
+            const cLoans = _getNewest(mainRec.loans);
+            const lLoans = _getNewest(gd.loans);
+            if (cLoans > lLoans) gd.loans = mainRec.loans;
+          }
+          if (mainRec.id_cards && Array.isArray(mainRec.id_cards) && mainRec.id_cards.length > 0) {
+            const cCards = _getNewest(mainRec.id_cards);
+            const lCards = _getNewest(gd.idCards);
+            if (cCards > lCards) gd.idCards = mainRec.id_cards;
+          }
+          if (mainRec.credentials && typeof mainRec.credentials === 'object') {
+            // Credentials sync: cloud wins if local is empty
+            if (!gd.credentials || !gd.credentials.username) {
+              gd.credentials = mainRec.credentials;
+            }
+          }
+          if (mainRec.payment_methods && Array.isArray(mainRec.payment_methods) && mainRec.payment_methods.length > 0) {
+            // Payment methods: merge (union) local + cloud
+            const localPM = gd.paymentMethods || [];
+            const cloudPM = mainRec.payment_methods;
+            gd.paymentMethods = [...new Set([...localPM, ...cloudPM])];
+          }
+
           _localVer = mainRec.version || _localVer;
           localStorage.setItem('wings_local_version', _localVer.toString());
         }
@@ -1004,15 +1028,22 @@
             // ✅ V39.2 FIX: Delete markers সবসময় push হবে — skip block-এর বাইরে
             // ✅ V39.8 FIX: Only push un-synced delete markers, mark as _synced (don't clear — Recycle Bin needs them)
             const stuDelItems = Array.isArray(gd.deletedItems?.students) ? gd.deletedItems.students.filter(i => !i._synced) : [];
-            const stuDelRows = stuDelItems.map(item => {
+            const stuDelRows = [];
+            stuDelItems.forEach(item => {
               const recId = _getDeletedRecordId(item, 'student');
-              return recId ? { id: `${CFG.ACADEMY_ID}_stu_${recId}`, academy_id: CFG.ACADEMY_ID, data: null, deleted: true } : null;
-            }).filter(x => x);
+              if (!recId) return;
+              // ✅ V39.9 FIX: Push BOTH prefixed AND original row as deleted
+              stuDelRows.push({ id: `${CFG.ACADEMY_ID}_stu_${recId}`, academy_id: CFG.ACADEMY_ID, data: null, deleted: true });
+              // Also soft-delete the original (non-prefixed) row if it exists
+              if (String(recId) !== `${CFG.ACADEMY_ID}_stu_${recId}`) {
+                stuDelRows.push({ id: String(recId), academy_id: CFG.ACADEMY_ID, data: null, deleted: true });
+              }
+            });
             if (stuDelRows.length > 0) {
               const resDel = await _sb.from(CFG.TBL_STUDENTS).upsert(stuDelRows, { onConflict: 'id' });
               if (resDel && resDel.error) throw resDel.error;
               stuDelItems.forEach(i => { i._synced = true; });
-              _log('📤', `Pushed ${stuDelRows.length} student delete markers (kept in Recycle Bin)`);
+              _log('📤', `Pushed ${stuDelRows.length} student delete markers incl. originals (kept in Recycle Bin)`);
             }
             _saveSnapshot('students', snapshot);
           };
@@ -1056,15 +1087,22 @@
             // ✅ V39.2 FIX: Delete markers সবসময় push হবে — skip block-এর বাইরে
             // ✅ V39.8 FIX: Only push un-synced delete markers, mark as _synced (don't clear — Recycle Bin needs them)
             const finDelItems = Array.isArray(gd.deletedItems?.finance) ? gd.deletedItems.finance.filter(i => !i._synced) : [];
-            const finDelRows = finDelItems.map(item => {
+            const finDelRows = [];
+            finDelItems.forEach(item => {
               const recId = _getDeletedRecordId(item, 'finance');
-              return recId ? { id: `${CFG.ACADEMY_ID}_fin_${recId}`, academy_id: CFG.ACADEMY_ID, data: null, deleted: true } : null;
-            }).filter(x => x);
+              if (!recId) return;
+              // ✅ V39.9 FIX: Push BOTH prefixed AND original row as deleted
+              finDelRows.push({ id: `${CFG.ACADEMY_ID}_fin_${recId}`, academy_id: CFG.ACADEMY_ID, data: null, deleted: true });
+              // Also soft-delete the original (non-prefixed) row if it exists
+              if (String(recId) !== `${CFG.ACADEMY_ID}_fin_${recId}`) {
+                finDelRows.push({ id: String(recId), academy_id: CFG.ACADEMY_ID, data: null, deleted: true });
+              }
+            });
             if (finDelRows.length > 0) {
               const resDel = await _sb.from(CFG.TBL_FINANCE).upsert(finDelRows, { onConflict: 'id' });
               if (resDel && resDel.error) throw resDel.error;
               finDelItems.forEach(i => { i._synced = true; });
-              _log('📤', `Pushed ${finDelRows.length} finance delete markers (kept in Recycle Bin)`);
+              _log('📤', `Pushed ${finDelRows.length} finance delete markers incl. originals (kept in Recycle Bin)`);
             }
             _saveSnapshot('finance', finSnapshot);
           };
@@ -1107,15 +1145,22 @@
             }
             // ✅ V39.8 FIX: Only push un-synced delete markers, mark as _synced (don't clear — Recycle Bin needs them)
             const empDelItems = Array.isArray(gd.deletedItems?.employees) ? gd.deletedItems.employees.filter(i => !i._synced) : [];
-            const empDelRows = empDelItems.map(item => {
+            const empDelRows = [];
+            empDelItems.forEach(item => {
               const recId = _getDeletedRecordId(item, 'employee');
-              return recId ? { id: `${CFG.ACADEMY_ID}_emp_${recId}`, academy_id: CFG.ACADEMY_ID, data: null, deleted: true } : null;
-            }).filter(x => x);
+              if (!recId) return;
+              // ✅ V39.9 FIX: Push BOTH prefixed AND original row as deleted
+              empDelRows.push({ id: `${CFG.ACADEMY_ID}_emp_${recId}`, academy_id: CFG.ACADEMY_ID, data: null, deleted: true });
+              // Also soft-delete the original (non-prefixed) row if it exists
+              if (String(recId) !== `${CFG.ACADEMY_ID}_emp_${recId}`) {
+                empDelRows.push({ id: String(recId), academy_id: CFG.ACADEMY_ID, data: null, deleted: true });
+              }
+            });
             if (empDelRows.length > 0) {
               const resDel = await _sb.from(CFG.TBL_EMPLOYEES).upsert(empDelRows, { onConflict: 'id' });
               if (resDel && resDel.error) throw resDel.error;
               empDelItems.forEach(i => { i._synced = true; });
-              _log('📤', `Pushed ${empDelRows.length} employee delete markers (kept in Recycle Bin)`);
+              _log('📤', `Pushed ${empDelRows.length} employee delete markers incl. originals (kept in Recycle Bin)`);
             }
             _saveSnapshot('employees', empSnapshot);
           };
@@ -1145,7 +1190,12 @@
           // ✅ SESSION 4 FIX: Keep Records, Breakdown, Notices sync
           keep_records: (function () { try { return JSON.parse(localStorage.getItem('wingsfly_keep_records') || '[]'); } catch (e) { return []; } })(),
           breakdown_records: gd.breakdownRecords || [],
-          notices: gd.notices || []
+          notices: gd.notices || [],
+          // ✅ V39.9 FIX: Missing fields — সবকিছু সিঙ্ক করো
+          loans: gd.loans || [],
+          id_cards: gd.idCards || [],
+          credentials: gd.credentials || null,
+          payment_methods: gd.paymentMethods || []
         };
         tasks.push(_sb.from(CFG.TABLE).upsert(mainPayload, { onConflict: 'id' }).then(res => {
           if (res.error?.message?.includes('column')) {

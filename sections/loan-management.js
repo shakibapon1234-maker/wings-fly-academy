@@ -470,7 +470,8 @@ async function handleEditTransactionSubmit(e) {
     category: fd.get('category') || oldTx.category,
     description: fd.get('description') || '',
     notes: fd.get('description') || oldTx.notes || '',
-    lastEdited: new Date().toISOString()
+    lastEdited: new Date().toISOString(),
+    _updatedAt: new Date().toISOString() // ✅ V39.10 FIX: real edit time for sync conflict resolution
   };
 
   window.globalData.finance[idx] = updatedTx;

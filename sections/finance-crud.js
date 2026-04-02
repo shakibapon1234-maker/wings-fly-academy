@@ -168,6 +168,7 @@ function handleAddInstallment() {
   student.due = Math.max(0, (parseFloat(student.totalPayment) || 0) - student.paid);
 
   // 2. Add to Finance Ledger (with duplicate prevention)
+  const _installNow = new Date().toISOString();
   const financeEntry = {
     id: Date.now(),
     type: 'Income',
@@ -177,7 +178,9 @@ function handleAddInstallment() {
     person: student.name,
     amount: amount,
     description: `Installment payment for student: ${student.name} | Batch: ${student.batch}`,
-    timestamp: new Date().toISOString()
+    timestamp: _installNow,
+    _createdAt: _installNow, // ✅ V39.10: sync conflict resolution
+    _updatedAt: _installNow  // ✅ V39.10: sync conflict resolution
   };
 
   // ✅ FIX: student.paid ইতিমধ্যে update হয়েছে (উপরে)।
@@ -534,7 +537,9 @@ async function handleFinanceSubmit(e) {
     amount: parseFloat(formData.amount) || 0,
     category: formData.category || 'General',
     description: formData.description || '',
-    person: person
+    person: person,
+    _createdAt: new Date().toISOString(), // ✅ V39.10: sync conflict resolution
+    _updatedAt: new Date().toISOString()  // ✅ V39.10: sync conflict resolution
   };
 
   window.globalData.finance.push(newTransaction);
@@ -584,6 +589,7 @@ async function handleTransferSubmit(e) {
     return;
   }
 
+  const _transferNow = new Date().toISOString();
   // Create "Transfer Out" from source
   const outTransaction = {
     id: Date.now(),
@@ -592,7 +598,9 @@ async function handleTransferSubmit(e) {
     date: date,
     amount: amount,
     category: 'Transfer',
-    description: formData.description || `Transfer to ${toMethod}`
+    description: formData.description || `Transfer to ${toMethod}`,
+    _createdAt: _transferNow, // ✅ V39.10: sync
+    _updatedAt: _transferNow  // ✅ V39.10: sync
   };
 
   // Create "Transfer In" to destination
@@ -603,7 +611,9 @@ async function handleTransferSubmit(e) {
     date: date,
     amount: amount,
     category: 'Transfer',
-    description: formData.description || `Transfer from ${fromMethod}`
+    description: formData.description || `Transfer from ${fromMethod}`,
+    _createdAt: _transferNow, // ✅ V39.10: sync
+    _updatedAt: _transferNow  // ✅ V39.10: sync
   };
 
   globalData.finance.push(outTransaction);
@@ -870,6 +880,8 @@ async function handleEditTransactionSubmit(e) {
     }
 
     // 2. Update Finance Array
+    // ✅ V39.10 FIX: _updatedAt = REAL current time — sync conflict resolution এর জন্য
+    // আগে _updatedAt সেট হতো না → cloud-এর পুরনো version সবসময় win করতো → edit revert!
     globalData.finance[index] = {
       ...globalData.finance[index],
       type: formData.type,
@@ -878,7 +890,8 @@ async function handleEditTransactionSubmit(e) {
       amount: newAmount,
       category: formData.category,
       description: formData.description,
-      person: formData.person || ''
+      person: formData.person || '',
+      _updatedAt: new Date().toISOString() // ✅ CRITICAL: real edit time for sync
     };
 
     // ✅ Activity log — edit transaction
@@ -893,7 +906,10 @@ async function handleEditTransactionSubmit(e) {
       );
     }
 
+    // ✅ V39.10 FIX: Mark dirty and push immediately after edit
+    if (typeof window.markDirty === 'function') window.markDirty('finance');
     await saveToStorage();
+    if (typeof window.scheduleSyncPush === 'function') window.scheduleSyncPush('Finance Edit');
 
     const modal = bootstrap.Modal.getInstance(document.getElementById('editTransactionModal'));
     if (modal) modal.hide();
