@@ -148,13 +148,9 @@ function _monitorFingerprint(gd, latest) {
 
 function recordMonitorChange(reason) {
   try {
-    var raw = localStorage.getItem('wingsfly_data');
-    var gd = null;
-    if (raw) {
-      try { gd = JSON.parse(raw); } catch (e) { gd = window.globalData || {}; }
-    } else {
-      gd = window.globalData || {};
-    }
+    // ✅ FIX: window.globalData সরাসরি ব্যবহার করো (live, post-rebuild balance)
+    // localStorage parse করলে feRebuildAllBalances এর আগের stale data আসত
+    var gd = window.globalData || {};
     if (!gd || typeof gd !== 'object') return;
 
     var latest = _monitorGetLatestChange(gd);
@@ -163,13 +159,12 @@ function recordMonitorChange(reason) {
     var rows = getMonitorHistory();
     if (rows[0] && rows[0].fingerprint === fp) return;
 
-    // Deduplicate repeated same logical change within a short window.
-    // Some flows call saveToStorage multiple times for one action.
+    // Deduplicate: একই fingerprint হলে (balance + finance count সব same) update করো
+    // ✅ FIX: 15 min window সরানো — শুধু exact fingerprint match এ deduplicate করো
+    // এতে delete/edit আলাদা row হিসেবে ঠিকমতো record হবে
     if (rows[0]) {
-      var topTs = new Date(rows[0].timestamp || 0).getTime() || 0;
-      var nowTs = Date.now();
-      var withinWindow = (nowTs - topTs) <= (15 * 60 * 1000);
-      if (withinWindow && rows[0].changeKey === cKey) {
+      var withinWindow = rows[0].changeKey === cKey && rows[0].fingerprint === fp;
+      if (withinWindow) {
         rows[0].timestamp = new Date().toISOString();
         rows[0].label = new Date().toLocaleString('en-BD', {
           day: '2-digit', month: 'short', year: 'numeric',
@@ -229,10 +224,12 @@ function _installMonitorSaveHook() {
     window.saveToStorage = function () {
       var result = orig.apply(this, arguments);
       if (result !== false) {
+        // ✅ FIX: 60ms → 800ms — feRebuildAllBalances() শেষ হওয়ার পরে snapshot নাও
+        // 60ms এ balance rebuild হয়নি থাকত, তাই snapshot এ ভুল balance যেত
         setTimeout(function () {
           recordMonitorChange('saveToStorage');
           if (typeof window.renderMonitor === 'function') window.renderMonitor();
-        }, 60);
+        }, 800);
       }
       return result;
     };
