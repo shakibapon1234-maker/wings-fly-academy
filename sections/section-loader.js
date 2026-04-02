@@ -367,20 +367,49 @@
       var title = document.getElementById('studentModalLabel');
       if (title) title.textContent = '👨‍🎓 Add New Student';
 
-      // ✅ FIX: populateDropdowns synchronously আগে call করো — তারপর value set করো
-      if (typeof window.populateDropdowns === 'function') window.populateDropdowns();
+      // ✅ FIX: Cloud sync এর আগেও কাজ করে — globalData থেকে সরাসরি populate করো
+      function _forcePopulateStudentModal() {
+        var gd = window.globalData || {};
 
-      if (typeof window.removeStudentPhoto === 'function') window.removeStudentPhoto();
+        // 1. Course dropdown
+        var courseSel = document.getElementById('studentCourseSelect');
+        if (courseSel) {
+          var currentCourse = courseSel.value;
+          courseSel.innerHTML = '<option value="">-- Select Course --</option>';
+          var courses = (gd.courseNames || []).slice().sort();
+          courses.forEach(function(c) {
+            var opt = document.createElement('option');
+            opt.value = c; opt.textContent = c;
+            courseSel.appendChild(opt);
+          });
+          if (currentCourse) courseSel.value = currentCourse;
+        }
 
-      // ✅ FIX: populate এর পরে balance badge remove করো, value reset করো না
-      var methodSel = document.getElementById('studentMethodSelect');
-      if (methodSel) {
+        // 2. Method dropdown
+        var methodSel2 = document.getElementById('studentMethodSelect');
+        if (methodSel2) {
+          methodSel2.innerHTML = '<option value="">-- Select Method --</option>';
+          var methods = ['Cash'];
+          (gd.bankAccounts || []).forEach(function(a) { if (a && a.name) methods.push(a.name); });
+          (gd.mobileBanking || []).forEach(function(a) { if (a && a.name) methods.push(a.name); });
+          methods.forEach(function(m) {
+            var opt = document.createElement('option');
+            opt.value = m; opt.textContent = m;
+            methodSel2.appendChild(opt);
+          });
+          methodSel2.value = 'Cash';
           var oldBadge = document.getElementById('studentMethodSelect_balanceBadge');
           if (oldBadge) oldBadge.remove();
-          // Cash default করো যদি কোনো value না থাকে
-          if (!methodSel.value) methodSel.value = 'Cash';
           if (typeof window.showMethodBalance === 'function') window.showMethodBalance('studentMethodSelect');
+        }
       }
+
+      // master populateDropdowns call করো
+      if (typeof window.populateDropdowns === 'function') window.populateDropdowns();
+      // force populate — sync না হলেও কাজ করবে
+      _forcePopulateStudentModal();
+
+      if (typeof window.removeStudentPhoto === 'function') window.removeStudentPhoto();
 
       // Set today's date
       var enrollDate = document.getElementById('studentEnrollDate');
