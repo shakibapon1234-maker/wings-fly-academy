@@ -50,6 +50,8 @@ async function handleVisitorSubmit(e) {
   }
 
   await saveToStorage();
+  if(window.markDirty) window.markDirty('visitors');
+  if(typeof window.scheduleSyncPush==='function') window.scheduleSyncPush('Visitor saved');
 
   // Close modal
   const modalEl = document.getElementById('visitorModal');
@@ -260,6 +262,7 @@ async function deleteVisitor(index) {
   } else {
     localStorage.setItem('wingsfly_data', JSON.stringify(window.globalData));
   }
+  if(window.markDirty) window.markDirty('visitors');
 
   // 4. Trigger Sync
   if (typeof window.scheduleSyncPush === 'function') {

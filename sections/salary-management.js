@@ -82,7 +82,8 @@
       const base = parseFloat(emp.salary) || 0;
       const empRec = finMonth.filter(f => f.person === emp.name || f.employeeId === (emp.id || emp.empId));
 
-      const salPaid = empRec.filter(f => f.type === 'Expense' && f.category === 'Salaries')
+      const salPaid = empRec.filter(f => f.type === 'Expense' && f.category === 'Salaries'
+        && !(f.description || '').includes('[Bonus]'))
         .reduce((s, f) => s + (parseFloat(f.amount) || 0), 0);
       const bonusPaid = empRec.filter(f => (f.description || '').includes('[Bonus]'))
         .reduce((s, f) => s + (parseFloat(f.amount) || 0), 0);
@@ -369,6 +370,7 @@
 
     const paidSoFar = (gd.finance || [])
       .filter(f => !f._deleted && !_modalRbIds.has(String(f.id||f.timestamp||'')) && f.type === 'Expense' && f.category === 'Salaries'
+        && !(f.description || '').includes('[Bonus]')
         && _getSalMonth(f) === month
         && (f.person === emp.name || f.employeeId === (emp.id || emp.empId)))
       .reduce((s, f) => s + (parseFloat(f.amount) || 0), 0);
@@ -472,6 +474,7 @@
         `Salary ${type}: ৳${amount.toLocaleString()} → ${empName} | ${method} | ${date}`);
     }
     if (window.markDirty) window.markDirty('finance');
+    if (window.markDirty) window.markDirty('activity');
     if (window.saveToStorage) await window.saveToStorage();
     if (window.scheduleSyncPush) window.scheduleSyncPush('Salary Payment');
 

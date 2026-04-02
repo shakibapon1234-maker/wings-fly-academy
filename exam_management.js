@@ -272,9 +272,6 @@ async function handleExamRegistration(e) {
         localStorage.setItem('wingsfly_data', JSON.stringify(window.globalData));
     }
     if (typeof window.scheduleSyncPush === 'function') window.scheduleSyncPush('Exam Registration Saved');
-    if (typeof logActivity === 'function') {
-        logActivity('exam', editId ? 'EDIT' : 'ADD', `${studentName} — ${subjectName} | ৳${examFee}`);
-    }
 
     // Close modal & reset form
     const modalEl = document.getElementById('examRegistrationModal');

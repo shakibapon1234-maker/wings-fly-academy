@@ -335,6 +335,7 @@ function publishNotice() {
   if (typeof window.logActivity === 'function') {
     window.logActivity('settings', 'ADD', 'নোটিস প্রকাশিত: ' + text.substring(0, 60) + (text.length > 60 ? '...' : ''));
   }
+  if (window.markDirty) window.markDirty('activity');
 }
 function deleteNotice() {
   // Notice board এর activeNotice delete (settings এ stored)
@@ -362,6 +363,7 @@ function deleteNotice() {
   if (typeof window.logActivity === 'function') {
     window.logActivity('settings', 'DELETE', 'নোটিস মুছে ফেলা হয়েছে');
   }
+  if (window.markDirty) window.markDirty('activity');
 }
 // deleteActiveNotice = banner notice clear করার alias
 window.deleteActiveNotice = function () {
@@ -375,6 +377,10 @@ window.deleteActiveNotice = function () {
     localStorage.setItem('wings_total_deleted', _delCount.toString());
   } catch (e) { }
 
+  if (typeof window.logActivity === 'function') {
+    window.logActivity('settings', 'DELETE', 'নোটিস মুছে ফেলা হয়েছে');
+  }
+  if (window.markDirty) window.markDirty('activity');
   noticeToast('🗑️ নোটিস মুছে ফেলা হয়েছে', 'success');
 };
 
