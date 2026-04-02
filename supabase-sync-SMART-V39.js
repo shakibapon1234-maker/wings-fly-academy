@@ -1864,6 +1864,169 @@
       _showUserMessage('Version sync সম্পন্ন।', 'success');
       return pulled;
     },
+
+    // ✅ V39.11: NUCLEAR FORCE CLEAN SYNC
+    // Local data-কে truth ধরে cloud-এর সব row মুছে fresh push করে
+    // এটা orphaned/zombie records permanently eliminate করে
+    forceCleanSync: async function () {
+      if (!_sb || !CFG.URL || !CFG.KEY) {
+        _showUserMessage('❌ Supabase not configured', 'error');
+        return false;
+      }
+      if (_pushing || _pulling) {
+        _showUserMessage('⏳ Sync busy — try again in a few seconds', 'warning');
+        return false;
+      }
+
+      _log('🔥', '═══ NUCLEAR FORCE CLEAN SYNC STARTED ═══');
+      _pushing = true;
+      _syncBusy = true;
+
+      try {
+        const gd = window.globalData;
+        if (!gd) throw new Error('globalData not found');
+
+        const aid = CFG.ACADEMY_ID;
+        const hdrs = {
+          'Content-Type': 'application/json',
+          'apikey': CFG.KEY,
+          'Authorization': 'Bearer ' + CFG.KEY,
+          'Prefer': 'resolution=merge-duplicates'
+        };
+
+        // ═══ STEP 1: Cloud-এর সব finance rows DELETE করো ═══
+        _log('🗑️', 'Step 1: Deleting ALL cloud finance rows...');
+        const finDelRes = await fetch(
+          `${CFG.URL}/rest/v1/${CFG.TBL_FINANCE}?academy_id=eq.${encodeURIComponent(aid)}`,
+          { method: 'DELETE', headers: hdrs }
+        );
+        _log('✅', `Finance cloud rows deleted: ${finDelRes.status}`);
+
+        // ═══ STEP 2: Cloud-এর সব student rows DELETE করো ═══
+        _log('🗑️', 'Step 2: Deleting ALL cloud student rows...');
+        const stuDelRes = await fetch(
+          `${CFG.URL}/rest/v1/${CFG.TBL_STUDENTS}?academy_id=eq.${encodeURIComponent(aid)}`,
+          { method: 'DELETE', headers: hdrs }
+        );
+        _log('✅', `Student cloud rows deleted: ${stuDelRes.status}`);
+
+        // ═══ STEP 3: Cloud-এর সব employee rows DELETE করো ═══
+        _log('🗑️', 'Step 3: Deleting ALL cloud employee rows...');
+        const empDelRes = await fetch(
+          `${CFG.URL}/rest/v1/${CFG.TBL_EMPLOYEES}?academy_id=eq.${encodeURIComponent(aid)}`,
+          { method: 'DELETE', headers: hdrs }
+        );
+        _log('✅', `Employee cloud rows deleted: ${empDelRes.status}`);
+
+        // ═══ STEP 4: Local snapshots reset করো ═══
+        _log('🧹', 'Step 4: Resetting all local snapshots...');
+        localStorage.removeItem('wf_sync_snap_students');
+        localStorage.removeItem('wf_sync_snap_finance');
+        localStorage.removeItem('wf_sync_snap_employees');
+        _dirty.add('students');
+        _dirty.add('finance');
+        _dirty.add('employees');
+
+        // ═══ STEP 5: Fresh push করো — শুধু current local data ═══
+        _log('📤', 'Step 5: Fresh push — all local data...');
+
+        // 5A: Students
+        const students = gd.students || [];
+        if (students.length > 0) {
+          const stuRows = students.map(s => ({
+            id: `${aid}_stu_${s.studentId || s.id || s.phone || s.name}`,
+            academy_id: aid, data: s, deleted: false
+          }));
+          // Push in chunks of 200
+          for (let i = 0; i < stuRows.length; i += 200) {
+            const chunk = stuRows.slice(i, i + 200);
+            await _sb.from(CFG.TBL_STUDENTS).upsert(chunk, { onConflict: 'id' });
+          }
+          _log('✅', `Students pushed: ${students.length}`);
+        }
+
+        // 5B: Finance
+        const finance = gd.finance || [];
+        if (finance.length > 0) {
+          const finRows = finance.map(f => ({
+            id: `${aid}_fin_${f.id || f.timestamp}`,
+            academy_id: aid, data: f, deleted: false
+          }));
+          for (let i = 0; i < finRows.length; i += 200) {
+            const chunk = finRows.slice(i, i + 200);
+            await _sb.from(CFG.TBL_FINANCE).upsert(chunk, { onConflict: 'id' });
+          }
+          _log('✅', `Finance pushed: ${finance.length}`);
+        }
+
+        // 5C: Employees
+        const employees = gd.employees || [];
+        if (employees.length > 0) {
+          const empRows = employees.map(e => ({
+            id: `${aid}_emp_${e.id}`,
+            academy_id: aid, data: e, deleted: false
+          }));
+          await _sb.from(CFG.TBL_EMPLOYEES).upsert(empRows, { onConflict: 'id' });
+          _log('✅', `Employees pushed: ${employees.length}`);
+        }
+
+        // 5D: Main payload (settings, categories, etc)
+        const mainPayload = {
+          id: CFG.RECORD,
+          cash_balance: gd.cashBalance || 0,
+          bank_accounts: gd.bankAccounts || [],
+          mobile_banking: gd.mobileBanking || [],
+          settings: gd.settings || null,
+          users: gd.users || [],
+          income_categories: gd.incomeCategories || [],
+          expense_categories: gd.expenseCategories || [],
+          course_names: gd.courseNames || [],
+          employee_roles: gd.employeeRoles || [],
+          payment_methods: gd.paymentMethods || [],
+          credentials: gd.credentials || {},
+          version: (_localVer || 0) + 100, // Big version jump
+          last_push_by: DEVICE_ID,
+          last_push_at: new Date().toISOString(),
+          deleted_items: gd.deletedItems || {},
+          activity_history: gd.activityHistory || [],
+        };
+        await _sb.from(CFG.TABLE).upsert([mainPayload], { onConflict: 'id' });
+        _localVer = mainPayload.version;
+        _log('✅', `Main payload pushed, new version: ${_localVer}`);
+
+        // ═══ STEP 6: Save fresh snapshots ═══
+        _saveSnapshot('students', Object.fromEntries(students.map(s => [s.studentId || s.id || s.phone || s.name, _hashRecord(s)])));
+        _saveSnapshot('finance', Object.fromEntries(finance.map(f => [f.id || f.timestamp, _hashRecord(f)])));
+        _saveSnapshot('employees', Object.fromEntries(employees.map(e => [e.id, _hashRecord(e)])));
+        _dirty.clear();
+
+        // ═══ STEP 7: Mark all deletedItems as synced ═══
+        if (gd.deletedItems) {
+          ['students', 'finance', 'employees', 'other'].forEach(cat => {
+            if (Array.isArray(gd.deletedItems[cat])) {
+              gd.deletedItems[cat].forEach(d => { d._synced = true; });
+            }
+          });
+        }
+
+        // Save locally
+        localStorage.setItem('wingsfly_data', JSON.stringify(gd));
+
+        _log('🎉', '═══ NUCLEAR FORCE CLEAN SYNC COMPLETE ═══');
+        _log('📊', `Pushed: ${students.length} students, ${finance.length} finance, ${employees.length} employees`);
+        _showUserMessage(`✅ Force Clean Sync সম্পূর্ণ! ${students.length} students, ${finance.length} finance records pushed.`, 'success');
+
+        return true;
+      } catch (err) {
+        _log('❌', 'FORCE CLEAN SYNC FAILED:', err);
+        _showUserMessage('❌ Force Clean Sync failed: ' + (err.message || err), 'error');
+        return false;
+      } finally {
+        _pushing = false;
+        _syncBusy = false;
+      }
+    },
+
     getEgressInfo: () => Egress.getInfo(),
     getStatus: () => ({
       version: _localVer, online: _online, partialOK: _partialOK,
