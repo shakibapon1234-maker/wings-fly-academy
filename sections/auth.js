@@ -442,35 +442,54 @@ function showDashboard(username) {
   // V34.8 -> V35.1: Instant Dashboard load, Background Sync
   loadDashboard();
   
-  if (typeof window.loadFromCloud === 'function' || (window.wingsSync && typeof window.wingsSync.pullNow === 'function')) {
-    console.log('🔄 Login: Background sync started...');
-    // Do it in the background
-    setTimeout(async () => {
-      try {
-        if (window.wingsSync && typeof window.wingsSync.pullNow === 'function') {
-          await window.wingsSync.pullNow();
-        } else {
-          await window.loadFromCloud(true);
-        }
-        console.log('✅ Login background sync complete');
-        
-        // Take a snapshot after sync completes
+  // ✅ V39.3 FIX: Cross-device login sync — reliable with retry
+  // অন্য device থেকে এসে login করলে সবসময় cloud থেকে fresh data pull করতে হবে।
+  // wingsSync ready না হলে 500ms পর retry করে (সর্বোচ্চ 10 বার = 5s)।
+  (function _loginSyncWithRetry(attempt) {
+    if (window.wingsSync && typeof window.wingsSync.pullNow === 'function') {
+      console.log('🔄 Login: Cloud sync শুরু হচ্ছে (attempt ' + attempt + ')...');
+      window.wingsSync.pullNow().then(function () {
+        console.log('✅ Login sync সম্পন্ন — UI আপডেট হচ্ছে');
+        // ✅ renderFullUI call করো — data এসে গেছে, UI refresh দরকার
+        if (typeof window.renderFullUI === 'function') window.renderFullUI();
+        // ✅ V39.3: Sync শেষে wf_just_logged_in clear করো — এরপরই snapshot safe
+        sessionStorage.removeItem('wf_just_logged_in');
+        // Snapshot ও save করো — sync শেষ হওয়ার পরে
         setTimeout(function () {
-          if (window.globalData) { 
-            if (!window.globalData.deletedItems) window.globalData.deletedItems = []; 
-            if (!window.globalData.activityHistory) window.globalData.activityHistory = []; 
+          if (window.globalData) {
+            if (!window.globalData.deletedItems) window.globalData.deletedItems = [];
+            if (!window.globalData.activityHistory) window.globalData.activityHistory = [];
             localStorage.setItem('wingsfly_data', JSON.stringify(window.globalData));
             if (typeof takeSnapshot === 'function') takeSnapshot();
-            console.log('📸 Login background snapshot taken');
+            console.log('📸 Login snapshot saved (post-sync)');
           }
-          // ✈️ AVIATION LOADER: sync শেষ — loader hide করো
           if (typeof WingsLoader !== 'undefined') WingsLoader.hide();
-        }, 2000);
-      } catch (e) {
-        console.warn('⚠️ Login background pull failed:', e);
-      }
-    }, 500);
-  }
+        }, 1000);
+      }).catch(function (e) {
+        console.warn('⚠️ Login sync failed:', e);
+        sessionStorage.removeItem('wf_just_logged_in');
+        if (typeof WingsLoader !== 'undefined') WingsLoader.hide();
+      });
+    } else if (typeof window.loadFromCloud === 'function') {
+      console.log('🔄 Login: loadFromCloud fallback (attempt ' + attempt + ')...');
+      Promise.resolve(window.loadFromCloud(true)).then(function () {
+        if (typeof window.renderFullUI === 'function') window.renderFullUI();
+        sessionStorage.removeItem('wf_just_logged_in');
+        if (typeof WingsLoader !== 'undefined') WingsLoader.hide();
+      }).catch(function () {
+        sessionStorage.removeItem('wf_just_logged_in');
+        if (typeof WingsLoader !== 'undefined') WingsLoader.hide();
+      });
+    } else if (attempt < 10) {
+      // wingsSync এখনো ready না — 500ms পরে retry
+      console.log('⏳ wingsSync এখনো ready না — ' + (attempt + 1) + '/10 retry...');
+      setTimeout(function () { _loginSyncWithRetry(attempt + 1); }, 500);
+    } else {
+      console.warn('❌ Login sync: wingsSync 5s পরেও ready হয়নি');
+      sessionStorage.removeItem('wf_just_logged_in');
+      if (typeof WingsLoader !== 'undefined') WingsLoader.hide();
+    }
+  }(1));
 
   if (typeof checkDailyBackup === 'function') checkDailyBackup();
 }

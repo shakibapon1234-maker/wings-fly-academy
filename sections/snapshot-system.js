@@ -16,6 +16,18 @@ function takeSnapshot() {
   try {
     var _KEY = 'wingsfly_snapshots';
     var _MAX = 7;
+    // ✅ V39.3 FIX: Cross-device login-এ cloud pull শেষ না হলে snapshot বন্ধ
+    // wf_just_logged_in = login সবে হয়েছে, sync এখনো চলছে
+    // _wf_pull_complete = false → pull এখনো শেষ হয়নি
+    if (sessionStorage.getItem('wf_just_logged_in') === 'true') {
+      console.warn('[Snapshot] SKIPPED — login sync এখনো চলছে (cross-device guard)');
+      return;
+    }
+    if (window._wf_sync_in_progress) {
+      console.warn('[Snapshot] SKIPPED — sync চলছে, data incomplete হতে পারে');
+      return;
+    }
+
     // ✅ V34.7 FIX: Snapshot নেওয়ার আগে data integrity check করো
     // যদি local finance < lastKnown হয় তাহলে snapshot skip করো
     // এটা login এর পরে corrupt data snapshot হওয়া বন্ধ করে
@@ -31,11 +43,16 @@ function takeSnapshot() {
       console.warn('[Snapshot] SKIPPED — student data incomplete: local=' + _studCount + ' known=' + _lastKnownStud);
       return;
     }
-    // localStorage থেকে নাও, না থাকলে window.globalData থেকে নাও
-    var data = localStorage.getItem('wingsfly_data');
-    if (!data && window.globalData) {
+
+    // ✅ V39.3 FIX: সবসময় window.globalData থেকে snapshot নাও
+    // localStorage-এ delay থাকতে পারে — globalData সবসময় latest (post-sync) state
+    var data;
+    if (window.globalData && Object.keys(window.globalData).length > 0) {
       data = JSON.stringify(window.globalData);
+      // localStorage-ও sync করে দাও
       localStorage.setItem('wingsfly_data', data);
+    } else {
+      data = localStorage.getItem('wingsfly_data');
     }
     if (!data) { console.warn('Snapshot: no data found'); return; }
 

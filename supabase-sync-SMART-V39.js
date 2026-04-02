@@ -409,7 +409,7 @@
 
     _pulling = true;
     _syncBusy = true;
-    if (showUI) _showStatus('🔄 Syncing...');
+    window._wf_sync_in_progress = true; // ✅ V39.3: Snapshot guard এর জন্য global flag
     let _rollback = null;
 
     try {
@@ -680,6 +680,7 @@
     } finally {
       _pulling = false;
       _syncBusy = false;
+      window._wf_sync_in_progress = false; // ✅ V39.3: Pull শেষ — snapshot এখন safe
       _cooldownUntil = Date.now() + 10000;
     }
   }
@@ -1517,6 +1518,12 @@
         _log('⏸️', 'Snapshot BLOCKED — fresh browser pull not complete yet');
         return;
       }
+      // ✅ V39.3 FIX: Cross-device login sync চলাকালীন snapshot বন্ধ
+      // wf_just_logged_in = login সবে হয়েছে, sync এখনো চলছে
+      if (sessionStorage.getItem('wf_just_logged_in') === 'true' || window._wf_sync_in_progress) {
+        _log('⏸️', 'Snapshot BLOCKED — cross-device login sync in progress');
+        return;
+      }
       // data শূন্য থাকলে snapshot নেওয়া বন্ধ
       const stuLen = (window.globalData?.students || []).length;
       const finLen = (window.globalData?.finance || []).length;
@@ -1645,8 +1652,19 @@
     const _sessionAge = Date.now() - _lastLocal;
     const _SESSION_FRESH_MS = 5 * 60 * 1000; // 5 মিনিট
 
+    // ✅ V39.3 FIX: Cross-device login detection
+    // অন্য device থেকে login করলে wf_just_logged_in flag set থাকে।
+    // এই অবস্থায় FAST STARTUP skip করা যাবে না — full pull বাধ্যতামূলক।
+    const _justLoggedIn = sessionStorage.getItem('wf_just_logged_in') === 'true';
+    const _forceFullSync = sessionStorage.getItem('wf_force_full_sync') === 'true';
+    const _crossDeviceLogin = _justLoggedIn || _forceFullSync;
+    if (_crossDeviceLogin) {
+      sessionStorage.removeItem('wf_force_full_sync'); // একবার ব্যবহারের পরে clear
+      _log('🔄', 'Cross-device login detected — forcing full pull (skipping FAST STARTUP)');
+    }
+
     if (!_integrityCheckDidPull) {
-      if (_sessionToken && _lastLocal > 0 && _sessionAge < _SESSION_FRESH_MS && !_isFreshBrowser) {
+      if (!_crossDeviceLogin && _sessionToken && _lastLocal > 0 && _sessionAge < _SESSION_FRESH_MS && !_isFreshBrowser) {
         _log('⚡', `FAST STARTUP: session fresh (${Math.round(_sessionAge/1000)}s ago) — skipping full pull`);
         // Background-এ version check করো — full pull না করেই
         setTimeout(() => { if (!Egress.throttled()) _versionCheck(); }, 2000);
