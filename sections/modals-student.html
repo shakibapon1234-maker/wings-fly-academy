@@ -11,7 +11,7 @@
                 <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
             </div>
             <div class="modal-body p-4">
-                <form id="studentForm" onsubmit="handleStudentSubmit(event)">
+                <form id="studentForm" onsubmit="event.preventDefault(); handleStudentSubmit(event);">
                     <input type="hidden" name="studentRowIndex" id="studentRowIndex">
                     <div class="row g-3">
                         <div class="col-md-6 mb-2">
@@ -106,8 +106,8 @@
                     <div class="mb-3">
                         <label class="form-label fw-bold small text-uppercase text-muted">Course /
                             Program</label>
-                        <select name="course" id="studentCourseSelect" class="form-select premium-input-modern">
-                            <!-- Populated dynamically -->
+                        <select name="course" id="studentCourseSelect" class="form-select premium-input-modern" required>
+                            <option value="">-- Select Course --</option>
                         </select>
                     </div>
 
