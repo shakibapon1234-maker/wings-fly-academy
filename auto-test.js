@@ -39,12 +39,13 @@
   // ─── State ────────────────────────────────────────────────
   let results = [];
   let currentCategory = '';
+  window.__wftDataStore = [];
 
   // ─── Helpers ──────────────────────────────────────────────
-  function pass(name, detail = '') { _log({ s: 'pass', name, detail, cat: currentCategory }); }
-  function fail(name, detail = '') { _log({ s: 'fail', name, detail, cat: currentCategory }); }
-  function warn(name, detail = '') { _log({ s: 'warn', name, detail, cat: currentCategory }); }
-  function skip(name, reason = '') { _log({ s: 'skip', name, detail: reason, cat: currentCategory }); }
+  function pass(name, detail = '', funcName = null, data = null) { _log({ s: 'pass', name, detail, funcName, data, cat: currentCategory }); }
+  function fail(name, detail = '', funcName = null, data = null) { _log({ s: 'fail', name, detail, funcName, data, cat: currentCategory }); }
+  function warn(name, detail = '', funcName = null, data = null) { _log({ s: 'warn', name, detail, funcName, data, cat: currentCategory }); }
+  function skip(name, reason = '', funcName = null, data = null) { _log({ s: 'skip', name, detail: reason, funcName, data, cat: currentCategory }); }
 
   function exists(fnName) { return typeof window[fnName] === 'function'; }
   function safeCall(fn) {
@@ -93,6 +94,17 @@
   function _appendResult(r, skipScroll = false) {
     const el = document.getElementById('functest-results');
     if (!el) return;
+    
+    const dIdx = window.__wftDataStore.length;
+    window.__wftDataStore.push(r.data);
+    
+    let inspectFn = r.funcName || r.name;
+    // Extract actual function name if r.name is something like 'renderStudents missing'
+    if (inspectFn.includes(' ')) inspectFn = inspectFn.split(' ')[0];
+    
+    const isClickable = inspectFn && (typeof window[inspectFn] === 'function') || r.data;
+    const clickAttr = isClickable ? `onclick="window._wftInspect('${inspectFn}', ${dIdx})" style="cursor:pointer;" title="বিস্তারিত কোড ও ডেটা দেখুন"` : '';
+
     const colors = { pass: '#00ff88', fail: '#ff4466', warn: '#ffcc00', skip: '#888' };
     const icons = { pass: '✅', fail: '❌', warn: '⚠️', skip: '⏭' };
     const isFail = r.s === 'fail', isWarn = r.s === 'warn';
@@ -101,13 +113,21 @@
     const div = document.createElement('div');
     div.setAttribute('data-status', r.s);
     div.setAttribute('data-cat', r.cat || '');
-    div.style.cssText = `display:flex;align-items:flex-start;gap:8px;padding:${isFail ? '8px 4px' : '5px 4px'};border-bottom:1px solid rgba(255,255,255,0.04);background:${bg};border-radius:4px;margin-bottom:2px;${bl}`;
+    // Insert hover effect explicitly
+    div.onmouseover = function() { if(isClickable) this.style.background = isFail ? 'rgba(255,68,102,0.2)' : 'rgba(0,217,255,0.1)'; };
+    div.onmouseout = function() { this.style.background = bg; };
+    
+    div.style.cssText = `display:flex;align-items:flex-start;gap:8px;padding:${isFail ? '8px 4px' : '5px 4px'};border-bottom:1px solid rgba(255,255,255,0.04);background:${bg};border-radius:4px;margin-bottom:2px;transition:0.2s;${bl}`;
+    if (isClickable) div.style.cursor = 'pointer';
+    if (isClickable) div.setAttribute('onclick', `window._wftInspect('${inspectFn}', ${dIdx})`);
+    
     div.innerHTML =
       `<span style="font-size:${isFail ? '1rem' : '0.85rem'};min-width:18px;">${icons[r.s]}</span>` +
       `<div style="flex:1;min-width:0;">` +
       `<div style="display:flex;align-items:center;flex-wrap:wrap;gap:4px;">` +
       (r.cat ? _catBadge(r.cat) : '') +
       `<span style="color:${colors[r.s]};font-size:${isFail ? '0.87rem' : '0.8rem'};font-weight:${isFail ? '700' : '600'};">${r.name}</span>` +
+      (isClickable ? `<span style="font-size:0.7rem;color:rgba(255,255,255,0.3);background:rgba(255,255,255,0.1);padding:1px 6px;border-radius:10px;margin-left:4px;">🔍 Details</span>` : '') +
       `</div>` +
       (r.detail ? `<div style="color:${isFail ? '#ffaaaa' : isWarn ? '#ffe08a' : '#7aa0c4'};font-size:0.72rem;margin-top:2px;">${r.detail}</div>` : '') +
       `</div>`;
@@ -228,6 +248,57 @@
     if (typeof window.showSuccessToast === 'function') window.showSuccessToast('Report clipboard-এ copy হয়েছে!');
   };
 
+  // ─── Inspector Logic ──────────────────────────────────────
+  window._wftInspect = function(funcName, dataIdx) {
+    let fnStr = '';
+    if (funcName && typeof window[funcName] === 'function') {
+      fnStr = window[funcName].toString();
+    } else if (funcName) {
+      fnStr = `// Function '${funcName}' not found in global scope.`;
+    }
+
+    const payload = window.__wftDataStore[dataIdx];
+    let dataStr = '';
+    if (payload !== undefined && payload !== null) {
+      try { dataStr = JSON.stringify(payload, null, 2); }
+      catch(e) { dataStr = String(payload); }
+    }
+
+    let modal = document.getElementById('functest-inspector-modal');
+    if (!modal) {
+      modal = document.createElement('div');
+      modal.id = 'functest-inspector-modal';
+      modal.style.cssText = 'position:fixed;top:0;left:0;width:100%;height:100%;background:rgba(0,0,0,0.85);z-index:999999;display:flex;align-items:center;justify-content:center;padding:20px;backdrop-filter:blur(5px);';
+      modal.innerHTML = `
+        <div style="background:#111630;border:1px solid #00d9ff44;border-radius:12px;width:100%;max-width:800px;max-height:90vh;display:flex;flex-direction:column;box-shadow:0 10px 40px rgba(0,0,0,0.5);">
+          <div style="padding:15px 20px;border-bottom:1px solid #00d9ff33;display:flex;justify-content:space-between;align-items:center;background:linear-gradient(90deg, #161c3a, #111630);border-radius:12px 12px 0 0;">
+            <h3 style="margin:0;color:#00d9ff;font-size:16px;display:flex;align-items:center;gap:8px;">🔍 Auto Test Inspector</h3>
+            <button onclick="document.getElementById('functest-inspector-modal').style.display='none'" style="background:none;border:none;color:#fff;font-size:20px;cursor:pointer;">&times;</button>
+          </div>
+          <div style="padding:20px;overflow-y:auto;flex:1;display:flex;flex-direction:column;gap:15px;">
+            <div id="functest-inspector-data-sec" style="display:none;">
+              <div style="color:#ffcc00;font-size:13px;margin-bottom:6px;font-weight:bold;text-transform:uppercase;">⚠️ Discrepancy Data Breakdown</div>
+              <pre id="functest-inspector-data" style="margin:0;background:#0a0e27;padding:12px;border-radius:8px;border:1px dashed #ffcc0044;color:#ffaaaa;font-size:13px;max-height:250px;overflow-y:auto;font-family:monospace;white-space:pre-wrap;"></pre>
+            </div>
+            <div id="functest-inspector-code-sec" style="display:none;flex:1;">
+              <div style="color:#00ff88;font-size:13px;margin-bottom:6px;font-weight:bold;text-transform:uppercase;">📝 Total Function Details</div>
+              <pre id="functest-inspector-code" style="margin:0;background:#000;padding:15px;border-radius:8px;border:1px solid #00ff8844;color:#c8d0f0;font-size:13px;overflow-x:auto;max-height:400px;overflow-y:auto;font-family:monospace;"></pre>
+            </div>
+          </div>
+        </div>
+      `;
+      document.body.appendChild(modal);
+    }
+    
+    document.getElementById('functest-inspector-data-sec').style.display = dataStr ? 'block' : 'none';
+    if (dataStr) document.getElementById('functest-inspector-data').textContent = dataStr;
+    
+    document.getElementById('functest-inspector-code-sec').style.display = fnStr ? 'block' : 'none';
+    if (fnStr) document.getElementById('functest-inspector-code').textContent = fnStr;
+
+    modal.style.display = 'flex';
+  };
+
   // ═══════════════════════════════════════════════════════════
   // CATEGORY 1: CRITICAL — Core Functions + DOM
   // ═══════════════════════════════════════════════════════════
@@ -345,12 +416,16 @@
 
     // Due calculations
     let badDue = 0;
+    let faultyStudentsData = [];
     (gd.students || []).forEach(s => {
       const calc = Math.max(0, (parseFloat(s.totalPayment) || 0) - (parseFloat(s.paid) || 0));
-      if (Math.abs(calc - (parseFloat(s.due) || 0)) > 1) badDue++;
+      if (Math.abs(calc - (parseFloat(s.due) || 0)) > 1) {
+        badDue++;
+        faultyStudentsData.push({ id: s.id || s.studentId, name: s.name, storedDue: s.due, calculatedDue: calc, totalPayment: s.totalPayment, paid: s.paid });
+      }
     });
     if (badDue === 0) pass('Student dues all correct');
-    else warn(`${badDue} students have wrong due`, 'Auto-Heal fix করবে');
+    else warn(`${badDue} students have wrong due`, 'Auto-Heal fix করবে', 'saveStudent', faultyStudentsData);
 
     // Duplicate IDs
     const ids = (gd.students || []).map(s => s.studentId || s.id).filter(Boolean);
@@ -916,19 +991,24 @@
     });
     const storedCash = parseFloat(gd.cashBalance) || 0;
     const diff = Math.abs(calcCash - storedCash);
+    const cashData = { calcCash, storedCash, difference: diff, recentCashTrx: finance.filter(f => f.method === 'Cash').slice(-5) };
     if (diff < 1) pass('Cash Balance matches transactions ✓', `৳${storedCash.toLocaleString('en-IN')}`);
-    else if (diff < 5000) warn('Cash Balance minor gap', `Calc:৳${Math.round(calcCash)} Stored:৳${Math.round(storedCash)} Diff:৳${Math.round(diff)}`);
-    else fail('Cash Balance Mismatch!', `Calc:৳${Math.round(calcCash)} Stored:৳${Math.round(storedCash)} Diff:৳${Math.round(diff)}`);
+    else if (diff < 5000) warn('Cash Balance minor gap', `Calc:৳${Math.round(calcCash)} Stored:৳${Math.round(storedCash)} Diff:৳${Math.round(diff)}`, 'feCalcStats', cashData);
+    else fail('Cash Balance Mismatch!', `Calc:৳${Math.round(calcCash)} Stored:৳${Math.round(storedCash)} Diff:৳${Math.round(diff)}`, 'feRebuildAllBalances', cashData);
 
     // Student due total integrity
-    let badDue = 0, totalDue = 0;
+    let badDueFn = 0, totalDue = 0;
+    let faultDuesArr = [];
     (gd.students || []).forEach(s => {
       const correct = Math.max(0, (parseFloat(s.totalPayment) || 0) - (parseFloat(s.paid) || 0));
       totalDue += parseFloat(s.due) || 0;
-      if (Math.abs(correct - (parseFloat(s.due) || 0)) > 1) badDue++;
+      if (Math.abs(correct - (parseFloat(s.due) || 0)) > 1) {
+        badDueFn++;
+        faultDuesArr.push({ id: s.id || s.studentId, name: s.name, storedDue: s.due, correctCalc: correct, paid: s.paid });
+      }
     });
-    if (badDue === 0) pass('All student dues correct ✓', `মোট বকেয়া: ৳${totalDue.toLocaleString('en-IN')}`);
-    else fail(`${badDue} student due ভুল!`, 'Auto-Heal চালান');
+    if (badDueFn === 0) pass('All student dues correct ✓', `মোট বকেয়া: ৳${totalDue.toLocaleString('en-IN')}`);
+    else fail(`${badDueFn} student due ভুল!`, 'Auto-Heal চালান', 'saveStudent', faultDuesArr);
 
     // Duplicate finance entries
     const finKeys = new Map();
@@ -966,13 +1046,14 @@
     // Cross-check: student paid total vs finance income total (student-related only)
     if (typeof window.feCalcStats === 'function') {
       const studentFinTypes = ['Income', 'Registration', 'Refund'];
-      const studentFinanceTotal = finance
-        .filter(f => !f._deleted && studentFinTypes.includes(f.type))
-        .reduce((s, f) => s + (parseFloat(f.amount) || 0), 0);
+      const studentFinanceEntries = finance.filter(f => !f._deleted && studentFinTypes.includes(f.type));
+      const studentFinanceTotal = studentFinanceEntries.reduce((s, f) => s + (parseFloat(f.amount) || 0), 0);
       const crossDiff = Math.abs(totalPaid - studentFinanceTotal);
+      const studentDiffData = { totalStudentPaid: totalPaid, totalFinanceIncome: studentFinanceTotal, difference: crossDiff, financeEntriesCount: studentFinanceEntries.length };
+      
       if (crossDiff < 1) pass('Student paid vs Finance cross-check ✓', `Both: ৳${totalPaid.toLocaleString('en-IN')}`);
-      else if (crossDiff < 5000) warn('Student paid vs Finance gap', `Students:৳${Math.round(totalPaid)} Finance:৳${Math.round(studentFinanceTotal)} Diff:৳${Math.round(crossDiff)}`);
-      else fail('Student paid vs Finance MISMATCH!', `Students:৳${Math.round(totalPaid)} Finance:৳${Math.round(studentFinanceTotal)} Diff:৳${Math.round(crossDiff)}`);
+      else if (crossDiff < 5000) warn('Student paid vs Finance gap', `Students:৳${Math.round(totalPaid)} Finance:৳${Math.round(studentFinanceTotal)} Diff:৳${Math.round(crossDiff)}`, 'feCalcStats', studentDiffData);
+      else fail('Student paid vs Finance MISMATCH!', `Students:৳${Math.round(totalPaid)} Finance:৳${Math.round(studentFinanceTotal)} Diff:৳${Math.round(crossDiff)}`, 'feSyncStudentPaid', studentDiffData);
     }
 
     if (typeof window.feCalcStats === 'function') {
