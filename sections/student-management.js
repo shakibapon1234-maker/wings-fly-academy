@@ -1084,7 +1084,7 @@ async function handleStudentSubmit(e) {
         reminderDate: data.reminderDate || null,
         studentId: generateStudentId(data.batch),
         remarks: data.remarks || '',
-        photo: photoURL, // Store Firebase Storage URL
+        photo: photoURL, // Store Storage URL
         installments: parseFloat(data.payment) > 0 ? [{
           amount: parseFloat(data.payment),
           date: data.enrollDate || new Date().toISOString().split('T')[0],
