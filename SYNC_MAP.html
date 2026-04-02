@@ -1,0 +1,1479 @@
+<!DOCTYPE html>
+<html lang="bn">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>🗺️ ☁️ Synchronization Hub — Wings Fly</title>
+<style>
+  :root {
+    --bg: #0a0e27; --bg2: #111630; --bg3: #161c3a;
+    --accent: #b537f2; --cyan: #00d9ff; --purple: #b537f2; --pink: #ff2d95;
+    --green: #00ff88; --yellow: #ffd600; --red: #ff4d4d;
+    --text: #c8d0f0; --text2: #8890b0;
+    --border: rgba(255,255,255,0.1);
+  }
+  * { box-sizing: border-box; margin: 0; padding: 0; }
+  body { background: var(--bg); color: var(--text); font-family: 'Segoe UI', monospace; font-size: 14px; }
+  .header { border-bottom: 2px solid var(--accent); padding: 20px 30px; display: flex; justify-content: space-between; align-items: center; background: linear-gradient(135deg, #0d1b4b, #1a0a3d); }
+  .header h1 { font-size: 22px; color: var(--accent); }
+  .stats-bar { display: flex; gap: 12px; padding: 16px 30px; background: var(--bg2); border-bottom: 1px solid var(--border); }
+  .stat-card { background: var(--bg3); border: 1px solid var(--border); border-radius: 10px; padding: 10px 18px; text-align: center; }
+  .stat-card .num { font-size: 24px; font-weight: 700; color: var(--accent); }
+  .stat-card .lbl { font-size: 11px; color: var(--text2); margin-top: 2px; }
+  .search-bar { padding: 14px 30px; background: var(--bg2); border-bottom: 1px solid var(--border); display: flex; gap: 10px; }
+  .search-bar input { flex: 1; background: var(--bg3); border: 1px solid var(--accent); color: var(--text); border-radius: 8px; padding: 8px 14px; outline: none; }
+  .main { display: flex; height: calc(100vh - 180px); }
+  .content { flex: 1; overflow-y: auto; padding: 20px 30px; }
+  .file-card { background: var(--bg2); border: 1px solid var(--border); border-radius: 12px; margin-bottom: 18px; }
+  .file-card-header { padding: 14px 18px; background: var(--bg3); border-bottom: 1px solid var(--border); cursor: pointer; display: flex; justify-content: space-between;}
+  .file-path { font-family: monospace; font-size: 13px; color: var(--accent); font-weight:bold; }
+  .tag { padding: 2px 9px; border-radius: 12px; font-size: 11px; margin-left: 6px; border: 1px solid rgba(255,255,255,0.2) }
+  .file-card-body { padding: 14px 18px; display: none; } .file-card-body.open { display: block; }
+  .fn-table { width: 100%; border-collapse: collapse; font-size: 13px; margin-bottom:12px; }
+  .fn-table th { text-align: left; padding: 6px; color:var(--text2); font-size:11px; border-bottom:1px solid var(--border); }
+  .fn-table td { padding: 6px; border-bottom: 1px solid rgba(255,255,255,0.05); }
+  .fn-name { color: #fff; font-family: monospace; }
+  .line-num { color: var(--text2); font-size: 12px; font-family: monospace; }
+  .sr-item { background: var(--bg3); padding:8px; margin-bottom:4px; border-radius:4px; display:flex; justify-content:space-between}
+  ::-webkit-scrollbar { width: 6px; } ::-webkit-scrollbar-thumb { background: var(--accent); border-radius: 3px; }
+</style>
+</head>
+<body>
+<div class="header">
+  <div><h1>☁️ Synchronization Hub</h1><div style="color:var(--text2);font-size:13px;">Auto-Updating Project Monitor</div></div>
+  <div style="font-size:12px;color:var(--text2);text-align:right;">📅 শুক্রবার, ৩ এপ্রিল, ২০২৬ এ ২:০০ AM</div>
+</div>
+<div class="stats-bar">
+  <div class="stat-card"><div class="num">39</div><div class="lbl">Total Files Matched</div></div>
+  <div class="stat-card"><div class="num">30</div><div class="lbl">JS Files</div></div>
+  <div class="stat-card"><div class="num">203</div><div class="lbl">Functions Included</div></div>
+  <div class="stat-card" style="margin-left:auto;border-color:var(--accent)"><div class="num" style="font-size:14px;padding-top:10px;">🟢 Live Watcher Active</div></div>
+</div>
+<div class="search-bar">
+  <input type="text" id="s" placeholder="🔍 Search functions in this map..." oninput="search(this.value)">
+  <button onclick="document.querySelectorAll('.file-card-body').forEach(e=>e.classList.add('open'))" style="padding:6px 12px;border-radius:6px;background:var(--bg3);color:white;border:1px solid var(--border)">Expand All</button>
+</div>
+<div class="main">
+  <div class="content" id="view-files">
+
+    <div class="file-card">
+      <div class="file-card-header" onclick="document.getElementById('b-js-0').classList.toggle('open')">
+        <div class="file-path">📄 app.js</div>
+        <div>
+          <span class="tag">JS</span>
+          <span class="tag">7 fn</span>
+          <span class="tag">43.9 KB</span>
+        </div>
+      </div>
+      <div class="file-card-body" id="b-js-0">
+        
+        <table class="fn-table">
+          <thead><tr><th>Function Name</th><th>Type</th><th>Line</th></tr></thead>
+          <tbody><tr>
+            <td><span class="fn-name">toggleAutoSync</span></td>
+            <td style="color:var(--text2);font-size:11px">declaration</td>
+            <td class="line-num">:276</td>
+          </tr></tbody>
+        </table>
+        
+        
+        <div style="font-size:12px;color:var(--text2);margin-bottom:4px;">window.* Exports</div>
+        <div style="display:flex;gap:6px;flex-wrap:wrap;margin-bottom:12px;">
+          <span class="tag" style="border-color:var(--pink);color:var(--pink)">window.saveToCloud :1001</span><span class="tag" style="border-color:var(--pink);color:var(--pink)">window.loadFromCloud :1003</span><span class="tag" style="border-color:var(--pink);color:var(--pink)">window.manualCloudSync :1005</span><span class="tag" style="border-color:var(--pink);color:var(--pink)">window.saveToCloud :1015</span><span class="tag" style="border-color:var(--pink);color:var(--pink)">window.loadFromCloud :1017</span><span class="tag" style="border-color:var(--pink);color:var(--pink)">window.manualCloudSync :1019</span>
+        </div>
+      </div>
+    </div>
+    <div class="file-card">
+      <div class="file-card-header" onclick="document.getElementById('b-js-1').classList.toggle('open')">
+        <div class="file-path">📄 auto-heal.js</div>
+        <div>
+          <span class="tag">JS</span>
+          <span class="tag">1 fn</span>
+          <span class="tag">30.3 KB</span>
+        </div>
+      </div>
+      <div class="file-card-body" id="b-js-1">
+        
+        <table class="fn-table">
+          <thead><tr><th>Function Name</th><th>Type</th><th>Line</th></tr></thead>
+          <tbody><tr>
+            <td><span class="fn-name">healSyncConflictWatchdog</span></td>
+            <td style="color:var(--text2);font-size:11px">declaration</td>
+            <td class="line-num">:393</td>
+          </tr></tbody>
+        </table>
+        
+        
+      </div>
+    </div>
+    <div class="file-card">
+      <div class="file-card-header" onclick="document.getElementById('b-js-2').classList.toggle('open')">
+        <div class="file-path">📄 auto-test.js</div>
+        <div>
+          <span class="tag">JS</span>
+          <span class="tag">3 fn</span>
+          <span class="tag">73.8 KB</span>
+        </div>
+      </div>
+      <div class="file-card-body" id="b-js-2">
+        
+        <table class="fn-table">
+          <thead><tr><th>Function Name</th><th>Type</th><th>Line</th></tr></thead>
+          <tbody><tr>
+            <td><span class="fn-name">testSync</span></td>
+            <td style="color:var(--text2);font-size:11px">declaration</td>
+            <td class="line-num">:394</td>
+          </tr><tr>
+            <td><span class="fn-name">testV34Sync</span></td>
+            <td style="color:var(--text2);font-size:11px">declaration</td>
+            <td class="line-num">:476</td>
+          </tr><tr>
+            <td><span class="fn-name">_waitForSyncThenStart</span></td>
+            <td style="color:var(--text2);font-size:11px">declaration</td>
+            <td class="line-num">:1320</td>
+          </tr></tbody>
+        </table>
+        
+        
+      </div>
+    </div>
+    <div class="file-card">
+      <div class="file-card-header" onclick="document.getElementById('b-js-3').classList.toggle('open')">
+        <div class="file-path">📄 batch_report.js</div>
+        <div>
+          <span class="tag">JS</span>
+          <span class="tag">1 fn</span>
+          <span class="tag">15.8 KB</span>
+        </div>
+      </div>
+      <div class="file-card-body" id="b-js-3">
+        
+        <table class="fn-table">
+          <thead><tr><th>Function Name</th><th>Type</th><th>Line</th></tr></thead>
+          <tbody><tr>
+            <td><span class="fn-name">downloadCSV</span></td>
+            <td style="color:var(--text2);font-size:11px">declaration</td>
+            <td class="line-num">:329</td>
+          </tr></tbody>
+        </table>
+        
+        
+      </div>
+    </div>
+    <div class="file-card">
+      <div class="file-card-header" onclick="document.getElementById('b-js-4').classList.toggle('open')">
+        <div class="file-path">📄 deploy-change-tracker.js</div>
+        <div>
+          <span class="tag">JS</span>
+          <span class="tag">3 fn</span>
+          <span class="tag">30.4 KB</span>
+        </div>
+      </div>
+      <div class="file-card-body" id="b-js-4">
+        
+        <table class="fn-table">
+          <thead><tr><th>Function Name</th><th>Type</th><th>Line</th></tr></thead>
+          <tbody><tr>
+            <td><span class="fn-name">captureSnapshot</span></td>
+            <td style="color:var(--text2);font-size:11px">declaration</td>
+            <td class="line-num">:131</td>
+          </tr><tr>
+            <td><span class="fn-name">compareSnapshots</span></td>
+            <td style="color:var(--text2);font-size:11px">declaration</td>
+            <td class="line-num">:199</td>
+          </tr><tr>
+            <td><span class="fn-name">updateSnapshot</span></td>
+            <td style="color:var(--text2);font-size:11px">declaration</td>
+            <td class="line-num">:556</td>
+          </tr></tbody>
+        </table>
+        
+        
+      </div>
+    </div>
+    <div class="file-card">
+      <div class="file-card-header" onclick="document.getElementById('b-js-5').classList.toggle('open')">
+        <div class="file-path">📄 EMERGENCY_RESTORE.js</div>
+        <div>
+          <span class="tag">JS</span>
+          <span class="tag">1 fn</span>
+          <span class="tag">443 B</span>
+        </div>
+      </div>
+      <div class="file-card-body" id="b-js-5">
+        
+        
+        
+        <div style="font-size:12px;color:var(--text2);margin-bottom:4px;">window.* Exports</div>
+        <div style="display:flex;gap:6px;flex-wrap:wrap;margin-bottom:12px;">
+          <span class="tag" style="border-color:var(--pink);color:var(--pink)">window.emergencyRestoreManual :7</span>
+        </div>
+      </div>
+    </div>
+    <div class="file-card">
+      <div class="file-card-header" onclick="document.getElementById('b-js-6').classList.toggle('open')">
+        <div class="file-path">📄 finance-engine-fixes.js</div>
+        <div>
+          <span class="tag">JS</span>
+          <span class="tag">1 fn</span>
+          <span class="tag">5.0 KB</span>
+        </div>
+      </div>
+      <div class="file-card-body" id="b-js-6">
+        
+        
+        
+        <div style="font-size:12px;color:var(--text2);margin-bottom:4px;">window.* Exports</div>
+        <div style="display:flex;gap:6px;flex-wrap:wrap;margin-bottom:12px;">
+          <span class="tag" style="border-color:var(--pink);color:var(--pink)">window.feSyncStudentPaid :32</span>
+        </div>
+      </div>
+    </div>
+    <div class="file-card">
+      <div class="file-card-header" onclick="document.getElementById('b-js-7').classList.toggle('open')">
+        <div class="file-path">📄 force-cloud-push.js</div>
+        <div>
+          <span class="tag">JS</span>
+          <span class="tag">7 fn</span>
+          <span class="tag">10.8 KB</span>
+        </div>
+      </div>
+      <div class="file-card-body" id="b-js-7">
+        
+        <table class="fn-table">
+          <thead><tr><th>Function Name</th><th>Type</th><th>Line</th></tr></thead>
+          <tbody><tr>
+            <td><span class="fn-name">studentsClean</span></td>
+            <td style="color:var(--text2);font-size:11px">expression</td>
+            <td class="line-num">:40</td>
+          </tr><tr>
+            <td><span class="fn-name">newVer</span></td>
+            <td style="color:var(--text2);font-size:11px">expression</td>
+            <td class="line-num">:85</td>
+          </tr><tr>
+            <td><span class="fn-name">newVer</span></td>
+            <td style="color:var(--text2);font-size:11px">expression</td>
+            <td class="line-num">:106</td>
+          </tr><tr>
+            <td><span class="fn-name">stableId</span></td>
+            <td style="color:var(--text2);font-size:11px">declaration</td>
+            <td class="line-num">:117</td>
+          </tr><tr>
+            <td><span class="fn-name">studentRows</span></td>
+            <td style="color:var(--text2);font-size:11px">expression</td>
+            <td class="line-num">:137</td>
+          </tr><tr>
+            <td><span class="fn-name">financeRows</span></td>
+            <td style="color:var(--text2);font-size:11px">expression</td>
+            <td class="line-num">:178</td>
+          </tr><tr>
+            <td><span class="fn-name">empRows</span></td>
+            <td style="color:var(--text2);font-size:11px">expression</td>
+            <td class="line-num">:211</td>
+          </tr></tbody>
+        </table>
+        
+        
+      </div>
+    </div>
+    <div class="file-card">
+      <div class="file-card-header" onclick="document.getElementById('b-js-8').classList.toggle('open')">
+        <div class="file-path">📄 restore-real-data.js</div>
+        <div>
+          <span class="tag">JS</span>
+          <span class="tag">0 fn</span>
+          <span class="tag">7.0 KB</span>
+        </div>
+      </div>
+      <div class="file-card-body" id="b-js-8">
+        
+        
+        
+      </div>
+    </div>
+    <div class="file-card">
+      <div class="file-card-header" onclick="document.getElementById('b-js-9').classList.toggle('open')">
+        <div class="file-path">📄 sections/accounts-management.js</div>
+        <div>
+          <span class="tag">JS</span>
+          <span class="tag">1 fn</span>
+          <span class="tag">76.3 KB</span>
+        </div>
+      </div>
+      <div class="file-card-body" id="b-js-9">
+        
+        <table class="fn-table">
+          <thead><tr><th>Function Name</th><th>Type</th><th>Line</th></tr></thead>
+          <tbody><tr>
+            <td><span class="fn-name">syncPaymentMethodsWithAccounts</span></td>
+            <td style="color:var(--text2);font-size:11px">declaration</td>
+            <td class="line-num">:728</td>
+          </tr></tbody>
+        </table>
+        
+        
+      </div>
+    </div>
+    <div class="file-card">
+      <div class="file-card-header" onclick="document.getElementById('b-js-10').classList.toggle('open')">
+        <div class="file-path">📄 sections/activity-log.js</div>
+        <div>
+          <span class="tag">JS</span>
+          <span class="tag">2 fn</span>
+          <span class="tag">29.8 KB</span>
+        </div>
+      </div>
+      <div class="file-card-body" id="b-js-10">
+        
+        <table class="fn-table">
+          <thead><tr><th>Function Name</th><th>Type</th><th>Line</th></tr></thead>
+          <tbody><tr>
+            <td><span class="fn-name">_guardActivityLogAfterPull</span></td>
+            <td style="color:var(--text2);font-size:11px">declaration</td>
+            <td class="line-num">:235</td>
+          </tr><tr>
+            <td><span class="fn-name">restoreDeletedItem</span></td>
+            <td style="color:var(--text2);font-size:11px">declaration</td>
+            <td class="line-num">:378</td>
+          </tr></tbody>
+        </table>
+        
+        
+      </div>
+    </div>
+    <div class="file-card">
+      <div class="file-card-header" onclick="document.getElementById('b-js-11').classList.toggle('open')">
+        <div class="file-path">📄 sections/auth.js</div>
+        <div>
+          <span class="tag">JS</span>
+          <span class="tag">2 fn</span>
+          <span class="tag">62.6 KB</span>
+        </div>
+      </div>
+      <div class="file-card-body" id="b-js-11">
+        
+        <table class="fn-table">
+          <thead><tr><th>Function Name</th><th>Type</th><th>Line</th></tr></thead>
+          <tbody><tr>
+            <td><span class="fn-name">initSupabase</span></td>
+            <td style="color:var(--text2);font-size:11px">declaration</td>
+            <td class="line-num">:31</td>
+          </tr><tr>
+            <td><span class="fn-name">trySupabaseLogin</span></td>
+            <td style="color:var(--text2);font-size:11px">declaration</td>
+            <td class="line-num">:194</td>
+          </tr></tbody>
+        </table>
+        
+        
+      </div>
+    </div>
+    <div class="file-card">
+      <div class="file-card-header" onclick="document.getElementById('b-js-12').classList.toggle('open')">
+        <div class="file-path">📄 sections/card-certificate.js</div>
+        <div>
+          <span class="tag">JS</span>
+          <span class="tag">1 fn</span>
+          <span class="tag">412.0 KB</span>
+        </div>
+      </div>
+      <div class="file-card-body" id="b-js-12">
+        
+        <table class="fn-table">
+          <thead><tr><th>Function Name</th><th>Type</th><th>Line</th></tr></thead>
+          <tbody><tr>
+            <td><span class="fn-name">downloadSingleCertificate</span></td>
+            <td style="color:var(--text2);font-size:11px">declaration</td>
+            <td class="line-num">:381</td>
+          </tr></tbody>
+        </table>
+        
+        
+      </div>
+    </div>
+    <div class="file-card">
+      <div class="file-card-header" onclick="document.getElementById('b-js-13').classList.toggle('open')">
+        <div class="file-path">📄 sections/dashboard-stats.js</div>
+        <div>
+          <span class="tag">JS</span>
+          <span class="tag">1 fn</span>
+          <span class="tag">24.1 KB</span>
+        </div>
+      </div>
+      <div class="file-card-body" id="b-js-13">
+        
+        <table class="fn-table">
+          <thead><tr><th>Function Name</th><th>Type</th><th>Line</th></tr></thead>
+          <tbody><tr>
+            <td><span class="fn-name">checkDailyBackup</span></td>
+            <td style="color:var(--text2);font-size:11px">declaration</td>
+            <td class="line-num">:312</td>
+          </tr></tbody>
+        </table>
+        
+        
+      </div>
+    </div>
+    <div class="file-card">
+      <div class="file-card-header" onclick="document.getElementById('b-js-14').classList.toggle('open')">
+        <div class="file-path">📄 sections/delete-sync-fix-V2.js</div>
+        <div>
+          <span class="tag">JS</span>
+          <span class="tag">20 fn</span>
+          <span class="tag">23.9 KB</span>
+        </div>
+      </div>
+      <div class="file-card-body" id="b-js-14">
+        
+        <table class="fn-table">
+          <thead><tr><th>Function Name</th><th>Type</th><th>Line</th></tr></thead>
+          <tbody><tr>
+            <td><span class="fn-name">_cfg</span></td>
+            <td style="color:var(--text2);font-size:11px">declaration</td>
+            <td class="line-num">:83</td>
+          </tr><tr>
+            <td><span class="fn-name">_headers</span></td>
+            <td style="color:var(--text2);font-size:11px">declaration</td>
+            <td class="line-num">:85</td>
+          </tr><tr>
+            <td><span class="fn-name">_aid</span></td>
+            <td style="color:var(--text2);font-size:11px">declaration</td>
+            <td class="line-num">:95</td>
+          </tr><tr>
+            <td><span class="fn-name">_extractId</span></td>
+            <td style="color:var(--text2);font-size:11px">declaration</td>
+            <td class="line-num">:103</td>
+          </tr><tr>
+            <td><span class="fn-name">t</span></td>
+            <td style="color:var(--text2);font-size:11px">expression</td>
+            <td class="line-num">:107</td>
+          </tr><tr>
+            <td><span class="fn-name">_getTable</span></td>
+            <td style="color:var(--text2);font-size:11px">declaration</td>
+            <td class="line-num">:119</td>
+          </tr><tr>
+            <td><span class="fn-name">t</span></td>
+            <td style="color:var(--text2);font-size:11px">expression</td>
+            <td class="line-num">:121</td>
+          </tr><tr>
+            <td><span class="fn-name">_getPrefix</span></td>
+            <td style="color:var(--text2);font-size:11px">declaration</td>
+            <td class="line-num">:128</td>
+          </tr><tr>
+            <td><span class="fn-name">t</span></td>
+            <td style="color:var(--text2);font-size:11px">expression</td>
+            <td class="line-num">:129</td>
+          </tr><tr>
+            <td><span class="fn-name">_pushDeleteMarkerDirect</span></td>
+            <td style="color:var(--text2);font-size:11px">declaration</td>
+            <td class="line-num">:143</td>
+          </tr><tr>
+            <td><span class="fn-name">_enqueueRetry</span></td>
+            <td style="color:var(--text2);font-size:11px">declaration</td>
+            <td class="line-num">:184</td>
+          </tr><tr>
+            <td><span class="fn-name">_processRetryQueue</span></td>
+            <td style="color:var(--text2);font-size:11px">declaration</td>
+            <td class="line-num">:191</td>
+          </tr><tr>
+            <td><span class="fn-name">_patchMoveToTrash</span></td>
+            <td style="color:var(--text2);font-size:11px">declaration</td>
+            <td class="line-num">:217</td>
+          </tr><tr>
+            <td><span class="fn-name">_applyCloudDeleteMarkers</span></td>
+            <td style="color:var(--text2);font-size:11px">declaration</td>
+            <td class="line-num">:256</td>
+          </tr><tr>
+            <td><span class="fn-name">extractRawId</span></td>
+            <td style="color:var(--text2);font-size:11px">declaration</td>
+            <td class="line-num">:282</td>
+          </tr><tr>
+            <td><span class="fn-name">_patchWingsSync</span></td>
+            <td style="color:var(--text2);font-size:11px">declaration</td>
+            <td class="line-num">:408</td>
+          </tr><tr>
+            <td><span class="fn-name">_startup</span></td>
+            <td style="color:var(--text2);font-size:11px">declaration</td>
+            <td class="line-num">:484</td>
+          </tr></tbody>
+        </table>
+        
+        
+        <div style="font-size:12px;color:var(--text2);margin-bottom:4px;">window.* Exports</div>
+        <div style="display:flex;gap:6px;flex-wrap:wrap;margin-bottom:12px;">
+          <span class="tag" style="border-color:var(--pink);color:var(--pink)">window.moveToTrash :221</span><span class="tag" style="border-color:var(--pink);color:var(--pink)">window.wfForceDeleteSync :454</span><span class="tag" style="border-color:var(--pink);color:var(--pink)">window.wfPushDeleteMarker :469</span>
+        </div>
+      </div>
+    </div>
+    <div class="file-card">
+      <div class="file-card-header" onclick="document.getElementById('b-js-15').classList.toggle('open')">
+        <div class="file-path">📄 sections/finance-crud.js</div>
+        <div>
+          <span class="tag">JS</span>
+          <span class="tag">1 fn</span>
+          <span class="tag">52.1 KB</span>
+        </div>
+      </div>
+      <div class="file-card-body" id="b-js-15">
+        
+        
+        
+        <div style="font-size:12px;color:var(--text2);margin-bottom:4px;">window.* Exports</div>
+        <div style="display:flex;gap:6px;flex-wrap:wrap;margin-bottom:12px;">
+          <span class="tag" style="border-color:var(--pink);color:var(--pink)">window.restoreDeletedItem :1155</span>
+        </div>
+      </div>
+    </div>
+    <div class="file-card">
+      <div class="file-card-header" onclick="document.getElementById('b-js-16').classList.toggle('open')">
+        <div class="file-path">📄 sections/finance-engine.js</div>
+        <div>
+          <span class="tag">JS</span>
+          <span class="tag">2 fn</span>
+          <span class="tag">17.9 KB</span>
+        </div>
+      </div>
+      <div class="file-card-body" id="b-js-16">
+        
+        
+        
+        <div style="font-size:12px;color:var(--text2);margin-bottom:4px;">window.* Exports</div>
+        <div style="display:flex;gap:6px;flex-wrap:wrap;margin-bottom:12px;">
+          <span class="tag" style="border-color:var(--pink);color:var(--pink)">window.feRestoreEntry :314</span><span class="tag" style="border-color:var(--pink);color:var(--pink)">window.feSyncStudentPaid :342</span>
+        </div>
+      </div>
+    </div>
+    <div class="file-card">
+      <div class="file-card-header" onclick="document.getElementById('b-js-17').classList.toggle('open')">
+        <div class="file-path">📄 sections/finance-guard.js</div>
+        <div>
+          <span class="tag">JS</span>
+          <span class="tag">1 fn</span>
+          <span class="tag">19.0 KB</span>
+        </div>
+      </div>
+      <div class="file-card-body" id="b-js-17">
+        
+        
+        
+        <div style="font-size:12px;color:var(--text2);margin-bottom:4px;">window.* Exports</div>
+        <div style="display:flex;gap:6px;flex-wrap:wrap;margin-bottom:12px;">
+          <span class="tag" style="border-color:var(--pink);color:var(--pink)">window.restoreDeletedItem :376</span>
+        </div>
+      </div>
+    </div>
+    <div class="file-card">
+      <div class="file-card-header" onclick="document.getElementById('b-js-18').classList.toggle('open')">
+        <div class="file-path">📄 sections/finance-helpers.js</div>
+        <div>
+          <span class="tag">JS</span>
+          <span class="tag">1 fn</span>
+          <span class="tag">23.7 KB</span>
+        </div>
+      </div>
+      <div class="file-card-body" id="b-js-18">
+        
+        <table class="fn-table">
+          <thead><tr><th>Function Name</th><th>Type</th><th>Line</th></tr></thead>
+          <tbody><tr>
+            <td><span class="fn-name">_forceCloudDeleteOrphan</span></td>
+            <td style="color:var(--text2);font-size:11px">declaration</td>
+            <td class="line-num">:410</td>
+          </tr></tbody>
+        </table>
+        
+        
+      </div>
+    </div>
+    <div class="file-card">
+      <div class="file-card-header" onclick="document.getElementById('b-js-19').classList.toggle('open')">
+        <div class="file-path">📄 sections/inline-scripts.js</div>
+        <div>
+          <span class="tag">JS</span>
+          <span class="tag">4 fn</span>
+          <span class="tag">59.8 KB</span>
+        </div>
+      </div>
+      <div class="file-card-body" id="b-js-19">
+        
+        <table class="fn-table">
+          <thead><tr><th>Function Name</th><th>Type</th><th>Line</th></tr></thead>
+          <tbody><tr>
+            <td><span class="fn-name">runDiagnosticInline</span></td>
+            <td style="color:var(--text2);font-size:11px">declaration</td>
+            <td class="line-num">:44</td>
+          </tr></tbody>
+        </table>
+        
+        
+        <div style="font-size:12px;color:var(--text2);margin-bottom:4px;">window.* Exports</div>
+        <div style="display:flex;gap:6px;flex-wrap:wrap;margin-bottom:12px;">
+          <span class="tag" style="border-color:var(--pink);color:var(--pink)">window._wfRestore :648</span><span class="tag" style="border-color:var(--pink);color:var(--pink)">window.restoreDeletedItem :715</span><span class="tag" style="border-color:var(--pink);color:var(--pink)">window.syncPaymentMethodsWithAccounts :1112</span>
+        </div>
+      </div>
+    </div>
+    <div class="file-card">
+      <div class="file-card-header" onclick="document.getElementById('b-js-20').classList.toggle('open')">
+        <div class="file-path">📄 sections/photo-manager.js</div>
+        <div>
+          <span class="tag">JS</span>
+          <span class="tag">1 fn</span>
+          <span class="tag">6.0 KB</span>
+        </div>
+      </div>
+      <div class="file-card-body" id="b-js-20">
+        
+        <table class="fn-table">
+          <thead><tr><th>Function Name</th><th>Type</th><th>Line</th></tr></thead>
+          <tbody><tr>
+            <td><span class="fn-name">uploadStudentPhoto</span></td>
+            <td style="color:var(--text2);font-size:11px">declaration</td>
+            <td class="line-num">:51</td>
+          </tr></tbody>
+        </table>
+        
+        
+      </div>
+    </div>
+    <div class="file-card">
+      <div class="file-card-header" onclick="document.getElementById('b-js-21').classList.toggle('open')">
+        <div class="file-path">📄 sections/recycle-bin-fix.js</div>
+        <div>
+          <span class="tag">JS</span>
+          <span class="tag">1 fn</span>
+          <span class="tag">61.7 KB</span>
+        </div>
+      </div>
+      <div class="file-card-body" id="b-js-21">
+        
+        
+        
+        <div style="font-size:12px;color:var(--text2);margin-bottom:4px;">window.* Exports</div>
+        <div style="display:flex;gap:6px;flex-wrap:wrap;margin-bottom:12px;">
+          <span class="tag" style="border-color:var(--pink);color:var(--pink)">window.restoreDeletedItem :158</span>
+        </div>
+      </div>
+    </div>
+    <div class="file-card">
+      <div class="file-card-header" onclick="document.getElementById('b-js-22').classList.toggle('open')">
+        <div class="file-path">📄 sections/snapshot-system.js</div>
+        <div>
+          <span class="tag">JS</span>
+          <span class="tag">21 fn</span>
+          <span class="tag">16.3 KB</span>
+        </div>
+      </div>
+      <div class="file-card-body" id="b-js-22">
+        
+        <table class="fn-table">
+          <thead><tr><th>Function Name</th><th>Type</th><th>Line</th></tr></thead>
+          <tbody><tr>
+            <td><span class="fn-name">takeSnapshot</span></td>
+            <td style="color:var(--text2);font-size:11px">declaration</td>
+            <td class="line-num">:15</td>
+          </tr><tr>
+            <td><span class="fn-name">_finCount</span></td>
+            <td style="color:var(--text2);font-size:11px">expression</td>
+            <td class="line-num">:34</td>
+          </tr><tr>
+            <td><span class="fn-name">_studCount</span></td>
+            <td style="color:var(--text2);font-size:11px">expression</td>
+            <td class="line-num">:35</td>
+          </tr><tr>
+            <td><span class="fn-name">getSnapshots</span></td>
+            <td style="color:var(--text2);font-size:11px">declaration</td>
+            <td class="line-num">:85</td>
+          </tr><tr>
+            <td><span class="fn-name">getMonitorHistory</span></td>
+            <td style="color:var(--text2);font-size:11px">declaration</td>
+            <td class="line-num">:91</td>
+          </tr><tr>
+            <td><span class="fn-name">_monitorSafeNum</span></td>
+            <td style="color:var(--text2);font-size:11px">declaration</td>
+            <td class="line-num">:98</td>
+          </tr><tr>
+            <td><span class="fn-name">_monitorBuildBalanceSnapshot</span></td>
+            <td style="color:var(--text2);font-size:11px">declaration</td>
+            <td class="line-num">:103</td>
+          </tr><tr>
+            <td><span class="fn-name">banks</span></td>
+            <td style="color:var(--text2);font-size:11px">expression</td>
+            <td class="line-num">:106</td>
+          </tr><tr>
+            <td><span class="fn-name">mobiles</span></td>
+            <td style="color:var(--text2);font-size:11px">expression</td>
+            <td class="line-num">:109</td>
+          </tr><tr>
+            <td><span class="fn-name">_monitorGetLatestChange</span></td>
+            <td style="color:var(--text2);font-size:11px">declaration</td>
+            <td class="line-num">:118</td>
+          </tr><tr>
+            <td><span class="fn-name">finance</span></td>
+            <td style="color:var(--text2);font-size:11px">expression</td>
+            <td class="line-num">:119</td>
+          </tr><tr>
+            <td><span class="fn-name">_monitorChangeKey</span></td>
+            <td style="color:var(--text2);font-size:11px">declaration</td>
+            <td class="line-num">:140</td>
+          </tr><tr>
+            <td><span class="fn-name">_monitorFingerprint</span></td>
+            <td style="color:var(--text2);font-size:11px">declaration</td>
+            <td class="line-num">:152</td>
+          </tr><tr>
+            <td><span class="fn-name">recordMonitorChange</span></td>
+            <td style="color:var(--text2);font-size:11px">declaration</td>
+            <td class="line-num">:166</td>
+          </tr><tr>
+            <td><span class="fn-name">_installMonitorSaveHook</span></td>
+            <td style="color:var(--text2);font-size:11px">declaration</td>
+            <td class="line-num">:231</td>
+          </tr><tr>
+            <td><span class="fn-name">attempt</span></td>
+            <td style="color:var(--text2);font-size:11px">declaration</td>
+            <td class="line-num">:233</td>
+          </tr><tr>
+            <td><span class="fn-name">restoreSnapshot</span></td>
+            <td style="color:var(--text2);font-size:11px">declaration</td>
+            <td class="line-num">:258</td>
+          </tr><tr>
+            <td><span class="fn-name">downloadSnapshot</span></td>
+            <td style="color:var(--text2);font-size:11px">declaration</td>
+            <td class="line-num">:275</td>
+          </tr><tr>
+            <td><span class="fn-name">deleteSnapshot</span></td>
+            <td style="color:var(--text2);font-size:11px">declaration</td>
+            <td class="line-num">:288</td>
+          </tr><tr>
+            <td><span class="fn-name">renderSnapshotList</span></td>
+            <td style="color:var(--text2);font-size:11px">declaration</td>
+            <td class="line-num">:295</td>
+          </tr></tbody>
+        </table>
+        
+        
+        <div style="font-size:12px;color:var(--text2);margin-bottom:4px;">window.* Exports</div>
+        <div style="display:flex;gap:6px;flex-wrap:wrap;margin-bottom:12px;">
+          <span class="tag" style="border-color:var(--pink);color:var(--pink)">window.saveToStorage :241</span>
+        </div>
+      </div>
+    </div>
+    <div class="file-card">
+      <div class="file-card-header" onclick="document.getElementById('b-js-23').classList.toggle('open')">
+        <div class="file-path">📄 sections/student-management.js</div>
+        <div>
+          <span class="tag">JS</span>
+          <span class="tag">3 fn</span>
+          <span class="tag">125.3 KB</span>
+        </div>
+      </div>
+      <div class="file-card-body" id="b-js-23">
+        
+        <table class="fn-table">
+          <thead><tr><th>Function Name</th><th>Type</th><th>Line</th></tr></thead>
+          <tbody><tr>
+            <td><span class="fn-name">downloadLedgerExcel</span></td>
+            <td style="color:var(--text2);font-size:11px">declaration</td>
+            <td class="line-num">:353</td>
+          </tr><tr>
+            <td><span class="fn-name">downloadAccountDetailsExcel</span></td>
+            <td style="color:var(--text2);font-size:11px">declaration</td>
+            <td class="line-num">:424</td>
+          </tr><tr>
+            <td><span class="fn-name">syncSearchInputs</span></td>
+            <td style="color:var(--text2);font-size:11px">declaration</td>
+            <td class="line-num">:753</td>
+          </tr></tbody>
+        </table>
+        
+        
+      </div>
+    </div>
+    <div class="file-card">
+      <div class="file-card-header" onclick="document.getElementById('b-js-24').classList.toggle('open')">
+        <div class="file-path">📄 sections/supabase-sync-patch.js</div>
+        <div>
+          <span class="tag">JS</span>
+          <span class="tag">13 fn</span>
+          <span class="tag">20.5 KB</span>
+        </div>
+      </div>
+      <div class="file-card-body" id="b-js-24">
+        
+        <table class="fn-table">
+          <thead><tr><th>Function Name</th><th>Type</th><th>Line</th></tr></thead>
+          <tbody><tr>
+            <td><span class="fn-name">_buildBinIdSet</span></td>
+            <td style="color:var(--text2);font-size:11px">declaration</td>
+            <td class="line-num">:56</td>
+          </tr><tr>
+            <td><span class="fn-name">_removeResurrectedItems</span></td>
+            <td style="color:var(--text2);font-size:11px">declaration</td>
+            <td class="line-num">:70</td>
+          </tr><tr>
+            <td><span class="fn-name">examBin</span></td>
+            <td style="color:var(--text2);font-size:11px">expression</td>
+            <td class="line-num">:152</td>
+          </tr><tr>
+            <td><span class="fn-name">visitorBin</span></td>
+            <td style="color:var(--text2);font-size:11px">expression</td>
+            <td class="line-num">:180</td>
+          </tr><tr>
+            <td><span class="fn-name">t</span></td>
+            <td style="color:var(--text2);font-size:11px">expression</td>
+            <td class="line-num">:181</td>
+          </tr><tr>
+            <td><span class="fn-name">_removeResurrectedKeepRecords</span></td>
+            <td style="color:var(--text2);font-size:11px">declaration</td>
+            <td class="line-num">:253</td>
+          </tr><tr>
+            <td><span class="fn-name">t</span></td>
+            <td style="color:var(--text2);font-size:11px">expression</td>
+            <td class="line-num">:260</td>
+          </tr><tr>
+            <td><span class="fn-name">_guardNoticeBoardAfterPull</span></td>
+            <td style="color:var(--text2);font-size:11px">declaration</td>
+            <td class="line-num">:304</td>
+          </tr><tr>
+            <td><span class="fn-name">bucket</span></td>
+            <td style="color:var(--text2);font-size:11px">expression</td>
+            <td class="line-num">:351</td>
+          </tr><tr>
+            <td><span class="fn-name">_waitAndPatch</span></td>
+            <td style="color:var(--text2);font-size:11px">declaration</td>
+            <td class="line-num">:374</td>
+          </tr><tr>
+            <td><span class="fn-name">attempt</span></td>
+            <td style="color:var(--text2);font-size:11px">declaration</td>
+            <td class="line-num">:376</td>
+          </tr></tbody>
+        </table>
+        
+        
+        <div style="font-size:12px;color:var(--text2);margin-bottom:4px;">window.* Exports</div>
+        <div style="display:flex;gap:6px;flex-wrap:wrap;margin-bottom:12px;">
+          <span class="tag" style="border-color:var(--pink);color:var(--pink)">window.wfIsInRecycleBin :347</span><span class="tag" style="border-color:var(--pink);color:var(--pink)">window.wfFixResurrection :366</span>
+        </div>
+      </div>
+    </div>
+    <div class="file-card">
+      <div class="file-card-header" onclick="document.getElementById('b-js-25').classList.toggle('open')">
+        <div class="file-path">📄 sections/sync-guard.js</div>
+        <div>
+          <span class="tag">JS</span>
+          <span class="tag">20 fn</span>
+          <span class="tag">29.2 KB</span>
+        </div>
+      </div>
+      <div class="file-card-body" id="b-js-25">
+        
+        <table class="fn-table">
+          <thead><tr><th>Function Name</th><th>Type</th><th>Line</th></tr></thead>
+          <tbody><tr>
+            <td><span class="fn-name">_playAlert</span></td>
+            <td style="color:var(--text2);font-size:11px">declaration</td>
+            <td class="line-num">:38</td>
+          </tr><tr>
+            <td><span class="fn-name">_classifyMessage</span></td>
+            <td style="color:var(--text2);font-size:11px">declaration</td>
+            <td class="line-num">:82</td>
+          </tr><tr>
+            <td><span class="fn-name">_buildDetails</span></td>
+            <td style="color:var(--text2);font-size:11px">declaration</td>
+            <td class="line-num">:144</td>
+          </tr><tr>
+            <td><span class="fn-name">_checkSyncApi</span></td>
+            <td style="color:var(--text2);font-size:11px">declaration</td>
+            <td class="line-num">:150</td>
+          </tr><tr>
+            <td><span class="fn-name">_countInvalidDeleteMarkers</span></td>
+            <td style="color:var(--text2);font-size:11px">declaration</td>
+            <td class="line-num">:171</td>
+          </tr><tr>
+            <td><span class="fn-name">sid</span></td>
+            <td style="color:var(--text2);font-size:11px">expression</td>
+            <td class="line-num">:177</td>
+          </tr><tr>
+            <td><span class="fn-name">fid</span></td>
+            <td style="color:var(--text2);font-size:11px">expression</td>
+            <td class="line-num">:180</td>
+          </tr><tr>
+            <td><span class="fn-name">_ensurePanel</span></td>
+            <td style="color:var(--text2);font-size:11px">declaration</td>
+            <td class="line-num">:187</td>
+          </tr><tr>
+            <td><span class="fn-name">_renderPanel</span></td>
+            <td style="color:var(--text2);font-size:11px">declaration</td>
+            <td class="line-num">:197</td>
+          </tr><tr>
+            <td><span class="fn-name">runGuard</span></td>
+            <td style="color:var(--text2);font-size:11px">declaration</td>
+            <td class="line-num">:224</td>
+          </tr><tr>
+            <td><span class="fn-name">totalBal</span></td>
+            <td style="color:var(--text2);font-size:11px">expression</td>
+            <td class="line-num">:373</td>
+          </tr><tr>
+            <td><span class="fn-name">_injectDot</span></td>
+            <td style="color:var(--text2);font-size:11px">declaration</td>
+            <td class="line-num">:479</td>
+          </tr><tr>
+            <td><span class="fn-name">_updateDot</span></td>
+            <td style="color:var(--text2);font-size:11px">declaration</td>
+            <td class="line-num">:527</td>
+          </tr><tr>
+            <td><span class="fn-name">_showToast</span></td>
+            <td style="color:var(--text2);font-size:11px">declaration</td>
+            <td class="line-num">:543</td>
+          </tr><tr>
+            <td><span class="fn-name">_autoFix</span></td>
+            <td style="color:var(--text2);font-size:11px">declaration</td>
+            <td class="line-num">:552</td>
+          </tr><tr>
+            <td><span class="fn-name">_hookAfter</span></td>
+            <td style="color:var(--text2);font-size:11px">declaration</td>
+            <td class="line-num">:570</td>
+          </tr><tr>
+            <td><span class="fn-name">wrapped</span></td>
+            <td style="color:var(--text2);font-size:11px">expression</td>
+            <td class="line-num">:577</td>
+          </tr><tr>
+            <td><span class="fn-name">_installHooks</span></td>
+            <td style="color:var(--text2);font-size:11px">declaration</td>
+            <td class="line-num">:588</td>
+          </tr><tr>
+            <td><span class="fn-name">_startup</span></td>
+            <td style="color:var(--text2);font-size:11px">declaration</td>
+            <td class="line-num">:634</td>
+          </tr></tbody>
+        </table>
+        
+        
+        <div style="font-size:12px;color:var(--text2);margin-bottom:4px;">window.* Exports</div>
+        <div style="display:flex;gap:6px;flex-wrap:wrap;margin-bottom:12px;">
+          <span class="tag" style="border-color:var(--pink);color:var(--pink)">window.openSyncGuardPanel :625</span>
+        </div>
+      </div>
+    </div>
+    <div class="file-card">
+      <div class="file-card-header" onclick="document.getElementById('b-js-26').classList.toggle('open')">
+        <div class="file-path">📄 service-worker.js</div>
+        <div>
+          <span class="tag">JS</span>
+          <span class="tag">0 fn</span>
+          <span class="tag">4.3 KB</span>
+        </div>
+      </div>
+      <div class="file-card-body" id="b-js-26">
+        
+        
+        
+      </div>
+    </div>
+    <div class="file-card">
+      <div class="file-card-header" onclick="document.getElementById('b-js-27').classList.toggle('open')">
+        <div class="file-path">📄 supabase-config.js</div>
+        <div>
+          <span class="tag">JS</span>
+          <span class="tag">1 fn</span>
+          <span class="tag">5.4 KB</span>
+        </div>
+      </div>
+      <div class="file-card-body" id="b-js-27">
+        
+        
+        
+        <div style="font-size:12px;color:var(--text2);margin-bottom:4px;">window.* Exports</div>
+        <div style="display:flex;gap:6px;flex-wrap:wrap;margin-bottom:12px;">
+          <span class="tag" style="border-color:var(--pink);color:var(--pink)">window.getWingsSupabaseClient :101</span>
+        </div>
+      </div>
+    </div>
+    <div class="file-card">
+      <div class="file-card-header" onclick="document.getElementById('b-js-28').classList.toggle('open')">
+        <div class="file-path">📄 supabase-sync-SMART-V39.js</div>
+        <div>
+          <span class="tag">JS</span>
+          <span class="tag">68 fn</span>
+          <span class="tag">105.6 KB</span>
+        </div>
+      </div>
+      <div class="file-card-body" id="b-js-28">
+        
+        <table class="fn-table">
+          <thead><tr><th>Function Name</th><th>Type</th><th>Line</th></tr></thead>
+          <tbody><tr>
+            <td><span class="fn-name">v</span></td>
+            <td style="color:var(--text2);font-size:11px">expression</td>
+            <td class="line-num">:121</td>
+          </tr><tr>
+            <td><span class="fn-name">_log</span></td>
+            <td style="color:var(--text2);font-size:11px">declaration</td>
+            <td class="line-num">:247</td>
+          </tr><tr>
+            <td><span class="fn-name">_logErr</span></td>
+            <td style="color:var(--text2);font-size:11px">declaration</td>
+            <td class="line-num">:256</td>
+          </tr><tr>
+            <td><span class="fn-name">_getOrCreateDeviceId</span></td>
+            <td style="color:var(--text2);font-size:11px">declaration</td>
+            <td class="line-num">:261</td>
+          </tr><tr>
+            <td><span class="fn-name">_showUserMessage</span></td>
+            <td style="color:var(--text2);font-size:11px">declaration</td>
+            <td class="line-num">:270</td>
+          </tr><tr>
+            <td><span class="fn-name">_ensureDeletedItemsObject</span></td>
+            <td style="color:var(--text2);font-size:11px">declaration</td>
+            <td class="line-num">:286</td>
+          </tr><tr>
+            <td><span class="fn-name">_init</span></td>
+            <td style="color:var(--text2);font-size:11px">declaration</td>
+            <td class="line-num">:293</td>
+          </tr><tr>
+            <td><span class="fn-name">_checkPartialTables</span></td>
+            <td style="color:var(--text2);font-size:11px">declaration</td>
+            <td class="line-num">:308</td>
+          </tr><tr>
+            <td><span class="fn-name">_saveLocal</span></td>
+            <td style="color:var(--text2);font-size:11px">declaration</td>
+            <td class="line-num">:317</td>
+          </tr><tr>
+            <td><span class="fn-name">finCount</span></td>
+            <td style="color:var(--text2);font-size:11px">expression</td>
+            <td class="line-num">:322</td>
+          </tr><tr>
+            <td><span class="fn-name">stuCount</span></td>
+            <td style="color:var(--text2);font-size:11px">expression</td>
+            <td class="line-num">:323</td>
+          </tr><tr>
+            <td><span class="fn-name">_mergeRecords</span></td>
+            <td style="color:var(--text2);font-size:11px">declaration</td>
+            <td class="line-num">:350</td>
+          </tr><tr>
+            <td><span class="fn-name">pullFromCloud</span></td>
+            <td style="color:var(--text2);font-size:11px">declaration</td>
+            <td class="line-num">:397</td>
+          </tr><tr>
+            <td><span class="fn-name">_getDelKeys</span></td>
+            <td style="color:var(--text2);font-size:11px">expression</td>
+            <td class="line-num">:451</td>
+          </tr><tr>
+            <td><span class="fn-name">_getNewest</span></td>
+            <td style="color:var(--text2);font-size:11px">expression</td>
+            <td class="line-num">:575</td>
+          </tr><tr>
+            <td><span class="fn-name">_bankT</span></td>
+            <td style="color:var(--text2);font-size:11px">expression</td>
+            <td class="line-num">:729</td>
+          </tr><tr>
+            <td><span class="fn-name">_mobT</span></td>
+            <td style="color:var(--text2);font-size:11px">expression</td>
+            <td class="line-num">:730</td>
+          </tr><tr>
+            <td><span class="fn-name">_hashRecord</span></td>
+            <td style="color:var(--text2);font-size:11px">declaration</td>
+            <td class="line-num">:773</td>
+          </tr><tr>
+            <td><span class="fn-name">_loadSnapshot</span></td>
+            <td style="color:var(--text2);font-size:11px">declaration</td>
+            <td class="line-num">:780</td>
+          </tr><tr>
+            <td><span class="fn-name">_saveSnapshot</span></td>
+            <td style="color:var(--text2);font-size:11px">declaration</td>
+            <td class="line-num">:785</td>
+          </tr><tr>
+            <td><span class="fn-name">_rebuildBalancesSafe</span></td>
+            <td style="color:var(--text2);font-size:11px">declaration</td>
+            <td class="line-num">:806</td>
+          </tr><tr>
+            <td><span class="fn-name">start</span></td>
+            <td style="color:var(--text2);font-size:11px">expression</td>
+            <td class="line-num">:815</td>
+          </tr><tr>
+            <td><span class="fn-name">acc</span></td>
+            <td style="color:var(--text2);font-size:11px">expression</td>
+            <td class="line-num">:841</td>
+          </tr><tr>
+            <td><span class="fn-name">_getDeletedRecordId</span></td>
+            <td style="color:var(--text2);font-size:11px">declaration</td>
+            <td class="line-num">:858</td>
+          </tr><tr>
+            <td><span class="fn-name">_getDelta</span></td>
+            <td style="color:var(--text2);font-size:11px">declaration</td>
+            <td class="line-num">:885</td>
+          </tr><tr>
+            <td><span class="fn-name">_rebuildSnapshots</span></td>
+            <td style="color:var(--text2);font-size:11px">declaration</td>
+            <td class="line-num">:901</td>
+          </tr><tr>
+            <td><span class="fn-name">pushToCloud</span></td>
+            <td style="color:var(--text2);font-size:11px">declaration</td>
+            <td class="line-num">:920</td>
+          </tr><tr>
+            <td><span class="fn-name">finCount</span></td>
+            <td style="color:var(--text2);font-size:11px">expression</td>
+            <td class="line-num">:976</td>
+          </tr><tr>
+            <td><span class="fn-name">doStuPush</span></td>
+            <td style="color:var(--text2);font-size:11px">expression</td>
+            <td class="line-num">:1064</td>
+          </tr><tr>
+            <td><span class="fn-name">doFinPush</span></td>
+            <td style="color:var(--text2);font-size:11px">expression</td>
+            <td class="line-num">:1123</td>
+          </tr><tr>
+            <td><span class="fn-name">doEmpPush</span></td>
+            <td style="color:var(--text2);font-size:11px">expression</td>
+            <td class="line-num">:1183</td>
+          </tr><tr>
+            <td><span class="fn-name">_schedulePush</span></td>
+            <td style="color:var(--text2);font-size:11px">declaration</td>
+            <td class="line-num">:1304</td>
+          </tr><tr>
+            <td><span class="fn-name">_patchSaveToStorage</span></td>
+            <td style="color:var(--text2);font-size:11px">declaration</td>
+            <td class="line-num">:1309</td>
+          </tr><tr>
+            <td><span class="fn-name">_versionCheck</span></td>
+            <td style="color:var(--text2);font-size:11px">declaration</td>
+            <td class="line-num">:1338</td>
+          </tr><tr>
+            <td><span class="fn-name">_installMonitor</span></td>
+            <td style="color:var(--text2);font-size:11px">declaration</td>
+            <td class="line-num">:1366</td>
+          </tr><tr>
+            <td><span class="fn-name">fc</span></td>
+            <td style="color:var(--text2);font-size:11px">expression</td>
+            <td class="line-num">:1374</td>
+          </tr><tr>
+            <td><span class="fn-name">_startupIntegrityCheck</span></td>
+            <td style="color:var(--text2);font-size:11px">declaration</td>
+            <td class="line-num">:1408</td>
+          </tr><tr>
+            <td><span class="fn-name">finCount</span></td>
+            <td style="color:var(--text2);font-size:11px">expression</td>
+            <td class="line-num">:1416</td>
+          </tr><tr>
+            <td><span class="fn-name">stuCount</span></td>
+            <td style="color:var(--text2);font-size:11px">expression</td>
+            <td class="line-num">:1417</td>
+          </tr><tr>
+            <td><span class="fn-name">_setupNetwork</span></td>
+            <td style="color:var(--text2);font-size:11px">declaration</td>
+            <td class="line-num">:1544</td>
+          </tr><tr>
+            <td><span class="fn-name">_setupVisibility</span></td>
+            <td style="color:var(--text2);font-size:11px">declaration</td>
+            <td class="line-num">:1554</td>
+          </tr><tr>
+            <td><span class="fn-name">_setupBeforeUnload</span></td>
+            <td style="color:var(--text2);font-size:11px">declaration</td>
+            <td class="line-num">:1561</td>
+          </tr><tr>
+            <td><span class="fn-name">stuRows</span></td>
+            <td style="color:var(--text2);font-size:11px">expression</td>
+            <td class="line-num">:1598</td>
+          </tr><tr>
+            <td><span class="fn-name">stuDel</span></td>
+            <td style="color:var(--text2);font-size:11px">expression</td>
+            <td class="line-num">:1603</td>
+          </tr><tr>
+            <td><span class="fn-name">finRows</span></td>
+            <td style="color:var(--text2);font-size:11px">expression</td>
+            <td class="line-num">:1613</td>
+          </tr><tr>
+            <td><span class="fn-name">finDel</span></td>
+            <td style="color:var(--text2);font-size:11px">expression</td>
+            <td class="line-num">:1617</td>
+          </tr><tr>
+            <td><span class="fn-name">empRows</span></td>
+            <td style="color:var(--text2);font-size:11px">expression</td>
+            <td class="line-num">:1627</td>
+          </tr><tr>
+            <td><span class="fn-name">empDel</span></td>
+            <td style="color:var(--text2);font-size:11px">expression</td>
+            <td class="line-num">:1630</td>
+          </tr><tr>
+            <td><span class="fn-name">_showStatus</span></td>
+            <td style="color:var(--text2);font-size:11px">declaration</td>
+            <td class="line-num">:1643</td>
+          </tr><tr>
+            <td><span class="fn-name">_setupRealtime</span></td>
+            <td style="color:var(--text2);font-size:11px">declaration</td>
+            <td class="line-num">:1646</td>
+          </tr><tr>
+            <td><span class="fn-name">_installSnapshotGuard</span></td>
+            <td style="color:var(--text2);font-size:11px">declaration</td>
+            <td class="line-num">:1664</td>
+          </tr><tr>
+            <td><span class="fn-name">stuLen</span></td>
+            <td style="color:var(--text2);font-size:11px">expression</td>
+            <td class="line-num">:1682</td>
+          </tr><tr>
+            <td><span class="fn-name">finLen</span></td>
+            <td style="color:var(--text2);font-size:11px">expression</td>
+            <td class="line-num">:1683</td>
+          </tr><tr>
+            <td><span class="fn-name">forcePushOnly</span></td>
+            <td style="color:var(--text2);font-size:11px">declaration</td>
+            <td class="line-num">:1695</td>
+          </tr><tr>
+            <td><span class="fn-name">stuLen</span></td>
+            <td style="color:var(--text2);font-size:11px">expression</td>
+            <td class="line-num">:1698</td>
+          </tr><tr>
+            <td><span class="fn-name">finLen</span></td>
+            <td style="color:var(--text2);font-size:11px">expression</td>
+            <td class="line-num">:1699</td>
+          </tr><tr>
+            <td><span class="fn-name">empLen</span></td>
+            <td style="color:var(--text2);font-size:11px">expression</td>
+            <td class="line-num">:1700</td>
+          </tr><tr>
+            <td><span class="fn-name">_smartSync</span></td>
+            <td style="color:var(--text2);font-size:11px">declaration</td>
+            <td class="line-num">:1723</td>
+          </tr><tr>
+            <td><span class="fn-name">localStu</span></td>
+            <td style="color:var(--text2);font-size:11px">expression</td>
+            <td class="line-num">:1738</td>
+          </tr><tr>
+            <td><span class="fn-name">localFin</span></td>
+            <td style="color:var(--text2);font-size:11px">expression</td>
+            <td class="line-num">:1739</td>
+          </tr><tr>
+            <td><span class="fn-name">localEmp</span></td>
+            <td style="color:var(--text2);font-size:11px">expression</td>
+            <td class="line-num">:1740</td>
+          </tr><tr>
+            <td><span class="fn-name">_start</span></td>
+            <td style="color:var(--text2);font-size:11px">declaration</td>
+            <td class="line-num">:1765</td>
+          </tr></tbody>
+        </table>
+        
+        
+        <div style="font-size:12px;color:var(--text2);margin-bottom:4px;">window.* Exports</div>
+        <div style="display:flex;gap:6px;flex-wrap:wrap;margin-bottom:12px;">
+          <span class="tag" style="border-color:var(--pink);color:var(--pink)">window.markDirty :1299</span><span class="tag" style="border-color:var(--pink);color:var(--pink)">window.saveToStorage :1327</span><span class="tag" style="border-color:var(--pink);color:var(--pink)">window.takeSnapshot :1669</span><span class="tag" style="border-color:var(--pink);color:var(--pink)">window.saveToCloud :2054</span><span class="tag" style="border-color:var(--pink);color:var(--pink)">window.loadFromCloud :2055</span><span class="tag" style="border-color:var(--pink);color:var(--pink)">window.scheduleSyncPush :2058</span>
+        </div>
+      </div>
+    </div>
+    <div class="file-card">
+      <div class="file-card-header" onclick="document.getElementById('b-js-29').classList.toggle('open')">
+        <div class="file-path">📄 sync-diagnostic.js</div>
+        <div>
+          <span class="tag">JS</span>
+          <span class="tag">15 fn</span>
+          <span class="tag">14.8 KB</span>
+        </div>
+      </div>
+      <div class="file-card-body" id="b-js-29">
+        
+        <table class="fn-table">
+          <thead><tr><th>Function Name</th><th>Type</th><th>Line</th></tr></thead>
+          <tbody><tr>
+            <td><span class="fn-name">diagCountPartialTable</span></td>
+            <td style="color:var(--text2);font-size:11px">declaration</td>
+            <td class="line-num">:10</td>
+          </tr><tr>
+            <td><span class="fn-name">diagGetCloudCash</span></td>
+            <td style="color:var(--text2);font-size:11px">declaration</td>
+            <td class="line-num">:33</td>
+          </tr><tr>
+            <td><span class="fn-name">diagFmt</span></td>
+            <td style="color:var(--text2);font-size:11px">declaration</td>
+            <td class="line-num">:49</td>
+          </tr><tr>
+            <td><span class="fn-name">diagTime</span></td>
+            <td style="color:var(--text2);font-size:11px">declaration</td>
+            <td class="line-num">:50</td>
+          </tr><tr>
+            <td><span class="fn-name">diagLog</span></td>
+            <td style="color:var(--text2);font-size:11px">declaration</td>
+            <td class="line-num">:56</td>
+          </tr><tr>
+            <td><span class="fn-name">diagCheckRow</span></td>
+            <td style="color:var(--text2);font-size:11px">declaration</td>
+            <td class="line-num">:65</td>
+          </tr><tr>
+            <td><span class="fn-name">diagAuditRow</span></td>
+            <td style="color:var(--text2);font-size:11px">declaration</td>
+            <td class="line-num">:72</td>
+          </tr><tr>
+            <td><span class="fn-name">runDiagnosticInline</span></td>
+            <td style="color:var(--text2);font-size:11px">declaration</td>
+            <td class="line-num">:79</td>
+          </tr><tr>
+            <td><span class="fn-name">lS</span></td>
+            <td style="color:var(--text2);font-size:11px">expression</td>
+            <td class="line-num">:105</td>
+          </tr><tr>
+            <td><span class="fn-name">lF</span></td>
+            <td style="color:var(--text2);font-size:11px">expression</td>
+            <td class="line-num">:106</td>
+          </tr><tr>
+            <td><span class="fn-name">isOffline</span></td>
+            <td style="color:var(--text2);font-size:11px">expression</td>
+            <td class="line-num">:155</td>
+          </tr><tr>
+            <td><span class="fn-name">isInc</span></td>
+            <td style="color:var(--text2);font-size:11px">expression</td>
+            <td class="line-num">:210</td>
+          </tr><tr>
+            <td><span class="fn-name">isExp</span></td>
+            <td style="color:var(--text2);font-size:11px">expression</td>
+            <td class="line-num">:211</td>
+          </tr><tr>
+            <td><span class="fn-name">isLoanIn</span></td>
+            <td style="color:var(--text2);font-size:11px">expression</td>
+            <td class="line-num">:212</td>
+          </tr><tr>
+            <td><span class="fn-name">isLoanOut</span></td>
+            <td style="color:var(--text2);font-size:11px">expression</td>
+            <td class="line-num">:213</td>
+          </tr></tbody>
+        </table>
+        
+        
+      </div>
+    </div>
+
+<h2 style="margin:20px 0;color:var(--accent);font-size:16px;">HTML Files matches</h2>
+
+    <div class="file-card">
+      <div class="file-card-header" onclick="document.getElementById('b-h-0').classList.toggle('open')">
+        <div class="file-path">🌐 backup-viewer.html</div>
+        <span class="tag">HTML</span>
+      </div>
+      <div class="file-card-body" id="b-h-0">
+        
+        <div style="font-size:12px;color:var(--text2);margin-bottom:4px;">onclick events</div>
+        <div style="display:flex;gap:6px;flex-wrap:wrap;">
+          <span class="tag" style="border-color:var(--purple);color:var(--purple)">document.getElementById()</span><span class="tag" style="border-color:var(--purple);color:var(--purple)">showTab()</span>
+        </div>
+      </div>
+    </div>
+    <div class="file-card">
+      <div class="file-card-header" onclick="document.getElementById('b-h-1').classList.toggle('open')">
+        <div class="file-path">🌐 Data-Monitor-Master.html</div>
+        <span class="tag">HTML</span>
+      </div>
+      <div class="file-card-body" id="b-h-1">
+        
+        <div style="font-size:12px;color:var(--text2);margin-bottom:4px;">onclick events</div>
+        <div style="display:flex;gap:6px;flex-wrap:wrap;">
+          <span class="tag" style="border-color:var(--purple);color:var(--purple)">forcePullMissing()</span><span class="tag" style="border-color:var(--purple);color:var(--purple)">cleanCloud()</span>
+        </div>
+      </div>
+    </div>
+    <div class="file-card">
+      <div class="file-card-header" onclick="document.getElementById('b-h-2').classList.toggle('open')">
+        <div class="file-path">🌐 index.html</div>
+        <span class="tag">HTML</span>
+      </div>
+      <div class="file-card-body" id="b-h-2">
+        
+        <div style="font-size:12px;color:var(--text2);margin-bottom:4px;">onclick events</div>
+        <div style="display:flex;gap:6px;flex-wrap:wrap;">
+          <span class="tag" style="border-color:var(--purple);color:var(--purple)">wingsSync.fullSync()</span><span class="tag" style="border-color:var(--purple);color:var(--purple)">wingsSync.pullNow()</span><span class="tag" style="border-color:var(--purple);color:var(--purple)">wingsSync.pushNow()</span><span class="tag" style="border-color:var(--purple);color:var(--purple)">downloadLedgerExcel()</span>
+        </div>
+      </div>
+    </div>
+    <div class="file-card">
+      <div class="file-card-header" onclick="document.getElementById('b-h-3').classList.toggle('open')">
+        <div class="file-path">🌐 sections/certificates.html</div>
+        <span class="tag">HTML</span>
+      </div>
+      <div class="file-card-body" id="b-h-3">
+        
+        <div style="font-size:12px;color:var(--text2);margin-bottom:4px;">onclick events</div>
+        <div style="display:flex;gap:6px;flex-wrap:wrap;">
+          <span class="tag" style="border-color:var(--purple);color:var(--purple)">downloadSingleCertificate()</span>
+        </div>
+      </div>
+    </div>
+    <div class="file-card">
+      <div class="file-card-header" onclick="document.getElementById('b-h-4').classList.toggle('open')">
+        <div class="file-path">🌐 sections/ledger.html</div>
+        <span class="tag">HTML</span>
+      </div>
+      <div class="file-card-body" id="b-h-4">
+        
+        <div style="font-size:12px;color:var(--text2);margin-bottom:4px;">onclick events</div>
+        <div style="display:flex;gap:6px;flex-wrap:wrap;">
+          <span class="tag" style="border-color:var(--purple);color:var(--purple)">downloadLedgerExcel()</span>
+        </div>
+      </div>
+    </div>
+    <div class="file-card">
+      <div class="file-card-header" onclick="document.getElementById('b-h-5').classList.toggle('open')">
+        <div class="file-path">🌐 sections/modals-other.html</div>
+        <span class="tag">HTML</span>
+      </div>
+      <div class="file-card-body" id="b-h-5">
+        
+        <div style="font-size:12px;color:var(--text2);margin-bottom:4px;">onclick events</div>
+        <div style="display:flex;gap:6px;flex-wrap:wrap;">
+          <span class="tag" style="border-color:var(--purple);color:var(--purple)">downloadAccountDetailsExcel()</span><span class="tag" style="border-color:var(--purple);color:var(--purple)">downloadMonthlyAttendanceCsv()</span>
+        </div>
+      </div>
+    </div>
+    <div class="file-card">
+      <div class="file-card-header" onclick="document.getElementById('b-h-6').classList.toggle('open')">
+        <div class="file-path">🌐 sections/modals.html</div>
+        <span class="tag">HTML</span>
+      </div>
+      <div class="file-card-body" id="b-h-6">
+        
+        <div style="font-size:12px;color:var(--text2);margin-bottom:4px;">onclick events</div>
+        <div style="display:flex;gap:6px;flex-wrap:wrap;">
+          <span class="tag" style="border-color:var(--purple);color:var(--purple)">takeSnapshot()</span><span class="tag" style="border-color:var(--purple);color:var(--purple)">manualCloudSync()</span><span class="tag" style="border-color:var(--purple);color:var(--purple)">runDiagnosticInline()</span><span class="tag" style="border-color:var(--purple);color:var(--purple)">downloadAccountDetailsExcel()</span><span class="tag" style="border-color:var(--purple);color:var(--purple)">downloadMonthlyAttendanceCsv()</span>
+        </div>
+      </div>
+    </div>
+    <div class="file-card">
+      <div class="file-card-header" onclick="document.getElementById('b-h-7').classList.toggle('open')">
+        <div class="file-path">🌐 sections/settings-modal.html</div>
+        <span class="tag">HTML</span>
+      </div>
+      <div class="file-card-body" id="b-h-7">
+        
+        <div style="font-size:12px;color:var(--text2);margin-bottom:4px;">onclick events</div>
+        <div style="display:flex;gap:6px;flex-wrap:wrap;">
+          <span class="tag" style="border-color:var(--purple);color:var(--purple)">takeSnapshot()</span><span class="tag" style="border-color:var(--purple);color:var(--purple)">manualCloudSync()</span><span class="tag" style="border-color:var(--purple);color:var(--purple)">runDiagnosticInline()</span><span class="tag" style="border-color:var(--purple);color:var(--purple)">window._monitorShowSnapshot()</span>
+        </div>
+      </div>
+    </div>
+    <div class="file-card">
+      <div class="file-card-header" onclick="document.getElementById('b-h-8').classList.toggle('open')">
+        <div class="file-path">🌐 SYNC_MAP.html</div>
+        <span class="tag">HTML</span>
+      </div>
+      <div class="file-card-body" id="b-h-8">
+        
+        <div style="font-size:12px;color:var(--text2);margin-bottom:4px;">onclick events</div>
+        <div style="display:flex;gap:6px;flex-wrap:wrap;">
+          <span class="tag" style="border-color:var(--purple);color:var(--purple)">document.querySelectorAll()</span><span class="tag" style="border-color:var(--purple);color:var(--purple)">document.getElementById()</span>
+        </div>
+      </div>
+    </div>
+  </div>
+  
+  <div class="content" id="view-search" style="display:none;"></div>
+</div>
+
+<script>
+const MASTER = [{"file":"app.js","name":"toggleAutoSync","line":276,"type":"declaration","async":false,"isSync":true,"isPayment":false},{"file":"app.js","name":"saveToCloud","line":1001,"type":"window.export","isSync":true,"isPayment":false},{"file":"app.js","name":"loadFromCloud","line":1003,"type":"window.export","isSync":true,"isPayment":false},{"file":"app.js","name":"manualCloudSync","line":1005,"type":"window.export","isSync":true,"isPayment":false},{"file":"app.js","name":"saveToCloud","line":1015,"type":"window.export","isSync":true,"isPayment":false},{"file":"app.js","name":"loadFromCloud","line":1017,"type":"window.export","isSync":true,"isPayment":false},{"file":"app.js","name":"manualCloudSync","line":1019,"type":"window.export","isSync":true,"isPayment":false},{"file":"auto-heal.js","name":"healSyncConflictWatchdog","line":393,"type":"declaration","async":false,"isSync":true,"isPayment":false},{"file":"auto-test.js","name":"testSync","line":394,"type":"declaration","async":true,"isSync":true,"isPayment":false},{"file":"auto-test.js","name":"testV34Sync","line":476,"type":"declaration","async":true,"isSync":true,"isPayment":false},{"file":"auto-test.js","name":"_waitForSyncThenStart","line":1320,"type":"declaration","async":false,"isSync":true,"isPayment":false},{"file":"batch_report.js","name":"downloadCSV","line":329,"type":"declaration","async":false,"isSync":true,"isPayment":false},{"file":"deploy-change-tracker.js","name":"captureSnapshot","line":131,"type":"declaration","async":false,"isSync":true,"isPayment":false},{"file":"deploy-change-tracker.js","name":"compareSnapshots","line":199,"type":"declaration","async":false,"isSync":true,"isPayment":false},{"file":"deploy-change-tracker.js","name":"updateSnapshot","line":556,"type":"declaration","async":false,"isSync":true,"isPayment":false},{"file":"EMERGENCY_RESTORE.js","name":"emergencyRestoreManual","line":7,"type":"window.export","isSync":true,"isPayment":false},{"file":"finance-engine-fixes.js","name":"feSyncStudentPaid","line":32,"type":"window.export","isSync":true,"isPayment":false},{"file":"force-cloud-push.js","name":"studentsClean","line":40,"type":"expression","async":false,"isSync":false,"isPayment":false},{"file":"force-cloud-push.js","name":"newVer","line":85,"type":"expression","async":false,"isSync":false,"isPayment":false},{"file":"force-cloud-push.js","name":"newVer","line":106,"type":"expression","async":false,"isSync":false,"isPayment":false},{"file":"force-cloud-push.js","name":"stableId","line":117,"type":"declaration","async":false,"isSync":false,"isPayment":false},{"file":"force-cloud-push.js","name":"studentRows","line":137,"type":"expression","async":false,"isSync":false,"isPayment":false},{"file":"force-cloud-push.js","name":"financeRows","line":178,"type":"expression","async":false,"isSync":false,"isPayment":true},{"file":"force-cloud-push.js","name":"empRows","line":211,"type":"expression","async":false,"isSync":false,"isPayment":false},{"file":"sections/accounts-management.js","name":"syncPaymentMethodsWithAccounts","line":728,"type":"declaration","async":false,"isSync":true,"isPayment":true},{"file":"sections/activity-log.js","name":"_guardActivityLogAfterPull","line":235,"type":"declaration","async":false,"isSync":true,"isPayment":false},{"file":"sections/activity-log.js","name":"restoreDeletedItem","line":378,"type":"declaration","async":false,"isSync":true,"isPayment":false},{"file":"sections/auth.js","name":"initSupabase","line":31,"type":"declaration","async":false,"isSync":true,"isPayment":false},{"file":"sections/auth.js","name":"trySupabaseLogin","line":194,"type":"declaration","async":true,"isSync":true,"isPayment":false},{"file":"sections/card-certificate.js","name":"downloadSingleCertificate","line":381,"type":"declaration","async":false,"isSync":true,"isPayment":false},{"file":"sections/dashboard-stats.js","name":"checkDailyBackup","line":312,"type":"declaration","async":false,"isSync":true,"isPayment":false},{"file":"sections/delete-sync-fix-V2.js","name":"_cfg","line":83,"type":"declaration","async":false,"isSync":false,"isPayment":false},{"file":"sections/delete-sync-fix-V2.js","name":"_headers","line":85,"type":"declaration","async":false,"isSync":false,"isPayment":false},{"file":"sections/delete-sync-fix-V2.js","name":"_aid","line":95,"type":"declaration","async":false,"isSync":false,"isPayment":false},{"file":"sections/delete-sync-fix-V2.js","name":"_extractId","line":103,"type":"declaration","async":false,"isSync":false,"isPayment":false},{"file":"sections/delete-sync-fix-V2.js","name":"t","line":107,"type":"expression","async":false,"isSync":false,"isPayment":false},{"file":"sections/delete-sync-fix-V2.js","name":"_getTable","line":119,"type":"declaration","async":false,"isSync":false,"isPayment":false},{"file":"sections/delete-sync-fix-V2.js","name":"t","line":121,"type":"expression","async":false,"isSync":false,"isPayment":false},{"file":"sections/delete-sync-fix-V2.js","name":"_getPrefix","line":128,"type":"declaration","async":false,"isSync":false,"isPayment":false},{"file":"sections/delete-sync-fix-V2.js","name":"t","line":129,"type":"expression","async":false,"isSync":false,"isPayment":false},{"file":"sections/delete-sync-fix-V2.js","name":"_pushDeleteMarkerDirect","line":143,"type":"declaration","async":true,"isSync":true,"isPayment":false},{"file":"sections/delete-sync-fix-V2.js","name":"_enqueueRetry","line":184,"type":"declaration","async":false,"isSync":false,"isPayment":false},{"file":"sections/delete-sync-fix-V2.js","name":"_processRetryQueue","line":191,"type":"declaration","async":true,"isSync":false,"isPayment":false},{"file":"sections/delete-sync-fix-V2.js","name":"_patchMoveToTrash","line":217,"type":"declaration","async":false,"isSync":false,"isPayment":false},{"file":"sections/delete-sync-fix-V2.js","name":"_applyCloudDeleteMarkers","line":256,"type":"declaration","async":true,"isSync":true,"isPayment":false},{"file":"sections/delete-sync-fix-V2.js","name":"extractRawId","line":282,"type":"declaration","async":false,"isSync":false,"isPayment":false},{"file":"sections/delete-sync-fix-V2.js","name":"_patchWingsSync","line":408,"type":"declaration","async":false,"isSync":true,"isPayment":false},{"file":"sections/delete-sync-fix-V2.js","name":"_startup","line":484,"type":"declaration","async":true,"isSync":false,"isPayment":false},{"file":"sections/delete-sync-fix-V2.js","name":"moveToTrash","line":221,"type":"window.export","isSync":false,"isPayment":false},{"file":"sections/delete-sync-fix-V2.js","name":"wfForceDeleteSync","line":454,"type":"window.export","isSync":true,"isPayment":false},{"file":"sections/delete-sync-fix-V2.js","name":"wfPushDeleteMarker","line":469,"type":"window.export","isSync":true,"isPayment":false},{"file":"sections/finance-crud.js","name":"restoreDeletedItem","line":1155,"type":"window.export","isSync":true,"isPayment":false},{"file":"sections/finance-engine.js","name":"feRestoreEntry","line":314,"type":"window.export","isSync":true,"isPayment":false},{"file":"sections/finance-engine.js","name":"feSyncStudentPaid","line":342,"type":"window.export","isSync":true,"isPayment":false},{"file":"sections/finance-guard.js","name":"restoreDeletedItem","line":376,"type":"window.export","isSync":true,"isPayment":false},{"file":"sections/finance-helpers.js","name":"_forceCloudDeleteOrphan","line":410,"type":"declaration","async":false,"isSync":true,"isPayment":false},{"file":"sections/inline-scripts.js","name":"runDiagnosticInline","line":44,"type":"declaration","async":true,"isSync":true,"isPayment":false},{"file":"sections/inline-scripts.js","name":"_wfRestore","line":648,"type":"window.export","isSync":true,"isPayment":false},{"file":"sections/inline-scripts.js","name":"restoreDeletedItem","line":715,"type":"window.export","isSync":true,"isPayment":false},{"file":"sections/inline-scripts.js","name":"syncPaymentMethodsWithAccounts","line":1112,"type":"window.export","isSync":true,"isPayment":true},{"file":"sections/photo-manager.js","name":"uploadStudentPhoto","line":51,"type":"declaration","async":true,"isSync":true,"isPayment":false},{"file":"sections/recycle-bin-fix.js","name":"restoreDeletedItem","line":158,"type":"window.export","isSync":true,"isPayment":false},{"file":"sections/snapshot-system.js","name":"takeSnapshot","line":15,"type":"declaration","async":false,"isSync":true,"isPayment":false},{"file":"sections/snapshot-system.js","name":"_finCount","line":34,"type":"expression","async":false,"isSync":false,"isPayment":false},{"file":"sections/snapshot-system.js","name":"_studCount","line":35,"type":"expression","async":false,"isSync":false,"isPayment":false},{"file":"sections/snapshot-system.js","name":"getSnapshots","line":85,"type":"declaration","async":false,"isSync":true,"isPayment":false},{"file":"sections/snapshot-system.js","name":"getMonitorHistory","line":91,"type":"declaration","async":false,"isSync":false,"isPayment":false},{"file":"sections/snapshot-system.js","name":"_monitorSafeNum","line":98,"type":"declaration","async":false,"isSync":false,"isPayment":false},{"file":"sections/snapshot-system.js","name":"_monitorBuildBalanceSnapshot","line":103,"type":"declaration","async":false,"isSync":true,"isPayment":true},{"file":"sections/snapshot-system.js","name":"banks","line":106,"type":"expression","async":false,"isSync":false,"isPayment":false},{"file":"sections/snapshot-system.js","name":"mobiles","line":109,"type":"expression","async":false,"isSync":false,"isPayment":false},{"file":"sections/snapshot-system.js","name":"_monitorGetLatestChange","line":118,"type":"declaration","async":false,"isSync":false,"isPayment":false},{"file":"sections/snapshot-system.js","name":"finance","line":119,"type":"expression","async":false,"isSync":false,"isPayment":true},{"file":"sections/snapshot-system.js","name":"_monitorChangeKey","line":140,"type":"declaration","async":false,"isSync":false,"isPayment":false},{"file":"sections/snapshot-system.js","name":"_monitorFingerprint","line":152,"type":"declaration","async":false,"isSync":false,"isPayment":false},{"file":"sections/snapshot-system.js","name":"recordMonitorChange","line":166,"type":"declaration","async":false,"isSync":false,"isPayment":false},{"file":"sections/snapshot-system.js","name":"_installMonitorSaveHook","line":231,"type":"declaration","async":false,"isSync":false,"isPayment":false},{"file":"sections/snapshot-system.js","name":"attempt","line":233,"type":"declaration","async":false,"isSync":false,"isPayment":false},{"file":"sections/snapshot-system.js","name":"restoreSnapshot","line":258,"type":"declaration","async":false,"isSync":true,"isPayment":false},{"file":"sections/snapshot-system.js","name":"downloadSnapshot","line":275,"type":"declaration","async":false,"isSync":true,"isPayment":false},{"file":"sections/snapshot-system.js","name":"deleteSnapshot","line":288,"type":"declaration","async":false,"isSync":true,"isPayment":false},{"file":"sections/snapshot-system.js","name":"renderSnapshotList","line":295,"type":"declaration","async":false,"isSync":true,"isPayment":false},{"file":"sections/snapshot-system.js","name":"saveToStorage","line":241,"type":"window.export","isSync":false,"isPayment":false},{"file":"sections/student-management.js","name":"downloadLedgerExcel","line":353,"type":"declaration","async":false,"isSync":true,"isPayment":true},{"file":"sections/student-management.js","name":"downloadAccountDetailsExcel","line":424,"type":"declaration","async":false,"isSync":true,"isPayment":false},{"file":"sections/student-management.js","name":"syncSearchInputs","line":753,"type":"declaration","async":false,"isSync":true,"isPayment":false},{"file":"sections/supabase-sync-patch.js","name":"_buildBinIdSet","line":56,"type":"declaration","async":false,"isSync":false,"isPayment":false},{"file":"sections/supabase-sync-patch.js","name":"_removeResurrectedItems","line":70,"type":"declaration","async":false,"isSync":false,"isPayment":false},{"file":"sections/supabase-sync-patch.js","name":"examBin","line":152,"type":"expression","async":false,"isSync":false,"isPayment":false},{"file":"sections/supabase-sync-patch.js","name":"visitorBin","line":180,"type":"expression","async":false,"isSync":false,"isPayment":false},{"file":"sections/supabase-sync-patch.js","name":"t","line":181,"type":"expression","async":false,"isSync":false,"isPayment":false},{"file":"sections/supabase-sync-patch.js","name":"_removeResurrectedKeepRecords","line":253,"type":"declaration","async":false,"isSync":false,"isPayment":false},{"file":"sections/supabase-sync-patch.js","name":"t","line":260,"type":"expression","async":false,"isSync":false,"isPayment":false},{"file":"sections/supabase-sync-patch.js","name":"_guardNoticeBoardAfterPull","line":304,"type":"declaration","async":false,"isSync":true,"isPayment":false},{"file":"sections/supabase-sync-patch.js","name":"bucket","line":351,"type":"expression","async":false,"isSync":false,"isPayment":false},{"file":"sections/supabase-sync-patch.js","name":"_waitAndPatch","line":374,"type":"declaration","async":false,"isSync":false,"isPayment":false},{"file":"sections/supabase-sync-patch.js","name":"attempt","line":376,"type":"declaration","async":false,"isSync":false,"isPayment":false},{"file":"sections/supabase-sync-patch.js","name":"wfIsInRecycleBin","line":347,"type":"window.export","isSync":false,"isPayment":false},{"file":"sections/supabase-sync-patch.js","name":"wfFixResurrection","line":366,"type":"window.export","isSync":false,"isPayment":false},{"file":"sections/sync-guard.js","name":"_playAlert","line":38,"type":"declaration","async":false,"isSync":false,"isPayment":false},{"file":"sections/sync-guard.js","name":"_classifyMessage","line":82,"type":"declaration","async":false,"isSync":false,"isPayment":false},{"file":"sections/sync-guard.js","name":"_buildDetails","line":144,"type":"declaration","async":false,"isSync":false,"isPayment":false},{"file":"sections/sync-guard.js","name":"_checkSyncApi","line":150,"type":"declaration","async":false,"isSync":true,"isPayment":false},{"file":"sections/sync-guard.js","name":"_countInvalidDeleteMarkers","line":171,"type":"declaration","async":false,"isSync":false,"isPayment":false},{"file":"sections/sync-guard.js","name":"sid","line":177,"type":"expression","async":false,"isSync":false,"isPayment":false},{"file":"sections/sync-guard.js","name":"fid","line":180,"type":"expression","async":false,"isSync":false,"isPayment":false},{"file":"sections/sync-guard.js","name":"_ensurePanel","line":187,"type":"declaration","async":false,"isSync":false,"isPayment":false},{"file":"sections/sync-guard.js","name":"_renderPanel","line":197,"type":"declaration","async":false,"isSync":false,"isPayment":false},{"file":"sections/sync-guard.js","name":"runGuard","line":224,"type":"declaration","async":false,"isSync":false,"isPayment":false},{"file":"sections/sync-guard.js","name":"totalBal","line":373,"type":"expression","async":false,"isSync":false,"isPayment":false},{"file":"sections/sync-guard.js","name":"_injectDot","line":479,"type":"declaration","async":false,"isSync":false,"isPayment":false},{"file":"sections/sync-guard.js","name":"_updateDot","line":527,"type":"declaration","async":false,"isSync":false,"isPayment":false},{"file":"sections/sync-guard.js","name":"_showToast","line":543,"type":"declaration","async":false,"isSync":false,"isPayment":false},{"file":"sections/sync-guard.js","name":"_autoFix","line":552,"type":"declaration","async":false,"isSync":false,"isPayment":false},{"file":"sections/sync-guard.js","name":"_hookAfter","line":570,"type":"declaration","async":false,"isSync":false,"isPayment":false},{"file":"sections/sync-guard.js","name":"wrapped","line":577,"type":"expression","async":false,"isSync":false,"isPayment":false},{"file":"sections/sync-guard.js","name":"_installHooks","line":588,"type":"declaration","async":false,"isSync":false,"isPayment":false},{"file":"sections/sync-guard.js","name":"_startup","line":634,"type":"declaration","async":false,"isSync":false,"isPayment":false},{"file":"sections/sync-guard.js","name":"openSyncGuardPanel","line":625,"type":"window.export","isSync":true,"isPayment":false},{"file":"supabase-config.js","name":"getWingsSupabaseClient","line":101,"type":"window.export","isSync":true,"isPayment":false},{"file":"supabase-sync-SMART-V39.js","name":"v","line":121,"type":"expression","async":false,"isSync":false,"isPayment":false},{"file":"supabase-sync-SMART-V39.js","name":"_log","line":247,"type":"declaration","async":false,"isSync":false,"isPayment":false},{"file":"supabase-sync-SMART-V39.js","name":"_logErr","line":256,"type":"declaration","async":false,"isSync":false,"isPayment":false},{"file":"supabase-sync-SMART-V39.js","name":"_getOrCreateDeviceId","line":261,"type":"declaration","async":false,"isSync":false,"isPayment":false},{"file":"supabase-sync-SMART-V39.js","name":"_showUserMessage","line":270,"type":"declaration","async":false,"isSync":false,"isPayment":false},{"file":"supabase-sync-SMART-V39.js","name":"_ensureDeletedItemsObject","line":286,"type":"declaration","async":false,"isSync":false,"isPayment":false},{"file":"supabase-sync-SMART-V39.js","name":"_init","line":293,"type":"declaration","async":false,"isSync":false,"isPayment":false},{"file":"supabase-sync-SMART-V39.js","name":"_checkPartialTables","line":308,"type":"declaration","async":true,"isSync":false,"isPayment":false},{"file":"supabase-sync-SMART-V39.js","name":"_saveLocal","line":317,"type":"declaration","async":false,"isSync":false,"isPayment":false},{"file":"supabase-sync-SMART-V39.js","name":"finCount","line":322,"type":"expression","async":false,"isSync":false,"isPayment":false},{"file":"supabase-sync-SMART-V39.js","name":"stuCount","line":323,"type":"expression","async":false,"isSync":false,"isPayment":false},{"file":"supabase-sync-SMART-V39.js","name":"_mergeRecords","line":350,"type":"declaration","async":false,"isSync":false,"isPayment":false},{"file":"supabase-sync-SMART-V39.js","name":"pullFromCloud","line":397,"type":"declaration","async":true,"isSync":true,"isPayment":false},{"file":"supabase-sync-SMART-V39.js","name":"_getDelKeys","line":451,"type":"expression","async":false,"isSync":false,"isPayment":false},{"file":"supabase-sync-SMART-V39.js","name":"_getNewest","line":575,"type":"expression","async":false,"isSync":false,"isPayment":false},{"file":"supabase-sync-SMART-V39.js","name":"_bankT","line":729,"type":"expression","async":false,"isSync":false,"isPayment":false},{"file":"supabase-sync-SMART-V39.js","name":"_mobT","line":730,"type":"expression","async":false,"isSync":false,"isPayment":false},{"file":"supabase-sync-SMART-V39.js","name":"_hashRecord","line":773,"type":"declaration","async":false,"isSync":false,"isPayment":false},{"file":"supabase-sync-SMART-V39.js","name":"_loadSnapshot","line":780,"type":"declaration","async":false,"isSync":true,"isPayment":false},{"file":"supabase-sync-SMART-V39.js","name":"_saveSnapshot","line":785,"type":"declaration","async":false,"isSync":true,"isPayment":false},{"file":"supabase-sync-SMART-V39.js","name":"_rebuildBalancesSafe","line":806,"type":"declaration","async":false,"isSync":false,"isPayment":true},{"file":"supabase-sync-SMART-V39.js","name":"start","line":815,"type":"expression","async":false,"isSync":false,"isPayment":false},{"file":"supabase-sync-SMART-V39.js","name":"acc","line":841,"type":"expression","async":false,"isSync":false,"isPayment":false},{"file":"supabase-sync-SMART-V39.js","name":"_getDeletedRecordId","line":858,"type":"declaration","async":false,"isSync":false,"isPayment":false},{"file":"supabase-sync-SMART-V39.js","name":"_getDelta","line":885,"type":"declaration","async":false,"isSync":false,"isPayment":false},{"file":"supabase-sync-SMART-V39.js","name":"_rebuildSnapshots","line":901,"type":"declaration","async":false,"isSync":true,"isPayment":false},{"file":"supabase-sync-SMART-V39.js","name":"pushToCloud","line":920,"type":"declaration","async":true,"isSync":true,"isPayment":false},{"file":"supabase-sync-SMART-V39.js","name":"finCount","line":976,"type":"expression","async":false,"isSync":false,"isPayment":false},{"file":"supabase-sync-SMART-V39.js","name":"doStuPush","line":1064,"type":"expression","async":true,"isSync":true,"isPayment":false},{"file":"supabase-sync-SMART-V39.js","name":"doFinPush","line":1123,"type":"expression","async":true,"isSync":true,"isPayment":false},{"file":"supabase-sync-SMART-V39.js","name":"doEmpPush","line":1183,"type":"expression","async":true,"isSync":true,"isPayment":false},{"file":"supabase-sync-SMART-V39.js","name":"_schedulePush","line":1304,"type":"declaration","async":false,"isSync":true,"isPayment":false},{"file":"supabase-sync-SMART-V39.js","name":"_patchSaveToStorage","line":1309,"type":"declaration","async":false,"isSync":false,"isPayment":false},{"file":"supabase-sync-SMART-V39.js","name":"_versionCheck","line":1338,"type":"declaration","async":true,"isSync":false,"isPayment":false},{"file":"supabase-sync-SMART-V39.js","name":"_installMonitor","line":1366,"type":"declaration","async":false,"isSync":false,"isPayment":false},{"file":"supabase-sync-SMART-V39.js","name":"fc","line":1374,"type":"expression","async":false,"isSync":false,"isPayment":false},{"file":"supabase-sync-SMART-V39.js","name":"_startupIntegrityCheck","line":1408,"type":"declaration","async":true,"isSync":false,"isPayment":false},{"file":"supabase-sync-SMART-V39.js","name":"finCount","line":1416,"type":"expression","async":false,"isSync":false,"isPayment":false},{"file":"supabase-sync-SMART-V39.js","name":"stuCount","line":1417,"type":"expression","async":false,"isSync":false,"isPayment":false},{"file":"supabase-sync-SMART-V39.js","name":"_setupNetwork","line":1544,"type":"declaration","async":false,"isSync":true,"isPayment":false},{"file":"supabase-sync-SMART-V39.js","name":"_setupVisibility","line":1554,"type":"declaration","async":false,"isSync":false,"isPayment":false},{"file":"supabase-sync-SMART-V39.js","name":"_setupBeforeUnload","line":1561,"type":"declaration","async":false,"isSync":false,"isPayment":false},{"file":"supabase-sync-SMART-V39.js","name":"stuRows","line":1598,"type":"expression","async":false,"isSync":false,"isPayment":false},{"file":"supabase-sync-SMART-V39.js","name":"stuDel","line":1603,"type":"expression","async":false,"isSync":false,"isPayment":false},{"file":"supabase-sync-SMART-V39.js","name":"finRows","line":1613,"type":"expression","async":false,"isSync":false,"isPayment":false},{"file":"supabase-sync-SMART-V39.js","name":"finDel","line":1617,"type":"expression","async":false,"isSync":false,"isPayment":false},{"file":"supabase-sync-SMART-V39.js","name":"empRows","line":1627,"type":"expression","async":false,"isSync":false,"isPayment":false},{"file":"supabase-sync-SMART-V39.js","name":"empDel","line":1630,"type":"expression","async":false,"isSync":false,"isPayment":false},{"file":"supabase-sync-SMART-V39.js","name":"_showStatus","line":1643,"type":"declaration","async":false,"isSync":false,"isPayment":false},{"file":"supabase-sync-SMART-V39.js","name":"_setupRealtime","line":1646,"type":"declaration","async":false,"isSync":false,"isPayment":false},{"file":"supabase-sync-SMART-V39.js","name":"_installSnapshotGuard","line":1664,"type":"declaration","async":false,"isSync":true,"isPayment":false},{"file":"supabase-sync-SMART-V39.js","name":"stuLen","line":1682,"type":"expression","async":false,"isSync":false,"isPayment":false},{"file":"supabase-sync-SMART-V39.js","name":"finLen","line":1683,"type":"expression","async":false,"isSync":false,"isPayment":false},{"file":"supabase-sync-SMART-V39.js","name":"forcePushOnly","line":1695,"type":"declaration","async":true,"isSync":true,"isPayment":false},{"file":"supabase-sync-SMART-V39.js","name":"stuLen","line":1698,"type":"expression","async":false,"isSync":false,"isPayment":false},{"file":"supabase-sync-SMART-V39.js","name":"finLen","line":1699,"type":"expression","async":false,"isSync":false,"isPayment":false},{"file":"supabase-sync-SMART-V39.js","name":"empLen","line":1700,"type":"expression","async":false,"isSync":false,"isPayment":false},{"file":"supabase-sync-SMART-V39.js","name":"_smartSync","line":1723,"type":"declaration","async":true,"isSync":true,"isPayment":false},{"file":"supabase-sync-SMART-V39.js","name":"localStu","line":1738,"type":"expression","async":false,"isSync":false,"isPayment":false},{"file":"supabase-sync-SMART-V39.js","name":"localFin","line":1739,"type":"expression","async":false,"isSync":false,"isPayment":false},{"file":"supabase-sync-SMART-V39.js","name":"localEmp","line":1740,"type":"expression","async":false,"isSync":false,"isPayment":false},{"file":"supabase-sync-SMART-V39.js","name":"_start","line":1765,"type":"declaration","async":true,"isSync":false,"isPayment":false},{"file":"supabase-sync-SMART-V39.js","name":"markDirty","line":1299,"type":"window.export","isSync":false,"isPayment":false},{"file":"supabase-sync-SMART-V39.js","name":"saveToStorage","line":1327,"type":"window.export","isSync":false,"isPayment":false},{"file":"supabase-sync-SMART-V39.js","name":"takeSnapshot","line":1669,"type":"window.export","isSync":true,"isPayment":false},{"file":"supabase-sync-SMART-V39.js","name":"saveToCloud","line":2054,"type":"window.export","isSync":true,"isPayment":false},{"file":"supabase-sync-SMART-V39.js","name":"loadFromCloud","line":2055,"type":"window.export","isSync":true,"isPayment":false},{"file":"supabase-sync-SMART-V39.js","name":"scheduleSyncPush","line":2058,"type":"window.export","isSync":true,"isPayment":false},{"file":"sync-diagnostic.js","name":"diagCountPartialTable","line":10,"type":"declaration","async":true,"isSync":false,"isPayment":false},{"file":"sync-diagnostic.js","name":"diagGetCloudCash","line":33,"type":"declaration","async":true,"isSync":true,"isPayment":true},{"file":"sync-diagnostic.js","name":"diagFmt","line":49,"type":"declaration","async":false,"isSync":false,"isPayment":false},{"file":"sync-diagnostic.js","name":"diagTime","line":50,"type":"declaration","async":false,"isSync":false,"isPayment":false},{"file":"sync-diagnostic.js","name":"diagLog","line":56,"type":"declaration","async":false,"isSync":false,"isPayment":false},{"file":"sync-diagnostic.js","name":"diagCheckRow","line":65,"type":"declaration","async":false,"isSync":false,"isPayment":false},{"file":"sync-diagnostic.js","name":"diagAuditRow","line":72,"type":"declaration","async":false,"isSync":false,"isPayment":false},{"file":"sync-diagnostic.js","name":"runDiagnosticInline","line":79,"type":"declaration","async":true,"isSync":true,"isPayment":false},{"file":"sync-diagnostic.js","name":"lS","line":105,"type":"expression","async":false,"isSync":false,"isPayment":false},{"file":"sync-diagnostic.js","name":"lF","line":106,"type":"expression","async":false,"isSync":false,"isPayment":false},{"file":"sync-diagnostic.js","name":"isOffline","line":155,"type":"expression","async":false,"isSync":true,"isPayment":false},{"file":"sync-diagnostic.js","name":"isInc","line":210,"type":"expression","async":false,"isSync":false,"isPayment":false},{"file":"sync-diagnostic.js","name":"isExp","line":211,"type":"expression","async":false,"isSync":false,"isPayment":false},{"file":"sync-diagnostic.js","name":"isLoanIn","line":212,"type":"expression","async":false,"isSync":false,"isPayment":true},{"file":"sync-diagnostic.js","name":"isLoanOut","line":213,"type":"expression","async":false,"isSync":false,"isPayment":true}];
+function search(q) {
+  q = q.toLowerCase();
+  const vF = document.getElementById('view-files');
+  const vS = document.getElementById('view-search');
+  if(!q) { vF.style.display='block'; vS.style.display='none'; return; }
+  
+  vF.style.display='none'; vS.style.display='block';
+  const matches = MASTER.filter(m => m.name.toLowerCase().includes(q));
+  vS.innerHTML = matches.map(m => '<div class="sr-item"><span><strong style="color:var(--accent)">'+m.name+'</strong> <span style="font-size:11px;color:gray">'+m.type+'</span></span> <span>'+m.file+' :'+m.line+'</span></div>').join('');
+}
+</script>
+</body></html>
