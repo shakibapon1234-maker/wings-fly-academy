@@ -1,27 +1,42 @@
 /**
  * ════════════════════════════════════════════════════════════════
- * WINGS FLY — SUPABASE SYNC PATCH (V2 — Universal Guard)
+ * WINGS FLY — SUPABASE SYNC PATCH (V3 — Full Module Guard)
  * File: sections/supabase-sync-patch.js
  *
  * এই ফাইল supabase-sync-SMART-V39.js এর পরে লোড হবে।
  *
- * UNIVERSAL RESURRECTION GUARD — সব array cover করে:
- *   ✅ Finance Tab, Salary Hub, Accounts Tab → finance[]
- *   ✅ Students Tab → students[]
- *   ✅ Employee Tab → employees[]
- *   ✅ Exam Tab → examRegistrations[] (other bucket)
+ * ════════ V3 নতুন কী যোগ হয়েছে ════════
  *
- * BUG A FIX — DELETE RESURRECTION:
- *   → pull-এর পরে Recycle Bin-এ থাকা সব items সরানো হয়
- *   → finance, students, employees সব array check হয়
- *   → balance rebuild ও UI refresh automatic
+ * ✅ NOTICE BOARD RESURRECTION GUARD:
+ *    → Pull-এর পরে পুরনো notice ফেরত আসলে block করা হবে
+ *    → wings_notice_cleared_at timestamp দিয়ে validate করা হয়
+ *    → Pull-পরবর্তী initNoticeBoard() call নিশ্চিত
  *
- * BUG B FIX — RESTORE AFTER DELETE:
- *   → Restore-এর পরে cloud-এ delete marker সরানো হবে
- *   → _rebuildSnapshots() আগে চলে তাই delta ঠিক থাকে
+ * ✅ KEEP RECORDS RESURRECTION GUARD:
+ *    → localStorage wingsfly_keep_records কে recycle bin এর বিপরীতে check করা হয়
+ *    → Pull-এর পরে deleted notes ফেরত না আসার নিশ্চয়তা
+ *    → renderKeepRecordNotes() auto-refresh
  *
- * HELPER — wfIsInRecycleBin(type, id):
- *   → যেকোনো ফাইল থেকে call করে check করা যাবে
+ * ✅ VISITORS RESURRECTION GUARD:
+ *    → globalData.visitors array থেকে deleted items সরানো হয়
+ *    → other bucket check করা হয় (type='visitor')
+ *
+ * ✅ ADVANCE PAYMENT (finance[] এর অংশ):
+ *    → finance[] guard ইতিমধ্যে cover করে (type: 'Advance', 'Advance Return')
+ *    → কোনো আলাদা guard দরকার নেই — already fixed in V2
+ *
+ * ✅ ANALYTICS MODULE:
+ *    → Pull-এর পরে refreshAnalytics() auto-call যোগ হয়েছে
+ *
+ * ════════ V2 থেকে যা ছিল (বহাল) ════════
+ *
+ * ✅ Finance Tab, Salary Hub, Accounts Tab → finance[]
+ * ✅ Students Tab → students[]
+ * ✅ Employee Tab → employees[]
+ * ✅ Exam Tab → examRegistrations[] (other bucket)
+ * ✅ BUG A FIX — DELETE RESURRECTION (pull-এর পরে guard)
+ * ✅ BUG B FIX — RESTORE AFTER DELETE (snapshot rebuild)
+ * ✅ HELPER — wfIsInRecycleBin(type, id)
  *
  * ════════════════════════════════════════════════════════════════
  */
@@ -62,7 +77,9 @@
       var totalRemoved = 0;
       var needBalanceRebuild = false;
 
-      // ── 1. FINANCE (Finance Tab, Salary Hub, Accounts Tab, Dashboard) ──
+      // ── 1. FINANCE (Finance Tab, Salary Hub, Accounts Tab, Dashboard, Advance Payment) ──
+      // Finance array-এ type: 'Advance', 'Advance Return' entries-ও থাকে।
+      // এই একটি guard দিয়ে সব cover হয়।
       if (Array.isArray(gd.finance) && (di.finance || []).length > 0) {
         var finIds = _buildBinIdSet(di.finance, function(s) {
           return s.id || s.timestamp;
@@ -81,7 +98,7 @@
           if (finRemoved > 0) {
             totalRemoved += finRemoved;
             needBalanceRebuild = true;
-            console.log('[SyncPatch] ✅ Blocked ' + finRemoved + ' resurrected finance item(s)');
+            console.log('[SyncPatch] ✅ Blocked ' + finRemoved + ' resurrected finance item(s) (incl. Advance/Salary)');
           }
         }
       }
@@ -158,10 +175,44 @@
         }
       }
 
-      if (totalRemoved === 0) return;
+      // ── 5. VISITORS (Visitor Tab — other bucket-এ থাকে) ──
+      if (Array.isArray(gd.visitors) && (di.other || []).length > 0) {
+        var visitorBin = (di.other || []).filter(function(e) {
+          var t = (e.type || '').toLowerCase();
+          return t.indexOf('visitor') !== -1;
+        });
+        if (visitorBin.length > 0) {
+          var visitorIds = _buildBinIdSet(visitorBin, function(s) {
+            return s.id || s.visitId || s.phone || s.name;
+          });
+          if (visitorIds.size > 0) {
+            var visBefore = gd.visitors.length;
+            gd.visitors = gd.visitors.filter(function(v) {
+              var id = String(v.id || v.visitId || v.phone || v.name || '');
+              if (visitorIds.has(id)) {
+                console.warn('[SyncPatch] 🔥 Visitor resurrection blocked:', v.name, 'id=' + id);
+                return false;
+              }
+              return true;
+            });
+            var visRemoved = visBefore - gd.visitors.length;
+            if (visRemoved > 0) {
+              totalRemoved += visRemoved;
+              console.log('[SyncPatch] ✅ Blocked ' + visRemoved + ' resurrected visitor(s)');
+            }
+          }
+        }
+      }
 
-      // ── Save locally ──
-      try { localStorage.setItem('wingsfly_data', JSON.stringify(gd)); } catch(e) {}
+      // ── 6. KEEP RECORDS (localStorage-based, other bucket-এ থাকে) ──
+      // Keep Records globalData-এ নেই — wingsfly_keep_records localStorage key-এ থাকে।
+      // Recycle bin-এ 'keeprecord' type দিয়ে other bucket-এ থাকে।
+      _removeResurrectedKeepRecords(di);
+
+      // ── globalData পরিবর্তন হয়েছে, save করো ──
+      if (totalRemoved > 0) {
+        try { localStorage.setItem('wingsfly_data', JSON.stringify(gd)); } catch(e) {}
+      }
 
       // ── Balance rebuild (finance পরিবর্তন হলে) ──
       if (needBalanceRebuild && typeof window.feRebuildAllBalances === 'function') {
@@ -169,19 +220,26 @@
       }
 
       // ── UI refresh ──
-      setTimeout(function() {
-        if (typeof window.renderLedger === 'function') window.renderLedger(gd.finance);
-        if (typeof window.updateGrandTotal === 'function') window.updateGrandTotal();
-        if (typeof window.render === 'function') window.render(gd.students);
-        if (typeof window.renderStudents === 'function') window.renderStudents();
-        if (typeof window.renderEmployeeList === 'function') window.renderEmployeeList();
-        if (typeof window.updateGlobalStats === 'function') window.updateGlobalStats();
-        if (typeof window.renderSalaryCards === 'function') window.renderSalaryCards();
-        if (typeof window.renderCashBalance === 'function') window.renderCashBalance();
-        if (typeof window.renderAccountList === 'function') window.renderAccountList();
-      }, 150);
+      if (totalRemoved > 0) {
+        setTimeout(function() {
+          if (typeof window.renderLedger === 'function') window.renderLedger(gd.finance);
+          if (typeof window.updateGrandTotal === 'function') window.updateGrandTotal();
+          if (typeof window.render === 'function') window.render(gd.students);
+          if (typeof window.renderStudents === 'function') window.renderStudents();
+          if (typeof window.renderEmployeeList === 'function') window.renderEmployeeList();
+          if (typeof window.updateGlobalStats === 'function') window.updateGlobalStats();
+          if (typeof window.renderSalaryCards === 'function') window.renderSalaryCards();
+          if (typeof window.renderCashBalance === 'function') window.renderCashBalance();
+          if (typeof window.renderAccountList === 'function') window.renderAccountList();
+          if (typeof window.renderKeepRecordNotes === 'function') window.renderKeepRecordNotes();
+          if (typeof window.refreshAnalytics === 'function') window.refreshAnalytics();
+        }, 150);
+        console.log('[SyncPatch] ✅ Universal guard done: ' + totalRemoved + ' resurrection(s) blocked');
+      }
 
-      console.log('[SyncPatch] ✅ Universal guard done: ' + totalRemoved + ' resurrection(s) blocked');
+      // ── 7. NOTICE BOARD: Pull-এর পরে পুরনো notice ফেরত এলে block করো ──
+      _guardNoticeBoardAfterPull();
+
     } catch(e) {
       console.warn('[SyncPatch] _removeResurrectedItems error:', e);
     }
@@ -189,11 +247,102 @@
   window._wfRemoveResurrectedItems = _removeResurrectedItems;
 
   // ══════════════════════════════════════════════════════════════
+  // KEEP RECORDS RESURRECTION GUARD
+  // localStorage wingsfly_keep_records থেকে deleted notes সরায়
+  // ══════════════════════════════════════════════════════════════
+  function _removeResurrectedKeepRecords(di) {
+    try {
+      var otherBin = di && (di.other || []);
+      if (!otherBin || otherBin.length === 0) return;
+
+      // 'keeprecord' type-এর entries খোঁজো
+      var keepBin = otherBin.filter(function(e) {
+        var t = (e.type || '').toLowerCase();
+        return t.indexOf('keeprecord') !== -1 || t.indexOf('keep_record') !== -1 || t.indexOf('note') !== -1;
+      });
+      if (keepBin.length === 0) return;
+
+      var keepIds = _buildBinIdSet(keepBin, function(s) {
+        return s.id || s.noteId;
+      });
+      if (keepIds.size === 0) return;
+
+      var KEY = 'wingsfly_keep_records';
+      var raw = localStorage.getItem(KEY);
+      if (!raw) return;
+
+      var records = [];
+      try { records = JSON.parse(raw); } catch(e) { return; }
+      if (!Array.isArray(records) || records.length === 0) return;
+
+      var before = records.length;
+      var filtered = records.filter(function(r) {
+        var id = String(r.id || r.noteId || '');
+        if (keepIds.has(id)) {
+          console.warn('[SyncPatch] 🔥 Keep Record resurrection blocked: id=' + id, r.title || '');
+          return false;
+        }
+        return true;
+      });
+
+      if (filtered.length < before) {
+        localStorage.setItem(KEY, JSON.stringify(filtered));
+        console.log('[SyncPatch] ✅ Blocked ' + (before - filtered.length) + ' resurrected keep record(s)');
+        if (typeof window.renderKeepRecordNotes === 'function') {
+          setTimeout(function() { window.renderKeepRecordNotes(); }, 200);
+        }
+      }
+    } catch(e) {
+      console.warn('[SyncPatch] _removeResurrectedKeepRecords error:', e);
+    }
+  }
+
+  // ══════════════════════════════════════════════════════════════
+  // NOTICE BOARD RESURRECTION GUARD
+  // Pull-এর পরে পুরনো notice ফেরত এলে clear করো
+  // ══════════════════════════════════════════════════════════════
+  function _guardNoticeBoardAfterPull() {
+    try {
+      var clearedAt = parseInt(localStorage.getItem('wings_notice_cleared_at') || '0');
+      if (clearedAt <= 0) {
+        // কোনো delete ছিল না — notice board init করো (নতুন notice দেখাতে)
+        if (typeof window.initNoticeBoard === 'function') {
+          setTimeout(function() { window.initNoticeBoard(); }, 300);
+        }
+        return;
+      }
+
+      // Delete marker আছে — globalData-এ পুরনো notice এলে সরাও
+      var gd = window.globalData;
+      if (gd && gd.settings && gd.settings.activeNotice) {
+        var notice = gd.settings.activeNotice;
+        var createdAt = notice.createdAt || 0;
+        if (createdAt <= clearedAt) {
+          // পুরনো notice — সরাও
+          delete gd.settings.activeNotice;
+          localStorage.removeItem('wingsfly_notice_board');
+          localStorage.setItem('wingsfly_data', JSON.stringify(gd));
+          console.warn('[SyncPatch] 🔥 Notice resurrection blocked — cleared notice returned from cloud');
+        }
+      }
+
+      // Notice board re-init করো
+      if (typeof window.initNoticeBoard === 'function') {
+        setTimeout(function() { window.initNoticeBoard(); }, 300);
+      }
+    } catch(e) {
+      console.warn('[SyncPatch] _guardNoticeBoardAfterPull error:', e);
+    }
+  }
+
+  // ══════════════════════════════════════════════════════════════
   // PUBLIC HELPER: wfIsInRecycleBin(type, id)
   // যেকোনো ফাইল থেকে call করা যাবে:
   //   wfIsInRecycleBin('finance', f.id)
   //   wfIsInRecycleBin('student', s.studentId)
   //   wfIsInRecycleBin('employee', e.id)
+  //   wfIsInRecycleBin('visitor', v.id)
+  //   wfIsInRecycleBin('keeprecord', note.id)
   // ══════════════════════════════════════════════════════════════
   window.wfIsInRecycleBin = function(type, id) {
     try {
@@ -201,13 +350,13 @@
       if (!di || Array.isArray(di)) return false;
       var bucket = (type === 'student') ? 'students'
                  : (type === 'employee') ? 'employees'
-                 : (type === 'finance' || type === 'salary_payment') ? 'finance'
+                 : (type === 'finance' || type === 'salary_payment' || type === 'advance') ? 'finance'
                  : 'other';
       var arr = di[bucket] || [];
       var sid = String(id || '');
       return arr.some(function(e) {
         var src = e.item || {};
-        var eid = String(src.id || src.studentId || src.timestamp || src.phone || src.name || '');
+        var eid = String(src.id || src.studentId || src.timestamp || src.phone || src.name || src.visitId || '');
         return eid === sid;
       });
     } catch(e) { return false; }
@@ -232,19 +381,24 @@
       }
       if (ws._patchApplied) return;
 
-      // pullFromCloud patch
+      // ── pullFromCloud patch ──
       var origPullFn = ws.pullFromCloud;
       if (typeof origPullFn === 'function' && !origPullFn._wfPatched) {
         ws.pullFromCloud = async function(showUI, forceFullPull) {
           var result = await origPullFn.apply(ws, arguments);
+          // Pull শেষে সব guard চালাও
           _removeResurrectedItems();
+          // Analytics refresh — pull-এর পরে নতুন data দিয়ে chart update
+          if (typeof window.refreshAnalytics === 'function') {
+            setTimeout(function() { window.refreshAnalytics(); }, 500);
+          }
           return result;
         };
         ws.pullFromCloud._wfPatched = true;
         console.log('[SyncPatch] ✅ pullFromCloud patched — universal resurrection guard active');
       }
 
-      // scheduleSyncPush patch — restore-এর পরে snapshot rebuild
+      // ── scheduleSyncPush patch — restore-এর পরে snapshot rebuild ──
       var origSchedulePush = ws.scheduleSyncPush;
       if (typeof origSchedulePush === 'function' && !origSchedulePush._wfPatched) {
         ws.scheduleSyncPush = function(reason) {
@@ -277,6 +431,6 @@
     setTimeout(_removeResurrectedItems, 5000);
   });
 
-  console.log('[SyncPatch] ✅ V2 Loaded — Universal Resurrection Guard active (Finance + Students + Employees + Exam)');
+  console.log('[SyncPatch] ✅ V3 Loaded — Full Module Guard active (Finance + Students + Employees + Exam + Visitors + KeepRecords + NoticeBoard + Analytics)');
 
 })();

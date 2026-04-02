@@ -364,7 +364,7 @@ WINGS FLY AVIATION ACADEMY — Management System
                 <p class="text-muted">Aviation Academy Management System</p>
             </div>
 
-            <form id="loginForm" method="POST" onsubmit="event.preventDefault(); if(typeof handleLogin === 'function') { handleLogin(event); } else { alert('System is loading, please wait 1 second...'); }" autocomplete="on">
+            <form id="loginForm" method="POST" onsubmit="event.preventDefault(); if(typeof handleLogin === 'function') { handleLogin(event); } else { var _lb=document.getElementById('loginBtn'); if(_lb){_lb.disabled=true;_lb.innerHTML='<span class=\'spinner-border spinner-border-sm me-2\'></span>Loading...';} setTimeout(function(){if(typeof handleLogin==='function'){handleLogin(event);}else{if(_lb){_lb.disabled=false;_lb.innerHTML='<span>Login</span>';}}},1200); }" autocomplete="on">
                 <div class="mb-3">
                     <label class="form-label">Username</label>
                     <div class="position-relative">

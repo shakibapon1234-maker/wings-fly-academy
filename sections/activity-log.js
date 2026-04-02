@@ -196,10 +196,12 @@ window.loadActivityHistory = loadActivityHistory;
 function clearActivityHistory() {
   if (!confirm('সব Activity History মুছে ফেলবেন?')) return;
 
-  // ✅ V40.2 FIX: _activityClearedAt timestamp store করো globalData-তে।
+  // ✅ V40.3 FIX: _activityClearedAt timestamp store করো globalData-তে।
   // sync pull-এ এই timestamp check করলে cloud এর পুরোনো ডেটা আর overwrite করতে পারবে না।
   const clearTime = new Date().toISOString();
+  const clearTs = Date.now();
   window.globalData._activityClearedAt = clearTime;
+  window.globalData._activityClearedTs = clearTs;
 
   // CLEAR marker রাখো যাতে array empty না থাকে (length > 0 check pass হয় push-এ)
   window.globalData.activityHistory = [{
@@ -212,8 +214,9 @@ function clearActivityHistory() {
   }];
   try {
     localStorage.setItem('wingsfly_data', JSON.stringify(window.globalData));
-    // ✅ V40.2 FIX: clearedAt আলাদাভাবেও save করো — fresh browser-এও টিকবে
+    // ✅ V40.3: clearTime + clearTs দুটোই save করো — pull guard দুটোই check করবে
     localStorage.setItem('wf_activity_cleared_at', clearTime);
+    localStorage.setItem('wf_activity_cleared_ts', String(clearTs));
   } catch(e) {}
   loadActivityHistory();
   showSuccessToast('Activity History cleared!');
@@ -224,6 +227,80 @@ function clearActivityHistory() {
   }
 }
 window.clearActivityHistory = clearActivityHistory;
+
+// ══════════════════════════════════════════════════════════════
+// ACTIVITY LOG RESURRECTION GUARD
+// Pull-এর পরে clear করা activity log cloud থেকে ফেরত আসলে block করো
+// ══════════════════════════════════════════════════════════════
+function _guardActivityLogAfterPull() {
+  try {
+    var clearedTs = parseInt(localStorage.getItem('wf_activity_cleared_ts') || '0');
+    if (clearedTs <= 0) return; // কোনো clear হয়নি — কিছু করার নেই
+
+    var gd = window.globalData;
+    if (!gd || !Array.isArray(gd.activityHistory) || gd.activityHistory.length === 0) return;
+
+    // যদি cloud থেকে আসা activityHistory-তে clearTime-এর আগের entries থাকে — সেগুলো বাদ দাও
+    var before = gd.activityHistory.length;
+    gd.activityHistory = gd.activityHistory.filter(function(h) {
+      // CLEAR marker নিজেই রেখে দাও
+      if (h.action === 'CLEAR') return true;
+      // system/autotest বাদ দাও
+      if (h.type === 'system' || h.type === 'heal' || h.type === 'autotest') return true;
+      // timestamp check: clearTs-এর আগের entries বাদ দাও
+      var entryTs = new Date(h.timestamp || 0).getTime();
+      return entryTs >= clearedTs;
+    });
+
+    // globalData-এও cleared timestamp আপডেট করো যাতে পরের pull-এও কাজ করে
+    gd._activityClearedAt = localStorage.getItem('wf_activity_cleared_at') || gd._activityClearedAt;
+    gd._activityClearedTs = clearedTs;
+
+    if (gd.activityHistory.length < before) {
+      console.warn('[ActivityLog] 🔥 Resurrection blocked: ' + (before - gd.activityHistory.length) + ' old activity entries removed after pull');
+      try { localStorage.setItem('wingsfly_data', JSON.stringify(gd)); } catch(e) {}
+      // UI refresh
+      if (document.getElementById('activityHistoryList')) {
+        loadActivityHistory();
+      }
+    }
+  } catch(e) {
+    console.warn('[ActivityLog] _guardActivityLogAfterPull error:', e);
+  }
+}
+window._wfGuardActivityLogAfterPull = _guardActivityLogAfterPull;
+
+// wingsSync.pullFromCloud patch — pull-এর পরে activity log guard চালাও
+(function _hookPullForActivityLog() {
+  var tries = 0;
+  function attempt() {
+    var ws = window.wingsSync;
+    if (!ws) {
+      if (tries < 40) { tries++; setTimeout(attempt, 500); }
+      return;
+    }
+    if (ws._activityLogPatchApplied) return;
+
+    var origPull = ws.pullFromCloud;
+    if (typeof origPull === 'function' && !origPull._activityLogPatched) {
+      ws.pullFromCloud = async function() {
+        var result = await origPull.apply(ws, arguments);
+        // Pull শেষে activity log guard চালাও
+        setTimeout(_guardActivityLogAfterPull, 200);
+        return result;
+      };
+      ws.pullFromCloud._activityLogPatched = true;
+      console.log('[ActivityLog] ✅ pullFromCloud patched — activity log resurrection guard active');
+    }
+    ws._activityLogPatchApplied = true;
+  }
+  if (document.readyState === 'loading') {
+    document.addEventListener('DOMContentLoaded', function() { setTimeout(attempt, 1000); });
+  } else {
+    setTimeout(attempt, 1000);
+  }
+  setTimeout(attempt, 4000); // double-attempt safety
+})();
 
 // Load and render Deleted Items (Trash) tab
 function loadDeletedItems() {
