@@ -484,10 +484,15 @@ window.warnAddMethod = warnAddMethod;
 // =============================================
 
 function injectWarnDetailsButton() {
-  if (document.getElementById('warnDetailsBtn')) return;
+  const existingBtn = document.getElementById('warnDetailsBtn');
   const w = getDataWarnings();
   const total = w.orphanedPayments.length + w.invalidCourses.length + w.unknownMethods.length;
-  if (total === 0) return;
+  
+  if (total === 0) {
+    if (existingBtn) existingBtn.remove();
+    return;
+  }
+  if (existingBtn) return;
 
   // Auto-test warning block-এ "বিস্তারিত" button inject করার চেষ্টা
   const allElements = document.querySelectorAll('*');
