@@ -63,7 +63,9 @@
     font-family: 'JetBrains Mono', monospace;
     font-size: 18px; font-weight: 700;
     background: linear-gradient(90deg, var(--cyan), var(--purple));
-    -webkit-background-clip: text; -webkit-text-fill-color: transparent;
+    -webkit-background-clip: text;
+    background-clip: text;
+    -webkit-text-fill-color: transparent;
   }
   .hdr-sub { font-size: 11px; color: var(--dim); letter-spacing: 1px; text-transform: uppercase; }
 
@@ -570,6 +572,8 @@ async function runFullCheck() {
     var lDelStu = ((gd.deletedItems||{}).students||[]).length;
     var lDelFin = ((gd.deletedItems||{}).finance||[]).length;
     var lDelEmp = ((gd.deletedItems||{}).employees||[]).length;
+    var lDelOth = ((gd.deletedItems||{}).other||[]).length;
+    var lDelAct = ((gd.deletedItems||{}).activity||[]).length;
     var lVer    = localStorage.getItem('wings_local_version') || '—';
     var lKnownF = localStorage.getItem('wings_last_known_finance') || '—';
     var lKnownS = localStorage.getItem('wings_last_known_count') || '—';
@@ -595,6 +599,8 @@ async function runFullCheck() {
       row('🗑️ Recycle — Students', lDelStu, lDelStu>0?'warn':'ok') +
       row('🗑️ Recycle — Finance',  lDelFin,  lDelFin>0?'warn':'ok') +
       row('🗑️ Recycle — Employees',lDelEmp,  lDelEmp>0?'warn':'ok') +
+      row('🗑️ Recycle — Other',    lDelOth,  lDelOth>0?'warn':'ok') +
+      row('🗑️ Recycle — Activity', lDelAct,  lDelAct>0?'warn':'ok') +
       divider() +
       row('💵 Cash', fmt(lCash), null) +
       row('🏦 Bank Total', fmt(lBank), null) +
@@ -664,6 +670,8 @@ async function runFullCheck() {
     var cKeepRec   = (mainRow.keep_records||[]).length;
     var cBreakdown = (mainRow.breakdown_records||[]).length;
     var cNotices   = (mainRow.notices||[]).length;
+    var cDelOth    = (mainRow.deleted_items_other||[]).length;
+    var cDelAct    = (mainRow.deleted_items_activity||[]).length;
     var cCleared   = mainRow.activity_cleared_at || null;
     var cVersion   = mainRow.version || '—';
     var cCash      = mainRow.cash_balance || 0;
@@ -676,6 +684,8 @@ async function runFullCheck() {
       row('Finance (deleted)',  cFinDeleted, cFinDeleted>0?'warn':'ok') +
       row('Employees (active)', cEmpActive,  null) +
       row('Employees (deleted)',cEmpDeleted, cEmpDeleted>0?'warn':'ok') +
+      row('Other (deleted)',    cDelOth,     cDelOth>0?'warn':'ok') +
+      row('Activity (deleted)', cDelAct,     cDelAct>0?'warn':'ok') +
       row('Visitors',           cVisitors,   null) +
       row('Keep Records',       cKeepRec,    null) +
       row('Activity History',   cActivity,   null) +
@@ -684,8 +694,8 @@ async function runFullCheck() {
       row('Cash Balance', fmt(cCash), null) +
       row('Total Rows (all)', cTotal, null) +
       (cCleared ? row('Activity Cleared At', new Date(cCleared).toLocaleString('en-BD'), 'warn') : '') +
-      (cStuDeleted>0||cFinDeleted>0||cEmpDeleted>0
-        ? divider() + row('⚠️ Cloud Deleted Markers', cStuDeleted+'+'+cFinDeleted+'+'+cEmpDeleted, 'warn')
+      (cStuDeleted>0||cFinDeleted>0||cEmpDeleted>0||cDelOth>0||cDelAct>0
+        ? divider() + row('⚠️ Cloud Deleted Markers', cStuDeleted+'+'+cFinDeleted+'+'+cEmpDeleted+'+'+cDelOth+'+'+cDelAct, 'warn')
         : '');
 
     var cb = document.getElementById('cloudBadge');
@@ -709,6 +719,8 @@ async function runFullCheck() {
     var keepMatch = lKeep2 === cKeepRec;
     var brkMatch  = lBrk2  === cBreakdown;
     var notcMatch = lNotc2 === cNotices;
+    var othMatch  = lDelOth === cDelOth;
+    var actMatch  = lDelAct === cDelAct;
     var coreMatch = stuMatch && finMatch && empMatch;
     var allMatch  = coreMatch && visMatch && keepMatch;
 
@@ -720,6 +732,8 @@ async function runFullCheck() {
       matchBar('Keep Records',    lKeep2, cKeepRec,    keepMatch, !keepMatch) +
       matchBar('Breakdown Rec.',  lBrk2,  cBreakdown,  brkMatch,  !brkMatch) +
       matchBar('Notices',         lNotc2, cNotices,    notcMatch, !notcMatch) +
+      matchBar('🗑️ Recycle Oth',  lDelOth, cDelOth,    othMatch,  !othMatch) +
+      matchBar('🗑️ Recycle Act',  lDelAct, cDelAct,    actMatch,  !actMatch) +
       divider();
 
     if (coreMatch) {

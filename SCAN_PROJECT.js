@@ -21,8 +21,8 @@ const path = require('path');
 const ROOT_DIR = __dirname; // যে ফোল্ডারে এই script আছে
 const OUTPUT_FILE = path.join(ROOT_DIR, 'PROJECT_MAP.html');
 
-const SCAN_EXTENSIONS = ['.js', '.html'];
-const SKIP_DIRS = ['node_modules', '.git', '_PROJECT_BACKUPS', 'archive', '.vscode', '.agent'];
+const SCAN_EXTENSIONS = ['.js', '.html', '.css', '.json', '.md'];
+const SKIP_DIRS = ['node_modules', '.git', '_PROJECT_BACKUPS', 'archive', '.vscode', '.agent', '.settings'];
 const SKIP_FILES = ['SCAN_PROJECT.js']; // নিজেকে skip করো
 
 // ── রঙ কোড (terminal এ সুন্দর দেখাবে) ──────────────────────
