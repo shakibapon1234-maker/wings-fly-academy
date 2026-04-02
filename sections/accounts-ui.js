@@ -250,12 +250,15 @@ function handleSettingsSubmit(e) {
     startBalances[m] = parseFloat(inputVal) || 0;
   });
 
-  globalData.settings = {
+  // ✅ V39.11 FIX: Object.assign ব্যবহার করো — existing settings preserve হবে
+  // আগে পুরো settings object replace হয়ে যেত, বাকি fields হারিয়ে যেত
+  globalData.settings = Object.assign({}, globalData.settings || {}, {
     startBalances: startBalances,
     academyName: formData.academyName || 'Wings Fly Aviation Academy',
     monthlyTarget: parseFloat(formData.monthlyTarget) || 200000,
-    runningBatch: formData.runningBatch || ''
-  };
+    runningBatch: formData.runningBatch || '',
+    _settingsUpdatedAt: new Date().toISOString() // ✅ sync timestamp
+  });
 
   // Update Credentials (with SHA-256 hashing)
   if (formData.adminPassword) {
@@ -295,6 +298,14 @@ function handleSettingsSubmit(e) {
   }
 
   saveToStorage();
+
+  // ✅ V39.11 FIX: Settings পরিবর্তনের পরে IMMEDIATE cloud push করো
+  // debounced push (3s) wait করলে user অন্য PC তে সময়মত দেখবে না
+  if (typeof window.wingsSync === 'object' && typeof window.wingsSync.pushNow === 'function') {
+    window.wingsSync.pushNow('settings-update');
+  } else if (typeof window.scheduleSyncPush === 'function') {
+    window.scheduleSyncPush('Settings updated');
+  }
 
   const modal = bootstrap.Modal.getInstance(document.getElementById('settingsModal'));
   modal.hide();

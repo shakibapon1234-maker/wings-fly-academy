@@ -345,8 +345,11 @@
   }
 
   // ── MERGE RECORDS (V39.2: Delete-aware + Timestamp Conflict Resolution) ──
-  function _mergeRecords(localArr, cloudRows, keyFn) {
+  // ✅ V39.11 FIX: localDeletedKeys parameter যোগ — local deletedItems থেকে আসা keys
+  // এই keys তে থাকা records কোনোভাবেই cloud থেকে ফেরত আনা হবে না
+  function _mergeRecords(localArr, cloudRows, keyFn, localDeletedKeys) {
     const merged = new Map();
+    const blockedKeys = new Set(localDeletedKeys || []);
     // Local records যোগ করো
     (localArr || []).forEach(item => { const k = keyFn(item); if (k) merged.set(k, item); });
     // Cloud records merge করো — timestamp compare করে নতুনটা রাখো
@@ -372,6 +375,11 @@
       if (!row.data) return;
       const k = keyFn(row.data);
       if (!k) return;
+      // ✅ V39.11 CRITICAL FIX: local deletedItems-এ থাকলে cloud থেকে ফিরিয়ে আনো না
+      if (blockedKeys.has(String(k))) {
+        _log('🚫', `BLOCKED resurrection of deleted record: key=${k}`);
+        return;
+      }
       const existing = merged.get(k);
       if (!existing) { merged.set(k, row.data); return; }
       // Timestamp-based resolution: নতুন record-ই win করবে
@@ -438,14 +446,43 @@
         // ✅ V39: Ensure deletedItems before merge
         _ensureDeletedItemsObject(gd);
 
+        // ✅ V39.11 FIX: Build blocked key sets from local deletedItems
+        // deleted record-এর original key বের করো যাতে cloud থেকে ফিরে আসতে না পারে
+        const _getDelKeys = (delArr, kind) => {
+          const keys = new Set();
+          (delArr || []).forEach(item => {
+            const recId = _getDeletedRecordId(item, kind);
+            if (recId) keys.add(String(recId));
+            // Also add the source item's key
+            if (item.item) {
+              if (kind === 'finance') {
+                const k = item.item.id || item.item.timestamp;
+                if (k) keys.add(String(k));
+              } else if (kind === 'student') {
+                const k = item.item.studentId || item.item.id || item.item.phone || item.item.name;
+                if (k) keys.add(String(k));
+              } else if (kind === 'employee') {
+                const k = item.item.id;
+                if (k) keys.add(String(k));
+              }
+            }
+          });
+          return keys;
+        };
+        const delFinKeys = _getDelKeys(gd.deletedItems?.finance, 'finance');
+        const delStuKeys = _getDelKeys(gd.deletedItems?.students, 'student');
+        const delEmpKeys = _getDelKeys(gd.deletedItems?.employees, 'employee');
+        if (delFinKeys.size > 0) _log('🛡️', `Delete block list: ${delFinKeys.size} finance keys`);
+        if (delStuKeys.size > 0) _log('🛡️', `Delete block list: ${delStuKeys.size} student keys`);
+
         const local = {
           students: gd.students || [],
           finance: gd.finance || [],
           employees: gd.employees || []
         };
-        gd.students = _mergeRecords(local.students, stuRes.data, s => s.studentId || s.id || s.phone || s.name);
-        gd.finance = _mergeRecords(local.finance, finRes.data, f => f.id || f.timestamp);
-        gd.employees = _mergeRecords(local.employees, empRes.data, e => e.id);
+        gd.students = _mergeRecords(local.students, stuRes.data, s => s.studentId || s.id || s.phone || s.name, delStuKeys);
+        gd.finance = _mergeRecords(local.finance, finRes.data, f => f.id || f.timestamp, delFinKeys);
+        gd.employees = _mergeRecords(local.employees, empRes.data, e => e.id, delEmpKeys);
 
         // ✅ V39.7 FIX: Content-based deduplication for finance entries
         // Two entries can have different IDs (SAL_xxx) but be the same transaction
@@ -482,7 +519,24 @@
           const _cMobile = mainRec.mobile_banking;
           gd.bankAccounts = (_cBank && _cBank.length > 0) ? _cBank : (gd.bankAccounts && gd.bankAccounts.length > 0 ? gd.bankAccounts : []);
           gd.mobileBanking = (_cMobile && _cMobile.length > 0) ? _cMobile : (gd.mobileBanking && gd.mobileBanking.length > 0 ? gd.mobileBanking : []);
-          if (mainRec.settings) { gd.settings = Object.assign({}, gd.settings || {}, mainRec.settings); }
+          if (mainRec.settings) {
+            // ✅ V39.11 FIX: Timestamp-aware settings merge
+            // cloud settings নতুন হলে cloud wins, local settings নতুন হলে local wins
+            const cloudSettingsTime = new Date(mainRec.settings._settingsUpdatedAt || 0).getTime();
+            const localSettingsTime = new Date((gd.settings || {})._settingsUpdatedAt || 0).getTime();
+            if (cloudSettingsTime >= localSettingsTime) {
+              // Cloud settings নতুন — cloud wins (full merge)
+              gd.settings = Object.assign({}, gd.settings || {}, mainRec.settings);
+              _log('📥', `Settings pulled from cloud (cloud newer: ${new Date(cloudSettingsTime).toISOString()})`);
+            } else {
+              // Local settings নতুন — local wins, but merge cloud-only fields
+              // startBalances, runningBatch ইত্যাদি local-এই থাকবে
+              // শুধু cloud-এ আছে কিন্তু local-এ নেই এমন fields নিই
+              const merged = Object.assign({}, mainRec.settings, gd.settings);
+              gd.settings = merged;
+              _log('📤', `Settings: local newer — kept local (${new Date(localSettingsTime).toISOString()})`);
+            }
+          }
           if (mainRec.users && Array.isArray(mainRec.users) && mainRec.users.length > 0) { gd.users = mainRec.users; }
           // ✅ V39.5: Settings fields sync — Categories, Courses, Roles
           if (mainRec.income_categories && Array.isArray(mainRec.income_categories) && mainRec.income_categories.length > 0) {
@@ -1302,6 +1356,7 @@
   // ── MONITOR ────────────────────────────────────────────────────
   function _installMonitor() {
     let _lastFin = -1, _lastStu = -1, _lastEmp = -1, _lastCash = null;
+    let _lastSettingsHash = ''; // ✅ V39.11: Settings change detection
     // ✅ V39.1 FIX: 60000 → 15000 — cashBalance দ্রুত detect হবে
     setInterval(() => {
       if (_pushing || _pulling || _syncBusy || Date.now() < _cooldownUntil) return;
@@ -1322,6 +1377,19 @@
         window.markDirty && window.markDirty('cashBalance');
         _schedulePush('monitor-cash');
       }
+      // ✅ V39.11 FIX: Settings change monitor — runningBatch, academyName ইত্যাদি
+      // Settings পরিবর্তন হলে immediate push করো
+      try {
+        const settingsStr = JSON.stringify(gd.settings || {});
+        const settingsHash = settingsStr.length + '_' + (gd.settings?.runningBatch || '') + '_' + (gd.settings?.monthlyTarget || '');
+        if (_lastSettingsHash === '') { _lastSettingsHash = settingsHash; }
+        else if (settingsHash !== _lastSettingsHash) {
+          _log('⚙️', `Settings change detected — scheduling push`);
+          _lastSettingsHash = settingsHash;
+          window.markDirty && window.markDirty('settings');
+          _schedulePush('monitor-settings');
+        }
+      } catch (e) {}
     }, 15000);
   }
 

@@ -394,12 +394,65 @@ function warnAskOrphan(txId, personName) {
       finance.splice(txIdx, 1);
       if (typeof saveToStorage === 'function') saveToStorage();
     }
-    if (typeof showSuccessToast === 'function') showSuccessToast('🗑️ Entry deleted!');
+
+    // ✅ V39.11 CRITICAL FIX: Cloud থেকেও সরাসরি delete marker push করো
+    // এটা না করলে পরবর্তী pull-এ cloud থেকে এই record আবার ফিরে আসে
+    _forceCloudDeleteOrphan(sid);
+
+    if (typeof showSuccessToast === 'function') showSuccessToast('🗑️ Entry permanently deleted!');
     const m = bootstrap.Modal.getInstance(document.getElementById('warnDetailsModal'));
     if (m) m.hide();
     setTimeout(showWarningDetailsModal, 350);
   }
 }
+
+// ✅ V39.11: Orphan record cloud থেকে permanently delete করার জন্য
+function _forceCloudDeleteOrphan(financeId) {
+  try {
+    const cfg = window.SUPABASE_CONFIG;
+    if (!cfg || !cfg.URL || !cfg.KEY) return;
+    const academyId = cfg.MAIN_RECORD || 'wingsfly_main';
+    const prefixedId = academyId + '_fin_' + financeId;
+
+    // Cloud-এ delete marker push করো (deleted=true, data=null)
+    const deleteRows = [
+      { id: prefixedId, academy_id: academyId, data: null, deleted: true },
+      { id: String(financeId), academy_id: academyId, data: null, deleted: true }
+    ];
+
+    const url = cfg.URL + '/rest/v1/wf_finance?on_conflict=id';
+    const hdrs = {
+      'Content-Type': 'application/json',
+      'apikey': cfg.KEY,
+      'Authorization': 'Bearer ' + cfg.KEY,
+      'Prefer': 'resolution=merge-duplicates'
+    };
+
+    fetch(url, {
+      method: 'POST',
+      headers: hdrs,
+      body: JSON.stringify(deleteRows)
+    }).then(res => {
+      if (res.ok) {
+        console.log('✅ Orphan delete marker pushed to cloud: ' + financeId);
+      } else {
+        console.warn('⚠️ Orphan cloud delete failed:', res.status);
+      }
+    }).catch(err => {
+      console.warn('⚠️ Orphan cloud delete error:', err);
+    });
+
+    // ✅ Force sync push to update version — অন্য device-এ pull trigger হবে
+    if (typeof window.wingsSync === 'object' && typeof window.wingsSync.pushNow === 'function') {
+      setTimeout(() => window.wingsSync.pushNow('orphan-delete'), 500);
+    } else if (typeof window.scheduleSyncPush === 'function') {
+      window.scheduleSyncPush('orphan-delete');
+    }
+  } catch (e) {
+    console.warn('[_forceCloudDeleteOrphan] error:', e);
+  }
+}
+window._forceCloudDeleteOrphan = _forceCloudDeleteOrphan;
 
 function warnAddCourse(courseName) {
   if (!window.globalData.courseNames) window.globalData.courseNames = [];
