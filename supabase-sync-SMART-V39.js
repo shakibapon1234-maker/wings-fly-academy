@@ -524,12 +524,41 @@
             return newest;
           };
 
+          // ✅ V40.2 FIX: Cloud এর activity_cleared_at load করো আগেই
+          if (mainRec.activity_cleared_at) {
+            const cloudClearedAt = new Date(mainRec.activity_cleared_at).getTime();
+            const localClearedAt = gd._activityClearedAt ? new Date(gd._activityClearedAt).getTime() : 0;
+            if (cloudClearedAt > localClearedAt) {
+              gd._activityClearedAt = mainRec.activity_cleared_at;
+              try { localStorage.setItem('wf_activity_cleared_at', mainRec.activity_cleared_at); } catch (e) {}
+            }
+          }
+
           if (mainRec.activity_history && Array.isArray(mainRec.activity_history)) {
             const cloudAct = _getNewest(mainRec.activity_history);
             const localAct = _getNewest(gd.activityHistory);
-            // Overwrite only if cloud is newer (solves the Clear Activity overwrite bug)
-            if (cloudAct > localAct && mainRec.activity_history.length > 0) {
+
+            // ✅ V40.2 FIX: Clear Activity History bug —
+            // User যদি clear করে থাকে, তাহলে _activityClearedAt timestamp check করো।
+            // Cloud-এর data যদি clear timestamp এর আগের হয়, তাহলে overwrite করবে না।
+            const clearedAt = gd._activityClearedAt
+              ? new Date(gd._activityClearedAt).getTime()
+              : (function () {
+                  try {
+                    const s = localStorage.getItem('wf_activity_cleared_at');
+                    return s ? new Date(s).getTime() : 0;
+                  } catch (e) { return 0; }
+                })();
+
+            // Cloud data যদি clearTime এর চেয়ে পুরনো হয়, pull করবো না
+            if (clearedAt > 0 && cloudAct <= clearedAt) {
+              _log('🧹', 'Activity History pull skipped — cleared locally at ' + new Date(clearedAt).toISOString());
+            } else if (cloudAct > localAct && mainRec.activity_history.length > 0) {
+              // ✅ Cloud newer AND user didn't clear after cloud's last entry — তখনই overwrite
               gd.activityHistory = mainRec.activity_history;
+              // ✅ Clear the cleared marker if cloud has fresher data (user re-populated)
+              if (gd._activityClearedAt) delete gd._activityClearedAt;
+              try { localStorage.removeItem('wf_activity_cleared_at'); } catch (e) {}
             }
           }
 
@@ -1083,6 +1112,7 @@
           visitors: gd.visitors || [],
           next_id: gd.nextId || 1001,
           activity_history: gd.activityHistory || [],
+          activity_cleared_at: gd._activityClearedAt || null,  // ✅ V40.2 FIX: clear timestamp cloud-এ পাঠাও
           deleted_items_other: gd.deletedItems?.other || [], // ✅ BUG E FIX: other category cloud-এ push
           // ✅ SESSION 4 FIX: Keep Records, Breakdown, Notices sync
           keep_records: (function () { try { return JSON.parse(localStorage.getItem('wingsfly_keep_records') || '[]'); } catch (e) { return []; } })(),
