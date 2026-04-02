@@ -21,11 +21,14 @@ function openEmployeeModal() {
     return;
   }
 
+  // ✅ FIX: Reset title for Add mode (Edit mode changes it)
+  const titleEl = modalEl.querySelector('.modal-title');
+  if (titleEl) titleEl.innerHTML = '<span class="me-2 header-icon-circle bg-primary-light">👔</span>Add New Employee';
+
   // Dynamic Role Population
   const roleSelect = form.querySelector('select[name="role"]');
   if (roleSelect) {
     const roles = globalData.employeeRoles || ['Instructor', 'Admin', 'Staff', 'Manager'];
-    // Preserve current selection if editing (though form.reset() clears it, editing logic might set it later)
     roleSelect.innerHTML = roles.map(r => `<option value="${r}">${r}</option>`).join('');
   }
 
@@ -222,7 +225,7 @@ function openEditEmployeeModal(id) {
   const employee = (globalData.employees || []).find(e => String(e.id) === String(id));
   if (!employee) { console.warn('[openEditEmployeeModal] employee not found:', id); return; }
 
-  // ✅ FIX: Fill form after modal is guaranteed to be in DOM
+  // ✅ V2 FIX: Fill form and show modal — called after modal is guaranteed in DOM
   function _fillAndShow() {
     const modalEl = document.getElementById('employeeModal');
     const form = document.getElementById('employeeForm');
@@ -260,38 +263,59 @@ function openEditEmployeeModal(id) {
       }
     }
 
-    // ✅ FIX: Use getOrCreateInstance to avoid duplicate modal errors
+    // ✅ Update modal title for Edit mode
+    const titleEl = modalEl.querySelector('.modal-title');
+    if (titleEl) titleEl.innerHTML = '<span class="me-2 header-icon-circle bg-primary-light">✏️</span>Edit Employee';
+
+    // ✅ V2 FIX: Use getOrCreateInstance to avoid duplicate modal errors
     try {
       window.employeeModalInstance = bootstrap.Modal.getOrCreateInstance(modalEl);
       window.employeeModalInstance.show();
     } catch (err) { console.error('[openEditEmployeeModal] show error:', err); }
   }
 
-  // ✅ FIX: Modal is lazy-loaded via section-loader — ensure it's in DOM first
+  // ✅ V2 FIX: Check if modal is already in DOM
   const modalEl = document.getElementById('employeeModal');
-  if (!modalEl) {
-    // Load modal via section-loader's openEmployeeModal, then fill
-    if (typeof window.openEmployeeModal === 'function') {
-      window.openEmployeeModal();
-    }
-    let tries = 0;
-    const poll = setInterval(() => {
-      tries++;
-      if (document.getElementById('employeeModal')) {
-        clearInterval(poll);
-        // Hide the blank modal first, then fill and reopen
-        setTimeout(() => {
-          const blank = bootstrap.Modal.getInstance(document.getElementById('employeeModal'));
-          if (blank) blank.hide();
-          setTimeout(_fillAndShow, 150);
-        }, 200);
-      } else if (tries > 30) {
-        clearInterval(poll);
-        console.error('[openEditEmployeeModal] Modal did not load after 3s');
-      }
-    }, 100);
-  } else {
+  if (modalEl) {
+    // Modal is already in DOM — fill and show directly (no loading needed)
     _fillAndShow();
+  } else {
+    // Modal NOT in DOM — load modals.html via section-loader
+    console.log('[openEditEmployeeModal] Modal not in DOM, loading via section-loader...');
+    if (window.sectionLoader && typeof window.sectionLoader.loadAndOpen === 'function') {
+      // ✅ V2 FIX: Use section-loader's loadAndOpen directly
+      // onLoaded callback fires BEFORE section-loader's 100ms _showModal timeout
+      // So we fill the form first — when modal finally shows, it already has data
+      window.sectionLoader.loadAndOpen('__modalPlaceholderOther', 'sections/modals.html', 'employeeModal', function() {
+        _fillAndShow();
+      });
+    } else {
+      // ✅ Ultimate fallback — use Bootstrap events for proper transition timing
+      if (typeof window.openEmployeeModal === 'function') {
+        window.openEmployeeModal();
+      }
+      var tries = 0;
+      var poll = setInterval(function() {
+        tries++;
+        var el = document.getElementById('employeeModal');
+        if (el) {
+          clearInterval(poll);
+          // Wait for Bootstrap show transition to complete, then hide and re-show with data
+          el.addEventListener('shown.bs.modal', function _onceShown() {
+            el.removeEventListener('shown.bs.modal', _onceShown);
+            var inst = bootstrap.Modal.getInstance(el);
+            if (inst) inst.hide();
+            el.addEventListener('hidden.bs.modal', function _onceHidden() {
+              el.removeEventListener('hidden.bs.modal', _onceHidden);
+              _fillAndShow();
+            }, { once: true });
+          }, { once: true });
+        } else if (tries > 30) {
+          clearInterval(poll);
+          console.error('[openEditEmployeeModal] Modal did not load after 3s');
+        }
+      }, 100);
+    }
   }
 }
 

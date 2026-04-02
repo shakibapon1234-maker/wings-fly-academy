@@ -486,7 +486,27 @@
     // 4. Employee
     window.openEmployeeModal = function (id) {
       loadAndOpen('__modalPlaceholderOther', 'sections/modals.html', 'employeeModal', function () {
-        if (typeof window.initEmployeeModal === 'function') window.initEmployeeModal(id);
+        // ✅ FIX: Reset form for Add mode (previously called undefined initEmployeeModal)
+        var form = document.getElementById('employeeForm');
+        if (form) form.reset();
+        var idField = document.getElementById('employeeId');
+        if (idField) idField.value = '';
+        // Reset title to Add mode
+        var mel = document.getElementById('employeeModal');
+        if (mel) {
+          var titleEl = mel.querySelector('.modal-title');
+          if (titleEl) titleEl.innerHTML = '<span class="me-2 header-icon-circle bg-primary-light">👔</span>Add New Employee';
+        }
+        // Populate roles dropdown
+        if (form) {
+          var roleSelect = form.querySelector('select[name="role"]');
+          if (roleSelect && window.globalData) {
+            var roles = (window.globalData.employeeRoles && window.globalData.employeeRoles.length)
+              ? window.globalData.employeeRoles
+              : ['Instructor', 'Admin', 'Staff', 'Manager'];
+            roleSelect.innerHTML = roles.map(function(r) { return '<option value="' + r + '">' + r + '</option>'; }).join('');
+          }
+        }
       });
     };
 
