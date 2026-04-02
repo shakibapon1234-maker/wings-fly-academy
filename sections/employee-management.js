@@ -170,7 +170,7 @@ function renderEmployeeList() {
     const tr = document.createElement('tr');
 
     let docLinks = '';
-    // Helper to check if URL is valid (Firebase storage or full https URL)
+    // Helper to check if URL is valid (full https URL)
     const isValidUrl = (url) => url && (url.startsWith('https://') || url.startsWith('http://'));
 
     if (e.docs) {
