@@ -434,9 +434,10 @@ function showDashboard(username) {
   localStorage.setItem('wingsfly_active_tab', 'dashboard');
   sessionStorage.setItem('wf_just_logged_in', 'true');
 
-  // ✈️ AVIATION LOADER: dashboard load হওয়ার সময় loading screen দেখাও
+  // ✈️ AVIATION LOADER: login → dashboard transition এ show করো
+  window.initialSyncComplete = false; // reset — pull শেষে true হবে
   if (typeof WingsLoader !== 'undefined') {
-    WingsLoader.show(3000);
+    WingsLoader.show(3500);
   }
 
   // V34.8 -> V35.1: Instant Dashboard load, Background Sync
@@ -463,11 +464,14 @@ function showDashboard(username) {
             if (typeof takeSnapshot === 'function') takeSnapshot();
             console.log('📸 Login snapshot saved (post-sync)');
           }
+          // ✈️ Sync complete — flag set + loader hide
+          window.initialSyncComplete = true;
           if (typeof WingsLoader !== 'undefined') WingsLoader.hide();
         }, 1000);
       }).catch(function (e) {
         console.warn('⚠️ Login sync failed:', e);
         sessionStorage.removeItem('wf_just_logged_in');
+        window.initialSyncComplete = true;
         if (typeof WingsLoader !== 'undefined') WingsLoader.hide();
       });
     } else if (typeof window.loadFromCloud === 'function') {
@@ -933,69 +937,107 @@ function checkSession() {
 // PAGE REFRESH → Same Tab Restore (Flash-Free)
 // ════════════════════════════════════════════════════════════════
 (function () {
-  // PERFORMANCE FIX: sessionStorage (reload) এবং localStorage (hard refresh) দুটো চেক করো
+  // ── Step 1: Session check (sync, instant) ──────────────────
   var _isSession = sessionStorage.getItem('isLoggedIn') === 'true';
   var _isLocalToken = !!localStorage.getItem('wf_session_token');
 
   if (!_isSession && _isLocalToken) {
-    // Hard Refresh হয়েছে — localStorage থেকে session restore করো
-    var _u = localStorage.getItem('wf_session_user') || 'Admin';
-    var _r = localStorage.getItem('wf_session_role') || 'admin';
+    var _u  = localStorage.getItem('wf_session_user')     || 'Admin';
+    var _r  = localStorage.getItem('wf_session_role')     || 'admin';
     var _cu = localStorage.getItem('wf_session_username') || 'admin';
-    sessionStorage.setItem('isLoggedIn', 'true');
-    sessionStorage.setItem('username', _u);
+    sessionStorage.setItem('isLoggedIn',   'true');
+    sessionStorage.setItem('username',     _u);
     sessionStorage.setItem('userFullName', _u);
-    sessionStorage.setItem('currentUser', _cu);
-    sessionStorage.setItem('role', _r);
-    sessionStorage.setItem('userRole', _r);
-    sessionStorage.setItem('authMode', 'legacy');
+    sessionStorage.setItem('currentUser',  _cu);
+    sessionStorage.setItem('role',         _r);
+    sessionStorage.setItem('userRole',     _r);
+    sessionStorage.setItem('authMode',     'legacy');
     _isSession = true;
     console.log('[Auth] Hard Refresh — session restored from localStorage token');
   }
 
   if (!_isSession) return;
 
+  // ── Step 2: Flash prevent style — SYNCHRONOUSLY, বাইরে ──────
+  // DOMContentLoaded এর ভেতরে রাখলে browser আগেই loginSection
+  // briefly render করে ফেলে। <head> না থাকলেও documentElement-এ
+  // এখনই inject করো — এটাই flash বন্ধের সবচেয়ে নির্ভরযোগ্য উপায়।
+  var _style = document.createElement('style');
+  _style.id = 'wf-flash-prevent';
+  _style.textContent = [
+    '#loginSection{display:none!important;visibility:hidden!important;opacity:0!important}',
+    '#dashboardSection{display:block!important}',
+    '#content{display:none}',
+    '#dashboardOverview{display:none}'
+  ].join('');
+  (document.head || document.documentElement).appendChild(_style);
+
+  // ── Step 3: Aviation Loader — SYNCHRONOUSLY ─────────────────
+  // WingsLoader script যদি auth.js এর আগে load হয়, এখনই দেখাও।
+  // না হলে DOMContentLoaded এ দেখাবো।
+  var _loaderShown = false;
+  function _showLoader() {
+    if (_loaderShown) return;
+    _loaderShown = true;
+    if (typeof WingsLoader !== 'undefined') {
+      WingsLoader.show(2500);
+    } else {
+      // Fallback: WingsLoader এখনো load হয়নি — 100ms পরে retry
+      setTimeout(function () {
+        if (typeof WingsLoader !== 'undefined') WingsLoader.show(2500);
+        _loaderShown = true;
+      }, 100);
+    }
+  }
+  _showLoader();
+
   var lastTab = localStorage.getItem('wingsfly_active_tab') || 'dashboard';
-  var style = document.createElement('style');
-  style.id = 'wf-flash-prevent';
-  style.textContent = '#loginSection{display:none!important}#dashboardSection{display:block!important}#content{display:none!important}#dashboardOverview{display:none!important}';
-  (document.head || document.documentElement).appendChild(style);
 
-  document.addEventListener('DOMContentLoaded', function () {
+  // ── Step 4: DOM ready হলে dashboard দেখাও ─────────────────
+  function _onReady() {
     var login = document.getElementById('loginSection');
-    var dash = document.getElementById('dashboardSection');
-    if (!login || !dash) return;
+    var dash  = document.getElementById('dashboardSection');
+    if (login) { login.classList.add('d-none'); login.style.display = 'none'; }
+    if (dash)  { dash.classList.remove('d-none'); dash.style.display = 'block'; }
 
-    login.classList.add('d-none');
-    dash.classList.remove('d-none');
-    var loader = document.getElementById('loader');
+    var loader    = document.getElementById('loader');
     var contentEl = document.getElementById('content');
-    if (loader) loader.style.display = 'block';
+    if (loader)    loader.style.display = 'block';
     if (contentEl) contentEl.style.display = 'none';
 
-    // ✈️ AVIATION LOADER: reload/refresh এ loading screen দেখাও
-    if (typeof WingsLoader !== 'undefined') WingsLoader.show(2000);
-
     console.log('[Auth] Refresh restore → tab:', lastTab);
-
     try {
       if (typeof switchTab === 'function') switchTab(lastTab, false);
       if (typeof updateGlobalStats === 'function') updateGlobalStats();
       if (typeof populateDropdowns === 'function') populateDropdowns();
-    } catch (e) {
-      console.warn('[Auth] Tab restore error:', e);
-    }
+    } catch (e) { console.warn('[Auth] Tab restore error:', e); }
 
-    if (loader) loader.style.display = 'none';
+    if (loader)    loader.style.display = 'none';
     if (contentEl) contentEl.style.display = 'block';
 
-    // ✈️ AVIATION LOADER: restore শেষ — hide
-    setTimeout(function () {
+    // Aviation Loader hide — sync + background sync শেষে
+    var _hdone = false;
+    function _hideLdr() {
+      if (_hdone) return; _hdone = true;
       if (typeof WingsLoader !== 'undefined') WingsLoader.hide();
-    }, 1200);
+    }
+    // Minimum 1.5s দেখাও — তারপর hide
+    setTimeout(_hideLdr, 1500);
+    // wingsSync ready হলে pull শেষে hide
+    var _syncPoll = setInterval(function () {
+      if (window.initialSyncComplete) { clearInterval(_syncPoll); setTimeout(_hideLdr, 300); }
+    }, 200);
+    setTimeout(function () { clearInterval(_syncPoll); _hideLdr(); }, 5000); // max 5s guard
+
     var s = document.getElementById('wf-flash-prevent');
     if (s) s.remove();
-  });
+  }
+
+  if (document.readyState === 'loading') {
+    document.addEventListener('DOMContentLoaded', _onReady);
+  } else {
+    _onReady(); // already ready (defer script)
+  }
 })();
 
 // ════════════════════════════════════════════════════════════════
