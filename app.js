@@ -300,9 +300,36 @@ function loadFromStorage() {
       if (typeof globalData !== 'undefined') globalData = window.globalData;
 
       if (!window.globalData.employees) window.globalData.employees = [];
-      if (!window.globalData.deletedItems || Array.isArray(window.globalData.deletedItems)) {
-        window.globalData.deletedItems = { students: [], finance: [], employees: [] };
-      }
+      // ✅ FIX: deletedItems কে flat array + object properties দুটোই সাপোর্ট করো
+      // student-management.js চায় .some() (array), recycle-bin চায় .students/.finance (object)
+      (function normDeletedItems() {
+        const di = window.globalData.deletedItems;
+        if (!di) {
+          // নেই — নতুন বানাও
+          const arr = [];
+          arr.students = []; arr.finance = []; arr.employees = []; arr.other = [];
+          window.globalData.deletedItems = arr;
+        } else if (!Array.isArray(di)) {
+          // Object আছে — flat array তে convert করো, properties রাখো
+          const flat = [
+            ...(di.students  || []),
+            ...(di.finance   || []),
+            ...(di.employees || []),
+            ...(di.other     || [])
+          ];
+          flat.students  = di.students  || [];
+          flat.finance   = di.finance   || [];
+          flat.employees = di.employees || [];
+          flat.other     = di.other     || [];
+          window.globalData.deletedItems = flat;
+        } else {
+          // Array আছে — object properties নিশ্চিত করো
+          if (!di.students)  di.students  = [];
+          if (!di.finance)   di.finance   = [];
+          if (!di.employees) di.employees = [];
+          if (!di.other)     di.other     = [];
+        }
+      })();
       if (!window.globalData.activityHistory) window.globalData.activityHistory = [];
       ensureStudentIds();
 
