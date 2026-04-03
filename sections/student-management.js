@@ -229,8 +229,10 @@ function renderLedger(transactions) {
     var db = (typeof window.getSortableDate === 'function') ? window.getSortableDate(b.date || b.createdAt || '') : String(b.date || b.createdAt || '').slice(0, 10);
     if (db > da) return 1;
     if (db < da) return -1;
-    // Same date হলে id (timestamp) দিয়ে sort — নতুনটা আগে
-    return (parseInt(b.id) || 0) - (parseInt(a.id) || 0);
+    // Same date হলে timestamp দিয়ে sort — নতুনটা আগে (ID parsing এর বদলে timestamp ব্যবহার)
+    const ta = a.timestamp || a.createdAt || '';
+    const tb = b.timestamp || b.createdAt || '';
+    return tb.localeCompare(ta);
   });
 
   function _buildLedgerRow(f, idx) {
