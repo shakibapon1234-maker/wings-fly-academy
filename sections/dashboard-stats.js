@@ -115,14 +115,20 @@ function updateGlobalStats() {
       const amt = parseFloat(f.amount) || 0;
       const desc = f.description || '';
 
-      // Match by studentId field directly
+      // ✅ Match 1: studentId field directly (e.g. WF-19001 is in studentIds set)
       const byStudentId = f.studentId && studentIds.has(f.studentId);
-      // Match by description containing "Batch: X" or "| Batch: X"
-      const byDescBatch = desc.includes('Batch: ' + selectedBatchStr) || desc.includes('| Batch:' + selectedBatchStr);
-      // Match by studentId prefix (e.g. WF-6-)
-      const byIdPrefix = f.studentId && f.studentId.startsWith('WF-' + selectedBatchStr + '-');
+      // ✅ Match 2: description "Batch: 19" or "| Batch: 19" or "| Batch:19" (space optional)
+      const byDescBatch = desc.includes('Batch: ' + selectedBatchStr) ||
+                          desc.includes('| Batch: ' + selectedBatchStr) ||
+                          desc.includes('| Batch:' + selectedBatchStr);
+      // ✅ Match 3: studentId starts with WF-{batchNum} (correct format: WF-19001, not WF-19-)
+      const byIdPrefix = f.studentId && f.studentId.startsWith('WF-' + selectedBatchStr);
+      // ✅ Match 4: Student Fee + person name matches a batch student (fallback)
+      const batchStudentNames = new Set(filteredStudents.map(s => (s.name || '').toLowerCase().trim()));
+      const byPersonName = (f.category === 'Student Fee' || f.category === 'Student Installment') &&
+                           f.person && batchStudentNames.has((f.person || '').toLowerCase().trim());
 
-      if (byStudentId || byDescBatch || byIdPrefix) {
+      if (byStudentId || byDescBatch || byIdPrefix || byPersonName) {
         runStudentIncome += amt;
       }
     });
