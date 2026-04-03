@@ -1,59 +1,56 @@
 /**
- * Debug: Check why batch 19 collection shows zero
+ * Debug: Check batch 19 students in detail
+ * Run in browser console: debugBatch19()
  */
 window.debugBatch19 = function() {
   const students = window.globalData?.students || [];
   const finance = window.globalData?.finance || [];
   
-  console.log('=== DEBUG BATCH 19 COLLECTION ===');
+  console.clear();
+  console.log('═'.repeat(50));
+  console.log('🔍 BATCH 19 DETAILED DEBUG');
+  console.log('═'.repeat(50));
   
-  // Get batch 19 students
-  const batch19Students = students.filter(s => String(s.batch) === '19');
-  console.log('\n📚 Batch 19 students:', batch19Students.length);
-  batch19Students.forEach((s, i) => {
-    console.log(`  ${i+1}. ${s.name} | ID: ${s.studentId} | batch: ${s.batch}`);
+  // All students
+  console.log('\n📚 TOTAL STUDENTS:', students.length);
+  
+  // Batch 19 students
+  const batch19 = students.filter(s => String(s.batch) === '19');
+  console.log('\n📚 Batch 19 students:', batch19.length);
+  batch19.forEach((s, i) => {
+    console.log(`  ${i+1}. ID: ${s.studentId}, Name: ${s.name}, Phone: ${s.phone}, Batch: ${s.batch}`);
   });
   
-  // Get student IDs for batch 19
-  const batch19Ids = new Set(batch19Students.map(s => s.studentId).filter(Boolean));
-  console.log('\n📛 Batch 19 student IDs:', Array.from(batch19Ids));
+  // Finance for batch 19
+  console.log('\n💰 TOTAL FINANCE RECORDS:', finance.length);
   
-  // Find finance for batch 19
-  console.log('\n💰 Finance for batch 19:');
-  const batch19Finance = finance.filter(f => {
+  const batch19Ids = new Set(batch19.map(s => s.studentId).filter(Boolean));
+  const batch19Names = new Set(batch19.map(s => (s.name || '').toLowerCase().trim()).filter(Boolean));
+  
+  const batch19Fin = finance.filter(f => {
     if (f._deleted) return false;
-    if (f.type !== 'Income') return false;
-    
-    const amt = parseFloat(f.amount) || 0;
+    const stuId = f.studentId || '';
     const desc = (f.description || '').toLowerCase();
-    const person = (f.person || '').toLowerCase();
-    const stuId = f.studentId;
+    const person = (f.person || '').toLowerCase().trim();
     
-    // Match by studentId
-    const byId = stuId && batch19Ids.has(stuId);
-    // Match by batch in description
-    const byBatch = desc.includes('batch: 19') || desc.includes('batch:19') || desc.includes('| batch:19');
-    // Match by person name in batch 19
-    const byPerson = batch19Students.some(s => person.includes((s.name || '').toLowerCase()));
-    // Match by ID prefix
-    const byPrefix = stuId && stuId.startsWith('WF-19-');
-    
-    return byId || byBatch || byPerson || byPrefix;
+    return batch19Ids.has(stuId) || 
+           desc.includes('batch: 19') || desc.includes('batch:19') ||
+           batch19Names.has(person) ||
+           [...batch19Names].some(n => n.length > 3 && desc.includes(n));
   });
   
-  console.log('Found:', batch19Finance.length);
-  let total = 0;
-  batch19Finance.forEach(f => {
-    console.log(`  - ${f.type}: ৳${f.amount} | ${f.date} | person: ${f.person} | studentId: ${f.studentId}`);
-    console.log(`    desc: ${f.description}`);
-    total += parseFloat(f.amount) || 0;
+  console.log('\n💰 Batch 19 finance:', batch19Fin.length);
+  batch19Fin.forEach((f, i) => {
+    console.log(`  ${i+1}. ID: ${f.id}, Amount: ${f.amount}, Person: ${f.person}, Desc: ${f.description?.substring(0, 50)}`);
   });
-  console.log('\n💵 Total batch 19 collection:', total);
   
-  // Show all income type transactions
-  console.log('\n📊 All Income transactions:', finance.filter(f => f.type === 'Income').length);
+  const total = batch19Fin.reduce((sum, f) => sum + (parseFloat(f.amount) || 0), 0);
+  console.log('\n💵 TOTAL COLLECTION:', total);
   
-  return { students: batch19Students.length, finance: batch19Finance.length, total };
+  console.log('\n═'.repeat(50));
+  console.log('✅ Run complete!');
+  console.log('═'.repeat(50));
+  
+  return { students: batch19.length, finance: batch19Fin.length, total };
 };
-
 console.log('✅ debug-batch19.js loaded. Run: debugBatch19()');
