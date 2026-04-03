@@ -41,9 +41,32 @@
                             var bk = localStorage.getItem('wingsfly_deleted_backup');
                             if (bk) window.globalData.deletedItems = JSON.parse(bk);
                         } catch (e) { }
-                        if (!window.globalData.deletedItems || Array.isArray(window.globalData.deletedItems)) {
-                          window.globalData.deletedItems = { students: [], finance: [], employees: [] };
-                        }
+                        // ✅ FIX: deletedItems array + object properties দুটোই support করো
+                        (function() {
+                          const di = window.globalData.deletedItems;
+                          if (!di) {
+                            const arr = [];
+                            arr.students = []; arr.finance = []; arr.employees = []; arr.other = [];
+                            window.globalData.deletedItems = arr;
+                          } else if (!Array.isArray(di)) {
+                            const flat = [
+                              ...(Array.isArray(di.students) ? di.students : []),
+                              ...(Array.isArray(di.finance) ? di.finance : []),
+                              ...(Array.isArray(di.employees) ? di.employees : []),
+                              ...(Array.isArray(di.other) ? di.other : [])
+                            ];
+                            flat.students = Array.isArray(di.students) ? di.students : [];
+                            flat.finance = Array.isArray(di.finance) ? di.finance : [];
+                            flat.employees = Array.isArray(di.employees) ? di.employees : [];
+                            flat.other = Array.isArray(di.other) ? di.other : [];
+                            window.globalData.deletedItems = flat;
+                          } else {
+                            if (!Array.isArray(di.students)) di.students = [];
+                            if (!Array.isArray(di.finance)) di.finance = [];
+                            if (!Array.isArray(di.employees)) di.employees = [];
+                            if (!Array.isArray(di.other)) di.other = [];
+                          }
+                        })();
                         if (typeof window.loadDeletedItems === 'function') window.loadDeletedItems();
                     };
                     console.log('[SafetyNet] renderRecycleBin defined ✓');

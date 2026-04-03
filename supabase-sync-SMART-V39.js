@@ -283,10 +283,40 @@
   }
 
   // ── V39: ENSURE deletedItems IS ALWAYS OBJECT (never array) ──
+  // ✅ FIXED: deletedItems সবসময় array হবে যেখানে
+  // .students/.finance/.employees properties ও থাকবে
+  // এতে .some() (array method) এবং .students[] (object access) দুটোই কাজ করবে
   function _ensureDeletedItemsObject(gd) {
-    if (window.WingsUtils && window.WingsUtils.ensureDeletedItemsObject) {
-      window.WingsUtils.ensureDeletedItemsObject(gd);
+    if (!gd) return;
+    const di = gd.deletedItems;
+    if (!di) {
+      const arr = [];
+      arr.students = []; arr.finance = []; arr.employees = []; arr.other = [];
+      gd.deletedItems = arr;
+    } else if (!Array.isArray(di)) {
+      // Plain object → flat array তে convert করো, categories রাখো
+      const flat = [
+        ...(Array.isArray(di.students)  ? di.students  : []),
+        ...(Array.isArray(di.finance)   ? di.finance   : []),
+        ...(Array.isArray(di.employees) ? di.employees : []),
+        ...(Array.isArray(di.other)     ? di.other     : [])
+      ];
+      flat.students  = Array.isArray(di.students)  ? di.students  : [];
+      flat.finance   = Array.isArray(di.finance)   ? di.finance   : [];
+      flat.employees = Array.isArray(di.employees) ? di.employees : [];
+      flat.other     = Array.isArray(di.other)     ? di.other     : [];
+      if (di._clearedAt) flat._clearedAt = di._clearedAt;
+      gd.deletedItems = flat;
+    } else {
+      // Array আছে — object properties নিশ্চিত করো
+      if (!Array.isArray(di.students))  di.students  = [];
+      if (!Array.isArray(di.finance))   di.finance   = [];
+      if (!Array.isArray(di.employees)) di.employees = [];
+      if (!Array.isArray(di.other))     di.other     = [];
     }
+    // WingsUtils এও export করো যাতে অন্য ফাইল ব্যবহার করতে পারে
+    if (!window.WingsUtils) window.WingsUtils = {};
+    window.WingsUtils.ensureDeletedItemsObject = _ensureDeletedItemsObject;
   }
 
   // ── INIT ──────────────────────────────────────────────────────

@@ -45,8 +45,24 @@ if (typeof globalData === 'undefined') {
 }
 
 // সবসময় নিশ্চিত করো
-if (!window.globalData.deletedItems || Array.isArray(window.globalData.deletedItems)) {
-  window.globalData.deletedItems = { students: [], finance: [], employees: [] };
+// ✅ FIX: ensure deletedItems is array with category properties
+if (typeof window.WingsUtils?.ensureDeletedItemsObject === 'function') {
+  window.WingsUtils.ensureDeletedItemsObject(window.globalData);
+} else {
+  const _di = window.globalData.deletedItems;
+  if (!_di || (!Array.isArray(_di) && typeof _di !== 'object')) {
+    const arr = []; arr.students=[]; arr.finance=[]; arr.employees=[]; arr.other=[];
+    window.globalData.deletedItems = arr;
+  } else if (!Array.isArray(_di)) {
+    const flat = [...(_di.students||[]),...(_di.finance||[]),...(_di.employees||[]),...(_di.other||[])];
+    flat.students=_di.students||[]; flat.finance=_di.finance||[]; flat.employees=_di.employees||[]; flat.other=_di.other||[];
+    window.globalData.deletedItems = flat;
+  } else {
+    if(!Array.isArray(_di.students)) _di.students=[];
+    if(!Array.isArray(_di.finance)) _di.finance=[];
+    if(!Array.isArray(_di.employees)) _di.employees=[];
+    if(!Array.isArray(_di.other)) _di.other=[];
+  }
 }
 if (!window.globalData.activityHistory) window.globalData.activityHistory = [];
 
@@ -224,9 +240,23 @@ let courseChartInstance = null;
 async function saveToStorage(skipCloudSync = false) {
   try {
     // Arrays নিশ্চিত করো
-    if (!window.globalData.deletedItems || Array.isArray(window.globalData.deletedItems)) {
-      window.globalData.deletedItems = { students: [], finance: [], employees: [] };
-    }
+    // ✅ FIX: deletedItems array + category properties দুটোই support
+    (function() {
+      const di = window.globalData.deletedItems;
+      if (!di) {
+        const arr=[]; arr.students=[]; arr.finance=[]; arr.employees=[]; arr.other=[];
+        window.globalData.deletedItems = arr;
+      } else if (!Array.isArray(di)) {
+        const flat=[...(di.students||[]),...(di.finance||[]),...(di.employees||[]),...(di.other||[])];
+        flat.students=di.students||[]; flat.finance=di.finance||[]; flat.employees=di.employees||[]; flat.other=di.other||[];
+        window.globalData.deletedItems = flat;
+      } else {
+        if(!Array.isArray(di.students)) di.students=[];
+        if(!Array.isArray(di.finance)) di.finance=[];
+        if(!Array.isArray(di.employees)) di.employees=[];
+        if(!Array.isArray(di.other)) di.other=[];
+      }
+    })();
     if (!window.globalData.activityHistory) window.globalData.activityHistory = [];
 
     // ✅ V34.9 FIX (PATCHED v2): Finance integrity check
