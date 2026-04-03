@@ -2346,6 +2346,169 @@ window.addEventListener('load', function() {
 });
 </script>
 <!-- delete-sync-fix-V2.js removed — file does not exist (404) -->
+<!-- ═══════════════════════════════════════════════════════
+     WINGS FLY — SYNC DEDUP GUARDIAN (Inline v1.0)
+     Push/Pull duplicate & prefix guard — সব data type
+     ════════════════════════════════════════════════════ -->
+<script>
+(function () {
+  'use strict';
+  const ACADEMY_ID = window.SUPABASE_CONFIG?.ACADEMY_ID || 'wingsfly_main';
+  const BAD_PREFIXES = [ACADEMY_ID+'_stu_', ACADEMY_ID+'_fin_', ACADEMY_ID+'_emp_'];
+
+  function _hasBadPrefix(id) {
+    const s = String(id || '');
+    return BAD_PREFIXES.some(function(p){ return s.startsWith(p); });
+  }
+
+  function _finKey(f) {
+    const d = f.data || f;
+    return [d.type||'', String(parseFloat(d.amount)||0), d.date||'',
+            (d.person||'').trim().toLowerCase(), d.category||'',
+            (d.description||'').replace(/\s+/g,'').substring(0,30)].join('|');
+  }
+
+  // Local dedup
+  function dedupLocal() {
+    const gd = window.globalData;
+    if (!gd) return;
+    if (Array.isArray(gd.finance)) {
+      const seen = new Set(), before = gd.finance.length;
+      gd.finance = gd.finance.filter(function(f) {
+        if (f._deleted) return true;
+        const k = _finKey(f);
+        if (seen.has(k)) return false;
+        seen.add(k); return true;
+      });
+      if (gd.finance.length < before)
+        console.log('[DedupGuard] Finance dedup: -' + (before - gd.finance.length));
+    }
+    if (Array.isArray(gd.students)) {
+      const seen = new Set(), before = gd.students.length;
+      gd.students = gd.students.filter(function(s) {
+        const id = String(s.studentId || s.id || '');
+        if (!id) return true;
+        if (seen.has(id)) return false;
+        seen.add(id); return true;
+      });
+      if (gd.students.length < before)
+        console.log('[DedupGuard] Student dedup: -' + (before - gd.students.length));
+    }
+    if (Array.isArray(gd.employees)) {
+      const seen = new Set(), before = gd.employees.length;
+      gd.employees = gd.employees.filter(function(e) {
+        const id = String(e.id || '');
+        if (!id) return true;
+        if (seen.has(id)) return false;
+        seen.add(id); return true;
+      });
+      if (gd.employees.length < before)
+        console.log('[DedupGuard] Employee dedup: -' + (before - gd.employees.length));
+    }
+  }
+  window.dedupLocal = dedupLocal;
+
+  // Push guard
+  function guardPushRows(rows, kind) {
+    if (!Array.isArray(rows)) return rows;
+    const clean = rows.filter(function(r) {
+      if (_hasBadPrefix(r.id)) {
+        console.log('[DedupGuard] Push blocked prefixed ' + kind + ': ' + r.id);
+        return false;
+      }
+      return true;
+    });
+    if (kind === 'finance') {
+      const seen = new Set();
+      return clean.filter(function(r) {
+        const k = _finKey(r);
+        if (seen.has(k)) { console.log('[DedupGuard] Dup finance push blocked: ' + r.id); return false; }
+        seen.add(k); return true;
+      });
+    }
+    return clean;
+  }
+
+  // Pull guard
+  function guardPullRows(rows, kind) {
+    if (!Array.isArray(rows)) return rows;
+    const noPfx = rows.filter(function(r){ return !_hasBadPrefix(r.id); });
+    if (noPfx.length < rows.length)
+      console.log('[DedupGuard] Pull filtered ' + (rows.length - noPfx.length) + ' prefixed ' + kind);
+    const gd = window.globalData;
+    const delKeys = new Set();
+    if (gd && gd.deletedItems) {
+      const di = gd.deletedItems;
+      const arr = kind==='finance' ? (di.finance||[]) : kind==='student' ? (di.students||[]) : (di.employees||[]);
+      arr.forEach(function(item) {
+        const id = typeof item==='string' ? item : (item && (item.id||item.sourceId||(item.item&&(item.item.id||item.item.studentId))));
+        if (id) delKeys.add(String(id));
+      });
+    }
+    return noPfx.filter(function(r) {
+      if (delKeys.has(String(r.id))) {
+        console.log('[DedupGuard] Pull blocked locally-deleted ' + kind + ': ' + r.id);
+        return false;
+      }
+      return true;
+    });
+  }
+  window.guardPullRows = guardPullRows;
+
+  // Supabase push intercept
+  function patchSupabase() {
+    const sb = window.__wings_supabase_singleton || window.supabaseClient;
+    if (!sb || sb._dedupGuardian) return;
+    const origFrom = sb.from.bind(sb);
+    sb.from = function(table) {
+      const builder = origFrom(table);
+      const CFG = window.SUPABASE_CONFIG || {};
+      const kind = table===(CFG.TBL_STUDENTS||'wf_students') ? 'student' :
+                   table===(CFG.TBL_FINANCE||'wf_finance')   ? 'finance' :
+                   table===(CFG.TBL_EMPLOYEES||'wf_employees')? 'employee': null;
+      if (!kind) return builder;
+      const origUpsert = builder.upsert.bind(builder);
+      builder.upsert = function(rows, opts) {
+        if (Array.isArray(rows)) rows = guardPushRows(rows, kind);
+        return origUpsert(rows, opts);
+      };
+      const origInsert = builder.insert.bind(builder);
+      builder.insert = function(rows, opts) {
+        if (Array.isArray(rows)) rows = guardPushRows(rows, kind);
+        return origInsert(rows, opts);
+      };
+      return builder;
+    };
+    sb._dedupGuardian = true;
+    console.log('[DedupGuard] Supabase push interceptor active');
+  }
+
+  function startup() {
+    if (window.globalData) dedupLocal();
+    patchSupabase();
+    let tries = 0;
+    const waitSync = setInterval(function() {
+      const ws = window.wingsSync;
+      if (ws && !ws._dedupGuardian) {
+        const origPush = ws.pushNow && ws.pushNow.bind(ws);
+        if (origPush) { ws.pushNow = function() { dedupLocal(); return origPush.apply(this, arguments); }; }
+        const origForce = ws.forcePush && ws.forcePush.bind(ws);
+        if (origForce) { ws.forcePush = function() { dedupLocal(); return origForce.apply(this, arguments); }; }
+        ws._dedupGuardian = true;
+        console.log('[DedupGuard] wingsSync push patched');
+      }
+      if (ws || ++tries > 20) clearInterval(waitSync);
+    }, 500);
+    console.log('[DedupGuard] V1.0 Active — Push/Pull guard ON');
+  }
+
+  if (document.readyState === 'loading') {
+    document.addEventListener('DOMContentLoaded', startup);
+  } else {
+    startup();
+  }
+})();
+</script>
 </body>
 
 </html>
