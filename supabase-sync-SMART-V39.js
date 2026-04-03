@@ -516,9 +516,25 @@
           finance: gd.finance || [],
           employees: gd.employees || []
         };
-        gd.students = _mergeRecords(local.students, stuRes.data, s => s.studentId || s.id || s.phone || s.name, delStuKeys);
-        gd.finance = _mergeRecords(local.finance, finRes.data, f => f.id || f.timestamp, delFinKeys);
-        gd.employees = _mergeRecords(local.employees, empRes.data, e => e.id, delEmpKeys);
+
+        // ✅ PREFIX FIX: Cloud থেকে আসা rows এ prefix থাকলে সেগুলো বাদ দাও
+        // wingsfly_main_stu_, wingsfly_main_fin_, wingsfly_main_emp_ prefix rows skip
+        const _hasBadPrefix = (row) => {
+          const id = String(row.id || '');
+          return id.includes('_stu_') || id.includes('_fin_') || id.includes('_emp_');
+        };
+        const cleanStuData = (stuRes.data || []).filter(r => !_hasBadPrefix(r));
+        const cleanFinData = (finRes.data || []).filter(r => !_hasBadPrefix(r));
+        const cleanEmpData = (empRes.data || []).filter(r => !_hasBadPrefix(r));
+        
+        if (cleanStuData.length < (stuRes.data||[]).length)
+          _log('🧹', `Filtered ${(stuRes.data||[]).length - cleanStuData.length} prefixed student rows`);
+        if (cleanFinData.length < (finRes.data||[]).length)
+          _log('🧹', `Filtered ${(finRes.data||[]).length - cleanFinData.length} prefixed finance rows`);
+
+        gd.students = _mergeRecords(local.students, cleanStuData, s => s.studentId || s.id || s.phone || s.name, delStuKeys);
+        gd.finance = _mergeRecords(local.finance, cleanFinData, f => f.id || f.timestamp, delFinKeys);
+        gd.employees = _mergeRecords(local.employees, cleanEmpData, e => e.id, delEmpKeys);
 
         // ✅ V39.7 FIX: Content-based deduplication for finance entries
         // Two entries can have different IDs (SAL_xxx) but be the same transaction
@@ -1112,7 +1128,7 @@
             if (!_skipDataPush && changed.length > 0) {
               const stuRows = changed.map(s => {
                 const sid = s.studentId || s.id || s.phone || s.name;
-                return { id: `${CFG.ACADEMY_ID}_stu_${sid}`, academy_id: CFG.ACADEMY_ID, data: s, deleted: false };
+                return { id: `${sid}`, academy_id: CFG.ACADEMY_ID, data: s, deleted: false };
               });
               const res = await _sb.from(CFG.TBL_STUDENTS).upsert(stuRows, { onConflict: 'id' });
               if (res && res.error) throw res.error;
@@ -1126,9 +1142,9 @@
               const recId = _getDeletedRecordId(item, 'student');
               if (!recId) return;
               // ✅ V39.9 FIX: Push BOTH prefixed AND original row as deleted
-              stuDelRows.push({ id: `${CFG.ACADEMY_ID}_stu_${recId}`, academy_id: CFG.ACADEMY_ID, data: null, deleted: true });
+              stuDelRows.push({ id: `${recId}`, academy_id: CFG.ACADEMY_ID, data: null, deleted: true });
               // Also soft-delete the original (non-prefixed) row if it exists
-              if (String(recId) !== `${CFG.ACADEMY_ID}_stu_${recId}`) {
+              if (String(recId) !== `${recId}`) {
                 stuDelRows.push({ id: String(recId), academy_id: CFG.ACADEMY_ID, data: null, deleted: true });
               }
             });
@@ -1170,7 +1186,7 @@
             }
             if (!_skipFinDataPush && changed.length > 0) {
               const finRows = changed.map(f => ({
-                id: `${CFG.ACADEMY_ID}_fin_${f.id || f.timestamp}`,
+                id: `${f.id || f.timestamp}`,
                 academy_id: CFG.ACADEMY_ID, data: f, deleted: false
               }));
               const res = await _sb.from(CFG.TBL_FINANCE).upsert(finRows, { onConflict: 'id' });
@@ -1185,9 +1201,9 @@
               const recId = _getDeletedRecordId(item, 'finance');
               if (!recId) return;
               // ✅ V39.9 FIX: Push BOTH prefixed AND original row as deleted
-              finDelRows.push({ id: `${CFG.ACADEMY_ID}_fin_${recId}`, academy_id: CFG.ACADEMY_ID, data: null, deleted: true });
+              finDelRows.push({ id: `${recId}`, academy_id: CFG.ACADEMY_ID, data: null, deleted: true });
               // Also soft-delete the original (non-prefixed) row if it exists
-              if (String(recId) !== `${CFG.ACADEMY_ID}_fin_${recId}`) {
+              if (String(recId) !== `${recId}`) {
                 finDelRows.push({ id: String(recId), academy_id: CFG.ACADEMY_ID, data: null, deleted: true });
               }
             });
@@ -1230,7 +1246,7 @@
             }
             if (!_skipEmpDataPush && empChanged.length > 0) {
               const empRows = empChanged.map(e => ({
-                id: `${CFG.ACADEMY_ID}_emp_${e.id}`, academy_id: CFG.ACADEMY_ID, data: e, deleted: false
+                id: `${e.id}`, academy_id: CFG.ACADEMY_ID, data: e, deleted: false
               }));
               const res = await _sb.from(CFG.TBL_EMPLOYEES).upsert(empRows, { onConflict: 'id' });
               if (res && res.error) throw res.error;
@@ -1243,9 +1259,9 @@
               const recId = _getDeletedRecordId(item, 'employee');
               if (!recId) return;
               // ✅ V39.9 FIX: Push BOTH prefixed AND original row as deleted
-              empDelRows.push({ id: `${CFG.ACADEMY_ID}_emp_${recId}`, academy_id: CFG.ACADEMY_ID, data: null, deleted: true });
+              empDelRows.push({ id: `${recId}`, academy_id: CFG.ACADEMY_ID, data: null, deleted: true });
               // Also soft-delete the original (non-prefixed) row if it exists
-              if (String(recId) !== `${CFG.ACADEMY_ID}_emp_${recId}`) {
+              if (String(recId) !== `${recId}`) {
                 empDelRows.push({ id: String(recId), academy_id: CFG.ACADEMY_ID, data: null, deleted: true });
               }
             });
@@ -1648,12 +1664,12 @@
         if (_dirty.has('students') && (gd.students || []).length > 0) {
           const stuRows = (gd.students || []).slice(0, 50).map(s => {
             const sid = s.studentId || s.id || s.phone || s.name;
-            return { id: `${CFG.ACADEMY_ID}_stu_${sid}`, academy_id: CFG.ACADEMY_ID, data: s, deleted: false };
+            return { id: `${sid}`, academy_id: CFG.ACADEMY_ID, data: s, deleted: false };
           });
           // ✅ FIX: Delete markers ও push করো
           const stuDel = (gd.deletedItems?.students || []).slice(0, 50).map(d => {
             const rid = _getDeletedRecordId(d, 'student');
-            return rid ? { id: `${CFG.ACADEMY_ID}_stu_${rid}`, academy_id: CFG.ACADEMY_ID, data: null, deleted: true } : null;
+            return rid ? { id: `${rid}`, academy_id: CFG.ACADEMY_ID, data: null, deleted: true } : null;
           }).filter(x => x);
           const allStuRows = stuRows.concat(stuDel);
           const stuUrl = `${CFG.URL}/rest/v1/${CFG.TBL_STUDENTS}?on_conflict=id`;
@@ -1667,7 +1683,7 @@
           // ✅ FIX: Delete markers ও push করো
           const finDel = (gd.deletedItems?.finance || []).slice(0, 50).map(d => {
             const rid = _getDeletedRecordId(d, 'finance');
-            return rid ? { id: `${CFG.ACADEMY_ID}_fin_${rid}`, academy_id: CFG.ACADEMY_ID, data: null, deleted: true } : null;
+            return rid ? { id: `${rid}`, academy_id: CFG.ACADEMY_ID, data: null, deleted: true } : null;
           }).filter(x => x);
           const allFinRows = finRows.concat(finDel);
           const finUrl = `${CFG.URL}/rest/v1/${CFG.TBL_FINANCE}?on_conflict=id`;
@@ -1676,11 +1692,11 @@
         }
         if (_dirty.has('employees') && (gd.employees || []).length > 0) {
           const empRows = (gd.employees || []).slice(0, 50).map(e => ({
-            id: `${CFG.ACADEMY_ID}_emp_${e.id}`, academy_id: CFG.ACADEMY_ID, data: e, deleted: false
+            id: `${e.id}`, academy_id: CFG.ACADEMY_ID, data: e, deleted: false
           }));
           const empDel = (gd.deletedItems?.employees || []).slice(0, 50).map(d => {
             const rid = _getDeletedRecordId(d, 'employee');
-            return rid ? { id: `${CFG.ACADEMY_ID}_emp_${rid}`, academy_id: CFG.ACADEMY_ID, data: null, deleted: true } : null;
+            return rid ? { id: `${rid}`, academy_id: CFG.ACADEMY_ID, data: null, deleted: true } : null;
           }).filter(x => x);
           const allEmpRows = empRows.concat(empDel);
           const empUrl = `${CFG.URL}/rest/v1/${CFG.TBL_EMPLOYEES}?on_conflict=id`;
@@ -1994,7 +2010,7 @@
         const students = gd.students || [];
         if (students.length > 0) {
           const stuRows = students.map(s => ({
-            id: `${aid}_stu_${s.studentId || s.id || s.phone || s.name}`,
+            id: `${s.studentId || s.id || s.phone || s.name}`,
             academy_id: aid, data: s, deleted: false
           }));
           // Push in chunks of 200
@@ -2009,7 +2025,7 @@
         const finance = gd.finance || [];
         if (finance.length > 0) {
           const finRows = finance.map(f => ({
-            id: `${aid}_fin_${f.id || f.timestamp}`,
+            id: `${f.id || f.timestamp}`,
             academy_id: aid, data: f, deleted: false
           }));
           for (let i = 0; i < finRows.length; i += 200) {
@@ -2023,7 +2039,7 @@
         const employees = gd.employees || [];
         if (employees.length > 0) {
           const empRows = employees.map(e => ({
-            id: `${aid}_emp_${e.id}`,
+            id: `${e.id}`,
             academy_id: aid, data: e, deleted: false
           }));
           await _sb.from(CFG.TBL_EMPLOYEES).upsert(empRows, { onConflict: 'id' });
