@@ -3,3 +3,15 @@ node_modules/
 .DS_Store
 *.log
 config-secret.js
+supabase-config.js
+
+# Backup folders
+_PROJECT_BACKUPS/
+backup-*/
+archive/
+*_backup*
+*_archive*
+
+# Restore files
+EMERGENCY_RESTORE.js
+restore-real-data.js

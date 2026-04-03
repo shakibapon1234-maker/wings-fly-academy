@@ -346,12 +346,25 @@
 
   // ── MERGE RECORDS (V39.2: Delete-aware + Timestamp Conflict Resolution) ──
   // ✅ V39.11 FIX: localDeletedKeys parameter যোগ — local deletedItems থেকে আসা keys
-  // এই keys তে থাকা records কোনোভাবেই cloud থেকে ফেরত আনা হবে না
+  // ✅ V39.12 FIX: STRICT deduplicate - studentId মেইন key হিসেবে use করো
   function _mergeRecords(localArr, cloudRows, keyFn, localDeletedKeys) {
     const merged = new Map();
     const blockedKeys = new Set(localDeletedKeys || []);
+    
+    // ✅ V39.12: Track seen IDs to prevent duplicates at merge time
+    const seenIds = new Set();
+    
     // Local records যোগ করো
-    (localArr || []).forEach(item => { const k = keyFn(item); if (k) merged.set(k, item); });
+    (localArr || []).forEach(item => { 
+      const k = keyFn(item); 
+      if (k) {
+        // Skip if same ID already exists (keep first, ignore duplicates)
+        if (!seenIds.has(k)) {
+          merged.set(k, item);
+          seenIds.add(k);
+        }
+      }
+    });
     // Cloud records merge করো — timestamp compare করে নতুনটা রাখো
     (cloudRows || []).forEach(row => {
       // ✅ V39.2 CRITICAL FIX: deleted চেক আগে! data=null হলেও delete process হবে
@@ -381,7 +394,14 @@
         return;
       }
       const existing = merged.get(k);
-      if (!existing) { merged.set(k, row.data); return; }
+      if (!existing) { 
+        // ✅ V39.12: Also check cloud duplicates
+        if (!seenIds.has(k)) {
+          merged.set(k, row.data); 
+          seenIds.add(k);
+        }
+        return; 
+      }
       // Timestamp-based resolution: নতুন record-ই win করবে
       const localTime = new Date(existing._updatedAt || existing._createdAt || 0).getTime();
       const cloudTime = new Date(row.data._updatedAt || row.data._createdAt || 0).getTime();
@@ -489,6 +509,33 @@
         gd.students = _mergeRecords(local.students, stuRes.data, s => s.studentId || s.id || s.phone || s.name, delStuKeys);
         gd.finance = _mergeRecords(local.finance, finRes.data, f => f.id || f.timestamp, delFinKeys);
         gd.employees = _mergeRecords(local.employees, empRes.data, e => e.id, delEmpKeys);
+
+        // ✅ V39.12 FIX: Extra deduplication for students after merge
+        // If merge produces duplicates (same studentId), keep only the latest
+        {
+          const _seenStu = new Map(); // studentId -> student record
+          const _stuBefore = gd.students.length;
+          gd.students = gd.students.filter(s => {
+            const sid = s.studentId;
+            if (!sid) return true;
+            const existing = _seenStu.get(sid);
+            if (!existing) {
+              _seenStu.set(sid, s);
+              return true;
+            }
+            // Keep the one with newer timestamp
+            const existingTime = new Date(existing._updatedAt || existing._createdAt || 0).getTime();
+            const newTime = new Date(s._updatedAt || s._createdAt || 0).getTime();
+            if (newTime > existingTime) {
+              _seenStu.set(sid, s);
+              return true;
+            }
+            return false;
+          });
+          if (gd.students.length < _stuBefore) {
+            _log('🔧', `POST-MERGE DEDUP: Removed ${_stuBefore - gd.students.length} duplicate students`);
+          }
+        }
 
         // ✅ V39.7 FIX: Content-based deduplication for finance entries
         // Two entries can have different IDs (SAL_xxx) but be the same transaction

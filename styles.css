@@ -2112,6 +2112,61 @@ textarea.form-control {
 }
 
 /* ===================================
+   TABLET / iPAD RESPONSIVE
+   =================================== */
+@media (min-width: 769px) and (max-width: 1024px) {
+  .sidebar {
+    width: 180px;
+  }
+
+  .main-wrapper {
+    margin-left: 180px;
+    width: calc(100vw - 180px);
+    max-width: calc(100vw - 180px);
+  }
+
+  .brand-text {
+    display: none;
+  }
+
+  .nav-text {
+    display: none;
+  }
+
+  .nav-item-link {
+    padding: 0.75rem;
+    justify-content: center;
+  }
+
+  .nav-icon {
+    margin-right: 0;
+  }
+
+  .brand-wrapper {
+    justify-content: center;
+    padding: 0.5rem;
+  }
+
+  .content-container {
+    padding: 1rem;
+    min-width: auto;
+  }
+
+  .top-bar {
+    padding: 0.75rem 1rem;
+  }
+
+  .aviation-metric-card {
+    padding: 1rem;
+    min-height: auto;
+  }
+
+  .av-card-value {
+    font-size: 1.5rem;
+  }
+}
+
+/* ===================================
    SCROLLBAR - Enhanced Neon Style
    =================================== */
 
