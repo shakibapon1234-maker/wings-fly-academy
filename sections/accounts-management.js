@@ -799,9 +799,15 @@ function applyFinanceToBankAccount(entry) {
     entry.type === 'Loan Given' || entry.type === 'Loan Giving' ||
     entry.type === 'Salary' ||
     entry.type === 'Rent' ||
-    entry.type === 'Utilities'
+    entry.type === 'Utilities' ||
+    entry.type === 'Transfer Out'
   ) {
-    account.balance = (parseFloat(account.balance) || 0) - amount;
+    const currentBalance = parseFloat(account.balance) || 0;
+    if (amount > currentBalance) {
+      console.error('❌ Balance cannot go negative! ' + entry.method + ' has ৳' + currentBalance + ', attempted to deduct ৳' + amount);
+      return; // ✅ BLOCK: Prevent negative balance
+    }
+    account.balance = currentBalance - amount;
   }
 
   saveToStorage(true);
@@ -1293,12 +1299,16 @@ function renderAccMgmtList(type) {
     var safeId    = personName.replace(/[^a-zA-Z0-9]/g, '_');
     var ledgerId  = 'ledger_' + safeId + '_' + type;
 
-    // Sort txns newest first
-    r.txns.sort(function(a,b){ return new Date(b.date) - new Date(a.date); });
+    // Sort txns newest first using proper date parsing
+    r.txns.sort(function(a,b){
+      var da = (typeof window.getSortableDate === 'function') ? window.getSortableDate(a.date) : String(a.date||'').slice(0,10);
+      var db = (typeof window.getSortableDate === 'function') ? window.getSortableDate(b.date) : String(b.date||'').slice(0,10);
+      return db.localeCompare(da);
+    });
 
     // Latest txn date
     var latestDate = r.txns[0] && r.txns[0].date
-      ? (typeof window.formatPrintDate === 'function' ? window.formatPrintDate(new Date(r.txns[0].date)) : new Date(r.txns[0].date).toLocaleDateString('en-GB',{day:'2-digit',month:'short',year:'numeric'}))
+      ? (typeof window.displayDate === 'function' ? window.displayDate(r.txns[0].date) : (typeof window.formatPrintDate === 'function' ? window.formatPrintDate(r.txns[0].date) : r.txns[0].date))
       : '—';
 
     // Build ledger rows HTML
@@ -1306,7 +1316,7 @@ function renderAccMgmtList(type) {
       var isRet    = f.type === returnType;
       var amtColor = isRet ? '#00e676' : '#ff5370';
       var dateStr  = f.date
-        ? (typeof window.formatPrintDate === 'function' ? window.formatPrintDate(new Date(f.date)) : new Date(f.date).toLocaleDateString('en-GB',{day:'2-digit',month:'short',year:'numeric'}))
+        ? (typeof window.displayDate === 'function' ? window.displayDate(f.date) : (typeof window.formatPrintDate === 'function' ? window.formatPrintDate(f.date) : f.date))
         : '—';
       var typePill = isRet
         ? '<span style="background:rgba(0,230,118,0.15);border:1px solid rgba(0,230,118,0.3);color:#00e676;font-size:0.7rem;padding:2px 8px;border-radius:20px;">↩ Return</span>'
