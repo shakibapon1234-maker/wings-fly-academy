@@ -530,15 +530,31 @@
             // cloud settings নতুন হলে cloud wins, local settings নতুন হলে local wins
             const cloudSettingsTime = new Date(mainRec.settings._settingsUpdatedAt || 0).getTime();
             const localSettingsTime = new Date((gd.settings || {})._settingsUpdatedAt || 0).getTime();
+            
+            // ✅ FIX: Preserve local-only settings (runningBatch, dates) when cloud doesn't have them
+            const localOnlyFields = {};
+            if (gd.settings) {
+              if (gd.settings.runningBatch && !mainRec.settings?.runningBatch) {
+                localOnlyFields.runningBatch = gd.settings.runningBatch;
+              }
+              if (gd.settings.runningBatchDateStart && !mainRec.settings?.runningBatchDateStart) {
+                localOnlyFields.runningBatchDateStart = gd.settings.runningBatchDateStart;
+              }
+              if (gd.settings.runningBatchDateEnd && !mainRec.settings?.runningBatchDateEnd) {
+                localOnlyFields.runningBatchDateEnd = gd.settings.runningBatchDateEnd;
+              }
+            }
+            
             if (cloudSettingsTime >= localSettingsTime) {
-              // Cloud settings নতুন — cloud wins (full merge)
-              gd.settings = Object.assign({}, gd.settings || {}, mainRec.settings);
-              _log('📥', `Settings pulled from cloud (cloud newer: ${new Date(cloudSettingsTime).toISOString()})`);
+              // Cloud settings নতুন — cloud wins (full merge) + restore local-only fields
+              const cloudSettings = mainRec.settings || {};
+              gd.settings = Object.assign({}, gd.settings || {}, cloudSettings, localOnlyFields);
+              _log('📥', `Settings pulled from cloud + preserved local fields: ${JSON.stringify(localOnlyFields)}`);
             } else {
               // Local settings নতুন — local wins, but merge cloud-only fields
               // startBalances, runningBatch ইত্যাদি local-এই থাকবে
               // শুধু cloud-এ আছে কিন্তু local-এ নেই এমন fields নিই
-              const merged = Object.assign({}, mainRec.settings, gd.settings);
+              const merged = Object.assign({}, mainRec.settings || {}, gd.settings);
               gd.settings = merged;
               _log('📤', `Settings: local newer — kept local (${new Date(localSettingsTime).toISOString()})`);
             }

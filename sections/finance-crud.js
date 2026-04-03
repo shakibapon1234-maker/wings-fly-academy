@@ -416,34 +416,41 @@ function deleteStudent(rowIndex) {
   }
 
   // Delete related finance transactions (student payments)
+  // ✅ FIX: Be more specific - use studentId when available, or batch+name combination
   if (globalData.finance && Array.isArray(globalData.finance)) {
     const sNameLower = (student.name || '').trim().toLowerCase();
     const sId = student.studentId ? String(student.studentId).toLowerCase() : null;
+    const sBatch = student.batch ? String(student.batch).toLowerCase() : null;
+    const sCourse = student.course ? student.course.toLowerCase() : null;
 
-    // Remove all finance entries where student name or ID matches
+    // Remove finance entries that match THIS specific student (not just by name)
     globalData.finance = globalData.finance.filter(f => {
       const fPersonLower = (f.person || '').trim().toLowerCase();
       const fStudentNameLower = (f.studentName || '').trim().toLowerCase();
       const fDescLower = (f.description || '').toLowerCase();
+      const fStudentId = f.studentId ? String(f.studentId).toLowerCase() : null;
+      const fBatch = f.batch ? String(f.batch).toLowerCase() : null;
 
-      // Match 1: Direct name match
-      const isDirectMatch = fPersonLower === sNameLower || fStudentNameLower === sNameLower;
+      // Match 1: Direct studentId match (most reliable)
+      const isIdMatch = sId && fStudentId && fStudentId === sId;
 
-      // Match 2: Name in description (very likely for auto-generated fees)
-      const isDescMatch = fDescLower && fDescLower.includes(sNameLower);
+      // Match 2: Direct name match + same batch (more specific than just name)
+      const isNameBatchMatch = (fPersonLower === sNameLower || fStudentNameLower === sNameLower) 
+        && sBatch && fBatch && fBatch === sBatch;
 
-      // Match 3: Student ID in description (most reliable if present)
-      const isIdMatch = sId && fDescLower && fDescLower.includes(sId);
+      // Match 3: Name in description + batch match (for auto-generated)
+      const isDescBatchMatch = sBatch && fDescLower && fDescLower.includes(sNameLower) && fBatch === sBatch;
 
-      // Match 4: Name variant (Description contains just the name parts)
-      const nameParts = sNameLower.split(' ').filter(p => p.length > 3);
-      const isNamePartMatch = nameParts.length > 0 && nameParts.some(p => fDescLower.includes(p) && f.category === 'Student Fee');
+      // Match 4: Old-style name only match (fallback for entries without batch)
+      const isNameOnlyMatch = !sBatch && (fPersonLower === sNameLower || fStudentNameLower === sNameLower);
 
-      const isMatch = isDirectMatch || isDescMatch || isIdMatch || isNamePartMatch;
+      const isMatch = isIdMatch || isNameBatchMatch || isDescBatchMatch || isNameOnlyMatch;
 
       // Keep transaction if it's NOT a match
       return !isMatch;
     });
+    
+    console.log(`[deleteStudent] Removed finance for: ${student.name} (batch: ${student.batch})`);
   }
 
   // Remove student from array

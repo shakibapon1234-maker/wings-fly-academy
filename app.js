@@ -265,7 +265,8 @@ async function saveToStorage(skipCloudSync = false) {
     }
     return true;
   } catch (error) {
-    console.error('❌ Storage Error:', error);
+    console.error('❌ Storage Error:', error.message || error);
+    console.error('📋 Stack:', error.stack || 'N/A');
     return false;
   }
 }

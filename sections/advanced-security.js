@@ -176,6 +176,22 @@
   // Load persisted blocks
   RateLimiter._loadBlocks();
   window.RateLimiter = RateLimiter;
+  
+  // Debug: Reset rate limit for testing (call from console: resetLoginBlock())
+  window.resetLoginBlock = function(username) {
+    var key = 'login_' + (username || 'admin').toLowerCase();
+    RateLimiter.reset(key);
+    console.log('✅ Rate limit reset for:', key);
+    alert('Rate limit reset! You can try logging in again.');
+  };
+  window.clearAllLoginBlocks = function() {
+    localStorage.removeItem('wf_rate_blocks');
+    localStorage.removeItem('wf_rate_fails_login_admin');
+    RateLimiter._blocked = {};
+    RateLimiter._attempts = {};
+    console.log('✅ All login blocks cleared!');
+    alert('All login blocks cleared! You can try logging in now.');
+  };
 
   // ══════════════════════════════════════════════════════════
   // 2. ENCRYPTED BACKUP — Backup file with password protection

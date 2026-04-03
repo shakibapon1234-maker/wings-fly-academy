@@ -162,12 +162,30 @@ async function handleLogin(e) {
   const username = (document.getElementById('loginUsernameField')?.value || '').trim();
   const password = (document.getElementById('loginPasswordField')?.value || '').trim();
 
+  // Rate Limiter Check (if advanced-security.js loaded)
+  if (typeof window.RateLimiter !== 'undefined') {
+    const rateStatus = window.RateLimiter.checkLogin(username);
+    if (!rateStatus.allowed && rateStatus.blocked) {
+      err.innerHTML = `<span style="color: #ff4466;">⏳ Too many attempts. Try again in ${rateStatus.resetIn} minutes.</span>`;
+      btn.innerHTML = '<span>Login</span>';
+      btn.disabled = false;
+      return;
+    }
+    if (!rateStatus.allowed) {
+      err.innerHTML = `<span style="color: #ffaa00;">⚠️ ${rateStatus.remaining} attempts remaining</span>`;
+    }
+  }
+
   try {
     // Try Supabase Auth first (if available)
     if (supabaseAvailable && supabaseClient) {
       try {
         const supabaseResult = await trySupabaseLogin(username, password);
         if (supabaseResult.success) {
+          // Reset rate limit on success
+          if (typeof window.RateLimiter !== 'undefined') {
+            window.RateLimiter.reset('login_' + username.toLowerCase());
+          }
           return; // Login successful, exit
         }
         console.log('⚠️ Supabase auth failed, trying legacy system...');
@@ -178,10 +196,24 @@ async function handleLogin(e) {
 
     // Legacy authentication
     await handleLegacyLogin(username, password);
+    
+    // Reset rate limit on success (if function exists)
+    if (typeof window.RateLimiter !== 'undefined') {
+      window.RateLimiter.reset('login_' + username.toLowerCase());
+    }
 
   } catch (error) {
-    console.error('❌ Login error:', error);
-    err.innerText = error.message || 'Invalid username or password';
+    // Record failed login attempt for rate limiting
+    if (typeof window.RateLimiter !== 'undefined') {
+      const rateStatus = window.RateLimiter.recordFailedLogin(username);
+      if (rateStatus.blocked) {
+        err.innerHTML = `<span style="color: #ff4466;">⏳ Account locked for ${rateStatus.resetIn} minutes due to too many failed attempts.</span>`;
+      } else {
+        err.innerHTML = `<span style="color: #ff4466;">❌ ${error.message || 'Invalid username or password'} <small style="color:#ffaa00">(${rateStatus.remaining} attempts left)</small></span>`;
+      }
+    } else {
+      err.innerText = error.message || 'Invalid username or password';
+    }
     btn.innerHTML = '<span>Login</span>';
     btn.disabled = false;
   }
@@ -234,7 +266,8 @@ async function trySupabaseLogin(username, password) {
     return { success: true };
 
   } catch (e) {
-    console.error('Supabase login error:', e);
+    console.error('Supabase login error:', e.message || e);
+    console.error('📋 Stack:', e.stack || 'N/A');
     return { success: false, error: e.message };
   }
 }

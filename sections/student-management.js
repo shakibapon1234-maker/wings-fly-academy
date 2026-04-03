@@ -1378,8 +1378,9 @@ function ensureStudentIds() {
       const isIdExists = (id) => {
         // Check active students assigned before this one
         const inActive = globalData.students.slice(0, index).some(st => st.studentId === id);
-        // Check trash bin
-        const inDeleted = globalData.deletedItems.some(d => d.item && d.item.studentId === id);
+        // Check trash bin - deletedItems is an object {students:[], finance:[], employees:[]}
+        const deletedStudents = (globalData.deletedItems?.students) || [];
+        const inDeleted = deletedStudents.some(d => d.item && d.item.studentId === id);
         return inActive || inDeleted;
       };
 

@@ -1,1 +1,29 @@
-{}
+{
+  "name": "wings-fly-academy",
+  "version": "5.0.0",
+  "description": "Wings Fly Aviation Academy - Student & Finance Management System",
+  "main": "index.html",
+  "scripts": {
+    "dev": "npx serve .",
+    "start": "npx serve . -p 3000",
+    "lint": "echo 'No linter configured - this is a static HTML project'"
+  },
+  "keywords": [
+    "aviation",
+    "academy",
+    "management",
+    "student",
+    "finance"
+  ],
+  "author": "Wings Fly Aviation Academy",
+  "license": "MIT",
+  "devDependencies": {},
+  "dependencies": {},
+  "engines": {
+    "node": ">=14.0.0"
+  },
+  "repository": {
+    "type": "git",
+    "url": "https://github.com/wings-fly-academy/management-system"
+  }
+}

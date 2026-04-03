@@ -252,11 +252,16 @@ function handleSettingsSubmit(e) {
 
   // ✅ V39.11 FIX: Object.assign ব্যবহার করো — existing settings preserve হবে
   // আগে পুরো settings object replace হয়ে যেত, বাকি fields হারিয়ে যেত
+  // ✅ ALSO save runningBatchDateStart and runningBatchDateEnd
+  const dateStartInput = document.getElementById('runningBatchDateStart');
+  const dateEndInput = document.getElementById('runningBatchDateEnd');
   globalData.settings = Object.assign({}, globalData.settings || {}, {
     startBalances: startBalances,
     academyName: formData.academyName || 'Wings Fly Aviation Academy',
     monthlyTarget: parseFloat(formData.monthlyTarget) || 200000,
     runningBatch: formData.runningBatch || '',
+    runningBatchDateStart: dateStartInput ? dateStartInput.value : '',
+    runningBatchDateEnd: dateEndInput ? dateEndInput.value : '',
     _settingsUpdatedAt: new Date().toISOString() // ✅ sync timestamp
   });
 
