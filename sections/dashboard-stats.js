@@ -106,23 +106,30 @@ function updateGlobalStats() {
     const filteredStudents = (globalData.students || []).filter(s => String(s.batch) === selectedBatchStr);
     runTotalStudents = filteredStudents.length;
 
-    // Student IDs of this batch
+    // Student IDs and names of this batch
     const studentIds = new Set(filteredStudents.map(s => s.studentId || s.id).filter(Boolean));
+    const studentNames = new Set(filteredStudents.map(s => (s.name || '').toLowerCase().trim()).filter(Boolean));
 
     (globalData.finance || []).forEach(f => {
       if (f._deleted) return;
       if (!STAT_INCOME_TYPES.includes(f.type)) return;
       const amt = parseFloat(f.amount) || 0;
-      const desc = f.description || '';
+      const desc = (f.description || '').toLowerCase();
+      const person = (f.person || '').toLowerCase().trim();
+      const finStuId = f.studentId || '';
 
       // Match by studentId field directly
-      const byStudentId = f.studentId && studentIds.has(f.studentId);
+      const byStudentId = finStuId && studentIds.has(finStuId);
       // Match by description containing "Batch: X" or "| Batch: X"
-      const byDescBatch = desc.includes('Batch: ' + selectedBatchStr) || desc.includes('| Batch:' + selectedBatchStr);
-      // Match by studentId prefix (e.g. WF-6-)
-      const byIdPrefix = f.studentId && f.studentId.startsWith('WF-' + selectedBatchStr + '-');
+      const byDescBatch = desc.includes('batch: ' + selectedBatchStr) || desc.includes('batch:' + selectedBatchStr) || desc.includes('| batch:' + selectedBatchStr);
+      // Match by studentId prefix (e.g. WF-19-)
+      const byIdPrefix = finStuId && finStuId.startsWith('WF-' + selectedBatchStr + '-');
+      // Match by person name (student name in finance record)
+      const byPersonName = person && studentNames.has(person);
+      // Match by description containing student name
+      const byDescName = studentNames.size > 0 && [...studentNames].some(name => name.length > 3 && desc.includes(name));
 
-      if (byStudentId || byDescBatch || byIdPrefix) {
+      if (byStudentId || byDescBatch || byIdPrefix || byPersonName || byDescName) {
         runStudentIncome += amt;
       }
     });
