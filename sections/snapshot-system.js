@@ -244,16 +244,54 @@ function _installMonitorSaveHook() {
         // ✅ FIX: 60ms → 800ms — feRebuildAllBalances() শেষ হওয়ার পরে snapshot নাও
         // 60ms এ balance rebuild হয়নি থাকত, তাই snapshot এ ভুল balance যেত
         setTimeout(function () {
-          recordMonitorChange('saveToStorage');
+          _recordMonitorWithRebalance('saveToStorage');
           if (typeof window.renderMonitor === 'function') window.renderMonitor();
         }, 800);
       }
       return result;
     };
     window.saveToStorage._wfMonitorPatched = true;
+    console.log('[Monitor] ✅ saveToStorage hook installed');
   }
   attempt();
 }
+
+// ✅ NEW: Force balance rebuild before recording monitor
+function _recordMonitorWithRebalance(reason) {
+  try {
+    // First rebuild balances from finance
+    if (typeof window.feRebuildAllBalances === 'function') {
+      window.feRebuildAllBalances();
+    }
+    // Then record the monitor change with fresh data
+    recordMonitorChange(reason);
+  } catch(e) {
+    console.warn('[Monitor] Record error:', e);
+    recordMonitorChange(reason);
+  }
+}
+
+// ✅ Manual trigger for testing
+window.forceMonitorRecord = function(reason) {
+  _recordMonitorWithRebalance(reason || 'manual');
+  if (typeof window.renderMonitor === 'function') window.renderMonitor();
+  console.log('[Monitor] ✅ Force record done');
+};
+
+// ✅ Also hook into other common save functions
+setTimeout(function() {
+  // Hook into direct localStorage saves
+  var origSet = localStorage.setItem;
+  localStorage.setItem = function(key, value) {
+    if (key === 'wingsfly_data') {
+      setTimeout(function() {
+        recordMonitorChange('localStorage.save');
+      }, 1000);
+    }
+    return origSet.apply(this, arguments);
+  };
+  console.log('[Monitor] ✅ localStorage.setItem hook installed');
+}, 3000);
 
 function restoreSnapshot(id) {
   const snapshots = getSnapshots();
@@ -360,6 +398,8 @@ document.addEventListener('DOMContentLoaded', function () {
     if (typeof renderSnapshotList === 'function') renderSnapshotList();
     if (typeof renderActivityLog === 'function') renderActivityLog();
     if (typeof renderRecycleBin === 'function') renderRecycleBin();
+    // ✅ FIX: Monitor render করো - balance দেখাবে
+    if (typeof window.renderMonitor === 'function') setTimeout(function() { window.renderMonitor(); }, 500);
   });
 
   _installMonitorSaveHook();

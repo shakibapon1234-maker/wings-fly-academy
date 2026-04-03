@@ -155,6 +155,9 @@ async function handleLogin(e) {
   const err = document.getElementById('loginError');
   const form = document.getElementById('loginForm');
 
+  // ✅ FIX: Animation - set flag BEFORE login processing starts
+  sessionStorage.setItem('wf_login_in_progress', 'true');
+  
   btn.innerHTML = '<span class="spinner-border spinner-border-sm me-2"></span>Checking...';
   btn.disabled = true;
   err.innerText = '';
@@ -203,6 +206,9 @@ async function handleLogin(e) {
     }
 
   } catch (error) {
+    // Clear login in progress flag
+    sessionStorage.removeItem('wf_login_in_progress');
+    
     // Record failed login attempt for rate limiting
     if (typeof window.RateLimiter !== 'undefined') {
       const rateStatus = window.RateLimiter.recordFailedLogin(username);
@@ -434,8 +440,11 @@ function showDashboard(username) {
   const dshSection = document.getElementById('dashboardSection');
   const loginBtn = document.getElementById('loginBtn');
 
-  // ▶️ PREMIUM LOGIN ANIMATION
-  if (!sessionStorage.getItem('wf_just_logged_in') && loginBtn && !loginBtn.classList.contains('takeoff')) {
+  // ▶️ PREMIUM LOGIN ANIMATION - only if login was in progress
+  const wasLoggingIn = sessionStorage.getItem('wf_login_in_progress') === 'true';
+  sessionStorage.removeItem('wf_login_in_progress');
+  
+  if (wasLoggingIn && loginBtn && !loginBtn.classList.contains('takeoff')) {
     loginBtn.classList.add('takeoff');
     
     // 0.6s delay for the plane to fly away, then fade out the login screen
@@ -463,8 +472,10 @@ function showDashboard(username) {
   const userEl = document.getElementById('sidebarUser') || document.getElementById('currentUser');
   if (userEl) userEl.innerText = username;
 
-  // Login: always go to dashboard tab
-  localStorage.setItem('wingsfly_active_tab', 'dashboard');
+  // ✅ FIX: Login এ সবসময় dashboard না যেতে - আগের ট্যাব restore করো
+  // কিন্তু প্রথম login হলে dashboard দেখাও
+  const lastTabOnLogin = localStorage.getItem('wingsfly_active_tab') || 'dashboard';
+  localStorage.setItem('wingsfly_active_tab', lastTabOnLogin);
   sessionStorage.setItem('wf_just_logged_in', 'true');
 
   // ✈️ AVIATION LOADER: dashboard load হওয়ার সময় loading screen দেখাও
