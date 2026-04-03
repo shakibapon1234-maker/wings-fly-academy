@@ -9,28 +9,66 @@
   overflow-y: visible !important;
   width: 100% !important;
   display: block !important;
-  -webkit-overflow-scrolling: touch; /* Smooth scrolling on mobile */
+  -webkit-overflow-scrolling: touch;
 }
 
-/* Make sure table doesn't shrink */
+/* Make sure table doesn't shrink - responsive based on viewport */
 .table-responsive table,
 .table-responsive .table {
-  min-width: 1200px !important; /* Minimum width to trigger scroll */
   width: 100% !important;
   table-layout: auto !important;
 }
 
-/* Financial Ledger specific fix */
-#financeTableBody,
-#financeTable {
-  min-width: 1400px !important;
+/* Dynamic min-width based on screen size */
+@media (min-width: 1600px) {
+  .table-responsive table,
+  .table-responsive .table {
+    min-width: 1200px !important;
+  }
+  #financeTableBody,
+  #financeTable {
+    min-width: 1400px !important;
+  }
+}
+
+@media (min-width: 1200px) and (max-width: 1599px) {
+  .table-responsive table,
+  .table-responsive .table {
+    min-width: 900px !important;
+  }
+  #financeTableBody,
+  #financeTable {
+    min-width: 1100px !important;
+  }
+}
+
+@media (min-width: 992px) and (max-width: 1199px) {
+  .table-responsive table,
+  .table-responsive .table {
+    min-width: 700px !important;
+  }
+  #financeTableBody,
+  #financeTable {
+    min-width: 850px !important;
+  }
+}
+
+@media (max-width: 991px) {
+  .table-responsive table,
+  .table-responsive .table {
+    min-width: 600px !important;
+  }
+  #financeTableBody,
+  #financeTable {
+    min-width: 700px !important;
+  }
 }
 
 /* Ensure all columns are visible */
 .table td,
 .table th {
   white-space: nowrap !important;
-  min-width: 100px !important;
+  min-width: 80px !important;
 }
 
 /* Action column minimum width */
