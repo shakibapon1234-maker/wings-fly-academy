@@ -520,7 +520,7 @@ async function handleFinanceSubmit(e) {
   const category = (formData.category || '').trim();
   const person = (formData.person || '').trim();
 
-  const isLoan = (type === 'Loan Given' || type === 'Loan Received' || category === 'Loan');
+  const isLoan = (type === 'Loan Given' || type === 'Loan Giving' || type === 'Loan Received' || type === 'Loan Receiving' || category === 'Loan');
 
   if (isLoan && !person) {
     showErrorToast('⚠️ Person/Counterparty name is required for Loan transactions!');
@@ -596,6 +596,16 @@ async function handleFinanceSubmit(e) {
   if (typeof logActivity === 'function') logActivity('finance', 'ADD',
     (formData.type || 'Transaction') + ': ' + (formData.category || '') + ' - ৳' + (formData.amount || 0) + ' | ' + (formData.description || ''));
   updateGlobalStats(); if (typeof renderFinanceTable === "function") renderFinanceTable();
+
+  // ✅ FIX: Loan transaction হলে Loan Management UI রিফ্রেশ করো
+  const savedType = formData.type || '';
+  const loanTypes = ['Loan Given', 'Loan Giving', 'Loan Received', 'Loan Receiving'];
+  if (loanTypes.includes(savedType) || (formData.category || '').toLowerCase() === 'loan') {
+    if (typeof renderLoanSummary === 'function') setTimeout(renderLoanSummary, 150);
+    if (window.currentLoanPerson && typeof openLoanDetail === 'function') {
+      setTimeout(() => openLoanDetail(window.currentLoanPerson), 200);
+    }
+  }
 }
 
 // ===================================
@@ -890,7 +900,7 @@ async function handleEditTransactionSubmit(e) {
   const _editType = formData.type || '';
   const _editCategory = (formData.category || '').trim();
   const _editPerson = (formData.person || '').trim();
-  const _editIsLoan = (_editType === 'Loan Given' || _editType === 'Loan Received' || _editCategory === 'Loan');
+  const _editIsLoan = (_editType === 'Loan Given' || _editType === 'Loan Giving' || _editType === 'Loan Received' || _editType === 'Loan Receiving' || _editCategory === 'Loan');
   if (_editIsLoan && !_editPerson) {
     showErrorToast('⚠️ Person/Counterparty name is required for Loan transactions!');
     const pf = document.getElementById('editPersonField') || document.querySelector('#editTransactionForm [name="person"]');

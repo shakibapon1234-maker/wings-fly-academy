@@ -31,10 +31,10 @@ function renderLoanSummary() {
       personStats[person] = { given: 0, received: 0, balance: 0 };
     }
 
-    if (tx.type === 'Loan Given') {
+    if (tx.type === 'Loan Given' || tx.type === 'Loan Giving') {
       personStats[person].given += tx.amount;
       personStats[person].balance -= tx.amount;
-    } else if (tx.type === 'Loan Received') {
+    } else if (tx.type === 'Loan Received' || tx.type === 'Loan Receiving') {
       personStats[person].received += tx.amount;
       personStats[person].balance += tx.amount;
     }
@@ -115,7 +115,13 @@ function openLoanDetail(person) {
 
   // ✅ FIX: Exclude deleted transactions
   // ✅ FIX: Date অনুযায়ী sort — latest date সবার উপরে
-  let txs = globalData.finance.filter(tx => !tx._deleted && tx.person === person).sort((a, b) => {
+  // ✅ FIX: person name case-insensitive match করো
+  const personLower = (person || '').trim().toLowerCase();
+  const LOAN_TYPES = ['Loan Given', 'Loan Giving', 'Loan Received', 'Loan Receiving'];
+  let txs = globalData.finance.filter(tx =>
+    !tx._deleted &&
+    (tx.person || '').trim().toLowerCase() === personLower
+  ).sort((a, b) => {
     var da = String(a.date || '').slice(0, 10);
     var db = String(b.date || '').slice(0, 10);
     if (db > da) return 1;
@@ -142,10 +148,10 @@ function openLoanDetail(person) {
     let debit = 0;
     let typeLabel = tx.type;
 
-    if (tx.type === 'Loan Given' || tx.type === 'Expense') {
+    if (tx.type === 'Loan Given' || tx.type === 'Loan Giving' || tx.type === 'Expense') {
       debit = tx.amount;
       runningBalance -= tx.amount;
-    } else if (tx.type === 'Loan Received' || tx.type === 'Income') {
+    } else if (tx.type === 'Loan Received' || tx.type === 'Loan Receiving' || tx.type === 'Income') {
       credit = tx.amount;
       runningBalance += tx.amount;
     } else {
@@ -297,8 +303,8 @@ function checkPersonBalance(person) {
   const txs = globalData.finance.filter(tx => !tx._deleted && tx.person === person);
   let balance = 0;
   txs.forEach(tx => {
-    if (tx.type === 'Loan Given') balance -= tx.amount;
-    else if (tx.type === 'Loan Received') balance += tx.amount;
+    if (tx.type === 'Loan Given' || tx.type === 'Loan Giving') balance -= tx.amount;
+    else if (tx.type === 'Loan Received' || tx.type === 'Loan Receiving') balance += tx.amount;
   });
   return balance;
 }
