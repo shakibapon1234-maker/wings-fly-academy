@@ -1286,3 +1286,146 @@ window.printStudentPaymentHistory = printStudentPaymentHistory;
     }, 2000);
   }
 })();
+
+// ===================================
+// ✅ LOAN PERSON AUTOCOMPLETE SYSTEM
+// ===================================
+
+/**
+ * সব active (unsettled) loan persons এর list বের করে
+ * settled হলে disabled হিসেবে mark করে
+ */
+function getLoanPersons() {
+  const personStats = {};
+  const LOAN_TYPES = ['Loan Given', 'Loan Giving', 'Loan Received', 'Loan Receiving'];
+
+  (window.globalData.finance || []).forEach(tx => {
+    if (tx._deleted) return;
+    if (!LOAN_TYPES.includes(tx.type)) return;
+    const p = (tx.person || '').trim();
+    if (!p) return;
+
+    if (!personStats[p]) personStats[p] = { given: 0, received: 0 };
+    if (tx.type === 'Loan Given' || tx.type === 'Loan Giving') personStats[p].given += tx.amount;
+    else personStats[p].received += tx.amount;
+  });
+
+  return Object.entries(personStats).map(([name, s]) => ({
+    name,
+    settled: Math.abs(s.given - s.received) < 0.01,
+    balance: s.given - s.received
+  })).sort((a, b) => a.settled - b.settled || a.name.localeCompare(b.name));
+}
+
+/**
+ * Loan type select হলে datalist populate করে এবং hint দেখায়
+ * finance modal এবং edit modal উভয়ের জন্য
+ */
+function populateLoanPersonsDropdown(typeValue, datalistId, hintId) {
+  const LOAN_TYPES = ['Loan Given', 'Loan Giving', 'Loan Received', 'Loan Receiving'];
+  const dl = document.getElementById(datalistId);
+  const hint = hintId ? document.getElementById(hintId) : null;
+  if (!dl) return;
+
+  dl.innerHTML = '';
+
+  if (!LOAN_TYPES.includes(typeValue)) {
+    if (hint) hint.classList.add('d-none');
+    return;
+  }
+
+  if (hint) hint.classList.remove('d-none');
+
+  const persons = getLoanPersons();
+  persons.forEach(p => {
+    const opt = document.createElement('option');
+    opt.value = p.name;
+    // settled হলে label এ "(Settled)" যোগ করি
+    opt.label = p.settled
+      ? `${p.name} — ✅ Settled`
+      : `${p.name} — ৳${Math.abs(p.balance).toLocaleString('en-IN')} ${p.balance > 0 ? 'owed by them' : 'we owe'}`;
+    if (p.settled) opt.disabled = true; // settled গুলো disable
+    dl.appendChild(opt);
+  });
+}
+
+/**
+ * Finance modal এ type change হলে loan person dropdown দেখায়
+ * finance-modal.html এ type select এর onchange থেকে call করা হবে
+ */
+function onFinanceTypeChange(selectEl) {
+  const val = selectEl ? selectEl.value : '';
+  // finance modal এর datalist
+  populateLoanPersonsDropdown(val, 'financePersonDatalist', 'financePersonHint');
+
+  // person field section show/hide
+  const personSection = document.getElementById('financePersonSection');
+  if (personSection) {
+    const LOAN_TYPES = ['Loan Given', 'Loan Giving', 'Loan Received', 'Loan Receiving', 'Salary'];
+    personSection.style.display = LOAN_TYPES.includes(val) ? '' : '';
+  }
+}
+
+/**
+ * Edit modal এ type change হলে
+ */
+function onEditTypeChange(selectEl) {
+  const val = selectEl ? selectEl.value : '';
+  populateLoanPersonsDropdown(val, 'loanPersonsDatalist', 'editPersonHint');
+}
+
+// Edit modal type select এ onchange hook
+document.addEventListener('DOMContentLoaded', function() {
+  // Edit modal type select
+  const editModal = document.getElementById('editTransactionModal');
+  if (editModal) {
+    editModal.addEventListener('show.bs.modal', function() {
+      const typeSelect = editModal.querySelector('select[name="type"]');
+      if (typeSelect) {
+        // Remove old listener if any
+        typeSelect.onchange = function() { onEditTypeChange(this); };
+        // Trigger for current value
+        setTimeout(() => onEditTypeChange(typeSelect), 100);
+      }
+    });
+  }
+});
+
+window.getLoanPersons = getLoanPersons;
+window.populateLoanPersonsDropdown = populateLoanPersonsDropdown;
+window.onFinanceTypeChange = onFinanceTypeChange;
+window.onEditTypeChange = onEditTypeChange;
+
+// ===================================
+// ✅ LOANS TAB SWITCH HOOK
+// ===================================
+// switchTab('loans') এ render করার জন্য hook
+(function hookLoansTab() {
+  function _doHook() {
+    if (!window._wfSwitchTabHooks) window._wfSwitchTabHooks = [];
+    // Already registered?
+    if (window._wfSwitchTabHooks._loanTabRegistered) return true;
+
+    window._wfSwitchTabHooks.push(function(tabName) {
+      if (tabName === 'loans') {
+        // loanSection দেখাও
+        const ls = document.getElementById('loanSection');
+        if (ls) ls.classList.remove('d-none');
+        // render করো
+        if (typeof renderLoanSummary === 'function') {
+          setTimeout(renderLoanSummary, 50);
+        }
+      }
+    });
+    window._wfSwitchTabHooks._loanTabRegistered = true;
+    return true;
+  }
+
+  if (document.readyState === 'loading') {
+    document.addEventListener('DOMContentLoaded', function() {
+      setTimeout(_doHook, 500);
+    });
+  } else {
+    setTimeout(_doHook, 500);
+  }
+})();

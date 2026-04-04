@@ -65,7 +65,7 @@
                     <div class="row">
                         <div class="col-12 col-sm-6 mb-3">
                             <label class="form-label fw-semibold">Type</label>
-                            <select name="type" class="form-select">
+                            <select name="type" class="form-select" onchange="onEditTypeChange(this)">
                                 <option value="Income">Income (+)</option>
                                 <option value="Expense">Expense (-)</option>
                                 <option value="Loan Given">Loan Giving (Money Out)</option>
@@ -101,8 +101,13 @@
                     </div>
                     <div class="mb-3">
                         <label class="form-label fw-semibold">Person / Employee / Counterparty</label>
-                        <input type="text" name="person" class="form-control"
-                            placeholder="Student name, Employee name or counterparty">
+                        <input type="text" name="person" class="form-control" id="editPersonField"
+                            placeholder="Student name, Employee name or counterparty"
+                            list="loanPersonsDatalist" autocomplete="off">
+                        <datalist id="loanPersonsDatalist"></datalist>
+                        <div id="editPersonHint" class="form-text text-info d-none" style="font-size:0.78rem;">
+                            💡 Loan type selected — existing loan persons shown in dropdown
+                        </div>
                     </div>
                     <button type="submit" class="btn btn-primary w-100 fw-bold">Save
                         Changes</button>

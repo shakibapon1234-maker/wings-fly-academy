@@ -1,6 +1,15 @@
                     <div id="loanSection" class="d-none">
                         <div class="d-flex justify-content-between align-items-center mb-3">
                             <h5 class="fw-bold m-0">Loan Management (Person-wise)</h5>
+                            <div class="d-flex gap-2 align-items-center">
+                                <div class="form-check form-switch mb-0">
+                                    <input class="form-check-input" type="checkbox" id="showSettledToggle"
+                                        onchange="toggleSettledPersons(this.checked)">
+                                    <label class="form-check-label small text-muted" for="showSettledToggle">
+                                        Show Settled
+                                    </label>
+                                </div>
+                            </div>
                         </div>
 
                         <!-- Search Loan filter -->
@@ -26,11 +35,12 @@
                                     <span class="small fw-bold text-muted">Date Range:</span>
                                     <input type="date" id="loanDetailStartDate"
                                         class="form-control form-control-sm border-0 bg-transparent"
-                                        onchange="openLoanDetail(window.currentLoanPerson)" style="width: 120px;">
+                                        onchange="openLoanDetail(window.currentLoanPerson)" style="width: 130px;">
                                     <span class="text-muted">-</span>
                                     <input type="date" id="loanDetailEndDate"
                                         class="form-control form-control-sm border-0 bg-transparent"
-                                        onchange="openLoanDetail(window.currentLoanPerson)" style="width: 120px;">
+                                        onchange="openLoanDetail(window.currentLoanPerson)" style="width: 130px;">
+                                    <button class="btn btn-sm btn-outline-secondary rounded-pill px-2 py-0" style="font-size:0.75rem;" title="Clear date filter" onclick="document.getElementById('loanDetailStartDate').value='';document.getElementById('loanDetailEndDate').value='';openLoanDetail(window.currentLoanPerson);">✕ Clear</button>
                                 </div>
                                 <div class="d-flex gap-2">
                                     <button class="btn btn-sm btn-outline-danger fw-bold" onclick="printLoanDetail()"><i

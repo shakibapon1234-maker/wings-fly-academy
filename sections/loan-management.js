@@ -47,6 +47,10 @@ function renderLoanSummary() {
     return;
   }
 
+  // settled toggle state
+  const showSettled = document.getElementById('showSettledToggle')?.checked ?? false;
+
+  let visibleCount = 0;
   people.forEach(p => {
     if (q && !p.toLowerCase().includes(q)) return;
 
@@ -54,6 +58,13 @@ function renderLoanSummary() {
 
     // FILTER: Only show people with actual Loan activity
     if (stats.given === 0 && stats.received === 0) return;
+
+    const isSettled = Math.abs(stats.balance) < 0.01;
+
+    // settled হলে toggle এর উপর নির্ভর করে দেখাও/লুকাও
+    if (isSettled && !showSettled) return;
+
+    visibleCount++;
 
     let balanceText = '';
     let balanceClass = '';
@@ -65,20 +76,32 @@ function renderLoanSummary() {
       balanceText = `We Owe: ৳${formatNumber(stats.balance)}`;
       balanceClass = 'text-success';
     } else {
-      balanceText = 'Settled';
-      balanceClass = 'text-muted';
+      balanceText = '✅ Settled';
+      balanceClass = 'text-success';
     }
+
+    const settledBadge = isSettled
+      ? `<span class="badge bg-success-subtle text-success border border-success rounded-pill mb-2" style="font-size:0.7rem;">SETTLED</span><br>`
+      : '';
+
+    const settledActions = isSettled
+      ? `<div class="border-top pt-2 mt-1 d-flex justify-content-center gap-2">
+           <button class="btn btn-sm btn-outline-danger rounded-pill px-2 py-0" style="font-size:0.72rem;"
+             onclick="event.stopPropagation();deleteAllLoanRecords('${p.replace(/'/g, "\\'")}')">🗑️ Delete All</button>
+         </div>`
+      : '';
 
     const col = document.createElement('div');
     col.className = 'col-md-4 col-lg-3';
     col.innerHTML = `
-      <div class="card h-100 shadow-sm border-0 person-loan-card" style="cursor: pointer; transition: transform 0.2s; background: rgba(255, 255, 255, 0.05); backdrop-filter: blur(10px);" onclick="openLoanDetail('${p.replace(/'/g, "\\'")}')">
+      <div class="card h-100 shadow-sm border-0 person-loan-card${isSettled ? ' opacity-75' : ''}" style="cursor: pointer; transition: transform 0.2s; background: rgba(255, 255, 255, 0.05); backdrop-filter: blur(10px);" onclick="openLoanDetail('${p.replace(/'/g, "\\'")}')">
         <div class="card-body text-center">
-            <div class="mb-3">
+            <div class="mb-2">
                 <span class="avatar-circle bg-primary-light text-primary fw-bold fs-4 d-inline-block rounded-circle" style="width: 50px; height: 50px; line-height: 50px;">
                     ${p.charAt(0).toUpperCase()}
                 </span>
             </div>
+            ${settledBadge}
             <h5 class="card-title fw-bold text-white mb-1" style="color: #ffffff !important;">${p}</h5>
             <div class="mb-3 ${balanceClass} fw-bold fs-5">${balanceText}</div>
             
@@ -86,6 +109,7 @@ function renderLoanSummary() {
                 <span>Given: ৳${formatNumber(stats.given)}</span>
                 <span>Recv: ৳${formatNumber(stats.received)}</span>
             </div>
+            ${settledActions}
         </div>
       </div>
     `;
@@ -96,6 +120,10 @@ function renderLoanSummary() {
 
     container.appendChild(col);
   });
+
+  if (visibleCount === 0) {
+    container.innerHTML = '<div class="col-12 text-center text-muted p-4">No active loans found. <br><small>Enable "Show Settled" to see settled records.</small></div>';
+  }
 }
 
 function filterLoanSummary() {
@@ -514,3 +542,85 @@ async function handleEditTransactionSubmit(e) {
 
 window.editTransaction = editTransaction;
 window.handleEditTransactionSubmit = handleEditTransactionSubmit;
+
+// ===================================
+// ✅ SETTLED PERSONS TOGGLE & DELETE
+// ===================================
+
+function toggleSettledPersons(show) {
+  renderLoanSummary();
+}
+
+function deleteAllLoanRecords(person) {
+  if (!confirm(`"${person}" এর সব Loan records DELETE করবেন?\n(এটা Recycle Bin এ যাবে)`)) return;
+  const LOAN_TYPES = ['Loan Given', 'Loan Giving', 'Loan Received', 'Loan Receiving'];
+  (window.globalData.finance || []).forEach(tx => {
+    if ((tx.person || '').trim() === person && LOAN_TYPES.includes(tx.type) && !tx._deleted) {
+      tx._deleted = true;
+      tx._deletedAt = new Date().toISOString();
+      if (typeof moveToTrash === 'function') moveToTrash('finance', tx);
+    }
+  });
+  if (typeof saveToStorage === 'function') saveToStorage(true);
+  if (typeof renderLoanSummary === 'function') renderLoanSummary();
+  if (typeof showSuccessToast === 'function') showSuccessToast(`✅ ${person} এর সব loan records deleted!`);
+}
+
+window.toggleSettledPersons = toggleSettledPersons;
+window.deleteAllLoanRecords = deleteAllLoanRecords;
+
+// ===================================
+// ✅ FINANCE MODAL PERSON DATALIST FIX
+// ===================================
+// finance-modal.html লোড হওয়ার পর financePersonDatalist inject করে
+// এবং type select এ onchange hook করে
+(function hookFinanceModalPersonDropdown() {
+  function _doHook() {
+    const financeModal = document.getElementById('financeModal');
+    if (!financeModal) return false;
+
+    financeModal.addEventListener('show.bs.modal', function() {
+      setTimeout(function() {
+        // person input খোঁজো
+        const personInput = financeModal.querySelector('input[name="person"], #financePerson');
+        if (personInput && !document.getElementById('financePersonDatalist')) {
+          // datalist তৈরি করো যদি না থাকে
+          const dl = document.createElement('datalist');
+          dl.id = 'financePersonDatalist';
+          personInput.setAttribute('list', 'financePersonDatalist');
+          personInput.setAttribute('autocomplete', 'off');
+          personInput.parentNode.appendChild(dl);
+
+          // hint div তৈরি করো
+          if (!document.getElementById('financePersonHint')) {
+            const hint = document.createElement('div');
+            hint.id = 'financePersonHint';
+            hint.className = 'form-text text-info d-none';
+            hint.style.fontSize = '0.78rem';
+            hint.textContent = '💡 Loan type selected — existing loan persons shown in dropdown';
+            personInput.parentNode.appendChild(hint);
+          }
+        }
+
+        // type select এ hook
+        const typeSelect = financeModal.querySelector('select[name="type"], #financeType');
+        if (typeSelect && !typeSelect._loanHooked) {
+          typeSelect._loanHooked = true;
+          typeSelect.addEventListener('change', function() {
+            if (typeof onFinanceTypeChange === 'function') onFinanceTypeChange(this);
+          });
+          // current value এ trigger
+          if (typeof onFinanceTypeChange === 'function') onFinanceTypeChange(typeSelect);
+        }
+      }, 100);
+    });
+
+    return true;
+  }
+
+  if (document.readyState === 'loading') {
+    document.addEventListener('DOMContentLoaded', () => setTimeout(_doHook, 1500));
+  } else {
+    setTimeout(_doHook, 1500);
+  }
+})();
