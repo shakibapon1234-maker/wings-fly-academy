@@ -352,6 +352,10 @@
         if (fm && typeof window.populateDropdowns === 'function') {
           fm.addEventListener('show.bs.modal', window.populateDropdowns);
         }
+        // ✅ Loan person dropdown setup — financeModal load হওয়ার পরই করো
+        if (typeof window._setupFinanceModalLoanPersonDropdown === 'function') {
+          window._setupFinanceModalLoanPersonDropdown();
+        }
       });
     };
 

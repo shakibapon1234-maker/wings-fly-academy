@@ -1469,6 +1469,11 @@ WINGS FLY AVIATION ACADEMY — Management System
                     <div id="loanSection" class="d-none">
                         <div class="d-flex justify-content-between align-items-center mb-3">
                             <h5 class="fw-bold m-0">Loan Management (Person-wise)</h5>
+                            <div class="form-check form-switch mb-0">
+                                <input class="form-check-input" type="checkbox" id="showSettledToggle"
+                                    onchange="toggleSettledPersons(this.checked)">
+                                <label class="form-check-label small text-muted" for="showSettledToggle">Show Settled</label>
+                            </div>
                         </div>
 
                         <!-- Search Loan filter -->
@@ -1517,12 +1522,13 @@ WINGS FLY AVIATION ACADEMY — Management System
                                                 <th class="text-end text-danger">Debit (-)</th>
                                                 <th class="text-end text-success">Credit (+)</th>
                                                 <th class="text-end">Balance</th>
+                                                <th class="text-center">Actions</th>
                                             </tr>
                                         </thead>
                                         <tbody id="loanDetailBody"></tbody>
                                         <tfoot class="fw-bold">
                                             <tr>
-                                                <td colspan="6" class="text-end">NET BALANCE:</td>
+                                                <td colspan="7" class="text-end">NET BALANCE:</td>
                                                 <td class="text-end" id="loanDetailBalance">0</td>
                                             </tr>
                                         </tfoot>

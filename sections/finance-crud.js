@@ -972,6 +972,9 @@ async function handleEditTransactionSubmit(e) {
     // Refresh Account List, Cash, etc.
     if (typeof renderAccountList === 'function') renderAccountList();
     if (typeof renderCashBalance === 'function') renderCashBalance();
+
+    // ✅ Loan Management UI refresh — loan-management.js এ event listener আছে
+    document.dispatchEvent(new CustomEvent('loanTransactionEdited'));
   }
 }
 

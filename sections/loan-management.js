@@ -418,130 +418,19 @@ window.deleteLoanTransaction = deleteLoanTransaction;
 // ===================================
 // EDIT TRANSACTION
 // ===================================
-function editTransaction(txId) {
-  const sid = String(txId);
-  const tx = (window.globalData.finance || []).find(f => String(f.id) === sid);
-  if (!tx) {
-    if (typeof showErrorToast === 'function') showErrorToast('Transaction not found.');
-    return;
-  }
+// editTransaction এবং handleEditTransactionSubmit finance-crud.js এ defined।
+// loan management ট্যাব থেকে edit করার পর লোন UI রিফ্রেশ করতে হবে।
+// তাই finance-crud.js এর handleEditTransactionSubmit এর পর loan refresh করার জন্য
+// একটা hook ব্যবহার করা হচ্ছে — loan-management.js এ duplicate function নেই।
 
-  const modal = document.getElementById('editTransactionModal');
-  const form = document.getElementById('editTransactionForm');
-  if (!modal || !form) {
-    if (typeof showErrorToast === 'function') showErrorToast('Edit modal not found in HTML.');
-    return;
-  }
-
-  form.elements['transactionId'].value = sid;
-  form.elements['type'].value = tx.type || 'Income';
-  form.elements['date'].value = tx.date || '';
-  form.elements['amount'].value = tx.amount || '';
-  form.elements['category'].value = tx.category || '';
-  form.elements['description'].value = tx.description || tx.notes || '';
-
-  const methodSelect = document.getElementById('editTransMethodSelect');
-  if (methodSelect) {
-    methodSelect.innerHTML = '';
-
-    const cashOpt = document.createElement('option');
-    cashOpt.value = 'Cash';
-    cashOpt.textContent = 'Cash';
-    methodSelect.appendChild(cashOpt);
-
-    (window.globalData.accounts || []).forEach(acc => {
-      const opt = document.createElement('option');
-      opt.value = acc.name;
-      opt.textContent = acc.name;
-      methodSelect.appendChild(opt);
-    });
-
-    (window.globalData.mobileBanking || []).forEach(mb => {
-      const opt = document.createElement('option');
-      opt.value = mb.name;
-      opt.textContent = mb.name;
-      methodSelect.appendChild(opt);
-    });
-
-    methodSelect.value = tx.method || 'Cash';
-  }
-
-  try {
-    const bsModal = new bootstrap.Modal(modal);
-    bsModal.show();
-  } catch (err) {
-    console.error('editTransaction modal error:', err);
-  }
-}
-
-async function handleEditTransactionSubmit(e) {
-  e.preventDefault();
-  const form = e.target;
-  const fd = new FormData(form);
-
-  const txId = String(fd.get('transactionId'));
-  const idx = (window.globalData.finance || []).findIndex(f => String(f.id) === txId);
-  if (idx === -1) {
-    if (typeof showErrorToast === 'function') showErrorToast('Transaction not found to update.');
-    return;
-  }
-
-  const oldTx = window.globalData.finance[idx];
-
-  // ✅ FIX: Use canonical feApplyEntryToAccount (finance-engine.js)
-  if (typeof window.feApplyEntryToAccount === 'function') {
-    window.feApplyEntryToAccount(oldTx, -1); // Reverse old balance
-  } else if (typeof updateAccountBalance === 'function') {
-    updateAccountBalance(oldTx.method, oldTx.amount, oldTx.type, false);
-  }
-
-  const updatedTx = {
-    ...oldTx,
-    type: fd.get('type'),
-    method: fd.get('method'),
-    date: fd.get('date'),
-    amount: parseFloat(fd.get('amount')) || 0,
-    category: fd.get('category') || oldTx.category,
-    description: fd.get('description') || '',
-    notes: fd.get('description') || oldTx.notes || '',
-    lastEdited: new Date().toISOString(),
-    _updatedAt: new Date().toISOString() // ✅ V39.10 FIX: real edit time for sync conflict resolution
-  };
-
-  window.globalData.finance[idx] = updatedTx;
-
-  // ✅ FIX: Use canonical feApplyEntryToAccount (finance-engine.js)
-  if (typeof window.feApplyEntryToAccount === 'function') {
-    window.feApplyEntryToAccount(updatedTx, +1); // Apply new balance
-  } else if (typeof updateAccountBalance === 'function') {
-    updateAccountBalance(updatedTx.method, updatedTx.amount, updatedTx.type, true);
-  }
-
-  if (typeof window.markDirty === 'function') window.markDirty('finance');
-  if (typeof saveToStorage === 'function') await saveToStorage();
-  if (typeof window.scheduleSyncPush === 'function') window.scheduleSyncPush('Loan Edit: ' + (updatedTx.person || 'Unknown'));
-
-  const modalEl = document.getElementById('editTransactionModal');
-  if (modalEl) {
-    const bsModal = bootstrap.Modal.getInstance(modalEl);
-    if (bsModal) bsModal.hide();
-  }
-
-  if (typeof renderLedger === 'function') renderLedger(window.globalData.finance);
-  if (typeof updateGlobalStats === 'function') updateGlobalStats();
+// finance-crud.js এর editTransaction ব্যবহার হবে (lazy loading + person field support সহ)
+// এই file এ শুধু loan-specific after-edit refresh এর জন্য event listen করা হয়:
+document.addEventListener('loanTransactionEdited', function() {
   if (typeof renderLoanSummary === 'function') renderLoanSummary();
   if (window.currentLoanPerson && typeof openLoanDetail === 'function') {
     openLoanDetail(window.currentLoanPerson);
   }
-
-  if (typeof showSuccessToast === 'function') showSuccessToast('✅ Transaction updated successfully!');
-  if (typeof logActivity === 'function') {
-    logActivity('finance', 'EDIT', 'Updated transaction: ' + updatedTx.type + ' | ' + updatedTx.category + ' | ৳' + updatedTx.amount + ' (Person: ' + (updatedTx.person || '-') + ')');
-  }
-}
-
-window.editTransaction = editTransaction;
-window.handleEditTransactionSubmit = handleEditTransactionSubmit;
+});
 
 // ===================================
 // ✅ SETTLED PERSONS TOGGLE & DELETE
@@ -570,57 +459,50 @@ window.toggleSettledPersons = toggleSettledPersons;
 window.deleteAllLoanRecords = deleteAllLoanRecords;
 
 // ===================================
-// ✅ FINANCE MODAL PERSON DATALIST FIX
+// ✅ FINANCE MODAL PERSON DATALIST
 // ===================================
-// finance-modal.html লোড হওয়ার পর financePersonDatalist inject করে
-// এবং type select এ onchange hook করে
-(function hookFinanceModalPersonDropdown() {
-  function _doHook() {
-    const financeModal = document.getElementById('financeModal');
-    if (!financeModal) return false;
+// financeModal load হওয়ার পর section-loader.js এর openAddTransaction callback থেকে
+// window._setupFinanceModalLoanPersonDropdown() call করা হয়।
+// এখানে শুধু সেই setup function define করা হচ্ছে।
+window._setupFinanceModalLoanPersonDropdown = function() {
+  const financeModal = document.getElementById('financeModal');
+  if (!financeModal || financeModal._loanPersonSetupDone) return;
+  financeModal._loanPersonSetupDone = true;
 
-    financeModal.addEventListener('show.bs.modal', function() {
-      setTimeout(function() {
-        // person input খোঁজো
-        const personInput = financeModal.querySelector('input[name="person"], #financePerson');
-        if (personInput && !document.getElementById('financePersonDatalist')) {
-          // datalist তৈরি করো যদি না থাকে
-          const dl = document.createElement('datalist');
-          dl.id = 'financePersonDatalist';
-          personInput.setAttribute('list', 'financePersonDatalist');
-          personInput.setAttribute('autocomplete', 'off');
-          personInput.parentNode.appendChild(dl);
+  // প্রতিবার modal খোলার সময় datalist ও hook ঠিক করো
+  financeModal.addEventListener('show.bs.modal', function() {
+    const personInput = financeModal.querySelector('input[name="person"], #financePerson');
+    if (personInput) {
+      // datalist inject করো যদি না থাকে
+      if (!document.getElementById('financePersonDatalist')) {
+        const dl = document.createElement('datalist');
+        dl.id = 'financePersonDatalist';
+        personInput.setAttribute('list', 'financePersonDatalist');
+        personInput.setAttribute('autocomplete', 'off');
+        personInput.parentNode.appendChild(dl);
+      }
+      // hint div inject করো যদি না থাকে
+      if (!document.getElementById('financePersonHint')) {
+        const hint = document.createElement('div');
+        hint.id = 'financePersonHint';
+        hint.className = 'form-text text-info d-none';
+        hint.style.fontSize = '0.78rem';
+        hint.textContent = '💡 Loan type selected — existing loan persons shown in dropdown';
+        personInput.parentNode.appendChild(hint);
+      }
+    }
 
-          // hint div তৈরি করো
-          if (!document.getElementById('financePersonHint')) {
-            const hint = document.createElement('div');
-            hint.id = 'financePersonHint';
-            hint.className = 'form-text text-info d-none';
-            hint.style.fontSize = '0.78rem';
-            hint.textContent = '💡 Loan type selected — existing loan persons shown in dropdown';
-            personInput.parentNode.appendChild(hint);
-          }
-        }
-
-        // type select এ hook
-        const typeSelect = financeModal.querySelector('select[name="type"], #financeType');
-        if (typeSelect && !typeSelect._loanHooked) {
-          typeSelect._loanHooked = true;
-          typeSelect.addEventListener('change', function() {
-            if (typeof onFinanceTypeChange === 'function') onFinanceTypeChange(this);
-          });
-          // current value এ trigger
-          if (typeof onFinanceTypeChange === 'function') onFinanceTypeChange(typeSelect);
-        }
-      }, 100);
-    });
-
-    return true;
-  }
-
-  if (document.readyState === 'loading') {
-    document.addEventListener('DOMContentLoaded', () => setTimeout(_doHook, 1500));
-  } else {
-    setTimeout(_doHook, 1500);
-  }
-})();
+    // type select এ onchange hook করো (একবারই)
+    const typeSelect = financeModal.querySelector('select[name="type"], #financeType');
+    if (typeSelect && !typeSelect._loanHooked) {
+      typeSelect._loanHooked = true;
+      typeSelect.addEventListener('change', function() {
+        if (typeof window.onFinanceTypeChange === 'function') window.onFinanceTypeChange(this);
+      });
+    }
+    // current type value এর জন্য immediately trigger
+    if (typeSelect && typeof window.onFinanceTypeChange === 'function') {
+      window.onFinanceTypeChange(typeSelect);
+    }
+  });
+};
