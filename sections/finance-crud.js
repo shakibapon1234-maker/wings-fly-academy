@@ -593,8 +593,15 @@ async function handleFinanceSubmit(e) {
   form.querySelector('input[name="date"]').value = today;
 
   showSuccessToast('Transaction added successfully!');
-  if (typeof logActivity === 'function') logActivity('finance', 'ADD',
-    (formData.type || 'Transaction') + ': ' + (formData.category || '') + ' - ৳' + (formData.amount || 0) + ' | ' + (formData.description || ''));
+  if (typeof logActivity === 'function') {
+    const _logPerson = (formData.person || '').trim();
+    const _logDesc = (formData.type || 'Transaction') + ': ' + (formData.category || '') +
+      ' | ৳' + (formData.amount || 0) +
+      (_logPerson ? ' | Person: ' + _logPerson : '') +
+      (formData.description ? ' | ' + formData.description : '') +
+      ' | Date: ' + (formData.date || '');
+    logActivity('finance', 'ADD', _logDesc);
+  }
   updateGlobalStats(); if (typeof renderFinanceTable === "function") renderFinanceTable();
 
   // ✅ FIX: Loan transaction হলে Loan Management UI রিফ্রেশ করো

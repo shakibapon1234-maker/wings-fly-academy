@@ -429,6 +429,8 @@
       if (typeof window.renderCashBalance === 'function') window.renderCashBalance();
       if (typeof window.updateGrandTotal === 'function') window.updateGrandTotal();
       if (typeof window.renderRecycleBin === 'function') window.renderRecycleBin();
+      // ✅ Loan Management UI refresh — finance type restore হলে loan summary আপডেট হবে
+      if (typeof window.renderLoanSummary === 'function') window.renderLoanSummary();
     }, 100);
 
     if (typeof showSuccessToast === 'function') showSuccessToast('✅ ' + name + ' restored successfully!');

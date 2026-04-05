@@ -445,12 +445,24 @@ function deleteAllLoanRecords(person) {
   const LOAN_TYPES = ['Loan Given', 'Loan Giving', 'Loan Received', 'Loan Receiving'];
   (window.globalData.finance || []).forEach(tx => {
     if ((tx.person || '').trim() === person && LOAN_TYPES.includes(tx.type) && !tx._deleted) {
-      tx._deleted = true;
-      tx._deletedAt = new Date().toISOString();
+      // ✅ feSoftDeleteEntry ব্যবহার করো — account balance সঠিক reverse হবে
+      if (typeof window.feSoftDeleteEntry === 'function') {
+        window.feSoftDeleteEntry(String(tx.id));
+      } else {
+        if (typeof updateAccountBalance === 'function') {
+          updateAccountBalance(tx.method, tx.amount, tx.type, false);
+        }
+        tx._deleted = true;
+        tx._deletedAt = new Date().toISOString();
+      }
       if (typeof moveToTrash === 'function') moveToTrash('finance', tx);
     }
   });
+  if (typeof logActivity === 'function') {
+    logActivity('finance', 'DELETE', `🗑️ Deleted all loan records for: ${person}`);
+  }
   if (typeof saveToStorage === 'function') saveToStorage(true);
+  if (typeof window.scheduleSyncPush === 'function') window.scheduleSyncPush('Delete All Loans: ' + person);
   if (typeof renderLoanSummary === 'function') renderLoanSummary();
   if (typeof showSuccessToast === 'function') showSuccessToast(`✅ ${person} এর সব loan records deleted!`);
 }
