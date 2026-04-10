@@ -1,7 +1,7 @@
 /**
  * ════════════════════════════════════════════════════════════════
  * WINGS FLY AVIATION ACADEMY
- * SMART SYNC SYSTEM — V39.1 "PATCH + CASH SYNC FIX"
+ * SMART SYNC SYSTEM — V39.12 "PATCH + PREFIX GHOST FIX"
  * ════════════════════════════════════════════════════════════════
  *
  * ✅ V39.0 — 4টি Critical Bug Permanently Fixed:
@@ -39,6 +39,19 @@
  *     → Monitor interval 60s → 15s করা হয়েছে
  *     → cashBalance change আলাদাভাবে track করে
  *       সাথে সাথে push trigger করে
+ *
+ * ✅ V39.12 — PREFIX GHOST RECORD FIX:
+ *
+ *   BUG 7 FIX — SENDBACON PREFIXED ID BUG:
+ *     → sendBeacon (page close) finance rows-এ prefix দিতো
+ *       (wingsfly_main_fin_*) কিন্তু regular push দিতো না
+ *     → ফলে cloud-এ duplicate ghost rows তৈরি হতো
+ *     → delete markers শুধু non-prefixed ID target করতো
+ *     → dead code: String(x) !== `${x}` সবসময় false ছিলো
+ *     → FIX: sendBeacon consistent ID ব্যবহার করে
+ *     → FIX: delete markers BOTH prefixed + non-prefixed push করে
+ *     → FIX: cleanupPrefixedRows() existing ghost rows মুছে দেয়
+ *     → FIX: diagnostic prefixed rows filter করে সঠিক count দেখায়
  *
  * ════════════════════════════════════════════════════════════════
  */
@@ -1145,12 +1158,10 @@
             stuDelItems.forEach(item => {
               const recId = _getDeletedRecordId(item, 'student');
               if (!recId) return;
-              // ✅ V39.9 FIX: Push BOTH prefixed AND original row as deleted
+              // ✅ V39.12 FIX: Push BOTH non-prefixed AND prefixed versions as deleted
               stuDelRows.push({ id: `${recId}`, academy_id: CFG.ACADEMY_ID, data: null, deleted: true });
-              // Also soft-delete the original (non-prefixed) row if it exists
-              if (String(recId) !== `${recId}`) {
-                stuDelRows.push({ id: String(recId), academy_id: CFG.ACADEMY_ID, data: null, deleted: true });
-              }
+              // Also delete the PREFIXED version (created by sendBeacon on page close)
+              stuDelRows.push({ id: `${CFG.ACADEMY_ID}_stu_${recId}`, academy_id: CFG.ACADEMY_ID, data: null, deleted: true });
             });
             if (stuDelRows.length > 0) {
               const resDel = await _sb.from(CFG.TBL_STUDENTS).upsert(stuDelRows, { onConflict: 'id' });
@@ -1204,12 +1215,10 @@
             finDelItems.forEach(item => {
               const recId = _getDeletedRecordId(item, 'finance');
               if (!recId) return;
-              // ✅ V39.9 FIX: Push BOTH prefixed AND original row as deleted
+              // ✅ V39.12 FIX: Push BOTH non-prefixed AND prefixed versions as deleted
               finDelRows.push({ id: `${recId}`, academy_id: CFG.ACADEMY_ID, data: null, deleted: true });
-              // Also soft-delete the original (non-prefixed) row if it exists
-              if (String(recId) !== `${recId}`) {
-                finDelRows.push({ id: String(recId), academy_id: CFG.ACADEMY_ID, data: null, deleted: true });
-              }
+              // Also delete the PREFIXED version (created by sendBeacon on page close)
+              finDelRows.push({ id: `${CFG.ACADEMY_ID}_fin_${recId}`, academy_id: CFG.ACADEMY_ID, data: null, deleted: true });
             });
             if (finDelRows.length > 0) {
               const resDel = await _sb.from(CFG.TBL_FINANCE).upsert(finDelRows, { onConflict: 'id' });
@@ -1262,12 +1271,10 @@
             empDelItems.forEach(item => {
               const recId = _getDeletedRecordId(item, 'employee');
               if (!recId) return;
-              // ✅ V39.9 FIX: Push BOTH prefixed AND original row as deleted
+              // ✅ V39.12 FIX: Push BOTH non-prefixed AND prefixed versions as deleted
               empDelRows.push({ id: `${recId}`, academy_id: CFG.ACADEMY_ID, data: null, deleted: true });
-              // Also soft-delete the original (non-prefixed) row if it exists
-              if (String(recId) !== `${recId}`) {
-                empDelRows.push({ id: String(recId), academy_id: CFG.ACADEMY_ID, data: null, deleted: true });
-              }
+              // Also delete the PREFIXED version (created by sendBeacon on page close)
+              empDelRows.push({ id: `${CFG.ACADEMY_ID}_emp_${recId}`, academy_id: CFG.ACADEMY_ID, data: null, deleted: true });
             });
             if (empDelRows.length > 0) {
               const resDel = await _sb.from(CFG.TBL_EMPLOYEES).upsert(empDelRows, { onConflict: 'id' });
@@ -1681,8 +1688,9 @@
           catch (e) { fetch(stuUrl, { method: 'POST', headers: hdrs, body: JSON.stringify(allStuRows), keepalive: true }).catch(() => { }); }
         }
         if (_dirty.has('finance') && (gd.finance || []).length > 0) {
+          // ✅ V39.12 FIX: Use consistent non-prefixed IDs (was creating duplicates with prefix)
           const finRows = (gd.finance || []).slice(0, 50).map(f => ({
-            id: `${CFG.ACADEMY_ID}_fin_${f.id}`, academy_id: CFG.ACADEMY_ID, data: f, deleted: false
+            id: `${f.id || f.timestamp}`, academy_id: CFG.ACADEMY_ID, data: f, deleted: false
           }));
           // ✅ FIX: Delete markers ও push করো
           const finDel = (gd.deletedItems?.finance || []).slice(0, 50).map(d => {
@@ -1943,6 +1951,53 @@
       if (pulled && typeof window.renderFullUI === 'function') window.renderFullUI();
       _showUserMessage('Version sync সম্পন্ন।', 'success');
       return pulled;
+    },
+
+    // ✅ V39.12: Cleanup prefixed duplicate rows in cloud
+    // sendBeacon used to create rows with prefixed IDs (wingsfly_main_fin_*) causing ghost records
+    cleanupPrefixedRows: async function () {
+      if (!_sb || !CFG.URL || !CFG.KEY) { _showUserMessage('❌ Supabase not configured', 'error'); return false; }
+      _log('🧹', '═══ PREFIX CLEANUP STARTED ═══');
+      _syncBusy = true;
+      try {
+        const aid = encodeURIComponent(CFG.ACADEMY_ID);
+        const hdrs = { apikey: CFG.KEY, Authorization: 'Bearer ' + CFG.KEY };
+        // Fetch all IDs from each partial table
+        const tables = [
+          { name: CFG.TBL_FINANCE, prefix: '_fin_' },
+          { name: CFG.TBL_STUDENTS, prefix: '_stu_' },
+          { name: CFG.TBL_EMPLOYEES, prefix: '_emp_' }
+        ];
+        let totalCleaned = 0;
+        for (const tbl of tables) {
+          const url = `${CFG.URL}/rest/v1/${tbl.name}?academy_id=eq.${aid}&select=id&limit=5000`;
+          const res = await fetch(url, { headers: hdrs });
+          if (!res.ok) continue;
+          const rows = await res.json();
+          const prefixed = rows.filter(r => String(r.id || '').includes(tbl.prefix));
+          if (prefixed.length === 0) continue;
+          // Delete prefixed rows via Supabase REST
+          for (const row of prefixed) {
+            const delUrl = `${CFG.URL}/rest/v1/${tbl.name}?id=eq.${encodeURIComponent(row.id)}&academy_id=eq.${aid}`;
+            await fetch(delUrl, { method: 'DELETE', headers: { ...hdrs, 'Content-Type': 'application/json' } });
+          }
+          totalCleaned += prefixed.length;
+          _log('🧹', `Cleaned ${prefixed.length} prefixed rows from ${tbl.name}`);
+        }
+        // After cleanup, push correct cash_balance
+        _rebuildBalancesSafe();
+        const gd = window.globalData;
+        if (gd) {
+          await _sb.from(CFG.TABLE).update({ cash_balance: gd.cashBalance || 0, last_updated: new Date().toISOString(), last_device: DEVICE_ID }).eq('id', CFG.RECORD);
+        }
+        _log('🎉', `═══ PREFIX CLEANUP DONE — ${totalCleaned} ghost rows removed ═══`);
+        _showUserMessage(`✅ ${totalCleaned} টি ghost record পরিষ্কার হয়েছে!`, 'success');
+        return totalCleaned;
+      } catch (err) {
+        _log('❌', 'PREFIX CLEANUP FAILED:', err);
+        _showUserMessage('❌ Cleanup failed: ' + (err.message || err), 'error');
+        return false;
+      } finally { _syncBusy = false; }
     },
 
     // ✅ V39.11: NUCLEAR FORCE CLEAN SYNC

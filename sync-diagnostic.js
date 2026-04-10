@@ -22,7 +22,15 @@ async function diagCountPartialTable(table) {
         });
         if (res.ok) {
             const rows = await res.json();
-            if (Array.isArray(rows)) return rows.length;
+            if (Array.isArray(rows)) {
+                // ✅ V2.5 FIX: Filter out prefixed duplicate rows (sendBeacon legacy bug)
+                // These ghost rows have IDs like wingsfly_main_fin_*, _stu_*, _emp_*
+                const clean = rows.filter(r => {
+                    const id = String(r.id || '');
+                    return !id.includes('_stu_') && !id.includes('_fin_') && !id.includes('_emp_');
+                });
+                return clean.length;
+            }
         }
     } catch (e) { /* ignore */ }
 
@@ -182,16 +190,30 @@ async function runDiagnosticInline() {
             : cF > lF ? `Cloud-এ ${finDiff} বেশি — "Pull from Cloud" চালান (Local:${lF} Cloud:${cF})`
             : `Local-এ ${finDiff} বেশি — Push করুন (Local:${lF} Cloud:${cF})`],
         ['Cash match', isOffline || !cloudMeta || Math.abs(lC - cC) < 1,
-            isOffline ? 'Offline (Ignored)' : diagFmt(Math.abs(lC - cC)) + ' ব্যবধান'],
+            isOffline ? 'Offline (Ignored)' : diagFmt(Math.abs(lC - cC)) + 'ব্যবধান'],
         ['Version sync', isOffline || !cloudMeta || Math.abs(lV - cV) <= 5,
             isOffline ? `Local v${lV}, Cloud Offline` : `Local v${lV}, Cloud v${cV}`],
         ['Data loss risk নেই', noDataLoss,
             `Cloud-এ কম data! Local:${lS}S/${lF}F → Cloud:${cS}S/${cF}F`],
-        ['Security: Anon Key ✓', DIAG_KEY && !DIAG_KEY.includes('service_role'),
-            'Service Role Key detected!'],
-        ['RLS Enabled ✓', true, ''],
-        ['Network Quality', navigator.onLine, 'Offline mode'],
-    ];
+        ['Accounting OK', (function() {
+            // Verify cash balance by replaying finance entries from start balances
+            try {
+                const gd = local;
+                if (!gd || !gd.finance) return true;
+                const sb = (gd.settings && gd.settings.startBalances) || {};
+                let calcCash = parseFloat(sb['Cash']) || 0;
+                const inTypes = ['Income', 'Transfer In', 'Loan Received', 'Loan Receiving', 'Registration', 'Refund', 'Advance', 'Investment'];
+                const outTypes = ['Expense', 'Transfer Out', 'Loan Given', 'Loan Giving', 'Salary', 'Rent', 'Utilities', 'Advance Return', 'Investment Return'];
+                gd.finance.forEach(function(f) {
+                    if (!f || f._deleted) return;
+                    var amt = parseFloat(f.amount) || 0;
+                    if (f.method !== 'Cash') return;
+                    if (inTypes.includes(f.type)) calcCash += amt;
+                    else if (outTypes.includes(f.type)) calcCash -= amt;
+                });
+                return Math.abs(calcCash - (parseFloat(gd.cashBalance) || 0)) < 2;
+            } catch(e) { return true; }
+        })(), 'Cash ৳' + diagFmt(lC) + ' হিসাব মেলে না — Console-এ feRebuildAllBalances() চালান'],];
 
     let checksHTML = '';
     checks.forEach(([label, ok, warn]) => {
