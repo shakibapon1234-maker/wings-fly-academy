@@ -1180,10 +1180,23 @@
                                         (function () {
                                             const orig = window.switchSettingsTab;
                                             if (typeof orig === 'function') {
-                                                window.switchSettingsTab = function (id, btn) { orig(id, btn); if (id === 'tab-security') setTimeout(scLoad, 80); };
+                                                // ✅ FIX: General tab খুললেও scLoad চালাও — date range restore হবে
+                                                window.switchSettingsTab = function (id, btn) {
+                                                    orig(id, btn);
+                                                    if (id === 'tab-security' || id === 'tab-general') setTimeout(scLoad, 80);
+                                                };
                                             }
                                             document.addEventListener('DOMContentLoaded', function () {
                                                 setTimeout(function () { const t = document.getElementById('tab-security'); if (t && t.style.display !== 'none') scLoad(); }, 700);
+                                            });
+                                            // ✅ FIX: Settings modal দেখালেই scLoad চালাও — General tab-এর date values restore হবে
+                                            document.addEventListener('DOMContentLoaded', function () {
+                                                var sMod = document.getElementById('settingsModal');
+                                                if (sMod) {
+                                                    sMod.addEventListener('shown.bs.modal', function () {
+                                                        setTimeout(scLoad, 100);
+                                                    });
+                                                }
                                             });
                                         })();
                                     </script>

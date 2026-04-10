@@ -87,15 +87,28 @@ function updateGlobalStats() {
 
   // Expense: date range দিলে filter করো, না দিলে all-time
   let runTotalExpense = 0;
-  if (expenseDateStart || expenseDateEnd) {
+  // ✅ FIX: Date validation — valid YYYY-MM-DD format কিনা চেক করো
+  const _validDate = (d) => d && /^\d{4}-\d{2}-\d{2}$/.test(d);
+  const _dsValid = _validDate(expenseDateStart);
+  const _deValid = _validDate(expenseDateEnd);
+
+  if (_dsValid || _deValid) {
     (globalData.finance || []).forEach(f => {
       if (f._deleted) return;
       if (!STAT_EXPENSE_TYPES.includes(f.type)) return;
       const fDate = f.date || f.createdAt || '';
-      const afterStart = !expenseDateStart || fDate >= expenseDateStart;
-      const beforeEnd  = !expenseDateEnd   || fDate <= expenseDateEnd;
+      const afterStart = !_dsValid || fDate >= expenseDateStart;
+      const beforeEnd  = !_deValid || fDate <= expenseDateEnd;
       if (afterStart && beforeEnd) runTotalExpense += parseFloat(f.amount) || 0;
     });
+
+    // ✅ FIX: Date filter-এ 0 পাওয়া গেলে কিন্তু all-time expense থাকলে warning দাও
+    // এটা সাধারণত পুরনো/ভুল date range সেট থাকলে হয়
+    if (runTotalExpense === 0 && allTotalExpense > 0) {
+      console.warn('⚠️ Dashboard: Expense Date Range (' + expenseDateStart + ' ~ ' + expenseDateEnd +
+        ') তে কোনো expense পাওয়া যায়নি, কিন্তু all-time expense আছে ৳' + allTotalExpense +
+        '। Settings → General → Expense Date Range চেক করুন।');
+    }
   } else {
     runTotalExpense = allTotalExpense; // Date range না দিলে all-time expense
   }
