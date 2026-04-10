@@ -170,20 +170,50 @@
                                                 </div>
                                                 <div class="mb-3">
                                                     <label class="form-label fw-semibold">Expense Date Range</label>
-                                                    <p class="small text-muted mb-2">এই date range এর মধ্যের খরচ দেখাবে Dashboard এর Running Batch Overview তে।</p>
+                                                    <p class="small text-muted mb-2">শুধু Start Date সেট করুন। End Date সবসময় আজকের তারিখ পর্যন্ত অটো-আপডেট হবে।</p>
                                                     <div class="row g-2">
                                                         <div class="col-6">
-                                                            <label class="small text-muted mb-1">From</label>
-                                                            <input type="date" id="runningBatchDateStart" class="form-control premium-input-modern" />
+                                                            <label class="small text-muted mb-1">From (শুরু)</label>
+                                                            <input type="text" id="runningBatchDateStart" class="form-control premium-input-modern"
+                                                                placeholder="DD-MM-YYYY" maxlength="10"
+                                                                oninput="window._autoFormatDateInput && window._autoFormatDateInput(this)" />
                                                         </div>
                                                         <div class="col-6">
-                                                            <label class="small text-muted mb-1">To</label>
-                                                            <input type="date" id="runningBatchDateEnd" class="form-control premium-input-modern" />
+                                                            <label class="small text-muted mb-1">To (আজ পর্যন্ত) <span class="badge bg-success bg-opacity-25 text-success ms-1" style="font-size:0.65rem;">AUTO</span></label>
+                                                            <div class="form-control premium-input-modern d-flex align-items-center" id="runningBatchDateEndDisplay"
+                                                                style="background:rgba(0,255,136,0.06);border-color:rgba(0,255,136,0.25);cursor:default;opacity:0.85;">
+                                                                <span id="runningBatchDateEndText" style="color:#00ff88;font-weight:600;">—</span>
+                                                            </div>
+                                                            <!-- hidden field for compatibility -->
+                                                            <input type="hidden" id="runningBatchDateEnd" value="" />
                                                         </div>
                                                     </div>
+                                                    <script>
+                                                        // ✅ Auto-format DD-MM-YYYY as user types
+                                                        window._autoFormatDateInput = function(el) {
+                                                            var v = el.value.replace(/[^0-9]/g, '');
+                                                            if (v.length > 8) v = v.slice(0, 8);
+                                                            if (v.length >= 5) v = v.slice(0,2) + '-' + v.slice(2,4) + '-' + v.slice(4);
+                                                            else if (v.length >= 3) v = v.slice(0,2) + '-' + v.slice(2);
+                                                            el.value = v;
+                                                        };
+                                                        // ✅ Update "To" display with today's date in DD-MM-YYYY
+                                                        window._updateExpenseEndDate = function() {
+                                                            var el = document.getElementById('runningBatchDateEndText');
+                                                            var hiddenEl = document.getElementById('runningBatchDateEnd');
+                                                            if (!el) return;
+                                                            var now = new Date();
+                                                            var dd = String(now.getDate()).padStart(2,'0');
+                                                            var mm = String(now.getMonth()+1).padStart(2,'0');
+                                                            var yyyy = now.getFullYear();
+                                                            el.textContent = dd + '-' + mm + '-' + yyyy;
+                                                            if (hiddenEl) hiddenEl.value = yyyy + '-' + mm + '-' + dd; // YYYY-MM-DD for internal use
+                                                        };
+                                                        window._updateExpenseEndDate();
+                                                    </script>
                                                 </div>
                                                 <div class="alert alert-info bg-dark border-info text-info small mb-0" style="border-radius:12px;">
-                                                    <i class="bi bi-info-circle me-2"></i> This setting controls which data is highlighted at the top of your dashboard. "All-Time" data will always be visible in the second row.
+                                                    <i class="bi bi-info-circle me-2"></i> Start Date সেট করলে সেই তারিখ থেকে আজ পর্যন্ত expense দেখাবে। Start Date খালি রাখলে সব expense দেখাবে।
                                                 </div>
                                             </div>
                                         </div>
@@ -913,13 +943,22 @@
                                                 const savedBatch = (window.globalData.settings && window.globalData.settings.runningBatch) || '';
                                                 rbSel.value = savedBatch;
                                             }
-                                            // ✅ Date Range restore
+                                            // ✅ Date Range restore — Start Date only (DD-MM-YYYY format)
                                             const dsEl = document.getElementById('runningBatchDateStart');
-                                            const deEl = document.getElementById('runningBatchDateEnd');
                                             const savedStart = (window.globalData.settings && window.globalData.settings.runningBatchDateStart) || '';
-                                            const savedEnd   = (window.globalData.settings && window.globalData.settings.runningBatchDateEnd)   || '';
-                                            if (dsEl) dsEl.value = savedStart;
-                                            if (deEl) deEl.value = savedEnd;
+                                            if (dsEl && savedStart) {
+                                                // Convert YYYY-MM-DD → DD-MM-YYYY for display
+                                                if (/^\d{4}-\d{2}-\d{2}$/.test(savedStart)) {
+                                                    var _sp = savedStart.split('-');
+                                                    dsEl.value = _sp[2] + '-' + _sp[1] + '-' + _sp[0];
+                                                } else {
+                                                    dsEl.value = savedStart; // Already DD-MM-YYYY
+                                                }
+                                            } else if (dsEl) {
+                                                dsEl.value = '';
+                                            }
+                                            // ✅ End Date = always today (auto-update)
+                                            if (typeof window._updateExpenseEndDate === 'function') window._updateExpenseEndDate();
                                         }
 
                                         function renderNewSubidPermGrid() {
@@ -1093,11 +1132,20 @@
                                             // ✅ Running Batch save
                                             const rbSelSave = document.getElementById('runningBatchSelect');
                                             if (rbSelSave) gd.settings.runningBatch = rbSelSave.value;
-                                            // ✅ Date Range save
+                                            // ✅ Date Range save — Start Date DD-MM-YYYY → YYYY-MM-DD
                                             const dsSave = document.getElementById('runningBatchDateStart');
-                                            const deSave = document.getElementById('runningBatchDateEnd');
-                                            if (dsSave) gd.settings.runningBatchDateStart = dsSave.value;
-                                            if (deSave) gd.settings.runningBatchDateEnd   = deSave.value;
+                                            if (dsSave) {
+                                                var _dsv = (dsSave.value || '').trim();
+                                                if (/^\d{2}-\d{2}-\d{4}$/.test(_dsv)) {
+                                                    var _dsp = _dsv.split('-');
+                                                    gd.settings.runningBatchDateStart = _dsp[2] + '-' + _dsp[1] + '-' + _dsp[0];
+                                                } else if (/^\d{4}-\d{2}-\d{2}$/.test(_dsv)) {
+                                                    gd.settings.runningBatchDateStart = _dsv;
+                                                } else {
+                                                    gd.settings.runningBatchDateStart = '';
+                                                }
+                                            }
+                                            gd.settings.runningBatchDateEnd = ''; // Always today (dynamic)
                                             // ✅ FIX: আগে localStorage এ save করো
                                             localStorage.setItem('wingsfly_data', JSON.stringify(gd));
                                             // ✅ FIX: Settings আলাদাভাবেও backup রাখো — cloud pull override করতে পারবে না
@@ -1151,11 +1199,22 @@
                                             // Running Batch
                                             const rbEl = document.getElementById('runningBatchSelect');
                                             if (rbEl) gd.settings.runningBatch = rbEl.value;
-                                            // Date Range
+                                            // Date Range — Start Date only (DD-MM-YYYY → YYYY-MM-DD for storage)
                                             const dsEl = document.getElementById('runningBatchDateStart');
-                                            const deEl = document.getElementById('runningBatchDateEnd');
-                                            if (dsEl) gd.settings.runningBatchDateStart = dsEl.value;
-                                            if (deEl) gd.settings.runningBatchDateEnd   = deEl.value;
+                                            if (dsEl) {
+                                                var _dsVal = (dsEl.value || '').trim();
+                                                if (/^\d{2}-\d{2}-\d{4}$/.test(_dsVal)) {
+                                                    // DD-MM-YYYY → YYYY-MM-DD
+                                                    var _dp = _dsVal.split('-');
+                                                    gd.settings.runningBatchDateStart = _dp[2] + '-' + _dp[1] + '-' + _dp[0];
+                                                } else if (/^\d{4}-\d{2}-\d{2}$/.test(_dsVal)) {
+                                                    gd.settings.runningBatchDateStart = _dsVal; // Already YYYY-MM-DD
+                                                } else {
+                                                    gd.settings.runningBatchDateStart = ''; // Clear if invalid/empty
+                                                }
+                                            }
+                                            // ✅ End Date = always today (not saved, calculated dynamically in dashboard)
+                                            gd.settings.runningBatchDateEnd = '';
                                             // Save
                                             localStorage.setItem('wingsfly_data', JSON.stringify(gd));
                                             localStorage.setItem('wingsfly_settings_backup', JSON.stringify(gd.settings));

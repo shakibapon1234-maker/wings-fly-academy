@@ -33,7 +33,10 @@ function updateGlobalStats() {
   const settings = globalData.settings || {};
   const selectedBatch = settings.runningBatch || '';
   const expenseDateStart = settings.runningBatchDateStart || '';
-  const expenseDateEnd   = settings.runningBatchDateEnd   || '';
+  // ✅ FIX: End Date সবসময় আজকের তারিখ — অটো-আপডেট হয়
+  const _now = new Date();
+  const _todayISO = _now.getFullYear() + '-' + String(_now.getMonth()+1).padStart(2,'0') + '-' + String(_now.getDate()).padStart(2,'0');
+  const expenseDateEnd = _todayISO;
 
   // Update Academy Name display (Only on Dashboard to avoid overwriting tab titles)
   const activeTab = localStorage.getItem('wingsfly_active_tab') || 'dashboard';
@@ -85,32 +88,30 @@ function updateGlobalStats() {
   let runExamIncome = 0;
   let runNonStudentIncome = 0;
 
-  // Expense: date range দিলে filter করো, না দিলে all-time
+  // Expense: Start Date সেট থাকলে সেই তারিখ থেকে আজ পর্যন্ত filter, না থাকলে all-time
   let runTotalExpense = 0;
   // ✅ FIX: Date validation — valid YYYY-MM-DD format কিনা চেক করো
   const _validDate = (d) => d && /^\d{4}-\d{2}-\d{2}$/.test(d);
   const _dsValid = _validDate(expenseDateStart);
-  const _deValid = _validDate(expenseDateEnd);
 
-  if (_dsValid || _deValid) {
+  if (_dsValid) {
     (globalData.finance || []).forEach(f => {
       if (f._deleted) return;
       if (!STAT_EXPENSE_TYPES.includes(f.type)) return;
       const fDate = f.date || f.createdAt || '';
-      const afterStart = !_dsValid || fDate >= expenseDateStart;
-      const beforeEnd  = !_deValid || fDate <= expenseDateEnd;
+      const afterStart = fDate >= expenseDateStart;
+      const beforeEnd  = fDate <= expenseDateEnd; // আজ পর্যন্ত (always today)
       if (afterStart && beforeEnd) runTotalExpense += parseFloat(f.amount) || 0;
     });
 
     // ✅ FIX: Date filter-এ 0 পাওয়া গেলে কিন্তু all-time expense থাকলে warning দাও
-    // এটা সাধারণত পুরনো/ভুল date range সেট থাকলে হয়
     if (runTotalExpense === 0 && allTotalExpense > 0) {
-      console.warn('⚠️ Dashboard: Expense Date Range (' + expenseDateStart + ' ~ ' + expenseDateEnd +
-        ') তে কোনো expense পাওয়া যায়নি, কিন্তু all-time expense আছে ৳' + allTotalExpense +
+      console.warn('⚠️ Dashboard: Expense Start Date (' + expenseDateStart +
+        ') থেকে আজ পর্যন্ত কোনো expense পাওয়া যায়নি, কিন্তু all-time expense আছে ৳' + allTotalExpense +
         '। Settings → General → Expense Date Range চেক করুন।');
     }
   } else {
-    runTotalExpense = allTotalExpense; // Date range না দিলে all-time expense
+    runTotalExpense = allTotalExpense; // Start Date না দিলে all-time expense
   }
 
   // Filter students by batch
