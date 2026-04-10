@@ -54,14 +54,9 @@
       pageSize:      20,
       scrollTarget:  'loanDetailBody'
     },
-    // ✅ FIX: Finance (Ledger) tab pagination
-    {
-      tbodyId:       'ledgerTableBody',
-      barId:         'ledgerPaginationBar',
-      renderFnName:  'renderLedger',
-      pageSize:      20,
-      scrollTarget:  'ledgerTableBody'
-    }
+    // NOTE: ledgerTableBody is NOT patched here because renderLedger()
+    // (in student-management.js) already has its own WFPaginator built in.
+    // Adding it here causes a MutationObserver conflict that breaks page 2+.
   ];
 
   // ── WAIT for WFPaginator ───────────────────────────────────
