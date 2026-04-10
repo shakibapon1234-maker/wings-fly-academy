@@ -50,9 +50,29 @@
   // ═══════════════════════════════════════════════
   // ── Helper: Ensure deletedItems is proper object (NOT array) ──
   function _ensureDeletedItems(gd) {
+    if (!gd) return;
     if (window.WingsUtils && window.WingsUtils.ensureDeletedItemsObject) {
       return window.WingsUtils.ensureDeletedItemsObject(gd);
     }
+    // Fallback: local conversion if WingsUtils not available
+    if (Array.isArray(gd.deletedItems)) {
+      var fixed = { students: [], finance: [], employees: [], other: [] };
+      (gd.deletedItems || []).forEach(function(item) {
+        if (!item) return;
+        var t = (item.type || '').toLowerCase();
+        if (t === 'student' || (item.item && typeof item.item.studentId !== 'undefined')) fixed.students.push(item);
+        else if (t === 'finance' || (item.item && typeof item.item.amount !== 'undefined')) fixed.finance.push(item);
+        else if (t === 'employee') fixed.employees.push(item);
+        else fixed.other.push(item);
+      });
+      gd.deletedItems = fixed;
+    } else if (!gd.deletedItems || typeof gd.deletedItems !== 'object') {
+      gd.deletedItems = { students: [], finance: [], employees: [], other: [] };
+    }
+    if (!Array.isArray(gd.deletedItems.students)) gd.deletedItems.students = [];
+    if (!Array.isArray(gd.deletedItems.finance)) gd.deletedItems.finance = [];
+    if (!Array.isArray(gd.deletedItems.employees)) gd.deletedItems.employees = [];
+    if (!Array.isArray(gd.deletedItems.other)) gd.deletedItems.other = [];
     return gd.deletedItems;
   }
 

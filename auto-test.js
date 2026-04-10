@@ -903,8 +903,12 @@
 
     // Recycle Bin
     const rb = gd.deletedItems || gd.recycleBin;
-    if (rb && Array.isArray(rb)) pass('Recycle Bin exists', `${rb.length}টি deleted items`);
-    else pass('Recycle Bin empty (OK)');
+    if (rb && typeof rb === 'object' && !Array.isArray(rb)) {
+      const rbCount = (rb.students||[]).length + (rb.finance||[]).length + (rb.employees||[]).length + (rb.other||[]).length;
+      pass('Recycle Bin exists (object)', `${rbCount}টি deleted items`);
+    } else if (rb && Array.isArray(rb)) {
+      pass('Recycle Bin exists (legacy array)', `${rb.length}টি deleted items`);
+    } else pass('Recycle Bin empty (OK)');
 
     // Activity Log
     if (exists('logActivity')) {

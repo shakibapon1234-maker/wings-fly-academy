@@ -283,32 +283,36 @@
   }
 
   // ── V39: ENSURE deletedItems IS ALWAYS OBJECT (never array) ──
-  // ✅ FIXED: deletedItems সবসময় array হবে যেখানে
-  // .students/.finance/.employees properties ও থাকবে
-  // এতে .some() (array method) এবং .students[] (object access) দুটোই কাজ করবে
+  // ✅ FIXED: deletedItems সবসময় plain object হবে
+  // {students:[], finance:[], employees:[], other:[]} — Array.isArray() === false
   function _ensureDeletedItemsObject(gd) {
     if (!gd) return;
     const di = gd.deletedItems;
-    if (!di) {
-      const arr = [];
-      arr.students = []; arr.finance = []; arr.employees = []; arr.other = [];
-      gd.deletedItems = arr;
-    } else if (!Array.isArray(di)) {
-      // Plain object → flat array তে convert করো, categories রাখো
-      const flat = [
-        ...(Array.isArray(di.students)  ? di.students  : []),
-        ...(Array.isArray(di.finance)   ? di.finance   : []),
-        ...(Array.isArray(di.employees) ? di.employees : []),
-        ...(Array.isArray(di.other)     ? di.other     : [])
-      ];
-      flat.students  = Array.isArray(di.students)  ? di.students  : [];
-      flat.finance   = Array.isArray(di.finance)   ? di.finance   : [];
-      flat.employees = Array.isArray(di.employees) ? di.employees : [];
-      flat.other     = Array.isArray(di.other)     ? di.other     : [];
-      if (di._clearedAt) flat._clearedAt = di._clearedAt;
-      gd.deletedItems = flat;
+    if (!di || typeof di !== 'object') {
+      // deletedItems নেই বা invalid → নতুন object তৈরি করো
+      gd.deletedItems = { students: [], finance: [], employees: [], other: [] };
+    } else if (Array.isArray(di)) {
+      // ✅ V39.2 FIX: Array → Object migration
+      // পুরনো flat array format থেকে categorized object-এ convert করো
+      const obj = { students: [], finance: [], employees: [], other: [] };
+      // Named properties (di.students, di.finance, etc.) preserve করো
+      if (Array.isArray(di.students))  obj.students  = di.students;
+      if (Array.isArray(di.finance))   obj.finance   = di.finance;
+      if (Array.isArray(di.employees)) obj.employees = di.employees;
+      if (Array.isArray(di.other))     obj.other     = di.other;
+      // Flat array items categorize করো (যদি named property-তে না থাকে)
+      di.forEach(function(item) {
+        if (!item || !item.type) return;
+        var t = (item.type || '').toLowerCase();
+        if (t === 'student' && obj.students.indexOf(item) === -1) obj.students.push(item);
+        else if (t === 'finance' && obj.finance.indexOf(item) === -1) obj.finance.push(item);
+        else if (t === 'employee' && obj.employees.indexOf(item) === -1) obj.employees.push(item);
+        else if (obj.other.indexOf(item) === -1) obj.other.push(item);
+      });
+      if (di._clearedAt) obj._clearedAt = di._clearedAt;
+      gd.deletedItems = obj;
     } else {
-      // Array আছে — object properties নিশ্চিত করো
+      // Already an object — sub-arrays নিশ্চিত করো
       if (!Array.isArray(di.students))  di.students  = [];
       if (!Array.isArray(di.finance))   di.finance   = [];
       if (!Array.isArray(di.employees)) di.employees = [];

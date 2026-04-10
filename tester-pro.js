@@ -127,14 +127,15 @@ window.SimulatorPro = (function () {
 
         // 3. DELETE (Trash)
         log('স্টুডেন্ট ডিলিট করে ট্র্যাশে পাঠানো হচ্ছে...', 'info');
-        const trashInitialCount = (window.globalData.deletedItems || []).length;
+        const _countTrash = function(di) { if (!di) return 0; if (Array.isArray(di)) return di.length; return (di.students||[]).length + (di.finance||[]).length + (di.employees||[]).length + (di.other||[]).length; };
+        const trashInitialCount = _countTrash(window.globalData.deletedItems);
         const idx = window.globalData.students.findIndex(s => s.studentId === testId);
         
         if (typeof window.deleteStudent === 'function') {
             window.deleteStudent(idx);
             
             // Verify Trash
-            const trashNewCount = (window.globalData.deletedItems || []).length;
+            const trashNewCount = _countTrash(window.globalData.deletedItems);
             if (trashNewCount <= trashInitialCount) {
                 log('সতর্কতা: স্টুডেন্ট ডিলিট হয়েছে কিন্তু ট্র্যাশে পাওয়া যায়নি।', 'warn');
             } else {
@@ -148,7 +149,8 @@ window.SimulatorPro = (function () {
         // 4. RESTORE (Partial implementation check)
         log('ট্র্যাশ থেকে রিস্টোর করার চেষ্টা করা হচ্ছে...', 'info');
         if (typeof window.restoreDeletedItem === 'function') {
-            const trashIdx = (window.globalData.deletedItems || []).findIndex(item => {
+            const allTrash = [].concat((window.globalData.deletedItems||{}).students||[], (window.globalData.deletedItems||{}).finance||[], (window.globalData.deletedItems||{}).employees||[], (window.globalData.deletedItems||{}).other||[]);
+            const trashIdx = allTrash.findIndex(item => {
                 const d = item.data || item;
                 return d.studentId === testId || d.name === studentName;
             });
@@ -304,8 +306,21 @@ window.SimulatorPro = (function () {
             });
         }
         
-        // 5. Cleanup Trash
-        if (Array.isArray(gd.deletedItems)) {
+        // 5. Cleanup Trash (deletedItems is now an object with sub-arrays)
+        if (gd.deletedItems && typeof gd.deletedItems === 'object' && !Array.isArray(gd.deletedItems)) {
+            ['students', 'finance', 'employees', 'other'].forEach(function(cat) {
+                if (Array.isArray(gd.deletedItems[cat])) {
+                    gd.deletedItems[cat] = gd.deletedItems[cat].filter(function(item) {
+                        var d = item.data || item.item || item;
+                        var sid = String(d.studentId || d.id || '');
+                        var name = String(d.name || '');
+                        if (sid.startsWith('SIM_S_') || name === 'Automated Tester (S)') return false;
+                        return true;
+                    });
+                }
+            });
+        } else if (Array.isArray(gd.deletedItems)) {
+            // Legacy array fallback
             gd.deletedItems = gd.deletedItems.filter(item => {
                 const d = item.data || item;
                 const sid = String(d.studentId || d.id || '');
