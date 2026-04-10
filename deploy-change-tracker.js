@@ -313,7 +313,12 @@
 
     removedKeys.forEach(key => {
       // wf_egress_ keys are temporary and cleaned up daily — ignore them
-      if ((key.startsWith('wingsfly') || key.startsWith('wf_')) && !key.startsWith('wf_egress_')) {
+      // wf_session_ keys are auth tokens that clear on logout — ignore them
+      // wf_tracker_dismissed_ keys are dismiss flags — ignore them
+      if ((key.startsWith('wingsfly') || key.startsWith('wf_'))
+          && !key.startsWith('wf_egress_')
+          && !key.startsWith('wf_session_')
+          && !key.startsWith('wf_tracker_dismissed_')) {
         changes.push({
           type: 'storage_lost',
           icon: '🗄️',
